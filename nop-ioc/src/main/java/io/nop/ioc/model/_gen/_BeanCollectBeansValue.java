@@ -70,7 +70,7 @@ public abstract class _BeanCollectBeansValue extends io.nop.core.resource.compon
      * xml name: ioc:optional
      * 
      */
-    private boolean _iocOptional  = false;
+    private boolean _iocOptional  = true;
     
     /**
      *  

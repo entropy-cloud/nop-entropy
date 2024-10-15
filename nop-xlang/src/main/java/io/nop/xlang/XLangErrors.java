@@ -688,7 +688,7 @@ public interface XLangErrors {
             ARG_NODE_A, ARG_NODE_B, ARG_ATTR_NAME, ARG_ATTR_VALUE);
 
     ErrorCode ERR_XDSL_NODE_UNIQUE_KEY_VALUE_NOT_ALLOW_EMPTY = define(
-            "nop.err.xlang.xdsl.node-unique-key-value-not-allow-empty", "节点[{node}]的唯一键[{attrName}]不为空", ARG_NODE,
+            "nop.err.xlang.xdsl.node-unique-key-value-not-allow-empty", "节点[{node}]的唯一键[{attrName}]不允许为空", ARG_NODE,
             ARG_ATTR_NAME);
 
     ErrorCode ERR_XDSL_NOT_ALLOW_MULTIPLE_SUPER = define("nop.err.xlang.xdsl.not-allow-multiple-super",

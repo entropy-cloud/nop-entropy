@@ -24,6 +24,10 @@ public class WfActorBean implements IWfActor {
 
     private transient Supplier<List<WfUserActorBean>> usersLoader;
 
+    public String toString() {
+        return "WfActorBean[actorType=" + actorType + ",actorId=" + actorId + ",deptId=" + deptId + ",actorName=" + actorName + "]";
+    }
+
     public List<WfUserActorBean> getUsers() {
         if (users == null && usersLoader != null) {
             users = usersLoader.get();

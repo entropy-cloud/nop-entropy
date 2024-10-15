@@ -109,6 +109,10 @@ public interface IServiceContext extends IExecutionContext, ISecurityContext {
     void setContext(IContext context);
 
     default String getUserId() {
+        IUserContext userContext = getUserContext();
+        if (userContext != null)
+            return userContext.getUserId();
+
         IContext ctx = getContext();
         return ctx == null ? null : ctx.getUserId();
     }

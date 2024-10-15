@@ -218,7 +218,7 @@ public class WfRuntime implements IWfRuntime {
 
     @Override
     public IWfActor getCaller() {
-        String userId = serviceContext.getContext().getUserId();
+        String userId = serviceContext.getUserId();
         if (userId == null)
             userId = IWfActor.SYS_USER_ID;
         return wf.resolveUser(userId);

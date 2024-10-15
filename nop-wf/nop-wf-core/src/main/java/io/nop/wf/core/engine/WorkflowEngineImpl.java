@@ -166,6 +166,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public void start(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
+        LOG.info("nop.wf.start:wfName={},wfVersion={},args={}", wf.getWfName(), wf.getWfVersion(), args);
+
         WfRuntime wfRt = newWfRuntime(wf, ctx);
         IWorkflowRecord record = wf.getRecord();
         if (record.getStatus() > NopWfCoreConstants.WF_STATUS_CREATED) {
@@ -313,6 +315,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 if (step.isWaiting()) {
                     wfRt.delayExecute(() -> checkWaitingJoinStep(step, wfRt));
                 }
+
+                LOG.info("nop.wf.enter-join-step-for-actor:wfName={},wfId={},stepName={},actor={}", wf.getWfName(), wf.getWfId(), stepModel.getName(), actor);
                 return step;
             }
         }
@@ -369,6 +373,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (stepModel.getJoinType() != null && step.isWaiting()) {
             wfRt.delayExecute(() -> checkWaitingJoinStep(step, wfRt));
         }
+
+        LOG.info("nop.wf.new-step-for-actor:wfName={},wfId={},stepName={},actor={}",
+                wf.getWfName(), wf.getWfId(), stepModel.getName(), actor);
 
         return step;
     }
@@ -591,6 +598,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public void suspend(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
+        LOG.info("nop.wf.suspend:wfName={},wfId={}", wf.getWfName(), wf.getWfId());
+
         if (wf.isSuspended())
             return;
 
@@ -615,6 +624,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public void resume(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
+        LOG.info("nop.wf.resume:wfName={},wfId={}", wf.getWfName(), wf.getWfId());
+
         if (!wf.isSuspended())
             return;
 
@@ -638,6 +649,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public void remove(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
+        LOG.info("nop.wf.remove:wfName={},wfId={}", wf.getWfName(), wf.getWfId());
+
         WfRuntime wfRt = newWfRuntime(wf, ctx);
         if (!wf.isEnded() && wf.isStarted())
             throw wfRt.newError(ERR_WF_NOT_ALLOW_REMOVE);
@@ -651,6 +664,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public void kill(IWorkflowImplementor wf, Map<String, Object> args, IServiceContext ctx) {
+        LOG.info("nop.wf.kill:wfName={},wfId={}", wf.getWfName(), wf.getWfId());
+
         if (wf.isEnded())
             return;
 
@@ -672,6 +687,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public void turnSignalOn(IWorkflowImplementor wf, Set<String> signals, IServiceContext ctx) {
+        LOG.info("nop.wf.turn-signals-on:wfName={},wfId={},signals={}", wf.getWfName(), wf.getWfId(), signals);
+
         if (signals == null || signals.isEmpty())
             return;
 
@@ -719,6 +736,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public void turnSignalOff(IWorkflowImplementor wf, Set<String> signals, IServiceContext ctx) {
+        LOG.info("nop.wf.turn-signals-off:wfName={},wfId={},signals={}", wf.getWfName(), wf.getWfId(), signals);
+
         if (signals == null || signals.isEmpty())
             return;
 
@@ -808,6 +827,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public void changeActor(IWorkflowStepImplementor step, IWfActor actor, IServiceContext ctx) {
+        LOG.info("nop.wf.change-actor:wfName={},wfId={},stepName={},stepId={},actor={}",
+                step.getWfName(), step.getWfId(), step.getStepName(), step.getStepId(), actor);
+
         WfRuntime wfRt = newWfRuntime(step, ctx);
         step.getRecord().setActor(actor);
         saveStepRecord(step);
@@ -816,6 +838,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public void changeOwner(IWorkflowStepImplementor step, String ownerId, IServiceContext ctx) {
+        LOG.info("nop.wf.change-owner:wfName={},wfId={},stepName={},stepId={},ownerId={}",
+                step.getWfName(), step.getWfId(), step.getStepName(), step.getStepId(), ownerId);
+
         WfRuntime wfRt = newWfRuntime(step, ctx);
         IWfActor owner = StringHelper.isEmpty(ownerId) ? null : resolveUser(ownerId);
         step.getRecord().setOwner(owner);
@@ -826,6 +851,10 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     @Override
     public IWorkflowStepImplementor transferToActor(IWorkflowStepImplementor step, WfActorAndOwner actorAndOwner,
                                                     IServiceContext ctx) {
+        LOG.info("nop.wf.transfer-to-actor:wfName={},wfId={},stepName={},stepId={},actorType={},actorId={},ownerId={}",
+                step.getWfName(), step.getWfId(), step.getStepName(), step.getStepId(),
+                actorAndOwner.getActorType(), actorAndOwner.getActorId(), actorAndOwner.getOwnerId());
+
         WfRuntime wfRt = newWfRuntime(step, ctx);
         IWfActor owner = StringHelper.isEmpty(actorAndOwner.getOwnerId()) ?
                 null : requireUser(actorAndOwner.getOwnerId(), wfRt);
@@ -873,6 +902,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public void killStep(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx) {
+        LOG.info("nop.wf.kill-step:wfName={},wfId={},stepName={},stepId={}",
+                step.getWfName(), step.getWfId(), step.getStepName(), step.getStepId());
+
         if (step.isHistory())
             return;
 
@@ -886,14 +918,15 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     }
 
     void _killStep(IWorkflowStepImplementor step, WfRuntime wfRt) {
-        LOG.info("nop.wf.kill-step:step={}", step);
-
         this.doExitStep(step, NopWfCoreConstants.WF_STEP_STATUS_KILLED, wfRt);
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_KILL_STEP);
     }
 
     @Override
     public boolean triggerTransition(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx) {
+        LOG.info("nop.wf.trigger-transition:wfName={},wfId={},stepName={}",
+                step.getWorkflow().getWfName(), step.getWorkflow().getWfId(), step.getStepName());
+
         WfRuntime wfRt = newWfRuntime(step, ctx);
         initArgs(wfRt, args);
         return runStepAutoTransition(step, wfRt);
@@ -901,6 +934,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public boolean triggerWaiting(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx) {
+        LOG.info("nop.wf.trigger-waiting:wfName={},wfId={},stepName={}",
+                step.getWorkflow().getWfName(), step.getWorkflow().getWfId(), step.getStepName());
+
         WfRuntime wfRt = newWfRuntime(step, ctx);
         initArgs(wfRt, args);
         return checkWaitingStep(step, wfRt);
@@ -975,6 +1011,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public Object invokeAction(IWorkflowStepImplementor step, String actionName, Map<String, Object> args, IServiceContext ctx) {
+        LOG.info("nop.wf.invoke-action:wfName={},wfId={},actionName={},args={}", step.getWfName(), step.getWfId(), actionName, args);
+
         WfRuntime wfRt = newWfRuntime(step, ctx);
         WfModel wfModel = wfRt.getWfModel();
 
@@ -1302,7 +1340,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (wf.isEnded())
             return;
 
-        LOG.debug("wf.end-workflow:wfName={},status={},wf={}", wf.getWfName(), status, wf.getRecord());
+        LOG.info("nop.wf.end-workflow:wfName={},status={},wf={}", wf.getWfName(), status, wf.getRecord());
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_BEFORE_END);
         IWorkflowRecord wfRecord = wf.getRecord();
         wfRecord.setEndTime(CoreMetrics.currentTimestamp());
@@ -1370,6 +1408,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public void logError(IWorkflowImplementor wf, String stepName, String actionName, Throwable e) {
+        LOG.info("nop.wf.error:wfName={},wfId={},stepName={},actionName={}",
+                wf.getWfName(), wf.getWfId(), stepName, actionName, e);
+
         wf.getStore().logError(wf.getRecord(), stepName, actionName, e);
     }
 
@@ -1569,6 +1610,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     @Override
     public void transitTo(IWorkflowStepImplementor step, String stepName,
                           Map<String, Object> args, IServiceContext ctx) {
+        LOG.info("nop.wf.transit-to:wfName={},wfId={},stepName={},stepId={},toStepName={}",
+                step.getWfName(), step.getWfId(), step.getStepName(), step.getStepId(), stepName);
+
         WfRuntime wfRt = newWfRuntime(step, ctx);
         initArgs(wfRt, args);
 
@@ -1588,6 +1632,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
     @Override
     public void exitStep(IWorkflowStepImplementor step, int status,
                          Map<String, Object> args, IServiceContext ctx) {
+        LOG.info("nop.wf.exit-step:wfName={},wfId={},stepName={},stepId={},status={}",
+                step.getWfName(), step.getWfId(), step.getStepName(), step.getStepId(), status);
+
         WfRuntime wfRt = newWfRuntime(step, ctx);
         initArgs(wfRt, args);
 

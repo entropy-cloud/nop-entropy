@@ -4,6 +4,7 @@ import io.nop.auth.core.login.UserContextImpl;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
+import io.nop.orm.IOrmTemplate;
 import io.nop.wf.api.actor.WfActorAndOwner;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowManager;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static io.nop.wf.service.DaoTestHelper.saveUser;
@@ -25,6 +27,9 @@ public class AbstractWorkflowTestCase extends JunitAutoTestCase {
     @Inject
     IWorkflowManager workflowManager;
 
+    @Inject
+    IOrmTemplate ormTemplate;
+
     @BeforeEach
     public void init() {
         saveUser("test001");
@@ -32,6 +37,12 @@ public class AbstractWorkflowTestCase extends JunitAutoTestCase {
         saveUser("test003");
         saveUser("test004");
         saveUser("test005");
+    }
+
+    protected <T> T run(Supplier<T> task) {
+        return ormTemplate.runInNewSession(session -> {
+            return task.get();
+        });
     }
 
     protected IServiceContext newServiceContext(String userId) {
@@ -44,50 +55,64 @@ public class AbstractWorkflowTestCase extends JunitAutoTestCase {
     }
 
     protected String startWorkflow(String wfName, String userId, Map<String, Object> args) {
-        IServiceContext ctx = newServiceContext(userId);
-        IWorkflow wf = workflowManager.newWorkflow(wfName, null);
-        wf.start(args, ctx);
-        return wf.getWfId();
+        return run(() -> {
+            IServiceContext ctx = newServiceContext(userId);
+            IWorkflow wf = workflowManager.newWorkflow(wfName, null);
+            wf.start(args, ctx);
+            wf.runAutoTransitions(ctx);
+            return wf.getWfId();
+        });
     }
 
     protected void executeTask(String wfId, String userId, String stepName, Consumer<IWorkflowStep> task) {
-        IWorkflow wf = workflowManager.getWorkflow(wfId);
-        Optional<? extends IWorkflowStep> userStep = wf.getActivatedSteps().stream().filter(step -> {
-            if (stepName != null && !stepName.equals(step.getStepName()))
-                return false;
-            return step.getActor().containsUser(userId);
-        }).findFirst();
-        assertTrue(userStep.isPresent());
-        userStep.ifPresent(task);
+        run(() -> {
+            IWorkflow wf = workflowManager.getWorkflow(wfId);
+            Optional<? extends IWorkflowStep> userStep = wf.getActivatedSteps().stream().filter(step -> {
+                if (stepName != null && !stepName.equals(step.getStepName()))
+                    return false;
+                return step.getActor().containsUser(userId);
+            }).findFirst();
+            assertTrue(userStep.isPresent());
+            userStep.ifPresent(task);
+            return null;
+        });
     }
 
     protected void executeActiveTasks(String wfId, String userId, String stepName, Consumer<IWorkflowStep> task) {
-        IWorkflow wf = workflowManager.getWorkflow(wfId);
-        List<? extends IWorkflowStep> steps = wf.getActivatedSteps().stream().filter(step -> {
-            if (stepName != null && !stepName.equals(step.getStepName()))
-                return false;
-            return step.getActor().containsUser(userId);
-        }).collect(Collectors.toList());
-        assertFalse(steps.isEmpty());
-        steps.forEach(task);
+        run(() -> {
+            IWorkflow wf = workflowManager.getWorkflow(wfId);
+            List<? extends IWorkflowStep> steps = wf.getActivatedSteps().stream().filter(step -> {
+                if (stepName != null && !stepName.equals(step.getStepName()))
+                    return false;
+                return step.getActor().containsUser(userId);
+            }).collect(Collectors.toList());
+            assertFalse(steps.isEmpty());
+            steps.forEach(task);
+            return null;
+        });
     }
 
     protected void executeActiveTasks(String wfId, String userId, String stepName) {
         IServiceContext ctx = newServiceContext(userId);
         executeActiveTasks(wfId, userId, stepName, step -> {
             step.invokeAction("complete", null, ctx);
+            step.getWorkflow().runAutoTransitions(ctx);
         });
     }
 
     protected void executeTask(String wfId, String userId, String stepName) {
         IServiceContext ctx = newServiceContext(userId);
-        executeTask(wfId, userId, stepName, step -> step.invokeAction("complete", null, ctx));
+        executeTask(wfId, userId, stepName, step -> {
+            step.invokeAction("complete", null, ctx);
+            step.getWorkflow().runAutoTransitions(ctx);
+        });
     }
 
     protected void executeJump(String wfId, String userId, String stepName, String targetStepName) {
         IServiceContext ctx = newServiceContext(userId);
         executeTask(wfId, userId, stepName, step -> {
             step.transitTo(targetStepName, null, ctx);
+            step.getWorkflow().runAutoTransitions(ctx);
         });
     }
 
@@ -98,6 +123,7 @@ public class AbstractWorkflowTestCase extends JunitAutoTestCase {
             actorAndOwner.setActorId(nextUserId);
             actorAndOwner.setActorType("user");
             step.transferToActor(actorAndOwner, ctx);
+            step.getWorkflow().runAutoTransitions(ctx);
         });
     }
 
@@ -108,6 +134,7 @@ public class AbstractWorkflowTestCase extends JunitAutoTestCase {
             actorAndOwner.setActorId(nextUserId);
             actorAndOwner.setActorType("user");
             step.transferToActor(actorAndOwner, ctx);
+            step.getWorkflow().runAutoTransitions(ctx);
         });
     }
 
@@ -116,6 +143,7 @@ public class AbstractWorkflowTestCase extends JunitAutoTestCase {
         IServiceContext ctx = newServiceContext(userId);
         executeTask(wfId, userId, stepName, step -> {
             step.invokeAction("reject", null, ctx);
+            step.getWorkflow().runAutoTransitions(ctx);
         });
     }
 
@@ -123,6 +151,7 @@ public class AbstractWorkflowTestCase extends JunitAutoTestCase {
         IServiceContext ctx = newServiceContext(userId);
         executeTask(wfId, userId, stepName, step -> {
             step.invokeAction("reject", null, ctx);
+            step.getWorkflow().runAutoTransitions(ctx);
         });
     }
 

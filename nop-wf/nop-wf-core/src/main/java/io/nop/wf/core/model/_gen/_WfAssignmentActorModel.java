@@ -18,6 +18,13 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: actionName
+     * 
+     */
+    private java.lang.String _actionName ;
+    
+    /**
+     *  
      * xml name: actorId
      * 
      */
@@ -64,6 +71,25 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
      * 
      */
     private int _voteWeight  = 1;
+    
+    /**
+     * 
+     * xml name: actionName
+     *  
+     */
+    
+    public java.lang.String getActionName(){
+      return _actionName;
+    }
+
+    
+    public void setActionName(java.lang.String value){
+        checkAllowChange();
+        
+        this._actionName = value;
+           
+    }
+
     
     /**
      * 
@@ -213,6 +239,7 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("actionName",this.getActionName());
         out.putNotNull("actorId",this.getActorId());
         out.putNotNull("actorModelId",this.getActorModelId());
         out.putNotNull("actorType",this.getActorType());
@@ -231,6 +258,7 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     protected void copyTo(WfAssignmentActorModel instance){
         super.copyTo(instance);
         
+        instance.setActionName(this.getActionName());
         instance.setActorId(this.getActorId());
         instance.setActorModelId(this.getActorModelId());
         instance.setActorType(this.getActorType());

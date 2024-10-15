@@ -22,6 +22,10 @@ public class WfUserActorBean implements IWfActor {
 
     private String deptId;
 
+    public String toString() {
+        return "WfUserActorBean[actorId=" + actorId + ",actorName=" + actorName + "]";
+    }
+
     @JsonIgnore
     @Override
     public String getActorType() {

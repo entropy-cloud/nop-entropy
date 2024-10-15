@@ -20,6 +20,8 @@ import io.nop.wf.api.actor.IWfActorResolver;
 import io.nop.wf.api.actor.WfActorBean;
 import io.nop.wf.api.actor.WfUserActorBean;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.List;
@@ -34,6 +36,8 @@ import static io.nop.wf.service.NopWfErrors.ERR_WF_NULL_ACTOR;
 import static io.nop.wf.service.NopWfErrors.ERR_WF_UNKNOWN_ACTOR_TYPE;
 
 public class DaoWfActorResolver implements IWfActorResolver {
+    static final Logger LOG = LoggerFactory.getLogger(DaoWfActorResolver.class);
+
     private IDaoProvider daoProvider;
 
     @Inject
@@ -67,6 +71,7 @@ public class DaoWfActorResolver implements IWfActorResolver {
         }
         NopAuthUser user = userDao().getEntityById(userId);
         if (user == null) {
+            LOG.info("nop.err.wf.actor.user-not-found:{}", userId);
             return null;
         }
         return buildUserActor(user);
@@ -74,8 +79,10 @@ public class DaoWfActorResolver implements IWfActorResolver {
 
     public IWfActor resolveDept(String deptId) {
         NopAuthDept dept = deptDao().getEntityById(deptId);
-        if (dept == null)
+        if (dept == null) {
+            LOG.info("nop.err.wf.actor.dept-not-found:{}", deptId);
             return null;
+        }
 
         WfActorBean actor = new WfActorBean();
         actor.setActorType(IWfActor.ACTOR_TYPE_DEPT);
@@ -112,8 +119,10 @@ public class DaoWfActorResolver implements IWfActorResolver {
 
     public IWfActor resolveGroup(String groupId, String deptId) {
         NopAuthGroup group = groupDao().getEntityById(groupId);
-        if (group == null)
+        if (group == null) {
+            LOG.info("nop.err.wf.actor.group-not-found:{}", groupId);
             return null;
+        }
 
         WfActorBean actor = new WfActorBean();
         actor.setActorType(IWfActor.ACTOR_TYPE_GROUP);
@@ -126,8 +135,10 @@ public class DaoWfActorResolver implements IWfActorResolver {
 
     public IWfActor resolveRole(String roleId, String deptId) {
         NopAuthRole role = roleDao().getEntityById(roleId);
-        if (role == null)
+        if (role == null) {
+            LOG.info("nop.err.wf.actor.role-not-found:{}", roleId);
             return null;
+        }
 
         WfActorBean actor = new WfActorBean();
         actor.setActorType(IWfActor.ACTOR_TYPE_ROLE);

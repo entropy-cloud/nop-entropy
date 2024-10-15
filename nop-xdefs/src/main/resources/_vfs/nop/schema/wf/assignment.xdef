@@ -31,9 +31,10 @@
           @wf:formAuth 表单权限，一般为可编辑的字段列表
           @wf:permissions 操作权限，例如允许回退，允许加签/减签，允许转交等
         -->
-        <actor actorModelId="!string" actorId="string" actorType="!string" deptId="string" selectUser="!boolean=true"
-               voteWeight="!int=1" assignForUser="!boolean=false" wf:formAuth="string" wf:permissions="csv-set"
-               wf:upLevel="int"
+        <actor actorModelId="!string" actorId="string" actorType="!string" actorName="string"
+               deptId="string" selectUser="!boolean=true"
+               voteWeight="!int=1" assignForUser="!boolean=false"
+               wf:formAuth="string" wf:permissions="csv-set" wf:upLevel="int"
                xdef:allow-multiple="true" xdef:name="WfAssignmentActorModel"/>
     </actors>
 
