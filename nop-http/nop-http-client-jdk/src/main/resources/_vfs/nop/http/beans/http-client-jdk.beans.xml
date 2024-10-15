@@ -7,10 +7,17 @@
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
 
 
-    <bean id="nopHttpClient" ioc:default="true"
-          class="io.nop.http.client.jdk.JdkHttpClient">
+    <bean id="nopHttpClient" ioc:default="true" class="io.nop.http.api.support.WithInterceptorHttpClient">
         <constructor-arg index="0">
-            <bean class="io.nop.http.api.client.HttpClientConfig" ioc:config-prefix="nop.http.client"/>
+            <bean class="io.nop.http.client.jdk.JdkHttpClient">
+                <constructor-arg index="0">
+                    <bean class="io.nop.http.api.client.HttpClientConfig" ioc:config-prefix="nop.http.client"/>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+
+        <constructor-arg index="1">
+            <ioc:collect-beans name-prefix="nopHttpClientInterceptor_" />
         </constructor-arg>
     </bean>
 

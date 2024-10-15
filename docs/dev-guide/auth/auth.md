@@ -366,3 +366,7 @@ authObjName对应不同的业务场景，一个业务场景下会存在多个操
 * whenConfig可以直接配置标签名，比如 `biz:WhenAdmin`或者`<biz:WhenXX type='1' />`
 
 **注意: 数据权限是作用于业务场景的，因此它会对get和findXX函数都起作用，get调用时会执行check配置。如果没有明确指定check，则会自动将filter翻译为在内存中执行的check。 因此，如果filter中使用SQL子查询则会出现翻译失败报错的情况。**
+
+## 常见问题
+1. 如何区分两个不同的查询
+`NopAuthUser:query`表示允许针对用户的所有查询，而`NopAuthUser:findPage_active`则只对应于`findPage_active`这一个方法。可以在action上通过Auth注解使得方法名对应于指定的permission。否则每个方法名都缺省对应于一个permission名。

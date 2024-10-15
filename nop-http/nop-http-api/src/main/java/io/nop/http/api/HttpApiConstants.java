@@ -67,4 +67,6 @@ public interface HttpApiConstants {
 
     String DATA_TYPE_FORM = "form";
     String DATA_TYPE_JSON = "json";
+
+    String BEARER_TOKEN_PREFIX = "Bearer ";
 }

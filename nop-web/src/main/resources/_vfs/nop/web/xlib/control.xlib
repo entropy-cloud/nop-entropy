@@ -512,8 +512,9 @@
             <attr name="propMeta"/>
             <attr name="bizObjName" mandatory="true"/>
             <source>
+                <!-- 在移动端下要求accept=image/*，否则选择不了图片 -->
                 <thisLib:edit-file dispMeta="${dispMeta}" propMeta="${propMeta}" bizObjName="${bizObjName}"
-                                   accept=".jpg,.png,.gif,.icon,.svg,.bmp"/>
+                                   accept="image/*"/>
             </source>
         </edit-image>
 

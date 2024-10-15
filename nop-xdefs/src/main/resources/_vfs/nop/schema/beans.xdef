@@ -50,7 +50,7 @@
         -->
         <ioc:collect-beans xdef:name="BeanCollectBeansValue" as-map="!boolean=false" name-prefix="string"
                            include-tag="word-set" exclude-tag="word-set"
-                           ioc:ignore-depends="!boolean=false" ioc:optional="!boolean=false"
+                           ioc:ignore-depends="!boolean=false" ioc:optional="!boolean=true"
                            by-type="class-name" by-annotation="class-name" only-concrete-classes="!boolean=false"/>
     </xdef:define>
 
