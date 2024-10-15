@@ -32,7 +32,8 @@ public class WithInterceptorHttpClient implements IHttpClient {
         }
 
         return httpClient.fetchAsync(request, cancelTokens).whenComplete((response, ex) -> {
-            for (IHttpClientInterceptor interceptor : interceptors.reversed()) {
+            for (int i = 0, n = interceptors.size(); i < n; i++) {
+                IHttpClientInterceptor interceptor = interceptors.get(n - i - 1);
                 interceptor.onEndFetch(this, request, ex, response);
             }
         });
