@@ -379,7 +379,7 @@
             "label": "imageLabel",
             "clearValueOnHidden": false,
             "type": "input-file",
-            "accept": ".jpg,.png,.gif,.icon,.svg,.bmp",
+            "accept": "image/*",
             "receiver": "/f/upload?bizObjName=NopAuthDept&fieldName=image",
             "useChunk": false
           }
