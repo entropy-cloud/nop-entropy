@@ -136,7 +136,7 @@ public class FilterBeanExpressionCompiler extends FilterBeanVisitor<Expression> 
                 Object jsonValue = JsonTool.parseNonStrict(loc, str.substring(2).trim());
                 return Literal.valueOf(loc, jsonValue);
             }
-            if (str.indexOf("${") > 0)
+            if (str.contains("${"))
                 return compiler.parseTemplateExpr(loc, str, false, ExprPhase.eval, compileScope);
             return Literal.valueOf(loc, value);
         } else {

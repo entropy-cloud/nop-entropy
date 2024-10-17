@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <workflow x:extends="/nop/wf/base/oa.xwf" x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <start>
-        <arg name="day" type="Integer" mandatory="true" />
-        <arg name="assignee" type="String" mandatory="true" />
+        <arg name="day" type="Integer" mandatory="true" persist="true"/>
+        <arg name="assignee" type="String" mandatory="true" persist="true" />
     </start>
 
     <steps>
@@ -10,7 +10,7 @@
             <transition >
                 <to-step stepName="k004" label="7天长期" order="1">
                     <when>
-                        <gt name="entity.day" value="${7}" />
+                        <gt name="wfVars.day" value="${7}" />
                     </when>
                 </to-step>
 

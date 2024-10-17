@@ -45,4 +45,9 @@ public class MapVarSet implements IWorkflowVarSet {
         if (vars != null)
             this.vars.putAll(vars);
     }
+
+    @Override
+    public boolean containsVar(String varName) {
+        return vars.containsKey(varName);
+    }
 }

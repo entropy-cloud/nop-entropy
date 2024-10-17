@@ -22,7 +22,7 @@
         <source xdef:value="xpl"/>
 
         <arg xdef:name="WfArgVarModel" name="!var-name" mandatory="!boolean=false" type="generic-type"
-             displayName="string" xdef:unique-attr="name">
+             displayName="string" xdef:unique-attr="name" persist="!boolean=false">
             <description xdef:value="string"/>
             <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
         </arg>

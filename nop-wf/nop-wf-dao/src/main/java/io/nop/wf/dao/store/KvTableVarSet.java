@@ -42,6 +42,11 @@ public class KvTableVarSet implements IWorkflowVarSet {
     }
 
     @Override
+    public boolean containsVar(String varName) {
+        return set.prop_has(varName);
+    }
+
+    @Override
     public void setVar(String varName, Object value) {
         IOrmKeyValueTable item = (IOrmKeyValueTable) set.prop_make(varName);
         item.setValue(value);

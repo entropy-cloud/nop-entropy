@@ -2118,7 +2118,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     }
        
     private final OrmEntitySet<io.nop.wf.dao.entity.NopWfVar> _globalVars = new OrmEntitySet<>(this, PROP_NAME_globalVars,
-        io.nop.wf.dao.entity.NopWfVar.PROP_NAME_wfInstance, null,io.nop.wf.dao.entity.NopWfVar.class);
+        io.nop.wf.dao.entity.NopWfVar.PROP_NAME_wfInstance, io.nop.wf.dao.entity.NopWfVar.PROP_NAME_fieldName,io.nop.wf.dao.entity.NopWfVar.class);
 
     /**
      * 。 refPropName: wfInstance, keyProp: {rel.keyProp}

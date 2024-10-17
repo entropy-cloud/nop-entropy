@@ -86,18 +86,17 @@
  errCode[错误码] errMsg[错误消息]
 </layout>
         </form>
-        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
-            <layout/>
-        </form>
-        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
-            <layout/>
-        </form>
-        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-工作流动作" i18n-en:title="Update Workflow Action">
-            <layout/>
-        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-工作流动作" i18n-en:title="Update Workflow Action"/>
     </forms>
 
     <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopWfAction__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
         <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table autoFillHeight="true">
                 <api url="@query:NopWfAction__findPage" gql:selection="{@pageSelection}"/>
@@ -134,7 +133,7 @@
             </rowActions>
         </crud>
         <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
-            <table>
+            <table noOperations="true">
                 <api url="@query:NopWfAction__findPage" gql:selection="{@pageSelection}"/>
             </table>
         </picker>

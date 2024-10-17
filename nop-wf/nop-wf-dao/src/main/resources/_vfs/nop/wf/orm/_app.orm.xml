@@ -298,8 +298,9 @@
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
                 </to-many>
-                <to-many cascadeDelete="true" name="globalVars" refEntityName="io.nop.wf.dao.entity.NopWfVar"
-                         refPropName="wfInstance" tagSet="pub,cascade-delete">
+                <to-many cascadeDelete="true" keyProp="fieldName" name="globalVars"
+                         refEntityName="io.nop.wf.dao.entity.NopWfVar" refPropName="wfInstance"
+                         tagSet="pub,cascade-delete">
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
@@ -706,7 +707,7 @@
                     <join>
                         <on leftProp="wfId" rightProp="wfId"/>
                     </join>
-                    <ref-set/>
+                    <ref-set keyProp="fieldName"/>
                 </to-one>
             </relations>
         </entity>

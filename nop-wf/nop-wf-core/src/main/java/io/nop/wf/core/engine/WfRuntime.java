@@ -87,6 +87,7 @@ public class WfRuntime implements IWfRuntime {
         IEvalScope scope = serviceContext.getEvalScope().newChildScope();
         scope.setLocalValue(null, NopWfCoreConstants.VAR_WF, wf);
         scope.setLocalValue(null, NopWfCoreConstants.VAR_WF_RT, this);
+        scope.setLocalValue(null, NopWfCoreConstants.VAR_WF_VARS, wf.getGlobalVars());
         return scope;
     }
 

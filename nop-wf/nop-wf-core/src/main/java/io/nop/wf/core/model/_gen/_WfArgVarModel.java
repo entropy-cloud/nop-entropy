@@ -46,11 +46,25 @@ public abstract class _WfArgVarModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: persist
+     * 
+     */
+    private boolean _persist  = false;
+    
+    /**
+     *  
      * xml name: schema
      * schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
      * Map对应props配置,  List对应item配置, Union对应oneOf配置
      */
     private io.nop.xlang.xmeta.ISchema _schema ;
+    
+    /**
+     *  
+     * xml name: type
+     * 
+     */
+    private io.nop.core.type.IGenericType _type ;
     
     /**
      * 
@@ -130,6 +144,25 @@ public abstract class _WfArgVarModel extends io.nop.core.resource.component.Abst
     
     /**
      * 
+     * xml name: persist
+     *  
+     */
+    
+    public boolean isPersist(){
+      return _persist;
+    }
+
+    
+    public void setPersist(boolean value){
+        checkAllowChange();
+        
+        this._persist = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: schema
      *  schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
      * Map对应props配置,  List对应item配置, Union对应oneOf配置
@@ -144,6 +177,25 @@ public abstract class _WfArgVarModel extends io.nop.core.resource.component.Abst
         checkAllowChange();
         
         this._schema = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: type
+     *  
+     */
+    
+    public io.nop.core.type.IGenericType getType(){
+      return _type;
+    }
+
+    
+    public void setType(io.nop.core.type.IGenericType value){
+        checkAllowChange();
+        
+        this._type = value;
            
     }
 
@@ -169,7 +221,9 @@ public abstract class _WfArgVarModel extends io.nop.core.resource.component.Abst
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("name",this.getName());
+        out.putNotNull("persist",this.isPersist());
         out.putNotNull("schema",this.getSchema());
+        out.putNotNull("type",this.getType());
     }
 
     public WfArgVarModel cloneInstance(){
@@ -185,7 +239,9 @@ public abstract class _WfArgVarModel extends io.nop.core.resource.component.Abst
         instance.setDisplayName(this.getDisplayName());
         instance.setMandatory(this.isMandatory());
         instance.setName(this.getName());
+        instance.setPersist(this.isPersist());
         instance.setSchema(this.getSchema());
+        instance.setType(this.getType());
     }
 
     protected WfArgVarModel newInstance(){

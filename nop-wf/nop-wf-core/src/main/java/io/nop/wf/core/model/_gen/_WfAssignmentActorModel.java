@@ -18,13 +18,6 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     
     /**
      *  
-     * xml name: actionName
-     * 
-     */
-    private java.lang.String _actionName ;
-    
-    /**
-     *  
      * xml name: actorId
      * 
      */
@@ -36,6 +29,13 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
      * actor节点的唯一标识
      */
     private java.lang.String _actorModelId ;
+    
+    /**
+     *  
+     * xml name: actorName
+     * 
+     */
+    private java.lang.String _actorName ;
     
     /**
      *  
@@ -74,25 +74,6 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     
     /**
      * 
-     * xml name: actionName
-     *  
-     */
-    
-    public java.lang.String getActionName(){
-      return _actionName;
-    }
-
-    
-    public void setActionName(java.lang.String value){
-        checkAllowChange();
-        
-        this._actionName = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: actorId
      *  
      */
@@ -125,6 +106,25 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
         checkAllowChange();
         
         this._actorModelId = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: actorName
+     *  
+     */
+    
+    public java.lang.String getActorName(){
+      return _actorName;
+    }
+
+    
+    public void setActorName(java.lang.String value){
+        checkAllowChange();
+        
+        this._actorName = value;
            
     }
 
@@ -239,9 +239,9 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("actionName",this.getActionName());
         out.putNotNull("actorId",this.getActorId());
         out.putNotNull("actorModelId",this.getActorModelId());
+        out.putNotNull("actorName",this.getActorName());
         out.putNotNull("actorType",this.getActorType());
         out.putNotNull("assignForUser",this.isAssignForUser());
         out.putNotNull("deptId",this.getDeptId());
@@ -258,9 +258,9 @@ public abstract class _WfAssignmentActorModel extends io.nop.core.resource.compo
     protected void copyTo(WfAssignmentActorModel instance){
         super.copyTo(instance);
         
-        instance.setActionName(this.getActionName());
         instance.setActorId(this.getActorId());
         instance.setActorModelId(this.getActorModelId());
+        instance.setActorName(this.getActorName());
         instance.setActorType(this.getActorType());
         instance.setAssignForUser(this.isAssignForUser());
         instance.setDeptId(this.getDeptId());

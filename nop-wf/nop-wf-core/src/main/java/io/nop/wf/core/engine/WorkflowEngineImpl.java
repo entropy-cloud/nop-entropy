@@ -544,6 +544,9 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                     throw wfRt.newError(ERR_WF_EMPTY_ACTION_ARG)
                             .param(ARG_ACTION_NAME, actionName).param(ARG_ARG_NAME, name);
             }
+            if (argModel.isPersist()) {
+                wf.getGlobalVars().setVar(name, args.get(name));
+            }
         }
     }
 
