@@ -10,6 +10,7 @@ package io.nop.http.client.jdk;
 import io.nop.api.core.exceptions.NopConnectException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
+import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
@@ -27,20 +28,22 @@ import io.nop.http.api.client.UploadOptions;
 import io.nop.http.api.contenttype.ContentType;
 import io.nop.http.api.support.CompositeX509TrustManager;
 import io.nop.http.api.support.DefaultHttpResponse;
-
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -164,6 +167,8 @@ public class JdkHttpClient implements IHttpClient {
         if (request.getHeader(HttpApiConstants.HEADER_CONTENT_TYPE) == null) {
             if (HttpApiConstants.DATA_TYPE_FORM.equals(request.getDataType())) {
                 builder.setHeader(HttpApiConstants.HEADER_CONTENT_TYPE, HttpApiConstants.CONTENT_TYPE_FORM_URLENCODED);
+            } else if (HttpApiConstants.DATA_TYPE_MULTIPART.equals(request.getDataType())) {
+                builder.setHeader(HttpApiConstants.HEADER_CONTENT_TYPE, HttpApiConstants.CONTENT_TYPE_FORM_MULTIPART);
             } else {
                 builder.setHeader(HttpApiConstants.HEADER_CONTENT_TYPE, HttpApiConstants.CONTENT_TYPE_JSON);
             }
@@ -175,7 +180,7 @@ public class JdkHttpClient implements IHttpClient {
             builder.timeout(config.getReadTimeout());
         }
 
-        builder.uri(toURI(request.getUrl()));
+        builder.uri(toURI(request.getUrlWithParams()));
 
         CompletableFuture<HttpResponse<byte[]>> future = client.sendAsync(builder.build(),
                 HttpResponse.BodyHandlers.ofByteArray()).exceptionally(this::wrapError);
@@ -211,8 +216,28 @@ public class JdkHttpClient implements IHttpClient {
         }
         if (HttpApiConstants.DATA_TYPE_FORM.equals(dataType)) {
             return BodyPublishers.ofString(StringHelper.encodeQuery((Map<String, Object>) body, StringHelper.ENCODING_UTF8));
+        } else if (HttpApiConstants.DATA_TYPE_MULTIPART.equals(dataType)) {
+            return toMultipart((Map<String, Object>) body);
         }
         return BodyPublishers.ofString(JSON.stringify(body));
+    }
+
+    java.net.http.HttpRequest.BodyPublisher toMultipart(Map<String, Object> map) {
+        MultipartBodyPublisher multipartBodyPublisher = new MultipartBodyPublisher();
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            String name = entry.getKey();
+            Object value = entry.getValue();
+            if (value instanceof String) {
+                multipartBodyPublisher.addPart(name, (String) value);
+            } else if (value instanceof Path) {
+                try {
+                    multipartBodyPublisher.addPart(name, HttpApiConstants.CONTENT_TYPE_OCTET, (Path) value);
+                } catch (IOException e) {
+                    throw NopException.adapt(e);
+                }
+            }
+        }
+        return multipartBodyPublisher;
     }
 
     IHttpResponse toHttpResponse(HttpResponse<byte[]> response) {
@@ -231,7 +256,7 @@ public class JdkHttpClient implements IHttpClient {
             if (parsed.getCharset() != null) {
                 ret.setCharset(parsed.getCharset().name());
             } else {
-                ret.setCharset("UTF-8");
+                ret.setCharset(ApiStringHelper.ENCODING_UTF8);
             }
             ret.setContentType(parsed.getMimeType());
         }

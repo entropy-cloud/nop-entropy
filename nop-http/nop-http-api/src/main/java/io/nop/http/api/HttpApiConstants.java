@@ -49,6 +49,8 @@ public interface HttpApiConstants {
     String CONTENT_TYPE_JSON = "application/json";
     String CONTENT_TYPE_FORM_URLENCODED = "application/x-www-form-urlencoded";
 
+    String CONTENT_TYPE_FORM_MULTIPART = "multipart/form-data";
+
     String METHOD_GET = "GET";
     String METHOD_POST = "POST";
     String METHOD_OPTIONS = "OPTIONS";
@@ -67,6 +69,11 @@ public interface HttpApiConstants {
 
     String DATA_TYPE_FORM = "form";
     String DATA_TYPE_JSON = "json";
+
+    /**
+     * 采用form multipart方式编码提交。一般body为Map，Map中的每个元素可能是String或者IResource
+     */
+    String DATA_TYPE_MULTIPART = "multipart";
 
     String BEARER_TOKEN_PREFIX = "Bearer ";
 }

@@ -57,6 +57,13 @@ public class HttpRequest {
         return url.substring(0, pos);
     }
 
+    public String getUrlWithParams() {
+        if (params == null || params.isEmpty())
+            return url;
+        String query = ApiStringHelper.encodeQuery(params, ApiStringHelper.ENCODING_UTF8);
+        return ApiStringHelper.appendQuery(url, query);
+    }
+
     public Map<String, Object> getParams() {
         return params;
     }
