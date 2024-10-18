@@ -42,6 +42,7 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
     String INTERNAL_ACTION_TRANSFER_TO_ACTOR = "_transferToActor_";
 
     String INTERNAL_ACTION_TRANSIT = "_transit_";
+    String INTERNAL_ACTION_TRANSFER_TO_STEP = "_transferToStep_";
 
     String VAR_ACTORS = "actors";
     String VAR_REJECT_STEPS = "rejectSteps"; // reject action的参数

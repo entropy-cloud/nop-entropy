@@ -453,7 +453,7 @@
        <!-- <module>tests</module> -->
         <module>nop-oauth</module>
         <module>nop-dyn</module>
-        <module>nop-gpt</module>
+        <module>nop-ai</module>
         <module>nop-tablesaw</module>
         <module>nop-cdc</module>
         <module>nop-maven</module>

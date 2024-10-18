@@ -29,6 +29,7 @@ public class DataSourceConfig {
     private Duration maxLifetime;
 
     private String validationQuerySql;
+    private String connectionInitSql;
 
     private Map<String, String> properties;
 
@@ -62,6 +63,14 @@ public class DataSourceConfig {
 
     public void setValidationQuerySql(String validationQuerySql) {
         this.validationQuerySql = validationQuerySql;
+    }
+
+    public String getConnectionInitSql() {
+        return connectionInitSql;
+    }
+
+    public void setConnectionInitSql(String connectionInitSql) {
+        this.connectionInitSql = connectionInitSql;
     }
 
     public int getMinSize() {

@@ -296,6 +296,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.api.core.beans.graphql.GraphQLSourceLocation"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.api.core.beans.query.GroupFieldBean"
   },
   {
@@ -2228,6 +2238,41 @@
           "java.util.Map",
           "io.nop.core.context.IServiceContext",
           "io.nop.biz.crud.BizInvocation"
+        ]
+      },
+      {
+        "name": "invokeDefaultPrepareCopyForNew",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "invokeDefaultPrepareDelete",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "invokeDefaultPrepareQuery",
+        "parameterTypes": [
+          "io.nop.api.core.beans.query.QueryBean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "invokeDefaultPrepareSave",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "invokeDefaultPrepareUpdate",
+        "parameterTypes": [
+          "io.nop.biz.crud.EntityData",
+          "io.nop.core.context.IServiceContext"
         ]
       },
       {
@@ -5842,6 +5887,16 @@
       }
     ],
     "name": "io.nop.http.api.server.ContextHttpServerFilter"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.http.api.support.WithInterceptorHttpClient"
   },
   {
     "allDeclaredConstructors": true,
@@ -12111,6 +12166,26 @@
     "fields": [],
     "methods": [],
     "name": "java.util.HashSet"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.ImmutableCollections$AbstractImmutableMap"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.ImmutableCollections$Map1"
   },
   {
     "allDeclaredConstructors": true,

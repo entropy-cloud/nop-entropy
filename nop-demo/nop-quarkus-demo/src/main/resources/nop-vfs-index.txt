@@ -433,7 +433,9 @@
 /nop/dyn/model/NopDynPage/_NopDynPage.xbiz
 /nop/dyn/model/NopDynPage/_NopDynPage.xmeta
 /nop/dyn/model/NopDynPatch/NopDynPatch.xbiz
+/nop/dyn/model/NopDynPatch/NopDynPatch.xmeta
 /nop/dyn/model/NopDynPatch/_NopDynPatch.xbiz
+/nop/dyn/model/NopDynPatch/_NopDynPatch.xmeta
 /nop/dyn/model/NopDynPatchFile/NopDynPatchFile.xbiz
 /nop/dyn/model/NopDynPatchFile/NopDynPatchFile.xmeta
 /nop/dyn/model/NopDynPatchFile/_NopDynPatchFile.xbiz
@@ -709,6 +711,7 @@
 /nop/rule/pages/RuleService/getRuleMeta.page.yaml
 /nop/rule/pages/RuleService/main.page.yaml
 /nop/schema/action-auth.xdef
+/nop/schema/ai/llm.xdef
 /nop/schema/api.xdef
 /nop/schema/beans.xdef
 /nop/schema/biz/state-machine.xdef

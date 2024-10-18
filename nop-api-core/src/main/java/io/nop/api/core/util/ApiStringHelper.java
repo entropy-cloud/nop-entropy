@@ -347,6 +347,54 @@ public class ApiStringHelper {
         return sb.toString();
     }
 
+    public static String encodeQuery(Map<String, Object> query) {
+        return encodeQuery(query, ENCODING_UTF8);
+    }
+
+    public static String encodeQuery(Map<String, ?> query, String encoding) {
+        if (query == null)
+            return null;
+        if (query.isEmpty())
+            return "";
+        StringBuilder sb = new StringBuilder();
+        boolean bFirst = true;
+
+        for (Map.Entry<String, ?> entry : query.entrySet()) {
+            String name = encodeURL(entry.getKey(), encoding);
+            Object value = entry.getValue();
+            if (value instanceof List<?>) {
+                List<?> list = (List<?>) value;
+                for (Object v : list) {
+                    if (bFirst) {
+                        bFirst = false;
+                    } else {
+                        sb.append('&');
+                    }
+                    sb.append(name);
+                    sb.append('=');
+                    sb.append(encodeURL(toString(v, "")));
+                }
+            } else {
+                if (bFirst) {
+                    bFirst = false;
+                } else {
+                    sb.append('&');
+                }
+                sb.append(name);
+                if (value != null) {
+                    sb.append('=');
+                    sb.append(encodeURL(toString(value, "")));
+                }
+            }
+        }
+
+        return sb.toString();
+    }
+    public static String toString(Object v, String defaultValue) {
+        if (v == null)
+            return defaultValue;
+        return v.toString();
+    }
 
     @Deterministic
     public static String encodeURL(String str) {

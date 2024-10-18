@@ -72,12 +72,12 @@ Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessin
 | nop-stream      | 简化的流处理，可以集成Flink              | 0%   |
 | nop-netty       | TCP/IP服务处理框架                  | 0%   |
 | nop-datav       | BI数据分析                        | 0%   |
-| nop-gpt         | 与AI大模型集成，实现AIGC               | 2%   |
+| nop-ai          | 与AI大模型集成，实现AIGC               | 2%   |
 | nop-js          | GraalVM Js引擎封装，在Java中运行JS     | 50%  |
 | nop-integration | 邮件、短信、文件服务等外部服务封装             | 30%  |
 | nop-auth        | 用户权限管理                        | 已完成  |
 | nop-sys         | 系统配置管理                        | 已完成  |
-| nop-ofbiz | 将Ofbiz的模型文件转换为Nop平台的模型定义      | 0% |
+| nop-ofbiz       | 将Ofbiz的模型文件转换为Nop平台的模型定义      | 0% |
 
 ## 源码地址
 

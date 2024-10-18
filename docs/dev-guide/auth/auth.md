@@ -243,6 +243,18 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
 全部可用的变量在[biz-var.dict.yaml](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xlang/src/main/resources/_vfs/dict/core/biz-var.dict.yaml)
 中定义。
 
+一般情况下`/nop/main/auth/app.data-auth.xml`文件中可以配置动态搜集所有模块下的data-auth配置
+
+```xml
+<data-auth x:schema="/nop/schema/data-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+           xmlns:auth-gen="auth-gen" xmlns:xpl="xpl">
+  <x:gen-extends>
+    <!-- 自动收集各个模块下定义的数据权限 -->
+    <auth-gen:GenFromModules xpl:lib="/nop/auth/xlib/auth-gen.xlib"/>
+  </x:gen-extends>
+</data-auth>
+```
+
 ### 通过NopAuthRoleDataAuth表来定义数据权限
 
 数据库中定义的数据权限会和`data-auth.xml`配置文件中定义的权限合并。
