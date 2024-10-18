@@ -98,7 +98,7 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
                 dependsStack.remove();
 
             if (success) {
-                updateDeps(deps);
+                stack.updateDepends(deps,dependencyMap);
             }
         }
     }
@@ -140,17 +140,6 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
         }
     }
 
-    void updateDeps(ResourceDependencySet deps) {
-        ResourceDependencySet oldDeps = dependencyMap.get(deps.getResourcePath());
-        if (oldDeps == null) {
-            dependencyMap.put(deps.getResourcePath(), deps);
-        } else {
-            // 如果缓存的版本号大于当前版本号，说明已经被其他线程修改。当前线程的执行结果已经是过期的结果，需要被放弃
-            if (oldDeps.getVersion() < deps.getVersion()) {
-                dependencyMap.put(deps.getResourcePath(), deps);
-            }
-        }
-    }
 
     public void addDependency(String resourcePath) {
         ResourceDependsStack stack = dependsStack.get();

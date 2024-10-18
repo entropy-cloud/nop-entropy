@@ -15,7 +15,8 @@ import java.io.InputStream;
 
 public class VirtualResourceDependencySet extends ResourceDependencySet {
     public VirtualResourceDependencySet(String resourcePath) {
-        super(new MockReference(resourcePath));
+        // 这个依赖集合在ResourceCacheEntry中使用，cacheEntry中的path不一定是资源路径，可能只是约定的一个key
+        super(new MockReference("virtual:" + resourcePath));
     }
 
     public boolean isMock() {

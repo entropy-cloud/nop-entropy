@@ -28,7 +28,7 @@ public class ResourceDependencySet {
     /**
      * 每次发现修改，重新装载资源文件都会产生一个新版本号
      */
-    private final long version = nextVersion();
+    private final long version;
 
     /**
      * resource和lastModified用于缓存上次IResourceChangeChecker的检查结果
@@ -41,6 +41,14 @@ public class ResourceDependencySet {
     public ResourceDependencySet(IResourceReference resource) {
         this.resource = resource;
         this.lastModified = resource.lastModified();
+        this.version = nextVersion();
+    }
+
+    public ResourceDependencySet(ResourceDependencySet other) {
+        this.version = other.version;
+        this.resource = other.resource;
+        this.lastModified = other.lastModified;
+        this.depends.addAll(other.depends);
     }
 
     public boolean isMock() {
@@ -48,9 +56,7 @@ public class ResourceDependencySet {
     }
 
     public ResourceDependencySet copy() {
-        ResourceDependencySet ret = new ResourceDependencySet(resource);
-        ret.depends.addAll(depends);
-        return ret;
+        return new ResourceDependencySet(this);
     }
 
     public void refreshLastModified() {
@@ -103,6 +109,18 @@ public class ResourceDependencySet {
             addDepends(deps.getDepends());
         } else {
             addDependency(path);
+        }
+    }
+
+    public ResourceDependencySet mergeWith(ResourceDependencySet deps) {
+        if (deps.getVersion() < version) {
+            ResourceDependencySet ret = this.copy();
+            ret.addDepends(deps.getDepends());
+            return ret;
+        } else {
+            ResourceDependencySet ret = deps.copy();
+            ret.addDepends(this.getDepends());
+            return ret;
         }
     }
 

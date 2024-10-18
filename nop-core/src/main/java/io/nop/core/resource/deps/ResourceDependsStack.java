@@ -36,11 +36,16 @@ public class ResourceDependsStack {
 
     public void updateTo(Map<String, ResourceDependencySet> map) {
         depMap.forEach((path, dep) -> {
-            ResourceDependencySet oldDep = map.putIfAbsent(path, dep);
-            if (oldDep != null && oldDep.getVersion() < dep.getVersion()) {
-                map.remove(path, oldDep);
-                map.putIfAbsent(path, dep);
-            }
+            // stack创建表示本次请求开始，如果发现资源文件修改，则整体更新。否则有可能是多种途径都发现同一个资源文件被修改，此时需要合并依赖
+            updateDepends(dep, map);
+        });
+    }
+
+    public void updateDepends(ResourceDependencySet dep, Map<String, ResourceDependencySet> map) {
+        map.merge(dep.getResourcePath(), dep, (old, newDep) -> {
+            if (old.getVersion() < version)
+                return newDep.copy();
+            return newDep.mergeWith(old);
         });
     }
 
