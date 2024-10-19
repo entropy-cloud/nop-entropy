@@ -135,6 +135,11 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
 
     void markRead(IServiceContext ctx);
 
+    /**
+     * 调用
+     * @param args
+     * @param ctx
+     */
     void kill(Map<String, Object> args, IServiceContext ctx);
 
     /**
@@ -185,7 +190,7 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
     void transitTo(String stepName, Map<String, Object> args, IServiceContext ctx);
 
     /**
-     * 如果本步骤尚未结束，则先结束本步骤。如果本步骤已结束，则直接增加目标步骤实例
+     * 如果本步骤尚未结束，则结束本步骤，设置状态为指定status
      */
     void exitStep(int status, Map<String, Object> args, IServiceContext ctx);
 

@@ -19,5 +19,5 @@ import java.util.function.Function;
  */
 public interface IWorkflowExecutor {
     <T> CompletionStage<T> execute(WfReference wfRef, IServiceContext ctx,
-                                   Function<IWorkflow, CompletionStage<T>> task);
+                                   Function<IWorkflow, T> task);
 }

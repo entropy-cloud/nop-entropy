@@ -1627,7 +1627,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         WfAssignmentModel assignment = stepModel.getAssignment();
         List<WfActorWithWeight> actors = getActors(assignment, stepName, wfRt);
-        if (!this.newSteps(step, stepModel, NopWfCoreConstants.INTERNAL_ACTION_TRANSFER_TO_STEP, actors, wfRt))
+        if (!this.newSteps(step, stepModel, NopWfCoreConstants.INTERNAL_ACTION_TRANSIT_TO, actors, wfRt))
             throw wfRt.newError(ERR_WF_TRANSIT_TO_NO_TARGETS)
                     .param(ARG_TO_STEP_NAME, step.getStepName());
     }

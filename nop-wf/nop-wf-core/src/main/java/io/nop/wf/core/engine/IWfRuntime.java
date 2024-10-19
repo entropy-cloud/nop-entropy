@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * 单次action调用所对应的上下文对象
+ */
 public interface IWfRuntime extends IEvalContext {
     void delayExecute(Runnable command);
 
@@ -65,7 +68,7 @@ public interface IWfRuntime extends IEvalContext {
         return getWf().getStarter();
     }
 
-    default String getStarterId(){
+    default String getStarterId() {
         return getWf().getRecord().getStarterId();
     }
 

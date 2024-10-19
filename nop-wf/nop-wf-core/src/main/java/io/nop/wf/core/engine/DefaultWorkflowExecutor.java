@@ -7,6 +7,7 @@
  */
 package io.nop.wf.core.engine;
 
+import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.wf.api.WfReference;
@@ -28,7 +29,7 @@ public class DefaultWorkflowExecutor implements IWorkflowExecutor {
 
     @Override
     public <T> CompletionStage<T> execute(WfReference wfRef, IServiceContext ctx,
-                                          Function<IWorkflow, CompletionStage<T>> task) {
+                                          Function<IWorkflow, T> task) {
 
         IWorkflow wf;
         if (StringHelper.isEmpty(wfRef.getWfId())) {
@@ -37,11 +38,11 @@ public class DefaultWorkflowExecutor implements IWorkflowExecutor {
             wf = workflowManager.newWorkflow(wfRef.getWfName(), wfRef.getWfVersion());
         }
 
-        CompletionStage<T> ret = task.apply(wf);
+        T ret = task.apply(wf);
 
         // 触发步骤的自动转换
         while (wf.runAutoTransitions(ctx)) ;
 
-        return ret;
+        return FutureHelper.toCompletionStage(ret);
     }
 }

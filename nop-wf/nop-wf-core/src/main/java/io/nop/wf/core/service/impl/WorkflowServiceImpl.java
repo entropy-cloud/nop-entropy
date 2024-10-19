@@ -61,7 +61,7 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
                 res.setManagerDeptId(manager.getDeptId());
                 res.setManagerName(manager.getActorName());
             }
-            return FutureHelper.toCompletionStage(res);
+            return res;
         });
     }
 
@@ -77,7 +77,7 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
         return workflowExecutor.execute(parentWfRef, ctx, parentWf -> {
             IWorkflowStep parentStep = parentWf.getStepById(request.getParentWfStepId());
             parentStep.notifySubFlowEnd(request.getStatus(), request.getResults(), ctx);
-            return FutureHelper.success(null);
+            return null;
         });
 
     }
@@ -92,7 +92,7 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
         return workflowExecutor.execute(wfRef, ctx, wf -> {
             IWorkflowStep step = wf.getStepById(request.getStepId());
             Object result = step.invokeAction(request.getActionName(), request.getArgs(), ctx);
-            return FutureHelper.toCompletionStage(result);
+            return result;
         });
     }
 
@@ -104,7 +104,7 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
         checkMandatory(wfRef, false);
         return workflowExecutor.execute(wfRef, ctx, wf -> {
             wf.kill(request.getArgs(), ctx);
-            return FutureHelper.success(null);
+            return null;
         });
     }
 
@@ -116,7 +116,7 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
         checkMandatory(wfRef, true);
         return workflowExecutor.execute(wfRef, ctx, wf -> {
             wf.suspend(request.getArgs(), ctx);
-            return FutureHelper.success(null);
+            return null;
         });
     }
 
@@ -128,7 +128,7 @@ public class WorkflowServiceImpl implements WorkflowServiceSpi {
         checkMandatory(wfRef, true);
         return workflowExecutor.execute(wfRef, ctx, wf -> {
             wf.resume(request.getArgs(), ctx);
-            return FutureHelper.success(null);
+            return null;
         });
     }
 
