@@ -631,9 +631,10 @@ $$
 \begin{aligned} XORM   &= Generator\langle XExcel \rangle + \Delta XORM \\
 XMeta &= Generator\langle XORM \rangle + \Delta XMeta \\
 GraphQL &= Builder\langle XMeta\rangle + BizModel \\
+\\
 XView &= Generator\langle XMeta\rangle  + \Delta XView \\
 XPage &=  Generator\langle XView\rangle  + \Delta XPage \\
-end{aligned}
+\end{aligned}
 $$
 
 整个推理关系的各个步骤都是可选环节：**我们可以从任意步骤直接开始，也可以完全舍弃此前步骤所推理得到的所有信息**。例如我们可以手动增加`xview`模型，并不需要它一定具有特定的`xmeta`支持，也可以直接新建`page.yaml`文件，按照AMIS组件规范编写JSON代码，AMIS框架的能力完全不会受到推理管线的限制。
