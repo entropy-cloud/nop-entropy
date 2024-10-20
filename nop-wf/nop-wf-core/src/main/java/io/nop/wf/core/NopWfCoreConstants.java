@@ -76,7 +76,7 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
     String EVENT_SUSPEND = "suspend";
     String EVENT_RESUME = "resume";
     String EVENT_REMOVE = "remove";
-    String EVENT_KILL_STEP = "kill-step";
+    //String EVENT_KILL_STEP = "kill-step";
     String EVENT_ACTIVATE_STEP = "activate-step";
 
     String EVENT_MARK_READ = "mark-read";
@@ -104,4 +104,11 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
     String SYS_ACTION_KILL = "_kill_";
 
     String DELEGATE_SCOPE_ALL = "all";
+
+    String ACTION_COMPLETE = "complete";
+    String ACTION_REJECT = "reject";
+    String ACTION_TRANSFER_TO_ACTOR = "transferToActor";
+    String ACTION_AGREE = "agree";
+    String ACTION_DISAGREE = "disagree";
+    String ACTION_CONFIRM = "confirm";
 }

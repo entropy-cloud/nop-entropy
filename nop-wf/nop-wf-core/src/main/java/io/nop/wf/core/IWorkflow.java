@@ -165,16 +165,21 @@ public interface IWorkflow {
      */
     void kill(Map<String, Object> args, IServiceContext ctx);
 
-    void turnSignalOn(Set<String> signals, IServiceContext ctx);
-
-    void turnSignalOff(Set<String> signals, IServiceContext ctx);
-
     /**
      * 执行active步骤的transition转换
      *
      * @return 如果有步骤执行了转换，则返回true。如果返回了true，一般需要继续调用runAutoTransitions，直到返回false为止
      */
     boolean runAutoTransitions(IServiceContext ctx);
+
+    /**
+     * 设置指定信号变量为true之后，会检查处于waiting状态的步骤是否已满足触发条件
+     * @param signals  启用的信号变量
+     * @param ctx  上下文环境
+     */
+    void turnSignalOn(Set<String> signals, IServiceContext ctx);
+
+    void turnSignalOff(Set<String> signals, IServiceContext ctx);
 
     boolean isSignalOn(String signal);
 

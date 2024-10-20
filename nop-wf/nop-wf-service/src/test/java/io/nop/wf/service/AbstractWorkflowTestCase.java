@@ -9,6 +9,7 @@ import io.nop.wf.api.actor.WfActorAndOwner;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowManager;
 import io.nop.wf.core.IWorkflowStep;
+import io.nop.wf.core.support.ApprovalFlowHelper;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -58,8 +59,7 @@ public class AbstractWorkflowTestCase extends JunitAutoTestCase {
         return run(() -> {
             IServiceContext ctx = newServiceContext(userId);
             IWorkflow wf = workflowManager.newWorkflow(wfName, null);
-            wf.start(args, ctx);
-            wf.runAutoTransitions(ctx);
+            ApprovalFlowHelper.start(wf, args, ctx);
             return wf.getWfId();
         });
     }
@@ -111,19 +111,14 @@ public class AbstractWorkflowTestCase extends JunitAutoTestCase {
     protected void executeJump(String wfId, String userId, String stepName, String targetStepName) {
         IServiceContext ctx = newServiceContext(userId);
         executeTask(wfId, userId, stepName, step -> {
-            step.transitTo(targetStepName, null, ctx);
-            step.getWorkflow().runAutoTransitions(ctx);
+            ApprovalFlowHelper.jump(step, targetStepName, ctx);
         });
     }
 
     protected void executeTransferToUser(String wfId, String userId, String stepName, String nextUserId) {
         IServiceContext ctx = newServiceContext(userId);
         executeTask(wfId, userId, stepName, step -> {
-            WfActorAndOwner actorAndOwner = new WfActorAndOwner();
-            actorAndOwner.setActorId(nextUserId);
-            actorAndOwner.setActorType("user");
-            step.transferToActor(actorAndOwner, ctx);
-            step.getWorkflow().runAutoTransitions(ctx);
+            ApprovalFlowHelper.transferToUser(step, nextUserId, ctx);
         });
     }
 

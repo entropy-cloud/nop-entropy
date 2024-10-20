@@ -194,6 +194,8 @@ prop:
       dueTime: 到期时间
       errCode: 错误码
       errMsg: 错误消息
+      execCount: 执行次数
+      execGroup: 执行分组
       execOrder: 执行顺序
       finishTime: 结束时间
       fromAction: 来源操作
@@ -217,7 +219,6 @@ prop:
       status: 状态
       status_label: 状态
       stepActions: null
-      stepGroup: 步骤分组
       stepId: 步骤ID
       stepName: 步骤名称
       stepType: 步骤类型

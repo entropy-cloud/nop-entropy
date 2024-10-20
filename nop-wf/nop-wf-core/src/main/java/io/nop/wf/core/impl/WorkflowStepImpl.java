@@ -166,14 +166,14 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
             });
         }
     }
-
-    @Override
-    public void kill(Map<String, Object> args, IServiceContext ctx) {
-        wf.executeNow(() -> {
-            wf.getEngine().killStep(this, args, ctx);
-            return null;
-        });
-    }
+//
+//    @Override
+//    public void killStep(Map<String, Object> args, IServiceContext ctx) {
+//        wf.executeNow(() -> {
+//            wf.getEngine().killStep(this, args, ctx);
+//            return null;
+//        });
+//    }
 
     @Override
     public boolean triggerTransition(Map<String, Object> args, IServiceContext ctx) {
@@ -313,13 +313,13 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
     @Override
     public List<? extends IWorkflowStep> getStepsInSameStepGroup(boolean includeHistory, boolean includeSelf) {
         List<? extends IWorkflowStep> ret = wf.getStepsByName(model.getName(), includeHistory);
-        String stepGroup = record.getStepGroup();
+        String stepGroup = record.getExecGroup();
         ret.removeIf(step -> {
             if (!includeSelf) {
                 if (step == WorkflowStepImpl.this)
                     return true;
             }
-            return Objects.equals(step.getRecord().getStepGroup(), stepGroup);
+            return Objects.equals(step.getRecord().getExecGroup(), stepGroup);
         });
         return ret;
     }

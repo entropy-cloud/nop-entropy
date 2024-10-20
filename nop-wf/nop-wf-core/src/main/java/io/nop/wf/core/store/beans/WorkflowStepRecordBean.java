@@ -59,7 +59,9 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     private String joinGroup;
 
-    private Double execOrder;
+    private Integer execOrder;
+
+    private Integer execCount;
 
     private Integer voteWeight;
     private String appState;
@@ -72,7 +74,7 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
 
     private Integer subWfResultStatus;
 
-    private String stepGroup;
+    private String execGroup;
 
     private Set<String> tagSet;
 
@@ -124,13 +126,23 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
     }
 
     @Override
-    public Double getExecOrder() {
+    public Integer getExecOrder() {
         return execOrder;
     }
 
     @Override
-    public void setExecOrder(Double execOrder) {
+    public void setExecOrder(Integer execOrder) {
         this.execOrder = execOrder;
+    }
+
+    @Override
+    public Integer getExecCount() {
+        return execCount;
+    }
+
+    @Override
+    public void setExecCount(Integer execCount) {
+        this.execCount = execCount;
     }
 
     @Override
@@ -162,13 +174,13 @@ public class WorkflowStepRecordBean implements IWorkflowStepRecord {
     }
 
     @Override
-    public String getStepGroup() {
-        return stepGroup;
+    public String getExecGroup() {
+        return execGroup;
     }
 
     @Override
-    public void setStepGroup(String stepGroup) {
-        this.stepGroup = stepGroup;
+    public void setExecGroup(String execGroup) {
+        this.execGroup = execGroup;
     }
 
     public void setWfRecord(IWorkflowRecord wfRecord) {

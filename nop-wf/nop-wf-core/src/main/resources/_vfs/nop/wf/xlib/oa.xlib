@@ -87,6 +87,15 @@
             </source>
         </AutoAgreeWhenStarter>
 
+        <WhenStartStep>
+            <attr name="wfRt" implicit="true"/>
+            <source>
+                <c:script>
+                    return wfRt.currentStep.startStep
+                </c:script>
+            </source>
+        </WhenStartStep>
+
         <WhenAllowDisagree>
             <attr name="wfRt" implicit="true"/>
 

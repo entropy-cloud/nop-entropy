@@ -7,7 +7,13 @@
 
     <steps>
         <step name="k001">
-            <transition >
+            <assignment>
+                <actors>
+                    <actor actorType="wf-actor:Starter" actorModelId="m1"/>
+                </actors>
+            </assignment>
+
+            <transition onAppStates="complete,agree">
                 <to-step stepName="k004" label="7天长期" order="1">
                     <when>
                         <gt name="wfVars.day" value="${7}" />

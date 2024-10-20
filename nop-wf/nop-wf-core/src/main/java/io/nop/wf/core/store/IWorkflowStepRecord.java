@@ -49,9 +49,13 @@ public interface IWorkflowStepRecord extends ITagSetSupport {
 
     void setVoteWeight(Integer voteWeight);
 
-    Double getExecOrder();
+    Integer getExecOrder();
 
-    void setExecOrder(Double execOrder);
+    void setExecOrder(Integer execOrder);
+
+    Integer getExecCount();
+
+    void setExecCount(Integer execCount);
 
     String getActorModelId();
 
@@ -117,9 +121,9 @@ public interface IWorkflowStepRecord extends ITagSetSupport {
 
     Integer getSubWfResultStatus();
 
-    String getStepGroup();
+    String getExecGroup();
 
-    void setStepGroup(String stepGroup);
+    void setExecGroup(String execGroup);
 
     void addTag(String tag);
 

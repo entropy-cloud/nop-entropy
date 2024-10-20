@@ -44,24 +44,29 @@ public interface _NopWfCoreConstants {
     int WF_STEP_STATUS_FAILED = 60;
                     
     /**
+     * 步骤状态: 已取消 取消执行
+     */
+    int WF_STEP_STATUS_CANCELLED = 70;
+                    
+    /**
      * 步骤状态: 已中止 主动中止
      */
-    int WF_STEP_STATUS_KILLED = 70;
+    int WF_STEP_STATUS_KILLED = 80;
                     
     /**
      * 步骤状态: 已退回 退回当前步骤时，当前步骤的状态标记为REJECTED，便于和正常的历史状态区分开来
      */
-    int WF_STEP_STATUS_REJECTED = 80;
+    int WF_STEP_STATUS_REJECTED = 90;
                     
     /**
      * 步骤状态: 已撤销 发送到下一步骤之后，在下一步骤的状态转变为历史状态之前，可以执行撤回操作，被撤回的下一步骤状态变为WITHDRAWN。
      */
-    int WF_STEP_STATUS_WITHDRAWN = 90;
+    int WF_STEP_STATUS_WITHDRAWN = 100;
                     
     /**
      * 步骤状态: 已转交 转交给其他人执行
      */
-    int WF_STEP_STATUS_TRANSFERRED = 100;
+    int WF_STEP_STATUS_TRANSFERRED = 110;
                     
     /**
      * 工作流: 已创建 

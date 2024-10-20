@@ -60,7 +60,7 @@ public interface IWorkflowEngine {
 
     void triggerStepEvent(IWorkflowStepImplementor step, String eventName, IServiceContext ctx);
 
-    void killStep(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx);
+//    void killStep(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx);
 
     boolean triggerTransition(IWorkflowStepImplementor step, Map<String, Object> args, IServiceContext ctx);
 

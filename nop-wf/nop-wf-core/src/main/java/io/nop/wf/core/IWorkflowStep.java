@@ -111,6 +111,10 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
         return getModel().getStepType() == WfStepType.flow;
     }
 
+    default boolean isStartStep() {
+        return getWorkflow().getModel().getStart().getStartStepName().equals(getStepName());
+    }
+
     IWfActor getActor();
 
     IWfActor getOwner();
@@ -134,13 +138,6 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
     List<? extends IWorkflowStep> getNextSteps();
 
     void markRead(IServiceContext ctx);
-
-    /**
-     * 调用
-     * @param args
-     * @param ctx
-     */
-    void kill(Map<String, Object> args, IServiceContext ctx);
 
     /**
      * 对于状态处于activated的步骤，触发transition迁移
@@ -183,6 +180,16 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
     @Nonnull
     List<WorkflowTransitionTarget> getTransitionTargetsForAction(String actionName, IServiceContext ctx);
 
+    /**
+     * 强制终止流程步骤，不执行迁移逻辑
+     */
+    default void killStep(Map<String, Object> args, IServiceContext ctx) {
+        exitStep(NopWfCoreConstants.WF_STEP_STATUS_KILLED, args, ctx);
+    }
+
+    default void cancelStep(Map<String, Object> args, IServiceContext ctx) {
+        exitStep(NopWfCoreConstants.WF_STEP_STATUS_CANCELLED, args, ctx);
+    }
 
     /**
      * 强制转移到指定步骤。转移到指定步骤。本步骤并没有结束

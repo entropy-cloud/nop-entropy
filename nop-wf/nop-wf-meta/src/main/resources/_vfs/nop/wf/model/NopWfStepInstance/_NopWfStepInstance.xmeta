@@ -175,51 +175,55 @@
               queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.Integer"/>
         </prop>
-        <prop name="voteWeight" displayName="投票权重" propId="40" i18n-en:displayName="Vote Weight" queryable="true"
-              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
-            <schema type="java.lang.Integer"/>
-        </prop>
-        <prop name="execOrder" displayName="执行顺序" propId="41" i18n-en:displayName="Execution Order" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
-            <schema type="java.lang.Double"/>
-        </prop>
-        <prop name="joinGroup" displayName="汇聚分组" propId="42" i18n-en:displayName="Join Group" queryable="true"
+        <prop name="joinGroup" displayName="汇聚分组" propId="40" i18n-en:displayName="Join Group" queryable="true"
               sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="tagText" displayName="标签" propId="43" i18n-en:displayName="Tags" queryable="true" sortable="true"
+        <prop name="tagText" displayName="标签" propId="41" i18n-en:displayName="Tags" queryable="true" sortable="true"
               insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="nextStepId" displayName="下一步骤ID" propId="44" i18n-en:displayName="Next Step ID" tagSet="var"
+        <prop name="nextStepId" displayName="下一步骤ID" propId="42" i18n-en:displayName="Next Step ID" tagSet="var"
               queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="stepGroup" displayName="步骤分组" propId="45" i18n-en:displayName="Step Group" tagSet="var"
+        <prop name="execGroup" displayName="执行分组" propId="43" i18n-en:displayName="Execution Group" tagSet="var"
               queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="version" displayName="数据版本" propId="46" i18n-en:displayName="Version" mandatory="true"
+        <prop name="execOrder" displayName="执行顺序" propId="44" i18n-en:displayName="Execution Order" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="execCount" displayName="执行次数" propId="45" i18n-en:displayName="Execution Count" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="voteWeight" displayName="投票权重" propId="46" i18n-en:displayName="Vote Weight" queryable="true"
+              sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="47" i18n-en:displayName="Version" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="version" type="java.lang.Integer"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" propId="47" i18n-en:displayName="Created By" mandatory="true"
+        <prop name="createdBy" displayName="创建人" propId="48" i18n-en:displayName="Created By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" ui:show="L">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" propId="48" i18n-en:displayName="Create Time" mandatory="true"
+        <prop name="createTime" displayName="创建时间" propId="49" i18n-en:displayName="Create Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" ui:show="L">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="updatedBy" displayName="修改人" propId="49" i18n-en:displayName="Updated By" mandatory="true"
+        <prop name="updatedBy" displayName="修改人" propId="50" i18n-en:displayName="Updated By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" ui:show="L">
             <schema domain="updatedBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="updateTime" displayName="修改时间" propId="50" i18n-en:displayName="Update Time" mandatory="true"
+        <prop name="updateTime" displayName="修改时间" propId="51" i18n-en:displayName="Update Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" ui:show="L">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="remark" displayName="备注" propId="51" i18n-en:displayName="Remark" queryable="true" sortable="true"
+        <prop name="remark" displayName="备注" propId="52" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="SL">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>

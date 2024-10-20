@@ -62,7 +62,7 @@
 
             <source>
                 <c:script>
-                    return wfRt.wf.starterActor
+                    return wfRt.wf.starter
                 </c:script>
             </source>
         </Starter>

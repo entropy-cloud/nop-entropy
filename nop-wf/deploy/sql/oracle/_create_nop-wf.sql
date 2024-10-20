@@ -140,12 +140,13 @@ CREATE TABLE nop_wf_step_instance(
   ERR_CODE VARCHAR2(200)  ,
   ERR_MSG VARCHAR2(4000)  ,
   PRIORITY INTEGER NOT NULL ,
-  VOTE_WEIGHT INTEGER  ,
-  EXEC_ORDER BINARY_DOUBLE NOT NULL ,
   JOIN_GROUP VARCHAR2(100)  ,
   TAG_TEXT VARCHAR2(200)  ,
   NEXT_STEP_ID VARCHAR2(32)  ,
-  STEP_GROUP VARCHAR2(32)  ,
+  EXEC_GROUP VARCHAR2(32)  ,
+  EXEC_ORDER INTEGER NOT NULL ,
+  EXEC_COUNT INTEGER  ,
+  VOTE_WEIGHT INTEGER  ,
   VERSION INTEGER NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -514,17 +515,19 @@ CREATE TABLE nop_wf_log(
                     
       COMMENT ON COLUMN nop_wf_step_instance.PRIORITY IS '优先级';
                     
-      COMMENT ON COLUMN nop_wf_step_instance.VOTE_WEIGHT IS '投票权重';
-                    
-      COMMENT ON COLUMN nop_wf_step_instance.EXEC_ORDER IS '执行顺序';
-                    
       COMMENT ON COLUMN nop_wf_step_instance.JOIN_GROUP IS '汇聚分组';
                     
       COMMENT ON COLUMN nop_wf_step_instance.TAG_TEXT IS '标签';
                     
       COMMENT ON COLUMN nop_wf_step_instance.NEXT_STEP_ID IS '下一步骤ID';
                     
-      COMMENT ON COLUMN nop_wf_step_instance.STEP_GROUP IS '步骤分组';
+      COMMENT ON COLUMN nop_wf_step_instance.EXEC_GROUP IS '执行分组';
+                    
+      COMMENT ON COLUMN nop_wf_step_instance.EXEC_ORDER IS '执行顺序';
+                    
+      COMMENT ON COLUMN nop_wf_step_instance.EXEC_COUNT IS '执行次数';
+                    
+      COMMENT ON COLUMN nop_wf_step_instance.VOTE_WEIGHT IS '投票权重';
                     
       COMMENT ON COLUMN nop_wf_step_instance.VERSION IS '数据版本';
                     

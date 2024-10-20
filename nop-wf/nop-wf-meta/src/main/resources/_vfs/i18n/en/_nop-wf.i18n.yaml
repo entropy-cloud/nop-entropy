@@ -218,12 +218,13 @@ prop:
       errCode: Error Code
       errMsg: Error Message
       priority: Priority
-      voteWeight: Vote Weight
-      execOrder: Execution Order
       joinGroup: Join Group
       tagText: Tags
       nextStepId: Next Step ID
-      stepGroup: Step Group
+      execGroup: Execution Group
+      execOrder: Execution Order
+      execCount: Execution Count
+      voteWeight: Vote Weight
       version: Version
       createdBy: Created By
       createTime: Create Time
