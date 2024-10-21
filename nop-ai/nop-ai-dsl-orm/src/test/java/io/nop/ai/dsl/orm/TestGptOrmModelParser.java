@@ -10,7 +10,7 @@ package io.nop.ai.dsl.orm;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.unittest.BaseTestCase;
-import io.nop.gpt.core.response.XmlResponseParser;
+import io.nop.ai.core.response.XmlResponseParser;
 import io.nop.orm.model.OrmModel;
 import io.nop.orm.model.OrmModelConstants;
 import io.nop.xlang.xdsl.DslModelHelper;
