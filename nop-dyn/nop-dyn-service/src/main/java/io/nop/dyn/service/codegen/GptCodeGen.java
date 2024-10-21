@@ -8,7 +8,7 @@
 package io.nop.dyn.service.codegen;
 
 import io.nop.core.lang.xml.XNode;
-import io.nop.gpt.core.response.XmlResponseParser;
+import io.nop.ai.core.response.XmlResponseParser;
 import io.nop.ai.dsl.orm.GptOrmModelParser;
 import io.nop.orm.model.OrmModel;
 
