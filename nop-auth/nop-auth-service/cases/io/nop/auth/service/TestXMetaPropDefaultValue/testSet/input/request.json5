@@ -1,0 +1,12 @@
+{
+  data: {
+    data: {
+      userName: "auto_test1",
+      password: "12355678$DFs",
+      phone: "132",
+      nickName: "test",
+      userType: 1,
+      gender: 1
+    }
+  }
+}
