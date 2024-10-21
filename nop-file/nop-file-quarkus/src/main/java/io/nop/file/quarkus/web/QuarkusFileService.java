@@ -55,34 +55,35 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
                                                      @Context HttpServerRequest request) {
         return withRoutingContext(routingContext, () -> {
             Map<String, List<InputPart>> uploadForm = input.getFormDataMap();
-            List<InputPart> inputParts = uploadForm.get("file");
 
             String locale = ContextProvider.currentLocale();
             CompletionStage<ApiResponse<?>> res = null;
             try {
-                for (InputPart inputPart : inputParts) {
+                for (List<InputPart> inputParts : uploadForm.values()) {
+                    for (InputPart inputPart : inputParts) {
 
-                    MultivaluedMap<String, String> headers = inputPart.getHeaders();
-                    String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
+                        MultivaluedMap<String, String> headers = inputPart.getHeaders();
+                        String contentType = headers.getFirst(HttpHeaders.CONTENT_TYPE);
 
-                    // 获取文件名
-                    String fileName = getFileName(headers);
-                    if (StringHelper.isEmpty(fileName))
-                        continue;
+                        // 获取文件名
+                        String fileName = getFileName(headers);
+                        if (StringHelper.isEmpty(fileName))
+                            continue;
 
-                    // 修复文件名乱码
-                    fileName = fixFileName(fileName);
-                    // 处理上传文件
-                    InputStream inputStream = inputPart.getBody(InputStream.class, null);
+                        // 修复文件名乱码
+                        fileName = fixFileName(fileName);
+                        // 处理上传文件
+                        InputStream inputStream = inputPart.getBody(InputStream.class, null);
 
-                    UploadRequestBean fileInput = buildUploadRequestBean(inputStream,
-                            fileName,
-                            -1,
-                            contentType,
-                            (name) -> getParamFrom(request, input, name));
-                    res = uploadAsync(buildApiRequest(request, fileInput));
+                        UploadRequestBean fileInput = buildUploadRequestBean(inputStream,
+                                fileName,
+                                -1,
+                                contentType,
+                                (name) -> getParamFrom(request, input, name));
+                        res = uploadAsync(buildApiRequest(request, fileInput));
 
-                    return res.thenApply(JaxrsHelper::buildJaxrsResponse);
+                        return res.thenApply(JaxrsHelper::buildJaxrsResponse);
+                    }
                 }
                 throw new IllegalArgumentException("No Upload File");
             } catch (Exception e) {
