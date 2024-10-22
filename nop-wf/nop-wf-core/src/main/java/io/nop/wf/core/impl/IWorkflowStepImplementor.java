@@ -35,4 +35,5 @@ public interface IWorkflowStepImplementor extends IWorkflowStep {
      */
     List<? extends IWorkflowStepImplementor> getJoinWaitSteps(IWfRuntime wfRt);
 
+    IWorkflowStepImplementor getExecGroupFirstStep();
 }

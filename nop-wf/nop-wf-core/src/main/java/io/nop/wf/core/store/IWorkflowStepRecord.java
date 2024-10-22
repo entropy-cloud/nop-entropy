@@ -57,6 +57,14 @@ public interface IWorkflowStepRecord extends ITagSetSupport {
 
     void setExecCount(Integer execCount);
 
+    default void incExecCount() {
+        Integer count = getExecCount();
+        if (count == null)
+            count = 0;
+        count++;
+        setExecCount(count);
+    }
+
     String getActorModelId();
 
     void setActorModelId(String actorModelId);

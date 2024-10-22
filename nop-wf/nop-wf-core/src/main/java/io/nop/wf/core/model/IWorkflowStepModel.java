@@ -32,6 +32,8 @@ public interface IWorkflowStepModel extends ITagSetSupport {
 
     boolean isAllowReject();
 
+    boolean isUseExecGroup();
+
     int getPriority();
 
     String getDueAction();

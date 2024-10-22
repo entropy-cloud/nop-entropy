@@ -7,7 +7,6 @@
  */
 package io.nop.wf.core.engine;
 
-import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
@@ -71,7 +70,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletionStage;
 
 import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTION_NAME;
 import static io.nop.wf.core.NopWfCoreErrors.ARG_ACTOR_ID;
@@ -755,10 +753,17 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         boolean ret = false;
         for (IWorkflowStepImplementor step : wf.getActivatedSteps()) {
+            if (step.getModel().isUseExecGroup()) {
+                // execGroup只有execOrder为0的步骤才会执行迁移
+                if (step.getRecord().getExecOrder() != 0 || !isExecGroupComplete(step, wfRt))
+                    continue;
+            }
             boolean hasTrans = runStepAutoTransition(step, wfRt);
             if (hasTrans)
                 ret = true;
         }
+
+
         return ret;
     }
 
@@ -770,27 +775,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         WfStepModel stepModel = (WfStepModel) step.getModel();
         try {
             if (step.getRecord().getStatus() <= NopWfCoreConstants.WF_STEP_STATUS_EXECUTED) {
-                Object value = runSource(stepModel, wfRt);
-
-                if (value instanceof CompletionStage) {
-                    CompletionStage<Object> future = (CompletionStage<Object>) value;
-                    IServiceContext ctx = wfRt.getSvcCtx();
-                    IWorkflowImplementor wf = wfRt.getWf();
-                    ContextProvider.thenOnContext(future).whenComplete((ret, err) -> {
-                        wf.reload();
-                        IWorkflowStepImplementor asyncStep = wf.getStepById(step.getStepId());
-                        WfRuntime asyncRt = newWfRuntime(asyncStep, ctx);
-                        if (err != null) {
-                            handleError(err, NopWfCoreConstants.INTERNAL_ACTION_TRANSIT, stepModel, asyncRt);
-                        } else {
-                            asyncStep.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_EXECUTED);
-                            saveStepRecord(asyncStep);
-                            wf.runAutoTransitions(ctx);
-                        }
-                    });
-                    return false;
-                }
-
+                runSource(stepModel, wfRt);
                 step.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_EXECUTED);
                 saveStepRecord(step);
             }
@@ -887,6 +872,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         IWfActor caller = wfRt.getCaller();
         if (caller != null) {
             step.getRecord().setCaller(caller);
+            step.getRecord().setAssigner(caller);
         }
 
         this.doExitStep(step, NopWfCoreConstants.WF_STEP_STATUS_TRANSFERRED, wfRt);
@@ -1090,7 +1076,18 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         }
 
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_AFTER_ACTION);
+
+        wfRt.delayExecute(() -> {
+            checkEnd(wfRt);
+        });
         return result;
+    }
+
+    private boolean isExecGroupComplete(IWorkflowStepImplementor step, WfRuntime wfRt) {
+        WfStepModel stepModel = (WfStepModel) step.getModel();
+        if (stepModel.getCheckExecGroupComplete() != null)
+            return stepModel.getCheckExecGroupComplete().passConditions(wfRt);
+        return true;
     }
 
     private void doReject(IWorkflowStepImplementor step, WfActionModel actionModel, WfRuntime wfRt) {
@@ -1161,8 +1158,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         if (!step.isHistory()) {
             WfStepModel stepModel = (WfStepModel) step.getModel();
             step.getRecord().setFinishTime(CoreMetrics.currentTimestamp());
-
             step.getRecord().transitToStatus(status);
+
+            if (stepModel.isUseExecGroup()) {
+                IWorkflowStepImplementor mainStep = step.getExecGroupFirstStep();
+                mainStep.getRecord().incExecCount();
+                if (mainStep != step)
+                    saveStepRecord(mainStep);
+            }
 
             IWorkflowStepImplementor currentStep = wfRt.getCurrentStep();
             try {
@@ -1174,6 +1177,13 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             } finally {
                 wfRt.setCurrentStep(currentStep);
             }
+        }
+    }
+
+    private void enterWaiting(IWorkflowStepImplementor step) {
+        if (!step.isHistory()) {
+            step.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_WAITING);
+            saveStepRecord(step);
         }
     }
 

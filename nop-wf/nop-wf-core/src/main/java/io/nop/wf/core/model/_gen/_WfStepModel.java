@@ -24,16 +24,16 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     private io.nop.core.lang.eval.IEvalAction _afterTransition ;
     
     /**
-     *  
+     *  允许驳回
      * xml name: allowReject
-     * 
+     * 是否允许驳回本步骤
      */
     private boolean _allowReject  = false;
     
     /**
-     *  
+     *  允许撤销
      * xml name: allowWithdraw
-     * 
+     * 是否允许撤销本步骤
      */
     private boolean _allowWithdraw  = false;
     
@@ -74,6 +74,13 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: check-exec-group-complete
+     * 判断整个执行分组是否已经结束
+     */
+    private io.nop.core.lang.eval.IEvalPredicate _checkExecGroupComplete ;
+    
+    /**
+     *  
      * xml name: description
      * 
      */
@@ -87,9 +94,9 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     private java.lang.String _displayName ;
     
     /**
-     *  
+     *  超时动作
      * xml name: dueAction
-     * 
+     * 超时动作
      */
     private java.lang.String _dueAction ;
     
@@ -220,6 +227,14 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     private java.lang.String _type ;
     
     /**
+     *  使用执行组
+     * xml name: useExecGroup
+     * 是否使用执行组。步骤迁移时每个actor生成一个步骤实例，这些步骤实例属于同一个execGroup。如果使用执行组，
+     * 则所有当前执行分组中的actor都执行完毕之后才会执行步骤迁移，用于引入会签支持
+     */
+    private boolean _useExecGroup  = false;
+    
+    /**
      *  
      * xml name: waitSignals
      * 对应一组globalVars中必须存在的变量名，只有这些变量不为null, 才activated
@@ -253,9 +268,9 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
 
     
     /**
-     * 
+     * 允许驳回
      * xml name: allowReject
-     *  
+     *  是否允许驳回本步骤
      */
     
     public boolean isAllowReject(){
@@ -272,9 +287,9 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
 
     
     /**
-     * 
+     * 允许撤销
      * xml name: allowWithdraw
-     *  
+     *  是否允许撤销本步骤
      */
     
     public boolean isAllowWithdraw(){
@@ -387,6 +402,25 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: check-exec-group-complete
+     *  判断整个执行分组是否已经结束
+     */
+    
+    public io.nop.core.lang.eval.IEvalPredicate getCheckExecGroupComplete(){
+      return _checkExecGroupComplete;
+    }
+
+    
+    public void setCheckExecGroupComplete(io.nop.core.lang.eval.IEvalPredicate value){
+        checkAllowChange();
+        
+        this._checkExecGroupComplete = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: description
      *  
      */
@@ -424,9 +458,9 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
 
     
     /**
-     * 
+     * 超时动作
      * xml name: dueAction
-     *  
+     *  超时动作
      */
     
     public java.lang.String getDueAction(){
@@ -811,6 +845,26 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
 
     
     /**
+     * 使用执行组
+     * xml name: useExecGroup
+     *  是否使用执行组。步骤迁移时每个actor生成一个步骤实例，这些步骤实例属于同一个execGroup。如果使用执行组，
+     * 则所有当前执行分组中的actor都执行完毕之后才会执行步骤迁移，用于引入会签支持
+     */
+    
+    public boolean isUseExecGroup(){
+      return _useExecGroup;
+    }
+
+    
+    public void setUseExecGroup(boolean value){
+        checkAllowChange();
+        
+        this._useExecGroup = value;
+           
+    }
+
+    
+    /**
      * 
      * xml name: waitSignals
      *  对应一组globalVars中必须存在的变量名，只有这些变量不为null, 才activated
@@ -879,6 +933,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("beforeTransition",this.getBeforeTransition());
         out.putNotNull("bizEntityState",this.getBizEntityState());
         out.putNotNull("checkComplete",this.getCheckComplete());
+        out.putNotNull("checkExecGroupComplete",this.getCheckExecGroupComplete());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("dueAction",this.getDueAction());
@@ -900,6 +955,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("transition",this.getTransition());
         out.putNotNull("type",this.getType());
+        out.putNotNull("useExecGroup",this.isUseExecGroup());
         out.putNotNull("waitSignals",this.getWaitSignals());
         out.putNotNull("wfAppState",this.getWfAppState());
     }
@@ -921,6 +977,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         instance.setBeforeTransition(this.getBeforeTransition());
         instance.setBizEntityState(this.getBizEntityState());
         instance.setCheckComplete(this.getCheckComplete());
+        instance.setCheckExecGroupComplete(this.getCheckExecGroupComplete());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
         instance.setDueAction(this.getDueAction());
@@ -942,6 +999,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         instance.setTagSet(this.getTagSet());
         instance.setTransition(this.getTransition());
         instance.setType(this.getType());
+        instance.setUseExecGroup(this.isUseExecGroup());
         instance.setWaitSignals(this.getWaitSignals());
         instance.setWfAppState(this.getWfAppState());
     }

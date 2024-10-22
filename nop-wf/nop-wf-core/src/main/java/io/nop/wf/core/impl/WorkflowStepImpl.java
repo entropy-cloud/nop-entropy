@@ -311,7 +311,7 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
 
     @Nonnull
     @Override
-    public List<? extends IWorkflowStep> getStepsInSameStepGroup(boolean includeHistory, boolean includeSelf) {
+    public List<? extends IWorkflowStep> getStepsInSameExecGroup(boolean includeHistory, boolean includeSelf) {
         List<? extends IWorkflowStep> ret = wf.getStepsByName(model.getName(), includeHistory);
         String stepGroup = record.getExecGroup();
         ret.removeIf(step -> {
@@ -322,5 +322,17 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
             return Objects.equals(step.getRecord().getExecGroup(), stepGroup);
         });
         return ret;
+    }
+
+    @Override
+    public IWorkflowStepImplementor getExecGroupFirstStep() {
+        List<? extends IWorkflowStep> ret = wf.getStepsByName(model.getName(), true);
+        String stepGroup = record.getExecGroup();
+        for (IWorkflowStep step : ret) {
+            if (Objects.equals(step.getRecord().getExecGroup(), stepGroup) && step.getRecord().getExecOrder() == 0) {
+                return (IWorkflowStepImplementor) step;
+            }
+        }
+        return this;
     }
 }

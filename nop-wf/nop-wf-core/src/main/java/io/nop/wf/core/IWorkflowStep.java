@@ -245,5 +245,10 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
      * @return
      */
     @Nonnull
-    List<? extends IWorkflowStep> getStepsInSameStepGroup(boolean includeHistory, boolean includeSelf);
+    List<? extends IWorkflowStep> getStepsInSameExecGroup(boolean includeHistory, boolean includeSelf);
+
+    /**
+     * 返回同一个execGroup中execOrder=0所对应的步骤实例
+     */
+    IWorkflowStep getExecGroupFirstStep();
 }

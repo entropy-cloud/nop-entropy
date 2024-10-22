@@ -78,6 +78,8 @@
 
     <on-signal xdef:value="xpl"/>
 
+    <remind-time-expr xdef:value="xpl" />
+
     <listeners xdef:body-type="list" xdef:key-attr="id">
         <listener id="!string" eventPattern="!string" xdef:name="WfListenerModel">
             <source xdef:value="xpl"/>
@@ -176,10 +178,15 @@
           @specialType 可视化设计器识别的分类标记。每一种specialType对应设计器中的一种图标。
           @independent 正常情况下整个流程结束时所有正在运行的步骤都会被强制kill，而如果标记为independent，则可以继续保持运行状态。
           @initAsWaiting [初始化为等待状态] 新建步骤时是否自动初始化为等待状态
+          @allowWithdraw [允许撤销] 是否允许撤销本步骤
+          @allowReject [允许驳回] 是否允许驳回本步骤
+          @useExecGroup [使用执行组] 是否使用执行组。步骤迁移时每个actor生成一个步骤实例，这些步骤实例属于同一个execGroup。如果使用执行组，
+                则所有当前执行分组中的actor都执行完毕之后才会执行步骤迁移，用于引入会签支持
+          @dueAction [超时动作] 超时动作
         -->
         <step name="!string" displayName="string" xdef:name="WfStepModel" waitSignals="csv-set"
               internal="!boolean=false" wfAppState="#string" bizEntityState="#string"
-              optional="!boolean=false" priority="!int=100" appState="#string"
+              optional="!boolean=false" priority="!int=100" appState="#string" useExecGroup="!boolean=false"
               tagSet="csv-set" allowWithdraw="!boolean=false"
               allowReject="!boolean=false" dueAction="string" initAsWaiting="!boolean=false"
               specialType="string" independent="!boolean=false">
@@ -199,7 +206,7 @@
             <!--
             如果配置了超时表达式，则当超时时刻到达时会自动触发dueAction
             -->
-            <dueTimeExpr xdef:value="xpl"/>
+            <due-time-expr xdef:value="xpl"/>
 
             <!-- 进入步骤实例时执行。on-enter失败时由父步骤的on-error捕获 -->
             <on-enter xdef:value="xpl"/>
@@ -229,6 +236,9 @@
             -->
             <check-complete xdef:value="xpl"/>
 
+            <!-- 判断整个执行分组是否已经结束 -->
+            <check-exec-group-complete xdef:value="xpl-predicate"/>
+
             <!--
 
             -->
@@ -254,7 +264,7 @@
             例如上游步骤A, 下游join步骤为B, 在步骤B中设置了joinGroupExpr="wf.bizEntity.deptId", 则下游join步骤B汇聚时，
             会按照实体上标记的deptId进行分组,不同分组的A到达join步骤时会产生不同的B步骤实例。
             -->
-            <joinGroupExpr xdef:value="xpl"/>
+            <join-group-expr xdef:value="xpl"/>
 
         </join>
 
