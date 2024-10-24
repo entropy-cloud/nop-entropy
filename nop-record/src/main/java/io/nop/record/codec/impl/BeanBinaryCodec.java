@@ -7,8 +7,8 @@ import io.nop.core.reflect.bean.IBeanConstructor;
 import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldBinaryEncoder;
 import io.nop.record.codec.IFieldCodecContext;
-import io.nop.record.input.IRecordBinaryInput;
-import io.nop.record.output.IRecordBinaryOutput;
+import io.nop.record.reader.IRecordBinaryReader;
+import io.nop.record.writer.IRecordBinaryWriter;
 
 import java.nio.charset.Charset;
 import java.util.List;
@@ -45,7 +45,7 @@ public class BeanBinaryCodec implements IFieldBinaryCodec {
     }
 
     @Override
-    public Object decode(IRecordBinaryInput input, int length, Charset charset, IFieldCodecContext context) {
+    public Object decode(IRecordBinaryReader input, int length, Charset charset, IFieldCodecContext context) {
         Object bean = constructor.newInstance();
         for (PropCodec prop : props) {
             Object value = prop.codec.decode(input, prop.length, prop.charset, context);
@@ -55,7 +55,7 @@ public class BeanBinaryCodec implements IFieldBinaryCodec {
     }
 
     @Override
-    public void encode(IRecordBinaryOutput output, Object bean, int length, Charset charset,
+    public void encode(IRecordBinaryWriter output, Object bean, int length, Charset charset,
                        IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder) {
         for (PropCodec prop : props) {
             Object value = prop.getter.getProperty(bean, prop.name, DisabledEvalScope.INSTANCE);

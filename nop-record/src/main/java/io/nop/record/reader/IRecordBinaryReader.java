@@ -20,18 +20,17 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package io.nop.record.input;
+package io.nop.record.reader;
 
 import io.nop.commons.bytes.ByteString;
 
-import java.io.Closeable;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 /**
  * 从KaitaiStruct项目的KaitaiStream类拷贝部分实现代码
  */
-public interface IRecordBinaryInput extends Closeable {
+public interface IRecordBinaryReader extends IRecordReaderBase {
 
     //region Stream positioning
 
@@ -312,11 +311,11 @@ public interface IRecordBinaryInput extends Closeable {
      */
     void reset();
 
-    IRecordBinaryInput subInput(long maxLength);
+    IRecordBinaryReader subInput(long maxLength);
 
-    IRecordBinaryInput detach();
+    IRecordBinaryReader detach();
 
-    IRecordBinaryInput duplicate();
+    IRecordBinaryReader duplicate();
 
     boolean isDetached();
 }

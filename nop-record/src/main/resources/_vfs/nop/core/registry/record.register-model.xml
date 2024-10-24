@@ -1,0 +1,8 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="record">
+
+    <loaders>
+        <xdsl-loader fileType="record.xml" schemaPath="/nop/schema/record/record.xdef"/>
+    </loaders>
+
+</model>

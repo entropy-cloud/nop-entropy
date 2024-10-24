@@ -21,7 +21,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package io.nop.record.input;
+package io.nop.record.reader;
 
 import io.nop.api.core.exceptions.NopException;
 
@@ -32,13 +32,13 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import static io.nop.record.input.BinaryInputHelper.toByteArrayLength;
+import static io.nop.record.reader.BinaryInputHelper.toByteArrayLength;
 
 /**
- * An implementation of {@link IRecordBinaryInput} backed by a {@link RandomAccessFile}.
+ * An implementation of {@link IRecordBinaryReader} backed by a {@link RandomAccessFile}.
  * <p>
  * Allows reading from local files. Generally, one would want to use
- * {@link ByteBufferRecordBinaryInput} instead, as it most likely would be faster,
+ * {@link ByteBufferRecordBinaryReader} instead, as it most likely would be faster,
  * but there are two situations when one should consider this one instead:
  *
  * <ul>
@@ -49,12 +49,12 @@ import static io.nop.record.input.BinaryInputHelper.toByteArrayLength;
  * offsets, even if you use a 64-bit platform.</li>
  * </ul>
  */
-public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
-    protected RandomAccessFile raf;
+public class RandomAccessFileRecordBinaryReader implements IRecordBinaryReader {
+    protected final RandomAccessFile raf;
     private long bits;
     private int bitsLeft;
 
-    public RandomAccessFileRecordBinaryInput(String fileName) throws IOException {
+    public RandomAccessFileRecordBinaryReader(String fileName) throws IOException {
         raf = new RandomAccessFile(fileName, "r");
     }
 
@@ -396,7 +396,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
     }
 
     @Override
-    public IRecordBinaryInput subInput(long n) {
+    public IRecordBinaryReader subInput(long n) {
         // This implementation mirrors what ksc was doing up to v0.10, and the fallback that
         // it is still doing in case something non-trivial has to happen with the byte contents.
         //
@@ -407,7 +407,7 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
         // for RAF, feel free to contribute relevant implementation with some rationale (e.g. a
         // benchmark).
 
-        return new ByteBufferRecordBinaryInput(readBytes(toByteArrayLength(n)));
+        return new ByteBufferRecordBinaryReader(readBytes(toByteArrayLength(n)));
     }
 
     //region Helper methods
@@ -452,12 +452,12 @@ public class RandomAccessFileRecordBinaryInput implements IRecordBinaryInput {
     }
 
     @Override
-    public IRecordBinaryInput detach() {
+    public IRecordBinaryReader detach() {
         return subInput(size());
     }
 
     @Override
-    public IRecordBinaryInput duplicate() {
+    public IRecordBinaryReader duplicate() {
         return subInput(size());
     }
 

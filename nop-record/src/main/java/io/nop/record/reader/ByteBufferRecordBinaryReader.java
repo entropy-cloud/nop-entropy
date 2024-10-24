@@ -21,9 +21,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package io.nop.record.input;
-
-import io.nop.record.netty.ByteBufRecordBinaryInput;
+package io.nop.record.reader;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -33,7 +31,7 @@ import java.nio.channels.FileChannel;
 
 /**
  * 基于Kaitai项目的ByteBufferKaitaiStream类修改。
- * An implementation of {@link IRecordBinaryInput} backed by a {@link ByteBuffer}.
+ * An implementation of {@link IRecordBinaryReader} backed by a {@link ByteBuffer}.
  * Any underlying implementation of ByteBuffer can be used, for example:
  * <ul>
  *     <li>ByteBuffer returned as result of {@link ByteBuffer#wrap}, wrapping
@@ -41,7 +39,7 @@ import java.nio.channels.FileChannel;
  *     <li>{@link MappedByteBuffer} backed by {@link FileChannel}</li>
  * </ul>
  */
-public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
+public class ByteBufferRecordBinaryReader implements IRecordBinaryReader {
     private ByteBuffer bb;
     private int bitsLeft;
     private long bits;
@@ -53,7 +51,7 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
      *
      * @param arr byte array to read
      */
-    public ByteBufferRecordBinaryInput(byte[] arr) {
+    public ByteBufferRecordBinaryReader(byte[] arr) {
         bb = ByteBuffer.wrap(arr);
     }
 
@@ -82,7 +80,7 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
      *
      * @param buffer ByteBuffer to read
      */
-    public ByteBufferRecordBinaryInput(ByteBuffer buffer) {
+    public ByteBufferRecordBinaryReader(ByteBuffer buffer) {
         bb = buffer;
     }
 
@@ -377,7 +375,7 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
     //endregion
 
     @Override
-    public IRecordBinaryInput subInput(long n) {
+    public IRecordBinaryReader subInput(long n) {
         if (n > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Java ByteBuffer can't be limited beyond Integer.MAX_VALUE");
         }
@@ -387,7 +385,7 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
 
         bb.position(bb.position() + (int) n);
 
-        return new ByteBufferRecordBinaryInput(newBuffer);
+        return new ByteBufferRecordBinaryReader(newBuffer);
     }
 
     @Override
@@ -412,12 +410,12 @@ public class ByteBufferRecordBinaryInput implements IRecordBinaryInput {
     }
 
     @Override
-    public IRecordBinaryInput detach() {
-        return new ByteBufferRecordBinaryInput(bb.duplicate());
+    public IRecordBinaryReader detach() {
+        return new ByteBufferRecordBinaryReader(bb.duplicate());
     }
     @Override
-    public IRecordBinaryInput duplicate() {
-        return new ByteBufferRecordBinaryInput(bb.duplicate());
+    public IRecordBinaryReader duplicate() {
+        return new ByteBufferRecordBinaryReader(bb.duplicate());
     }
     @Override
     public boolean isDetached() {

@@ -9,19 +9,18 @@ package io.nop.record.netty;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.nop.record.output.IRecordBinaryOutput;
+import io.nop.record.writer.IRecordBinaryWriter;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class ByteBufRecordBinaryOutput implements IRecordBinaryOutput {
+public class ByteBufRecordBinaryWriter implements IRecordBinaryWriter {
     private final ByteBuf byteBuf;
 
-    public ByteBufRecordBinaryOutput() {
+    public ByteBufRecordBinaryWriter() {
         this(Unpooled.buffer()); // 使用Unpooled工具类创建一个ByteBuf实例
     }
 
-    public ByteBufRecordBinaryOutput(ByteBuf byteBuf) {
+    public ByteBufRecordBinaryWriter(ByteBuf byteBuf) {
         this.byteBuf = byteBuf.retain();
     }
 

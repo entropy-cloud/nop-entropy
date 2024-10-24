@@ -20,7 +20,7 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package io.nop.record.input;
+package io.nop.record.reader;
 
 import java.io.ByteArrayOutputStream;
 import java.util.zip.DataFormatException;

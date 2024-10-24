@@ -1,7 +1,7 @@
 package io.nop.record.codec;
 
-import io.nop.record.input.IRecordTextInput;
+import io.nop.record.reader.IRecordTextReader;
 
 public interface IFieldTextDecoder {
-    Object decode(IRecordTextInput input, int length, IFieldCodecContext context);
+    Object decode(IRecordTextReader input, int length, IFieldCodecContext context);
 }

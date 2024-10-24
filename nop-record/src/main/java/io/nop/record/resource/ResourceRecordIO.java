@@ -7,12 +7,32 @@
  */
 package io.nop.record.resource;
 
+import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.record.IResourceRecordIO;
 import io.nop.dataset.record.IRecordInput;
 import io.nop.dataset.record.IRecordOutput;
+import io.nop.record.RecordConstants;
+import io.nop.record.model.RecordFileMeta;
+import io.nop.record.writer.AppendableRecordTextWriter;
+import io.nop.record.writer.IRecordBinaryWriter;
+import io.nop.record.writer.IRecordTextWriter;
+import io.nop.record.writer.StreamRecordBinaryWriter;
+
+import java.io.BufferedWriter;
+import java.io.OutputStream;
+import java.io.Writer;
 
 public class ResourceRecordIO<T> implements IResourceRecordIO<T> {
+
+    private String modelFilePath = "/model/record/";
+
+    public void setModelFilePath(String modelFilePath) {
+        this.modelFilePath = modelFilePath;
+    }
+
     @Override
     public IRecordInput<T> openInput(IResource resource, String encoding) {
         return null;
@@ -20,6 +40,27 @@ public class ResourceRecordIO<T> implements IResourceRecordIO<T> {
 
     @Override
     public IRecordOutput<T> openOutput(IResource resource, String encoding) {
-        return null;
+        RecordFileMeta fileMeta = getFileMeta(resource);
+        if (fileMeta.isBinary()) {
+            OutputStream writer = ResourceHelper.toOutputStream(resource, true);
+            IRecordBinaryWriter out = new StreamRecordBinaryWriter(writer);
+            return new ModelBasedBinaryRecordOutput<>(out, fileMeta);
+        } else {
+            Writer writer = ResourceHelper.toWriter(resource, encoding, true);
+            IRecordTextWriter out = new AppendableRecordTextWriter(new BufferedWriter(writer));
+            return new ModelBasedTextRecordOutput<>(out, fileMeta);
+        }
+    }
+
+    protected String getFileMetaPath(IResource resource) {
+        String fileName = StringHelper.fileNameNoExt(resource.getName());
+        String prefix = StringHelper.firstPart(fileName, '-');
+        String path = StringHelper.appendPath(modelFilePath, prefix) + RecordConstants.RECORD_FILE_XML_POSTFIX;
+        return path;
+    }
+
+    protected RecordFileMeta getFileMeta(IResource resource) {
+        String path = getFileMetaPath(resource);
+        return (RecordFileMeta) ResourceComponentManager.instance().loadComponentModel(path);
     }
 }

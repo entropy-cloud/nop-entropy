@@ -5,9 +5,9 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.record.input;
+package io.nop.record.reader;
 
-public interface IRecordTextInput {
+public interface IRecordTextReader extends IRecordReaderBase {
     int available();
 
     void skip(int n);
@@ -34,11 +34,11 @@ public interface IRecordTextInput {
      */
     void reset();
 
-    default IRecordTextInput subInput(int maxLength) {
-        return new SubRecordTextInput(this, maxLength);
+    default IRecordTextReader subInput(int maxLength) {
+        return new SubRecordTextReader(this, maxLength);
     }
 
-    IRecordTextInput detach();
+    IRecordTextReader detach();
 
     boolean isDetached();
 }

@@ -5,17 +5,19 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.record.input;
+package io.nop.record.reader;
 
 import io.nop.api.core.exceptions.NopException;
 
+import java.io.IOException;
+
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_ENOUGH_DATA;
 
-public class SimpleRecordTextInput implements IRecordTextInput {
+public class SimpleRecordTextReader implements IRecordTextReader {
     private final CharSequence text;
     private int offset;
 
-    public SimpleRecordTextInput(CharSequence text) {
+    public SimpleRecordTextReader(CharSequence text) {
         this.text = text;
     }
 
@@ -30,6 +32,16 @@ public class SimpleRecordTextInput implements IRecordTextInput {
             throw new NopException(ERR_RECORD_NO_ENOUGH_DATA);
 
         offset += n;
+    }
+
+    @Override
+    public boolean isEof() {
+        return offset >= text.length();
+    }
+
+    @Override
+    public void close() throws IOException {
+
     }
 
     @Override
@@ -82,8 +94,8 @@ public class SimpleRecordTextInput implements IRecordTextInput {
     }
 
     @Override
-    public IRecordTextInput detach() {
-        SimpleRecordTextInput input = new SimpleRecordTextInput(text);
+    public IRecordTextReader detach() {
+        SimpleRecordTextReader input = new SimpleRecordTextReader(text);
         input.skip(offset);
         return input;
     }

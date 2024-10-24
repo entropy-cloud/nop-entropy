@@ -1,6 +1,7 @@
 package io.nop.record.codec;
 
 import io.nop.core.context.IEvalContext;
+import io.nop.record.model.RecordTypeMeta;
 
 public interface IFieldCodecContext extends IEvalContext {
 
@@ -9,4 +10,6 @@ public interface IFieldCodecContext extends IEvalContext {
     void enterField(String name);
 
     void leaveField(String name);
+
+    RecordTypeMeta getType(String name);
 }

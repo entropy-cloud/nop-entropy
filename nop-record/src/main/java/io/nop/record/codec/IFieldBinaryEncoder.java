@@ -1,11 +1,11 @@
 package io.nop.record.codec;
 
-import io.nop.record.output.IRecordBinaryOutput;
+import io.nop.record.writer.IRecordBinaryWriter;
 
 import java.nio.charset.Charset;
 
 public interface IFieldBinaryEncoder {
 
-    void encode(IRecordBinaryOutput output, Object value, int length, Charset charset,
+    void encode(IRecordBinaryWriter output, Object value, int length, Charset charset,
                 IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder);
 }

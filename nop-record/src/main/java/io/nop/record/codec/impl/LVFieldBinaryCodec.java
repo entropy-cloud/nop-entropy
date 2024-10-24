@@ -4,8 +4,8 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldBinaryEncoder;
 import io.nop.record.codec.IFieldCodecContext;
-import io.nop.record.input.IRecordBinaryInput;
-import io.nop.record.output.IRecordBinaryOutput;
+import io.nop.record.reader.IRecordBinaryReader;
+import io.nop.record.writer.IRecordBinaryWriter;
 
 import java.nio.charset.Charset;
 import java.util.function.Function;
@@ -27,7 +27,7 @@ public class LVFieldBinaryCodec implements IFieldBinaryCodec {
     }
 
     @Override
-    public Object decode(IRecordBinaryInput input, int length, Charset charset, IFieldCodecContext context) {
+    public Object decode(IRecordBinaryReader input, int length, Charset charset, IFieldCodecContext context) {
         int len = (Integer) lengthCodec.decode(input, length, charset, context);
         if (len <= 0) {
             return null;
@@ -41,7 +41,7 @@ public class LVFieldBinaryCodec implements IFieldBinaryCodec {
     }
 
     @Override
-    public void encode(IRecordBinaryOutput output, Object value, int length, Charset charset, IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder) {
+    public void encode(IRecordBinaryWriter output, Object value, int length, Charset charset, IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder) {
         int len = lengthGetter.apply(value);
         lengthCodec.encode(output, len, length, charset, context, null);
         if (len > 0)

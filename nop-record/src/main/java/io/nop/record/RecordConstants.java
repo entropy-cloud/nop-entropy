@@ -16,4 +16,8 @@ public interface RecordConstants {
     String VAR_INDEX_IN_PAGE = "$indexInPage";
 
     String VAR_AGG_STATE = "aggState";
+
+    String RECORD_FILE_XML_POSTFIX = ".record-file.xml";
+
+    String RECORD_XML_POSTFIX = ".record.xml";
 }

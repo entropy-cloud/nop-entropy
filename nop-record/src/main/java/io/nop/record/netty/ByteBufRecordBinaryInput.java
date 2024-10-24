@@ -26,8 +26,7 @@ package io.nop.record.netty;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
-import io.nop.record.input.ByteBufferRecordBinaryInput;
-import io.nop.record.input.IRecordBinaryInput;
+import io.nop.record.reader.IRecordBinaryReader;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -38,7 +37,7 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * 基于Kaitai项目的ByteBufferKaitaiStream类修改。
- * An implementation of {@link IRecordBinaryInput} backed by a {@link ByteBuffer}.
+ * An implementation of {@link IRecordBinaryReader} backed by a {@link ByteBuffer}.
  * Any underlying implementation of ByteBuffer can be used, for example:
  * <ul>
  *     <li>ByteBuffer returned as result of {@link ByteBuffer#wrap}, wrapping
@@ -46,7 +45,7 @@ import java.nio.charset.StandardCharsets;
  *     <li>{@link MappedByteBuffer} backed by {@link FileChannel}</li>
  * </ul>
  */
-public class ByteBufRecordBinaryInput implements IRecordBinaryInput {
+public class ByteBufRecordBinaryInput implements IRecordBinaryReader {
     private ByteBuf bb;
     private int bitsLeft;
     private long bits;
@@ -381,7 +380,7 @@ public class ByteBufRecordBinaryInput implements IRecordBinaryInput {
     //endregion
 
     @Override
-    public IRecordBinaryInput subInput(long n) {
+    public IRecordBinaryReader subInput(long n) {
         if (n > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Java ByteBuffer can't be limited beyond Integer.MAX_VALUE");
         }
@@ -423,12 +422,12 @@ public class ByteBufRecordBinaryInput implements IRecordBinaryInput {
     }
 
     @Override
-    public IRecordBinaryInput detach() {
+    public IRecordBinaryReader detach() {
         return new ByteBufRecordBinaryInput(bb.duplicate());
     }
 
     @Override
-    public IRecordBinaryInput duplicate() {
+    public IRecordBinaryReader duplicate() {
         return new ByteBufRecordBinaryInput(bb.duplicate());
     }
 

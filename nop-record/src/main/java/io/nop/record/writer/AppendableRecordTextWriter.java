@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.record.output;
+package io.nop.record.writer;
 
 import io.nop.commons.text.MutableString;
 
@@ -13,15 +13,15 @@ import java.io.Closeable;
 import java.io.Flushable;
 import java.io.IOException;
 
-public class SimpleTextOutput implements IRecordTextOutput {
+public class AppendableRecordTextWriter implements IRecordTextWriter {
     private final Appendable buf;
     private int length;
 
-    public SimpleTextOutput(Appendable buf) {
+    public AppendableRecordTextWriter(Appendable buf) {
         this.buf = buf;
     }
 
-    public SimpleTextOutput() {
+    public AppendableRecordTextWriter() {
         this(new StringBuilder());
     }
 
@@ -30,26 +30,26 @@ public class SimpleTextOutput implements IRecordTextOutput {
     }
 
     @Override
-    public IRecordTextOutput append(CharSequence str) throws IOException {
+    public IRecordTextWriter append(CharSequence str) throws IOException {
         buf.append(str);
         length += str.length();
         return this;
     }
 
     @Override
-    public IRecordTextOutput append(CharSequence str, int start, int end) throws IOException {
+    public IRecordTextWriter append(CharSequence str, int start, int end) throws IOException {
         buf.append(str, start, end);
         length += end - start;
         return this;
     }
 
     @Override
-    public IRecordTextOutput append(char[] chars) throws IOException {
+    public IRecordTextWriter append(char[] chars) throws IOException {
         return append(chars, 0, chars.length);
     }
 
     @Override
-    public IRecordTextOutput append(char[] chars, int start, int end) throws IOException {
+    public IRecordTextWriter append(char[] chars, int start, int end) throws IOException {
         if (buf instanceof StringBuilder) {
             ((StringBuilder) buf).append(chars, start, end);
         } else {
@@ -60,7 +60,7 @@ public class SimpleTextOutput implements IRecordTextOutput {
     }
 
     @Override
-    public IRecordTextOutput append(char c) throws IOException {
+    public IRecordTextWriter append(char c) throws IOException {
         buf.append(c);
         length++;
         return this;

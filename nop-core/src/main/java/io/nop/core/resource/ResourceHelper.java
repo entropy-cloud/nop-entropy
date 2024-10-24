@@ -271,7 +271,7 @@ public class ResourceHelper {
     }
 
     public static String buildTenantPath(String tenantId, String path) {
-        if(isTenantPath(path))
+        if (isTenantPath(path))
             return path;
         return ResourceConstants.TENANT_PATH_PREFIX + tenantId + path;
     }
@@ -558,6 +558,23 @@ public class ResourceHelper {
                 Writer out = resource.getWriter(encoding);
                 io = out;
                 return out;
+            }
+        } catch (Exception e) {
+            IoHelper.safeCloseObject(io);
+            throw NopException.adapt(e);
+        }
+    }
+
+    public static OutputStream toOutputStream(IResource resource, boolean supportZip) {
+        AutoCloseable io = null;
+        try {
+            if (supportZip && isZipFile(resource)) {
+                OutputStream os = resource.getOutputStream();
+                io = os;
+                os = new GZIPOutputStream(os, CFG_IO_DEFAULT_BUF_SIZE.get());
+                return os;
+            } else {
+                return resource.getOutputStream();
             }
         } catch (Exception e) {
             IoHelper.safeCloseObject(io);
@@ -970,7 +987,7 @@ public class ResourceHelper {
             return path;
         }
 
-        if(path.startsWith("file:"))
+        if (path.startsWith("file:"))
             return path;
 
         if (path.startsWith("v:")) {

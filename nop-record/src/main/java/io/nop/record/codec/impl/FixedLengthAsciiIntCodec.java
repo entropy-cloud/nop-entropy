@@ -8,10 +8,10 @@ import io.nop.record.codec.IFieldBinaryEncoder;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.codec.IFieldTextEncoder;
-import io.nop.record.input.IRecordBinaryInput;
-import io.nop.record.input.IRecordTextInput;
-import io.nop.record.output.IRecordBinaryOutput;
-import io.nop.record.output.IRecordTextOutput;
+import io.nop.record.reader.IRecordBinaryReader;
+import io.nop.record.reader.IRecordTextReader;
+import io.nop.record.writer.IRecordBinaryWriter;
+import io.nop.record.writer.IRecordTextWriter;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -23,7 +23,7 @@ public class FixedLengthAsciiIntCodec implements IFieldBinaryCodec, IFieldTextCo
     public static FixedLengthAsciiIntCodec INSTANCE = new FixedLengthAsciiIntCodec();
 
     @Override
-    public Object decode(IRecordBinaryInput input, int length, Charset charset, IFieldCodecContext context) {
+    public Object decode(IRecordBinaryReader input, int length, Charset charset, IFieldCodecContext context) {
         byte[] bytes = input.readBytes(length);
         if (charset == null)
             charset = StandardCharsets.UTF_8;
@@ -31,7 +31,7 @@ public class FixedLengthAsciiIntCodec implements IFieldBinaryCodec, IFieldTextCo
     }
 
     @Override
-    public void encode(IRecordBinaryOutput output, Object value, int length, Charset charset,
+    public void encode(IRecordBinaryWriter output, Object value, int length, Charset charset,
                        IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder) {
         String text = ConvertHelper.toString(value, "0");
         text = StringHelper.leftPad(text, length, '0');
@@ -41,13 +41,13 @@ public class FixedLengthAsciiIntCodec implements IFieldBinaryCodec, IFieldTextCo
     }
 
     @Override
-    public Object decode(IRecordTextInput input, int length, IFieldCodecContext context) {
+    public Object decode(IRecordTextReader input, int length, IFieldCodecContext context) {
         String text = input.read(length);
         return ConvertHelper.toPrimitiveInt(text, err -> new NopException(err).param(ARG_FIELD_PATH, context.getFieldPath()));
     }
 
     @Override
-    public void encode(IRecordTextOutput output, Object value, int length,
+    public void encode(IRecordTextWriter output, Object value, int length,
                        IFieldCodecContext context, IFieldTextEncoder bodyEncoder) throws IOException {
         String text = ConvertHelper.toString(value, "0");
         text = StringHelper.leftPad(text, length, '0');
