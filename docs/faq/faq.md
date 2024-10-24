@@ -622,3 +622,21 @@ Nop提出一系列的结构规则和使用模式，使得这种能力的使用�
 prop级别实际上是在代码生成的时候根据`not-pub`标签生成了`published=false`这个属性。在设计层面meta有一个明确的属性用于记录自己是否要publish，
 在这个层面它属于是一种显性知识。但是在orm层面，因为这是存储层模型，原则上orm模型不应该知道自己是否要publish，所以它把相关配置信息存放在tagSet中，相当于是一种扩展描述。
 从ORM模型生成xmeta的时候，再把它转换为显性知识。
+
+### 13. 可逆计算的核心公式 App = Delta x-extends Generator<DSL>，在Nop中有Generator是一个理论上的抽象概念，它在Nop平台中对应于多种具体的机制。
+1. XCodeGenerator代码生成工具，可以根据Excel模型生成代码，生成的时候会自动覆盖_gen目录下的文件以及所有名称以下划线为前缀的文件。手工编写的代码从自动生成的代码继承，进行差量定制。
+2. 所有的XDSL文件内部都支持x:gen-extends和x:post-extends动态代码生成段，在其中可以通过xpl模板语言来动态生成模型节点，然后再和外部节点进行差量合并。
+```xml
+<model x:extends="A,B"> 
+   <x:gen-extends>
+      <my:GenC/>
+      <my:GenD/>
+   </x:gen-extends>
+  <x:post-extends>
+     <my:GenE/>
+   </x:post-extends>
+   ...
+</model>
+```
+对应的合并策略为  Result = E x-extends Model x-extends D x-extends C x-extends B x-extends Axml格式的模型文件，下划线开头的自动生成的源码，手动编写的源码，还有Generator工具等。其中模型文件对应DSL，那么Generator工具对应的就是公式中的Genetator吗？如果不是，那公式中的Generator对应的是Nop中的哪些部分？
+

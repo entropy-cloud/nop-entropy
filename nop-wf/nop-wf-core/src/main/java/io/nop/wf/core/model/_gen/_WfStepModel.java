@@ -102,7 +102,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
-     * xml name: dueTimeExpr
+     * xml name: due-time-expr
      * 如果配置了超时表达式，则当超时时刻到达时会自动触发dueAction
      */
     private io.nop.core.lang.eval.IEvalAction _dueTimeExpr ;
@@ -478,7 +478,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
-     * xml name: dueTimeExpr
+     * xml name: due-time-expr
      *  如果配置了超时表达式，则当超时时刻到达时会自动触发dueAction
      */
     

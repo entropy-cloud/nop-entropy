@@ -749,6 +749,7 @@
 /nop/schema/record/record-object.xdef
 /nop/schema/record/record-param.xdef
 /nop/schema/record/record-simple-field.xdef
+/nop/schema/record/record-template.xdef
 /nop/schema/register-model.xdef
 /nop/schema/registry.xdef
 /nop/schema/rule.xdef

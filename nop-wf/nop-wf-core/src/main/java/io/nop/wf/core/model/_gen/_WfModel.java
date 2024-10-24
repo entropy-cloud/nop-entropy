@@ -145,6 +145,13 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     
     /**
      *  
+     * xml name: remind-time-expr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _remindTimeExpr ;
+    
+    /**
+     *  
      * xml name: start
      * start只对应唯一启动步骤， 避免多个地方都写判断。可以很方便的实现回退到初始节点
      */
@@ -622,6 +629,25 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
     
     /**
      * 
+     * xml name: remind-time-expr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getRemindTimeExpr(){
+      return _remindTimeExpr;
+    }
+
+    
+    public void setRemindTimeExpr(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._remindTimeExpr = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: start
      *  start只对应唯一启动步骤， 避免多个地方都写判断。可以很方便的实现回退到初始节点
      */
@@ -871,6 +897,7 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         out.putNotNull("onError",this.getOnError());
         out.putNotNull("onSignal",this.getOnSignal());
         out.putNotNull("priority",this.getPriority());
+        out.putNotNull("remindTimeExpr",this.getRemindTimeExpr());
         out.putNotNull("start",this.getStart());
         out.putNotNull("steps",this.getSteps());
         out.putNotNull("subscribes",this.getSubscribes());
@@ -908,6 +935,7 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
         instance.setOnError(this.getOnError());
         instance.setOnSignal(this.getOnSignal());
         instance.setPriority(this.getPriority());
+        instance.setRemindTimeExpr(this.getRemindTimeExpr());
         instance.setStart(this.getStart());
         instance.setSteps(this.getSteps());
         instance.setSubscribes(this.getSubscribes());

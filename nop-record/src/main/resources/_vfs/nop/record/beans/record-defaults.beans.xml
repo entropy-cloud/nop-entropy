@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="nopRecordTemplateManager"
+          class="io.nop.record.template.RecordTemplateManager">
+    </bean>
+</beans>

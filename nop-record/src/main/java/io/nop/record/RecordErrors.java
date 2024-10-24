@@ -59,4 +59,7 @@ public interface RecordErrors {
 
     ErrorCode ERR_RECORD_CASE_VALUE_MAP_TO_UNKNOWN_TYPE = define("nop.err.record.case-value-map-to-unknown-type",
             "字段[{fieldName}]的条件类型映射到未定义的类型:{caseValue}=>{typeName}", ARG_FIELD_NAME, ARG_CASE_VALUE, ARG_TYPE_NAME);
+
+    ErrorCode ERR_RECORD_FIELD_IS_MANDATORY = define("nop.err.record.field-is-mandatory",
+            "字段[{fieldName}]的值不允许为空", ARG_FIELD_NAME);
 }

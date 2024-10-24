@@ -231,7 +231,7 @@ const resolvers = {
 
 在Antlr4中，import语法类似面向对象编程语言中的继承概念。它是一种智能的include，当前的grammar会继承导入的grammar的所有规则，tokens specifications，names actions等，并可以重写规则来覆盖继承的规则。
 
-![antlr\_combined](https://p1-jj.byteimg.com/tos-cn-i-t2oaga2asx/gold-user-assets/2019/10/7/16da6af3d900971f~tplv-t2oaga2asx-image.image)
+![antlr\_combined](antlr/combined.png)
 
 在上面的例子中，MyElang通过继承ELang得到若干规则，同时也重写了expr规则并增加了INT规则。终于，我们不再需要每次扩展语法都要拷贝粘贴了。
 
@@ -239,7 +239,7 @@ const resolvers = {
 
 ```
 // Simple.g4
-grammar Simple; 
+grammar Simple;
 
 expr  : left=expr op=('*'|'/') right=expr #opExpr
       | left=expr op=('+'|'-') right=expr #opExpr
@@ -320,7 +320,6 @@ $$
 $$
 A \approx B \\
     A + A' \equiv = B + B' \\
-
 $$
 
 对应于A'部分的信息在当前的系统A中不一定会使用，但是为了适应系统B的应用逻辑，我们必须找到一个地方把这些信息存储下来。这是一种整体性的协同处理过程。你注意到没有，所有能称得上现代的程序语言都经历了戴帽子工程改造，都支持某种形式的自定义注解（Annotation）机制，一些扩展的描述信息会存在帽子里随身携带。换句话说，(data, metadata)配对才是信息的完整表达，这和消息对象总是包含(body, headers)是一个道理。

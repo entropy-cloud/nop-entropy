@@ -18,7 +18,7 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
     
     /**
      *  
-     * xml name: joinGroupExpr
+     * xml name: join-group-expr
      * joinGroupExpr指定join时的分组条件。
      * join步骤缺省会等待所有前置步骤结束。如果指定了joinGroupExpr, 则joinGroupExpr相同的步骤会被认为是一组。
      * 例如上游步骤A, 下游join步骤为B, 在步骤B中设置了joinGroupExpr="wf.bizEntity.deptId", 则下游join步骤B汇聚时，
@@ -57,7 +57,7 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
     
     /**
      * 
-     * xml name: joinGroupExpr
+     * xml name: join-group-expr
      *  joinGroupExpr指定join时的分组条件。
      * join步骤缺省会等待所有前置步骤结束。如果指定了joinGroupExpr, 则joinGroupExpr相同的步骤会被认为是一组。
      * 例如上游步骤A, 下游join步骤为B, 在步骤B中设置了joinGroupExpr="wf.bizEntity.deptId", 则下游join步骤B汇聚时，

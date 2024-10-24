@@ -9904,6 +9904,19 @@
         ]
       },
       {
+        "name": "newStepForActor",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Integer",
+          "io.nop.wf.core.impl.IWorkflowStepImplementor",
+          "io.nop.wf.core.model.WfStepModel",
+          "java.lang.String",
+          "io.nop.wf.core.engine.WfActorWithWeight",
+          "io.nop.wf.api.actor.IWfActor",
+          "io.nop.wf.core.engine.WfRuntime"
+        ]
+      },
+      {
         "name": "newWfRuntime",
         "parameterTypes": [
           "io.nop.wf.core.impl.IWorkflowImplementor",
