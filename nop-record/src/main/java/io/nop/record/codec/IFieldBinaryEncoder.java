@@ -1,11 +1,12 @@
 package io.nop.record.codec;
 
-import io.nop.record.writer.IRecordBinaryWriter;
+import io.nop.record.writer.IBinaryDataWriter;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 
 public interface IFieldBinaryEncoder {
 
-    void encode(IRecordBinaryWriter output, Object value, int length, Charset charset,
-                IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder);
+    void encode(IBinaryDataWriter output, Object value, int length, Charset charset,
+                IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder) throws IOException;
 }

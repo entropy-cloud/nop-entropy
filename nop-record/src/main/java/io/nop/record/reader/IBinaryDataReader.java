@@ -30,7 +30,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * 从KaitaiStruct项目的KaitaiStream类拷贝部分实现代码
  */
-public interface IRecordBinaryReader extends IRecordReaderBase {
+public interface IBinaryDataReader extends IDataReaderBase {
 
     //region Stream positioning
 
@@ -311,11 +311,11 @@ public interface IRecordBinaryReader extends IRecordReaderBase {
      */
     void reset();
 
-    IRecordBinaryReader subInput(long maxLength);
+    IBinaryDataReader subInput(long maxLength);
 
-    IRecordBinaryReader detach();
+    IBinaryDataReader detach();
 
-    IRecordBinaryReader duplicate();
+    IBinaryDataReader duplicate();
 
     boolean isDetached();
 }

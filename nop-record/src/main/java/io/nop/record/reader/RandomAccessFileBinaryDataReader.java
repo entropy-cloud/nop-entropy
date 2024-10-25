@@ -32,13 +32,13 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import static io.nop.record.reader.BinaryInputHelper.toByteArrayLength;
+import static io.nop.record.reader.BinaryReaderHelper.toByteArrayLength;
 
 /**
- * An implementation of {@link IRecordBinaryReader} backed by a {@link RandomAccessFile}.
+ * An implementation of {@link IBinaryDataReader} backed by a {@link RandomAccessFile}.
  * <p>
  * Allows reading from local files. Generally, one would want to use
- * {@link ByteBufferRecordBinaryReader} instead, as it most likely would be faster,
+ * {@link ByteBufferBinaryDataReader} instead, as it most likely would be faster,
  * but there are two situations when one should consider this one instead:
  *
  * <ul>
@@ -49,12 +49,12 @@ import static io.nop.record.reader.BinaryInputHelper.toByteArrayLength;
  * offsets, even if you use a 64-bit platform.</li>
  * </ul>
  */
-public class RandomAccessFileRecordBinaryReader implements IRecordBinaryReader {
+public class RandomAccessFileBinaryDataReader implements IBinaryDataReader {
     protected final RandomAccessFile raf;
     private long bits;
     private int bitsLeft;
 
-    public RandomAccessFileRecordBinaryReader(String fileName) throws IOException {
+    public RandomAccessFileBinaryDataReader(String fileName) throws IOException {
         raf = new RandomAccessFile(fileName, "r");
     }
 
@@ -396,7 +396,7 @@ public class RandomAccessFileRecordBinaryReader implements IRecordBinaryReader {
     }
 
     @Override
-    public IRecordBinaryReader subInput(long n) {
+    public IBinaryDataReader subInput(long n) {
         // This implementation mirrors what ksc was doing up to v0.10, and the fallback that
         // it is still doing in case something non-trivial has to happen with the byte contents.
         //
@@ -407,7 +407,7 @@ public class RandomAccessFileRecordBinaryReader implements IRecordBinaryReader {
         // for RAF, feel free to contribute relevant implementation with some rationale (e.g. a
         // benchmark).
 
-        return new ByteBufferRecordBinaryReader(readBytes(toByteArrayLength(n)));
+        return new ByteBufferBinaryDataReader(readBytes(toByteArrayLength(n)));
     }
 
     //region Helper methods
@@ -452,12 +452,12 @@ public class RandomAccessFileRecordBinaryReader implements IRecordBinaryReader {
     }
 
     @Override
-    public IRecordBinaryReader detach() {
+    public IBinaryDataReader detach() {
         return subInput(size());
     }
 
     @Override
-    public IRecordBinaryReader duplicate() {
+    public IBinaryDataReader duplicate() {
         return subInput(size());
     }
 

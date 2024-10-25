@@ -1,11 +1,12 @@
 package io.nop.record.codec;
 
-import io.nop.record.reader.IRecordBinaryReader;
+import io.nop.record.reader.IBinaryDataReader;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 
 public interface IFieldBinaryDecoder {
 
-    Object decode(IRecordBinaryReader input, int length, Charset charset, IFieldCodecContext context);
+    Object decode(IBinaryDataReader input, int length, Charset charset, IFieldCodecContext context) throws IOException;
 
 }

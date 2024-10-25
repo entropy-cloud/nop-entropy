@@ -13,11 +13,11 @@ import java.io.IOException;
 
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_ENOUGH_DATA;
 
-public class SimpleRecordTextReader implements IRecordTextReader {
+public class SimpleTextDataReader implements ITextDataReader {
     private final CharSequence text;
     private int offset;
 
-    public SimpleRecordTextReader(CharSequence text) {
+    public SimpleTextDataReader(CharSequence text) {
         this.text = text;
     }
 
@@ -94,8 +94,8 @@ public class SimpleRecordTextReader implements IRecordTextReader {
     }
 
     @Override
-    public IRecordTextReader detach() {
-        SimpleRecordTextReader input = new SimpleRecordTextReader(text);
+    public ITextDataReader detach() {
+        SimpleTextDataReader input = new SimpleTextDataReader(text);
         input.skip(offset);
         return input;
     }

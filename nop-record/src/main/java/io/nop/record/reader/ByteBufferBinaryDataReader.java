@@ -31,7 +31,7 @@ import java.nio.channels.FileChannel;
 
 /**
  * 基于Kaitai项目的ByteBufferKaitaiStream类修改。
- * An implementation of {@link IRecordBinaryReader} backed by a {@link ByteBuffer}.
+ * An implementation of {@link IBinaryDataReader} backed by a {@link ByteBuffer}.
  * Any underlying implementation of ByteBuffer can be used, for example:
  * <ul>
  *     <li>ByteBuffer returned as result of {@link ByteBuffer#wrap}, wrapping
@@ -39,7 +39,7 @@ import java.nio.channels.FileChannel;
  *     <li>{@link MappedByteBuffer} backed by {@link FileChannel}</li>
  * </ul>
  */
-public class ByteBufferRecordBinaryReader implements IRecordBinaryReader {
+public class ByteBufferBinaryDataReader implements IBinaryDataReader {
     private ByteBuffer bb;
     private int bitsLeft;
     private long bits;
@@ -51,7 +51,7 @@ public class ByteBufferRecordBinaryReader implements IRecordBinaryReader {
      *
      * @param arr byte array to read
      */
-    public ByteBufferRecordBinaryReader(byte[] arr) {
+    public ByteBufferBinaryDataReader(byte[] arr) {
         bb = ByteBuffer.wrap(arr);
     }
 
@@ -80,7 +80,7 @@ public class ByteBufferRecordBinaryReader implements IRecordBinaryReader {
      *
      * @param buffer ByteBuffer to read
      */
-    public ByteBufferRecordBinaryReader(ByteBuffer buffer) {
+    public ByteBufferBinaryDataReader(ByteBuffer buffer) {
         bb = buffer;
     }
 
@@ -375,7 +375,7 @@ public class ByteBufferRecordBinaryReader implements IRecordBinaryReader {
     //endregion
 
     @Override
-    public IRecordBinaryReader subInput(long n) {
+    public IBinaryDataReader subInput(long n) {
         if (n > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Java ByteBuffer can't be limited beyond Integer.MAX_VALUE");
         }
@@ -385,7 +385,7 @@ public class ByteBufferRecordBinaryReader implements IRecordBinaryReader {
 
         bb.position(bb.position() + (int) n);
 
-        return new ByteBufferRecordBinaryReader(newBuffer);
+        return new ByteBufferBinaryDataReader(newBuffer);
     }
 
     @Override
@@ -410,12 +410,12 @@ public class ByteBufferRecordBinaryReader implements IRecordBinaryReader {
     }
 
     @Override
-    public IRecordBinaryReader detach() {
-        return new ByteBufferRecordBinaryReader(bb.duplicate());
+    public IBinaryDataReader detach() {
+        return new ByteBufferBinaryDataReader(bb.duplicate());
     }
     @Override
-    public IRecordBinaryReader duplicate() {
-        return new ByteBufferRecordBinaryReader(bb.duplicate());
+    public IBinaryDataReader duplicate() {
+        return new ByteBufferBinaryDataReader(bb.duplicate());
     }
     @Override
     public boolean isDetached() {

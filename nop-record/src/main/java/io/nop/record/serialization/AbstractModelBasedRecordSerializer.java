@@ -15,7 +15,7 @@ import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordFieldSwitch;
 import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordTypeMeta;
-import io.nop.record.writer.IRecordWriterBase;
+import io.nop.record.writer.IDataWriterBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +29,7 @@ import static io.nop.record.RecordErrors.ARG_TYPE_NAME;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_MATCH_FOR_CASE_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_SWITCH_ON_FIELD;
 
-public abstract class AbstractModelBasedRecordSerializer<Output extends IRecordWriterBase>
+public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWriterBase>
         implements IModelBasedRecordSerializer<Output> {
     static final Logger LOG = LoggerFactory.getLogger(AbstractModelBasedRecordSerializer.class);
 

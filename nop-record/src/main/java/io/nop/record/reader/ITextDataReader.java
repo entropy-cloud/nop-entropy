@@ -7,7 +7,7 @@
  */
 package io.nop.record.reader;
 
-public interface IRecordTextReader extends IRecordReaderBase {
+public interface ITextDataReader extends IDataReaderBase {
     int available();
 
     void skip(int n);
@@ -34,11 +34,11 @@ public interface IRecordTextReader extends IRecordReaderBase {
      */
     void reset();
 
-    default IRecordTextReader subInput(int maxLength) {
-        return new SubRecordTextReader(this, maxLength);
+    default ITextDataReader subInput(int maxLength) {
+        return new SubTextDataReader(this, maxLength);
     }
 
-    IRecordTextReader detach();
+    ITextDataReader detach();
 
     boolean isDetached();
 }

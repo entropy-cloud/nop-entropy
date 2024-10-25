@@ -16,16 +16,16 @@ import static io.nop.record.RecordErrors.ERR_RECORD_NO_ENOUGH_DATA;
 /**
  * 限制从input中读取的长度不超过length
  */
-public class SubRecordTextReader implements IRecordTextReader {
-    private final IRecordTextReader input;
+public class SubTextDataReader implements ITextDataReader {
+    private final ITextDataReader input;
     private final int startOffset;
     private final int maxLength;
 
-    public SubRecordTextReader(IRecordTextReader input, int maxLength) {
+    public SubTextDataReader(ITextDataReader input, int maxLength) {
         this(input, input.pos(), maxLength);
     }
 
-    public SubRecordTextReader(IRecordTextReader input, int startOffset, int maxLength) {
+    public SubTextDataReader(ITextDataReader input, int startOffset, int maxLength) {
         this.input = input;
         this.startOffset = startOffset;
         this.maxLength = maxLength;
@@ -100,8 +100,8 @@ public class SubRecordTextReader implements IRecordTextReader {
     }
 
     @Override
-    public IRecordTextReader detach() {
-        return new SubRecordTextReader(input.detach(), startOffset, maxLength);
+    public ITextDataReader detach() {
+        return new SubTextDataReader(input.detach(), startOffset, maxLength);
     }
 
     @Override

@@ -14,17 +14,17 @@ import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.impl.DefaultFieldCodecContext;
 import io.nop.record.model.RecordFileMeta;
 import io.nop.record.serialization.ModelBasedBinaryRecordSerializer;
-import io.nop.record.writer.IRecordTextWriter;
+import io.nop.record.writer.ITextDataWriter;
 
-public class ModelBasedTextRecordOutput<T> extends AbstractModelBasedRecordOutput<IRecordTextWriter, T> {
+public class ModelBasedTextRecordOutput<T> extends AbstractModelBasedRecordOutput<ITextDataWriter, T> {
 
-    public ModelBasedTextRecordOutput(IRecordTextWriter out, RecordFileMeta fileMeta,
+    public ModelBasedTextRecordOutput(ITextDataWriter out, RecordFileMeta fileMeta,
                                       IFieldCodecContext context, FieldCodecRegistry registry,
                                       IAggregatorProvider aggregatorProvider) {
         super(out, fileMeta, context, new ModelBasedBinaryRecordSerializer(registry), aggregatorProvider);
     }
 
-    public ModelBasedTextRecordOutput(IRecordTextWriter out, RecordFileMeta fileMeta) {
+    public ModelBasedTextRecordOutput(ITextDataWriter out, RecordFileMeta fileMeta) {
         this(out, fileMeta, new DefaultFieldCodecContext(fileMeta::getType), FieldCodecRegistry.DEFAULT, CompositeAggregatorProvider.defaultProvider());
     }
 }

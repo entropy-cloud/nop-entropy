@@ -13,15 +13,15 @@ import java.io.Closeable;
 import java.io.Flushable;
 import java.io.IOException;
 
-public class AppendableRecordTextWriter implements IRecordTextWriter {
+public class AppendableTextDataWriter implements ITextDataWriter {
     private final Appendable buf;
     private int length;
 
-    public AppendableRecordTextWriter(Appendable buf) {
+    public AppendableTextDataWriter(Appendable buf) {
         this.buf = buf;
     }
 
-    public AppendableRecordTextWriter() {
+    public AppendableTextDataWriter() {
         this(new StringBuilder());
     }
 
@@ -30,26 +30,26 @@ public class AppendableRecordTextWriter implements IRecordTextWriter {
     }
 
     @Override
-    public IRecordTextWriter append(CharSequence str) throws IOException {
+    public ITextDataWriter append(CharSequence str) throws IOException {
         buf.append(str);
         length += str.length();
         return this;
     }
 
     @Override
-    public IRecordTextWriter append(CharSequence str, int start, int end) throws IOException {
+    public ITextDataWriter append(CharSequence str, int start, int end) throws IOException {
         buf.append(str, start, end);
         length += end - start;
         return this;
     }
 
     @Override
-    public IRecordTextWriter append(char[] chars) throws IOException {
+    public ITextDataWriter append(char[] chars) throws IOException {
         return append(chars, 0, chars.length);
     }
 
     @Override
-    public IRecordTextWriter append(char[] chars, int start, int end) throws IOException {
+    public ITextDataWriter append(char[] chars, int start, int end) throws IOException {
         if (buf instanceof StringBuilder) {
             ((StringBuilder) buf).append(chars, start, end);
         } else {
@@ -60,7 +60,7 @@ public class AppendableRecordTextWriter implements IRecordTextWriter {
     }
 
     @Override
-    public IRecordTextWriter append(char c) throws IOException {
+    public ITextDataWriter append(char c) throws IOException {
         buf.append(c);
         length++;
         return this;

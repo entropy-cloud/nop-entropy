@@ -12,7 +12,7 @@ import io.nop.commons.bytes.ByteString;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public interface IRecordBinaryWriter extends IRecordWriterBase {
+public interface IBinaryDataWriter extends IDataWriterBase {
     void writeBytes(byte[] bytes) throws IOException;
 
     void writeBytesPart(byte[] str, int start, int end) throws IOException;

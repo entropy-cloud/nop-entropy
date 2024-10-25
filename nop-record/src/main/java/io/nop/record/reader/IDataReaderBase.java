@@ -2,7 +2,7 @@ package io.nop.record.reader;
 
 import java.io.Closeable;
 
-public interface IRecordReaderBase extends Closeable {
+public interface IDataReaderBase extends Closeable {
     boolean isEof();
 
 

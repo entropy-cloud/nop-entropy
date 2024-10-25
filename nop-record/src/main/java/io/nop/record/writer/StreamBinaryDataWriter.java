@@ -4,10 +4,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
-public class StreamRecordBinaryWriter implements IRecordBinaryWriter {
+public class StreamBinaryDataWriter implements IBinaryDataWriter {
     private final OutputStream out;
 
-    public StreamRecordBinaryWriter(OutputStream out) {
+    public StreamBinaryDataWriter(OutputStream out) {
         this.out = out;
     }
 

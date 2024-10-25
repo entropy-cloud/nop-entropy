@@ -16,10 +16,10 @@ import io.nop.dataset.record.IRecordInput;
 import io.nop.dataset.record.IRecordOutput;
 import io.nop.record.RecordConstants;
 import io.nop.record.model.RecordFileMeta;
-import io.nop.record.writer.AppendableRecordTextWriter;
-import io.nop.record.writer.IRecordBinaryWriter;
-import io.nop.record.writer.IRecordTextWriter;
-import io.nop.record.writer.StreamRecordBinaryWriter;
+import io.nop.record.writer.AppendableTextDataWriter;
+import io.nop.record.writer.IBinaryDataWriter;
+import io.nop.record.writer.ITextDataWriter;
+import io.nop.record.writer.StreamBinaryDataWriter;
 
 import java.io.BufferedWriter;
 import java.io.OutputStream;
@@ -43,11 +43,11 @@ public class ResourceRecordIO<T> implements IResourceRecordIO<T> {
         RecordFileMeta fileMeta = getFileMeta(resource);
         if (fileMeta.isBinary()) {
             OutputStream writer = ResourceHelper.toOutputStream(resource, true);
-            IRecordBinaryWriter out = new StreamRecordBinaryWriter(writer);
+            IBinaryDataWriter out = new StreamBinaryDataWriter(writer);
             return new ModelBasedBinaryRecordOutput<>(out, fileMeta);
         } else {
             Writer writer = ResourceHelper.toWriter(resource, encoding, true);
-            IRecordTextWriter out = new AppendableRecordTextWriter(new BufferedWriter(writer));
+            ITextDataWriter out = new AppendableTextDataWriter(new BufferedWriter(writer));
             return new ModelBasedTextRecordOutput<>(out, fileMeta);
         }
     }

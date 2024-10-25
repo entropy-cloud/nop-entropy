@@ -3,8 +3,8 @@ package io.nop.record.codec.impl;
 import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldBinaryEncoder;
 import io.nop.record.codec.IFieldCodecContext;
-import io.nop.record.reader.IRecordBinaryReader;
-import io.nop.record.writer.IRecordBinaryWriter;
+import io.nop.record.reader.IBinaryDataReader;
+import io.nop.record.writer.IBinaryDataWriter;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -23,10 +23,10 @@ public class DynCountArrayBinaryCodec implements IFieldBinaryCodec {
     }
 
     @Override
-    public Object decode(IRecordBinaryReader input, int length, Charset charset, IFieldCodecContext context) {
+    public Object decode(IBinaryDataReader input, int length, Charset charset, IFieldCodecContext context) {
         int count = (Integer) countCodec.decode(input, length, charset, context);
 
-        IRecordBinaryReader arrayInput = input.subInput(length);
+        IBinaryDataReader arrayInput = input.subInput(length);
 
         List<Object> ret = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
@@ -37,7 +37,7 @@ public class DynCountArrayBinaryCodec implements IFieldBinaryCodec {
     }
 
     @Override
-    public void encode(IRecordBinaryWriter output, Object value, int length, Charset charset,
+    public void encode(IBinaryDataWriter output, Object value, int length, Charset charset,
                        IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder) {
         Collection<Object> list = (Collection<Object>) value;
         if (list == null)

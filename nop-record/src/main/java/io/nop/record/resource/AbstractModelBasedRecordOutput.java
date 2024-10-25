@@ -10,14 +10,14 @@ import io.nop.record.model.RecordFileMeta;
 import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordPaginationMeta;
 import io.nop.record.serialization.IModelBasedRecordSerializer;
-import io.nop.record.writer.IRecordWriterBase;
+import io.nop.record.writer.IDataWriterBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
 
-public abstract class AbstractModelBasedRecordOutput<Output extends IRecordWriterBase, T> implements IRecordOutput<T> {
+public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterBase, T> implements IRecordOutput<T> {
     static final Logger LOG = LoggerFactory.getLogger(AbstractModelBasedRecordOutput.class);
 
     private final Output baseOut;

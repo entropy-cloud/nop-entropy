@@ -26,7 +26,7 @@ package io.nop.record.netty;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
-import io.nop.record.reader.IRecordBinaryReader;
+import io.nop.record.reader.IBinaryDataReader;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -37,7 +37,7 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * 基于Kaitai项目的ByteBufferKaitaiStream类修改。
- * An implementation of {@link IRecordBinaryReader} backed by a {@link ByteBuffer}.
+ * An implementation of {@link IBinaryDataReader} backed by a {@link ByteBuffer}.
  * Any underlying implementation of ByteBuffer can be used, for example:
  * <ul>
  *     <li>ByteBuffer returned as result of {@link ByteBuffer#wrap}, wrapping
@@ -45,7 +45,7 @@ import java.nio.charset.StandardCharsets;
  *     <li>{@link MappedByteBuffer} backed by {@link FileChannel}</li>
  * </ul>
  */
-public class ByteBufRecordBinaryInput implements IRecordBinaryReader {
+public class ByteBufBinaryDataInput implements IBinaryDataReader {
     private ByteBuf bb;
     private int bitsLeft;
     private long bits;
@@ -57,7 +57,7 @@ public class ByteBufRecordBinaryInput implements IRecordBinaryReader {
      *
      * @param arr byte array to read
      */
-    public ByteBufRecordBinaryInput(byte[] arr) {
+    public ByteBufBinaryDataInput(byte[] arr) {
         bb = Unpooled.wrappedBuffer(arr);
     }
 
@@ -86,7 +86,7 @@ public class ByteBufRecordBinaryInput implements IRecordBinaryReader {
      *
      * @param buffer ByteBuffer to read
      */
-    public ByteBufRecordBinaryInput(ByteBuf buffer) {
+    public ByteBufBinaryDataInput(ByteBuf buffer) {
         bb = buffer;
         ReferenceCountUtil.retain(buffer);
     }
@@ -380,7 +380,7 @@ public class ByteBufRecordBinaryInput implements IRecordBinaryReader {
     //endregion
 
     @Override
-    public IRecordBinaryReader subInput(long n) {
+    public IBinaryDataReader subInput(long n) {
         if (n > Integer.MAX_VALUE) {
             throw new IllegalArgumentException("Java ByteBuffer can't be limited beyond Integer.MAX_VALUE");
         }
@@ -390,7 +390,7 @@ public class ByteBufRecordBinaryInput implements IRecordBinaryReader {
         // 更新原始 ByteBuf 的读索引
         bb.readerIndex(bb.readerIndex() + (int) n);
 
-        return new ByteBufRecordBinaryInput(newBuffer);
+        return new ByteBufBinaryDataInput(newBuffer);
     }
 
     @Override
@@ -422,13 +422,13 @@ public class ByteBufRecordBinaryInput implements IRecordBinaryReader {
     }
 
     @Override
-    public IRecordBinaryReader detach() {
-        return new ByteBufRecordBinaryInput(bb.duplicate());
+    public IBinaryDataReader detach() {
+        return new ByteBufBinaryDataInput(bb.duplicate());
     }
 
     @Override
-    public IRecordBinaryReader duplicate() {
-        return new ByteBufRecordBinaryInput(bb.duplicate());
+    public IBinaryDataReader duplicate() {
+        return new ByteBufBinaryDataInput(bb.duplicate());
     }
 
     @Override

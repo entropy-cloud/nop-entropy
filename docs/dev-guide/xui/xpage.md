@@ -21,7 +21,7 @@ h-full可以去除max-height设置
    }],
    asideResizor: true
    asideClassName: w-60
- } 
+ }
 ```
 
 可配置的宽度类参见 amis-ui/helper/sizing/\_width.scss
@@ -263,7 +263,7 @@ responseKey是Nop平台的ajaxFetch函数负责识别的，amis本身并不支�
 ## store操作
 
 * store.changeValue('x',123)
-* 
+*
 
 ## 调试
 
@@ -271,4 +271,16 @@ responseKey是Nop平台的ajaxFetch函数负责识别的，amis本身并不支�
 
 ```
 "onClick": "debugger; props.store.closeDialog()"
+```
+
+## url中的参数
+AMIS的设计中对于url中的参数存在特殊假定。比如 `url: '/test?filter_type=1'`，当picker控件的filter段中存在type过滤条件时，会覆盖url中的filter_type变量，需要放到data段中。
+
+```
+{
+  url: '/test',
+  data:{
+    filter_type: 1
+  }
+}
 ```

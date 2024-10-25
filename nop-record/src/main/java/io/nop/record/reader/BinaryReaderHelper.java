@@ -26,7 +26,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
-public class BinaryInputHelper {
+public class BinaryReaderHelper {
 
     /**
      * Checks if supplied number of bytes is a valid number of elements for Java

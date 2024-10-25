@@ -3,14 +3,14 @@ package io.nop.record.resource;
 import io.nop.dataset.record.IRecordInput;
 import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldCodecContext;
-import io.nop.record.reader.IRecordReaderBase;
+import io.nop.record.reader.IDataReaderBase;
 import io.nop.record.model.RecordFileMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class AbstractModelBaseRecordInput<Input extends IRecordReaderBase, T> implements IRecordInput<T> {
+public class AbstractModelBaseRecordInput<Input extends IDataReaderBase, T> implements IRecordInput<T> {
     static final Logger LOG = LoggerFactory.getLogger(AbstractModelBasedRecordOutput.class);
 
     private final Input baseIn;
