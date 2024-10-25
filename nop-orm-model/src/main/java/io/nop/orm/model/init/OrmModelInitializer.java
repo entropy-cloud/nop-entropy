@@ -443,23 +443,29 @@ public class OrmModelInitializer {
 
         ref.setRefEntityModel(refEntityModel);
 
-        if (ref.isToOneRelation() && !ref.isDynamicRelation()) {
+        ref.setDynamicRelation(isDynamicRelation(ref));
+
+        if (ref.isToOneRelation()) {
             // 必须引用对象的主键
+            int rightPropCount = 0;
             for (OrmJoinOnModel join : ref.getJoin()) {
-                OrmColumnModel col = join.getRightProp() == null ? null : refEntityModel.getColumn(join.getRightProp());
-                if (col == null && OrmModelConstants.PROP_ID.endsWith(join.getRightProp())) {
-                    col = refEntityModel.getIdProp().isColumnModel() ? (OrmColumnModel) refEntityModel.getIdProp() : null;
+                if (join.getRightProp() != null) {
+                    rightPropCount++;
+                    OrmColumnModel col = refEntityModel.getColumn(join.getRightProp());
+                    if (col == null && OrmModelConstants.PROP_ID.equals(join.getRightProp())) {
+                        col = refEntityModel.getIdProp().isColumnModel() ? (OrmColumnModel) refEntityModel.getIdProp() : null;
+                    }
+                    if (col == null)
+                        throw new NopException(ERR_ORM_MODEL_REF_ENTITY_NO_PROP).loc(join.getLocation())
+                                .param(ARG_PROP_NAME, join.getRightProp()).param(ARG_REF_ENTITY_NAME, refEntityModel.getName());
+                    if (!col.isPrimary())
+                        ref.setJoinOnNonPkColumn(true);
+                    join.setRightPropModel(col);
                 }
-                if (col == null)
-                    throw new NopException(ERR_ORM_MODEL_REF_ENTITY_NO_PROP).loc(join.getLocation())
-                            .param(ARG_PROP_NAME, join.getRightProp()).param(ARG_REF_ENTITY_NAME, refEntityModel.getName());
-                if (!col.isPrimary())
-                    ref.setJoinOnNonPkColumn(true);
-                join.setRightPropModel(col);
             }
 
             if (!ref.isJoinOnNonPkColumn()) {
-                if (ref.getJoin().size() != refEntityModel.getPkColumns().size())
+                if (rightPropCount != refEntityModel.getPkColumns().size())
                     throw new NopException(ERR_ORM_MODEL_JOIN_COLUMN_COUNT_LESS_THAN_PK_COLUMN_COUNT).source(ref)
                             .param(ARG_ENTITY_NAME, entityModel.getName())
                             .param(ARG_REF_ENTITY_NAME, refEntityModel.getName()).param(ARG_PROP_NAME, ref.getName());
@@ -470,13 +476,32 @@ public class OrmModelInitializer {
                     for (IColumnModel col : refEntityModel.getPkColumns()) {
                         ordered.add(findJoinByRefCol(ref.getJoin(), col));
                     }
+                    // 最后加入固定值条件
+                    for (OrmJoinOnModel join : ref.getJoin()) {
+                        if (join.getRightPropModel() == null)
+                            ordered.add(join);
+                    }
                     ref.setJoin(ordered);
                 }
             }
         }
     }
 
+    private boolean isDynamicRelation(IEntityRelationModel rel) {
+        if(rel.isDynamicRelation())
+            return true;
+
+        // 左实体没有租户，它关联的实体如果有租户，则不能缓存
+        if (rel.getOwnerEntityModel().getTenantPropId() <= 0) {
+            return rel.getRefEntityModel().getTenantPropId() > 0;
+        }
+        return false;
+    }
+
     private boolean isRefColAligned(List<? extends IEntityJoinConditionModel> join, List<? extends IColumnModel> cols) {
+        if(join.size()  != cols.size())
+            return false;
+
         for (int i = 0, n = join.size(); i < n; i++) {
             if (join.get(i).getRightPropModel() != cols.get(i))
                 return false;
@@ -529,7 +554,7 @@ public class OrmModelInitializer {
                         continue;
 
                     // 忽略对于视图的依赖
-                    if(rel.getRefEntityModel().isTableView())
+                    if (rel.getRefEntityModel().isTableView())
                         continue;
 
                     // 如果指定了忽略关联依赖

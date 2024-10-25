@@ -12,8 +12,6 @@ import io.nop.orm.model._gen._OrmToOneReferenceModel;
 public class OrmToOneReferenceModel extends _OrmToOneReferenceModel {
     private boolean oneToOne;
 
-    private boolean joinOnNonPkColumn;
-
     public OrmToOneReferenceModel() {
 
     }

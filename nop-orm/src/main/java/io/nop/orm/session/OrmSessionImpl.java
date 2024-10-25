@@ -1214,14 +1214,23 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
                 return null;
             id = OrmEntityHelper.castId(refEntityModel, value);
         } else {
-            Object[] values = new Object[join.size()];
-            for (int i = 0, n = values.length; i < n; i++) {
-                IEntityJoinConditionModel cond = join.get(i);
+            Object[] values = new Object[refEntityModel.getPkColumns().size()];
+            int i = 0;
+            for (IEntityJoinConditionModel cond : join) {
+                if (cond.getRightPropModel() == null) {
+                    Object value = OrmEntityHelper.getLeftValue(cond, entity);
+                    if (!Objects.equals(value, cond.getRightValue()))
+                        return null;
+                    continue;
+                }
+
                 Object value = OrmEntityHelper.getLeftValue(cond, entity);
                 // 如果复合主键中存在字段的值为null，则直接返回null。这里假设了主键字段都不为null
                 if (value == null)
                     return null;
+
                 values[i] = value;
+                i++;
             }
             id = OrmCompositePk.build(refEntityModel, values);
         }

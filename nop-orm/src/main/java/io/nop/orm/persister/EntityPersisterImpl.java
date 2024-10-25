@@ -264,8 +264,13 @@ public class EntityPersisterImpl implements IEntityPersister {
         if (shardPropId <= 0)
             return null;
 
+        if (!entity.orm_propInited(shardPropId))
+            return null;
+
+        IColumnModel shardCol = entityModel.getColumnByPropId(shardPropId, false);
+
         Object value = entity.orm_propValue(shardPropId);
-        String shardProp = entityModel.getColumnByPropId(shardPropId, false).getName();
+        String shardProp = shardCol.getName();
         ShardSelection shard = env.getShardSelector().selectShard(entity.orm_entityName(), shardProp, value);
         return shard;
     }

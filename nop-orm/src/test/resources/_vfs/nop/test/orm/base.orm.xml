@@ -334,6 +334,13 @@
                     </join>
                 </to-one>
 
+                <to-one name="shardTable2" refEntityName="test.entity.TestOrmShardTable">
+                    <join>
+                        <on leftProp="userId" rightValue="3" />
+                        <on leftProp="shardId" rightProp="sid"/>
+                    </join>
+                </to-one>
+
                 <to-one name="user" refEntityName="test.entity.UserInfo">
                     <join>
                         <on leftProp="userId" rightProp="sid"/>

@@ -19,6 +19,9 @@ import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.IOrmKeyValueTable;
 import io.nop.orm.OrmEntityState;
 import io.nop.orm.exceptions.OrmException;
+import io.nop.orm.model.IEntityJoinConditionModel;
+import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.utils.OrmModelHelper;
 
 import java.util.ArrayList;
@@ -89,6 +92,8 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
 
     private final boolean kvTable;
 
+    private IEntityRelationModel relationModel;
+
     public OrmEntitySet(IOrmEntity owner, String propName, String refPropName, String keyProp,
                         Class<? extends IOrmEntity> refEntityClass, String refEntityName) {
         this.owner = owner;
@@ -136,11 +141,14 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         IOrmEntity entity;
         if (enhancer == null) {
             entity = (IOrmEntity) ClassHelper.newInstance(refEntityClass);
+            bindOwnerProps((T) entity);
         } else {
             entity = enhancer.newEntity(refEntityName);
 
             if (refPropName != null) {
                 entity.orm_propValueByName(refPropName, owner);
+            } else {
+                bindOwnerProps((T) entity);
             }
         }
 
@@ -450,6 +458,8 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
         // 绑定owner属性
         if (refPropName != null) {
             bindOwner(e);
+        } else {
+            bindOwnerProps(e);
         }
 
         if (this.removedEntities != null) {
@@ -465,6 +475,28 @@ public class OrmEntitySet<T extends IOrmEntity> implements IOrmEntitySet<T> {
             this.orm_markDirty();
         }
         return b;
+    }
+
+    private IEntityRelationModel getRelationModel() {
+        if (relationModel != null)
+            return relationModel;
+        IEntityModel entityModel = owner.orm_entityModel();
+        if (entityModel == null)
+            return null;
+        relationModel = entityModel.getRelation(this.propName, false);
+        return relationModel;
+    }
+
+    private void bindOwnerProps(T e) {
+        IEntityRelationModel relModel = getRelationModel();
+        if (relModel == null)
+            return;
+        for (IEntityJoinConditionModel cond : relModel.getJoin()) {
+            if (cond.getRightProp() != null) {
+                Object value = OrmEntityHelper.getLeftValue(cond, owner);
+                e.orm_propValueByName(cond.getRightProp(), value);
+            }
+        }
     }
 
     private void bindOwner(IOrmEntity e) {

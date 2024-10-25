@@ -11,7 +11,9 @@ import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.app.SimsClass;
 import io.nop.app.SimsCollege;
 import io.nop.core.lang.sql.SQL;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.orm.AbstractOrmTestCase;
+import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.eql.ICompiledSql;
@@ -113,7 +115,7 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
     @Test
     public void testParamValueType() {
         txn().runInTransaction(null, TransactionPropagation.SUPPORTS, txn -> {
-            SQL sql = SQL.begin().sql("select o,2 from io.nop.app.SimsClass o where 1=? and date(o.createdTime) > ?", 3,"2002-01-03").end();
+            SQL sql = SQL.begin().sql("select o,2 from io.nop.app.SimsClass o where 1=? and date(o.createdTime) > ?", 3, "2002-01-03").end();
             orm().findAll(sql);
             return null;
         });
@@ -166,6 +168,30 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
         orm().runInSession(() -> {
             SQL sql = SQL.begin().sql("select o.refByName.collegeName from SimsClass o").end();
             orm().findAll(sql);
+        });
+    }
+
+    @Test
+    public void testJoinWithValue() {
+        orm().runInSession(() -> {
+            IOrmEntity entity = orm().newEntity("test.entity.TestOrmTable");
+            entity.orm_propValueByName("sid", "1");
+            IOrmEntity refEntity = orm().newEntity("test.entity.TestOrmShardTable");
+            refEntity.orm_propValueByName("sid", "2");
+            refEntity.orm_propValueByName("strValue", "abc");
+            entity.orm_propValueByName("shardTable2", refEntity);
+
+            assertEquals("3", entity.orm_propValueByName("userId"));
+
+            orm().save(entity);
+            orm().flushSession();
+
+            orm().clearSession();
+
+            entity = orm().get("test.entity.TestOrmTable", "1");
+            assertEquals("3", entity.orm_propValueByName("userId"));
+            assertEquals("2", entity.orm_propValueByName("shardId"));
+            assertEquals("abc", BeanTool.getComplexProperty(entity, "shardTable2.strValue"));
         });
     }
 }
