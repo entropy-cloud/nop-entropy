@@ -46,7 +46,7 @@
             <source><![CDATA[
                 return {
                     type:'native-number',
-                    value: propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? (editMode == 'add' ? propMeta?.defaultValue :null)
+                    value: propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue :null)
                 }
             ]]></source>
         </edit-double>
@@ -59,7 +59,7 @@
             <source><![CDATA[
                 return {
                     type:'input-number',
-                    value: propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? (editMode == 'add' ? propMeta?.defaultValue :null),
+                    value: propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? ((editMode == 'add'||editMode == 'list-edit') ? propMeta?.defaultValue :null),
                     precision: propMeta?.schema?.scale ?? 5
                 }
             ]]></source>
@@ -74,7 +74,7 @@
                 return {
                     type:'input-text',
                     validations: "isInt",
-                    value: propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? (editMode == 'add' ? propMeta?.defaultValue:null)
+                    value: propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue:null)
                 }
             ]]></source>
         </edit-short>
@@ -88,7 +88,7 @@
                 return {
                     type:'input-text',
                     validations: "isInt",
-                    value: propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? (editMode == 'add' ? propMeta?.defaultValue:null)
+                    value: propMeta?.stdDataType?.convert(dispMeta?.defaultValue) ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue:null)
                 }
             ]]></source>
         </edit-byte>
@@ -102,7 +102,7 @@
                 return {
                     type:'input-text',
                     validations: "isInt",
-                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null),
+                    value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null),
                 }
             ]]></source>
         </edit-int>
@@ -116,7 +116,7 @@
                 return {
                     type:'input-text',
                     validations: "isInt",
-                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null),
+                    value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null),
                 }
             ]]></source>
         </edit-long>
@@ -136,7 +136,7 @@
                         minLength: dispMeta?.minLength,
                         matchRegexp: dispMeta?.matchRegexp,
                     },
-                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null),
+                    value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null),
                     transform: {
                         upperCase: dispMeta?.charCase == 'upper'? true:null,
                         lowerCase: dispMeta?.charCase == 'lower'? true:null
@@ -160,7 +160,7 @@
                         minLength: dispMeta?.minLength,
                         matchRegexp: dispMeta?.matchRegexp,
                     },
-                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null),
+                    value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null),
                     transform: {
                         upperCase: dispMeta?.charCase == 'upper'? true:null,
                         lowerCase: dispMeta?.charCase == 'lower'? true:null
@@ -184,7 +184,7 @@
                         minLength: dispMeta?.minLength,
                         matchRegexp: dispMeta.matchRegexp,
                     },
-                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue: null,
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null,
                     transform: {
                         upperCase: dispMeta?.charCase == 'upper'? true:null,
                         lowerCase: dispMeta?.charCase == 'lower'? true:null
@@ -208,7 +208,7 @@
                         minLength: dispMeta?.minLength,
                         matchRegexp: dispMeta?.matchRegexp,
                     },
-                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
+                    value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
                 }
             ]]></source>
         </edit-asciiNum>
@@ -228,7 +228,7 @@
                         minLength: dispMeta?.minLength,
                         matchRegexp: dispMeta?.matchRegexp,
                     },
-                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue: null,
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null,
                     transform: {
                         upperCase: dispMeta?.charCase == 'upper'? true:null,
                         lowerCase: dispMeta?.charCase == 'lower'? true:null
@@ -252,7 +252,7 @@
                         minLength: dispMeta?.minLength,
                         matchRegexp: dispMeta?.matchRegexp,
                     },
-                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
+                    value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
                 }
             ]]></source>
         </edit-phone>
@@ -272,7 +272,7 @@
                         minLength: dispMeta?.minLength,
                         matchRegexp: dispMeta?.matchRegexp,
                     },
-                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
+                    value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
                 }
             ]]></source>
         </edit-telephone>
@@ -286,7 +286,7 @@
                 return {
                     type:'input-date',
                     format:"YYYY-MM-DD",
-                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
+                    value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
                 }
             ]]></source>
         </edit-date>
@@ -300,7 +300,7 @@
                 return {
                     type:'input-datetime',
                     format:"YYYY-MM-DD HH:mm:ss",
-                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
+                    value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
                 }
             ]]></source>
         </edit-datetime>
@@ -322,7 +322,7 @@
                     clearable: true,
                     selectFirst: dispMeta?.selectFirst,
                     source: '@dict:' + propMeta?.schema?.dict,
-                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
+                    value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
                  }
             ]]></source>
         </edit-list-select>
@@ -338,7 +338,7 @@
                     type: 'radios',
                     clearable: true,
                     source: '@dict:' + propMeta?.schema?.dict,
-                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
+                    value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
                  }
             ]]></source>
         </edit-radios>
@@ -357,7 +357,7 @@
                     multiple: false,
                     selectFirst: dispMeta?.selectFirst,
                     source: '@dict:' + propMeta?.schema?.dict,
-                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
+                    value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
                  }
             ]]></source>
         </edit-enum>
@@ -396,7 +396,7 @@
                     type: "textarea",
                     minRows: dispMeta?.minRows || 3,
                     maxLength: dispMeta?.maxLength,
-                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
+                    value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null)
                 }
             ]]></source>
         </edit-textarea>
@@ -796,7 +796,7 @@
             <attr name="editMode"/>
 
             <source><![CDATA[
-                let defaultValue =  dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null);
+                let defaultValue =  dispMeta?.defaultValue ?? ((editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue: null);
                 if(mandatory && defaultValue == null)
                    defaultValue = 0;
 
@@ -834,7 +834,7 @@
                         minLength: dispMeta?.minLength,
                         matchRegexp: dispMeta?.matchRegexp,
                     },
-                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null,
+                    value: dispMeta?.defaultValue ?? (editMode == 'add' || editMode == 'list-edit') ? propMeta?.defaultValue : null,
                     transform: {
                         upperCase: dispMeta?.charCase == 'upper'? true:null,
                         lowerCase: dispMeta?.charCase == 'lower'? true:null
@@ -1197,7 +1197,7 @@
                     multiple: false,
                     selectFirst: dispMeta?.selectFirst,
                     source: dispMeta?.sourceUrl,
-                    value: dispMeta?.defaultValue ?? (editMode == 'add' ? propMeta?.defaultValue: null)
+                    value: dispMeta?.defaultValue ?? ((editMode == 'add' || editMode=='list-edit') ? propMeta?.defaultValue: null)
                  }
             ]]></source>
         </edit-select>
