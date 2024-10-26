@@ -56,7 +56,10 @@ public interface IWorkflowEngine {
 
     void changeOwner(IWorkflowStepImplementor step, String ownerId, IServiceContext ctx);
 
-    IWorkflowStepImplementor transferToActor(IWorkflowStepImplementor step, WfActorAndOwner actorAndOwner, IServiceContext ctx);
+    IWorkflowStepImplementor transferToActor(IWorkflowStepImplementor step, WfActorAndOwner actorAndOwner,
+                                             boolean exitCurrentStep, IServiceContext ctx);
+
+    IWorkflowStepImplementor addActor(IWorkflowStepImplementor step, WfActorAndOwner actorAndOwner, IServiceContext ctx);
 
     void triggerStepEvent(IWorkflowStepImplementor step, String eventName, IServiceContext ctx);
 

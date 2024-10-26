@@ -60,12 +60,16 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
 
     String EVENT_TRANSFER_TO_ACTOR = "transfer-to-actor";
 
+    String EVENT_ADD_ACTOR = "add-actor";
+
     String EVENT_ON_NO_ASSIGN = "on-no-assign";
     String EVENT_ENTER_STEP = "enter-step";
     String EVENT_EXIT_STEP = "exit-step";
     String EVENT_TRANSITION = "transition";
     String EVENT_BEFORE_ACTION = "before-action";
     String EVENT_AFTER_ACTION = "after-action";
+
+    String EVENT_CHANGE_STATUS = "change-status";
 
     String EVENT_BEFORE_END = "before-end";
     String EVENT_AFTER_END = "before-end";

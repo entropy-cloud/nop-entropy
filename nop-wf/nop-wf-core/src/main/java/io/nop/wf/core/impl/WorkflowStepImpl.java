@@ -127,9 +127,17 @@ public class WorkflowStepImpl implements IWorkflowStepImplementor {
     }
 
     @Override
-    public IWorkflowStep transferToActor(WfActorAndOwner actorAndOwner, IServiceContext ctx) {
+    public IWorkflowStep transferToActor(WfActorAndOwner actorAndOwner, boolean exitCurrentStep, IServiceContext ctx) {
         return wf.executeNow(() -> {
-            IWorkflowStepImplementor step = wf.getEngine().transferToActor(this, actorAndOwner, ctx);
+            IWorkflowStepImplementor step = wf.getEngine().transferToActor(this, actorAndOwner, exitCurrentStep,  ctx);
+            return step;
+        });
+    }
+
+    @Override
+    public IWorkflowStep addActor(WfActorAndOwner actorAndOwner, IServiceContext ctx) {
+        return wf.executeNow(() -> {
+            IWorkflowStepImplementor step = wf.getEngine().addActor(this, actorAndOwner, ctx);
             return step;
         });
     }

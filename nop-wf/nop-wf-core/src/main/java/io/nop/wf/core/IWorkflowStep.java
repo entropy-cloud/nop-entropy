@@ -127,7 +127,10 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
 
     void changeOwnerId(String ownerId, IServiceContext ctx);
 
-    IWorkflowStep transferToActor(WfActorAndOwner actorAndOwner, IServiceContext ctx);
+    IWorkflowStep transferToActor(WfActorAndOwner actorAndOwner,
+                                  boolean exitCurrentStep, IServiceContext ctx);
+
+    IWorkflowStep addActor(WfActorAndOwner actorAndOwner, IServiceContext ctx);
 
     WfAssignmentActorModel getActorModel(String actorModelId);
 

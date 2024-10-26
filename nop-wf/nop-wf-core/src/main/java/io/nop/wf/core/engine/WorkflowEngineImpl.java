@@ -835,7 +835,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public IWorkflowStepImplementor transferToActor(IWorkflowStepImplementor step, WfActorAndOwner actorAndOwner,
-                                                    IServiceContext ctx) {
+                                                    boolean exitCurrentStep, IServiceContext ctx) {
         LOG.info("nop.wf.transfer-to-actor:wfName={},wfId={},stepName={},stepId={},actorType={},actorId={},ownerId={}",
                 step.getWfName(), step.getWfId(), step.getStepName(), step.getStepId(),
                 actorAndOwner.getActorType(), actorAndOwner.getActorId(), actorAndOwner.getOwnerId());
@@ -875,11 +875,83 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             step.getRecord().setAssigner(caller);
         }
 
-        this.doExitStep(step, NopWfCoreConstants.WF_STEP_STATUS_TRANSFERRED, wfRt);
+        if (exitCurrentStep) {
+            nextStep.getRecord().setNextStepId(step.getRecord().getNextStepId());
+            this.doExitStep(step, NopWfCoreConstants.WF_STEP_STATUS_TRANSFERRED, wfRt);
+        } else {
+            nextStep.getRecord().setNextStepId(step.getStepId());
+            this.moveStepToWaiting(step, wfRt);
+        }
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_TRANSFER_TO_ACTOR);
 
         return nextStep;
     }
+
+    private void moveStepToWaiting(IWorkflowStepImplementor step, WfRuntime wfRt) {
+        if (!step.isHistory()) {
+            WfStepModel stepModel = (WfStepModel) step.getModel();
+            step.getRecord().setFinishTime(CoreMetrics.currentTimestamp());
+            step.getRecord().transitToStatus(NopWfCoreConstants.WF_STEP_STATUS_WAITING);
+
+            IWorkflowStepImplementor currentStep = wfRt.getCurrentStep();
+            try {
+                wfRt.setCurrentStep(step);
+                saveStepRecord(step);
+
+                wfRt.triggerEvent(NopWfCoreConstants.EVENT_CHANGE_STATUS);
+            } finally {
+                wfRt.setCurrentStep(currentStep);
+            }
+        }
+    }
+
+    @Override
+    public IWorkflowStepImplementor addActor(IWorkflowStepImplementor step, WfActorAndOwner actorAndOwner,
+                                             IServiceContext ctx) {
+        LOG.info("nop.wf.add-actor:wfName={},wfId={},stepName={},stepId={},actorType={},actorId={},ownerId={}",
+                step.getWfName(), step.getWfId(), step.getStepName(), step.getStepId(),
+                actorAndOwner.getActorType(), actorAndOwner.getActorId(), actorAndOwner.getOwnerId());
+
+        WfRuntime wfRt = newWfRuntime(step, ctx);
+        IWfActor owner = StringHelper.isEmpty(actorAndOwner.getOwnerId()) ?
+                null : requireUser(actorAndOwner.getOwnerId(), wfRt);
+
+        wfRt.setAssigner(wfRt.getCaller());
+
+        IWfActor actor = null;
+        if (!StringHelper.isEmpty(actorAndOwner.getActorType())) {
+            actor = resolveDynamicActor(actorAndOwner, wfRt);
+            if (actor == null)
+                throw wfRt.newError(ERR_WF_ACTOR_NOT_EXISTS)
+                        .param(ARG_ACTOR_TYPE, actorAndOwner.getActorType())
+                        .param(ARG_ACTOR_ID, actorAndOwner.getActorId());
+        }
+
+        if (actor == null && owner == null)
+            throw wfRt.newError(ERR_WF_NO_ACTOR_ASSIGNED_FOR_TRANSFER);
+
+        if (actor == null)
+            actor = step.getActor();
+
+        WfActorWithWeight actorWithWeight = new WfActorWithWeight(actor,
+                step.getRecord().getActorModelId(), step.getRecord().getVoteWeight());
+
+        // 新建步骤
+        IWorkflowStepImplementor nextStep = newStepForActor(step.getRecord().getExecGroup(),
+                step.getRecord().getExecOrder(), step, (WfStepModel) step.getModel(),
+                NopWfCoreConstants.INTERNAL_ACTION_TRANSFER_TO_ACTOR, actorWithWeight, owner, wfRt);
+
+        IWfActor caller = wfRt.getCaller();
+        if (caller != null) {
+            step.getRecord().setCaller(caller);
+            step.getRecord().setAssigner(caller);
+        }
+
+        wfRt.triggerEvent(NopWfCoreConstants.EVENT_ADD_ACTOR);
+
+        return nextStep;
+    }
+
 
     @Override
     public void triggerStepEvent(IWorkflowStepImplementor step, String eventName, IServiceContext ctx) {

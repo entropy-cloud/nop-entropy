@@ -118,7 +118,7 @@ public class AbstractWorkflowTestCase extends JunitAutoTestCase {
     protected void executeTransferToUser(String wfId, String userId, String stepName, String nextUserId) {
         IServiceContext ctx = newServiceContext(userId);
         executeTask(wfId, userId, stepName, step -> {
-            ApprovalFlowHelper.transferToUser(step, nextUserId, ctx);
+            ApprovalFlowHelper.transferToUser(step, nextUserId, true, ctx);
         });
     }
 
@@ -128,7 +128,7 @@ public class AbstractWorkflowTestCase extends JunitAutoTestCase {
             WfActorAndOwner actorAndOwner = new WfActorAndOwner();
             actorAndOwner.setActorId(nextUserId);
             actorAndOwner.setActorType("user");
-            step.transferToActor(actorAndOwner, ctx);
+            step.transferToActor(actorAndOwner, false, ctx);
             step.getWorkflow().runAutoTransitions(ctx);
         });
     }

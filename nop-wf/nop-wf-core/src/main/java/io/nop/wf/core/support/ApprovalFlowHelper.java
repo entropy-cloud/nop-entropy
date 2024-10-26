@@ -34,11 +34,11 @@ public class ApprovalFlowHelper {
         }
     }
 
-    public static void transferToUser(IWorkflowStep step, String nextUserId, IServiceContext ctx) {
+    public static void transferToUser(IWorkflowStep step, String nextUserId, boolean exitCurrentStep, IServiceContext ctx) {
         WfActorAndOwner actorAndOwner = new WfActorAndOwner();
         actorAndOwner.setActorId(nextUserId);
         actorAndOwner.setActorType(IWfActor.ACTOR_TYPE_USER);
-        step.transferToActor(actorAndOwner, ctx);
+        step.transferToActor(actorAndOwner, exitCurrentStep, ctx);
         autoTransit(step.getWorkflow(), ctx);
     }
 

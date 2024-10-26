@@ -125,6 +125,10 @@ public interface IWorkflowStepRecord extends ITagSetSupport {
 
     String getSubWfId();
 
+    String getNextStepId();
+
+    void setNextStepId(String nextStepId);
+
     void setSubWfResultStatus(Integer status);
 
     Integer getSubWfResultStatus();
