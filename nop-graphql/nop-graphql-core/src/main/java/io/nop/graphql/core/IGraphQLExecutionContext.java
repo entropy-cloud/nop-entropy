@@ -126,6 +126,10 @@ public interface IGraphQLExecutionContext {
         return getServiceContext().getActionAuthChecker();
     }
 
+    default IDataAuthChecker getDataAuthChecker(){
+        return getServiceContext().getDataAuthChecker();
+    }
+
     default IUserContext getUserContext(){
         return getServiceContext().getUserContext();
     }

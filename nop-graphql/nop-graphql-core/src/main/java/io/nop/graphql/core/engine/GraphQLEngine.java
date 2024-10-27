@@ -318,10 +318,17 @@ public class GraphQLEngine implements IGraphQLEngine {
     public IGraphQLExecutionContext newGraphQLContextFromContext(IServiceContext ctx) {
         GraphQLExecutionContext context = new GraphQLExecutionContext(ctx);
 
-        if (enableActionAuth)
-            context.setActionAuthChecker(actionAuthChecker);
-        if (enableDataAuth)
-            context.setDataAuthChecker(dataAuthChecker);
+        if (enableActionAuth){
+            if (context.getActionAuthChecker() == null){
+                context.setActionAuthChecker(actionAuthChecker);
+            }
+        }
+
+        if (enableDataAuth){
+            if (context.getDataAuthChecker() == null){
+                context.setDataAuthChecker(dataAuthChecker);
+            }
+        }
         return context;
     }
 

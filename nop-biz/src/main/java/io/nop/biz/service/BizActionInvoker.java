@@ -84,18 +84,18 @@ public class BizActionInvoker {
      * @return 结果对象
      */
     public static CompletionStage<ApiResponse<?>> invokeGraphQLAsync(String bizObjName, String bizAction,
-                                                                     ApiRequest<?> request) {
+                                                                     ApiRequest<?> request, IServiceContext context) {
         IGraphQLEngine graphQLEngine = BeanContainer.getBeanByType(IGraphQLEngine.class);
         String realBizName = bizObjName + "__" + bizAction;
-        IGraphQLExecutionContext gqlCtx = graphQLEngine.newRpcContext(null, realBizName, request);
+        IGraphQLExecutionContext gqlCtx = graphQLEngine.newRpcContext(null, realBizName, request, context);
         return graphQLEngine.executeRpcAsync(gqlCtx);
     }
 
     public static ApiResponse<?> invokeGraphQLSync(String bizObjName, String bizAction,
-                                                   ApiRequest<?> request) {
+                                                   ApiRequest<?> request, IServiceContext context) {
         IGraphQLEngine graphQLEngine = BeanContainer.getBeanByType(IGraphQLEngine.class);
         String realBizName = bizObjName + "__" + bizAction;
-        IGraphQLExecutionContext gqlCtx = graphQLEngine.newRpcContext(null, realBizName, request);
+        IGraphQLExecutionContext gqlCtx = graphQLEngine.newRpcContext(null, realBizName, request, context);
         return graphQLEngine.executeRpc(gqlCtx);
     }
 }
