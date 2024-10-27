@@ -1,6 +1,6 @@
 # 初始化
 
-Nop平台使用`CoreInitalization.initialize()`调用实现平台初始化，它的实现是使用Java的ServiceLoader机制来加载`ICoreInitializer`接口。
+Nop平台使用`CoreInitialization.initialize()`调用实现平台初始化，它的实现是使用Java的ServiceLoader机制来加载`ICoreInitializer`接口。
 内置的常用初始化器按照如下顺序执行:
 
 1. ReflectionHelperMethodInitializer: 向反射系统注册扩展函数
