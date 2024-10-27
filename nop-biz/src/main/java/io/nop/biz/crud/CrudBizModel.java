@@ -698,10 +698,16 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         } else {
             dao().saveEntity(entityData.getEntity());
         }
-        afterEntityChange(entityData.getEntity(), context);
+        afterEntityChange(entityData.getEntity(), context, BizConstants.METHOD_SAVE);
     }
 
     @BizAction
+    protected void afterEntityChange(@Name("entity") T entity, IServiceContext context, String action) {
+        afterEntityChange(entity, context);
+    }
+
+    // 使用afterEntityChage(entity, context, action)方法来代替
+    @Deprecated
     protected void afterEntityChange(@Name("entity") T entity, IServiceContext context) {
 
     }
@@ -833,7 +839,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @BizAction
     protected void doUpdateEntity(@Name("entityData") EntityData<T> entityData, IServiceContext context) {
         dao().updateEntity(entityData.getEntity());
-        afterEntityChange(entityData.getEntity(), context);
+        afterEntityChange(entityData.getEntity(), context, BizConstants.METHOD_UPDATE);
     }
 
     @Description("@i18n:biz.get|根据id获取单条数据")
@@ -1729,7 +1735,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         getThisObj().invoke("defaultPrepareSave", Map.of("entityData", entityData), null, context);
     }
 
-    protected void invokeDefaultPrepareCopyForNew(@Name("entityData") EntityData<T> entityData, IServiceContext context){
+    protected void invokeDefaultPrepareCopyForNew(@Name("entityData") EntityData<T> entityData, IServiceContext context) {
         // 通过这种方式调用，允许在xbiz文件中覆盖Java中的方法
         getThisObj().invoke("defaultPrepareCopyForNew", Map.of("entityData", entityData), null, context);
     }

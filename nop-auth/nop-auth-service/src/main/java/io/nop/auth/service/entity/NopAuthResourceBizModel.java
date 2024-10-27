@@ -7,6 +7,7 @@
  */
 package io.nop.auth.service.entity;
 
+import io.nop.api.core.annotations.biz.BizAction;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
@@ -33,9 +34,10 @@ public class NopAuthResourceBizModel extends CrudBizModel<NopAuthResource> {
         setEntityName(NopAuthResource.class.getName());
     }
 
+    @BizAction
     @Override
-    protected void afterEntityChange(NopAuthResource entity, IServiceContext context) {
-        super.afterEntityChange(entity, context);
+    protected void afterEntityChange(NopAuthResource entity, IServiceContext context, String action) {
+        super.afterEntityChange(entity, context, action);
         // 顶层菜单不应该具有parent
         if (entity.isTopMenu()) {
             entity.setParentId(null);
