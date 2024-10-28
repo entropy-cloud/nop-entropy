@@ -29,6 +29,8 @@ public class OrmEntityPropertyFetcher implements IDataFetcher {
     public Object get(IDataFetchingEnvironment env) {
         IOrmEntity entity = (IOrmEntity) env.getSource();
         IOrmSession session = ormTemplate.requireSession();
+
+        // 实体上具有propId的字段全部会通过OrmEntityColumnFetcher加载，这里可能是alias定义的复合属性
         session.getBatchLoadQueue().enqueueProp(entity, propName);
 
         DataLoader<Supplier<Object>, Object> loader = OrmBatchLoader.makeDataLoader(ormTemplate,

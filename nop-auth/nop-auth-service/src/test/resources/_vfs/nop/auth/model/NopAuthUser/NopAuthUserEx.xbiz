@@ -23,5 +23,25 @@
                 return null;
             </source>
         </query>
+
+        <query name="initData">
+            <arg name="svcCtx" kind="ServiceContext" />
+
+            <return graphql:type="NopAuthUser" />
+
+            <source>
+                const daoProvider = inject('nopDaoProvider');
+                const dao = daoProvider.dao('NopAuthUser');
+                const mappingDao = daoProvider.dao('NopAuthUserRole');
+
+                const entity = dao.newEntity();
+                entity.userId = '3';
+                entity.userName = 'test';
+                const mapping = mappingDao.newEntity();
+                mapping.setRoleId('admin');
+                entity.roleMappings.add(mapping);
+                return entity;
+            </source>
+        </query>
     </actions>
 </biz>

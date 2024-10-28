@@ -36,7 +36,7 @@ public class NopAuthResourceBizModel extends CrudBizModel<NopAuthResource> {
 
     @BizAction
     @Override
-    protected void afterEntityChange(NopAuthResource entity, IServiceContext context, String action) {
+    protected void afterEntityChange(@Name("entity") NopAuthResource entity, IServiceContext context, @Name("action") String action) {
         super.afterEntityChange(entity, context, action);
         // 顶层菜单不应该具有parent
         if (entity.isTopMenu()) {

@@ -4,17 +4,17 @@
 public interface _${moduleClassPrefix}CoreConstants {
     <c:for var="dict" items="${ormModel.dicts}">
         <c:script>
-            const intValue = dict.valueType == 'int';
+            const numberType = dict.valueType == 'int' || dict.valueType == 'byte' || dict.valueType == 'short' || dict.valueType == 'long';
             const dictPrefix = dict.name.$lastPart('/').replace('-','_').toUpperCase();
         </c:script>
         <c:for var="option" items="${dict.options}">
             <c:if test="${option.code?.$strip() != null}">
                 <c:choose>
-                    <when test="${intValue}"><![CDATA[
+                    <when test="${numberType}"><![CDATA[
     /**
      * ${dict.label}: ${option.label} ${option.description}
      */
-    int ${dictPrefix}_${option.code} = ${option.value};
+    ${dict.valueType} ${dictPrefix}_${option.code} = ${option.value};
                     ]]></when>
                     <otherwise><![CDATA[
     /**

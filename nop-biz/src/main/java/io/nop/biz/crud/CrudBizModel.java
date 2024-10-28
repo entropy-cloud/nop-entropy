@@ -701,8 +701,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         afterEntityChange(entityData.getEntity(), context, BizConstants.METHOD_SAVE);
     }
 
-    @BizAction
-    protected void afterEntityChange(@Name("entity") T entity, IServiceContext context, String action) {
+    protected void afterEntityChange(@Name("entity") T entity, IServiceContext context, @Name("action") String action) {
         afterEntityChange(entity, context);
     }
 
@@ -1007,6 +1006,11 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             OrmEntityHelper.setPropValue(joinModel.getRightPropModel(), example, leftValue);
         }
         return refDao.findFirstByExample(example);
+    }
+
+    @BizAction
+    public T newEntity() {
+        return dao().newEntity();
     }
 
 

@@ -1,0 +1,13 @@
+{
+  "data": {
+    "id": "3",
+    "userName": "test",
+    "roleMappings": [
+      {
+        "roleId": "admin",
+        "userId": "3"
+      }
+    ]
+  },
+  "status": 0
+}

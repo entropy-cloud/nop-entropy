@@ -252,11 +252,11 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
                     <c:choose>
                         <when test="${join.leftType == join.rightType}">
                             refEntity.${join.rightProp.$methodSet()}(${join.leftProp? 'this.'+join.leftProp.$methodGet()+'()'
-                                            : JSON.stringify(join.leftValue)});
+                                            : $JSON.stringify(join.leftValue)});
                         </when>
                         <otherwise>
                             refEntity.orm_propValue(${rel.refEntityModel.name}.PROP_ID_${join.rightProp},
-                            ${join.leftProp? 'this.'+join.leftProp.$methodGet()+'()': JSON.stringify(join.leftValue)});
+                            ${join.leftProp? 'this.'+join.leftProp.$methodGet()+'()': $JSON.stringify(join.leftValue)});
                         </otherwise>
                     </c:choose>
                 </c:if>
@@ -277,11 +277,11 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
                    <c:choose>
                        <when test="${join.leftType == join.rightType}">
                            this.${join.leftProp.$methodSet()}(${join.rightProp? 'refEntity.'+join.rightProp.$methodGet()+'()'
-                                           : JSON.stringify(join.rightValue)});
+                                           : $JSON.stringify(join.rightValue)});
                        </when>
                        <otherwise>
                            this.orm_propValue(PROP_ID_${join.leftProp},
-                           ${join.rightProp? 'refEntity.'+join.rightProp.$methodGet()+'()': JSON.stringify(join.rightValue)});
+                           ${join.rightProp? 'refEntity.'+join.rightProp.$methodGet()+'()': $JSON.stringify(join.rightValue)});
                        </otherwise>
                    </c:choose>
                </c:if>

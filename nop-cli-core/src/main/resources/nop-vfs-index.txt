@@ -109,6 +109,7 @@
 /nop/rpc/imp/api.imp.xml
 /nop/rpc/imp/template.api.xlsx
 /nop/schema/action-auth.xdef
+/nop/schema/ai/llm.xdef
 /nop/schema/api.xdef
 /nop/schema/beans.xdef
 /nop/schema/biz/state-machine.xdef
@@ -145,6 +146,7 @@
 /nop/schema/record/record-object.xdef
 /nop/schema/record/record-param.xdef
 /nop/schema/record/record-simple-field.xdef
+/nop/schema/record/record-template.xdef
 /nop/schema/register-model.xdef
 /nop/schema/registry.xdef
 /nop/schema/rule.xdef
@@ -183,6 +185,10 @@
 /nop/schema/xui/style-component.xdef
 /nop/schema/xui/xuc.xdef
 /nop/schema/xui/xview.xdef
+/nop/sys/_module
+/nop/sys/beans/_dao.beans.xml
+/nop/sys/orm/_app.orm.xml
+/nop/sys/orm/app.orm.xml
 /nop/task/beans/task-defaults.beans.xml
 /nop/task/lib/common.task.xml
 /nop/task/xlib/task-gen.xlib

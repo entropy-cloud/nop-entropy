@@ -265,6 +265,7 @@ public class OrmModelInitializer {
 
     private void initRef(OrmEntityModel entityModel) {
         for (OrmReferenceModel ref : entityModel.getRelations()) {
+            ref.setOwnerEntityModel(entityModel);
             checkRefPrimary(entityModel, ref);
 
             OrmEntityModel refEntityModel = ref.getRefEntityModel();

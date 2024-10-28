@@ -136,4 +136,16 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
             output("result.json5", FutureHelper.syncGet(future));
         });
     }
+
+    @EnableSnapshot
+    @Test
+    public void testInitData() {
+        ApiRequest<Object> request = new ApiRequest<>();
+        request.setSelection(new FieldSelectionBeanParser().parseFromText(null, "id,userName,roleMappings{roleId,userId}"));
+
+        IGraphQLExecutionContext context = graphQLEngine.newRpcContext(GraphQLOperationType.query,
+                "NopAuthUserEx__initData", request);
+        Object result = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
+        output("response.json5", result);
+    }
 }

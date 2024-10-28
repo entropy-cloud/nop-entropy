@@ -62,6 +62,7 @@ public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, 
     @Override
     public IOrmEntity cloneInstance() {
         DynamicOrmEntity entity = new DynamicOrmEntity(orm_entityModel(), values.cloneInstance());
+        entity.orm_attach(orm_enhancer());
         orm_forEachInitedProp((value, propId) -> {
             entity.onInitProp(propId);
         });
