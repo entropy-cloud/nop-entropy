@@ -119,5 +119,6 @@ A指定代理人B之后，B就可以看到A的待办任务。如果是A主动完
 * 按照stepInstance的创建顺序，会自动生成一个execOrder。在串签的时候会用到这个execOrder。
 * 迁移到其他步骤时，引擎会自动取消execGroup中的所有stepInstance。
 * step配置中需要明确启用`useExecGroup=true`。否则引擎内部不会考虑execGroup特定的处理逻辑，只会把每个stepInstance单独看待
+* stepInstance结束的时候存在两个含义：结束当前步骤实例，以及有可能结束当前执行分组。
 
 

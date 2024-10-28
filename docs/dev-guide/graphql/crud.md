@@ -426,3 +426,26 @@ POST /r/NopAuthUser__updateByQuery
   }
 }
 ```
+
+## 一次性更新主子表
+直接传递json嵌套结构
+
+```
+POST /r/NopAuthUser__save
+
+{
+   "data": {
+     "name": "test",
+     "roles": [
+       {
+         "id": "1",
+         "name": "admin"
+       }
+     ]
+   }
+}
+```
+
+但是要允许子表数据能够更新，必须在meta中配置对应关联属性的updatable和insertable为true
+
+CrudBizModel中通过OrmEntityCopier将json嵌套结构的数据更新到实体对象上

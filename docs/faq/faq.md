@@ -441,6 +441,28 @@ nop-cli工具用于生成初始程序框架，它并不生成meta。因为XMeta�
 内置了`$toInt`, `$toString`等扩展函数，例如 `a.$toInt()`将会把a转换为Integer类型。实现层面会调用SysConverterRegistry中注册的ITypeConverter，最终会调用到`ConvertHelper.toInt`等函数。
 类型转换函数还支持缺省值，例如 `a.$toInt(10)`, 但a是空值或者null的时候会返回缺省值。
 
+### 38. NopGraphQL返回`Map<String,MyEntity>`结构为什么会报错？
+GraphQL只有对象和对象列表两种结构，没有Map<String，对象>这种结构。这种情况下key是不确定的，GraphQL规范中不支持key不确定的结构。
+Map是NopGraphQL扩展的结构，它必须一次性返回前台，不支持字段选择，内部也不允许保存实体。因为实体可能是构成图结构，无法进行普通的json序列化。而且实体可能通过关联牵扯到太多的数据，甚至整个数据库的数据都在无意间通过实体关联被取出。
+
+修改的方法是使用普通的DataBean来返回，比如
+```java
+@DataBean
+public class MyResponseBean{
+  private MyEntity myEntity;
+
+  public MyEntity getMyEntity(){
+    return myEntity;
+  }
+
+  public void setMyEntity(MyEntity myEntity){
+    this.myEntity = myEntity;
+  }
+}
+```
+
+另外也可以返回`List<MyEntity>`这种结构。GraphQL识别对象类型和对象列表类型。
+
 ## 部署问题
 
 ## 设计问题
@@ -623,11 +645,11 @@ prop级别实际上是在代码生成的时候根据`not-pub`标签生成了`pub
 在这个层面它属于是一种显性知识。但是在orm层面，因为这是存储层模型，原则上orm模型不应该知道自己是否要publish，所以它把相关配置信息存放在tagSet中，相当于是一种扩展描述。
 从ORM模型生成xmeta的时候，再把它转换为显性知识。
 
-### 13. 可逆计算的核心公式 App = Delta x-extends Generator<DSL>，在Nop中有Generator是一个理论上的抽象概念，它在Nop平台中对应于多种具体的机制。
+### 13. 可逆计算的核心公式 `App = Delta x-extends Generator<DSL>`，在Nop中有Generator是一个理论上的抽象概念，它在Nop平台中对应于多种具体的机制。
 1. XCodeGenerator代码生成工具，可以根据Excel模型生成代码，生成的时候会自动覆盖_gen目录下的文件以及所有名称以下划线为前缀的文件。手工编写的代码从自动生成的代码继承，进行差量定制。
 2. 所有的XDSL文件内部都支持x:gen-extends和x:post-extends动态代码生成段，在其中可以通过xpl模板语言来动态生成模型节点，然后再和外部节点进行差量合并。
 ```xml
-<model x:extends="A,B"> 
+<model x:extends="A,B">
    <x:gen-extends>
       <my:GenC/>
       <my:GenD/>
