@@ -46,7 +46,7 @@
                 <col id="subWfResultStatus" sortable="true"/>
 
                 <!--是否已读-->
-                <col id="isRead" sortable="true"/>
+                <col id="isRead" mandatory="true" sortable="true"/>
 
                 <!--参与者类型-->
                 <col id="actorType" sortable="true"/>

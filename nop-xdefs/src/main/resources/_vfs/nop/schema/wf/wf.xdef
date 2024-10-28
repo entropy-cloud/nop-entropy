@@ -78,7 +78,7 @@
 
     <on-signal xdef:value="xpl"/>
 
-    <remind-time-expr xdef:value="xpl" />
+    <remind-time-expr xdef:value="xpl"/>
 
     <listeners xdef:body-type="list" xdef:key-attr="id">
         <listener id="!string" eventPattern="!string" xdef:name="WfListenerModel">
@@ -180,18 +180,21 @@
           @initAsWaiting [初始化为等待状态] 新建步骤时是否自动初始化为等待状态
           @allowWithdraw [允许撤销] 是否允许撤销本步骤
           @allowReject [允许驳回] 是否允许驳回本步骤
-          @useExecGroup [使用执行组] 是否使用执行组。步骤迁移时每个actor生成一个步骤实例，这些步骤实例属于同一个execGroup。如果使用执行组，
+          @execGroupType [执行分组类型] 如果指定了执行分组类型，则步骤迁移时每个actor生成一个步骤实例，这些步骤实例属于同一个execGroup。如果使用执行组，
                 则所有当前执行分组中的actor都执行完毕之后才会执行步骤迁移，用于引入会签支持
           @dueAction [超时动作] 超时动作
+          @passWeight 所有同意的参与者投票权重超过多少记为通过
         -->
         <step name="!string" displayName="string" xdef:name="WfStepModel" waitSignals="csv-set"
               internal="!boolean=false" wfAppState="#string" bizEntityState="#string"
-              optional="!boolean=false" priority="!int=100" appState="#string" useExecGroup="!boolean=false"
+              optional="!boolean=false" priority="!int=100" appState="#string"
+              execGroupType="enum:io.nop.wf.core.model.WfExecGroupType"
               tagSet="csv-set" allowWithdraw="!boolean=false"
               allowReject="!boolean=false" dueAction="string" initAsWaiting="!boolean=false"
+              passWeight="int" passPercent="double"
               specialType="string" independent="!boolean=false">
 
-            <description xdef:value="string" />
+            <description xdef:value="string"/>
 
             <!-- 是否当前可以激活 -->
             <may-activated xdef:value="xpl-predicate"/>
@@ -254,10 +257,9 @@
           @joinType joinType=and时等待所有上游步骤都到达时才激活，
                  而joinType=or时只要有一个步骤到达就激活，后续步骤再到达时如果join步骤还处于活动状态，则不会产生新的join步骤。
           @waitStepNames joinType=and时所需要等待的上游步骤，如果未设置则按照图的依赖关系自动分析得到。
-          @passWeight 所有同意的参与者投票权重超过多少记为通过
         -->
         <join name="!string" xdef:ref="WfStepModel" joinType="!enum:io.nop.wf.core.model.WfJoinType=and"
-              waitStepNames="csv-set" passWeight="int" passPercent="double" xdef:name="WfJoinStepModel">
+              waitStepNames="csv-set" xdef:name="WfJoinStepModel">
             <!--
             joinGroupExpr指定join时的分组条件。
             join步骤缺省会等待所有前置步骤结束。如果指定了joinGroupExpr, 则joinGroupExpr相同的步骤会被认为是一组。

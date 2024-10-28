@@ -36,20 +36,6 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
     
     /**
      *  
-     * xml name: passPercent
-     * 
-     */
-    private java.lang.Double _passPercent ;
-    
-    /**
-     *  
-     * xml name: passWeight
-     * 所有同意的参与者投票权重超过多少记为通过
-     */
-    private java.lang.Integer _passWeight ;
-    
-    /**
-     *  
      * xml name: waitStepNames
      * joinType=and时所需要等待的上游步骤，如果未设置则按照图的依赖关系自动分析得到。
      */
@@ -99,44 +85,6 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
     
     /**
      * 
-     * xml name: passPercent
-     *  
-     */
-    
-    public java.lang.Double getPassPercent(){
-      return _passPercent;
-    }
-
-    
-    public void setPassPercent(java.lang.Double value){
-        checkAllowChange();
-        
-        this._passPercent = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: passWeight
-     *  所有同意的参与者投票权重超过多少记为通过
-     */
-    
-    public java.lang.Integer getPassWeight(){
-      return _passWeight;
-    }
-
-    
-    public void setPassWeight(java.lang.Integer value){
-        checkAllowChange();
-        
-        this._passWeight = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: waitStepNames
      *  joinType=and时所需要等待的上游步骤，如果未设置则按照图的依赖关系自动分析得到。
      */
@@ -171,8 +119,6 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
         
         out.putNotNull("joinGroupExpr",this.getJoinGroupExpr());
         out.putNotNull("joinType",this.getJoinType());
-        out.putNotNull("passPercent",this.getPassPercent());
-        out.putNotNull("passWeight",this.getPassWeight());
         out.putNotNull("waitStepNames",this.getWaitStepNames());
     }
 
@@ -187,8 +133,6 @@ public abstract class _WfJoinStepModel extends io.nop.wf.core.model.WfStepModel 
         
         instance.setJoinGroupExpr(this.getJoinGroupExpr());
         instance.setJoinType(this.getJoinType());
-        instance.setPassPercent(this.getPassPercent());
-        instance.setPassWeight(this.getPassWeight());
         instance.setWaitStepNames(this.getWaitStepNames());
     }
 

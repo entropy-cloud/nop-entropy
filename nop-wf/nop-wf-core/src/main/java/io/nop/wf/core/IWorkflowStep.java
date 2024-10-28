@@ -14,6 +14,7 @@ import io.nop.wf.api.actor.WfActorAndOwner;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.IWorkflowStepModel;
 import io.nop.wf.core.model.WfAssignmentActorModel;
+import io.nop.wf.core.model.WfExecGroupType;
 import io.nop.wf.core.model.WfStepType;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import jakarta.annotation.Nonnull;
@@ -27,6 +28,10 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
     IWorkflowStepRecord getRecord();
 
     IWorkflow getWorkflow();
+
+    default WfExecGroupType getExecGroupType() {
+        return getModel().getExecGroupType();
+    }
 
     default String getSpecialType() {
         return getModel().getSpecialType();
@@ -97,6 +102,18 @@ public interface IWorkflowStep extends Comparable<IWorkflowStep> {
 
     default boolean isRejected() {
         return getStepStatus() == NopWfCoreConstants.WF_STEP_STATUS_REJECTED;
+    }
+
+    default boolean isExcludeInExecGroup() {
+        return getStepStatus() >= NopWfCoreConstants.WF_STEP_STATUS_CANCELLED;
+    }
+
+    /**
+     * 在completed和expired之间的状态都是成功状态
+     */
+    default boolean isCompleted() {
+        int status = getStepStatus();
+        return status >= NopWfCoreConstants.WF_STEP_STATUS_COMPLETED && status < NopWfCoreConstants.WF_STEP_STATUS_EXPIRED;
     }
 
     default boolean isJoinType() {

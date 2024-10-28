@@ -108,6 +108,7 @@ import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_UNKNOWN_ACTION;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_UNKNOWN_ACTION_ARG;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_UNKNOWN_STEP;
 import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_WITHDRAW_ACTION_IS_NOT_ALLOWED;
+import static io.nop.wf.core.engine.ExecGroupSupport.isSameExecGroup;
 
 /**
  * 工作流引擎的核心处理逻辑
@@ -311,7 +312,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                 stepRecord.setExecOrder(execOrder);
                 stepRecord.setActorModelId(actorWithWeight.getActorModelId());
 
-                if (currentStep != null) {
+                if (currentStep != null && !isSameExecGroup(currentStep, step)) {
                     wf.getStore().addNextStepRecord(currentStep.getRecord(), fromAction, step.getRecord());
                 }
 
@@ -368,8 +369,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         saveStepRecord(step);
 
-        // add step link after saving step
-        if (currentStep != null) {
+        // add step link after saving step。  同一个execGroup仅在addActor, transferToActor等调用时出现，同一个执行分组不需要建立连接
+        if (currentStep != null && !isSameExecGroup(currentStep, step)) {
             wf.getStore().addNextStepRecord(currentStep.getRecord(), fromAction, step.getRecord());
         }
 
@@ -753,11 +754,6 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         boolean ret = false;
         for (IWorkflowStepImplementor step : wf.getActivatedSteps()) {
-            if (step.getModel().isUseExecGroup()) {
-                // execGroup只有execOrder为0的步骤才会执行迁移
-                if (step.getRecord().getExecOrder() != 0 || !isExecGroupComplete(step, wfRt))
-                    continue;
-            }
             boolean hasTrans = runStepAutoTransition(step, wfRt);
             if (hasTrans)
                 ret = true;
@@ -939,7 +935,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         // 新建步骤
         IWorkflowStepImplementor nextStep = newStepForActor(step.getRecord().getExecGroup(),
                 step.getRecord().getExecOrder(), step, (WfStepModel) step.getModel(),
-                NopWfCoreConstants.INTERNAL_ACTION_TRANSFER_TO_ACTOR, actorWithWeight, owner, wfRt);
+                NopWfCoreConstants.INTERNAL_ADD_ACTOR, actorWithWeight, owner, wfRt);
 
         IWfActor caller = wfRt.getCaller();
         if (caller != null) {
@@ -1103,6 +1099,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
         wfRt.triggerEvent(NopWfCoreConstants.EVENT_BEFORE_ACTION);
 
+        boolean exitStep = false;
 
         Object result = null;
         try {
@@ -1140,6 +1137,7 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                         status = NopWfCoreConstants.WF_STEP_STATUS_REJECTED;
                     }
                     doExitStep(step, status, wfRt);
+                    exitStep = true;
                 }
             }
 
@@ -1226,18 +1224,11 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         }
     }
 
-    private void doExitStep(IWorkflowStepImplementor step, int status, WfRuntime wfRt) {
+    protected void doExitStep(IWorkflowStepImplementor step, int status, WfRuntime wfRt) {
         if (!step.isHistory()) {
             WfStepModel stepModel = (WfStepModel) step.getModel();
             step.getRecord().setFinishTime(CoreMetrics.currentTimestamp());
             step.getRecord().transitToStatus(status);
-
-            if (stepModel.isUseExecGroup()) {
-                IWorkflowStepImplementor mainStep = step.getExecGroupFirstStep();
-                mainStep.getRecord().incExecCount();
-                if (mainStep != step)
-                    saveStepRecord(mainStep);
-            }
 
             IWorkflowStepImplementor currentStep = wfRt.getCurrentStep();
             try {

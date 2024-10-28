@@ -41,6 +41,8 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
 
     String INTERNAL_ACTION_TRANSFER_TO_ACTOR = "_transferToActor_";
 
+    String INTERNAL_ADD_ACTOR = "_addActor_";
+
     String INTERNAL_ACTION_TRANSIT = "_transit_";
     String INTERNAL_ACTION_TRANSIT_TO = "_transitTo_";
 

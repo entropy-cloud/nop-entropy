@@ -25,12 +25,13 @@
             <option code="COMPLETED" description="步骤正常结束" label="已完成" value="40"/>
             <option code="EXPIRED" description="已超时" label="已超时" value="50"/>
             <option code="FAILED" description="步骤异常结束" label="已失败" value="60"/>
-            <option code="CANCELLED" description="取消执行" label="已取消" value="70"/>
-            <option code="KILLED" description="主动中止" label="已中止" value="80"/>
+            <option code="KILLED" description="强制终止" label="已终止" value="70"/>
+            <option code="SKIPPED" description="跳过本步骤执行" label="已跳过" value="80"/>
             <option code="REJECTED" description="退回当前步骤时，当前步骤的状态标记为REJECTED，便于和正常的历史状态区分开来" label="已退回" value="90"/>
             <option code="WITHDRAWN" description="发送到下一步骤之后，在下一步骤的状态转变为历史状态之前，可以执行撤回操作，被撤回的下一步骤状态变为WITHDRAWN。"
                     label="已撤销" value="100"/>
-            <option code="TRANSFERRED" description="转交给其他人执行" label="已转交" value="110"/>
+            <option code="CANCELLED" description="取消执行" label="已取消" value="110"/>
+            <option code="TRANSFERRED" description="转交给其他人执行" label="已转交" value="120"/>
         </dict>
         <dict label="工作流" name="wf/wf-status" valueType="int" i18n-en:label="Workflow Status">
             <option code="CREATED" label="已创建" value="0"/>
@@ -385,8 +386,8 @@
                 <column code="SUB_WF_RESULT_STATUS" displayName="子流程结果状态" name="subWfResultStatus" propId="11"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Sub Flow Result Status"
                         ext:dict="wf/wf-step-status"/>
-                <column code="IS_READ" displayName="是否已读" name="isRead" propId="12" stdDataType="boolean"
-                        stdSqlType="BOOLEAN" i18n-en:displayName="Is Read"/>
+                <column code="IS_READ" defaultValue="false" displayName="是否已读" mandatory="true" name="isRead"
+                        propId="12" stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="Is Read"/>
                 <column code="ACTOR_MODEL_ID" displayName="参与者模型ID" name="actorModelId" precision="100" propId="13"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Actor Model ID" ui:show="X"/>
                 <column code="ACTOR_TYPE" displayName="参与者类型" name="actorType" precision="10" propId="14"

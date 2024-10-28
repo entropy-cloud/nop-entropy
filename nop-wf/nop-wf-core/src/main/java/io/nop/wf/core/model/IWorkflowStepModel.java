@@ -24,6 +24,8 @@ public interface IWorkflowStepModel extends ITagSetSupport {
 
     WfJoinType getJoinType();
 
+    WfExecGroupType getExecGroupType();
+
     boolean isInternal();
 
     boolean isOptional();
@@ -31,8 +33,6 @@ public interface IWorkflowStepModel extends ITagSetSupport {
     boolean isAllowWithdraw();
 
     boolean isAllowReject();
-
-    boolean isUseExecGroup();
 
     int getPriority();
 
@@ -70,4 +70,8 @@ public interface IWorkflowStepModel extends ITagSetSupport {
     Set<String> getWaitStepNames();
 
     Set<String> getWaitSignals();
+
+    Integer getPassWeight();
+
+    Double getPassPercent();
 }

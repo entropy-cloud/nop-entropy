@@ -63,8 +63,8 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer" dict="wf/wf-step-status"/>
         </prop>
-        <prop name="isRead" displayName="是否已读" propId="12" i18n-en:displayName="Is Read" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="isRead" displayName="是否已读" propId="12" i18n-en:displayName="Is Read" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="false">
             <schema type="java.lang.Boolean"/>
         </prop>
         <prop name="actorModelId" displayName="参与者模型ID" propId="13" i18n-en:displayName="Actor Model ID"

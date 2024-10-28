@@ -37,13 +37,13 @@ options:
     value: 60
     description: 步骤异常结束
   
-  - label: 已取消
+  - label: 已终止
     value: 70
-    description: 取消执行
+    description: 强制终止
   
-  - label: 已中止
+  - label: 已跳过
     value: 80
-    description: 主动中止
+    description: 跳过本步骤执行
   
   - label: 已退回
     value: 90
@@ -53,7 +53,11 @@ options:
     value: 100
     description: 发送到下一步骤之后，在下一步骤的状态转变为历史状态之前，可以执行撤回操作，被撤回的下一步骤状态变为WITHDRAWN。
   
-  - label: 已转交
+  - label: 已取消
     value: 110
+    description: 取消执行
+  
+  - label: 已转交
+    value: 120
     description: 转交给其他人执行
   

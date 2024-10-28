@@ -108,6 +108,14 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     private io.nop.core.lang.eval.IEvalAction _dueTimeExpr ;
     
     /**
+     *  执行分组类型
+     * xml name: execGroupType
+     * 如果指定了执行分组类型，则步骤迁移时每个actor生成一个步骤实例，这些步骤实例属于同一个execGroup。如果使用执行组，
+     * 则所有当前执行分组中的actor都执行完毕之后才会执行步骤迁移，用于引入会签支持
+     */
+    private io.nop.wf.core.model.WfExecGroupType _execGroupType ;
+    
+    /**
      *  
      * xml name: independent
      * 正常情况下整个流程结束时所有正在运行的步骤都会被强制kill，而如果标记为independent，则可以继续保持运行状态。
@@ -172,6 +180,20 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: passPercent
+     * 
+     */
+    private java.lang.Double _passPercent ;
+    
+    /**
+     *  
+     * xml name: passWeight
+     * 所有同意的参与者投票权重超过多少记为通过
+     */
+    private java.lang.Integer _passWeight ;
+    
+    /**
+     *  
      * xml name: priority
      * 优先级
      */
@@ -225,14 +247,6 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
      * 
      */
     private java.lang.String _type ;
-    
-    /**
-     *  使用执行组
-     * xml name: useExecGroup
-     * 是否使用执行组。步骤迁移时每个actor生成一个步骤实例，这些步骤实例属于同一个execGroup。如果使用执行组，
-     * 则所有当前执行分组中的actor都执行完毕之后才会执行步骤迁移，用于引入会签支持
-     */
-    private boolean _useExecGroup  = false;
     
     /**
      *  
@@ -496,6 +510,26 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
 
     
     /**
+     * 执行分组类型
+     * xml name: execGroupType
+     *  如果指定了执行分组类型，则步骤迁移时每个actor生成一个步骤实例，这些步骤实例属于同一个execGroup。如果使用执行组，
+     * 则所有当前执行分组中的actor都执行完毕之后才会执行步骤迁移，用于引入会签支持
+     */
+    
+    public io.nop.wf.core.model.WfExecGroupType getExecGroupType(){
+      return _execGroupType;
+    }
+
+    
+    public void setExecGroupType(io.nop.wf.core.model.WfExecGroupType value){
+        checkAllowChange();
+        
+        this._execGroupType = value;
+           
+    }
+
+    
+    /**
      * 
      * xml name: independent
      *  正常情况下整个流程结束时所有正在运行的步骤都会被强制kill，而如果标记为independent，则可以继续保持运行状态。
@@ -662,6 +696,44 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._optional = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: passPercent
+     *  
+     */
+    
+    public java.lang.Double getPassPercent(){
+      return _passPercent;
+    }
+
+    
+    public void setPassPercent(java.lang.Double value){
+        checkAllowChange();
+        
+        this._passPercent = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: passWeight
+     *  所有同意的参与者投票权重超过多少记为通过
+     */
+    
+    public java.lang.Integer getPassWeight(){
+      return _passWeight;
+    }
+
+    
+    public void setPassWeight(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._passWeight = value;
            
     }
 
@@ -845,26 +917,6 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
 
     
     /**
-     * 使用执行组
-     * xml name: useExecGroup
-     *  是否使用执行组。步骤迁移时每个actor生成一个步骤实例，这些步骤实例属于同一个execGroup。如果使用执行组，
-     * 则所有当前执行分组中的actor都执行完毕之后才会执行步骤迁移，用于引入会签支持
-     */
-    
-    public boolean isUseExecGroup(){
-      return _useExecGroup;
-    }
-
-    
-    public void setUseExecGroup(boolean value){
-        checkAllowChange();
-        
-        this._useExecGroup = value;
-           
-    }
-
-    
-    /**
      * 
      * xml name: waitSignals
      *  对应一组globalVars中必须存在的变量名，只有这些变量不为null, 才activated
@@ -938,6 +990,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("dueAction",this.getDueAction());
         out.putNotNull("dueTimeExpr",this.getDueTimeExpr());
+        out.putNotNull("execGroupType",this.getExecGroupType());
         out.putNotNull("independent",this.isIndependent());
         out.putNotNull("initAsWaiting",this.isInitAsWaiting());
         out.putNotNull("internal",this.isInternal());
@@ -947,6 +1000,8 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("onError",this.getOnError());
         out.putNotNull("onExit",this.getOnExit());
         out.putNotNull("optional",this.isOptional());
+        out.putNotNull("passPercent",this.getPassPercent());
+        out.putNotNull("passWeight",this.getPassWeight());
         out.putNotNull("priority",this.getPriority());
         out.putNotNull("refActions",this.getRefActions());
         out.putNotNull("retry",this.getRetry());
@@ -955,7 +1010,6 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("transition",this.getTransition());
         out.putNotNull("type",this.getType());
-        out.putNotNull("useExecGroup",this.isUseExecGroup());
         out.putNotNull("waitSignals",this.getWaitSignals());
         out.putNotNull("wfAppState",this.getWfAppState());
     }
@@ -982,6 +1036,7 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         instance.setDisplayName(this.getDisplayName());
         instance.setDueAction(this.getDueAction());
         instance.setDueTimeExpr(this.getDueTimeExpr());
+        instance.setExecGroupType(this.getExecGroupType());
         instance.setIndependent(this.isIndependent());
         instance.setInitAsWaiting(this.isInitAsWaiting());
         instance.setInternal(this.isInternal());
@@ -991,6 +1046,8 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         instance.setOnError(this.getOnError());
         instance.setOnExit(this.getOnExit());
         instance.setOptional(this.isOptional());
+        instance.setPassPercent(this.getPassPercent());
+        instance.setPassWeight(this.getPassWeight());
         instance.setPriority(this.getPriority());
         instance.setRefActions(this.getRefActions());
         instance.setRetry(this.getRetry());
@@ -999,7 +1056,6 @@ public abstract class _WfStepModel extends io.nop.core.resource.component.Abstra
         instance.setTagSet(this.getTagSet());
         instance.setTransition(this.getTransition());
         instance.setType(this.getType());
-        instance.setUseExecGroup(this.isUseExecGroup());
         instance.setWaitSignals(this.getWaitSignals());
         instance.setWfAppState(this.getWfAppState());
     }
