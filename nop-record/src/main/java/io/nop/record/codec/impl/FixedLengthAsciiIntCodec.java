@@ -32,7 +32,7 @@ public class FixedLengthAsciiIntCodec implements IFieldBinaryCodec, IFieldTextCo
 
     @Override
     public void encode(IBinaryDataWriter output, Object value, int length, Charset charset,
-                       IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder) {
+                       IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder) throws IOException {
         String text = ConvertHelper.toString(value, "0");
         text = StringHelper.leftPad(text, length, '0');
         if (charset == null)
@@ -41,7 +41,7 @@ public class FixedLengthAsciiIntCodec implements IFieldBinaryCodec, IFieldTextCo
     }
 
     @Override
-    public Object decode(ITextDataReader input, int length, IFieldCodecContext context) {
+    public Object decode(ITextDataReader input, int length, IFieldCodecContext context) throws IOException{
         String text = input.read(length);
         return ConvertHelper.toPrimitiveInt(text, err -> new NopException(err).param(ARG_FIELD_PATH, context.getFieldPath()));
     }

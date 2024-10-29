@@ -11,13 +11,15 @@ import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.writer.IBinaryDataWriter;
 
+import java.io.IOException;
 import java.util.List;
 
 public class BitmapTagBinaryCodec implements IFieldTagBinaryCodec {
     public static final BitmapTagBinaryCodec INSTANCE = new BitmapTagBinaryCodec();
 
     @Override
-    public IBitSet decodeTags(IBinaryDataReader input, RecordFieldMeta field, IFieldCodecContext context) {
+    public IBitSet decodeTags(IBinaryDataReader input, RecordFieldMeta field,
+                              IFieldCodecContext context) throws IOException {
         byte[] bytes = input.readBytes(8);
         IBitSet bs;
         byte[] nextBytes = null;
@@ -56,7 +58,7 @@ public class BitmapTagBinaryCodec implements IFieldTagBinaryCodec {
 
     @Override
     public IBitSet encodeTags(IBinaryDataWriter output, Object value, RecordFieldMeta field,
-                              RecordObjectMeta typeMeta, IFieldCodecContext context) {
+                              RecordObjectMeta typeMeta, IFieldCodecContext context) throws IOException{
         IBitSet bitSet = new FixedBitSet(128);
         List<RecordFieldMeta> fields = typeMeta == null ? typeMeta.getFields() : field.getFields();
         int max = 0;

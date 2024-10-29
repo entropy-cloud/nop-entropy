@@ -6,9 +6,12 @@ import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.writer.IBinaryDataWriter;
 
+import java.io.IOException;
+
 public interface IFieldTagBinaryCodec {
-    IBitSet decodeTags(IBinaryDataReader input, RecordFieldMeta field, IFieldCodecContext context);
+    IBitSet decodeTags(IBinaryDataReader input, RecordFieldMeta field,
+                       IFieldCodecContext context) throws IOException;
 
     IBitSet encodeTags(IBinaryDataWriter output, Object value, RecordFieldMeta field, RecordObjectMeta typeMeta,
-                       IFieldCodecContext context);
+                       IFieldCodecContext context) throws IOException;
 }
