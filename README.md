@@ -11,10 +11,8 @@
 
 **Nop is nOt Programming(非编程)**
 
-Nop Platform 2.0 is a new generation of low-code platform based on the theory of reversible computation. It is committed to overcoming the dilemma that low-code platform can not get rid of the exhaustive method, transcending the component technology from the theoretical level, and effectively solving the problem of coarse-grained software reuse.
-
-Nop Platform 2.0是基于可逆计算原理从零开始构建的新一代低代码(lowcode)
-平台，它致力于克服低代码平台无法摆脱穷举法的困境，从理论层面超越组件技术，有效的解决粗粒度软件复用的问题。
+Nop Platform 2.0 is a next-generation low-code development platform built from scratch based on the principles of reversible computation, adopting a language-oriented programming paradigm. It includes a suite of fully designed engines such as a GraphQL engine, ORM engine, workflow engine, reporting engine, rule engine, and batch processing engine, all developed from scratch based on new principles. It automatically generates GraphQL/REST/gRPC services according to Excel data models, allowing for customized development without modifying the source code of the basic product. It supports native compilation with GraalVM, and is free for commercial use by small and medium-sized enterprises.
+Nop Platform 2.0基于可逆计算原理从零开始构建的采用面向语言编程范式的下一代低代码开发平台。包含基于全新原理从零开始研发的GraphQL引擎、ORM引擎、工作流引擎、报表引擎、规则引擎、批处理引引擎等完整设计，根据Excel数据模型自动生成GraphQL/REST/gRPC服务，定制化开发无需修改基础产品源码，支持GraalVM原生编译，中小企业可以免费商用。
 
 - nop-entropy是Nop平台的后端部分。它采用Java语言实现，不依赖第三方框架，可以和Quarkus、Spring或者Solon框架集成在一起使用。
 
