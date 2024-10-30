@@ -7,6 +7,7 @@
  */
 package io.nop.biz.crud;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.BizConstants;
 import io.nop.commons.lang.Undefined;
 import io.nop.core.lang.eval.IEvalScope;
@@ -38,26 +39,31 @@ public class AutoExprRunner {
             if (ignoreFields != null && ignoreFields.contains(propMeta.getName()))
                 continue;
 
-            ObjConditionExpr autoExpr = propMeta.getAutoExpr();
-            if (autoExpr == null) {
-                // 只有save的时候才考虑设置缺省值。
-                if (propMeta.getDefaultValue() != null && BizConstants.METHOD_SAVE.equals(action)) {
-                    BeanTool.setProperty(entity, name, propMeta.getDefaultValue());
+            try {
+                ObjConditionExpr autoExpr = propMeta.getAutoExpr();
+                if (autoExpr == null) {
+                    // 只有save的时候才考虑设置缺省值。
+                    if (propMeta.getDefaultValue() != null && BizConstants.METHOD_SAVE.equals(action)) {
+                        BeanTool.setProperty(entity, name, propMeta.getDefaultValue());
+                    }
+                    continue;
                 }
-                continue;
+
+                if (autoExpr.getWhen() != null && !autoExpr.getWhen().contains(action))
+                    continue;
+
+                Object value = null;
+                if (autoExpr.getSource() != null) {
+                    scope.setLocalValue(null, OrmConstants.VAR_PROP_META, propMeta);
+                    value = autoExpr.getSource().invoke(scope);
+                }
+
+                if (value != Undefined.undefined)
+                    BeanTool.setProperty(entity, name, value);
+            } catch (NopException e) {
+                e.addXplStack("runAutoExprForProp:" + propMeta.getName());
+                throw e;
             }
-
-            if (autoExpr.getWhen() != null && !autoExpr.getWhen().contains(action))
-                continue;
-
-            Object value = null;
-            if (autoExpr.getSource() != null) {
-                scope.setLocalValue(null, OrmConstants.VAR_PROP_META, propMeta);
-                value = autoExpr.getSource().invoke(scope);
-            }
-
-            if (value != Undefined.undefined)
-                BeanTool.setProperty(entity, name, value);
         }
     }
 }

@@ -9,6 +9,7 @@ package io.nop.dyn.service.entity;
 
 import io.nop.api.core.annotations.biz.BizAction;
 import io.nop.api.core.annotations.biz.BizModel;
+import io.nop.api.core.annotations.core.Name;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
 import io.nop.dyn.dao.entity.NopDynFunctionMeta;
@@ -27,7 +28,7 @@ public class NopDynFunctionMetaBizModel extends CrudBizModel<NopDynFunctionMeta>
 
     @BizAction
     @Override
-    protected void afterEntityChange(NopDynFunctionMeta entity, IServiceContext context, String action) {
+    protected void afterEntityChange(@Name("entity") NopDynFunctionMeta entity, IServiceContext context, @Name("action") String action) {
         super.afterEntityChange(entity, context, action);
 
         codeGen.generateBizModel(entity.getEntityMeta());
