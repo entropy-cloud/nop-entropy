@@ -373,7 +373,7 @@ public class XuiViewAnalyzer {
     boolean addLabelProp(IObjPropMeta propMeta, FieldSelectionBean selection) {
         String labelProp = getLabelProp(propMeta);
         if (!StringHelper.isEmpty(labelProp)) {
-            selection.addField(labelProp);
+            selection.addCompositeField(labelProp,false);
             return true;
         }
         return false;
