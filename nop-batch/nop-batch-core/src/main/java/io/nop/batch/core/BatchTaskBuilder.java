@@ -17,7 +17,7 @@ import io.nop.batch.core.consumer.MultiBatchConsumer;
 import io.nop.batch.core.consumer.RateLimitConsumer;
 import io.nop.batch.core.consumer.RetryBatchConsumer;
 import io.nop.batch.core.consumer.SkipBatchConsumer;
-import io.nop.batch.core.consumer.WitchHistoryBatchConsumer;
+import io.nop.batch.core.consumer.WithHistoryBatchConsumer;
 import io.nop.batch.core.impl.BatchTask;
 import io.nop.batch.core.listener.MetricsRetryConsumeListener;
 import io.nop.batch.core.listener.MultiBatchChunkListener;
@@ -406,7 +406,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
 
         // 保存处理历史，避免重复处理
         if (historyStore != null)
-            consumer = new WitchHistoryBatchConsumer(historyStore, consumer, historyConsumer);
+            consumer = new WithHistoryBatchConsumer(historyStore, consumer, historyConsumer);
 
         // 在process和consume阶段打开事务
         if (batchTransactionScope == BatchTransactionScope.process && transactionalInvoker != null) {

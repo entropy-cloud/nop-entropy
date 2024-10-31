@@ -16,14 +16,14 @@ import io.nop.commons.util.CollectionHelper;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WitchHistoryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkContext> {
+public class WithHistoryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkContext> {
     private final IBatchRecordHistoryStore<R> historyStore;
     private final IBatchConsumer<R, IBatchChunkContext> consumer;
     private final IBatchConsumer<R, IBatchChunkContext> historyConsumer;
 
-    public WitchHistoryBatchConsumer(IBatchRecordHistoryStore<R> historyStore,
-                                     IBatchConsumer<R, IBatchChunkContext> consumer,
-                                     IBatchConsumer<R, IBatchChunkContext> historyConsumer) {
+    public WithHistoryBatchConsumer(IBatchRecordHistoryStore<R> historyStore,
+                                    IBatchConsumer<R, IBatchChunkContext> consumer,
+                                    IBatchConsumer<R, IBatchChunkContext> historyConsumer) {
         this.historyStore = historyStore;
         this.consumer = consumer;
         this.historyConsumer = historyConsumer;

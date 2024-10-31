@@ -19,7 +19,7 @@ import io.nop.batch.core.IBatchRecordFilter;
 import io.nop.batch.core.IBatchRecordHistoryStore;
 import io.nop.batch.core.IBatchTask;
 import io.nop.batch.core.IBatchTaskContext;
-import io.nop.batch.core.consumer.WitchHistoryBatchConsumer;
+import io.nop.batch.core.consumer.WithHistoryBatchConsumer;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
 import io.nop.batch.core.loader.ResourceRecordLoader;
 import io.nop.batch.jdbc.consumer.JdbcInsertBatchConsumer;
@@ -213,7 +213,7 @@ public class ImportDbTool {
             }
 
             IBatchRecordHistoryStore historyStore = new JdbcKeyDuplicateFilter(jdbc, tableConfig.getName(), colBinders);
-            consumer = new WitchHistoryBatchConsumer(historyStore, consumer, historyConsumer);
+            consumer = new WithHistoryBatchConsumer(historyStore, consumer, historyConsumer);
         }
 
         builder.consumer(consumer);
