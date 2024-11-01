@@ -60,7 +60,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
             }
         } catch (BatchCancelException e) {
             throw e;
-        } catch (Throwable e) {
+        } catch (Exception e) {
             LOG.error("nop.err.batch.consume-fail", e);
 
             // 如果没有设置重试策略，则表示不允许重试
@@ -151,58 +151,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
     RetryOnceResult retryConsumeOnce(int retryCount, List<R> items, IBatchChunkContext context) {
         // 放弃批处理，逐个重试
         if (retryOneByOne) {
-            context.setSingleMode(true);
-            List<R> retryItems = new ArrayList<>();
-
-            Throwable retryException = null;
-            Throwable fatalError = null;
-            R fatalItem = null;
-
-            for (R item : items) {
-                List<R> single = Collections.singletonList(item);
-                if (listener != null)
-                    listener.beforeRetry(single, context);
-
-                Throwable consumeError = null;
-
-                try {
-                    consumer.consume(single, context);
-                    context.addCompletedItem(item);
-                } catch (BatchCancelException e) {
-                    consumeError = e;
-                    throw e;
-                } catch (Exception e) {
-                    LOG.error("nop.err.batch.retry-consume-one-fail:item={},retryCount={}", item, retryCount, e);
-
-                    consumeError = e;
-
-                    if (retryPolicy.getRetryDelay(e, retryCount + 1, context) >= 0) {
-                        // 如果item可重试
-                        retryItems.add(item);
-                        retryException = e;
-                    } else {
-                        if (fatalError == null) {
-                            fatalError = e;
-                            fatalItem = item;
-                        }
-                    }
-
-                } finally {
-                    if (listener != null) {
-                        listener.afterRetry(consumeError, single, context);
-                    }
-                }
-            }
-
-            if (retryException == null && fatalError == null)
-                return null;
-
-            RetryOnceResult result = new RetryOnceResult();
-            result.fatalError = fatalError;
-            result.retryException = retryException;
-            result.retryItems = retryItems;
-            result.fatalItem = fatalItem;
-            return result;
+            return retryConsumeOneByOne(retryCount, items, context);
         } else {
             if (listener != null)
                 listener.beforeRetry(items, context);
@@ -222,5 +171,60 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
             }
             return null;
         }
+    }
+
+    RetryOnceResult retryConsumeOneByOne(int retryCount, List<R> items, IBatchChunkContext context) {
+        context.setSingleMode(true);
+        List<R> retryItems = new ArrayList<>();
+
+        Throwable retryException = null;
+        Throwable fatalError = null;
+        R fatalItem = null;
+
+        for (R item : items) {
+            List<R> single = Collections.singletonList(item);
+            if (listener != null)
+                listener.beforeRetry(single, context);
+
+            Throwable consumeError = null;
+
+            try {
+                consumer.consume(single, context);
+                context.addCompletedItem(item);
+            } catch (BatchCancelException e) {
+                consumeError = e;
+                throw e;
+            } catch (Exception e) {
+                LOG.error("nop.err.batch.retry-consume-one-fail:item={},retryCount={}", item, retryCount, e);
+
+                consumeError = e;
+
+                if (retryPolicy.getRetryDelay(e, retryCount + 1, context) >= 0) {
+                    // 如果item可重试
+                    retryItems.add(item);
+                    retryException = e;
+                } else {
+                    if (fatalError == null) {
+                        fatalError = e;
+                        fatalItem = item;
+                    }
+                }
+
+            } finally {
+                if (listener != null) {
+                    listener.afterRetry(consumeError, single, context);
+                }
+            }
+        }
+
+        if (retryException == null && fatalError == null)
+            return null;
+
+        RetryOnceResult result = new RetryOnceResult();
+        result.fatalError = fatalError;
+        result.retryException = retryException;
+        result.retryItems = retryItems;
+        result.fatalItem = fatalItem;
+        return result;
     }
 }
