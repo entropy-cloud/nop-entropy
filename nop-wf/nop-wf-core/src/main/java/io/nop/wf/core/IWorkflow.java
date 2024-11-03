@@ -8,6 +8,7 @@
 package io.nop.wf.core;
 
 import io.nop.core.context.IServiceContext;
+import io.nop.core.utils.IVarSet;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.model.IWorkflowModel;
@@ -127,9 +128,9 @@ public interface IWorkflow {
 
     Object getBizEntity();
 
-    IWorkflowVarSet getGlobalVars();
+    IVarSet getGlobalVars();
 
-    IWorkflowVarSet getOutputVars();
+    IVarSet getOutputVars();
 
     /**
      * 如果工作流尚未启动，调用save会保存工作流实例（状态为CREATED），以后可以通过start方法来启动流程。

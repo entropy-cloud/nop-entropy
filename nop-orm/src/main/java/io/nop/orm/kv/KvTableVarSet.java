@@ -5,17 +5,17 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.wf.dao.store;
+package io.nop.orm.kv;
 
+import io.nop.core.utils.IVarSet;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.IOrmKeyValueTable;
-import io.nop.wf.core.IWorkflowVarSet;
 
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class KvTableVarSet implements IWorkflowVarSet {
+public class KvTableVarSet implements IVarSet {
     private final IOrmEntitySet<? extends IOrmKeyValueTable> set;
 
     public KvTableVarSet(IOrmEntitySet<? extends IOrmKeyValueTable> set) {

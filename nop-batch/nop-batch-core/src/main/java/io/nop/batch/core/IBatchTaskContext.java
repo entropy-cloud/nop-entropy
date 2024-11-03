@@ -10,6 +10,7 @@ package io.nop.batch.core;
 import io.nop.api.core.beans.IntRangeBean;
 import io.nop.core.context.IExecutionContext;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.utils.IVarSet;
 
 import java.util.Map;
 
@@ -36,16 +37,21 @@ public interface IBatchTaskContext extends IExecutionContext {
     /**
      * 持久化的状态变量。当批处理任务失败后重试时可以读取上次处理状态
      */
-    Map<String, Object> getPersistVars();
+    IVarSet getPersistVars();
+
+    void setPersistVars(IVarSet vars);
 
     default Object getPersistVar(String name) {
-        Map<String, Object> vars = getPersistVars();
+        IVarSet vars = getPersistVars();
         if (vars == null)
             return null;
-        return vars.get(name);
+        return vars.getVar(name);
     }
 
-    void setPersistVar(String name, Object value);
+    default void setPersistVar(String name, Object value) {
+        IVarSet vars = getPersistVars();
+        vars.setVar(name, value);
+    }
 
     /**
      * 本次任务处理所涉及到的数据分区
@@ -70,4 +76,22 @@ public interface IBatchTaskContext extends IExecutionContext {
     long getSkipItemCount();
 
     void incSkipItemCount(int count);
+
+    void setSkipItemCount(long count);
+
+    long getCompleteItemCount();
+
+    void setCompleteItemCount(long count);
+
+    void incCompleteItemCount(int count);
+
+    long getCompletedIndex();
+
+    void setCompletedIndex(long index);
+
+    long getProcessItemCount();
+
+    void setProcessItemCount(long processCount);
+
+    void incProcessItemCount(int count);
 }

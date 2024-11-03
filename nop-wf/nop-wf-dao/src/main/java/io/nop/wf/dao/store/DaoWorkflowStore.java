@@ -15,10 +15,11 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.LogLevel;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
+import io.nop.core.utils.IVarSet;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmEntitySet;
-import io.nop.wf.core.IWorkflowVarSet;
+import io.nop.orm.kv.KvTableVarSet;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.IWorkflowModel;
@@ -173,13 +174,13 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
     }
 
     @Override
-    public IWorkflowVarSet getGlobalVars(IWorkflowRecord wfRecord) {
+    public IVarSet getGlobalVars(IWorkflowRecord wfRecord) {
         NopWfInstance record = (NopWfInstance) wfRecord;
         return new KvTableVarSet(record.getGlobalVars());
     }
 
     @Override
-    public IWorkflowVarSet getOutputVars(IWorkflowRecord wfRecord) {
+    public IVarSet getOutputVars(IWorkflowRecord wfRecord) {
         NopWfInstance record = (NopWfInstance) wfRecord;
         return new KvTableVarSet(record.getOutputs());
     }

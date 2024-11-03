@@ -7,8 +7,8 @@
  */
 package io.nop.wf.core.store;
 
+import io.nop.core.utils.IVarSet;
 import io.nop.wf.api.actor.IWfActor;
-import io.nop.wf.core.IWorkflowVarSet;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.IWorkflowModel;
 import io.nop.wf.core.model.IWorkflowStepModel;
@@ -56,9 +56,9 @@ public interface IWorkflowStore {
 
     IWorkflowRecord reloadWfRecord(IWorkflowRecord wfRecord);
 
-    IWorkflowVarSet getGlobalVars(IWorkflowRecord wfRecord);
+    IVarSet getGlobalVars(IWorkflowRecord wfRecord);
 
-    IWorkflowVarSet getOutputVars(IWorkflowRecord wfRecord);
+    IVarSet getOutputVars(IWorkflowRecord wfRecord);
 
     void logMsg(IWorkflowRecord wfRecord, String stepId, String actionId, String msg);
 

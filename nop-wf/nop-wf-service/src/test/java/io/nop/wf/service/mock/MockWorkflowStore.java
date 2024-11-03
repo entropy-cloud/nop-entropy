@@ -10,8 +10,8 @@ package io.nop.wf.service.mock;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.Pair;
-import io.nop.core.reflect.bean.BeanTool;
-import io.nop.wf.core.IWorkflowVarSet;
+import io.nop.core.utils.IVarSet;
+import io.nop.core.utils.MapVarSet;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.model.IWorkflowActionModel;
 import io.nop.wf.core.model.IWorkflowModel;
@@ -20,7 +20,6 @@ import io.nop.wf.core.store.AbstractWorkflowStore;
 import io.nop.wf.core.store.IWorkflowActionRecord;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
-import io.nop.wf.core.store.beans.MapVarSet;
 import io.nop.wf.core.store.beans.WorkflowActionRecordBean;
 import io.nop.wf.core.store.beans.WorkflowRecordBean;
 import io.nop.wf.core.store.beans.WorkflowStepRecordBean;
@@ -146,7 +145,7 @@ public class MockWorkflowStore extends AbstractWorkflowStore {
     }
 
     @Override
-    public IWorkflowVarSet getGlobalVars(IWorkflowRecord wfRecord) {
+    public IVarSet getGlobalVars(IWorkflowRecord wfRecord) {
         WorkflowRecordBean record = (WorkflowRecordBean) wfRecord;
         if (record.getGlobalVars() == null)
             record.setGlobalVars(new LinkedHashMap<>());
@@ -154,7 +153,7 @@ public class MockWorkflowStore extends AbstractWorkflowStore {
     }
 
     @Override
-    public IWorkflowVarSet getOutputVars(IWorkflowRecord wfRecord) {
+    public IVarSet getOutputVars(IWorkflowRecord wfRecord) {
         WorkflowRecordBean record = (WorkflowRecordBean) wfRecord;
         if (record.getOutputVars() == null)
             record.setOutputVars(new LinkedHashMap<>());

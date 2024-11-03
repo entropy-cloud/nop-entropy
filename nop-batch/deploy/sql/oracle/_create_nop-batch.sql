@@ -34,8 +34,7 @@ CREATE TABLE nop_batch_task(
   RESULT_MSG VARCHAR2(500)  ,
   ERROR_STACK VARCHAR2(4000)  ,
   COMPLETED_INDEX NUMBER(20)  ,
-  READ_COUNT NUMBER(20)  ,
-  WRITE_COUNT NUMBER(20)  ,
+  COMPLETE_COUNT NUMBER(20)  ,
   PROCESS_COUNT NUMBER(20)  ,
   SKIP_COUNT NUMBER(20)  ,
   VERSION NUMBER(20) NOT NULL ,
@@ -144,9 +143,7 @@ CREATE TABLE nop_batch_record_result(
                     
       COMMENT ON COLUMN nop_batch_task.COMPLETED_INDEX IS '已完成记录下标';
                     
-      COMMENT ON COLUMN nop_batch_task.READ_COUNT IS '读数量';
-                    
-      COMMENT ON COLUMN nop_batch_task.WRITE_COUNT IS '写数量';
+      COMMENT ON COLUMN nop_batch_task.COMPLETE_COUNT IS '完成数量';
                     
       COMMENT ON COLUMN nop_batch_task.PROCESS_COUNT IS '处理数量';
                     

@@ -15,10 +15,11 @@ import io.nop.batch.core.IBatchTaskMetrics;
 import io.nop.core.context.ExecutionContextImpl;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.utils.IVarSet;
+import io.nop.core.utils.MapVarSet;
 import io.nop.xlang.api.XLang;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatchTaskContext {
@@ -27,11 +28,15 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private String taskName;
     private String taskId;
     private Map<String, Object> params;
-    private Map<String, Object> persistVars = new ConcurrentHashMap<>();
+    private IVarSet persistVars = new MapVarSet();
     private IntRangeBean partition;
     private boolean recoverMode;
     private IBatchTaskMetrics metrics;
+
     private final AtomicLong skipItemCount = new AtomicLong();
+    private final AtomicLong completeItemCount = new AtomicLong();
+    private final AtomicLong processItemCount = new AtomicLong();
+    private volatile long completedIndex;
 
     public BatchTaskContextImpl(IServiceContext svcCtx, IEvalScope scope) {
         super(scope);
@@ -80,13 +85,12 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     }
 
     @Override
-    public Map<String, Object> getPersistVars() {
+    public IVarSet getPersistVars() {
         return persistVars;
     }
 
-    @Override
-    public void setPersistVar(String name, Object value) {
-        persistVars.put(name, value);
+    public void setPersistVars(IVarSet vars) {
+        this.persistVars = vars;
     }
 
     @Override
@@ -130,7 +134,52 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     }
 
     @Override
+    public void setSkipItemCount(long count) {
+        this.skipItemCount.set(count);
+    }
+
+    @Override
     public void incSkipItemCount(int count) {
         skipItemCount.addAndGet(count);
+    }
+
+    @Override
+    public long getCompletedIndex() {
+        return completedIndex;
+    }
+
+    @Override
+    public void setCompletedIndex(long completedIndex) {
+        this.completedIndex = completedIndex;
+    }
+
+    @Override
+    public long getCompleteItemCount() {
+        return completeItemCount.get();
+    }
+
+    @Override
+    public void setCompleteItemCount(long count) {
+        completeItemCount.set(count);
+    }
+
+    @Override
+    public void incCompleteItemCount(int count) {
+        completeItemCount.addAndGet(count);
+    }
+
+    @Override
+    public long getProcessItemCount() {
+        return processItemCount.get();
+    }
+
+    @Override
+    public void setProcessItemCount(long processCount) {
+        processItemCount.set(processCount);
+    }
+
+    @Override
+    public void incProcessItemCount(int count) {
+        processItemCount.addAndGet(count);
     }
 }

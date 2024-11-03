@@ -57,7 +57,7 @@
                 <column code="INPUT_FILE_ID" displayName="输入文件" name="inputFileId" precision="32" propId="9"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Input File"/>
                 <column code="RETRY_COUNT" displayName="重试次数" mandatory="true" name="retryCount" propId="10"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Restart Count"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Retry Count"/>
                 <column code="RESULT_STATUS" comment="0表示成功" displayName="返回状态码" name="resultStatus" propId="11"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Result Status"/>
                 <column code="RESULT_CODE" comment="失败时对应错误码" displayName="返回码" name="resultCode" precision="100"
@@ -68,10 +68,8 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Stack"/>
                 <column code="COMPLETED_INDEX" displayName="已完成记录下标" name="completedIndex" propId="15"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Completed Index"/>
-                <column code="READ_COUNT" displayName="读数量" name="readCount" propId="16" stdDataType="long"
-                        stdSqlType="BIGINT" i18n-en:displayName="Read Count"/>
-                <column code="WRITE_COUNT" displayName="写数量" name="writeCount" propId="17" stdDataType="long"
-                        stdSqlType="BIGINT" i18n-en:displayName="Write Count"/>
+                <column code="COMPLETE_COUNT" displayName="完成数量" name="completeCount" propId="16" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="Complete Count"/>
                 <column code="PROCESS_COUNT" displayName="处理数量" name="processCount" propId="18" stdDataType="long"
                         stdSqlType="BIGINT" i18n-en:displayName="Process Count"/>
                 <column code="SKIP_COUNT" displayName="跳过数量" name="skipCount" propId="19" stdDataType="long"

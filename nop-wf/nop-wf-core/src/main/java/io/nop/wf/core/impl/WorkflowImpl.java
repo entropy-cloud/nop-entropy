@@ -11,10 +11,10 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.utils.IVarSet;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.IWorkflowCoordinator;
 import io.nop.wf.core.IWorkflowStep;
-import io.nop.wf.core.IWorkflowVarSet;
 import io.nop.wf.core.WorkflowTransitionTarget;
 import io.nop.wf.core.engine.IWorkflowEngine;
 import io.nop.wf.core.model.IWorkflowModel;
@@ -23,21 +23,10 @@ import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.core.store.IWorkflowStepRecord;
 import io.nop.wf.core.store.IWorkflowStore;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Supplier;
 
-import static io.nop.wf.core.NopWfCoreErrors.ARG_STEP_ID;
-import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_NAME;
-import static io.nop.wf.core.NopWfCoreErrors.ARG_WF_VERSION;
-import static io.nop.wf.core.NopWfCoreErrors.ERR_WF_STEP_INSTANCE_NOT_EXISTS;
+import static io.nop.wf.core.NopWfCoreErrors.*;
 
 public class WorkflowImpl implements IWorkflowImplementor {
     private final IWorkflowEngine wfEngine;
@@ -49,8 +38,8 @@ public class WorkflowImpl implements IWorkflowImplementor {
 
     private final Map<String, WorkflowStepImpl> steps = new HashMap<>();
 
-    private IWorkflowVarSet globalVars;
-    private IWorkflowVarSet outputVars;
+    private IVarSet globalVars;
+    private IVarSet outputVars;
 
     private final Deque<Runnable> commandQueue = new ArrayDeque<>();
 
@@ -299,7 +288,7 @@ public class WorkflowImpl implements IWorkflowImplementor {
     }
 
     @Override
-    public IWorkflowVarSet getGlobalVars() {
+    public IVarSet getGlobalVars() {
         if (globalVars == null) {
             globalVars = wfStore.getGlobalVars(getRecord());
         }
@@ -307,7 +296,7 @@ public class WorkflowImpl implements IWorkflowImplementor {
     }
 
     @Override
-    public IWorkflowVarSet getOutputVars() {
+    public IVarSet getOutputVars() {
         if (outputVars == null) {
             outputVars = wfStore.getOutputVars(getRecord());
         }

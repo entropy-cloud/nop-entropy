@@ -5,19 +5,23 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.wf.core.store.beans;
+package io.nop.core.utils;
 
 import io.nop.api.core.util.Guard;
-import io.nop.wf.core.IWorkflowVarSet;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class MapVarSet implements IWorkflowVarSet {
+public class MapVarSet implements IVarSet {
     private final Map<String, Object> vars;
 
     public MapVarSet(Map<String, Object> vars) {
         this.vars = Guard.notNull(vars, "vars");
+    }
+
+    public MapVarSet() {
+        this(new ConcurrentHashMap<>());
     }
 
     @Override

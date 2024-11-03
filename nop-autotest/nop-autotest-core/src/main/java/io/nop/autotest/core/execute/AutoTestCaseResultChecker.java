@@ -150,7 +150,7 @@ public class AutoTestCaseResultChecker {
             if (value instanceof String) {
                 String str = value.toString();
                 if (!str.startsWith("@") && !str.startsWith("*")) {
-                    entry.setValue(ConvertHelper.convertTo(col.getJavaClass(), entry.getValue(), NopException::new));
+                    entry.setValue(ConvertHelper.convertTo(col.getJavaClass(), entry.getValue(), err-> new NopException(err).param("colName",colName)));
                 }
             }
         }

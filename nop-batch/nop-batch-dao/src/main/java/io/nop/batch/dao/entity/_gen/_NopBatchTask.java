@@ -80,13 +80,9 @@ public class _NopBatchTask extends DynamicOrmEntity{
     public static final String PROP_NAME_completedIndex = "completedIndex";
     public static final int PROP_ID_completedIndex = 15;
     
-    /* 读数量: READ_COUNT BIGINT */
-    public static final String PROP_NAME_readCount = "readCount";
-    public static final int PROP_ID_readCount = 16;
-    
-    /* 写数量: WRITE_COUNT BIGINT */
-    public static final String PROP_NAME_writeCount = "writeCount";
-    public static final int PROP_ID_writeCount = 17;
+    /* 完成数量: COMPLETE_COUNT BIGINT */
+    public static final String PROP_NAME_completeCount = "completeCount";
+    public static final int PROP_ID_completeCount = 16;
     
     /* 处理数量: PROCESS_COUNT BIGINT */
     public static final String PROP_NAME_processCount = "processCount";
@@ -183,11 +179,8 @@ public class _NopBatchTask extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_completedIndex] = PROP_NAME_completedIndex;
           PROP_NAME_TO_ID.put(PROP_NAME_completedIndex, PROP_ID_completedIndex);
       
-          PROP_ID_TO_NAME[PROP_ID_readCount] = PROP_NAME_readCount;
-          PROP_NAME_TO_ID.put(PROP_NAME_readCount, PROP_ID_readCount);
-      
-          PROP_ID_TO_NAME[PROP_ID_writeCount] = PROP_NAME_writeCount;
-          PROP_NAME_TO_ID.put(PROP_NAME_writeCount, PROP_ID_writeCount);
+          PROP_ID_TO_NAME[PROP_ID_completeCount] = PROP_NAME_completeCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_completeCount, PROP_ID_completeCount);
       
           PROP_ID_TO_NAME[PROP_ID_processCount] = PROP_NAME_processCount;
           PROP_NAME_TO_ID.put(PROP_NAME_processCount, PROP_ID_processCount);
@@ -261,11 +254,8 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /* 已完成记录下标: COMPLETED_INDEX */
     private java.lang.Long _completedIndex;
     
-    /* 读数量: READ_COUNT */
-    private java.lang.Long _readCount;
-    
-    /* 写数量: WRITE_COUNT */
-    private java.lang.Long _writeCount;
+    /* 完成数量: COMPLETE_COUNT */
+    private java.lang.Long _completeCount;
     
     /* 处理数量: PROCESS_COUNT */
     private java.lang.Long _processCount;
@@ -410,11 +400,8 @@ public class _NopBatchTask extends DynamicOrmEntity{
             case PROP_ID_completedIndex:
                return getCompletedIndex();
         
-            case PROP_ID_readCount:
-               return getReadCount();
-        
-            case PROP_ID_writeCount:
-               return getWriteCount();
+            case PROP_ID_completeCount:
+               return getCompleteCount();
         
             case PROP_ID_processCount:
                return getProcessCount();
@@ -601,23 +588,13 @@ public class _NopBatchTask extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_readCount:{
+            case PROP_ID_completeCount:{
                java.lang.Long typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toLong(value,
-                       err-> newTypeConversionError(PROP_NAME_readCount));
+                       err-> newTypeConversionError(PROP_NAME_completeCount));
                }
-               setReadCount(typedValue);
-               break;
-            }
-        
-            case PROP_ID_writeCount:{
-               java.lang.Long typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toLong(value,
-                       err-> newTypeConversionError(PROP_NAME_writeCount));
-               }
-               setWriteCount(typedValue);
+               setCompleteCount(typedValue);
                break;
             }
         
@@ -815,16 +792,9 @@ public class _NopBatchTask extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_readCount:{
+            case PROP_ID_completeCount:{
                onInitProp(propId);
-               this._readCount = (java.lang.Long)value;
-               
-               break;
-            }
-        
-            case PROP_ID_writeCount:{
-               onInitProp(propId);
-               this._writeCount = (java.lang.Long)value;
+               this._completeCount = (java.lang.Long)value;
                
                break;
             }
@@ -1177,39 +1147,20 @@ public class _NopBatchTask extends DynamicOrmEntity{
     }
     
     /**
-     * 读数量: READ_COUNT
+     * 完成数量: COMPLETE_COUNT
      */
-    public java.lang.Long getReadCount(){
-         onPropGet(PROP_ID_readCount);
-         return _readCount;
+    public java.lang.Long getCompleteCount(){
+         onPropGet(PROP_ID_completeCount);
+         return _completeCount;
     }
 
     /**
-     * 读数量: READ_COUNT
+     * 完成数量: COMPLETE_COUNT
      */
-    public void setReadCount(java.lang.Long value){
-        if(onPropSet(PROP_ID_readCount,value)){
-            this._readCount = value;
-            internalClearRefs(PROP_ID_readCount);
-            
-        }
-    }
-    
-    /**
-     * 写数量: WRITE_COUNT
-     */
-    public java.lang.Long getWriteCount(){
-         onPropGet(PROP_ID_writeCount);
-         return _writeCount;
-    }
-
-    /**
-     * 写数量: WRITE_COUNT
-     */
-    public void setWriteCount(java.lang.Long value){
-        if(onPropSet(PROP_ID_writeCount,value)){
-            this._writeCount = value;
-            internalClearRefs(PROP_ID_writeCount);
+    public void setCompleteCount(java.lang.Long value){
+        if(onPropSet(PROP_ID_completeCount,value)){
+            this._completeCount = value;
+            internalClearRefs(PROP_ID_completeCount);
             
         }
     }
