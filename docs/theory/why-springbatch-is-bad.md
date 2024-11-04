@@ -1,7 +1,7 @@
 # 为什么SpringBatch是一个不好的设计？
 
-SpringBatch是目前Java生态中最常用的批处理框架，银行业务中经常使用SpringBatch来实现日终结算和报表输出等功能。但是SpringBatch的设计在今天看来已经存在严重的设计问题，对于性能优化、代码复用都极为不友好。
-本文将分析SpringBatch的设计问题，并结合NopBatch这一新的批处理框架的实现方案来介绍下一代批处理框架的设计思想。
+SpringBatch是目前Java生态中最常用的批处理框架，银行业务中经常使用SpringBatch来实现日终结算和报表输出等功能。SpringBatch的起源是2006年埃森哲（Accenture）将自己的私有批处理框架开源，与SpringSource（Spring Framework 的背后公司）合作发布了Spring Batch 1.0。
+后续SpringBatch的设计也经过多次重构，但是在今天看来已经存在严重的设计问题，对于性能优化、代码复用都极为不友好。本文将分析SpringBatch的设计问题，并结合NopBatch这一新的批处理框架的实现方案来介绍下一代批处理框架的设计思想。
 
 ## 一. SpringBatch简介
 
@@ -203,7 +203,7 @@ public interface IBatchProcessor<S, R, C> {
 
 ### 2.3 Writer不应该只处理结果数据
 
-SpringBatch中的ItemWriter固定用于消费Processor产生的结果数据，这样就导致固化了Read-Process-Write的处理流程。即使我们不需要处理过程或者写入过程，也不得不配置一个空的Processor或者Writer。
+SpringBatch中的ItemWriter一般固定用于消费Processor产生的结果数据，这样就导致固化了Read-Process-Write的处理流程。即使我们不需要处理过程或者写入过程，也不得不配置一个空的Processor或者Writer。
 
 NopBatch引入了通用的BatchConsumer概念，使得BatchConsumer和BatchLoader构成一对对偶的接口，BatchLoader加载的数据直接传递给BatchConsumer进行消费。
 
@@ -229,7 +229,7 @@ consumer.consume(items,context);
 Processor可以看作是一种可选的Consumer实现方案
 
 ```java
-public class BatchProcessorConsumer<S, R> 
+public class BatchProcessorConsumer<S, R>
    implements IBatchConsumer<S, IBatchChunkContext> {
     @Override
     public void consume(List<S> items, IBatchChunkContext context) {
@@ -251,25 +251,25 @@ SpringBatch强制限定了一个Chunk的Read-Process-Write在一个事务中执�
 在NopBatch中，我们根据transactionScope配置的不同，可以创建不同的支持事务处理的Consumer。
 
 ```javascript
- if (batchTransactionScope == BatchTransactionScope.consume && consumer != EmptyBatchConsumer.instance()
+ if (batchTransactionScope == BatchTransactionScope.consume
                 && transactionalInvoker != null) {
-            // 仅在consume阶段打开事务。process可以是纯逻辑处理过程，不涉及到修改数据库，而读数据一般不需要打开事务。
-            consumer = new InvokerBatchConsumer(transactionalInvoker, consumer);
-        }
+    // 仅在consume阶段打开事务。process可以是纯逻辑处理过程，不涉及到修改数据库，而读数据一般不需要打开事务。
+    consumer = new InvokerBatchConsumer(transactionalInvoker, consumer);
+}
 
-        if (this.processor != null) {
-            // 如果设置了processor,则先执行processor再调用consumer，否则直接调用consumer
-            IBatchProcessor processor = this.processor;
-            if (!this.processListeners.isEmpty()) {
-                IBatchProcessListener processListener = new MultiBatchProcessListener(new ArrayList<>(this.processListeners));
-                processor = new BatchProcessorWithListener<>(processor, processListener);
-            }
-            consumer = new BatchProcessorConsumer(processor, this.consumer);
-        }
-        // 在process和consume阶段打开事务
-        if (batchTransactionScope == BatchTransactionScope.process && transactionalInvoker != null) {
-            consumer = new InvokerBatchConsumer(transactionalInvoker, consumer);
-        }
+if (this.processor != null) {
+    // 如果设置了processor,则先执行processor再调用consumer，否则直接调用consumer
+    IBatchProcessor processor = this.processor;
+    if (!this.processListeners.isEmpty()) {
+        IBatchProcessListener processListener = new MultiBatchProcessListener(new ArrayList<>(this.processListeners));
+        processor = new BatchProcessorWithListener<>(processor, processListener);
+    }
+    consumer = new BatchProcessorConsumer(processor, this.consumer);
+}
+// 在process和consume阶段打开事务
+if (batchTransactionScope == BatchTransactionScope.process && transactionalInvoker != null) {
+    consumer = new InvokerBatchConsumer(transactionalInvoker, consumer);
+}
 ```
 
 ### 2.5 失败重试逻辑不灵活
@@ -279,7 +279,7 @@ SpringBatch内置了失败重试逻辑：当Processor执行失败时，可以自
 在NopBatch中，我们提供了一种针对整个chunk的重试机制。当chunk执行失败时，我们会自动重试整个chunk，而且重试的时候可以选择逐条重试，也就是将每个条目作为单独的chunk去重试，这样虽然损失了批量保存的优化，但是可以隔离出那些有错误的单条记录。
 
 ```java
-public class RetryBatchConsumer<R> 
+public class RetryBatchConsumer<R>
     implements IBatchConsumer<R, IBatchChunkContext> {
 
     public void consume(List<R> items, IBatchChunkContext context) {
@@ -299,8 +299,8 @@ public class RetryBatchConsumer<R>
             retryConsume(e, items, snapshot, context);
         }
     }
-    
-    RetryOnceResult retryConsumeOneByOne(int retryCount, List<R> items, 
+
+    RetryOnceResult retryConsumeOneByOne(int retryCount, List<R> items,
                                          IBatchChunkContext context) {
         context.setSingleMode(true);
         List<R> retryItems = new ArrayList<>();
@@ -310,7 +310,7 @@ public class RetryBatchConsumer<R>
 
         for (R item : items) {
             List<R> single = Collections.singletonList(item);
-            
+
             Throwable consumeError = null;
 
             try {
@@ -322,21 +322,21 @@ public class RetryBatchConsumer<R>
                 throw e;
             } catch (Exception e) {
                 consumeError = e;
-                
+
                 if (retryPolicy.getRetryDelay(e, retryCount + 1, context) >= 0) {
                     // 如果item可重试
                     retryItems.add(item);
                     retryException = e;
-                } 
+                }
             }
         }
         ...
-    }     
+    }
 }
 ```
 
 * 之所以能够实现整个chunk的retry，是因为Loader可以一次性获取到一个Chunk的所有输入数据，所以只要把这些数据缓存下来，就可以多次调用Consumer。Processor的处理逻辑已经被封装到BatchProcessorConsumer中，因此重试时只需要重复consume就可以。
 
 * 如果有些已经成功完成的记录不需要被重复处理，则可以在consumer中成功处理之后，将它们加入到BatchChunkContext上下文对象中的completedItems集合中。重试整个chunk时，已经被完成的记录会被自动跳过。
-  
-  
+
+• Do not do things twice in a batch run

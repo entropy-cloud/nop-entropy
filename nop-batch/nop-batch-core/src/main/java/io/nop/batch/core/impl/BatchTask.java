@@ -10,14 +10,7 @@ package io.nop.batch.core.impl;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ProcessResult;
-import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchChunkListener;
-import io.nop.batch.core.IBatchChunkProcessor;
-import io.nop.batch.core.IBatchStateStore;
-import io.nop.batch.core.IBatchTask;
-import io.nop.batch.core.IBatchTaskContext;
-import io.nop.batch.core.IBatchTaskListener;
-import io.nop.batch.core.IBatchTaskMetrics;
+import io.nop.batch.core.*;
 import io.nop.batch.core.exceptions.BatchCancelException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,7 +88,7 @@ public class BatchTask implements IBatchTask {
 
                     // 任务执行完毕之后保存状态到数据库中，然后再触发context.complete()函数通知外部任务完成
                     if (stateStore != null) {
-                        stateStore.saveTaskState(context);
+                        stateStore.saveTaskState(true, null, context);
                     }
 
                     context.complete();
@@ -114,7 +107,7 @@ public class BatchTask implements IBatchTask {
 
                     // 任务执行完毕之后保存状态到数据库中，然后再触发context.complete()函数通知外部任务完成
                     if (stateStore != null) {
-                        stateStore.saveTaskState(context);
+                        stateStore.saveTaskState(true, err, context);
                     }
                 } finally {
                     context.completeExceptionally(err);
@@ -169,9 +162,6 @@ public class BatchTask implements IBatchTask {
         ProcessResult result = ProcessResult.CONTINUE;
         boolean success = true;
         try {
-            if (stateStore != null)
-                stateStore.loadChunkState(chunkContext);
-
             if (chunkListener != null) {
                 chunkListener.onChunkBegin(chunkContext);
             }
@@ -185,14 +175,14 @@ public class BatchTask implements IBatchTask {
                 chunkListener.onChunkEnd(null, chunkContext);
 
             if (stateStore != null)
-                stateStore.saveTaskState(context);
+                stateStore.saveTaskState(false, null, context);
 
             chunkContext.complete();
 
         } catch (Throwable e) {
             success = false;
             LOG.error("nop.err.batch.task-chunk-fail:taskName={},taskId={},threadIndex={}",
-                    context.getTaskName(), context.getTaskId(),threadIndex,
+                    context.getTaskName(), context.getTaskId(), threadIndex,
                     e);
 
             try {
@@ -204,7 +194,7 @@ public class BatchTask implements IBatchTask {
                 }
 
                 if (stateStore != null)
-                    stateStore.saveTaskState(context);
+                    stateStore.saveTaskState(false, e, context);
             } finally {
                 chunkContext.completeExceptionally(e);
             }

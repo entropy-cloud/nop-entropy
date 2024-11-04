@@ -388,7 +388,7 @@ public class BatchTaskBuilder implements IBuilder<IBatchTask> {
             consumer = new BatchConsumerWithListener(consumer, consumeListener);
         }
 
-        if (batchTransactionScope == BatchTransactionScope.consume && consumer != EmptyBatchConsumer.instance()
+        if (batchTransactionScope == BatchTransactionScope.consume
                 && transactionalInvoker != null) {
             // 仅在consume阶段打开事务。process可以是纯逻辑处理过程，不涉及到修改数据库，而读数据一般不需要打开事务。
             consumer = new InvokerBatchConsumer(transactionalInvoker, consumer);

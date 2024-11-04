@@ -22,12 +22,22 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     String getTaskName();
 
+    void setTaskName(String taskName);
+
     String getTaskId();
+
+    void setTaskId(String taskId);
+
+    String getTaskKey();
+
+    void setTaskKey(String taskKey);
 
     /**
      * 外部传入的只读参数，在任务执行过程中不会被修改
      */
     Map<String, Object> getParams();
+
+    void setParams(Map<String, Object> params);
 
     default Object getParam(String name) {
         Map<String, Object> params = getParams();

@@ -14,6 +14,7 @@ import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.impl.DefaultFieldCodecContext;
 import io.nop.record.model.RecordFileMeta;
 import io.nop.record.serialization.ModelBasedBinaryRecordSerializer;
+import io.nop.record.serialization.ModelBasedTextRecordSerializer;
 import io.nop.record.writer.ITextDataWriter;
 
 public class ModelBasedTextRecordOutput<T> extends AbstractModelBasedRecordOutput<ITextDataWriter, T> {
@@ -21,7 +22,7 @@ public class ModelBasedTextRecordOutput<T> extends AbstractModelBasedRecordOutpu
     public ModelBasedTextRecordOutput(ITextDataWriter out, RecordFileMeta fileMeta,
                                       IFieldCodecContext context, FieldCodecRegistry registry,
                                       IAggregatorProvider aggregatorProvider) {
-        super(out, fileMeta, context, new ModelBasedBinaryRecordSerializer(registry), aggregatorProvider);
+        super(out, fileMeta, context, new ModelBasedTextRecordSerializer(registry), aggregatorProvider);
     }
 
     public ModelBasedTextRecordOutput(ITextDataWriter out, RecordFileMeta fileMeta) {

@@ -27,6 +27,7 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
 
     private String taskName;
     private String taskId;
+    private String taskKey;
     private Map<String, Object> params;
     private IVarSet persistVars = new MapVarSet();
     private IntRangeBean partition;
@@ -73,6 +74,16 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
 
     public void setTaskId(String taskId) {
         this.taskId = taskId;
+    }
+
+    @Override
+    public String getTaskKey() {
+        return taskKey;
+    }
+
+    @Override
+    public void setTaskKey(String taskKey) {
+        this.taskKey = taskKey;
     }
 
     @Override

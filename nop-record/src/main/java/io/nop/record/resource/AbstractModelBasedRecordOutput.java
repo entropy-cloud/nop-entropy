@@ -30,7 +30,7 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
     private final RecordAggregateState aggregateState;
 
     public AbstractModelBasedRecordOutput(Output out, RecordFileMeta fileMeta,
-                                          IFieldCodecContext context, IModelBasedRecordSerializer serializer,
+                                          IFieldCodecContext context, IModelBasedRecordSerializer<Output> serializer,
                                           IAggregatorProvider aggregatorProvider) {
         this.baseOut = out;
         this.fileMeta = fileMeta;

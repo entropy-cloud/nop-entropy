@@ -13,7 +13,5 @@ package io.nop.batch.core;
 public interface IBatchStateStore {
     void loadTaskState(IBatchTaskContext context);
 
-    void saveTaskState(IBatchTaskContext context);
-
-    void loadChunkState(IBatchChunkContext context);
+    void saveTaskState(boolean complete, Throwable ex, IBatchTaskContext context);
 }
