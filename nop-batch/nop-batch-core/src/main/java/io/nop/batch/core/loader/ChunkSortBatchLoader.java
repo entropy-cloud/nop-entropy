@@ -7,22 +7,23 @@
  */
 package io.nop.batch.core.loader;
 
-import io.nop.batch.core.IBatchLoader;
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchLoaderProvider.IBatchLoader;
 
 import java.util.Comparator;
 import java.util.List;
 
-public class ChunkSortBatchLoader<S, C> implements IBatchLoader<S, C> {
+public class ChunkSortBatchLoader<S> implements IBatchLoader<S> {
     private final Comparator<S> comparator;
-    private final IBatchLoader<S, C> loader;
+    private final IBatchLoader<S> loader;
 
-    public ChunkSortBatchLoader(Comparator<S> comparator, IBatchLoader<S, C> loader) {
+    public ChunkSortBatchLoader(Comparator<S> comparator, IBatchLoader<S> loader) {
         this.comparator = comparator;
         this.loader = loader;
     }
 
     @Override
-    public List<S> load(int batchSize, C context) {
+    public List<S> load(int batchSize, IBatchChunkContext context) {
         List<S> list = loader.load(batchSize, context);
         if (list != null && !list.isEmpty()) {
             list.sort(comparator);

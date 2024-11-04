@@ -7,13 +7,14 @@
  */
 package io.nop.batch.core.processor;
 
-import io.nop.batch.core.IBatchProcessor;
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchProcessorProvider.IBatchProcessor;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.type.IGenericType;
 
 import java.util.function.Consumer;
 
-public class CastBatchProcessor<S, R, C> implements IBatchProcessor<S, R, C> {
+public class CastBatchProcessor<S, R> implements IBatchProcessor<S, R> {
     private final IGenericType type;
 
     public CastBatchProcessor(IGenericType type) {
@@ -21,7 +22,7 @@ public class CastBatchProcessor<S, R, C> implements IBatchProcessor<S, R, C> {
     }
 
     @Override
-    public void process(S item, Consumer<R> consumer, C context) {
+    public void process(S item, Consumer<R> consumer, IBatchChunkContext context) {
         R value = BeanTool.castBeanToType(item, type);
         consumer.accept(value);
     }

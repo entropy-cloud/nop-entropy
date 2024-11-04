@@ -7,23 +7,30 @@
  */
 package io.nop.batch.core.consumer;
 
-import io.nop.batch.core.IBatchConsumer;
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchConsumerProvider;
+import io.nop.batch.core.IBatchTaskContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class EmptyBatchConsumer<R, C> implements IBatchConsumer<R, C> {
+public class EmptyBatchConsumer<R> implements IBatchConsumerProvider.IBatchConsumer<R>, IBatchConsumerProvider<R> {
     static final Logger LOG = LoggerFactory.getLogger(EmptyBatchConsumer.class);
 
-    private static final EmptyBatchConsumer<Object, Object> INSTANCE = new EmptyBatchConsumer<>();
+    private static final EmptyBatchConsumer<Object> INSTANCE = new EmptyBatchConsumer<>();
 
-    public static <R, C> EmptyBatchConsumer<R, C> instance() {
+    public static <R> EmptyBatchConsumer<R> instance() {
         return (EmptyBatchConsumer) INSTANCE;
     }
 
     @Override
-    public void consume(List<R> items, C context) {
+    public IBatchConsumer<R> setup(IBatchTaskContext context) {
+        return this;
+    }
+
+    @Override
+    public void consume(List<R> items, IBatchChunkContext context) {
         LOG.debug("batch.consumer.ignore:items={}", items);
     }
 }

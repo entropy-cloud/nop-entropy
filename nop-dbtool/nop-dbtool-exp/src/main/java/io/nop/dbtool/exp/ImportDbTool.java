@@ -10,18 +10,9 @@ package io.nop.dbtool.exp;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
-import io.nop.batch.core.BatchTaskBuilder;
-import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchConsumer;
-import io.nop.batch.core.IBatchLoader;
-import io.nop.batch.core.IBatchProcessor;
-import io.nop.batch.core.IBatchRecordFilter;
-import io.nop.batch.core.IBatchRecordHistoryStore;
-import io.nop.batch.core.IBatchTask;
-import io.nop.batch.core.IBatchTaskContext;
-import io.nop.batch.core.consumer.WithHistoryBatchConsumer;
+import io.nop.batch.core.*;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
-import io.nop.batch.core.loader.ResourceRecordLoader;
+import io.nop.batch.core.loader.ResourceRecordLoaderProvider;
 import io.nop.batch.jdbc.consumer.JdbcInsertBatchConsumer;
 import io.nop.batch.jdbc.consumer.JdbcKeyDuplicateFilter;
 import io.nop.batch.jdbc.consumer.JdbcUpdateBatchConsumer;
@@ -43,11 +34,7 @@ import io.nop.dao.jdbc.impl.JdbcFactory;
 import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dbtool.core.DataBaseMeta;
 import io.nop.dbtool.core.discovery.jdbc.JdbcMetaDiscovery;
-import io.nop.dbtool.exp.config.IFieldConfig;
-import io.nop.dbtool.exp.config.ImportDbConfig;
-import io.nop.dbtool.exp.config.ImportTableConfig;
-import io.nop.dbtool.exp.config.JdbcConnectionConfig;
-import io.nop.dbtool.exp.config.TableFieldConfig;
+import io.nop.dbtool.exp.config.*;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.OrmEntityModel;
 
@@ -187,8 +174,8 @@ public class ImportDbTool {
     }
 
     private void runTask(ImportTableConfig tableConfig, DataSource ds) {
-        BatchTaskBuilder builder = new BatchTaskBuilder();
-        IBatchLoader loader = newLoader(tableConfig);
+        BatchTaskBuilder<Map<String, Object>, Map<String, Object>> builder = new BatchTaskBuilder<>();
+        IBatchLoaderProvider<Map<String, Object>> loader = newLoader(tableConfig);
         if (loader == null) {
             return;
         }
@@ -201,31 +188,33 @@ public class ImportDbTool {
 
         builder.processor(newProcessor(tableConfig));
         Map<String, IDataParameterBinder> binders = getColBinders(tableConfig.getFields());
-        IBatchConsumer consumer = newConsumer(tableConfig, jdbc, binders);
+        IBatchConsumerProvider<Map<String, Object>> consumer = newConsumer(tableConfig, jdbc, binders);
 
 
         if (config.isCheckKeyFields() && tableConfig.getKeyFields() != null) {
             Map<String, IDataParameterBinder> colBinders = getColBinders(tableConfig.getKeyFieldConfigs());
 
-            IBatchConsumer historyConsumer = null;
+            IBatchConsumerProvider<Map<String, Object>> historyConsumer = null;
             if (Boolean.TRUE.equals(tableConfig.getAllowUpdate())) {
-                historyConsumer = new JdbcUpdateBatchConsumer(jdbc, dialect, tableConfig.getName(), tableConfig.getKeyFields(), binders);
+                historyConsumer = new JdbcUpdateBatchConsumer<>(jdbc, dialect, tableConfig.getName(), tableConfig.getKeyFields(), binders);
             }
 
-            IBatchRecordHistoryStore historyStore = new JdbcKeyDuplicateFilter(jdbc, tableConfig.getName(), colBinders);
-            consumer = new WithHistoryBatchConsumer(historyStore, consumer, historyConsumer);
+            IBatchRecordHistoryStore<Map<String, Object>> historyStore = new JdbcKeyDuplicateFilter<>(jdbc, tableConfig.getName(), colBinders);
+            builder.historyConsumer(historyConsumer);
+            builder.historyStore(historyStore);
         }
 
         builder.consumer(consumer);
 
-        IBatchTask task = builder.build();
         IBatchTaskContext context = new BatchTaskContextImpl();
         if (args != null)
             context.getEvalScope().setLocalValues(args);
+
+        IBatchTask task = builder.buildTask(context);
         task.execute(context);
     }
 
-    private IBatchProcessor<Map<String, Object>, Map<String, Object>, IBatchChunkContext> newProcessor(ImportTableConfig tableConfig) {
+    private IBatchProcessorProvider<Map<String, Object>, Map<String, Object>> newProcessor(ImportTableConfig tableConfig) {
         return new FieldsProcessor(tableConfig.getFields(), tableConfig.getTransformExpr());
     }
 
@@ -240,7 +229,7 @@ public class ImportDbTool {
         return binders;
     }
 
-    private IBatchLoader<Map<String, Object>, IBatchChunkContext> newLoader(ImportTableConfig tableConfig) {
+    private IBatchLoaderProvider<Map<String, Object>> newLoader(ImportTableConfig tableConfig) {
         String from = tableConfig.getSourceTableName();
         tableConfig.setFrom(from);
         String format = tableConfig.getFormat();
@@ -260,17 +249,17 @@ public class ImportDbTool {
         return newResourceLoader(recordIO, tableConfig, resourcePath);
     }
 
-    private IBatchConsumer<Map<String, Object>, IBatchChunkContext> newConsumer(ImportTableConfig tableConfig,
-                                                                                IJdbcTemplate jdbc, Map<String, IDataParameterBinder> binders) {
-        JdbcInsertBatchConsumer<Map<String, Object>, IBatchChunkContext> consumer =
+    private IBatchConsumerProvider<Map<String, Object>> newConsumer(ImportTableConfig tableConfig,
+                                                                    IJdbcTemplate jdbc, Map<String, IDataParameterBinder> binders) {
+        JdbcInsertBatchConsumer<Map<String, Object>> consumer =
                 new JdbcInsertBatchConsumer<>(jdbc, this.dialect, tableConfig.getName(), binders);
         return consumer;
     }
 
-    private <S, C> ResourceRecordLoader<S, C> newResourceLoader(IResourceRecordIO<S> recordIO,
-                                                                ImportTableConfig tableConfig,
-                                                                String resourcePath) {
-        ResourceRecordLoader<S, C> loader = new ResourceRecordLoader<>();
+    private <S> ResourceRecordLoaderProvider<S> newResourceLoader(IResourceRecordIO<S> recordIO,
+                                                                  ImportTableConfig tableConfig,
+                                                                  String resourcePath) {
+        ResourceRecordLoaderProvider<S> loader = new ResourceRecordLoaderProvider<>();
         loader.setRecordIO(recordIO);
         loader.setResourcePath(resourcePath);
         loader.setResourceLoader(inputResourceLoader);

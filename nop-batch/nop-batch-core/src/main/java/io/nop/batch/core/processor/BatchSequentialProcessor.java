@@ -7,7 +7,8 @@
  */
 package io.nop.batch.core.processor;
 
-import io.nop.batch.core.IBatchProcessor;
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchProcessorProvider.IBatchProcessor;
 import io.nop.batch.core.IBatchRequestGenerator;
 
 import java.util.function.Consumer;
@@ -18,17 +19,17 @@ import java.util.function.Consumer;
  * @param <S>
  * @param <R>
  */
-public class BatchSequentialProcessor<S, R, C> implements IBatchProcessor<Object, R, C> {
-    private final IBatchProcessor<S, R, C> processor;
+public class BatchSequentialProcessor<S, R> implements IBatchProcessor<Object, R> {
+    private final IBatchProcessor<S, R> processor;
 
-    public BatchSequentialProcessor(IBatchProcessor<S, R, C> processor) {
+    public BatchSequentialProcessor(IBatchProcessor<S, R> processor) {
         this.processor = processor;
     }
 
     @Override
-    public void process(Object item, Consumer<R> consumer, C context) {
+    public void process(Object item, Consumer<R> consumer, IBatchChunkContext context) {
         if (item instanceof IBatchRequestGenerator) {
-            IBatchRequestGenerator<S, R, C> seq = (IBatchRequestGenerator) item;
+            IBatchRequestGenerator<S, R> seq = (IBatchRequestGenerator) item;
             do {
                 // 生成一个新的请求对象
                 S request = seq.nextRequest(context);

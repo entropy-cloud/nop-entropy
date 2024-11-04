@@ -18,7 +18,7 @@ import io.nop.core.type.PredefinedGenericTypes;
 import java.util.List;
 import java.util.Map;
 
-public class SequentialBatchRequestGenerator<S, R> implements IBatchRequestGenerator<S, R, IBatchChunkContext> {
+public class SequentialBatchRequestGenerator<S, R> implements IBatchRequestGenerator<S, R> {
     private final List<BatchGenState> subCases;
     private final IBatchGenContext genContext;
 

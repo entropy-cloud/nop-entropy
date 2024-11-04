@@ -7,22 +7,23 @@
  */
 package io.nop.batch.core.consumer;
 
-import io.nop.batch.core.IBatchConsumer;
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 import io.nop.commons.functional.IFunctionInvoker;
 
 import java.util.List;
 
-public class InvokerBatchConsumer<R, C> implements IBatchConsumer<R, C> {
+public class InvokerBatchConsumer<R> implements IBatchConsumer<R> {
     private final IFunctionInvoker invoker;
-    private final IBatchConsumer<R, C> consumer;
+    private final IBatchConsumer<R> consumer;
 
-    public InvokerBatchConsumer(IFunctionInvoker invoker, IBatchConsumer<R, C> consumer) {
+    public InvokerBatchConsumer(IFunctionInvoker invoker, IBatchConsumer<R> consumer) {
         this.invoker = invoker;
         this.consumer = consumer;
     }
 
     @Override
-    public void consume(List<R> items, C context) {
+    public void consume(List<R> items, IBatchChunkContext context) {
         invoker.invoke(c -> {
             consumer.consume(items, context);
             return null;

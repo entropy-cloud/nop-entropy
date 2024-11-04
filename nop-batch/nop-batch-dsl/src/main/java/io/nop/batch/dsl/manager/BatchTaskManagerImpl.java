@@ -3,7 +3,6 @@ package io.nop.batch.dsl.manager;
 import io.nop.batch.core.IBatchStateStore;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
-import io.nop.batch.core.manager.IBatchTaskFactory;
 import io.nop.batch.core.manager.IBatchTaskManager;
 import io.nop.batch.dsl.BatchDslConstants;
 import io.nop.batch.dsl.model.BatchTaskModel;

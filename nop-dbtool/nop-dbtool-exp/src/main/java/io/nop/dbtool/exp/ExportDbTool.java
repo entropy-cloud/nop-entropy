@@ -11,13 +11,12 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.BatchTaskBuilder;
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchConsumer;
 import io.nop.batch.core.IBatchLoader;
 import io.nop.batch.core.IBatchProcessor;
 import io.nop.batch.core.IBatchTask;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.consumer.MultiBatchConsumer;
-import io.nop.batch.core.consumer.ResourceRecordConsumer;
+import io.nop.batch.core.consumer.ResourceRecordConsumerProvider;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
 import io.nop.batch.jdbc.consumer.GenInsertSqlRecordIO;
 import io.nop.batch.jdbc.loader.JdbcBatchLoader;
@@ -256,9 +255,9 @@ public class ExportDbTool {
         return newResourceConsumer(recordIO, resourcePath);
     }
 
-    private <S, C> ResourceRecordConsumer<S, C> newResourceConsumer(IResourceRecordIO<S> recordIO,
-                                                                    String resourcePath) {
-        ResourceRecordConsumer<S, C> consumer = new ResourceRecordConsumer<>();
+    private <S, C> ResourceRecordConsumerProvider<S, C> newResourceConsumer(IResourceRecordIO<S> recordIO,
+                                                                            String resourcePath) {
+        ResourceRecordConsumerProvider<S, C> consumer = new ResourceRecordConsumerProvider<>();
         consumer.setRecordIO(recordIO);
         consumer.setResourcePath(resourcePath);
         consumer.setResourceLoader(outputResourceLoader);

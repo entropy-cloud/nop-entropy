@@ -8,12 +8,15 @@
 package io.nop.batch.core.consumer;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.batch.core.IBatchConsumer;
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchConsumerProvider;
+import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
+import io.nop.batch.core.IBatchTaskContext;
 import io.nop.commons.concurrent.IBlockingSink;
 
 import java.util.List;
 
-public class BlockingSinkBatchConsumer<R, C> implements IBatchConsumer<R, C> {
+public class BlockingSinkBatchConsumer<R> implements IBatchConsumer<R>, IBatchConsumerProvider<R> {
     private IBlockingSink<R> sink;
 
     public IBlockingSink<R> getSink() {
@@ -25,7 +28,12 @@ public class BlockingSinkBatchConsumer<R, C> implements IBatchConsumer<R, C> {
     }
 
     @Override
-    public void consume(List<R> items, C context) {
+    public IBatchConsumer<R> setup(IBatchTaskContext context) {
+        return this;
+    }
+
+    @Override
+    public void consume(List<R> items, IBatchChunkContext context) {
         try {
             sink.sendMulti(items);
         } catch (InterruptedException e) {

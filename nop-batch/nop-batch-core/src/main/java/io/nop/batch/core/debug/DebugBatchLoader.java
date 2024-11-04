@@ -8,15 +8,13 @@
 package io.nop.batch.core.debug;
 
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchLoader;
-import io.nop.batch.core.IBatchTaskContext;
-import io.nop.batch.core.IBatchTaskListener;
+import io.nop.batch.core.IBatchLoaderProvider.IBatchLoader;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class DebugBatchLoader implements IBatchLoader<String, IBatchChunkContext>, IBatchTaskListener {
+public class DebugBatchLoader implements IBatchLoader<String> {
     private int maxCount;
     private int readCount;
 
@@ -25,11 +23,6 @@ public class DebugBatchLoader implements IBatchLoader<String, IBatchChunkContext
 
     public DebugBatchLoader(int maxCount) {
         this.maxCount = maxCount;
-    }
-
-    @Override
-    public void onTaskBegin(IBatchTaskContext context) {
-        readCount = 0;
     }
 
     @Override

@@ -13,6 +13,8 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.utils.IVarSet;
 
 import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * 一个批处理任务对应一个loader + processor + consumer的组合调用
@@ -104,4 +106,16 @@ public interface IBatchTaskContext extends IExecutionContext {
     void setProcessItemCount(long processCount);
 
     void incProcessItemCount(int count);
+
+    void onTaskBegin(Runnable task);
+
+    void onChunkBegin(Consumer<IBatchChunkContext> action);
+
+    void onChunkEnd(BiConsumer<Throwable, IBatchChunkContext> action);
+
+    void fireTaskBegin();
+
+    void fireChunkBegin(IBatchChunkContext chunkContext);
+
+    void fireChunkEnd(Throwable err, IBatchChunkContext chunkContext);
 }

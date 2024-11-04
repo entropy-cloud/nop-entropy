@@ -2,19 +2,19 @@ package io.nop.batch.core.consumer;
 
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchConsumer;
+import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 import io.nop.batch.core.IBatchRecordFilter;
 import io.nop.batch.core.IBatchTaskContext;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class FilteredBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkContext> {
+public class FilteredBatchConsumer<R> implements IBatchConsumer<R> {
     private final IBatchRecordFilter<R> filter;
-    private final IBatchConsumer<R, IBatchChunkContext> consumer;
+    private final IBatchConsumer<R> consumer;
 
     public FilteredBatchConsumer(IBatchRecordFilter<R> filter,
-                                 IBatchConsumer<R, IBatchChunkContext> consumer) {
+                                 IBatchConsumer<R> consumer) {
         this.filter = Guard.notNull(filter, "filter");
         this.consumer = consumer;
     }

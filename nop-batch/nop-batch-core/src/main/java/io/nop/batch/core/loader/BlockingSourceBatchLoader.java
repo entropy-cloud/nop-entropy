@@ -9,22 +9,22 @@ package io.nop.batch.core.loader;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
-import io.nop.api.core.util.ICancellable;
-import io.nop.batch.core.IBatchLoader;
+import io.nop.batch.core.IBatchLoaderProvider;
+import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.exceptions.BatchCancelException;
 import io.nop.commons.concurrent.IBlockingSource;
-import io.nop.commons.lang.impl.Cancellable;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static io.nop.api.core.util.ICancellable.CANCEL_REASON_STOP;
 import static io.nop.batch.core.BatchErrors.ERR_BATCH_CANCEL_LOAD;
 
 /**
  * 从BlockingSource阻塞加载数据
  */
-public class BlockingSourceBatchLoader<S, C extends ICancellable> extends Cancellable implements IBatchLoader<S, C> {
+public class BlockingSourceBatchLoader<S> implements IBatchLoaderProvider<S> {
     private IBlockingSource<S> source;
     private long minWaitInterval;
     private long pollInterval;
@@ -53,42 +53,37 @@ public class BlockingSourceBatchLoader<S, C extends ICancellable> extends Cancel
         this.minWaitInterval = minWaitInterval;
     }
 
-    /**
-     * 停止加载过程，标记加载正常结束
-     */
-    public void stop() {
-        cancel(CANCEL_REASON_STOP);
-    }
-
     @Override
-    public List<S> load(int batchSize, C context) {
+    public IBatchLoader<S> setup(IBatchTaskContext context) {
         Guard.positiveLong(pollInterval, "pollInterval");
 
-        do {
-            if (isCancelled()) {
-                if (CANCEL_REASON_STOP.equals(getCancelReason()))
-                    return Collections.emptyList();
+        return (batchSize, ctx) -> {
+            do {
+                if (ctx.isCancelled()) {
+                    if (CANCEL_REASON_STOP.equals(ctx.getCancelReason()))
+                        return Collections.emptyList();
 
-                throw new BatchCancelException(ERR_BATCH_CANCEL_LOAD);
-            }
+                    throw new BatchCancelException(ERR_BATCH_CANCEL_LOAD);
+                }
 
-            if (context.isCancelled()) {
-                if (CANCEL_REASON_STOP.equals(context.getCancelReason()))
-                    return Collections.emptyList();
+                if (context.isCancelled()) {
+                    if (CANCEL_REASON_STOP.equals(context.getCancelReason()))
+                        return Collections.emptyList();
 
-                throw new BatchCancelException(ERR_BATCH_CANCEL_LOAD);
-            }
+                    throw new BatchCancelException(ERR_BATCH_CANCEL_LOAD);
+                }
 
-            List<S> items = new ArrayList<>(batchSize);
-            try {
-                source.drainTo(items, batchSize, minWaitInterval, pollInterval);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw NopException.adapt(e);
-            }
+                List<S> items = new ArrayList<>(batchSize);
+                try {
+                    source.drainTo(items, batchSize, minWaitInterval, pollInterval);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw NopException.adapt(e);
+                }
 
-            if (!items.isEmpty())
-                return items;
-        } while (true);
+                if (!items.isEmpty())
+                    return items;
+            } while (true);
+        };
     }
 }

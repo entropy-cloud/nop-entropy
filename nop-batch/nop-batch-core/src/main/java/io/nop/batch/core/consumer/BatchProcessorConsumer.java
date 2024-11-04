@@ -8,8 +8,8 @@
 package io.nop.batch.core.consumer;
 
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchConsumer;
-import io.nop.batch.core.IBatchProcessor;
+import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
+import io.nop.batch.core.IBatchProcessorProvider.IBatchProcessor;
 import io.nop.batch.core.IBatchTaskMetrics;
 import io.nop.batch.core.exceptions.BatchCancelException;
 
@@ -24,12 +24,12 @@ import static io.nop.batch.core.BatchErrors.ERR_BATCH_CANCEL_PROCESS;
  * @param <S> 输入数据类型
  * @param <R> 产生的结果数据类型
  */
-public class BatchProcessorConsumer<S, R> implements IBatchConsumer<S, IBatchChunkContext> {
-    private final IBatchProcessor<S, R, IBatchChunkContext> processor;
-    private final IBatchConsumer<R, IBatchChunkContext> consumer;
+public class BatchProcessorConsumer<S, R> implements IBatchConsumer<S> {
+    private final IBatchProcessor<S, R> processor;
+    private final IBatchConsumer<R> consumer;
 
-    public BatchProcessorConsumer(IBatchProcessor<S, R, IBatchChunkContext> processor,
-                                  IBatchConsumer<R, IBatchChunkContext> consumer) {
+    public BatchProcessorConsumer(IBatchProcessor<S, R> processor,
+                                  IBatchConsumer<R> consumer) {
         this.processor = processor;
         this.consumer = consumer;
     }

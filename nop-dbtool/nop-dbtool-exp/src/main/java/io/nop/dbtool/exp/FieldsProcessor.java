@@ -2,7 +2,9 @@ package io.nop.dbtool.exp;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchProcessor;
+import io.nop.batch.core.IBatchProcessorProvider;
+import io.nop.batch.core.IBatchProcessorProvider.IBatchProcessor;
+import io.nop.batch.core.IBatchTaskContext;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.dbtool.exp.config.IFieldConfig;
@@ -14,13 +16,19 @@ import java.util.function.Consumer;
 
 import static io.nop.dbtool.exp.DbToolExpErrors.ARG_FIELD_NAME;
 
-public class FieldsProcessor implements IBatchProcessor<Map<String, Object>, Map<String, Object>, IBatchChunkContext> {
+public class FieldsProcessor implements IBatchProcessorProvider<Map<String, Object>, Map<String, Object>>,
+        IBatchProcessor<Map<String, Object>, Map<String, Object>> {
     private final List<? extends IFieldConfig> fields;
     private final IEvalAction transformExpr;
 
     public FieldsProcessor(List<? extends IFieldConfig> fields, IEvalAction transformExpr) {
         this.fields = fields;
         this.transformExpr = transformExpr;
+    }
+
+    @Override
+    public IBatchProcessor<Map<String, Object>, Map<String, Object>> setup(IBatchTaskContext taskContext) {
+        return this;
     }
 
     @SuppressWarnings("unchecked")

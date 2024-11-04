@@ -7,15 +7,14 @@
  */
 package io.nop.batch.core.loader;
 
-import io.nop.batch.core.IBatchLoader;
-import io.nop.batch.core.IBatchTaskContext;
-import io.nop.batch.core.IBatchTaskListener;
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchLoaderProvider;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class ListBatchLoader<S, C> implements IBatchLoader<S, C>, IBatchTaskListener {
+public class ListBatchLoader<S, C> implements IBatchLoaderProvider.IBatchLoader<S> {
     private final List<S> list;
 
     private int offset = 0;
@@ -24,13 +23,9 @@ public class ListBatchLoader<S, C> implements IBatchLoader<S, C>, IBatchTaskList
         this.list = list;
     }
 
-    @Override
-    public void onTaskBegin(IBatchTaskContext context) {
-        offset = 0;
-    }
 
     @Override
-    public synchronized List<S> load(int batchSize, C context) {
+    public synchronized List<S> load(int batchSize, IBatchChunkContext context) {
         if (offset >= list.size())
             return Collections.emptyList();
 

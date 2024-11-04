@@ -15,27 +15,28 @@ import io.nop.batch.core.exceptions.BatchCancelException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 
 import static io.nop.batch.core.BatchErrors.ERR_BATCH_CANCEL_PROCESS;
 
-public class BatchTask implements IBatchTask {
-    static final Logger LOG = LoggerFactory.getLogger(BatchTask.class);
+public class BatchTaskExecution implements IBatchTask {
+    static final Logger LOG = LoggerFactory.getLogger(BatchTaskExecution.class);
 
     private final Executor executor;
     private final IBatchChunkProcessor chunkProcessor;
-    private final IBatchChunkListener chunkListener;
-    private final IBatchTaskListener taskListener;
     private final IBatchStateStore stateStore;
+    private final List<Consumer<IBatchTaskContext>> initializers;
     private final int concurrency;
 
-    public BatchTask(Executor executor, int concurrency, IBatchChunkProcessor chunkProcessor,
-                     IBatchChunkListener chunkListener, IBatchTaskListener taskListener, IBatchStateStore stateStore) {
+    public BatchTaskExecution(Executor executor, int concurrency, List<Consumer<IBatchTaskContext>> initializers,
+                              IBatchChunkProcessor chunkProcessor, IBatchStateStore stateStore) {
+
         this.executor = executor;
+        this.initializers = initializers;
         this.chunkProcessor = chunkProcessor;
-        this.chunkListener = chunkListener;
-        this.taskListener = taskListener;
         this.stateStore = stateStore;
         this.concurrency = concurrency;
     }
@@ -51,18 +52,21 @@ public class BatchTask implements IBatchTask {
 
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        if (taskListener != null) {
-            try {
-                taskListener.onTaskBegin(context);
-            } catch (Exception e) {
-                // onTaskBegin中有可能分配资源，必须调用onTaskEnd来释放资源
-                onTaskComplete(future, meter, e, context);
-                return future;
-            }
+        try {
+            if (initializers != null)
+                initializers.forEach(initializer -> {
+                    initializer.accept(context);
+                });
+
+            context.fireTaskBegin();
+        } catch (Exception e) {
+            // onTaskBegin中有可能分配资源，必须调用onTaskEnd来释放资源
+            onTaskComplete(future, meter, e, context);
+            return future;
         }
 
         // 多个线程可以并发执行。loader/processor/consumer都需要是线程安全的
-        CompletableFuture[] futures = new CompletableFuture[concurrency];
+        CompletableFuture<?>[] futures = new CompletableFuture[concurrency];
         for (int i = 0; i < concurrency; i++) {
             futures[i] = executeChunkLoop(context, i);
         }
@@ -81,10 +85,7 @@ public class BatchTask implements IBatchTask {
             if (err == null) {
                 try {
                     context.awaitAsyncResults();
-                    context.fireBeforeComplete(null);
-                    if (taskListener != null) {
-                        taskListener.onTaskEnd(null, context);
-                    }
+                    context.fireBeforeComplete();
 
                     // 任务执行完毕之后保存状态到数据库中，然后再触发context.complete()函数通知外部任务完成
                     if (stateStore != null) {
@@ -99,11 +100,6 @@ public class BatchTask implements IBatchTask {
             if (err != null) {
                 try {
                     context.cancelAsyncResults();
-                    context.fireBeforeComplete(err);
-
-                    if (taskListener != null) {
-                        taskListener.onTaskEnd(err, context);
-                    }
 
                     // 任务执行完毕之后保存状态到数据库中，然后再触发context.complete()函数通知外部任务完成
                     if (stateStore != null) {
@@ -162,17 +158,14 @@ public class BatchTask implements IBatchTask {
         ProcessResult result = ProcessResult.CONTINUE;
         boolean success = true;
         try {
-            if (chunkListener != null) {
-                chunkListener.onChunkBegin(chunkContext);
-            }
+            chunkContext.getTaskContext().fireChunkBegin(chunkContext);
 
             result = chunkProcessor.process(chunkContext);
 
             chunkContext.awaitAsyncResults();
-            chunkContext.fireBeforeComplete(null);
+            chunkContext.fireBeforeComplete();
 
-            if (chunkListener != null)
-                chunkListener.onChunkEnd(null, chunkContext);
+            chunkContext.getTaskContext().fireChunkEnd(null, chunkContext);
 
             if (stateStore != null)
                 stateStore.saveTaskState(false, null, context);
@@ -187,11 +180,8 @@ public class BatchTask implements IBatchTask {
 
             try {
                 chunkContext.cancelAsyncResults();
-                chunkContext.fireBeforeComplete(e);
 
-                if (chunkListener != null) {
-                    chunkListener.onChunkEnd(e, chunkContext);
-                }
+                chunkContext.getTaskContext().fireChunkEnd(e, chunkContext);
 
                 if (stateStore != null)
                     stateStore.saveTaskState(false, e, context);

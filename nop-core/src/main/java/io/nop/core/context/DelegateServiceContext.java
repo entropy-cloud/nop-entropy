@@ -134,7 +134,7 @@ public class DelegateServiceContext implements IServiceContext {
     }
 
     @Override
-    public void addBeforeComplete(Consumer<Throwable> callback) {
+    public void addBeforeComplete(Runnable callback) {
         serviceContext.addBeforeComplete(callback);
     }
 
@@ -144,8 +144,8 @@ public class DelegateServiceContext implements IServiceContext {
     }
 
     @Override
-    public void fireBeforeComplete(Throwable exception) {
-        serviceContext.fireBeforeComplete(exception);
+    public void fireBeforeComplete() {
+        serviceContext.fireBeforeComplete();
     }
 
     @Override

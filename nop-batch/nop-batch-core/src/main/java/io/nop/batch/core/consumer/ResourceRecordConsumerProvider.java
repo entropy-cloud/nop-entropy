@@ -9,16 +9,15 @@ package io.nop.batch.core.consumer;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.IBatchAggregator;
-import io.nop.batch.core.IBatchConsumer;
+import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchMetaProvider;
 import io.nop.batch.core.IBatchTaskContext;
-import io.nop.batch.core.IBatchTaskListener;
 import io.nop.batch.core.common.AbstractBatchResourceHandler;
 import io.nop.batch.core.exceptions.BatchCancelException;
-import io.nop.dataset.record.IRecordOutput;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.record.IResourceRecordIO;
+import io.nop.dataset.record.IRecordOutput;
 
 import java.util.List;
 import java.util.Map;
@@ -30,10 +29,9 @@ import static io.nop.batch.core.BatchErrors.ERR_BATCH_WRITE_FILE_FAIL;
  * 将记录写入文件。支持写入header和trailer
  *
  * @param <R> 记录类型
- * @param <C> ChunkContext
  */
-public class ResourceRecordConsumer<R, C> extends AbstractBatchResourceHandler
-        implements IBatchConsumer<R, C>, IBatchTaskListener {
+public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHandler
+        implements IBatchConsumerProvider<R> {
     private IResourceRecordIO<R> recordIO;
     private String encoding;
 
@@ -42,16 +40,19 @@ public class ResourceRecordConsumer<R, C> extends AbstractBatchResourceHandler
      */
     private boolean cancelTaskWhenWriteError;
 
-    private IRecordOutput<R> output;
-
-    private IBatchMetaProvider metaProvider;
-
     /**
      * 用于汇总trailer信息。在文件关闭前会写入trailer信息
      */
-    private IBatchAggregator<R, Object, Map<String, Object>> aggregator;
+    IBatchAggregator<R, Object, Map<String, Object>> aggregator;
 
-    private Object combinedValue;
+    IBatchMetaProvider metaProvider;
+
+    static class ConsumerState<R> {
+        IRecordOutput<R> output;
+
+        Object combinedValue;
+    }
+
 
     public IResourceRecordIO<R> getRecordIO() {
         return recordIO;
@@ -82,55 +83,52 @@ public class ResourceRecordConsumer<R, C> extends AbstractBatchResourceHandler
     }
 
     @Override
-    public synchronized void onTaskBegin(IBatchTaskContext context) {
+    public IBatchConsumer<R> setup(IBatchTaskContext context) {
+        ConsumerState<R> state = newConsumerState(context);
+        return (items, ctx) -> consume(items, state);
+    }
+
+    ConsumerState<R> newConsumerState(IBatchTaskContext context) {
+        ConsumerState<R> state = new ConsumerState<>();
         IResource resource = getResource(context);
-        output = recordIO.openOutput(resource, encoding);
+        state.output = recordIO.openOutput(resource, encoding);
         Map<String, Object> header = null;
         if (metaProvider != null) {
             // 写入header
             header = metaProvider.getMeta(context);
-            output.beginWrite(header);
+            state.output.beginWrite(header);
         }
 
         // 用于汇总计算trailer
         if (aggregator != null) {
-            combinedValue = aggregator.createCombinedValue(header, context);
+            state.combinedValue = aggregator.createCombinedValue(header, context);
+
+            context.addBeforeComplete(() -> {
+                Map<String, Object> trailer = aggregator.complete(null, state.combinedValue);
+                state.output.endWrite(trailer);
+                state.output.flush();
+            });
+
+            context.addAfterComplete(err -> {
+                IoHelper.safeCloseObject(state.output);
+            });
         }
+        return state;
     }
 
-    @Override
-    public synchronized void onTaskEnd(Throwable exception, IBatchTaskContext context) {
-        super.onTaskEnd(exception, context);
-
-        try {
-            if (aggregator != null && output != null) {
-                Map<String, Object> trailer = aggregator.complete(null, combinedValue);
-                output.endWrite(trailer);
-                combinedValue = null;
-                output.flush();
-            }
-        } finally {
-            if (output != null) {
-                IoHelper.safeCloseObject(output);
-                output = null;
-            }
-        }
-    }
-
-    @Override
-    public void consume(List<R> items, C context) {
+    void consume(List<R> items, ConsumerState<R> state) {
         if (items.isEmpty())
             return;
 
         try {
             if (aggregator != null) {
                 items.forEach(item -> {
-                    aggregator.aggregate(item, combinedValue);
+                    aggregator.aggregate(item, state.combinedValue);
                 });
             }
 
-            output.writeBatch(items);
-            output.flush();
+            state.output.writeBatch(items);
+            state.output.flush();
         } catch (Exception e) {
             if (cancelTaskWhenWriteError)
                 throw new BatchCancelException(ERR_BATCH_WRITE_FILE_FAIL, e).param(ARG_RESOURCE_PATH,

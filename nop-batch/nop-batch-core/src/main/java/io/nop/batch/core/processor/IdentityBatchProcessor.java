@@ -7,19 +7,20 @@
  */
 package io.nop.batch.core.processor;
 
-import io.nop.batch.core.IBatchProcessor;
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchProcessorProvider.IBatchProcessor;
 
 import java.util.function.Consumer;
 
-public class IdentityBatchProcessor<T, C> implements IBatchProcessor<T, T, C> {
+public class IdentityBatchProcessor<T> implements IBatchProcessor<T, T> {
     private static final IdentityBatchProcessor INSTANCE = new IdentityBatchProcessor();
 
-    public static <T, C> IdentityBatchProcessor<T, C> instance() {
-        return (IdentityBatchProcessor<T, C>) INSTANCE;
+    public static <T> IdentityBatchProcessor<T> instance() {
+        return (IdentityBatchProcessor<T>) INSTANCE;
     }
 
     @Override
-    public void process(T item, Consumer<T> consumer, C context) {
+    public void process(T item, Consumer<T> consumer, IBatchChunkContext context) {
         consumer.accept(item);
     }
 }

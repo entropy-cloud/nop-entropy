@@ -32,7 +32,7 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
     private IEvalScope scope;
 
     private List<Future<Consumer<? extends IExecutionContext>>> asyncResults;
-    private List<Consumer<Throwable>> beforeCompletes;
+    private List<Runnable> beforeCompletes;
     private List<Consumer<Throwable>> afterCompletes;
     private boolean done;
     private Throwable error;
@@ -151,12 +151,12 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
     }
 
     @Override
-    public void addBeforeComplete(Consumer<Throwable> callback) {
-        if (isDone()) {
-            throw new IllegalStateException("nop.err.execution-already-completed");
-        }
-
+    public void addBeforeComplete(Runnable callback) {
         synchronized (this) {
+            if (isDone()) {
+                throw new IllegalStateException("nop.err.execution-already-completed");
+            }
+
             if (this.beforeCompletes == null)
                 this.beforeCompletes = new ArrayList<>();
             beforeCompletes.add(callback);
@@ -165,11 +165,11 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
 
     @Override
     public void addAfterComplete(Consumer<Throwable> callback) {
-        if (isDone()) {
-            throw new IllegalStateException("nop.err.execution-already-completed");
-        }
-
         synchronized (this) {
+            if (isDone()) {
+                throw new IllegalStateException("nop.err.execution-already-completed");
+            }
+
             if (this.afterCompletes == null)
                 this.afterCompletes = new ArrayList<>();
             afterCompletes.add(callback);
@@ -182,7 +182,7 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
         if (isDone())
             return;
 
-        fireBeforeComplete(null);
+        fireBeforeComplete();
         synchronized (this) {
             done = true;
         }
@@ -192,7 +192,6 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
     @Override
     public void completeExceptionally(Throwable exception) {
         cancelAsyncResults();
-        fireBeforeComplete(exception);
         synchronized (this) {
             this.error = exception;
             this.done = true;
@@ -201,36 +200,25 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
     }
 
     @Override
-    public void fireBeforeComplete(Throwable e) {
-        List<Consumer<Throwable>> callbacks = null;
+    public void fireBeforeComplete() {
+        List<Runnable> callbacks;
         synchronized (this) {
             callbacks = this.beforeCompletes;
             if (callbacks != null)
                 this.beforeCompletes = null;
         }
         if (callbacks != null) {
-            for (Consumer<Throwable> callback : callbacks) {
-                if (e != null) {
-                    // 如果已经是异常处理阶段，则不抛出异常
-                    try {
-                        callback.accept(e);
-                    } catch (Exception err) {
-                        LOG.error("nop.err.core.execution-before-complete-callback-fail", err);
-                    }
-                } else {
-                    callback.accept(null);
-                }
+            for (Runnable callback : callbacks) {
+                callback.run();
             }
         }
 
-        if (e == null) {
-            if (error != null)
-                throw NopException.adapt(error);
+        if (error != null)
+            throw NopException.adapt(error);
 
-            ErrorBean errorBean = getMostSevereErrorBean();
-            if (errorBean != null)
-                throw NopRebuildException.rebuild(errorBean);
-        }
+        ErrorBean errorBean = getMostSevereErrorBean();
+        if (errorBean != null)
+            throw NopRebuildException.rebuild(errorBean);
     }
 
     void fireAfterComplete(Throwable e) {

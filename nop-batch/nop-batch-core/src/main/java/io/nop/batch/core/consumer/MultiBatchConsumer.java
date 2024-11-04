@@ -7,35 +7,37 @@
  */
 package io.nop.batch.core.consumer;
 
-import io.nop.batch.core.IBatchConsumer;
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 
 import java.util.List;
 
-public final class MultiBatchConsumer<R, C> implements IBatchConsumer<R, C> {
-    private final List<IBatchConsumer<R, C>> list;
+public final class MultiBatchConsumer<R> implements IBatchConsumer<R> {
+    private final List<IBatchConsumer<R>> list;
 
-    public MultiBatchConsumer(List<IBatchConsumer<R, C>> list) {
+    public MultiBatchConsumer(List<IBatchConsumer<R>> list) {
         this.list = list;
     }
 
-    public List<IBatchConsumer<R, C>> getConsumers() {
+    public List<IBatchConsumer<R>> getConsumers() {
         return list;
     }
 
-    public boolean isEmpty(){
+    public boolean isEmpty() {
         return list.isEmpty();
     }
 
-    public int size(){
+    public int size() {
         return list.size();
     }
 
-    public IBatchConsumer<R,C> first(){
+    public IBatchConsumer<R> first() {
         return list.get(0);
     }
+
     @Override
-    public void consume(List<R> items, C context) {
-        for (IBatchConsumer<R, C> consumer : list) {
+    public void consume(List<R> items, IBatchChunkContext context) {
+        for (IBatchConsumer<R> consumer : list) {
             consumer.consume(items, context);
         }
     }

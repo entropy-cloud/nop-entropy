@@ -11,7 +11,6 @@ import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchLoader;
 import io.nop.batch.core.IBatchTaskContext;
-import io.nop.batch.core.IBatchTaskListener;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.sql.ISqlGenerator;
 import io.nop.core.lang.sql.SQL;

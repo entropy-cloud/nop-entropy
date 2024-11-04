@@ -10,7 +10,7 @@ package io.nop.batch.core.consumer;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.BatchSkipPolicy;
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchConsumer;
+import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 import io.nop.batch.core.IBatchTaskMetrics;
 import io.nop.batch.core.exceptions.BatchCancelException;
 import org.slf4j.Logger;
@@ -21,13 +21,13 @@ import java.util.List;
 /**
  * 消费失败之后允许忽略skipCount条记录。
  */
-public class SkipBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkContext> {
+public class SkipBatchConsumer<R> implements IBatchConsumer<R> {
     static final Logger LOG = LoggerFactory.getLogger(SkipBatchConsumer.class);
 
-    private final IBatchConsumer<R, IBatchChunkContext> consumer;
+    private final IBatchConsumer<R> consumer;
     private final BatchSkipPolicy skipPolicy;
 
-    public SkipBatchConsumer(IBatchConsumer<R, IBatchChunkContext> consumer, BatchSkipPolicy skipPolicy) {
+    public SkipBatchConsumer(IBatchConsumer<R> consumer, BatchSkipPolicy skipPolicy) {
         this.consumer = consumer;
         this.skipPolicy = skipPolicy;
     }

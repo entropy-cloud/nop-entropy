@@ -8,18 +8,18 @@
 package io.nop.batch.core.consumer;
 
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchConsumer;
+import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 
 import java.util.List;
 
-public class RateLimitConsumer<R> implements IBatchConsumer<R, IBatchChunkContext> {
+public class RateLimitConsumer<R> implements IBatchConsumer<R> {
     static final long RATE_LIMIT_TIMEOUT = 1000 * 60 * 20L; // 20分钟
 
-    private final IBatchConsumer<R, IBatchChunkContext> consumer;
+    private final IBatchConsumer<R> consumer;
     private final IRateLimiter rateLimiter;
 
-    public RateLimitConsumer(IBatchConsumer<R, IBatchChunkContext> consumer, IRateLimiter rateLimiter) {
+    public RateLimitConsumer(IBatchConsumer<R> consumer, IRateLimiter rateLimiter) {
         this.consumer = consumer;
         this.rateLimiter = rateLimiter;
     }

@@ -9,7 +9,6 @@ package io.nop.batch.gen.loader;
 
 import io.nop.batch.core.IBatchLoader;
 import io.nop.batch.core.IBatchTaskContext;
-import io.nop.batch.core.IBatchTaskListener;
 import io.nop.batch.core.common.AbstractBatchResourceHandler;
 import io.nop.batch.gen.IBatchGenContext;
 import io.nop.batch.gen.generator.BatchGenContextImpl;

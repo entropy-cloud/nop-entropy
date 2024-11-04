@@ -9,17 +9,15 @@ package io.nop.batch.core.loader;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchChunkListener;
-import io.nop.batch.core.IBatchLoader;
+import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchTaskContext;
-import io.nop.batch.core.IBatchTaskListener;
-import io.nop.batch.core.IEnhancedBatchLoader;
 import io.nop.commons.collections.MapOfInt;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 /**
@@ -27,19 +25,16 @@ import java.util.function.Function;
  *
  * @param <S>
  */
-public class PartitionDispatchLoader<S>
-        implements IEnhancedBatchLoader<S, IBatchChunkContext>, IBatchTaskListener, IBatchChunkListener {
-    private final IBatchLoader<S, IBatchChunkContext> loader;
+public class PartitionDispatchLoaderProvider<S>
+        implements IBatchLoaderProvider<S> {
+    private final IBatchLoaderProvider<S> loader;
     private final Executor executor;
     private final int fetchThreadCount;
     private final int loadBatchSize;
     private final Function<S, Integer> partitionFn;
 
-    private PartitionDispatchQueue<S> queue;
-    private Exception exception;
-
-    public PartitionDispatchLoader(IBatchLoader<S, IBatchChunkContext> loader, Executor executor, int fetchThreadCount,
-                                   int loadBatchSize, Function<S, Integer> partitionFn) {
+    public PartitionDispatchLoaderProvider(IBatchLoaderProvider<S> loader, Executor executor, int fetchThreadCount,
+                                           int loadBatchSize, Function<S, Integer> partitionFn) {
         this.loader = loader;
         this.executor = executor;
         this.fetchThreadCount = fetchThreadCount;
@@ -48,14 +43,36 @@ public class PartitionDispatchLoader<S>
     }
 
     @Override
-    public IBatchLoader<S, IBatchChunkContext> getBaseLoader() {
-        return loader;
-    }
+    public IBatchLoader<S> setup(IBatchTaskContext context) {
+        IBatchLoader<S> loader = this.loader.setup(context);
 
-    @Override
-    public void onTaskBegin(IBatchTaskContext context) {
         PartitionDispatchQueue<S> queue = new PartitionDispatchQueue<>(loadBatchSize * 20, partitionFn, fetchThreadCount);
-        this.queue = queue;
+        AtomicReference<Exception> exception = new AtomicReference<>();
+
+        context.addAfterComplete(err -> {
+            queue.finish();
+        });
+
+        IBatchLoader<S> resultLoader = (batchSize, ctx) -> {
+            Exception err = exception.get();
+            if (err != null)
+                throw NopException.adapt(err);
+
+            MapOfInt<List<S>> map = queue.takeBatch(batchSize, ctx.getThreadIndex());
+            if (map == null) {
+                return Collections.emptyList();
+            }
+
+            ctx.addAfterComplete(error -> {
+                queue.completeBatch(map, ctx.getThreadIndex());
+            });
+
+            List<S> ret = new ArrayList<>(batchSize);
+            map.forEachEntry((list, index) -> {
+                ret.addAll(list);
+            });
+            return ret;
+        };
 
         for (int i = 0; i < fetchThreadCount; i++) {
             final int threadIndex = i;
@@ -72,7 +89,7 @@ public class PartitionDispatchLoader<S>
                             }
                             queue.addBatch(list);
                         } catch (Exception e) {
-                            exception = e;
+                            exception.set(e);
                             return;
                         }
                     }
@@ -81,43 +98,7 @@ public class PartitionDispatchLoader<S>
                 }
             });
         }
-    }
 
-    @Override
-    public void onTaskEnd(Throwable exception, IBatchTaskContext context) {
-        if (!context.isDone())
-            context.cancel();
-
-        if (queue != null)
-            queue.finish();
-
-        this.queue = null;
-        this.exception = null;
-    }
-
-    @Override
-    public List<S> load(int batchSize, IBatchChunkContext context) {
-        if (exception != null)
-            throw NopException.adapt(exception);
-
-        MapOfInt<List<S>> map = queue.takeBatch(batchSize, context.getThreadIndex());
-        if (map == null) {
-            return Collections.emptyList();
-        }
-
-        context.setAttribute(PartitionDispatchLoader.class.getName(), map);
-        List<S> ret = new ArrayList<>(batchSize);
-        map.forEachEntry((list, index) -> {
-            ret.addAll(list);
-        });
-        return ret;
-    }
-
-    @Override
-    public void onChunkEnd(Throwable exception, IBatchChunkContext context) {
-        MapOfInt<List<S>> map = (MapOfInt<List<S>>) context.getAttribute(PartitionDispatchLoader.class.getName());
-        if (map != null) {
-            queue.completeBatch(map, context.getThreadIndex());
-        }
+        return resultLoader;
     }
 }

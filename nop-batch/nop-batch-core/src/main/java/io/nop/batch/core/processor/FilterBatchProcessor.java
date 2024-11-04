@@ -8,16 +8,23 @@
 package io.nop.batch.core.processor;
 
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchProcessor;
+import io.nop.batch.core.IBatchProcessorProvider;
+import io.nop.batch.core.IBatchProcessorProvider.IBatchProcessor;
 import io.nop.batch.core.IBatchRecordFilter;
+import io.nop.batch.core.IBatchTaskContext;
 
 import java.util.function.Consumer;
 
-public class FilterBatchProcessor<T> implements IBatchProcessor<T, T, IBatchChunkContext> {
+public class FilterBatchProcessor<T> implements IBatchProcessor<T, T>, IBatchProcessorProvider<T,T> {
     private final IBatchRecordFilter<T> predicate;
 
     public FilterBatchProcessor(IBatchRecordFilter<T> predicate) {
         this.predicate = predicate;
+    }
+
+    @Override
+    public IBatchProcessor<T, T> setup(IBatchTaskContext taskContext) {
+        return this;
     }
 
     @Override

@@ -2,10 +2,10 @@ package io.nop.batch.core;
 
 import java.util.List;
 
-public interface IBatchRecordSnapshotBuilder<T> {
-    interface ISnapshot<T> {
-        List<T> restore(List<T> items);
+public interface IBatchRecordSnapshotBuilder<S> {
+    interface ISnapshot<S> {
+        List<S> restore(List<S> items, IBatchChunkContext chunkContext);
     }
 
-    ISnapshot<T> buildSnapshot(List<T> items);
+    ISnapshot<S> buildSnapshot(List<S> items, IBatchChunkContext chunkContext);
 }

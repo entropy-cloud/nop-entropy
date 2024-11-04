@@ -7,29 +7,30 @@
  */
 package io.nop.batch.core.processor;
 
-import io.nop.batch.core.IBatchProcessor;
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchProcessorProvider.IBatchProcessor;
 
 import java.util.function.Consumer;
 
-public final class CompositeBatchProcessor<S, R, T, C> implements IBatchProcessor<S, T, C> {
-    private final IBatchProcessor<S, R, C> processor;
-    private final IBatchProcessor<R, T, C> next;
+public final class CompositeBatchProcessor<S, R, T> implements IBatchProcessor<S, T> {
+    private final IBatchProcessor<S, R> processor;
+    private final IBatchProcessor<R, T> next;
 
-    public CompositeBatchProcessor(IBatchProcessor<S, R, C> processor, IBatchProcessor<R, T, C> next) {
+    public CompositeBatchProcessor(IBatchProcessor<S, R> processor, IBatchProcessor<R, T> next) {
         this.processor = processor;
         this.next = next;
     }
 
-    public IBatchProcessor<S, R, C> getProcessor() {
+    public IBatchProcessor<S, R> getProcessor() {
         return processor;
     }
 
-    public IBatchProcessor<R, T, C> getNext() {
+    public IBatchProcessor<R, T> getNext() {
         return next;
     }
 
     @Override
-    public void process(S item, Consumer<T> consumer, C context) {
+    public void process(S item, Consumer<T> consumer, IBatchChunkContext context) {
         processor.process(item, r -> next.process(r, consumer, context), context);
     }
 }

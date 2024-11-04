@@ -9,10 +9,8 @@ package io.nop.batch.orm.loader;
 
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.util.Guard;
-import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchLoader;
+import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchTaskContext;
-import io.nop.batch.core.IBatchTaskListener;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -23,7 +21,7 @@ import jakarta.inject.Inject;
 
 import java.util.List;
 
-public class OrmQueryBatchLoader<S extends IDaoEntity> implements IBatchLoader<S, IBatchChunkContext>, IBatchTaskListener {
+public class OrmQueryBatchLoaderProvider<S extends IDaoEntity> implements IBatchLoaderProvider<S> {
 
     private IQueryBuilder queryBuilder;
 
@@ -35,10 +33,11 @@ public class OrmQueryBatchLoader<S extends IDaoEntity> implements IBatchLoader<S
 
     private String entityName;
 
-
-    private S lastEntity;
-    private QueryBean query;
-    private IEntityDao<S> dao;
+    static class LoaderState<S extends IDaoEntity> {
+        S lastEntity;
+        QueryBean query;
+        IEntityDao<S> dao;
+    }
 
     public void setEntityName(String entityName) {
         this.entityName = entityName;
@@ -83,30 +82,31 @@ public class OrmQueryBatchLoader<S extends IDaoEntity> implements IBatchLoader<S
     }
 
     @Override
-    public void onTaskBegin(IBatchTaskContext context) {
-        query = queryBuilder.buildQuery(context);
-        lastEntity = null;
+    public IBatchLoader<S> setup(IBatchTaskContext context) {
+        LoaderState<S> state = newLoaderState(context);
+        return (batchSize, ctx) -> load(batchSize, state);
+    }
+
+    LoaderState<S> newLoaderState(IBatchTaskContext context) {
+        LoaderState<S> state = new LoaderState<>();
+        state.query = queryBuilder.buildQuery(context);
+        state.lastEntity = null;
         String entityName = this.entityName;
-        if (query.getSourceName() != null)
-            entityName = query.getSourceName();
-        dao = daoProvider.dao(entityName);
+        if (state.query.getSourceName() != null)
+            entityName = state.query.getSourceName();
+        state.dao = daoProvider.dao(entityName);
+        return state;
     }
 
-    @Override
-    public void onTaskEnd(Throwable exception, IBatchTaskContext context) {
-        query = null;
-        lastEntity = null;
-    }
-
-    @Override
-    public synchronized List<S> load(int batchSize, IBatchChunkContext context) {
-        List<S> list = dao.findNext(lastEntity, query.getFilter(), query.getOrderBy(), batchSize);
+    synchronized List<S> load(int batchSize, LoaderState<S> state) {
+        IEntityDao<S> dao = state.dao;
+        List<S> list = dao.findNext(state.lastEntity, state.query.getFilter(), state.query.getOrderBy(), batchSize);
 
         if (list.isEmpty()) {
             return list;
         }
 
-        lastEntity = list.get(list.size() - 1);
+        state.lastEntity = list.get(list.size() - 1);
 
         if (batchLoadProps != null)
             dao.batchLoadProps(list, batchLoadProps);

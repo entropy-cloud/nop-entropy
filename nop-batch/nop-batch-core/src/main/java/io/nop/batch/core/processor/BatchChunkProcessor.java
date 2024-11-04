@@ -10,8 +10,9 @@ package io.nop.batch.core.processor;
 import io.nop.api.core.util.ProcessResult;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchChunkProcessor;
-import io.nop.batch.core.IBatchConsumer;
-import io.nop.batch.core.IBatchLoader;
+import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
+import io.nop.batch.core.IBatchLoaderProvider.IBatchLoader;
+import io.nop.batch.core.IBatchProcessorProvider.IBatchProcessor;
 import io.nop.batch.core.IBatchTaskMetrics;
 import io.nop.commons.util.MathHelper;
 
@@ -20,18 +21,18 @@ import java.util.List;
 
 /**
  * 对chunk的缺省处理过程。它读取一个数据列表，然后调用consumer去处理该列表。 一般consumer的实现类为{@link io.nop.batch.core.consumer.BatchProcessorConsumer}，
- * 在这个类中会对输入记录列表中的每天记录逐条应用{@link io.nop.batch.core.IBatchProcessor}。
+ * 在这个类中会对输入记录列表中的每天记录逐条应用{@link IBatchProcessor}。
  *
  * @param <S> 输入数据类型
  */
 public class BatchChunkProcessor<S> implements IBatchChunkProcessor {
-    private final IBatchLoader<S, IBatchChunkContext> loader;
+    private final IBatchLoader<S> loader;
     private final int batchSize;
     private final double jitterRatio;
-    private final IBatchConsumer<S, IBatchChunkContext> consumer;
+    private final IBatchConsumer<S> consumer;
 
-    public BatchChunkProcessor(IBatchLoader<S, IBatchChunkContext> loader, int batchSize, double jitterRatio,
-                               IBatchConsumer<S, IBatchChunkContext> consumer) {
+    public BatchChunkProcessor(IBatchLoader<S> loader, int batchSize, double jitterRatio,
+                               IBatchConsumer<S> consumer) {
         this.loader = loader;
         this.consumer = consumer;
         this.batchSize = batchSize;

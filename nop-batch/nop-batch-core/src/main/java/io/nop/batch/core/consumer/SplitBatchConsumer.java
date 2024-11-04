@@ -7,20 +7,18 @@
  */
 package io.nop.batch.core.consumer;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchConsumer;
+import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchTaskContext;
-import io.nop.batch.core.IBatchTaskListener;
 import io.nop.commons.collections.MultiMapCollector;
 import io.nop.dataset.record.IRecordSplitter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 
 /**
  * 将一条记录拆分成多条记录，分别由不同的consumer消费
@@ -28,18 +26,16 @@ import java.util.function.Function;
  * @param <R> 原始记录类型
  * @param <T> 拆分后的记录类型
  */
-public class SplitBatchConsumer<R, T> implements IBatchConsumer<R, IBatchChunkContext>, IBatchTaskListener {
+public class SplitBatchConsumer<R, T> implements IBatchConsumerProvider<R> {
     static final Logger LOG = LoggerFactory.getLogger(SplitBatchConsumer.class);
 
     private final IRecordSplitter<R, T, IBatchChunkContext> splitter;
-    private final Function<String, IBatchConsumer<T, IBatchChunkContext>> consumerProvider;
+    private final BiFunction<String, IBatchChunkContext, IBatchConsumer<T>> consumerProvider;
 
     private final boolean lazyInit;
 
-    private final Map<String, IBatchConsumer<T, IBatchChunkContext>> activeConsumers = new HashMap<>();
-
     public SplitBatchConsumer(IRecordSplitter<R, T, IBatchChunkContext> splitter,
-                              Function<String, IBatchConsumer<T, IBatchChunkContext>> consumerProvider,
+                              BiFunction<String, IBatchChunkContext, IBatchConsumer<T>> consumerProvider,
                               boolean lazyInit) {
         this.splitter = splitter;
         this.consumerProvider = consumerProvider;
@@ -47,54 +43,31 @@ public class SplitBatchConsumer<R, T> implements IBatchConsumer<R, IBatchChunkCo
     }
 
     @Override
-    public void onTaskBegin(IBatchTaskContext context) {
-        activeConsumers.clear();
+    public IBatchConsumer<R> setup(IBatchTaskContext context) {
+        Map<String, IBatchConsumer<T>> activeConsumers = new ConcurrentHashMap<>();
+        return (items, ctx) -> consume(items, ctx, activeConsumers);
     }
 
-    @Override
-    public synchronized void onTaskEnd(Throwable exception, IBatchTaskContext context) {
-        Throwable e = null;
-        if (lazyInit) {
-            for (IBatchConsumer<T, IBatchChunkContext> consumer : activeConsumers.values()) {
-                if (consumer instanceof IBatchTaskListener) {
-                    try {
-                        ((IBatchTaskListener) consumer).onTaskEnd(exception, context);
-                    } catch (Exception err) {
-                        LOG.error("nop.err.batch.consumer-onTaskEnd-fail", err);
-                        e = err;
-                    }
-                }
-            }
-        }
-        activeConsumers.clear();
-
-        if (e != null)
-            throw NopException.adapt(e);
-    }
-
-    @Override
-    public void consume(List<R> items, IBatchChunkContext context) {
+    void consume(List<R> items, IBatchChunkContext context, Map<String, IBatchConsumer<T>> activeConsumers) {
         MultiMapCollector<String, T> collector = new MultiMapCollector<>();
         splitter.splitMulti(items, collector, context);
         Map<String, List<T>> map = collector.getResultMap();
         for (Map.Entry<String, List<T>> entry : map.entrySet()) {
-            IBatchConsumer<T, IBatchChunkContext> consumer = getConsumer(entry.getKey(), context);
+            IBatchConsumer<T> consumer = getConsumer(entry.getKey(), context, activeConsumers);
             if (consumer != null) {
                 consumer.consume(entry.getValue(), context);
             }
         }
     }
 
-    protected synchronized IBatchConsumer<T, IBatchChunkContext> getConsumer(String tag, IBatchChunkContext context) {
-        IBatchConsumer<T, IBatchChunkContext> consumer = activeConsumers.get(tag);
+    protected synchronized IBatchConsumer<T> getConsumer(String tag, IBatchChunkContext context,
+                                                         Map<String, IBatchConsumer<T>> activeConsumers) {
+        IBatchConsumer<T> consumer = activeConsumers.get(tag);
         if (consumer != null)
             return consumer;
 
-        consumer = consumerProvider.apply(tag);
+        consumer = consumerProvider.apply(tag, context);
         if (consumer != null) {
-            if (lazyInit && consumer instanceof IBatchTaskListener) {
-                ((IBatchTaskListener) consumer).onTaskBegin(context.getTaskContext());
-            }
             activeConsumers.put(tag, consumer);
         }
         return consumer;

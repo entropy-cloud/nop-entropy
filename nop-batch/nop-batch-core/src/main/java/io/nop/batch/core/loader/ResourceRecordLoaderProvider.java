@@ -8,13 +8,7 @@
 package io.nop.batch.core.loader;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.batch.core.IBatchAggregator;
-import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchChunkListener;
-import io.nop.batch.core.IBatchLoader;
-import io.nop.batch.core.IBatchRecordFilter;
-import io.nop.batch.core.IBatchTaskContext;
-import io.nop.batch.core.IBatchTaskListener;
+import io.nop.batch.core.*;
 import io.nop.batch.core.common.AbstractBatchResourceHandler;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.resource.IResource;
@@ -28,19 +22,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static io.nop.batch.core.BatchErrors.ARG_ITEM_COUNT;
-import static io.nop.batch.core.BatchErrors.ARG_READ_COUNT;
-import static io.nop.batch.core.BatchErrors.ARG_RESOURCE_PATH;
-import static io.nop.batch.core.BatchErrors.ERR_BATCH_TOO_MANY_PROCESSING_ITEMS;
+import static io.nop.batch.core.BatchErrors.*;
 
 /**
  * 读取数据文件。支持设置aggregator，在读取的过程中计算一些汇总信息
  *
  * @param <S> 数据文件中的记录类型
- * @param <C> BatchChunkContext
  */
-public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
-        implements IBatchLoader<S, C>, IBatchTaskListener, IBatchChunkListener {
+public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandler
+        implements IBatchLoaderProvider<S> {
     static final String VAR_PROCESSED_ROW_NUMBER = "processedRowNumber";
 
     private IResourceRecordIO<S> recordIO;
@@ -51,45 +41,40 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
 
     private IBatchRecordFilter<S> filter;
 
-    private IRecordInput<S> input;
-
     /**
      * 最多读取多少行数据（包含跳过的记录）
      */
-    private long maxCount;
+    long maxCount;
 
     /**
      * 跳过起始的多少行数据
      */
-    private long skipCount;
+    long skipCount;
 
-    private int maxProcessingItems = 10000;
+    int maxProcessingItems = 10000;
 
     /**
      * 是否确保返回的记录实现{@link IRowNumberRecord}接口，并设置rowNumber为当前读取记录条目数，从1开始
      */
-    private boolean recordRowNumber = false;
+    boolean recordRowNumber = false;
 
     /**
      * 是否记录处理状态。如果是，则打开文件的时候会检查此前保存的处理条目数，跳过相应的数据行
      */
-    private boolean saveState;
+    boolean saveState;
 
-    /**
-     * 从行号映射到对应记录的处理状况。false表示正在处理，true表示处理完毕
-     */
-    private TreeMap<Long, Boolean> processingItems;
+    static class LoaderState<S> {
 
-    private Object combinedValue;
+        IRecordInput<S> input;
 
-    private IBatchTaskContext taskContext;
+        /**
+         * 从行号映射到对应记录的处理状况。false表示正在处理，true表示处理完毕
+         */
+        TreeMap<Long, Boolean> processingItems;
 
-    public int getMaxProcessingItems() {
-        return maxProcessingItems;
-    }
+        Object combinedValue;
 
-    public void setMaxProcessingItems(int maxProcessingItems) {
-        this.maxProcessingItems = maxProcessingItems;
+        IBatchTaskContext context;
     }
 
     public void setEncoding(String encoding) {
@@ -145,18 +130,34 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
     }
 
     @Override
-    public synchronized void onTaskBegin(IBatchTaskContext context) {
-        taskContext = context;
+    public IBatchLoader<S> setup(IBatchTaskContext context) {
+        LoaderState<S> state = newLoaderState(context);
+        return (batchSize, ctx) -> {
+            ctx.addAfterComplete(err -> onChunkEnd(err, ctx, state));
+            return load(batchSize, state);
+        };
+    }
+
+    LoaderState<S> newLoaderState(IBatchTaskContext context) {
+        LoaderState<S> state = new LoaderState<>();
+        state.context = context;
         IResource resource = getResource(context);
-        input = recordIO.openInput(resource, encoding);
+        IRecordInput<S> input = recordIO.openInput(resource, encoding);
 
         long skipCount = getSkipCount(context);
 
-        if (aggregator != null)
-            combinedValue = aggregator.createCombinedValue(input.getHeaderMeta(), context);
+        if (aggregator != null) {
+            state.combinedValue = aggregator.createCombinedValue(input.getHeaderMeta(), context);
+            context.addBeforeComplete(() -> {
+                aggregator.complete(state.input.getTrailerMeta(), state.combinedValue);
+            });
+            context.addAfterComplete(err -> {
+                IoHelper.safeCloseObject(state.input);
+            });
+        }
 
         if (skipCount > 0) {
-            skip(input, skipCount, context);
+            skip(input, skipCount, state);
         }
 
         if (maxCount > 0) {
@@ -167,9 +168,11 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
             input = new RowNumberRecordInput<>(input);
         }
 
-        if (saveState)
-            processingItems = new TreeMap<>();
+        state.input = input;
 
+        if (saveState)
+            state.processingItems = new TreeMap<>();
+        return state;
     }
 
     private long getSkipCount(IBatchTaskContext context) {
@@ -182,55 +185,37 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
         return skipCount;
     }
 
-    private void skip(IRecordInput<S> input, long skipCount, IBatchTaskContext context) {
+    private void skip(IRecordInput<S> input, long skipCount, LoaderState<S> state) {
         if (aggregator != null) {
             // 如果设置了aggregator，则需要从头开始遍历所有记录，否则断点重提的时候结果可能不正确。
             for (long i = 0; i < skipCount; i++) {
                 if (!input.hasNext())
                     break;
                 S item = input.next();
-                if (filter != null && filter.accept(item, context))
+                if (filter != null && filter.accept(item, state.context))
                     continue;
 
-                aggregator.aggregate(input.next(), combinedValue);
+                aggregator.aggregate(input.next(), state.combinedValue);
             }
         } else {
             input.skip(skipCount);
         }
     }
 
-    @Override
-    public synchronized void onTaskEnd(Throwable exception, IBatchTaskContext context) {
-        taskContext = null;
-        try {
-            if (aggregator != null) {
-                aggregator.complete(input.getTrailerMeta(), combinedValue);
-                combinedValue = null;
-            }
-            processingItems = null;
-        } finally {
-            if (input != null) {
-                IoHelper.safeCloseObject(input);
-                input = null;
-            }
-        }
-    }
-
-    @Override
-    public synchronized void onChunkEnd(Throwable exception, IBatchChunkContext context) {
+    public synchronized void onChunkEnd(Throwable exception, IBatchChunkContext context, LoaderState<S> state) {
         if (saveState) {
             // 多个chunk有可能被并行处理，所以可能会乱序完成
             if (context.getChunkItems() != null) {
                 for (Object item : context.getChunkItems()) {
                     long rowNumber = getRowNumber(item);
                     if (rowNumber > 0) {
-                        processingItems.put(rowNumber, true);
+                        state.processingItems.put(rowNumber, true);
                     }
                 }
             }
 
             // 如果最小的rowNumber已经完成，则记录处理历史
-            Iterator<Map.Entry<Long, Boolean>> it = processingItems.entrySet().iterator();
+            Iterator<Map.Entry<Long, Boolean>> it = state.processingItems.entrySet().iterator();
             long completedRow = -1L;
             while (it.hasNext()) {
                 Map.Entry<Long, Boolean> entry = it.next();
@@ -249,34 +234,33 @@ public class ResourceRecordLoader<S, C> extends AbstractBatchResourceHandler
         }
     }
 
-    @Override
-    public synchronized List<S> load(int batchSize, C context) {
-        List<S> items = loadItems(batchSize, context);
+    synchronized List<S> load(int batchSize, LoaderState<S> state) {
+        List<S> items = loadItems(batchSize, state);
         if (saveState) {
             for (S item : items) {
                 long rowNumber = getRowNumber(item);
                 if (rowNumber > 0)
-                    processingItems.put(rowNumber, false);
+                    state.processingItems.put(rowNumber, false);
             }
-            if (processingItems.size() > maxProcessingItems)
+            if (state.processingItems.size() > maxProcessingItems)
                 throw new NopException(ERR_BATCH_TOO_MANY_PROCESSING_ITEMS)
-                        .param(ARG_ITEM_COUNT, processingItems.size()).param(ARG_READ_COUNT, input.getReadCount())
+                        .param(ARG_ITEM_COUNT, state.processingItems.size()).param(ARG_READ_COUNT, state.input.getReadCount())
                         .param(ARG_RESOURCE_PATH, getResourcePath());
         }
 
         if (aggregator != null) {
             for (S item : items) {
-                aggregator.aggregate(item, combinedValue);
+                aggregator.aggregate(item, state.combinedValue);
             }
         }
         return items;
     }
 
-    private List<S> loadItems(int batchSize, C ctx) {
+    private List<S> loadItems(int batchSize, LoaderState<S> state) {
         if (filter == null)
-            return input.readBatch(batchSize);
+            return state.input.readBatch(batchSize);
 
-        return input.readFiltered(batchSize, item -> filter.accept(item, taskContext));
+        return state.input.readFiltered(batchSize, item -> filter.accept(item, state.context));
     }
 
     private long getRowNumber(Object item) {

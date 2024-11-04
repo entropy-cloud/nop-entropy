@@ -27,4 +27,12 @@ public class MutableValue<T> implements IMutableValue<T> {
     public void setValue(T value) {
         this.value = value;
     }
+
+    public T get() {
+        return getValue();
+    }
+
+    public void set(T value) {
+        setValue(value);
+    }
 }

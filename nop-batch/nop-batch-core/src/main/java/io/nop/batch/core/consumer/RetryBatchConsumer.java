@@ -10,9 +10,9 @@ package io.nop.batch.core.consumer;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchConsumer;
+import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 import io.nop.batch.core.IBatchRecordSnapshotBuilder;
-import io.nop.batch.core.IBatchRetryConsumeListener;
+import io.nop.batch.core.IBatchTaskMetrics;
 import io.nop.batch.core.exceptions.BatchCancelException;
 import io.nop.commons.concurrent.thread.ThreadHelper;
 import io.nop.commons.util.retry.IRetryPolicy;
@@ -26,32 +26,29 @@ import java.util.List;
 /**
  * 消费失败之后可以重试retryCount次。如果设置了retryOneByOne，则重试的时候放弃批处理，进行逐条重试。
  */
-public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkContext> {
+public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
     static final Logger LOG = LoggerFactory.getLogger(RetryBatchConsumer.class);
 
-    private final IBatchConsumer<R, IBatchChunkContext> consumer;
+    private final IBatchConsumer<R> consumer;
     private final IRetryPolicy<IBatchChunkContext> retryPolicy;
     private final boolean retryOneByOne;
     private final boolean singleMode;
-    private final IBatchRetryConsumeListener<R, IBatchChunkContext> listener;
     private final IBatchRecordSnapshotBuilder<R> snapshotBuilder;
 
-    public RetryBatchConsumer(IBatchConsumer<R, IBatchChunkContext> consumer, IRetryPolicy<IBatchChunkContext> retryPolicy,
+    public RetryBatchConsumer(IBatchConsumer<R> consumer, IRetryPolicy<IBatchChunkContext> retryPolicy,
                               boolean retryOneByOne, boolean singleMode,
-                              IBatchRetryConsumeListener<R, IBatchChunkContext> listener,
                               IBatchRecordSnapshotBuilder<R> snapshotBuilder) {
         this.consumer = Guard.notNull(consumer, "consumer");
         this.retryPolicy = retryPolicy;
         this.retryOneByOne = retryOneByOne;
         this.singleMode = singleMode;
-        this.listener = listener;
         this.snapshotBuilder = snapshotBuilder;
     }
 
     @Override
     public void consume(List<R> items, IBatchChunkContext context) {
         IBatchRecordSnapshotBuilder.ISnapshot<R> snapshot =
-                snapshotBuilder == null ? null : snapshotBuilder.buildSnapshot(items);
+                snapshotBuilder == null ? null : snapshotBuilder.buildSnapshot(items, context);
         try {
             if (singleMode) {
                 consumeSingle(items, context);
@@ -104,7 +101,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
             }
 
             try {
-                List<R> restoredItems = restoreItems(snapshot, items);
+                List<R> restoredItems = restoreItems(snapshot, items, context);
                 RetryOnceResult result = retryConsumeOnce(retryCount, restoredItems, context);
                 if (result == null) {
                     // 返回null表示全部items被成功处理
@@ -135,10 +132,10 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
             throw NopException.adapt(fatalError);
     }
 
-    List<R> restoreItems(IBatchRecordSnapshotBuilder.ISnapshot<R> snapshot, List<R> items) {
+    List<R> restoreItems(IBatchRecordSnapshotBuilder.ISnapshot<R> snapshot, List<R> items, IBatchChunkContext chunkContext) {
         if (snapshot == null)
             return items;
-        return snapshot.restore(items);
+        return snapshot.restore(items, chunkContext);
     }
 
     class RetryOnceResult {
@@ -149,13 +146,14 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
     }
 
     RetryOnceResult retryConsumeOnce(int retryCount, List<R> items, IBatchChunkContext context) {
+        IBatchTaskMetrics metrics = context.getTaskContext().getMetrics();
+        if (metrics != null)
+            metrics.retry(items.size());
+
         // 放弃批处理，逐个重试
         if (retryOneByOne) {
             return retryConsumeOneByOne(retryCount, items, context);
         } else {
-            if (listener != null)
-                listener.beforeRetry(items, context);
-
             Throwable consumeError = null;
             try {
                 consumer.consume(items, context);
@@ -165,9 +163,6 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
             } catch (Exception e) {
                 consumeError = e;
                 throw NopException.adapt(e);
-            } finally {
-                if (listener != null)
-                    listener.afterRetry(consumeError, items, context);
             }
             return null;
         }
@@ -183,8 +178,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
 
         for (R item : items) {
             List<R> single = Collections.singletonList(item);
-            if (listener != null)
-                listener.beforeRetry(single, context);
+
 
             Throwable consumeError = null;
 
@@ -208,11 +202,6 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkConte
                         fatalError = e;
                         fatalItem = item;
                     }
-                }
-
-            } finally {
-                if (listener != null) {
-                    listener.afterRetry(consumeError, single, context);
                 }
             }
         }

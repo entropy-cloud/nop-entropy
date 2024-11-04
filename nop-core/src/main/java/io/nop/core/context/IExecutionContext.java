@@ -41,10 +41,9 @@ public interface IExecutionContext extends IEvalContext, IAttributeSet, ICancell
     /**
      * 执行complete操作或者completeExceptionally操作会先触发beforeComplete回调函数，然后再迁移状态。
      *
-     * @param callback 如果是complete调用，入口参数为null。如果回调函数抛出异常，将导致后续的beforeComplete回调被跳过，complete调用失败。
-     *                 如果是completeExceptionally调用，入口参数为异常对象，回调函数抛出的异常将被自动忽略
+     * @param callback 如果回调函数抛出异常，将导致后续的beforeComplete回调被跳过，complete调用失败。
      */
-    void addBeforeComplete(Consumer<Throwable> callback);
+    void addBeforeComplete(Runnable callback);
 
     /**
      * 执行complete或者completeExceptionally操作会将ExecutionContext的内部状态标记为完成状态。 此时会回调afterComplete回调函数。回调函数抛出的异常将被自动忽略
@@ -52,12 +51,11 @@ public interface IExecutionContext extends IEvalContext, IAttributeSet, ICancell
     void addAfterComplete(Consumer<Throwable> callback);
 
     /**
-     * complete和completeExceptionally会自动调用fireBeforeComplete来触发回调函数。也可以直接调用。
+     * complete会自动调用fireBeforeComplete来触发回调函数。也可以直接调用。
      *
-     * @param exception 通过completeExceptionally函数触发时会传入异常对象
      */
     @Internal
-    void fireBeforeComplete(Throwable exception);
+    void fireBeforeComplete();
 
     /**
      * complete操作会先触发所有beforeComplete回调函数，当所有回调函数都成功执行之后才会迁移到完成状态。 然后再调用所有的afterComplete回调。

@@ -9,21 +9,21 @@ package io.nop.batch.core.consumer;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchConsumer;
+import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 import io.nop.batch.core.IBatchRecordHistoryStore;
 import io.nop.commons.util.CollectionHelper;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class WithHistoryBatchConsumer<R> implements IBatchConsumer<R, IBatchChunkContext> {
+public class WithHistoryBatchConsumer<R> implements IBatchConsumer<R> {
     private final IBatchRecordHistoryStore<R> historyStore;
-    private final IBatchConsumer<R, IBatchChunkContext> consumer;
-    private final IBatchConsumer<R, IBatchChunkContext> historyConsumer;
+    private final IBatchConsumer<R> consumer;
+    private final IBatchConsumer<R> historyConsumer;
 
     public WithHistoryBatchConsumer(IBatchRecordHistoryStore<R> historyStore,
-                                    IBatchConsumer<R, IBatchChunkContext> consumer,
-                                    IBatchConsumer<R, IBatchChunkContext> historyConsumer) {
+                                    IBatchConsumer<R> consumer,
+                                    IBatchConsumer<R> historyConsumer) {
         this.historyStore = historyStore;
         this.consumer = consumer;
         this.historyConsumer = historyConsumer;
@@ -60,7 +60,7 @@ public class WithHistoryBatchConsumer<R> implements IBatchConsumer<R, IBatchChun
             }
             historyStore.saveProcessed(filtered, null, context);
         } else {
-            filtered.forEach(context::addCompletedItem);
+            items.forEach(context::addCompletedItem);
             if (historyConsumer != null)
                 historyConsumer.consume(filtered, context);
         }

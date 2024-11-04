@@ -7,7 +7,10 @@
  */
 package io.nop.batch.jdbc.consumer;
 
-import io.nop.batch.core.IBatchConsumer;
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchConsumerProvider;
+import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
+import io.nop.batch.core.IBatchTaskContext;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.dialect.IDialect;
@@ -18,7 +21,7 @@ import io.nop.dataset.binder.IDataParameterBinder;
 import java.util.List;
 import java.util.Map;
 
-public class JdbcInsertBatchConsumer<S, C> implements IBatchConsumer<S, C> {
+public class JdbcInsertBatchConsumer<S> implements IBatchConsumerProvider<S>, IBatchConsumer<S> {
     private final IJdbcTemplate jdbcTemplate;
     private final IDialect dialect;
     private final String tableName;
@@ -34,14 +37,19 @@ public class JdbcInsertBatchConsumer<S, C> implements IBatchConsumer<S, C> {
     }
 
     @Override
-    public void consume(List<S> items, C context) {
+    public IBatchConsumer<S> setup(IBatchTaskContext context) {
+        return this;
+    }
+
+    @Override
+    public void consume(List<S> items, IBatchChunkContext context) {
         SQL sql = SQL.begin().name("batch-insert").insertInto(tableName).end();
 
         jdbcTemplate.runWithConnection(sql, conn -> {
             JdbcBatcher batcher = new JdbcBatcher(conn, dialect, jdbcTemplate.getDaoMetrics());
             for (S item : items) {
                 SQL insert = buildInsert(item);
-                batcher.addCommand(insert,false,null);
+                batcher.addCommand(insert, false, null);
             }
             batcher.flush();
             return null;

@@ -7,9 +7,10 @@
  */
 package io.nop.batch.core;
 
+import io.nop.batch.core.IBatchLoaderProvider.IBatchLoader;
 import io.nop.batch.core.debug.DebugBatchLoader;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
-import io.nop.batch.core.loader.PartitionDispatchLoader;
+import io.nop.batch.core.loader.PartitionDispatchLoaderProvider;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import org.junit.jupiter.api.Test;
 
@@ -26,14 +27,16 @@ public class TestPartitionDispatchLoader {
         int n = 1000000;
         DebugBatchLoader baseLoader = new DebugBatchLoader(n);
         int fetchThreadCount = 1;
-        PartitionDispatchLoader<String> loader = new PartitionDispatchLoader<>(baseLoader,
+        PartitionDispatchLoaderProvider<String> loaderProvider = new PartitionDispatchLoaderProvider<>(() -> baseLoader,
                 GlobalExecutors.cachedThreadPool(), fetchThreadCount, 20, k -> k.hashCode() % 3);
 
         IBatchTaskContext context = new BatchTaskContextImpl();
+        IBatchLoader<String> loader = loaderProvider.setup(context);
+
         Set<String> list = new ConcurrentSkipListSet<>();
         int concurrency = 5;
         CountDownLatch latch = new CountDownLatch(concurrency);
-        loader.onTaskBegin(context);
+        context.fireTaskBegin();
         for (int i = 0; i < concurrency; i++) {
             int threadIndex = i;
             GlobalExecutors.cachedThreadPool().execute(() -> {
@@ -41,7 +44,7 @@ public class TestPartitionDispatchLoader {
                     IBatchChunkContext chunkContext = context.newChunkContext();
                     chunkContext.setThreadIndex(threadIndex);
                     chunkContext.setConcurrency(concurrency);
-                    loader.onChunkBegin(chunkContext);
+                    context.fireChunkBegin(chunkContext);
                     List<String> batch = loader.load(10, chunkContext);
                     if (batch.isEmpty()) {
                         latch.countDown();
@@ -49,7 +52,7 @@ public class TestPartitionDispatchLoader {
                     }
                     list.addAll(batch);
                     // System.out.println(StringHelper.join(batch, "\n"));
-                    loader.onChunkEnd(null, chunkContext);
+                    context.fireChunkEnd(null, chunkContext);
                 }
             });
         }
@@ -59,7 +62,7 @@ public class TestPartitionDispatchLoader {
         } catch (Exception e) {
         }
 
-        loader.onTaskEnd(null, context);
+        context.complete();
         assertEquals(n, list.size());
     }
 }
