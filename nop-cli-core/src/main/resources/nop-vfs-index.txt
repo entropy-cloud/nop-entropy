@@ -185,10 +185,6 @@
 /nop/schema/xui/style-component.xdef
 /nop/schema/xui/xuc.xdef
 /nop/schema/xui/xview.xdef
-/nop/sys/_module
-/nop/sys/beans/_dao.beans.xml
-/nop/sys/orm/_app.orm.xml
-/nop/sys/orm/app.orm.xml
 /nop/task/beans/task-defaults.beans.xml
 /nop/task/lib/common.task.xml
 /nop/task/xlib/task-gen.xlib

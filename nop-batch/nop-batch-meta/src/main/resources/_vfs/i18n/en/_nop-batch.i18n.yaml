@@ -47,14 +47,13 @@ prop:
       taskParams: Task Params
       worker: Worker
       inputFileId: Input File
-      retryCount: Restart Count
+      retryCount: Retry Count
       resultStatus: Result Status
       resultCode: Result Code
       resultMsg: Result Message
       errorStack: Error Stack
       completedIndex: Completed Index
-      readCount: Read Count
-      writeCount: Write Count
+      completeCount: Complete Count
       processCount: Process Count
       skipCount: Skip Count
       version: Version

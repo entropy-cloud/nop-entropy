@@ -37,6 +37,7 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopBatchTask:
+      completeCount: 完成数量
       completedIndex: 已完成记录下标
       createTime: 创建时间
       createdBy: 创建人
@@ -45,7 +46,6 @@ prop:
       inputFile: 批处理文件
       inputFileId: 输入文件
       processCount: 处理数量
-      readCount: 读数量
       remark: 备注
       resultCode: 返回码
       resultMsg: 返回消息
@@ -65,7 +65,6 @@ prop:
       updatedBy: 修改人
       version: 数据版本
       worker: 执行者
-      writeCount: 写数量
     NopBatchTaskState:
       createTime: 创建时间
       createdBy: 创建人

@@ -54,7 +54,7 @@
               sortable="true" insertable="true" updatable="true" ext:relation="inputFile">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="retryCount" displayName="重试次数" propId="10" i18n-en:displayName="Restart Count" mandatory="true"
+        <prop name="retryCount" displayName="重试次数" propId="10" i18n-en:displayName="Retry Count" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
         </prop>
@@ -75,23 +75,19 @@
             <schema type="java.lang.String" precision="4000"/>
         </prop>
         <prop name="completedIndex" displayName="已完成记录下标" propId="15" i18n-en:displayName="Completed Index"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="completeCount" displayName="完成数量" propId="16" i18n-en:displayName="Complete Count" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Long"/>
         </prop>
-        <prop name="readCount" displayName="读数量" propId="16" i18n-en:displayName="Read Count" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="processCount" displayName="处理数量" propId="18" i18n-en:displayName="Process Count" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Long"/>
         </prop>
-        <prop name="writeCount" displayName="写数量" propId="17" i18n-en:displayName="Write Count" queryable="true"
-              sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.Long"/>
-        </prop>
-        <prop name="processCount" displayName="处理数量" propId="18" i18n-en:displayName="Process Count" queryable="true"
-              sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.Long"/>
-        </prop>
-        <prop name="skipCount" displayName="跳过数量" propId="19" i18n-en:displayName="Skip Count" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="skipCount" displayName="跳过数量" propId="19" i18n-en:displayName="Skip Count" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Long"/>
         </prop>
         <prop name="version" displayName="数据版本" propId="20" i18n-en:displayName="Version" mandatory="true"

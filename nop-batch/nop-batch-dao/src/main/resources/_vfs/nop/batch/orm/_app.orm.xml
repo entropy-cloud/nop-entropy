@@ -66,14 +66,14 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Result Message"/>
                 <column code="ERROR_STACK" displayName="错误堆栈" name="errorStack" precision="4000" propId="14"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Stack"/>
-                <column code="COMPLETED_INDEX" displayName="已完成记录下标" name="completedIndex" propId="15"
+                <column code="COMPLETED_INDEX" displayName="已完成记录下标" mandatory="true" name="completedIndex" propId="15"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Completed Index"/>
-                <column code="COMPLETE_COUNT" displayName="完成数量" name="completeCount" propId="16" stdDataType="long"
-                        stdSqlType="BIGINT" i18n-en:displayName="Complete Count"/>
-                <column code="PROCESS_COUNT" displayName="处理数量" name="processCount" propId="18" stdDataType="long"
-                        stdSqlType="BIGINT" i18n-en:displayName="Process Count"/>
-                <column code="SKIP_COUNT" displayName="跳过数量" name="skipCount" propId="19" stdDataType="long"
-                        stdSqlType="BIGINT" i18n-en:displayName="Skip Count"/>
+                <column code="COMPLETE_COUNT" displayName="完成数量" mandatory="true" name="completeCount" propId="16"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Complete Count"/>
+                <column code="PROCESS_COUNT" displayName="处理数量" mandatory="true" name="processCount" propId="18"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Process Count"/>
+                <column code="SKIP_COUNT" displayName="跳过数量" mandatory="true" name="skipCount" propId="19"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Skip Count"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="20"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"

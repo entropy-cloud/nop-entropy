@@ -7,6 +7,8 @@
  */
 package io.nop.orm.model;
 
+import io.nop.commons.type.StdDataType;
+import io.nop.commons.type.StdSqlType;
 import io.nop.orm.model._gen._OrmColumnModel;
 
 import java.util.Collections;
@@ -110,5 +112,20 @@ public class OrmColumnModel extends _OrmColumnModel implements IColumnModel {
 
     public void setSqlType(String sqlType) {
         this.sqlType = sqlType;
+    }
+
+    public Object getNormalizedDefaultValue() {
+        String defaultValue = getDefaultValue();
+        if (defaultValue == null)
+            return null;
+
+        StdSqlType sqlType = getStdSqlType();
+        if (sqlType == null) {
+            StdDataType dataType = getStdDataType();
+            if (dataType == null)
+                return null;
+            return dataType.convert(defaultValue);
+        }
+        return sqlType.getStdDataType().convert(defaultValue);
     }
 }
