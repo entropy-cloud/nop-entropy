@@ -18,7 +18,6 @@ import io.nop.core.lang.eval.IEvalScope;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 public class DelegateServiceContext implements IServiceContext {
@@ -111,26 +110,6 @@ public class DelegateServiceContext implements IServiceContext {
     @Override
     public IEvalScope getEvalScope() {
         return serviceContext.getEvalScope();
-    }
-
-    @Override
-    public void registerAsyncResult(Future<Consumer<? extends IExecutionContext>> asyncFuture) {
-        serviceContext.registerAsyncResult(asyncFuture);
-    }
-
-    @Override
-    public boolean hasAsyncResult() {
-        return serviceContext.hasAsyncResult();
-    }
-
-    @Override
-    public void awaitAsyncResults() {
-        serviceContext.awaitAsyncResults();
-    }
-
-    @Override
-    public void cancelAsyncResults() {
-        serviceContext.cancelAsyncResults();
     }
 
     @Override

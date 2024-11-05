@@ -26,19 +26,6 @@ public interface IExecutionContext extends IEvalContext, IAttributeSet, ICancell
     void setEvalScope(IEvalScope scope);
 
     /**
-     * 这里使用了一个技巧，通过Future<Consumer<ExecutionContext>>这种方式注册一个回调函数， 当awaitAsyncResults返回时会等待所有future结束并执行回调。
-     *
-     * @param asyncFuture 异步调用对应的future对象
-     */
-    void registerAsyncResult(Future<Consumer<? extends IExecutionContext>> asyncFuture);
-
-    boolean hasAsyncResult();
-
-    void awaitAsyncResults();
-
-    void cancelAsyncResults();
-
-    /**
      * 执行complete操作或者completeExceptionally操作会先触发beforeComplete回调函数，然后再迁移状态。
      *
      * @param callback 如果回调函数抛出异常，将导致后续的beforeComplete回调被跳过，complete调用失败。

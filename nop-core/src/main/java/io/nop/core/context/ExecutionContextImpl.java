@@ -21,8 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 public class ExecutionContextImpl extends Cancellable implements IExecutionContext {
@@ -31,7 +29,6 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
     private final Map<String, Object> attributes;
     private IEvalScope scope;
 
-    private List<Future<Consumer<? extends IExecutionContext>>> asyncResults;
     private List<Runnable> beforeCompletes;
     private List<Consumer<Throwable>> afterCompletes;
     private boolean done;
@@ -82,75 +79,6 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
     }
 
     @Override
-    public synchronized boolean hasAsyncResult() {
-        return asyncResults != null && !asyncResults.isEmpty();
-    }
-
-    @Override
-    public synchronized void registerAsyncResult(Future<Consumer<? extends IExecutionContext>> asyncResult) {
-        if (isDone()) {
-            throw new IllegalStateException("nop.err.execution-already-completed");
-        }
-
-        if (this.asyncResults == null)
-            this.asyncResults = new ArrayList<>();
-        this.asyncResults.add(asyncResult);
-    }
-
-    @Override
-    public void awaitAsyncResults() {
-        List<Future<Consumer<? extends IExecutionContext>>> results;
-        synchronized (this) {
-            results = this.asyncResults;
-            this.asyncResults = null;
-        }
-
-        if (results == null)
-            return;
-
-        for (Future<Consumer<? extends IExecutionContext>> future : results) {
-            try {
-                Consumer consumer = future.get();
-                if (consumer != null)
-                    consumer.accept(this);
-            } catch (ExecutionException e) {
-                cancelAll(results);
-                throw NopException.adapt(e.getCause());
-            } catch (InterruptedException e) {
-                cancelAll(results);
-                Thread.currentThread().interrupt();
-                throw NopException.adapt(e);
-            } catch (Exception e) {
-                cancelAll(results);
-                throw NopException.adapt(e);
-            }
-        }
-    }
-
-    @Override
-    public void cancelAsyncResults() {
-        List<Future<Consumer<? extends IExecutionContext>>> results;
-        synchronized (this) {
-            results = this.asyncResults;
-            this.asyncResults = null;
-        }
-        this.cancelAll(results);
-    }
-
-    void cancelAll(List<Future<Consumer<? extends IExecutionContext>>> futures) {
-        if (futures == null)
-            return;
-
-        for (Future f : futures) {
-            try {
-                f.cancel(false);
-            } catch (Exception e) {
-                LOG.info("nop.err.core.context.cancel-async-result-fail", e);
-            }
-        }
-    }
-
-    @Override
     public void addBeforeComplete(Runnable callback) {
         synchronized (this) {
             if (isDone()) {
@@ -178,7 +106,6 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
 
     @Override
     public void complete() {
-        awaitAsyncResults();
         if (isDone())
             return;
 
@@ -191,7 +118,6 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
 
     @Override
     public void completeExceptionally(Throwable exception) {
-        cancelAsyncResults();
         synchronized (this) {
             this.error = exception;
             this.done = true;
