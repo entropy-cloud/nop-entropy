@@ -98,15 +98,14 @@ public class GraphQLActionAuthChecker {
             throw new IllegalStateException("nop.err.auth.no-user-context");
 
         if (action) {
-            if (auth.isSkipWhenNoAuth())
-                return false;
-
             throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION)
                     .param(AuthApiErrors.ARG_ACTION_NAME, fieldName)
                     .param(ARG_PERMISSION, auth.getPermissions())
                     .param(ARG_ROLES, auth.getRoles())
                     .param(ARG_OBJ_TYPE_NAME, objTypeName);
         } else {
+            if (auth.isSkipWhenNoAuth())
+                return false;
             throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION_FOR_FIELD)
                     .param(AuthApiErrors.ARG_FIELD_NAME, fieldName)
                     .param(ARG_PERMISSION, auth.getPermissions())

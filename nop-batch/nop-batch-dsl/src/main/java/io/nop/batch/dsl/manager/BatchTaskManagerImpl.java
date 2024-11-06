@@ -1,6 +1,8 @@
 package io.nop.batch.dsl.manager;
 
+import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.batch.core.IBatchStateStore;
+import io.nop.batch.core.IBatchTaskBuilder;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
 import io.nop.batch.core.manager.IBatchTaskManager;
@@ -62,17 +64,17 @@ public class BatchTaskManagerImpl implements IBatchTaskManager {
     }
 
     @Override
-    public IBatchTaskFactory newBatchTaskFactory(String batchTaskName, Long batchTaskVersion) {
+    public IBatchTaskBuilder newBatchTaskBuilder(String batchTaskName, Long batchTaskVersion, IBeanProvider beanProvider) {
         BatchTaskModel taskModel = loadBatchTaskModel(batchTaskName, batchTaskVersion);
         return new ModelBasedBatchTaskFactory(batchTaskName, taskModel, stateStore, transactionTemplate,
-                ormTemplate, jdbcTemplate, daoProvider);
+                ormTemplate, jdbcTemplate, daoProvider).newTaskBuilder(beanProvider);
     }
 
     @Override
-    public IBatchTaskFactory newBatchTaskFactoryFromModel(String batchTaskName, XNode node) {
+    public IBatchTaskBuilder newBatchTaskBuilderFromModel(String batchTaskName, XNode node, IBeanProvider beanProvider) {
         BatchTaskModel taskModel = (BatchTaskModel) new DslModelParser().parseFromNode(node);
         return new ModelBasedBatchTaskFactory(batchTaskName, taskModel, stateStore, transactionTemplate,
-                ormTemplate, jdbcTemplate, daoProvider);
+                ormTemplate, jdbcTemplate, daoProvider).newTaskBuilder(beanProvider);
     }
 
     public BatchTaskModel loadBatchTaskModel(String batchTaskName, Long taskVersion) {

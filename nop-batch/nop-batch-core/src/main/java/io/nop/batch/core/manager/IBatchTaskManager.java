@@ -1,5 +1,6 @@
 package io.nop.batch.core.manager;
 
+import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.batch.core.IBatchTask;
 import io.nop.batch.core.IBatchTaskBuilder;
 import io.nop.batch.core.IBatchTaskContext;
@@ -20,10 +21,11 @@ public interface IBatchTaskManager {
     }
 
     default IBatchTask newBatchTask(String batchTaskName, Long batchTaskVersion, IBatchTaskContext taskContext) {
-        return newBatchTaskBuilder(batchTaskName, batchTaskVersion).buildTask(taskContext);
+        return newBatchTaskBuilder(batchTaskName, batchTaskVersion, taskContext.getEvalScope().getBeanProvider())
+                .buildTask(taskContext);
     }
 
-    IBatchTaskBuilder newBatchTaskBuilder(String batchTaskName, Long batchTaskVersion);
+    IBatchTaskBuilder newBatchTaskBuilder(String batchTaskName, Long batchTaskVersion, IBeanProvider beanProvider);
 
-    IBatchTaskBuilder newBatchTaskBuilderFromModel(String batchTaskName, XNode node);
+    IBatchTaskBuilder newBatchTaskBuilderFromModel(String batchTaskName, XNode node, IBeanProvider beanProvider);
 }

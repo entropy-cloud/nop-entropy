@@ -18,11 +18,20 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.utils.IVarSet;
 import io.nop.core.utils.MapVarSet;
 import io.nop.xlang.api.XLang;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatchTaskContext {
+    static final Logger LOG = LoggerFactory.getLogger(BatchTaskContextImpl.class);
+
     private final IServiceContext serviceContext;
 
     private String taskName;
@@ -38,6 +47,12 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private final AtomicLong completeItemCount = new AtomicLong();
     private final AtomicLong processItemCount = new AtomicLong();
     private volatile long completedIndex;
+
+    private List<Runnable> onTaskBegins;
+    private List<Consumer<Throwable>> onTaskEnds;
+    private final List<Consumer<IBatchChunkContext>> onChunkBegins = new CopyOnWriteArrayList<>();
+    private final List<Consumer<IBatchChunkContext>> onBeforeChunkEnds = new CopyOnWriteArrayList<>();
+    private final List<BiConsumer<Throwable, IBatchChunkContext>> onChunkEnds = new CopyOnWriteArrayList<>();
 
     public BatchTaskContextImpl(IServiceContext svcCtx, IEvalScope scope) {
         super(scope);
@@ -192,5 +207,100 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     @Override
     public void incProcessItemCount(int count) {
         processItemCount.addAndGet(count);
+    }
+
+    @Override
+    public void onTaskBegin(Runnable action) {
+        synchronized (this) {
+            if (isDone()) {
+                throw new IllegalStateException("nop.err.execution-already-completed");
+            }
+
+            if (this.onTaskBegins == null)
+                this.onTaskBegins = new ArrayList<>();
+            onTaskBegins.add(action);
+        }
+    }
+
+    @Override
+    public void onChunkBegin(Consumer<IBatchChunkContext> action) {
+        synchronized (this) {
+            if (isDone()) {
+                throw new IllegalStateException("nop.err.execution-already-completed");
+            }
+            onChunkBegins.add(action);
+        }
+    }
+
+    @Override
+    public void onBeforeChunkEnd(Consumer<IBatchChunkContext> action) {
+        synchronized (this) {
+            if (isDone()) {
+                throw new IllegalStateException("nop.err.execution-already-completed");
+            }
+            onBeforeChunkEnds.add(action);
+        }
+    }
+
+
+    @Override
+    public void onChunkEnd(BiConsumer<Throwable, IBatchChunkContext> action) {
+        synchronized (this) {
+            if (isDone()) {
+                throw new IllegalStateException("nop.err.execution-already-completed");
+            }
+            onChunkEnds.add(action);
+        }
+    }
+
+    @Override
+    public void fireTaskBegin() {
+        List<Runnable> callbacks;
+        synchronized (this) {
+            callbacks = this.onTaskBegins;
+            if (callbacks != null)
+                this.onTaskBegins = null;
+        }
+        if (callbacks != null) {
+            for (Runnable callback : callbacks) {
+                callback.run();
+            }
+        }
+    }
+
+    @Override
+    public void fireBeforeChunkEnd(IBatchChunkContext chunkContext){
+        List<Consumer<IBatchChunkContext>> callbacks = this.onBeforeChunkEnds;
+
+        if (callbacks != null) {
+            for (Consumer<IBatchChunkContext> callback : callbacks) {
+                callback.accept(chunkContext);
+            }
+        }
+    }
+
+    @Override
+    public void fireChunkBegin(IBatchChunkContext chunkContext) {
+        List<Consumer<IBatchChunkContext>> callbacks = this.onChunkBegins;
+
+        if (callbacks != null) {
+            for (Consumer<IBatchChunkContext> callback : callbacks) {
+                callback.accept(chunkContext);
+            }
+        }
+    }
+
+    @Override
+    public void fireChunkEnd(Throwable err, IBatchChunkContext chunkContext) {
+        List<BiConsumer<Throwable, IBatchChunkContext>> callbacks = this.onChunkEnds;
+        if (callbacks != null) {
+            for (BiConsumer<Throwable, IBatchChunkContext> callback : callbacks) {
+                try {
+                    callback.accept(err, chunkContext);
+                } catch (Exception e) {
+                    LOG.error("nop.err.core.execution-after-complete-callback-fail", e);
+                }
+            }
+        }
     }
 }

@@ -10,6 +10,7 @@ package io.nop.batch.core.processor;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchProcessorProvider.IBatchProcessor;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 public final class CompositeBatchProcessor<S, R, T> implements IBatchProcessor<S, T> {
@@ -19,6 +20,14 @@ public final class CompositeBatchProcessor<S, R, T> implements IBatchProcessor<S
     public CompositeBatchProcessor(IBatchProcessor<S, R> processor, IBatchProcessor<R, T> next) {
         this.processor = processor;
         this.next = next;
+    }
+
+    public static <S, R> IBatchProcessor<S, R> fromList(List<IBatchProcessor<?, ?>> processors) {
+        if (processors.isEmpty())
+            return null;
+        if (processors.size() == 1)
+            return (IBatchProcessor<S, R>) processors.get(0);
+        return new CompositeBatchProcessor(processors.get(0), fromList(processors.subList(1, processors.size())));
     }
 
     public IBatchProcessor<S, R> getProcessor() {

@@ -46,7 +46,7 @@ public class TestBatchTask {
         builder.skipPolicy(new BatchSkipPolicy().maxSkipCount(10000));
         builder.retryOneByOne(true).retryPolicy(RetryPolicy.retryNTimes(3));
 
-        IBatchTask task = builder.build();
+        IBatchTask task = builder.buildTask(context);
         task.executeAsync(context);
 
         FutureHelper.syncGet(future);
@@ -58,7 +58,13 @@ public class TestBatchTask {
         assertEquals(502, context.getSkipItemCount());
     }
 
-    class MockProcessor implements IBatchProcessor<String, String, IBatchChunkContext> {
+    class MockProcessor implements IBatchProcessorProvider.IBatchProcessor<String, String>, IBatchProcessorProvider<String, String> {
+
+        @Override
+        public IBatchProcessor<String, String> setup(IBatchTaskContext taskContext) {
+            return this;
+        }
+
         @Override
         public void process(String item, Consumer<String> consumer, IBatchChunkContext context) {
             int index = Integer.parseInt(item);
@@ -69,8 +75,13 @@ public class TestBatchTask {
         }
     }
 
-    class MockLoader implements IBatchLoader<String, IBatchChunkContext> {
+    class MockLoader implements IBatchLoaderProvider.IBatchLoader<String>, IBatchLoaderProvider<String> {
         int count = 0;
+
+        @Override
+        public IBatchLoader<String> setup(IBatchTaskContext context) {
+            return this;
+        }
 
         @Override
         public synchronized List<String> load(int batchSize, IBatchChunkContext context) {
@@ -89,9 +100,14 @@ public class TestBatchTask {
         }
     }
 
-    class MockConsumer implements IBatchConsumer<String, IBatchChunkContext> {
+    class MockConsumer implements IBatchConsumerProvider.IBatchConsumer<String>, IBatchConsumerProvider<String> {
         AtomicInteger count = new AtomicInteger();
         Set<String> items = new ConcurrentSkipListSet<>();
+
+        @Override
+        public IBatchConsumer<String> setup(IBatchTaskContext context) {
+            return this;
+        }
 
         @Override
         public void consume(List<String> items, IBatchChunkContext context) {

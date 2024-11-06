@@ -84,7 +84,6 @@ public class BatchTaskExecution implements IBatchTask {
         try {
             if (err == null) {
                 try {
-                    context.awaitAsyncResults();
                     context.fireBeforeComplete();
 
                     // 任务执行完毕之后保存状态到数据库中，然后再触发context.complete()函数通知外部任务完成
@@ -99,8 +98,6 @@ public class BatchTaskExecution implements IBatchTask {
             }
             if (err != null) {
                 try {
-                    context.cancelAsyncResults();
-
                     // 任务执行完毕之后保存状态到数据库中，然后再触发context.complete()函数通知外部任务完成
                     if (stateStore != null) {
                         stateStore.saveTaskState(true, err, context);
@@ -162,15 +159,15 @@ public class BatchTaskExecution implements IBatchTask {
 
             result = chunkProcessor.process(chunkContext);
 
-            chunkContext.awaitAsyncResults();
             chunkContext.fireBeforeComplete();
 
-            chunkContext.getTaskContext().fireChunkEnd(null, chunkContext);
+            chunkContext.getTaskContext().fireBeforeChunkEnd(chunkContext);
 
             if (stateStore != null)
                 stateStore.saveTaskState(false, null, context);
 
             chunkContext.complete();
+            chunkContext.getTaskContext().fireChunkEnd(null, chunkContext);
 
         } catch (Throwable e) {
             success = false;
@@ -179,8 +176,6 @@ public class BatchTaskExecution implements IBatchTask {
                     e);
 
             try {
-                chunkContext.cancelAsyncResults();
-
                 chunkContext.getTaskContext().fireChunkEnd(e, chunkContext);
 
                 if (stateStore != null)

@@ -9,13 +9,8 @@ package io.nop.dbtool.exp;
 
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
-import io.nop.batch.core.BatchTaskBuilder;
-import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchLoader;
-import io.nop.batch.core.IBatchProcessor;
-import io.nop.batch.core.IBatchTask;
-import io.nop.batch.core.IBatchTaskContext;
-import io.nop.batch.core.consumer.MultiBatchConsumer;
+import io.nop.batch.core.*;
+import io.nop.batch.core.consumer.MultiBatchConsumerProvider;
 import io.nop.batch.core.consumer.ResourceRecordConsumerProvider;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
 import io.nop.batch.jdbc.consumer.GenInsertSqlRecordIO;
@@ -42,12 +37,7 @@ import io.nop.orm.model.OrmEntityModel;
 
 import javax.sql.DataSource;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class ExportDbTool {
@@ -195,30 +185,30 @@ public class ExportDbTool {
         BatchTaskBuilder builder = new BatchTaskBuilder();
         builder.loader(newLoader(tableConfig, ds));
         builder.batchSize(config.getBatchSize());
-        builder.addProcessor(newProcessor(tableConfig));
+        builder.processor(newProcessor(tableConfig));
         builder.consumer(newConsumer(tableConfig));
 
-        IBatchTask task = builder.build();
         IBatchTaskContext context = new BatchTaskContextImpl();
         if (args != null)
             context.getEvalScope().setLocalValues(args);
+        IBatchTask task = builder.buildTask(context);
         task.execute(context);
     }
 
-    private IBatchProcessor<Map<String, Object>, Map<String, Object>, IBatchChunkContext> newProcessor(ExportTableConfig tableConfig) {
+    private IBatchProcessorProvider<Map<String, Object>, Map<String, Object>> newProcessor(ExportTableConfig tableConfig) {
         return new FieldsProcessor(tableConfig.getFields(), tableConfig.getTransformExpr());
     }
 
-    private IBatchLoader<Map<String, Object>, IBatchChunkContext> newLoader(ExportTableConfig tableConfig,
-                                                                            DataSource ds) {
+    private IBatchLoaderProvider<Map<String, Object>> newLoader(ExportTableConfig tableConfig,
+                                                                DataSource ds) {
         JdbcBatchLoader<Map<String, Object>> loader = new JdbcBatchLoader<>();
         loader.setDataSource(ds);
         loader.setSqlGenerator(ctx -> tableConfig.buildSQL(config.getFetchSize(), ctx));
         return loader;
     }
 
-    private IBatchConsumer<Map<String, Object>, IBatchChunkContext> newConsumer(ExportTableConfig tableConfig) {
-        List<IBatchConsumer<Map<String, Object>, IBatchChunkContext>> list = new ArrayList<>();
+    private IBatchConsumerProvider<Map<String, Object>> newConsumer(ExportTableConfig tableConfig) {
+        List<IBatchConsumerProvider<Map<String, Object>>> list = new ArrayList<>();
         List<String> fields = tableConfig.getTargetFieldNames();
 
         if (config.getExportFormats() != null) {
@@ -235,10 +225,10 @@ public class ExportDbTool {
         }
         if (list.isEmpty())
             return newCsvConsumer(tableConfig.getExportFileName("csv"), fields);
-        return new MultiBatchConsumer<>(list);
+        return MultiBatchConsumerProvider.fromList(list);
     }
 
-    private IBatchConsumer<Map<String, Object>, IBatchChunkContext> newCsvConsumer(String resourcePath, List<String> fields) {
+    private IBatchConsumerProvider<Map<String, Object>> newCsvConsumer(String resourcePath, List<String> fields) {
         CsvResourceRecordIO<Map<String, Object>> recordIO = new CsvResourceRecordIO<>();
         recordIO.setRecordType(Map.class);
         recordIO.setSupportZip(true);
@@ -247,17 +237,17 @@ public class ExportDbTool {
         return newResourceConsumer(recordIO, resourcePath);
     }
 
-    private IBatchConsumer<Map<String, Object>, IBatchChunkContext> newGenSqlConsumer(String resourcePath,
-                                                                                      List<String> fields) {
+    private IBatchConsumerProvider<Map<String, Object>> newGenSqlConsumer(String resourcePath,
+                                                                          List<String> fields) {
         GenInsertSqlRecordIO recordIO = new GenInsertSqlRecordIO();
         recordIO.setDialect(dialect.getName());
         recordIO.setFields(fields);
         return newResourceConsumer(recordIO, resourcePath);
     }
 
-    private <S, C> ResourceRecordConsumerProvider<S, C> newResourceConsumer(IResourceRecordIO<S> recordIO,
-                                                                            String resourcePath) {
-        ResourceRecordConsumerProvider<S, C> consumer = new ResourceRecordConsumerProvider<>();
+    private <S> ResourceRecordConsumerProvider<S> newResourceConsumer(IResourceRecordIO<S> recordIO,
+                                                                      String resourcePath) {
+        ResourceRecordConsumerProvider<S> consumer = new ResourceRecordConsumerProvider<>();
         consumer.setRecordIO(recordIO);
         consumer.setResourcePath(resourcePath);
         consumer.setResourceLoader(outputResourceLoader);

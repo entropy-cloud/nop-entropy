@@ -1657,6 +1657,14 @@
           "io.nop.auth.dao.entity.NopAuthResource",
           "io.nop.core.context.IServiceContext"
         ]
+      },
+      {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthResource",
+          "io.nop.core.context.IServiceContext",
+          "java.lang.String"
+        ]
       }
     ],
     "name": "io.nop.auth.service.entity.NopAuthResourceBizModel"
@@ -2012,6 +2020,14 @@
         "parameterTypes": [
           "io.nop.orm.IOrmEntity",
           "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.orm.IOrmEntity",
+          "io.nop.core.context.IServiceContext",
+          "java.lang.String"
         ]
       },
       {
@@ -5154,6 +5170,14 @@
         "parameterTypes": [
           "io.nop.dyn.dao.entity.NopDynFunctionMeta",
           "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "afterEntityChange",
+        "parameterTypes": [
+          "io.nop.dyn.dao.entity.NopDynFunctionMeta",
+          "io.nop.core.context.IServiceContext",
+          "java.lang.String"
         ]
       }
     ],
@@ -9887,6 +9911,14 @@
         "name": "checkWaitingSteps",
         "parameterTypes": [
           "io.nop.wf.core.impl.IWorkflowImplementor",
+          "io.nop.wf.core.engine.WfRuntime"
+        ]
+      },
+      {
+        "name": "doExitStep",
+        "parameterTypes": [
+          "io.nop.wf.core.impl.IWorkflowStepImplementor",
+          "int",
           "io.nop.wf.core.engine.WfRuntime"
         ]
       },

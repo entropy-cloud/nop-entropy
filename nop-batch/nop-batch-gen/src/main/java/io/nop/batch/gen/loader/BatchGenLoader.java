@@ -7,7 +7,8 @@
  */
 package io.nop.batch.gen.loader;
 
-import io.nop.batch.core.IBatchLoader;
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.common.AbstractBatchResourceHandler;
 import io.nop.batch.gen.IBatchGenContext;
@@ -20,17 +21,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BatchGenLoader<C> extends AbstractBatchResourceHandler
-        implements IBatchLoader<Object, C>, IBatchTaskListener {
-
-    private BatchGenModel genModel;
-    private BatchGenState genState;
+        implements IBatchLoaderProvider<Object> {
 
     /**
      * 总共生成多少条记录
      */
     private long totalCount;
-
-    private IBatchGenContext genContext;
 
     public long getTotalCount() {
         return totalCount;
@@ -40,28 +36,28 @@ public class BatchGenLoader<C> extends AbstractBatchResourceHandler
         this.totalCount = totalCount;
     }
 
-    @Override
-    public synchronized void onTaskBegin(IBatchTaskContext context) {
-        genModel = new BatchGenModelParser().parseFromResource(getResource(context));
-        genState = new BatchGenState(genModel, totalCount);
-        genContext = new BatchGenContextImpl();
+    static class LoaderState {
+        BatchGenModel genModel;
+        BatchGenState genState;
+        IBatchGenContext genContext;
     }
 
     @Override
-    public synchronized void onTaskEnd(Throwable exception, IBatchTaskContext context) {
-        genModel = null;
-        genState = null;
-        genContext = null;
+    public IBatchLoader<Object> setup(IBatchTaskContext context) {
+        LoaderState state = new LoaderState();
+        state.genModel = new BatchGenModelParser().parseFromResource(getResource(context));
+        state.genState = new BatchGenState(state.genModel, totalCount);
+        state.genContext = new BatchGenContextImpl();
+        return (batchSize, ctx) -> load(batchSize, ctx, state);
     }
 
-    @Override
-    public synchronized List<Object> load(int batchSize, C context) {
+    synchronized List<Object> load(int batchSize, IBatchChunkContext context, LoaderState state) {
         List<Object> ret = new ArrayList<>(batchSize);
         for (int i = 0; i < batchSize; i++) {
-            if (!genState.hasNext())
+            if (!state.genState.hasNext())
                 break;
 
-            Object item = genState.next(genContext, true);
+            Object item = state.genState.next(state.genContext, true);
             ret.add(item);
         }
         return ret;

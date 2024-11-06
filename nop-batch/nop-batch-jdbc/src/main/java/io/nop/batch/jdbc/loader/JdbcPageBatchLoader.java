@@ -10,7 +10,7 @@ package io.nop.batch.jdbc.loader;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchLoader;
+import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.core.lang.sql.ISqlGenerator;
 import io.nop.core.lang.sql.SQL;
@@ -22,7 +22,7 @@ import jakarta.inject.Inject;
 
 import java.util.List;
 
-public class JdbcPageBatchLoader<T> implements IBatchLoader<T, IBatchChunkContext>, IBatchTaskListener {
+public class JdbcPageBatchLoader<T> implements IBatchLoaderProvider<T> {
     private IJdbcTemplate jdbcTemplate;
 
     private ISqlGenerator sqlGenerator;
@@ -32,9 +32,6 @@ public class JdbcPageBatchLoader<T> implements IBatchLoader<T, IBatchChunkContex
     @SuppressWarnings("unchecked")
     private IRowMapper<T> rowMapper = (IRowMapper<T>) ColumnMapRowMapper.CASE_INSENSITIVE;
 
-    private SQL sql;
-
-    private LongRangeBean range;
 
     public void setRowMapper(IRowMapper<T> rowMapper) {
         this.rowMapper = rowMapper;
@@ -68,25 +65,28 @@ public class JdbcPageBatchLoader<T> implements IBatchLoader<T, IBatchChunkContex
         setSqlGenerator(ctx -> namedSqlBuilder.buildSql(sqlName, ctx));
     }
 
-    @Override
-    public void onTaskBegin(IBatchTaskContext context) {
-        this.sql = sqlGenerator.generateSql(context);
-        this.range = null;
+    static class LoaderState {
+        SQL sql;
+        LongRangeBean range;
     }
 
     @Override
-    public void onTaskEnd(Throwable exception, IBatchTaskContext context) {
-        this.sql = null;
-        this.range = null;
+    public IBatchLoader<T> setup(IBatchTaskContext context) {
+        LoaderState state = new LoaderState();
+        state.sql = sqlGenerator.generateSql(context);
+
+        return (batchSize, ctx) -> load(batchSize, ctx, state);
     }
 
-    @Override
-    public synchronized List<T> load(int batchSize, IBatchChunkContext context) {
+    synchronized List<T> load(int batchSize, IBatchChunkContext context, LoaderState state) {
+        LongRangeBean range = state.range;
         if (range == null) {
             range = LongRangeBean.longRange(0, batchSize);
         } else {
             range = LongRangeBean.longRange(range.getEnd(), batchSize);
         }
-        return jdbcTemplate.findPage(sql, range.getOffset(), (int) range.getLimit(), rowMapper);
+        state.range = range;
+
+        return jdbcTemplate.findPage(state.sql, range.getOffset(), (int) range.getLimit(), rowMapper);
     }
 }

@@ -5,12 +5,13 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.batch.core.*;
 import io.nop.batch.core.consumer.EmptyBatchConsumer;
-import io.nop.batch.core.consumer.MultiBatchConsumer;
+import io.nop.batch.core.consumer.MultiBatchConsumerProvider;
 import io.nop.batch.core.consumer.ResourceRecordConsumerProvider;
 import io.nop.batch.core.consumer.SplitBatchConsumer;
 import io.nop.batch.core.filter.EvalBatchRecordFilter;
 import io.nop.batch.core.loader.ResourceRecordLoaderProvider;
 import io.nop.batch.core.processor.FilterBatchProcessor;
+import io.nop.batch.core.processor.MultiBatchProcessorProvider;
 import io.nop.batch.dsl.model.*;
 import io.nop.batch.orm.loader.OrmQueryBatchLoaderProvider;
 import io.nop.commons.collections.OrderByComparator;
@@ -45,7 +46,7 @@ import java.util.concurrent.Executor;
 import static io.nop.batch.dsl.BatchDslErrors.ARG_BATCH_TASK_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_NO_LOADER;
 
-public class ModelBasedBatchTaskFactory implements IBatchTaskBuilder {
+public class ModelBasedBatchTaskFactory {
     private final String batchTaskName;
     private final BatchTaskModel batchTaskModel;
     private final ITransactionTemplate transactionTemplate;
@@ -130,7 +131,7 @@ public class ModelBasedBatchTaskFactory implements IBatchTaskBuilder {
         builder.loader(loader);
 
         if (batchTaskModel.getProcessors() != null) {
-            List<IBatchProcessorProvider<Object, Object>> list = new ArrayList<>(batchTaskModel.getProcessors().size());
+            List<IBatchProcessorProvider<?, ?>> list = new ArrayList<>(batchTaskModel.getProcessors().size());
 
             for (BatchProcessorModel processorModel : batchTaskModel.getProcessors()) {
                 IBatchProcessorProvider<Object, Object> processor = buildProcessor(processorModel, builder, beanContainer);
@@ -139,49 +140,49 @@ public class ModelBasedBatchTaskFactory implements IBatchTaskBuilder {
                 }
                 list.add(processor);
             }
-            builder.processors(list);
+            builder.processor(MultiBatchProcessorProvider.fromList(list));
         }
 
-        IBatchChunkProcessorBuilder chunkProcessor = buildChunkProcessorBuilder(builder, beanContainer);
+        IBatchChunkProcessorBuilder<Object> chunkProcessor = buildChunkProcessorBuilder(builder, beanContainer);
         if (chunkProcessor != null)
             builder.chunkProcessorBuilder(chunkProcessor);
 
         IRecordTagger<Object, IBatchChunkContext> tagger = getTagger(beanContainer);
-        IRecordSplitter<?, ?, IBatchChunkContext> splitter = tagger == null ? null : new RecordTagSplitter<Object, IBatchChunkContext>(tagger);
+        IRecordSplitter<Object, Object, IBatchChunkContext> splitter = tagger == null ? null : new RecordTagSplitter<>(tagger);
 
         if (batchTaskModel.getWriters().size() == 1) {
-            IBatchConsumer<Object, IBatchChunkContext> writer = getWriter(batchTaskModel.getWriters().get(0), beanContainer);
+            IBatchConsumerProvider<Object> writer = getWriter(batchTaskModel.getWriters().get(0), beanContainer);
             builder.consumer(writer);
         } else {
-            Map<String, List<IBatchConsumer<Object, IBatchChunkContext>>> map = new HashMap<>();
+            Map<String, List<IBatchConsumerProvider<Object>>> map = new HashMap<>();
             for (BatchWriterModel writerModel : batchTaskModel.getWriters()) {
-                IBatchConsumer<Object, IBatchChunkContext> writer = getWriter(writerModel, beanContainer);
+                IBatchConsumerProvider<Object> writer = getWriter(writerModel, beanContainer);
                 map.computeIfAbsent(writerModel.getForTag(), k -> new ArrayList<>()).add(writer);
             }
 
-            List<IBatchConsumer<Object, IBatchChunkContext>> list = map.remove(null);
+            List<IBatchConsumerProvider<Object>> list = map.remove(null);
             if (map.isEmpty()) {
                 if (list != null) {
                     builder.consumer(buildWriter(list));
                 }
             } else {
-                List<IBatchConsumer<?, IBatchChunkContext>> writers = new ArrayList<>();
+                List<IBatchConsumerProvider<Object>> writers = new ArrayList<>();
 
                 if (splitter != null) {
-                    Map<String, IBatchConsumer<Object, IBatchChunkContext>> consumerMap = new HashMap<>();
+                    Map<String, IBatchConsumerProvider<Object>> consumerMap = new HashMap<>();
                     map.forEach((name, consumers) -> {
-                        IBatchConsumer<Object, IBatchChunkContext> writer = buildWriter(consumers);
-                        builder.addListener(writer);
+                        IBatchConsumerProvider<Object> writer = buildWriter(consumers);
                         consumerMap.put(name, writer);
                     });
 
-                    SplitBatchConsumer writer = new SplitBatchConsumer(splitter, consumerMap::get, false);
+                    SplitBatchConsumer<Object, Object> writer = new SplitBatchConsumer<>(splitter,
+                            (tag, ctx) -> consumerMap.get(tag).setup(ctx.getTaskContext()), false);
                     writers.add(writer);
                 }
                 if (list != null) {
                     writers.add(buildWriter(list));
                 }
-                builder.consumers(writers);
+                builder.consumer(MultiBatchConsumerProvider.fromList(writers));
             }
         }
     }
@@ -190,12 +191,12 @@ public class ModelBasedBatchTaskFactory implements IBatchTaskBuilder {
         return new FilterBatchProcessor<>(new EvalBatchRecordFilter<>(func));
     }
 
-    private IBatchConsumer<Object, IBatchChunkContext> buildWriter(List<IBatchConsumer<Object, IBatchChunkContext>> list) {
+    private IBatchConsumerProvider<Object> buildWriter(List<IBatchConsumerProvider<Object>> list) {
         if (list == null || list.isEmpty())
             return null;
         if (list.size() == 1)
             return list.get(0);
-        return new MultiBatchConsumer<>(list);
+        return new MultiBatchConsumerProvider<>(list);
     }
 
     @SuppressWarnings("unchecked")

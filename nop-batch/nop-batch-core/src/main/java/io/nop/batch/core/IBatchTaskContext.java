@@ -107,15 +107,19 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void incProcessItemCount(int count);
 
-    void onTaskBegin(Runnable task);
+    void onTaskBegin(Runnable action);
 
     void onChunkBegin(Consumer<IBatchChunkContext> action);
+
+    void onBeforeChunkEnd(Consumer<IBatchChunkContext> action);
 
     void onChunkEnd(BiConsumer<Throwable, IBatchChunkContext> action);
 
     void fireTaskBegin();
 
     void fireChunkBegin(IBatchChunkContext chunkContext);
+
+    void fireBeforeChunkEnd(IBatchChunkContext chunkContext);
 
     void fireChunkEnd(Throwable err, IBatchChunkContext chunkContext);
 }

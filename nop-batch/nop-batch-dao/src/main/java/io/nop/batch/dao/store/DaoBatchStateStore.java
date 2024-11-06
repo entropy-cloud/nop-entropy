@@ -1,7 +1,6 @@
 package io.nop.batch.dao.store;
 
 import io.nop.api.core.time.CoreMetrics;
-import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchStateStore;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.dao.entity.NopBatchTask;
@@ -45,7 +44,7 @@ public class DaoBatchStateStore implements IBatchStateStore {
     }
 
     @Override
-    public void saveTaskState(IBatchTaskContext context) {
+    public void saveTaskState(boolean complete, Throwable err, IBatchTaskContext context) {
         String taskId = context.getTaskId();
         if (StringHelper.isEmpty(taskId)) {
             saveRecord(context);
