@@ -49,7 +49,7 @@ public class PartitionDispatchLoaderProvider<S>
         PartitionDispatchQueue<S> queue = new PartitionDispatchQueue<>(loadBatchSize * 20, partitionFn, fetchThreadCount);
         AtomicReference<Exception> exception = new AtomicReference<>();
 
-        context.addAfterComplete(err -> {
+        context.onAfterComplete(err -> {
             queue.finish();
         });
 
@@ -63,7 +63,7 @@ public class PartitionDispatchLoaderProvider<S>
                 return Collections.emptyList();
             }
 
-            ctx.addAfterComplete(error -> {
+            ctx.onAfterComplete(error -> {
                 queue.completeBatch(map, ctx.getThreadIndex());
             });
 

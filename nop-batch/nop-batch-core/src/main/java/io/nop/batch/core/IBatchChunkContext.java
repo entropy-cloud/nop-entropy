@@ -53,6 +53,18 @@ public interface IBatchChunkContext extends IExecutionContext {
         setRetryCount(getRetryCount() + 1);
     }
 
+    int getLoadRetryCount();
+
+    void setLoadRetryCount(int loadRetryCount);
+
+    default void incLoadRetryCount() {
+        setLoadRetryCount(getLoadRetryCount() + 1);
+    }
+
+    default boolean isLoadRetrying() {
+        return getLoadRetryCount() > 0;
+    }
+
     /**
      * 是否是重试执行。第一次执行时retrying=false，如果chunk的第一次执行失败，逐条重试的时候retrying为true。
      */

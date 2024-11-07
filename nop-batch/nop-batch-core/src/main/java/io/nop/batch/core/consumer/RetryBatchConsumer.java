@@ -154,14 +154,11 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
         if (retryOneByOne) {
             return retryConsumeOneByOne(retryCount, items, context);
         } else {
-            Throwable consumeError = null;
             try {
                 consumer.consume(items, context);
             } catch (BatchCancelException e) {
-                consumeError = e;
                 throw e;
             } catch (Exception e) {
-                consumeError = e;
                 throw NopException.adapt(e);
             }
             return null;
@@ -180,18 +177,13 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
             List<R> single = Collections.singletonList(item);
 
 
-            Throwable consumeError = null;
-
             try {
                 consumer.consume(single, context);
                 context.addCompletedItem(item);
             } catch (BatchCancelException e) {
-                consumeError = e;
                 throw e;
             } catch (Exception e) {
                 LOG.error("nop.err.batch.retry-consume-one-fail:item={},retryCount={}", item, retryCount, e);
-
-                consumeError = e;
 
                 if (retryPolicy.getRetryDelay(e, retryCount + 1, context) >= 0) {
                     // 如果item可重试

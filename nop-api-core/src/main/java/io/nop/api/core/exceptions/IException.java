@@ -31,6 +31,9 @@ public interface IException {
      */
     boolean isWrapException();
 
+    /**
+     * bizFatal的异常一般不支持重试。
+     */
     boolean isBizFatal();
 
     /**

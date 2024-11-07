@@ -8,7 +8,11 @@
 package io.nop.batch.core.loader;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.batch.core.*;
+import io.nop.batch.core.IBatchAggregator;
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchLoaderProvider;
+import io.nop.batch.core.IBatchRecordFilter;
+import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.common.AbstractBatchResourceHandler;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.resource.IResource;
@@ -22,7 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static io.nop.batch.core.BatchErrors.*;
+import static io.nop.batch.core.BatchErrors.ARG_ITEM_COUNT;
+import static io.nop.batch.core.BatchErrors.ARG_READ_COUNT;
+import static io.nop.batch.core.BatchErrors.ARG_RESOURCE_PATH;
+import static io.nop.batch.core.BatchErrors.ERR_BATCH_TOO_MANY_PROCESSING_ITEMS;
 
 /**
  * 读取数据文件。支持设置aggregator，在读取的过程中计算一些汇总信息
@@ -133,7 +140,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
     public IBatchLoader<S> setup(IBatchTaskContext context) {
         LoaderState<S> state = newLoaderState(context);
         return (batchSize, ctx) -> {
-            ctx.addAfterComplete(err -> onChunkEnd(err, ctx, state));
+            ctx.onAfterComplete(err -> onChunkEnd(err, ctx, state));
             return load(batchSize, state);
         };
     }
@@ -148,10 +155,10 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
 
         if (aggregator != null) {
             state.combinedValue = aggregator.createCombinedValue(input.getHeaderMeta(), context);
-            context.addBeforeComplete(() -> {
+            context.onBeforeComplete(() -> {
                 aggregator.complete(state.input.getTrailerMeta(), state.combinedValue);
             });
-            context.addAfterComplete(err -> {
+            context.onAfterComplete(err -> {
                 IoHelper.safeCloseObject(state.input);
             });
         }

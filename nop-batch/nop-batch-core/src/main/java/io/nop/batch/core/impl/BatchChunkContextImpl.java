@@ -20,6 +20,7 @@ public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatc
     private List<?> chunkItems;
     private Set<Object> completedItems;
     private int retryCount;
+    private int loadRetryCount;
     private boolean singleMode = true;
     private int threadIndex;
     private int concurrency;
@@ -73,6 +74,16 @@ public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatc
         if (completedItems == null)
             completedItems = new HashSet<>();
         completedItems.add(item);
+    }
+
+    @Override
+    public int getLoadRetryCount() {
+        return loadRetryCount;
+    }
+
+    @Override
+    public void setLoadRetryCount(int loadRetryCount) {
+        this.loadRetryCount = loadRetryCount;
     }
 
     @Override

@@ -79,7 +79,7 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
     }
 
     @Override
-    public void addBeforeComplete(Runnable callback) {
+    public void onBeforeComplete(Runnable callback) {
         synchronized (this) {
             if (isDone()) {
                 throw new IllegalStateException("nop.err.execution-already-completed");
@@ -92,7 +92,7 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
     }
 
     @Override
-    public void addAfterComplete(Consumer<Throwable> callback) {
+    public void onAfterComplete(Consumer<Throwable> callback) {
         synchronized (this) {
             if (isDone()) {
                 throw new IllegalStateException("nop.err.execution-already-completed");

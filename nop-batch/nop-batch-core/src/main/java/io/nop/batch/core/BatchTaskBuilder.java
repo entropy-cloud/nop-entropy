@@ -12,9 +12,16 @@ import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 import io.nop.batch.core.IBatchLoaderProvider.IBatchLoader;
 import io.nop.batch.core.IBatchProcessorProvider.IBatchProcessor;
-import io.nop.batch.core.consumer.*;
+import io.nop.batch.core.consumer.BatchProcessorConsumer;
+import io.nop.batch.core.consumer.EmptyBatchConsumer;
+import io.nop.batch.core.consumer.InvokerBatchConsumer;
+import io.nop.batch.core.consumer.RateLimitConsumer;
+import io.nop.batch.core.consumer.RetryBatchConsumer;
+import io.nop.batch.core.consumer.SkipBatchConsumer;
+import io.nop.batch.core.consumer.WithHistoryBatchConsumer;
 import io.nop.batch.core.impl.BatchTaskExecution;
 import io.nop.batch.core.loader.ChunkSortBatchLoader;
+import io.nop.batch.core.loader.RetryBatchLoader;
 import io.nop.batch.core.processor.BatchChunkProcessor;
 import io.nop.batch.core.processor.InvokerBatchChunkProcessor;
 import io.nop.commons.concurrent.executor.ExecutorHelper;
@@ -48,6 +55,7 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
      */
     private boolean singleMode;
     private IRetryPolicy<IBatchChunkContext> retryPolicy;
+    private IRetryPolicy<IBatchChunkContext> loadRetryPolicy;
 
     private BatchSkipPolicy skipPolicy;
 
@@ -123,6 +131,14 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
         this.skipPolicy = skipPolicy;
         return this;
     }
+
+
+    @PropertySetter
+    public BatchTaskBuilder<S, R> loadRetryPolicy(IRetryPolicy<IBatchChunkContext> retryPolicy) {
+        this.loadRetryPolicy = retryPolicy;
+        return this;
+    }
+
 
     @PropertySetter
     public BatchTaskBuilder<S, R> retryPolicy(IRetryPolicy<IBatchChunkContext> retryPolicy) {
@@ -248,6 +264,8 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
     @SuppressWarnings("rawtypes")
     protected IBatchChunkProcessor buildChunkProcessor(IBatchTaskContext context) {
         IBatchLoader<S> loader = this.loader.setup(context);
+        if (loadRetryPolicy != null)
+            loader = new RetryBatchLoader<>(loader, loadRetryPolicy);
 
         if (inputComparator != null)
             loader = new ChunkSortBatchLoader<>(inputComparator, loader);

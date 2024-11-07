@@ -114,7 +114,7 @@ public class JdbcBatchLoader<T> implements IBatchLoaderProvider<T> {
     @Override
     public IBatchLoader<T> setup(IBatchTaskContext context) {
         LoaderState state = newState(context);
-        context.addAfterComplete(err -> state.close());
+        context.onAfterComplete(err -> state.close());
         return (batchSize, ctx) -> load(batchSize, ctx, state);
     }
 

@@ -18,6 +18,13 @@ public abstract class _BatchProcessorModel extends io.nop.batch.dsl.model.BatchL
     
     /**
      *  
+     * xml name: adapter
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _adapter ;
+    
+    /**
+     *  
      * xml name: bean
      * 
      */
@@ -50,6 +57,25 @@ public abstract class _BatchProcessorModel extends io.nop.batch.dsl.model.BatchL
      * 
      */
     private io.nop.core.lang.eval.IEvalFunction _source ;
+    
+    /**
+     * 
+     * xml name: adapter
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getAdapter(){
+      return _adapter;
+    }
+
+    
+    public void setAdapter(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._adapter = value;
+           
+    }
+
     
     /**
      * 
@@ -161,6 +187,7 @@ public abstract class _BatchProcessorModel extends io.nop.batch.dsl.model.BatchL
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("adapter",this.getAdapter());
         out.putNotNull("bean",this.getBean());
         out.putNotNull("filter",this.getFilter());
         out.putNotNull("name",this.getName());
@@ -177,6 +204,7 @@ public abstract class _BatchProcessorModel extends io.nop.batch.dsl.model.BatchL
     protected void copyTo(BatchProcessorModel instance){
         super.copyTo(instance);
         
+        instance.setAdapter(this.getAdapter());
         instance.setBean(this.getBean());
         instance.setFilter(this.getFilter());
         instance.setName(this.getName());

@@ -106,10 +106,11 @@ public class OrmQueryBatchLoaderProvider<S extends IDaoEntity> implements IBatch
             return list;
         }
 
-        state.lastEntity = list.get(list.size() - 1);
-
         if (batchLoadProps != null)
             dao.batchLoadProps(list, batchLoadProps);
+
+        // batchLoadProps有可能报错，这里将状态更新放到最后
+        state.lastEntity = list.get(list.size() - 1);
         return list;
     }
 }

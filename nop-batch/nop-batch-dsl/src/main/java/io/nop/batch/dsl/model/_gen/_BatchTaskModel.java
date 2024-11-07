@@ -82,6 +82,13 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: readRetryPolicy
+     * 
+     */
+    private io.nop.batch.dsl.model.BatchRetryPolicyModel _readRetryPolicy ;
+    
+    /**
+     *  
      * xml name: reader
      * 
      */
@@ -369,6 +376,25 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: readRetryPolicy
+     *  
+     */
+    
+    public io.nop.batch.dsl.model.BatchRetryPolicyModel getReadRetryPolicy(){
+      return _readRetryPolicy;
+    }
+
+    
+    public void setReadRetryPolicy(io.nop.batch.dsl.model.BatchRetryPolicyModel value){
+        checkAllowChange();
+        
+        this._readRetryPolicy = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: reader
      *  
      */
@@ -578,6 +604,8 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
             
            this._processors = io.nop.api.core.util.FreezeHelper.deepFreeze(this._processors);
             
+           this._readRetryPolicy = io.nop.api.core.util.FreezeHelper.deepFreeze(this._readRetryPolicy);
+            
            this._reader = io.nop.api.core.util.FreezeHelper.deepFreeze(this._reader);
             
            this._retryPolicy = io.nop.api.core.util.FreezeHelper.deepFreeze(this._retryPolicy);
@@ -604,6 +632,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         out.putNotNull("name",this.getName());
         out.putNotNull("processors",this.getProcessors());
         out.putNotNull("rateLimit",this.getRateLimit());
+        out.putNotNull("readRetryPolicy",this.getReadRetryPolicy());
         out.putNotNull("reader",this.getReader());
         out.putNotNull("retryOneByOne",this.getRetryOneByOne());
         out.putNotNull("retryPolicy",this.getRetryPolicy());
@@ -633,6 +662,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         instance.setName(this.getName());
         instance.setProcessors(this.getProcessors());
         instance.setRateLimit(this.getRateLimit());
+        instance.setReadRetryPolicy(this.getReadRetryPolicy());
         instance.setReader(this.getReader());
         instance.setRetryOneByOne(this.getRetryOneByOne());
         instance.setRetryPolicy(this.getRetryPolicy());

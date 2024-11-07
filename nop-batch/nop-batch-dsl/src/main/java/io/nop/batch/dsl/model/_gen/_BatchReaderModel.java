@@ -18,6 +18,13 @@ public abstract class _BatchReaderModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      *  
+     * xml name: adapter
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _adapter ;
+    
+    /**
+     *  
      * xml name: aggregator
      * 
      */
@@ -57,6 +64,25 @@ public abstract class _BatchReaderModel extends io.nop.batch.dsl.model.BatchList
      * 
      */
     private io.nop.core.lang.eval.IEvalFunction _source ;
+    
+    /**
+     * 
+     * xml name: adapter
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getAdapter(){
+      return _adapter;
+    }
+
+    
+    public void setAdapter(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._adapter = value;
+           
+    }
+
     
     /**
      * 
@@ -193,6 +219,7 @@ public abstract class _BatchReaderModel extends io.nop.batch.dsl.model.BatchList
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("adapter",this.getAdapter());
         out.putNotNull("aggregator",this.getAggregator());
         out.putNotNull("bean",this.getBean());
         out.putNotNull("fileReader",this.getFileReader());
@@ -210,6 +237,7 @@ public abstract class _BatchReaderModel extends io.nop.batch.dsl.model.BatchList
     protected void copyTo(BatchReaderModel instance){
         super.copyTo(instance);
         
+        instance.setAdapter(this.getAdapter());
         instance.setAggregator(this.getAggregator());
         instance.setBean(this.getBean());
         instance.setFileReader(this.getFileReader());

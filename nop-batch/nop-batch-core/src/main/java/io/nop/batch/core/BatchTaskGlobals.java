@@ -22,10 +22,10 @@ public class BatchTaskGlobals {
 
     public static void onTaskComplete(BiConsumer<IBatchTaskContext, Throwable> action) {
         IBatchTaskContext ctx = useTaskContext();
-        ctx.addAfterComplete(error -> action.accept(ctx, error));
+        ctx.onAfterComplete(error -> action.accept(ctx, error));
     }
 
     public static void addBeforeTaskComplete(Runnable action) {
-        useTaskContext().addBeforeComplete(action);
+        useTaskContext().onBeforeComplete(action);
     }
 }

@@ -66,14 +66,14 @@ public class BatchTaskManagerImpl implements IBatchTaskManager {
     @Override
     public IBatchTaskBuilder newBatchTaskBuilder(String batchTaskName, Long batchTaskVersion, IBeanProvider beanProvider) {
         BatchTaskModel taskModel = loadBatchTaskModel(batchTaskName, batchTaskVersion);
-        return new ModelBasedBatchTaskFactory(batchTaskName, taskModel, stateStore, transactionTemplate,
+        return new ModelBasedBatchTaskBuilderFactory(batchTaskName, taskModel, stateStore, transactionTemplate,
                 ormTemplate, jdbcTemplate, daoProvider).newTaskBuilder(beanProvider);
     }
 
     @Override
     public IBatchTaskBuilder newBatchTaskBuilderFromModel(String batchTaskName, XNode node, IBeanProvider beanProvider) {
         BatchTaskModel taskModel = (BatchTaskModel) new DslModelParser().parseFromNode(node);
-        return new ModelBasedBatchTaskFactory(batchTaskName, taskModel, stateStore, transactionTemplate,
+        return new ModelBasedBatchTaskBuilderFactory(batchTaskName, taskModel, stateStore, transactionTemplate,
                 ormTemplate, jdbcTemplate, daoProvider).newTaskBuilder(beanProvider);
     }
 

@@ -19,6 +19,8 @@
         <exceptionFilter xdef:value="xpl-fn:(err)=>boolean"/>
     </retryPolicy>
 
+    <readRetryPolicy xdef:ref="BatchRetryPolicyModel" />
+
     <skipPolicy maxSkipCount="long" xdef:name="BatchSkipPolicyModel">
         <exceptionFilter xdef:value="xpl-fn:(err)=>boolean"/>
     </skipPolicy>
@@ -57,12 +59,16 @@
         </jdbc-reader>
 
         <source xdef:value="xpl-fn:(batchSize,ctx)=>List"/>
+
+        <adapter xdef:value="xpl-fn:(reader)=>any" />
+
     </reader>
 
     <processor bean="bean-name" name="var-name" order="!int=0"
                xdef:unique-attr="name" xdef:name="BatchProcessorModel" xdef:ref="BatchListenersModel">
         <filter xdef:value="xpl-fn:(item,taskCtx)=>boolean"/>
         <source xdef:value="xpl-fn:(item,consumer,chunkCtx)=>void"/>
+        <adapter xdef:value="xpl-fn:(processor)=>any" />
     </processor>
 
     <chunk-processor-builder bean="bean-name" xdef:name="BatchChunkProcessorBuilderModel"
@@ -94,6 +100,8 @@
         </jdbc-writer>
 
         <source xdef:value="xpl-fn:(items,ctx)=>void"/>
+
+        <adapter xdef:value="xpl-fn:(writer)=>any" />
     </writer>
 
 </batch>

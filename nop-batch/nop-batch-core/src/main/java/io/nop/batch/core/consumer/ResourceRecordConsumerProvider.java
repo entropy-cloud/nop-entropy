@@ -103,13 +103,13 @@ public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHand
         if (aggregator != null) {
             state.combinedValue = aggregator.createCombinedValue(header, context);
 
-            context.addBeforeComplete(() -> {
+            context.onBeforeComplete(() -> {
                 Map<String, Object> trailer = aggregator.complete(null, state.combinedValue);
                 state.output.endWrite(trailer);
                 state.output.flush();
             });
 
-            context.addAfterComplete(err -> {
+            context.onAfterComplete(err -> {
                 IoHelper.safeCloseObject(state.output);
             });
         }

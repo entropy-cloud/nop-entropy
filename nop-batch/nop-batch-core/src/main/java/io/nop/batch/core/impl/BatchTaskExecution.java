@@ -152,7 +152,7 @@ public class BatchTaskExecution implements IBatchTask {
         LOG.info("nop.batch.process-chunk-begin:taskName={},taskId={},threadIndex={}",
                 context.getTaskName(), context.getTaskId(), threadIndex);
 
-        ProcessResult result = ProcessResult.CONTINUE;
+        ProcessResult result;
         boolean success = true;
         try {
             chunkContext.getTaskContext().fireChunkBegin(chunkContext);
@@ -169,7 +169,7 @@ public class BatchTaskExecution implements IBatchTask {
             chunkContext.complete();
             chunkContext.getTaskContext().fireChunkEnd(null, chunkContext);
 
-        } catch (Throwable e) {
+        } catch (Exception e) {
             success = false;
             LOG.error("nop.err.batch.task-chunk-fail:taskName={},taskId={},threadIndex={}",
                     context.getTaskName(), context.getTaskId(), threadIndex,
@@ -183,6 +183,9 @@ public class BatchTaskExecution implements IBatchTask {
             } finally {
                 chunkContext.completeExceptionally(e);
             }
+
+            // chunk处理失败时退出循环
+            throw e;
         } finally {
             long endTime = CoreMetrics.currentTimeMillis();
             LOG.info("nop.batch.process-chunk-end:taskName={},taskId={},threadIndex={},usedTime={}", context.getTaskName(),

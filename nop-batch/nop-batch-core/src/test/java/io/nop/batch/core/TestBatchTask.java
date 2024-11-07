@@ -35,7 +35,7 @@ public class TestBatchTask {
         context.setTaskName(taskName);
 
         CompletableFuture<Void> future = new CompletableFuture<>();
-        context.addAfterComplete(err -> FutureHelper.complete(future, null, err));
+        context.onAfterComplete(err -> FutureHelper.complete(future, null, err));
 
         BatchTaskBuilder builder = new BatchTaskBuilder();
 

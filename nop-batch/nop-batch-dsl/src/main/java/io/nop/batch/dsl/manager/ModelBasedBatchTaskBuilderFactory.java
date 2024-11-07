@@ -3,7 +3,17 @@ package io.nop.batch.dsl.manager;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanProvider;
-import io.nop.batch.core.*;
+import io.nop.batch.core.BatchTaskBuilder;
+import io.nop.batch.core.IBatchAggregator;
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchChunkProcessorBuilder;
+import io.nop.batch.core.IBatchConsumerProvider;
+import io.nop.batch.core.IBatchLoaderProvider;
+import io.nop.batch.core.IBatchMetaProvider;
+import io.nop.batch.core.IBatchProcessorProvider;
+import io.nop.batch.core.IBatchRecordFilter;
+import io.nop.batch.core.IBatchStateStore;
+import io.nop.batch.core.IBatchTaskBuilder;
 import io.nop.batch.core.consumer.EmptyBatchConsumer;
 import io.nop.batch.core.consumer.MultiBatchConsumerProvider;
 import io.nop.batch.core.consumer.ResourceRecordConsumerProvider;
@@ -12,7 +22,17 @@ import io.nop.batch.core.filter.EvalBatchRecordFilter;
 import io.nop.batch.core.loader.ResourceRecordLoaderProvider;
 import io.nop.batch.core.processor.FilterBatchProcessor;
 import io.nop.batch.core.processor.MultiBatchProcessorProvider;
-import io.nop.batch.dsl.model.*;
+import io.nop.batch.dsl.model.BatchChunkProcessorBuilderModel;
+import io.nop.batch.dsl.model.BatchFileReaderModel;
+import io.nop.batch.dsl.model.BatchFileWriterModel;
+import io.nop.batch.dsl.model.BatchJdbcReaderModel;
+import io.nop.batch.dsl.model.BatchListenersModel;
+import io.nop.batch.dsl.model.BatchOrmReaderModel;
+import io.nop.batch.dsl.model.BatchProcessorModel;
+import io.nop.batch.dsl.model.BatchReaderModel;
+import io.nop.batch.dsl.model.BatchTaggerModel;
+import io.nop.batch.dsl.model.BatchTaskModel;
+import io.nop.batch.dsl.model.BatchWriterModel;
 import io.nop.batch.orm.loader.OrmQueryBatchLoaderProvider;
 import io.nop.commons.collections.OrderByComparator;
 import io.nop.commons.util.CollectionHelper;
@@ -46,7 +66,7 @@ import java.util.concurrent.Executor;
 import static io.nop.batch.dsl.BatchDslErrors.ARG_BATCH_TASK_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_NO_LOADER;
 
-public class ModelBasedBatchTaskFactory {
+public class ModelBasedBatchTaskBuilderFactory {
     private final String batchTaskName;
     private final BatchTaskModel batchTaskModel;
     private final ITransactionTemplate transactionTemplate;
@@ -56,11 +76,11 @@ public class ModelBasedBatchTaskFactory {
     private final IDaoProvider daoProvider;
     private final IBatchStateStore stateStore;
 
-    public ModelBasedBatchTaskFactory(String batchTaskName, BatchTaskModel batchTaskModel,
-                                      IBatchStateStore stateStore,
-                                      ITransactionTemplate transactionTemplate,
-                                      IOrmTemplate ormTemplate, IJdbcTemplate jdbcTemplate,
-                                      IDaoProvider daoProvider) {
+    public ModelBasedBatchTaskBuilderFactory(String batchTaskName, BatchTaskModel batchTaskModel,
+                                             IBatchStateStore stateStore,
+                                             ITransactionTemplate transactionTemplate,
+                                             IOrmTemplate ormTemplate, IJdbcTemplate jdbcTemplate,
+                                             IDaoProvider daoProvider) {
         this.batchTaskName = batchTaskName;
         this.stateStore = stateStore;
         this.batchTaskModel = batchTaskModel;
@@ -117,6 +137,10 @@ public class ModelBasedBatchTaskFactory {
 
         builder.stateStore(stateStore);
 
+        if (batchTaskModel.getReadRetryPolicy() != null) {
+            builder.loadRetryPolicy((IRetryPolicy<IBatchChunkContext>) this.batchTaskModel.getReadRetryPolicy().buildRetryPolicy());
+        }
+
         buildTask(builder, beanContainer);
 
         return builder;
@@ -163,7 +187,7 @@ public class ModelBasedBatchTaskFactory {
             List<IBatchConsumerProvider<Object>> list = map.remove(null);
             if (map.isEmpty()) {
                 if (list != null) {
-                    builder.consumer(buildWriter(list));
+                    builder.consumer(MultiBatchConsumerProvider.fromList(list));
                 }
             } else {
                 List<IBatchConsumerProvider<Object>> writers = new ArrayList<>();
@@ -171,7 +195,7 @@ public class ModelBasedBatchTaskFactory {
                 if (splitter != null) {
                     Map<String, IBatchConsumerProvider<Object>> consumerMap = new HashMap<>();
                     map.forEach((name, consumers) -> {
-                        IBatchConsumerProvider<Object> writer = buildWriter(consumers);
+                        IBatchConsumerProvider<Object> writer = MultiBatchConsumerProvider.fromList(consumers);
                         consumerMap.put(name, writer);
                     });
 
@@ -180,7 +204,7 @@ public class ModelBasedBatchTaskFactory {
                     writers.add(writer);
                 }
                 if (list != null) {
-                    writers.add(buildWriter(list));
+                    writers.add(MultiBatchConsumerProvider.fromList(list));
                 }
                 builder.consumer(MultiBatchConsumerProvider.fromList(writers));
             }
@@ -189,14 +213,6 @@ public class ModelBasedBatchTaskFactory {
 
     private IBatchProcessorProvider<Object, Object> newFilterProcessor(IEvalFunction func) {
         return new FilterBatchProcessor<>(new EvalBatchRecordFilter<>(func));
-    }
-
-    private IBatchConsumerProvider<Object> buildWriter(List<IBatchConsumerProvider<Object>> list) {
-        if (list == null || list.isEmpty())
-            return null;
-        if (list.size() == 1)
-            return list.get(0);
-        return new MultiBatchConsumerProvider<>(list);
     }
 
     @SuppressWarnings("unchecked")
@@ -208,15 +224,27 @@ public class ModelBasedBatchTaskFactory {
         addListeners(builder, batchTaskModel.getReader());
 
         BatchReaderModel reader = batchTaskModel.getReader();
-        if (reader.getBean() != null) {
-            return (IBatchLoaderProvider<Object>) beanContainer.getBean(reader.getBean());
-        }
-
         return buildReader(reader, beanContainer);
     }
 
-    @SuppressWarnings("unchecked")
     private IBatchLoaderProvider<Object> buildReader(BatchReaderModel readerModel, IBeanProvider beanProvider) {
+        IBatchLoaderProvider<Object> provider = buildReader0(readerModel, beanProvider);
+        if (readerModel.getAdapter() == null || provider == null)
+            return provider;
+
+        return context -> {
+            IBatchLoaderProvider.IBatchLoader<Object> loader = provider.setup(context);
+            return (IBatchLoaderProvider.IBatchLoader<Object>) readerModel.getAdapter().call1(null, loader, context.getEvalScope());
+        };
+    }
+
+
+    @SuppressWarnings("unchecked")
+    private IBatchLoaderProvider<Object> buildReader0(BatchReaderModel readerModel, IBeanProvider beanProvider) {
+        if (readerModel.getBean() != null) {
+            return (IBatchLoaderProvider<Object>) beanProvider.getBean(readerModel.getBean());
+        }
+
         IBatchAggregator<Object, Object, Map<String, Object>> aggregator = loadAggregator(readerModel.getAggregator(), beanProvider);
 
         if (readerModel.getFileReader() != null) {
@@ -300,6 +328,16 @@ public class ModelBasedBatchTaskFactory {
                                                                    BatchTaskBuilder<Object, Object> builder, IBeanProvider beanContainer) {
         addListeners(builder, processorModel);
 
+        IBatchProcessorProvider<Object, Object> provider = buildProcessor0(processorModel, beanContainer);
+        if (processorModel.getAdapter() == null)
+            return null;
+        return context -> {
+            IBatchProcessorProvider.IBatchProcessor<Object, Object> processor = provider.setup(context);
+            return (IBatchProcessorProvider.IBatchProcessor<Object, Object>) processorModel.getAdapter().call1(null, processor, context.getEvalScope());
+        };
+    }
+
+    private IBatchProcessorProvider<Object, Object> buildProcessor0(BatchProcessorModel processorModel, IBeanProvider beanContainer) {
         if (processorModel.getBean() != null)
             return (IBatchProcessorProvider) beanContainer.getBean(processorModel.getBean());
 
@@ -331,7 +369,7 @@ public class ModelBasedBatchTaskFactory {
 
         if (listenersModel.getOnTaskEnd() != null)
             builder.addTaskInitializer(context -> {
-                context.addAfterComplete(err -> {
+                context.onAfterComplete(err -> {
                     listenersModel.getOnTaskEnd().call2(null, err, context, context.getEvalScope());
                 });
             });
@@ -369,6 +407,16 @@ public class ModelBasedBatchTaskFactory {
     }
 
     private IBatchConsumerProvider<Object> getWriter(BatchWriterModel writerModel, IBeanProvider beanContainer) {
+        IBatchConsumerProvider<Object> provider = getWriter0(writerModel, beanContainer);
+        if (writerModel.getAdapter() == null)
+            return null;
+        return context -> {
+            IBatchConsumerProvider.IBatchConsumer<Object> writer = provider.setup(context);
+            return (IBatchConsumerProvider.IBatchConsumer<Object>) writerModel.getAdapter().call1(null, writer, context.getEvalScope());
+        };
+    }
+
+    private IBatchConsumerProvider<Object> getWriter0(BatchWriterModel writerModel, IBeanProvider beanContainer) {
         IBatchAggregator<Object, Object, Map<String, Object>> aggregator = loadAggregator(writerModel.getAggregator(), beanContainer);
         IBatchMetaProvider metaProvider = loadMetaProvider(writerModel.getMetaProvider(), beanContainer);
 

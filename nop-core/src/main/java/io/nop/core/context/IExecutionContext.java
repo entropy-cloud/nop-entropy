@@ -14,7 +14,6 @@ import io.nop.commons.lang.IAttributeSet;
 import io.nop.core.lang.eval.IEvalScope;
 
 import java.util.List;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 public interface IExecutionContext extends IEvalContext, IAttributeSet, ICancellable {
@@ -30,12 +29,12 @@ public interface IExecutionContext extends IEvalContext, IAttributeSet, ICancell
      *
      * @param callback 如果回调函数抛出异常，将导致后续的beforeComplete回调被跳过，complete调用失败。
      */
-    void addBeforeComplete(Runnable callback);
+    void onBeforeComplete(Runnable callback);
 
     /**
      * 执行complete或者completeExceptionally操作会将ExecutionContext的内部状态标记为完成状态。 此时会回调afterComplete回调函数。回调函数抛出的异常将被自动忽略
      */
-    void addAfterComplete(Consumer<Throwable> callback);
+    void onAfterComplete(Consumer<Throwable> callback);
 
     /**
      * complete会自动调用fireBeforeComplete来触发回调函数。也可以直接调用。
