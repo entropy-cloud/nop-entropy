@@ -8,13 +8,17 @@
 package io.nop.batch.dao.entity;
 
 import io.nop.api.core.annotations.biz.BizObjName;
+import io.nop.batch.core.IBatchTaskRecord;
+import io.nop.batch.dao.NopBatchDaoConstants;
 import io.nop.batch.dao.entity._gen._NopBatchTask;
 
 
 @BizObjName("NopBatchTask")
-public class NopBatchTask extends _NopBatchTask{
-    public NopBatchTask(){
+public class NopBatchTask extends _NopBatchTask implements IBatchTaskRecord {
+    public NopBatchTask() {
     }
 
-
+    public boolean isNotCompleted() {
+        return getTaskStatus() < NopBatchDaoConstants.TASK_STATUS_COMPLETED;
+    }
 }

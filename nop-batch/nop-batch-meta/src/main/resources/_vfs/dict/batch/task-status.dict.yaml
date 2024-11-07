@@ -1,0 +1,35 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 批处理任务状态
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 已创建
+    value: 0
+    description: 
+  
+  - label: 已暂停
+    value: 10
+    description: 
+  
+  - label: 执行中
+    value: 20
+    description: 正在执行
+  
+  - label: 已完成
+    value: 30
+    description: 正常结束
+  
+  - label: 已失败
+    value: 40
+    description: 异常结束
+  
+  - label: 已取消
+    value: 50
+    description: 取消执行
+  
+  - label: 已终止
+    value: 60
+    description: 强制终止
+  

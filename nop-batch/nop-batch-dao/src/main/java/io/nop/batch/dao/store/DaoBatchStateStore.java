@@ -1,73 +1,160 @@
 package io.nop.batch.dao.store;
 
+import io.nop.api.core.beans.ErrorBean;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.util.ICancellable;
 import io.nop.batch.core.IBatchStateStore;
 import io.nop.batch.core.IBatchTaskContext;
+import io.nop.batch.core.exceptions.BatchCancelException;
+import io.nop.batch.dao.NopBatchDaoConstants;
 import io.nop.batch.dao.entity.NopBatchTask;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
-import io.nop.dao.txn.ITransactionTemplate;
+import jakarta.inject.Inject;
+
+import static io.nop.batch.dao.NopBatchDaoErrors.ARG_TASK_ID;
+import static io.nop.batch.dao.NopBatchDaoErrors.ARG_TASK_KEY;
+import static io.nop.batch.dao.NopBatchDaoErrors.ARG_TASK_NAME;
+import static io.nop.batch.dao.NopBatchDaoErrors.ARG_TASK_STATUS;
+import static io.nop.batch.dao.NopBatchDaoErrors.ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_EXIST_RUNNING_INSTANCE;
+import static io.nop.batch.dao.entity._gen._NopBatchTask.PROP_NAME_taskKey;
+import static io.nop.batch.dao.entity._gen._NopBatchTask.PROP_NAME_taskName;
 
 public class DaoBatchStateStore implements IBatchStateStore {
-    private final IDaoProvider daoProvider;
-    private final ITransactionTemplate transactionTemplate;
+    private IDaoProvider daoProvider;
 
-    public DaoBatchStateStore(IDaoProvider daoProvider, ITransactionTemplate transactionTemplate) {
+    @Inject
+    public void setDaoProvider(IDaoProvider daoProvider) {
         this.daoProvider = daoProvider;
-        this.transactionTemplate = transactionTemplate;
     }
 
     IEntityDao<NopBatchTask> taskDao() {
         return daoProvider.daoFor(NopBatchTask.class);
     }
 
-    ITransactionTemplate txn() {
-        return transactionTemplate;
-    }
-
     @Override
     public void loadTaskState(IBatchTaskContext context) {
-        String taskId = context.getTaskId();
-        if (StringHelper.isEmpty(taskId))
-            return;
-
         IEntityDao<NopBatchTask> taskDao = taskDao();
-        NopBatchTask task = taskDao.requireEntityById(taskId);
+        NopBatchTask task = loadExistingTask(taskDao, context);
+        if (task == null) {
+            task = newTask(taskDao);
+            task.setTaskKey(context.getTaskKey());
+            task.setTaskName(context.getTaskName());
+            setTaskRecord(context, task);
+            taskDao.saveEntity(task);
+            return;
+        }
+
+        if (!task.isNotCompleted())
+            throw new NopException(ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_EXIST_RUNNING_INSTANCE)
+                    .param(ARG_TASK_NAME, task.getTaskName())
+                    .param(ARG_TASK_KEY, task.getTaskKey())
+                    .param(ARG_TASK_ID, task.getSid())
+                    .param(ARG_TASK_STATUS, task.getTaskStatus());
+
+        NopBatchTask newTask = newTask(taskDao);
+        newTask.setTaskName(task.getTaskName());
+        newTask.setTaskKey(task.getTaskKey());
+        newTask.setExecCount(task.getExecCount() + 1);
+        newTask.setCompletedIndex(task.getCompletedIndex());
+        newTask.setCompleteItemCount(task.getCompleteItemCount());
+        newTask.setWriteItemCount(task.getWriteItemCount());
+        newTask.setRetryChunkCount(task.getRetryChunkCount());
+        newTask.setSkipItemCount(task.getSkipItemCount());
+        newTask.setWorker(AppConfig.hostId());
+        taskDao.saveEntity(newTask);
+
         context.setTaskName(task.getTaskName());
         context.setTaskKey(task.getTaskKey());
         context.setCompletedIndex(task.getCompletedIndex());
-        context.setCompleteItemCount(task.getCompleteCount());
-        context.setSkipItemCount(task.getSkipCount());
-        context.setProcessItemCount(task.getProcessCount());
+        context.setCompleteItemCount(task.getCompleteItemCount());
+        context.setSkipItemCount(task.getSkipItemCount());
+        context.setProcessItemCount(task.getProcessItemCount());
         context.setRecoverMode(true);
+        setTaskRecord(context, newTask);
+    }
+
+    void setTaskRecord(IBatchTaskContext context, NopBatchTask task) {
+        context.setAttribute(NopBatchTask.class.getSimpleName(), task);
+    }
+
+    NopBatchTask getTaskRecord(IBatchTaskContext context) {
+        return (NopBatchTask) context.getAttribute(NopBatchTask.class.getSimpleName());
+    }
+
+    NopBatchTask loadExistingTask(IEntityDao<NopBatchTask> dao, IBatchTaskContext context) {
+        String taskId = context.getTaskId();
+        if (!StringHelper.isEmpty(taskId))
+            return dao.requireEntityById(taskId);
+
+        if (!StringHelper.isEmpty(context.getTaskKey())) {
+            String taskName = context.getTaskName();
+            String taskKey = context.getTaskKey();
+
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.eq(PROP_NAME_taskName, taskName));
+            query.addFilter(FilterBeans.eq(PROP_NAME_taskKey, taskKey));
+            query.addOrderField(NopBatchTask.PROP_NAME_execCount, true);
+
+            return dao.findFirstByQuery(query);
+        }
+        return null;
     }
 
     @Override
     public void saveTaskState(boolean complete, Throwable err, IBatchTaskContext context) {
-        String taskId = context.getTaskId();
-        if (StringHelper.isEmpty(taskId)) {
-            saveRecord(context);
-        } else {
-            updateRecord(context);
+        NopBatchTask task = getTaskRecord(context);
+        if (err != null) {
+            ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(null, err);
+            task.setResultCode(errorBean.getErrorCode());
+            task.setResultStatus(errorBean.getStatus());
+            task.setResultMsg(errorBean.getDescription());
         }
-    }
 
-    void saveRecord(IBatchTaskContext context) {
+        if (complete) {
+            int taskStatus = getTaskStatus(err, context);
+            task.setTaskStatus(taskStatus);
+        }
         IEntityDao<NopBatchTask> taskDao = taskDao();
-        NopBatchTask task = taskDao.newEntity();
-        task.setTaskKey(context.getTaskKey());
-        task.setTaskName(context.getTaskName());
-        task.setCompletedIndex(-1L);
-        task.setCompleteCount(0L);
-        task.setProcessCount(0L);
-        task.setStartTime(CoreMetrics.currentTimestamp());
-        task.setSkipCount(0L);
-        task.setRetryCount(0);
-        taskDao.saveEntity(task);
+        taskDao.updateEntityDirectly(task);
     }
 
-    void updateRecord(IBatchTaskContext context) {
+    int getTaskStatus(Throwable err, IBatchTaskContext context) {
+        if (err != null) {
+            if (err instanceof BatchCancelException) {
+                // 暂时挂起执行
+                if (ICancellable.CANCEL_REASON_SUSPEND.equals(context.getCancelReason()))
+                    return NopBatchDaoConstants.TASK_STATUS_SUSPENDED;
+                // 主动取消执行
+                if (ICancellable.CANCEL_REASON_SKIP.equals(context.getCancelReason()))
+                    return NopBatchDaoConstants.TASK_STATUS_CANCELLED;
+                return NopBatchDaoConstants.TASK_STATUS_KILLED;
+            }
 
+            // 执行失败
+            return NopBatchDaoConstants.TASK_STATUS_FAILED;
+        }
+        // 即使成功完成，也可能会跳过部分执行条目，导致skipCount不为0
+        return NopBatchDaoConstants.TASK_STATUS_COMPLETED;
+    }
+
+    NopBatchTask newTask(IEntityDao<NopBatchTask> taskDao) {
+        NopBatchTask task = taskDao.newEntity();
+        task.setCompletedIndex(-1L);
+        task.setCompleteItemCount(0L);
+        task.setProcessItemCount(0L);
+        task.setStartTime(CoreMetrics.currentTimestamp());
+        task.setExecCount(1);
+        task.setTaskStatus(NopBatchDaoConstants.TASK_STATUS_RUNNING);
+        task.setSkipItemCount(0L);
+        task.setWriteItemCount(0L);
+        task.setRetryChunkCount(0);
+        return task;
     }
 }

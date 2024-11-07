@@ -11,6 +11,8 @@ public interface ICancellable extends ICancelToken {
     String CANCEL_REASON_KILL = "kill";
     String CANCEL_REASON_TIMEOUT = "timeout";
     String CANCEL_REASON_STOP = "stop";
+    String CANCEL_REASON_SUSPEND = "suspend";
+    String CANCEL_REASON_SKIP = "skip";
 
     boolean isCancelled();
 
