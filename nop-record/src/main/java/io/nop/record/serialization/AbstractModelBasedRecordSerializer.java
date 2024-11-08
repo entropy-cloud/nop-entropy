@@ -7,7 +7,6 @@ import io.nop.api.core.util.Symbol;
 import io.nop.commons.collections.bit.IBitSet;
 import io.nop.commons.text.SimpleTextTemplate;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.model.IRecordFieldsMeta;
@@ -28,6 +27,7 @@ import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
 import static io.nop.record.RecordErrors.ARG_TYPE_NAME;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_MATCH_FOR_CASE_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_SWITCH_ON_FIELD;
+import static io.nop.record.serialization.RecordSerializeHelper.runIfExpr;
 
 public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWriterBase>
         implements IModelBasedRecordSerializer<Output> {
@@ -80,18 +80,6 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
 
     protected boolean isUseBodyEncoder(RecordFieldMeta field) {
         return field.getSwitch() != null || field.hasFields();
-    }
-
-    boolean runIfExpr(IEvalFunction expr, Object record, String name, IFieldCodecContext context) {
-        if (expr == null)
-            return true;
-        if (!ConvertHelper.toPrimitiveBoolean(expr.call1(null, record, context.getEvalScope()))) {
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("nop.record.skip-field:fieldPath={},field={}", context.getFieldPath(), name);
-            }
-            return false;
-        }
-        return true;
     }
 
     protected void writeSwitch(Output out, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {

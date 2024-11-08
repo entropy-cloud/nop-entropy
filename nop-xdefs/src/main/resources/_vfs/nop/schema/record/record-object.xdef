@@ -12,12 +12,12 @@
         <field name="!prop-name" xdef:ref="record-field.xdef"/>
     </fields>
 
-    <ifExpr xdef:value="xpl-fn:(record)=>boolean"/>
+    <ifExpr xdef:value="xpl-fn:(record,ctx)=>boolean"/>
 
-    <afterWrite xdef:value="xpl-fn:(record)=>any"/>
+    <afterWrite xdef:value="xpl-fn:(record,ctx)=>any"/>
 
     <!-- 在所有子字段都读取到之后执行 -->
-    <afterRead xdef:value="xpl-fn:(record)=>any"/>
+    <afterRead xdef:value="xpl-fn:(record,ctx)=>any"/>
 
     <template xdef:value="string"/>
 

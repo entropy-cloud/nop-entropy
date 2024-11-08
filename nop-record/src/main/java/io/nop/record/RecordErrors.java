@@ -31,6 +31,9 @@ public interface RecordErrors {
 
     String ARG_FIELD_PATH = "fieldPath";
 
+    String ARG_POS = "pos";
+    String ARG_EXPECTED = "expected";
+
     ErrorCode ERR_RECORD_NO_ENOUGH_DATA =
             define("nop.err.record.no-enough-data", "缺少数据，无法读取");
 
@@ -62,4 +65,7 @@ public interface RecordErrors {
 
     ErrorCode ERR_RECORD_FIELD_IS_MANDATORY = define("nop.err.record.field-is-mandatory",
             "字段[{fieldName}]的值不允许为空", ARG_FIELD_NAME);
+
+    ErrorCode ERR_RECORD_VALUE_NOT_MATCH_STRING = define("nop.err.record.value-not-match-string",
+            "值与预想的情况不匹配:pos={},expected={}", ARG_POS, ARG_EXPECTED);
 }

@@ -46,12 +46,12 @@
     <!--
     动态确定字段长度。在表达式中record指向父结构，_root指向根结构。
     -->
-    <lengthExpr xdef:value="xpl-fn:(record)=>int"/>
+    <lengthExpr xdef:value="xpl-fn:(record,ctx)=>int"/>
 
     <!--
     当表达式返回false时，此字段将被跳过，不会被处理
     -->
-    <ifExpr xdef:value="xpl-fn:(record)=>boolean"/>
+    <ifExpr xdef:value="xpl-fn:(record,ctx)=>boolean"/>
 
     <!--
     如果非空，则表示字段为固定内容。当输出字段到数据文件中时直接使用该内容输出
@@ -59,9 +59,11 @@
     <content xdef:value="encoded-bytes"/>
 
     <!-- 解析时对已经解析到的value进行转换  -->
-    <transformInExpr xdef:value="xpl-fn:(record,value)=>any"/>
+    <transformInExpr xdef:value="xpl-fn:(record,value,ctx)=>any"/>
 
     <!-- 输出时不从实体上获取，根据表达式计算得到输出值 -->
-    <exportExpr xdef:value="xpl-fn:(record)=>any"/>
+    <exportExpr xdef:value="xpl-fn:(record,ctx)=>any"/>
+
+    <parseExpr xdef:value="xpl-fn:(in,record,ctx)=>any" />
 
 </field>

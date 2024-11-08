@@ -5,5 +5,5 @@ import io.nop.record.reader.ITextDataReader;
 import java.io.IOException;
 
 public interface IFieldTextDecoder {
-    Object decode(ITextDataReader input, int length, IFieldCodecContext context) throws IOException;
+    Object decode(ITextDataReader input, Object record, int length, IFieldCodecContext context) throws IOException;
 }

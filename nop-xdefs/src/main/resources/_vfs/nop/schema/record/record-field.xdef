@@ -16,12 +16,12 @@
     <!--
     返回字段的循环次数
     -->
-    <repeatExpr xdef:value="xpl-fn:(record)=>int"/>
+    <repeatExpr xdef:value="xpl-fn:(record,ctx)=>int"/>
 
     <!--
     返回字段循环的终止条件
     -->
-    <repeatUntil xdef:value="xpl-fn:(record)=>boolean"/>
+    <repeatUntil xdef:value="xpl-fn:(record,ctx)=>boolean"/>
 
 
     <!--
@@ -32,7 +32,7 @@
         <!--
         类型判断表达式
         -->
-        <on xdef:value="xpl-fn:(record)=>string"/>
+        <on xdef:value="xpl-fn:(record,ctx)=>string"/>
 
         <!--
         @when 与on表达式的返回值比较，如果相等，则实际类型为type指定的值
@@ -46,10 +46,10 @@
         <field name="!prop-name" xdef:ref="RecordFieldMeta"/>
     </fields>
 
-    <afterWrite xdef:value="xpl-fn:(record)=>any"/>
+    <afterWrite xdef:value="xpl-fn:(record,ctx)=>any"/>
 
     <!-- 在所有子字段都读取到之后执行 -->
-    <afterRead xdef:value="xpl-fn:(record)=>any"/>
+    <afterRead xdef:value="xpl-fn:(record,ctx)=>any"/>
 
     <!-- 文本输出时使用template更加直观  -->
     <template xdef:value="string"/>

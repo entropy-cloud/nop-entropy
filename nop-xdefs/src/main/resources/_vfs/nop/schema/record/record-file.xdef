@@ -31,12 +31,12 @@
         <!--
         返回body行的循环次数
         -->
-        <repeatExpr xdef:value="xpl-fn:(record)=>int"/>
+        <repeatExpr xdef:value="xpl-fn:(record,ctx)=>int"/>
 
         <!--
         返回body行循环的终止条件
         -->
-        <repeatUntil xdef:value="xpl-fn:(record)=>boolean"/>
+        <repeatUntil xdef:value="xpl-fn:(record,ctx)=>boolean"/>
     </body>
 
     <!--
@@ -50,7 +50,7 @@
         <aggregates xdef:body-type="list" xdef:key-attr="name">
             <aggregate name="!prop-name" aggFunc="var-name" xdef:name="RecordAggregateFieldMeta"
                        prop="string">
-                <valueExpr xdef:value="xpl-fn:(record)=>any"/>
+                <valueExpr xdef:value="xpl-fn:(record,ctx)=>any"/>
             </aggregate>
         </aggregates>
     </pagination>

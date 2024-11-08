@@ -200,6 +200,13 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: parseExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _parseExpr ;
+    
+    /**
+     *  
      * xml name: pattern
      * 
      */
@@ -778,6 +785,25 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      * 
+     * xml name: parseExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getParseExpr(){
+      return _parseExpr;
+    }
+
+    
+    public void setParseExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._parseExpr = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: pattern
      *  
      */
@@ -1045,6 +1071,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         out.putNotNull("name",this.getName());
         out.putNotNull("offset",this.getOffset());
         out.putNotNull("padding",this.getPadding());
+        out.putNotNull("parseExpr",this.getParseExpr());
         out.putNotNull("pattern",this.getPattern());
         out.putNotNull("prop",this.getProp());
         out.putNotNull("skipWhenRead",this.isSkipWhenRead());
@@ -1094,6 +1121,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         instance.setName(this.getName());
         instance.setOffset(this.getOffset());
         instance.setPadding(this.getPadding());
+        instance.setParseExpr(this.getParseExpr());
         instance.setPattern(this.getPattern());
         instance.setProp(this.getProp());
         instance.setSkipWhenRead(this.isSkipWhenRead());

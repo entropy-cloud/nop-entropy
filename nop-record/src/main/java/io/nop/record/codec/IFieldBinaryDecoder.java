@@ -7,6 +7,6 @@ import java.nio.charset.Charset;
 
 public interface IFieldBinaryDecoder {
 
-    Object decode(IBinaryDataReader input, int length, Charset charset, IFieldCodecContext context) throws IOException;
+    Object decode(IBinaryDataReader input, Object record, int length, Charset charset, IFieldCodecContext context) throws IOException;
 
 }
