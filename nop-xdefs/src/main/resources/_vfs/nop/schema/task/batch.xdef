@@ -19,7 +19,7 @@
         <exceptionFilter xdef:value="xpl-fn:(err)=>boolean"/>
     </retryPolicy>
 
-    <readRetryPolicy xdef:ref="BatchRetryPolicyModel" />
+    <loadRetryPolicy xdef:ref="BatchRetryPolicyModel" />
 
     <skipPolicy maxSkipCount="long" xdef:name="BatchSkipPolicyModel">
         <exceptionFilter xdef:value="xpl-fn:(err)=>boolean"/>
@@ -41,7 +41,7 @@
         <onConsumeEnd xdef:value="xpl-fn:(err,items,ctx)=>void"/>
     </xdef:define>
 
-    <reader bean="bean-name" xdef:name="BatchReaderModel" aggregator="bean-name"
+    <loader bean="bean-name" xdef:name="BatchLoaderModel" aggregator="bean-name"
             xdef:ref="BatchListenersModel" xdef:mandatory="true">
         <file-reader pathExpr="!expr" xdef:name="BatchFileReaderModel" encoding="string"
                      resourceLoader="bean-name" resourceIO="bean-name" maxCount="long">
@@ -62,7 +62,7 @@
 
         <adapter xdef:value="xpl-fn:(reader)=>any" />
 
-    </reader>
+    </loader>
 
     <processor bean="bean-name" name="var-name" order="!int=0"
                xdef:unique-attr="name" xdef:name="BatchProcessorModel" xdef:ref="BatchListenersModel">
@@ -79,8 +79,8 @@
         <source xdef:value="xpl-fn:(item,ctx)=>Collection"/>
     </tagger>
 
-    <writer bean="bean-name" name="var-name" order="!int=0" forTag="string"
-            xdef:unique-attr="name" xdef:name="BatchWriterModel" xdef:ref="BatchListenersModel"
+    <consumer bean="bean-name" name="var-name" order="!int=0" forTag="string"
+            xdef:unique-attr="name" xdef:name="BatchConsumerModel" xdef:ref="BatchListenersModel"
             aggregator="bean-name" metaProvider="bean-name">
         <filter xdef:value="xpl-fn:(item,taskCtx)=>boolean"/>
 
@@ -102,6 +102,6 @@
         <source xdef:value="xpl-fn:(items,ctx)=>void"/>
 
         <adapter xdef:value="xpl-fn:(writer)=>any" />
-    </writer>
+    </consumer>
 
 </batch>

@@ -39,6 +39,13 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: consumer
+     * 
+     */
+    private KeyedList<io.nop.batch.dsl.model.BatchConsumerModel> _consumers = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: executor
      * 
      */
@@ -61,6 +68,20 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: loadRetryPolicy
+     * 
+     */
+    private io.nop.batch.dsl.model.BatchRetryPolicyModel _loadRetryPolicy ;
+    
+    /**
+     *  
+     * xml name: loader
+     * 
+     */
+    private io.nop.batch.dsl.model.BatchLoaderModel _loader ;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -79,20 +100,6 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
      * 每秒最多处理多少条记录
      */
     private java.lang.Double _rateLimit ;
-    
-    /**
-     *  
-     * xml name: readRetryPolicy
-     * 
-     */
-    private io.nop.batch.dsl.model.BatchRetryPolicyModel _readRetryPolicy ;
-    
-    /**
-     *  
-     * xml name: reader
-     * 
-     */
-    private io.nop.batch.dsl.model.BatchReaderModel _reader ;
     
     /**
      *  
@@ -142,13 +149,6 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
      * 
      */
     private io.nop.batch.core.BatchTransactionScope _transactionScope ;
-    
-    /**
-     *  
-     * xml name: writer
-     * 
-     */
-    private KeyedList<io.nop.batch.dsl.model.BatchWriterModel> _writers = KeyedList.emptyList();
     
     /**
      * 
@@ -206,6 +206,51 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
            
     }
 
+    
+    /**
+     * 
+     * xml name: consumer
+     *  
+     */
+    
+    public java.util.List<io.nop.batch.dsl.model.BatchConsumerModel> getConsumers(){
+      return _consumers;
+    }
+
+    
+    public void setConsumers(java.util.List<io.nop.batch.dsl.model.BatchConsumerModel> value){
+        checkAllowChange();
+        
+        this._consumers = KeyedList.fromList(value, io.nop.batch.dsl.model.BatchConsumerModel::getName);
+           
+    }
+
+    
+    public io.nop.batch.dsl.model.BatchConsumerModel getConsumer(String name){
+        return this._consumers.getByKey(name);
+    }
+
+    public boolean hasConsumer(String name){
+        return this._consumers.containsKey(name);
+    }
+
+    public void addConsumer(io.nop.batch.dsl.model.BatchConsumerModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.batch.dsl.model.BatchConsumerModel> list = this.getConsumers();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.batch.dsl.model.BatchConsumerModel::getName);
+            setConsumers(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_consumers(){
+        return this._consumers.keySet();
+    }
+
+    public boolean hasConsumers(){
+        return !this._consumers.isEmpty();
+    }
     
     /**
      * 
@@ -293,6 +338,44 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: loadRetryPolicy
+     *  
+     */
+    
+    public io.nop.batch.dsl.model.BatchRetryPolicyModel getLoadRetryPolicy(){
+      return _loadRetryPolicy;
+    }
+
+    
+    public void setLoadRetryPolicy(io.nop.batch.dsl.model.BatchRetryPolicyModel value){
+        checkAllowChange();
+        
+        this._loadRetryPolicy = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: loader
+     *  
+     */
+    
+    public io.nop.batch.dsl.model.BatchLoaderModel getLoader(){
+      return _loader;
+    }
+
+    
+    public void setLoader(io.nop.batch.dsl.model.BatchLoaderModel value){
+        checkAllowChange();
+        
+        this._loader = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: name
      *  
      */
@@ -370,44 +453,6 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._rateLimit = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: readRetryPolicy
-     *  
-     */
-    
-    public io.nop.batch.dsl.model.BatchRetryPolicyModel getReadRetryPolicy(){
-      return _readRetryPolicy;
-    }
-
-    
-    public void setReadRetryPolicy(io.nop.batch.dsl.model.BatchRetryPolicyModel value){
-        checkAllowChange();
-        
-        this._readRetryPolicy = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: reader
-     *  
-     */
-    
-    public io.nop.batch.dsl.model.BatchReaderModel getReader(){
-      return _reader;
-    }
-
-    
-    public void setReader(io.nop.batch.dsl.model.BatchReaderModel value){
-        checkAllowChange();
-        
-        this._reader = value;
            
     }
 
@@ -545,51 +590,6 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     }
 
     
-    /**
-     * 
-     * xml name: writer
-     *  
-     */
-    
-    public java.util.List<io.nop.batch.dsl.model.BatchWriterModel> getWriters(){
-      return _writers;
-    }
-
-    
-    public void setWriters(java.util.List<io.nop.batch.dsl.model.BatchWriterModel> value){
-        checkAllowChange();
-        
-        this._writers = KeyedList.fromList(value, io.nop.batch.dsl.model.BatchWriterModel::getName);
-           
-    }
-
-    
-    public io.nop.batch.dsl.model.BatchWriterModel getWriter(String name){
-        return this._writers.getByKey(name);
-    }
-
-    public boolean hasWriter(String name){
-        return this._writers.containsKey(name);
-    }
-
-    public void addWriter(io.nop.batch.dsl.model.BatchWriterModel item) {
-        checkAllowChange();
-        java.util.List<io.nop.batch.dsl.model.BatchWriterModel> list = this.getWriters();
-        if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.batch.dsl.model.BatchWriterModel::getName);
-            setWriters(list);
-        }
-        list.add(item);
-    }
-    
-    public java.util.Set<String> keySet_writers(){
-        return this._writers.keySet();
-    }
-
-    public boolean hasWriters(){
-        return !this._writers.isEmpty();
-    }
-    
 
     @Override
     public void freeze(boolean cascade){
@@ -600,21 +600,21 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         
            this._chunkProcessorBuilder = io.nop.api.core.util.FreezeHelper.deepFreeze(this._chunkProcessorBuilder);
             
+           this._consumers = io.nop.api.core.util.FreezeHelper.deepFreeze(this._consumers);
+            
            this._inputSorter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._inputSorter);
             
+           this._loadRetryPolicy = io.nop.api.core.util.FreezeHelper.deepFreeze(this._loadRetryPolicy);
+            
+           this._loader = io.nop.api.core.util.FreezeHelper.deepFreeze(this._loader);
+            
            this._processors = io.nop.api.core.util.FreezeHelper.deepFreeze(this._processors);
-            
-           this._readRetryPolicy = io.nop.api.core.util.FreezeHelper.deepFreeze(this._readRetryPolicy);
-            
-           this._reader = io.nop.api.core.util.FreezeHelper.deepFreeze(this._reader);
             
            this._retryPolicy = io.nop.api.core.util.FreezeHelper.deepFreeze(this._retryPolicy);
             
            this._skipPolicy = io.nop.api.core.util.FreezeHelper.deepFreeze(this._skipPolicy);
             
            this._tagger = io.nop.api.core.util.FreezeHelper.deepFreeze(this._tagger);
-            
-           this._writers = io.nop.api.core.util.FreezeHelper.deepFreeze(this._writers);
             
         }
     }
@@ -626,14 +626,15 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         out.putNotNull("batchSize",this.getBatchSize());
         out.putNotNull("chunkProcessorBuilder",this.getChunkProcessorBuilder());
         out.putNotNull("concurrency",this.getConcurrency());
+        out.putNotNull("consumers",this.getConsumers());
         out.putNotNull("executor",this.getExecutor());
         out.putNotNull("inputSorter",this.getInputSorter());
         out.putNotNull("jitterRatio",this.getJitterRatio());
+        out.putNotNull("loadRetryPolicy",this.getLoadRetryPolicy());
+        out.putNotNull("loader",this.getLoader());
         out.putNotNull("name",this.getName());
         out.putNotNull("processors",this.getProcessors());
         out.putNotNull("rateLimit",this.getRateLimit());
-        out.putNotNull("readRetryPolicy",this.getReadRetryPolicy());
-        out.putNotNull("reader",this.getReader());
         out.putNotNull("retryOneByOne",this.getRetryOneByOne());
         out.putNotNull("retryPolicy",this.getRetryPolicy());
         out.putNotNull("singleMode",this.getSingleMode());
@@ -641,7 +642,6 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         out.putNotNull("skipPolicy",this.getSkipPolicy());
         out.putNotNull("tagger",this.getTagger());
         out.putNotNull("transactionScope",this.getTransactionScope());
-        out.putNotNull("writers",this.getWriters());
     }
 
     public BatchTaskModel cloneInstance(){
@@ -656,14 +656,15 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         instance.setBatchSize(this.getBatchSize());
         instance.setChunkProcessorBuilder(this.getChunkProcessorBuilder());
         instance.setConcurrency(this.getConcurrency());
+        instance.setConsumers(this.getConsumers());
         instance.setExecutor(this.getExecutor());
         instance.setInputSorter(this.getInputSorter());
         instance.setJitterRatio(this.getJitterRatio());
+        instance.setLoadRetryPolicy(this.getLoadRetryPolicy());
+        instance.setLoader(this.getLoader());
         instance.setName(this.getName());
         instance.setProcessors(this.getProcessors());
         instance.setRateLimit(this.getRateLimit());
-        instance.setReadRetryPolicy(this.getReadRetryPolicy());
-        instance.setReader(this.getReader());
         instance.setRetryOneByOne(this.getRetryOneByOne());
         instance.setRetryPolicy(this.getRetryPolicy());
         instance.setSingleMode(this.getSingleMode());
@@ -671,7 +672,6 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         instance.setSkipPolicy(this.getSkipPolicy());
         instance.setTagger(this.getTagger());
         instance.setTransactionScope(this.getTransactionScope());
-        instance.setWriters(this.getWriters());
     }
 
     protected BatchTaskModel newInstance(){

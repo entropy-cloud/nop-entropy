@@ -2,7 +2,7 @@ package io.nop.batch.dsl.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.batch.dsl.model.BatchWriterModel;
+import io.nop.batch.dsl.model.BatchConsumerModel;
 import io.nop.commons.util.ClassHelper;
 
 
@@ -14,7 +14,7 @@ import io.nop.commons.util.ClassHelper;
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchListenersModel {
+public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchListenersModel {
     
     /**
      *  
@@ -363,13 +363,13 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
         out.putNotNull("source",this.getSource());
     }
 
-    public BatchWriterModel cloneInstance(){
-        BatchWriterModel instance = newInstance();
+    public BatchConsumerModel cloneInstance(){
+        BatchConsumerModel instance = newInstance();
         this.copyTo(instance);
         return instance;
     }
 
-    protected void copyTo(BatchWriterModel instance){
+    protected void copyTo(BatchConsumerModel instance){
         super.copyTo(instance);
         
         instance.setAdapter(this.getAdapter());
@@ -386,8 +386,8 @@ public abstract class _BatchWriterModel extends io.nop.batch.dsl.model.BatchList
         instance.setSource(this.getSource());
     }
 
-    protected BatchWriterModel newInstance(){
-        return (BatchWriterModel) ClassHelper.newInstance(getClass());
+    protected BatchConsumerModel newInstance(){
+        return (BatchConsumerModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON
