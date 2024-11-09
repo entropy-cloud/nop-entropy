@@ -1,0 +1,14 @@
+<task x:extends="base.task.xml" x:dump="true"
+      x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:in="in">
+    <steps>
+        <xpl name="test" in:x="2">
+            <in:y>1</in:y>
+        </xpl>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT == 3 ? 'OK' : 'FAIL'
+        </source>
+    </output>
+</task>

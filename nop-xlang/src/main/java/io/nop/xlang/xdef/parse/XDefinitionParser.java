@@ -65,6 +65,7 @@ import static io.nop.xlang.XLangErrors.ERR_XDEF_UNKNOWN_DEFINITION_REF;
 import static io.nop.xlang.xdsl.XDslParseHelper.checkAttrNames;
 import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrBoolean;
 import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrClassName;
+import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrClassNameSet;
 import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrDefType;
 import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrEnumValue;
 import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrGenericType;
@@ -137,6 +138,7 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         boolean parseForHtml = node.attrBoolean(keys.PARSE_FOR_HTML);
         String parserClass = parseAttrClassName(node, keys.PARSER_CLASS);
         String defaultExtends = parseAttrVPath(node, keys.DEFAULT_EXTENDS);
+        Set<String> transformerClass = parseAttrClassNameSet(node, keys.TRANSFORMER_CLASS);
         Set<String> checkNs = node.attrCsvSet(keys.CHECK_NS);
         if (checkNs == null)
             checkNs = Collections.emptySet();
@@ -171,6 +173,7 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         def.setXdefParseKeepComment(parseKeepComment);
         def.setXdefParseForHtml(parseForHtml);
         def.setXdefParserClass(parserClass);
+        def.setXdefTransformerClass(transformerClass);
         def.setXdefDefaultExtends(defaultExtends);
         def.setXdefCheckNs(checkNs);
         def.setXdefPropNs(propNs);

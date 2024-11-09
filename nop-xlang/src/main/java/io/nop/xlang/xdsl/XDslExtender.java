@@ -10,9 +10,11 @@ package io.nop.xlang.xdsl;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.xml.IXNodeTransformer;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.ResourceConstants;
 import io.nop.xlang.api.ExprEvalAction;
@@ -62,6 +64,8 @@ public class XDslExtender {
     private final XDslKeys keys;
     private final DeltaMerger merger;
 
+    private List<IXNodeTransformer> transformers;
+
     public XDslExtender(XDslKeys keys) {
         this.keys = keys;
         this.merger = new DeltaMerger(keys);
@@ -78,6 +82,8 @@ public class XDslExtender {
             result.setValidated(true);
             return result;
         }
+
+        node = transformNode(node, def, genScope);
 
         SourceLocation loc = node.getLocation();
 
@@ -119,6 +125,32 @@ public class XDslExtender {
         ret.setLocation(loc);
         normalize(result);
         return result;
+    }
+
+    List<IXNodeTransformer> loadTransformers(IXDefinition xdef, IEvalScope scope) {
+        if (transformers != null)
+            return transformers;
+
+        Set<String> transformerClass = xdef.getXdefTransformerClass();
+        if (CollectionHelper.isEmpty(transformerClass))
+            return null;
+
+        transformers = new ArrayList<>();
+        for (String className : transformerClass) {
+            IXNodeTransformer transformer = (IXNodeTransformer) scope.getClassModelLoader().loadClassModel(className).newInstance();
+            transformers.add(transformer);
+        }
+        return transformers;
+    }
+
+    XNode transformNode(XNode node, IXDefinition def, IEvalScope scope) {
+        List<IXNodeTransformer> transformers = loadTransformers(def, scope);
+        if (transformers == null)
+            return node;
+        for (IXNodeTransformer txn : transformers) {
+            node = txn.transform(node);
+        }
+        return node;
     }
 
     void normalize(XDslExtendResult result) {
@@ -270,6 +302,7 @@ public class XDslExtender {
 
     private XDslSource loadSource(IXDefinition def, String path, IEvalScope genScope) {
         XNode node = XModelInclude.instance().loadActiveNode(path);
+        node = transformNode(node, def, genScope);
         return buildSource(def, node, node.resourcePath(), genScope);
     }
 
@@ -355,7 +388,7 @@ public class XDslExtender {
                         throw new NopException(ERR_XDEF_CHILD_NOT_SUPPORT_EXTENDS).param(ARG_NODE, child)
                                 .param(ARG_XDEF_PATH, childDef.getLocation());
 
-                    if(childDef != null) {
+                    if (childDef != null) {
                         String ref = childDef.getXdefRef();
                         if (!XDefHelper.isLocalRef(ref)) {
                             subDef = SchemaLoader.loadXDefinition(ref);

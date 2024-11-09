@@ -107,6 +107,13 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
     
     /**
      *  
+     * xml name: xdef:transformer-class
+     * 加载得到XNode节点之后调用这个类进行格式转换，可以转换得到标准格式，或者执行版本迁移等
+     */
+    private java.util.Set<java.lang.String> _xdefTransformerClass ;
+    
+    /**
+     *  
      * xml name: xdef:version
      * 
      */
@@ -346,6 +353,25 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
     
     /**
      * 
+     * xml name: xdef:transformer-class
+     *  加载得到XNode节点之后调用这个类进行格式转换，可以转换得到标准格式，或者执行版本迁移等
+     */
+    
+    public java.util.Set<java.lang.String> getXdefTransformerClass(){
+      return _xdefTransformerClass;
+    }
+
+    
+    public void setXdefTransformerClass(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._xdefTransformerClass = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: xdef:version
      *  
      */
@@ -390,6 +416,7 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
         out.putNotNull("xdefPostParse",this.getXdefPostParse());
         out.putNotNull("xdefPropNs",this.getXdefPropNs());
         out.putNotNull("xdefTransform",this.getXdefTransform());
+        out.putNotNull("xdefTransformerClass",this.getXdefTransformerClass());
         out.putNotNull("xdefVersion",this.getXdefVersion());
     }
 
@@ -414,6 +441,7 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
         instance.setXdefPostParse(this.getXdefPostParse());
         instance.setXdefPropNs(this.getXdefPropNs());
         instance.setXdefTransform(this.getXdefTransform());
+        instance.setXdefTransformerClass(this.getXdefTransformerClass());
         instance.setXdefVersion(this.getXdefVersion());
     }
 

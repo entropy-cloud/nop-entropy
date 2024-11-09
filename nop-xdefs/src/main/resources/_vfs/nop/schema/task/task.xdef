@@ -10,6 +10,7 @@
       restartable="!boolean=true" graphMode="!boolean=false" enterSteps="csv-set" exitSteps="csv-set"
       useParentBeanContainer="!boolean=false"
       x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+      xdef:transformer-class="io.nop.xlang.xdsl.transformer.InOutNodeTransformer"
       xdef:name="TaskFlowModel" xdef:bean-package="io.nop.task.model" xmlns:graphql="graphql"
       xdef:ref="TaskStepsModel" xdef:model-name-prop="name" xdef:model-version-prop="version"
 >
@@ -264,7 +265,7 @@
             </suspend>
 
             <custom name="!var-name" customType="!xml-name" xdef:ref="TaskStepModel"
-                    xdef:name="CustomTaskStepModel" />
+                    xdef:name="CustomTaskStepModel"/>
 
         </steps>
     </xdef:define>

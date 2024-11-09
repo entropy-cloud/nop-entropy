@@ -128,6 +128,17 @@ public class XDslParseHelper {
         return text;
     }
 
+    public static Set<String> parseAttrClassNameSet(XNode node, String attrName) {
+        Set<String> classNames = node.attrCsvSet(attrName);
+        if (classNames == null)
+            return null;
+        for (String className : classNames) {
+            if (!StringHelper.isValidClassName(className))
+                throw newAttrError(ERR_XDSL_ATTR_NOT_VALID_CLASS_NAME, node, attrName);
+        }
+        return classNames;
+    }
+
     public static String requireAttrClassName(XNode node, String attrName) {
         String text = parseAttrClassName(node, attrName);
         if (text == null)

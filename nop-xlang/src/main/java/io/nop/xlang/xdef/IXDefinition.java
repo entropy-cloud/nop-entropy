@@ -23,6 +23,8 @@ public interface IXDefinition extends IXDefNode, IXDslModel {
 
     String getXdefParserClass();
 
+    Set<String> getXdefTransformerClass();
+
     String getXdefBase();
 
     String getXdefModelNameProp();

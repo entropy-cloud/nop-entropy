@@ -141,6 +141,10 @@ public class TestTaskFlowManager extends AbstractTaskTestCase {
         runTask("test/custom-type-01");
     }
 
+    @Test
+    public void testTransform() {
+        runTask("test/transform");
+    }
 
     public static class MyHandler {
 

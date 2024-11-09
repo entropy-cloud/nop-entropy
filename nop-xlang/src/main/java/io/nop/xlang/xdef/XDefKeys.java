@@ -42,6 +42,7 @@ public class XDefKeys implements Serializable {
     public final String CHECK_NS;
     public final String PROP_NS;
     public final String BEAN_PACKAGE;
+    public final String TRANSFORMER_CLASS;
 
     public final String SUPPORT_EXTENDS;
     public final String BEAN_CLASS;
@@ -109,6 +110,8 @@ public class XDefKeys implements Serializable {
         CHECK_NS = getFullName(ns, "check-ns");
         PROP_NS = getFullName(ns, "prop-ns");
 
+        TRANSFORMER_CLASS = getFullName(ns, "transformer-class");
+
         SUPPORT_EXTENDS = getFullName(ns, "support-extends");
         BEAN_CLASS = getFullName(ns, "bean-class");
         BEAN_INTERFACES = getFullName(ns, "bean-interfaces");
@@ -163,6 +166,7 @@ public class XDefKeys implements Serializable {
                 UNKNOWN_ATTR, DEFAULT_OVERRIDE, INTERNAL, DEPRECATED);
 
         List<String> rootAttrs = new ArrayList<>(Arrays.asList(VERSION, PARSE_KEEP_COMMENT, PARSE_FOR_HTML,
+                TRANSFORMER_CLASS,
                 PARSER_CLASS, DEFAULT_EXTENDS, BEAN_PACKAGE, CHECK_NS, PROP_NS, BASE, MODEL_NAME_PROP, MODEL_VERSION_PROP));
         rootAttrs.addAll(ATTR_NAMES);
 

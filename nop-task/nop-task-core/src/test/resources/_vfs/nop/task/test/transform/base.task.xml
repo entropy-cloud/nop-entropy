@@ -1,0 +1,15 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:in="in">
+    <steps>
+        <xpl name="test" in:x="1">
+            <source>
+                return x + y
+            </source>
+        </xpl>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT == 3 ? 'OK' : 'FAIL'
+        </source>
+    </output>
+</task>
