@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpt="xpt"
+     x:extends="/nop/excel/imp/dict-support.imp.xml"
+     templatePath="template.record-file.xlsx" xdef="/nop/schema/record/record-file.xdef" defaultStripText="true">
+    <sheets>
+        <sheet name="目录" ignore="true"/>
+
+        <sheet name="文件结构">
+
+        </sheet>
+
+        <sheet name="messageType" namePattern=".*" field="types" multiple="true" keyProp="name"
+               sheetNameProp="tableName">
+            <normalizeFieldsExpr>
+                <c:script><![CDATA[
+
+                ]]></c:script>
+            </normalizeFieldsExpr>
+
+            <fields>
+                <field name="name" displayName="对象名">
+                    <schema stdDomain="class-name"/>
+                    <valueExpr>
+                        value?.$fullClassName(rootRecord['ext:entityPackageName'])
+                    </valueExpr>
+                </field>
+
+                <field name="displayName" displayName="中文名" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="i18n-en:displayName" displayName="英文名">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="tagSet" displayName="标签">
+                    <schema stdDomain="csv-set"/>
+                </field>
+
+                <field name="description" displayName="描述">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="fields" displayName="字段列表" list="true" keyProp="name">
+                    <fields>
+
+                        <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
+                            <schema stdDomain="boolean"/>
+                            <valueExpr>
+                                <c:script>
+                                    value == 'M' || value == 'Y' || value == true
+                                </c:script>
+                            </valueExpr>
+                        </field>
+
+                        <field name="name" displayName="属性名"
+                               xpt:formatExpr="cell.value == cell.rp?.ev?.code?.$colCodeToPropName()?'':cell.value">
+                            <schema stdDomain="var-name"/>
+                        </field>
+
+                        <field name="displayName" displayName="中文名" mandatory="true"/>
+
+                        <field name="i18n-en:displayName" displayName="英文名"/>
+
+                        <field name="domain" displayName="数据域">
+                            <schema stdDomain="xml-name"/>
+                        </field>
+
+                        <field name="stdDomain" displayName="标准域">
+                            <schema stdDomain="xml-name"/>
+                        </field>
+
+                        <field name="precision" displayName="长度">
+                            <schema stdDomain="int-size"/>
+                        </field>
+                        <field name="scale" displayName="小数位数">
+                            <schema stdDomain="int-size"/>
+                        </field>
+                        <field name="ext:dict" displayName="字典">
+                            <schema stdDomain="string"/>
+                        </field>
+                        <field name="tagSet" displayName="标签">
+                            <schema stdDomain="csv-set"/>
+                        </field>
+
+                        <field name="defaultValue" displayName="缺省值">
+                            <schema stdDomain="string"/>
+                        </field>
+                    </fields>
+                </field>
+            </fields>
+        </sheet>
+    </sheets>
+</imp>

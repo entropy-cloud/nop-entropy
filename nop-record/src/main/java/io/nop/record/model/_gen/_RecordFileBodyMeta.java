@@ -18,78 +18,78 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     
     /**
      *  
-     * xml name: repeatExpr
+     * xml name: readRepeatExpr
      * 返回body行的循环次数
      */
-    private io.nop.core.lang.eval.IEvalFunction _repeatExpr ;
+    private io.nop.core.lang.eval.IEvalFunction _readRepeatExpr ;
     
     /**
      *  
-     * xml name: repeatKind
+     * xml name: readRepeatKind
      * 
      */
-    private io.nop.record.model.FieldRepeatKind _repeatKind ;
+    private io.nop.record.model.FieldRepeatKind _readRepeatKind ;
     
     /**
      *  
-     * xml name: repeatUntil
+     * xml name: readRepeatUntil
      * 返回body行循环的终止条件
      */
-    private io.nop.core.lang.eval.IEvalFunction _repeatUntil ;
+    private io.nop.core.lang.eval.IEvalFunction _readRepeatUntil ;
     
     /**
      * 
-     * xml name: repeatExpr
+     * xml name: readRepeatExpr
      *  返回body行的循环次数
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getRepeatExpr(){
-      return _repeatExpr;
+    public io.nop.core.lang.eval.IEvalFunction getReadRepeatExpr(){
+      return _readRepeatExpr;
     }
 
     
-    public void setRepeatExpr(io.nop.core.lang.eval.IEvalFunction value){
+    public void setReadRepeatExpr(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._repeatExpr = value;
+        this._readRepeatExpr = value;
            
     }
 
     
     /**
      * 
-     * xml name: repeatKind
+     * xml name: readRepeatKind
      *  
      */
     
-    public io.nop.record.model.FieldRepeatKind getRepeatKind(){
-      return _repeatKind;
+    public io.nop.record.model.FieldRepeatKind getReadRepeatKind(){
+      return _readRepeatKind;
     }
 
     
-    public void setRepeatKind(io.nop.record.model.FieldRepeatKind value){
+    public void setReadRepeatKind(io.nop.record.model.FieldRepeatKind value){
         checkAllowChange();
         
-        this._repeatKind = value;
+        this._readRepeatKind = value;
            
     }
 
     
     /**
      * 
-     * xml name: repeatUntil
+     * xml name: readRepeatUntil
      *  返回body行循环的终止条件
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getRepeatUntil(){
-      return _repeatUntil;
+    public io.nop.core.lang.eval.IEvalFunction getReadRepeatUntil(){
+      return _readRepeatUntil;
     }
 
     
-    public void setRepeatUntil(io.nop.core.lang.eval.IEvalFunction value){
+    public void setReadRepeatUntil(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._repeatUntil = value;
+        this._readRepeatUntil = value;
            
     }
 
@@ -109,9 +109,9 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("repeatExpr",this.getRepeatExpr());
-        out.putNotNull("repeatKind",this.getRepeatKind());
-        out.putNotNull("repeatUntil",this.getRepeatUntil());
+        out.putNotNull("readRepeatExpr",this.getReadRepeatExpr());
+        out.putNotNull("readRepeatKind",this.getReadRepeatKind());
+        out.putNotNull("readRepeatUntil",this.getReadRepeatUntil());
     }
 
     public RecordFileBodyMeta cloneInstance(){
@@ -123,9 +123,9 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     protected void copyTo(RecordFileBodyMeta instance){
         super.copyTo(instance);
         
-        instance.setRepeatExpr(this.getRepeatExpr());
-        instance.setRepeatKind(this.getRepeatKind());
-        instance.setRepeatUntil(this.getRepeatUntil());
+        instance.setReadRepeatExpr(this.getReadRepeatExpr());
+        instance.setReadRepeatKind(this.getReadRepeatKind());
+        instance.setReadRepeatUntil(this.getReadRepeatUntil());
     }
 
     protected RecordFileBodyMeta newInstance(){

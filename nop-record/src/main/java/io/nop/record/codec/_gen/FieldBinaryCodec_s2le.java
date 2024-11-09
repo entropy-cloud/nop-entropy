@@ -13,7 +13,7 @@ import java.io.IOException;
 public class FieldBinaryCodec_s2le implements IFieldBinaryCodec{
     public static final FieldBinaryCodec_s2le INSTANCE = new FieldBinaryCodec_s2le();
 
-    public Object decode(IBinaryDataReader input, int length, Charset charset,
+    public Object decode(IBinaryDataReader input, Object record, int length, Charset charset,
                         IFieldCodecContext context) throws IOException{
         return input.readS2le();
     }

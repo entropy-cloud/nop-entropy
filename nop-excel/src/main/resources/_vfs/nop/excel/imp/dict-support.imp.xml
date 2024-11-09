@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <sheets>
+
+        <sheet name="字典定义" field="dicts" list="true">
+            <fields>
+                <field name="name" displayName="名称" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="label" displayName="中文名" mandatory="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="valueType" displayName="值类型">
+                    <schema stdDomain="std-data-type"/>
+                </field>
+
+                <field name="i18n-en:label" displayName="英文名">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="description" displayName="描述">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="options" displayName="字典项" mandatory="true" keyProp="value" list="true">
+                    <fields>
+                        <field name="value" displayName="值">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="label" displayName="名称" mandatory="true">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="code" displayName="代码">
+                            <schema stdDomain="var-name"/>
+                        </field>
+
+                        <field name="i18n-en:label" displayName="英文名">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="description" displayName="描述">
+                            <schema stdDomain="string"/>
+                        </field>
+                    </fields>
+                </field>
+            </fields>
+        </sheet>
+
+    </sheets>
+</imp>

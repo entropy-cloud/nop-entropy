@@ -36,7 +36,7 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
     @Override
     public boolean writeObject(Output out, RecordObjectMeta recordMeta, Object record, String name,
                                IFieldCodecContext context) throws IOException {
-        if (!runIfExpr(recordMeta.getIfExpr(), record, name, context))
+        if (!runIfExpr(recordMeta.getWriteWhen(), record, name, context))
             return false;
 
         IBitSet tags = writeTags(out, null, recordMeta, record, context);
@@ -55,7 +55,7 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
         if (StringHelper.isEmptyObject(record) && field.isSkipWriteWhenEmpty())
             return false;
 
-        if (!runIfExpr(field.getIfExpr(), record, field.getName(), context))
+        if (!runIfExpr(field.getWriteWhen(), record, field.getName(), context))
             return false;
 
         if (field.getOffset() > 0) {

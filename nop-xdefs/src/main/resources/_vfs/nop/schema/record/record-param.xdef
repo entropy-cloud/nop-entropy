@@ -1,5 +1,7 @@
 <param x:schema="/nop/schema/xdef.xdef"
        xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:xdef="/nop/schema/xdef.xdef"
-       name="!string" type="!generic-type" mandatory="!boolean=false" stdDomain="xml-name"
-       xdef:name="RecordParamMeta" xdef:bean-package="io.nop.record.model"/>
+       name="!string" displayName="string" type="!generic-type" mandatory="!boolean=false"
+       xdef:name="RecordParamMeta" xdef:bean-package="io.nop.record.model">
+    <schema xdef:ref="../schema/schema.xdef"/>
+</param>

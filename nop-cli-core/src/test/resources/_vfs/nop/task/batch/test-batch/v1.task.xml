@@ -1,0 +1,25 @@
+<task>
+    <steps>
+        <custom id="test" specialType="batch:Task">
+           <batch:task>
+               <loader>
+                   <file-reader>
+                   </file-reader>
+               </loader>
+
+               <processor>
+                     <source>
+                         consumer(item);
+                     </source>
+               </processor>
+
+               <consumer>
+                    <file-writer />
+               </consumer>
+               <consumer>
+                     <file-writer />
+               </consumer>
+           </batch:task> 
+        </custom>
+    </steps>
+</task>

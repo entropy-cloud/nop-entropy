@@ -51,7 +51,9 @@
     <!--
     当表达式返回false时，此字段将被跳过，不会被处理
     -->
-    <ifExpr xdef:value="xpl-fn:(record,ctx)=>boolean"/>
+    <writeWhen xdef:value="xpl-fn:(record,ctx)=>boolean"/>
+
+    <readWhen xdef:value="xpl-fn:(in,record,ctx)=>boolean" />
 
     <!--
     如果非空，则表示字段为固定内容。当输出字段到数据文件中时直接使用该内容输出

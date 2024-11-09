@@ -25,9 +25,9 @@ public class DynLVFieldBinaryCodec implements IFieldBinaryCodec {
     }
 
     @Override
-    public Object decode(IBinaryDataReader input, int length, Charset charset,
+    public Object decode(IBinaryDataReader input, Object record, int length, Charset charset,
                          IFieldCodecContext context) throws IOException {
-        int len = (Integer) lengthCodec.decode(input, length, charset, context);
+        int len = (Integer) lengthCodec.decode(input, record, length, charset, context);
         if (len <= 0) {
             return null;
         }

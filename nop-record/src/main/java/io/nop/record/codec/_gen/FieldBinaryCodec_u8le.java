@@ -13,7 +13,7 @@ import java.io.IOException;
 public class FieldBinaryCodec_u8le implements IFieldBinaryCodec{
     public static final FieldBinaryCodec_u8le INSTANCE = new FieldBinaryCodec_u8le();
 
-    public Object decode(IBinaryDataReader input, int length, Charset charset,
+    public Object decode(IBinaryDataReader input, Object record, int length, Charset charset,
                         IFieldCodecContext context) throws IOException{
         return input.readU8le();
     }

@@ -1,26 +1,16 @@
 <definitions x:schema="/nop/schema/xdef.xdef"
-      xmlns:x="/nop/schema/xdsl.xdef"
-      xmlns:xdef="/nop/schema/xdef.xdef"
-      xdef:name="RecordDefinitions" xdef:bean-package="io.nop.record.model"
-      binary="!boolean=false" defaultTextEncoding="string=UTF-8"
-      bitEndian="enum:io.nop.commons.bytes.EndianKind"
-      endian="enum:io.nop.commons.bytes.EndianKind"
+             xmlns:x="/nop/schema/xdsl.xdef"
+             xmlns:xdef="/nop/schema/xdef.xdef"
+             xdef:name="RecordDefinitions" xdef:bean-package="io.nop.record.model"
+             binary="!boolean=false" defaultTextEncoding="string=UTF-8"
+             bitEndian="enum:io.nop.commons.bytes.EndianKind"
+             endian="enum:io.nop.commons.bytes.EndianKind"
 >
-
     <types xdef:body-type="list" xdef:key-attr="name">
         <type name="!prop-name" xdef:ref="record-object.xdef" xdef:name="RecordTypeMeta"/>
     </types>
 
     <enums xdef:body-type="list" xdef:key-attr="name">
-        <enum name="!var-name" valueType="std-data-type" xdef:name="RecordEnum">
-            <doc xdef:value="string"/>
-            <option value="!string" label="!string" xdef:unique-attr="value" xdef:name="RecordEnumOption">
-                <doc xdef:value="string"/>
-                <!--
-                翻译为java doc的@see注释
-                -->
-                <docRef xdef:value="string"/>
-            </option>
-        </enum>
+        <enum name="!var-name" xdef:ref="record-enum.xdef"/>
     </enums>
 </definitions>

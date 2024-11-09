@@ -39,17 +39,24 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      *  
-     * xml name: ifExpr
-     * 
-     */
-    private io.nop.core.lang.eval.IEvalFunction _ifExpr ;
-    
-    /**
-     *  
      * xml name: params
      * 
      */
     private KeyedList<io.nop.record.model.RecordParamMeta> _params = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: readWhen
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _readWhen ;
+    
+    /**
+     *  
+     * xml name: ref
+     * 引用types段中定义的类型
+     */
+    private java.lang.String _ref ;
     
     /**
      *  
@@ -64,6 +71,13 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
      * 
      */
     private io.nop.core.type.IGenericType _type ;
+    
+    /**
+     *  
+     * xml name: writeWhen
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _writeWhen ;
     
     /**
      * 
@@ -150,25 +164,6 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      * 
-     * xml name: ifExpr
-     *  
-     */
-    
-    public io.nop.core.lang.eval.IEvalFunction getIfExpr(){
-      return _ifExpr;
-    }
-
-    
-    public void setIfExpr(io.nop.core.lang.eval.IEvalFunction value){
-        checkAllowChange();
-        
-        this._ifExpr = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: params
      *  
      */
@@ -214,6 +209,44 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: readWhen
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getReadWhen(){
+      return _readWhen;
+    }
+
+    
+    public void setReadWhen(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._readWhen = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: ref
+     *  引用types段中定义的类型
+     */
+    
+    public java.lang.String getRef(){
+      return _ref;
+    }
+
+    
+    public void setRef(java.lang.String value){
+        checkAllowChange();
+        
+        this._ref = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: template
      *  
      */
@@ -250,6 +283,25 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     }
 
     
+    /**
+     * 
+     * xml name: writeWhen
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getWriteWhen(){
+      return _writeWhen;
+    }
+
+    
+    public void setWriteWhen(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._writeWhen = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -272,10 +324,12 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         out.putNotNull("afterRead",this.getAfterRead());
         out.putNotNull("afterWrite",this.getAfterWrite());
         out.putNotNull("fields",this.getFields());
-        out.putNotNull("ifExpr",this.getIfExpr());
         out.putNotNull("params",this.getParams());
+        out.putNotNull("readWhen",this.getReadWhen());
+        out.putNotNull("ref",this.getRef());
         out.putNotNull("template",this.getTemplate());
         out.putNotNull("type",this.getType());
+        out.putNotNull("writeWhen",this.getWriteWhen());
     }
 
     public RecordObjectMeta cloneInstance(){
@@ -290,10 +344,12 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         instance.setAfterRead(this.getAfterRead());
         instance.setAfterWrite(this.getAfterWrite());
         instance.setFields(this.getFields());
-        instance.setIfExpr(this.getIfExpr());
         instance.setParams(this.getParams());
+        instance.setReadWhen(this.getReadWhen());
+        instance.setRef(this.getRef());
         instance.setTemplate(this.getTemplate());
         instance.setType(this.getType());
+        instance.setWriteWhen(this.getWriteWhen());
     }
 
     protected RecordObjectMeta newInstance(){

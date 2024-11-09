@@ -18,6 +18,13 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: displayName
+     * 
+     */
+    private java.lang.String _displayName ;
+    
+    /**
+     *  
      * xml name: mandatory
      * 
      */
@@ -32,10 +39,11 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
     
     /**
      *  
-     * xml name: stdDomain
-     * 
+     * xml name: schema
+     * schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
+     * Map对应props配置,  List对应item配置, Union对应oneOf配置
      */
-    private java.lang.String _stdDomain ;
+    private io.nop.xlang.xmeta.ISchema _schema ;
     
     /**
      *  
@@ -43,6 +51,25 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
      * 
      */
     private io.nop.core.type.IGenericType _type ;
+    
+    /**
+     * 
+     * xml name: displayName
+     *  
+     */
+    
+    public java.lang.String getDisplayName(){
+      return _displayName;
+    }
+
+    
+    public void setDisplayName(java.lang.String value){
+        checkAllowChange();
+        
+        this._displayName = value;
+           
+    }
+
     
     /**
      * 
@@ -84,19 +111,20 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
     
     /**
      * 
-     * xml name: stdDomain
-     *  
+     * xml name: schema
+     *  schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
+     * Map对应props配置,  List对应item配置, Union对应oneOf配置
      */
     
-    public java.lang.String getStdDomain(){
-      return _stdDomain;
+    public io.nop.xlang.xmeta.ISchema getSchema(){
+      return _schema;
     }
 
     
-    public void setStdDomain(java.lang.String value){
+    public void setSchema(io.nop.xlang.xmeta.ISchema value){
         checkAllowChange();
         
-        this._stdDomain = value;
+        this._schema = value;
            
     }
 
@@ -128,6 +156,8 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._schema = io.nop.api.core.util.FreezeHelper.deepFreeze(this._schema);
+            
         }
     }
 
@@ -135,9 +165,10 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("name",this.getName());
-        out.putNotNull("stdDomain",this.getStdDomain());
+        out.putNotNull("schema",this.getSchema());
         out.putNotNull("type",this.getType());
     }
 
@@ -150,9 +181,10 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
     protected void copyTo(RecordParamMeta instance){
         super.copyTo(instance);
         
+        instance.setDisplayName(this.getDisplayName());
         instance.setMandatory(this.isMandatory());
         instance.setName(this.getName());
-        instance.setStdDomain(this.getStdDomain());
+        instance.setSchema(this.getSchema());
         instance.setType(this.getType());
     }
 

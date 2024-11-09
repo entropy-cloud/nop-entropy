@@ -28,9 +28,9 @@ public class LVFieldBinaryCodec implements IFieldBinaryCodec {
     }
 
     @Override
-    public Object decode(IBinaryDataReader input, int length, Charset charset,
+    public Object decode(IBinaryDataReader input, Object record, int length, Charset charset,
                          IFieldCodecContext context) throws IOException{
-        int len = (Integer) lengthCodec.decode(input, length, charset, context);
+        int len = (Integer) lengthCodec.decode(input, record, length, charset, context);
         if (len <= 0) {
             return null;
         }
@@ -39,7 +39,7 @@ public class LVFieldBinaryCodec implements IFieldBinaryCodec {
             throw new NopException(ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG)
                     .param(ARG_LENGTH, len).param(ARG_MAX_LENGTH, length);
         }
-        return valueCodec.decode(input, len, charset, context);
+        return valueCodec.decode(input, record, len, charset, context);
     }
 
     @Override

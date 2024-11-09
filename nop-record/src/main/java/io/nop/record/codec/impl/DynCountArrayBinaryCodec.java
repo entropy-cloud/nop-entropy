@@ -24,8 +24,8 @@ public class DynCountArrayBinaryCodec implements IFieldBinaryCodec {
     }
 
     @Override
-    public Object decode(IBinaryDataReader input, int length, Charset charset, IFieldCodecContext context) throws IOException {
-        int count = (Integer) countCodec.decode(input, length, charset, context);
+    public Object decode(IBinaryDataReader input, Object record, int length, Charset charset, IFieldCodecContext context) throws IOException {
+        int count = (Integer) countCodec.decode(input, record, length, charset, context);
 
         IBinaryDataReader arrayInput = input.subInput(length);
 

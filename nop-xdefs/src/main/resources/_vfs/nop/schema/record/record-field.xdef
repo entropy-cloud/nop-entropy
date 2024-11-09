@@ -10,19 +10,18 @@
        xmlns:xdef="/nop/schema/xdef.xdef"
        name="!prop-name" xdef:ref="record-simple-field.xdef"
        xdef:name="RecordFieldMeta" xdef:bean-package="io.nop.record.model"
-       repeatKind="enum:io.nop.record.model.FieldRepeatKind"
+       readRepeatKind="enum:io.nop.record.model.FieldRepeatKind"
        tagsCodec="string" tagIndex="!int=0"
 >
     <!--
     返回字段的循环次数
     -->
-    <repeatExpr xdef:value="xpl-fn:(record,ctx)=>int"/>
+    <readRepeatExpr xdef:value="xpl-fn:(record,ctx)=>int"/>
 
     <!--
     返回字段循环的终止条件
     -->
-    <repeatUntil xdef:value="xpl-fn:(record,ctx)=>boolean"/>
-
+    <readRepeatUntil xdef:value="xpl-fn:(record,ctx)=>boolean"/>
 
     <!--
     动态确定字段类型

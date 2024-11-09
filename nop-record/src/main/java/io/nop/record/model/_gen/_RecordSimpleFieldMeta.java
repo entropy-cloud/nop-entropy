@@ -95,13 +95,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
-     * xml name: ifExpr
-     * 当表达式返回false时，此字段将被跳过，不会被处理
-     */
-    private io.nop.core.lang.eval.IEvalFunction _ifExpr ;
-    
-    /**
-     *  
      * xml name: includeTerminator
      * 解析结果是否包含terminator
      */
@@ -221,6 +214,13 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: readWhen
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _readWhen ;
+    
+    /**
+     *  
      * xml name: skipWhenRead
      * 当读取记录时忽略此字段，此字段可能仅用于输出
      */
@@ -288,6 +288,13 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
      * 虚拟字段，不解析到java bean中。当它具有fields子字段时可以起到分组作用。fields子字段会作为父对象的字段
      */
     private boolean _virtual  = false;
+    
+    /**
+     *  
+     * xml name: writeWhen
+     * 当表达式返回false时，此字段将被跳过，不会被处理
+     */
+    private io.nop.core.lang.eval.IEvalFunction _writeWhen ;
     
     /**
      * 
@@ -494,25 +501,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._exportExpr = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: ifExpr
-     *  当表达式返回false时，此字段将被跳过，不会被处理
-     */
-    
-    public io.nop.core.lang.eval.IEvalFunction getIfExpr(){
-      return _ifExpr;
-    }
-
-    
-    public void setIfExpr(io.nop.core.lang.eval.IEvalFunction value){
-        checkAllowChange();
-        
-        this._ifExpr = value;
            
     }
 
@@ -842,6 +830,25 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      * 
+     * xml name: readWhen
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getReadWhen(){
+      return _readWhen;
+    }
+
+    
+    public void setReadWhen(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._readWhen = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: skipWhenRead
      *  当读取记录时忽略此字段，此字段可能仅用于输出
      */
@@ -1030,6 +1037,25 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     }
 
     
+    /**
+     * 
+     * xml name: writeWhen
+     *  当表达式返回false时，此字段将被跳过，不会被处理
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getWriteWhen(){
+      return _writeWhen;
+    }
+
+    
+    public void setWriteWhen(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._writeWhen = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -1056,7 +1082,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         out.putNotNull("excludeMax",this.getExcludeMax());
         out.putNotNull("excludeMin",this.getExcludeMin());
         out.putNotNull("exportExpr",this.getExportExpr());
-        out.putNotNull("ifExpr",this.getIfExpr());
         out.putNotNull("includeTerminator",this.isIncludeTerminator());
         out.putNotNull("label",this.getLabel());
         out.putNotNull("lazy",this.isLazy());
@@ -1074,6 +1099,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         out.putNotNull("parseExpr",this.getParseExpr());
         out.putNotNull("pattern",this.getPattern());
         out.putNotNull("prop",this.getProp());
+        out.putNotNull("readWhen",this.getReadWhen());
         out.putNotNull("skipWhenRead",this.isSkipWhenRead());
         out.putNotNull("skipWhenWrite",this.isSkipWhenWrite());
         out.putNotNull("skipWriteWhenEmpty",this.isSkipWriteWhenEmpty());
@@ -1084,6 +1110,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         out.putNotNull("trim",this.isTrim());
         out.putNotNull("type",this.getType());
         out.putNotNull("virtual",this.isVirtual());
+        out.putNotNull("writeWhen",this.getWriteWhen());
     }
 
     public RecordSimpleFieldMeta cloneInstance(){
@@ -1106,7 +1133,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         instance.setExcludeMax(this.getExcludeMax());
         instance.setExcludeMin(this.getExcludeMin());
         instance.setExportExpr(this.getExportExpr());
-        instance.setIfExpr(this.getIfExpr());
         instance.setIncludeTerminator(this.isIncludeTerminator());
         instance.setLabel(this.getLabel());
         instance.setLazy(this.isLazy());
@@ -1124,6 +1150,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         instance.setParseExpr(this.getParseExpr());
         instance.setPattern(this.getPattern());
         instance.setProp(this.getProp());
+        instance.setReadWhen(this.getReadWhen());
         instance.setSkipWhenRead(this.isSkipWhenRead());
         instance.setSkipWhenWrite(this.isSkipWhenWrite());
         instance.setSkipWriteWhenEmpty(this.isSkipWriteWhenEmpty());
@@ -1134,6 +1161,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         instance.setTrim(this.isTrim());
         instance.setType(this.getType());
         instance.setVirtual(this.isVirtual());
+        instance.setWriteWhen(this.getWriteWhen());
     }
 
     protected RecordSimpleFieldMeta newInstance(){
