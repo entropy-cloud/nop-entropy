@@ -141,7 +141,7 @@ public class PartitionDispatchQueue<T> {
                     semaphore.release(batchSize - remainSize.get());
 
                     if (LOG.isTraceEnabled())
-                        LOG.trace("fetch-queue:count={},semaphore={},threadId={},queue={},ret={}", count,
+                        LOG.trace("nop.batch.fetch-queue:count={},semaphore={},threadId={},queue={},ret={}", count,
                                 semaphore.availablePermits(), threadId, info(), allCount(ret));
                     return ret;
                 }
@@ -149,14 +149,14 @@ public class PartitionDispatchQueue<T> {
                 // 如果所有fetch线程都已经结束，并且当前队列中也没有任何元素
                 if (count <= 0 && fetchThreadCount.getCount() == 0) {
                     if (LOG.isDebugEnabled())
-                        LOG.debug("noMoreData:count={},semaphore={},threadId={},queue={}", count,
+                        LOG.debug("nop.batch.no-more-data:count={},semaphore={},threadId={},queue={}", count,
                                 semaphore.availablePermits(), threadId, info());
                     return null;
                 }
 
                 // 等待addBatch加入数据
                 if (LOG.isDebugEnabled())
-                    LOG.debug("wait-queue:count={},semaphore={},threadId={},queue={}", count,
+                    LOG.debug("nop.batch.wait-queue:count={},semaphore={},threadId={},queue={}", count,
                             semaphore.availablePermits(), threadId, info());
                 try {
                     notEmpty.await(500, TimeUnit.MILLISECONDS);
@@ -234,7 +234,7 @@ public class PartitionDispatchQueue<T> {
             });
             count += data.size();
             if (LOG.isTraceEnabled())
-                LOG.trace("add-batch:count={},queue={}", count, info());
+                LOG.trace("nop.batch.add-to-queue:count={},queue={}", count, info());
             notEmpty.signalAll();
         } finally {
             lock.unlock();

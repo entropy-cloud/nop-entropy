@@ -128,6 +128,9 @@ public class XDslExtender {
     }
 
     List<IXNodeTransformer> loadTransformers(IXDefinition xdef, IEvalScope scope) {
+        if(xdef == null)
+            return null;
+
         if (transformers != null)
             return transformers;
 

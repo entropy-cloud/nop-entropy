@@ -44,15 +44,20 @@ public class TestPartitionDispatchLoader {
                     IBatchChunkContext chunkContext = context.newChunkContext();
                     chunkContext.setThreadIndex(threadIndex);
                     chunkContext.setConcurrency(concurrency);
-                    context.fireChunkBegin(chunkContext);
-                    List<String> batch = loader.load(10, chunkContext);
-                    if (batch.isEmpty()) {
-                        latch.countDown();
-                        return;
+                    try {
+                        context.fireChunkBegin(chunkContext);
+                        List<String> batch = loader.load(10, chunkContext);
+                        if (batch.isEmpty()) {
+                            latch.countDown();
+                            return;
+                        }
+                        list.addAll(batch);
+                        // System.out.println(StringHelper.join(batch, "\n"));
+                        context.fireChunkEnd(null, chunkContext);
+                        chunkContext.complete();
+                    } catch (Exception e) {
+                        chunkContext.completeExceptionally(e);
                     }
-                    list.addAll(batch);
-                    // System.out.println(StringHelper.join(batch, "\n"));
-                    context.fireChunkEnd(null, chunkContext);
                 }
             });
         }

@@ -12,6 +12,8 @@ import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.commons.collections.MapOfInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,6 +29,8 @@ import java.util.function.Function;
  */
 public class PartitionDispatchLoaderProvider<S>
         implements IBatchLoaderProvider<S> {
+    static final Logger LOG = LoggerFactory.getLogger(PartitionDispatchLoaderProvider.class);
+
     private final IBatchLoaderProvider<S> loader;
     private final Executor executor;
     private final int fetchThreadCount;
@@ -85,10 +89,12 @@ public class PartitionDispatchLoaderProvider<S>
                         try {
                             List<S> list = loader.load(loadBatchSize, ctx);
                             if (list.isEmpty()) {
+                                LOG.info("nop.batch.exit-fetch-thread:threadIndex={}", threadIndex);
                                 return;
                             }
                             queue.addBatch(list);
                         } catch (Exception e) {
+                            LOG.info("nop.batch.exit-fetch-thread-when-fail:threadIndex={}", threadIndex, e);
                             exception.set(e);
                             return;
                         }
