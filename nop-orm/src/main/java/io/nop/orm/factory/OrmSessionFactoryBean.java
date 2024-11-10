@@ -118,7 +118,7 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
         }
 
         this.sessionFactory = impl;
-        setOrmModel(sessionFactory);
+        setOrmModelHolder(sessionFactory);
 
         if (this.isRegisterGlobalCache()) {
             cacheManagement = new OrmSessionFactoryCacheManagement();
@@ -166,7 +166,7 @@ public class OrmSessionFactoryBean extends SessionFactoryConfig implements IConf
             holder.clearCache();
     }
 
-    private void setOrmModel(SessionFactoryImpl sessionFactory) {
+    private void setOrmModelHolder(SessionFactoryImpl sessionFactory) {
         IOrmModelHolder ormModelHolder = this.ormModelHolder;
         if (ormModelHolder == null) {
             ormModelHolder = new DefaultOrmModelHolder(sessionFactory);
