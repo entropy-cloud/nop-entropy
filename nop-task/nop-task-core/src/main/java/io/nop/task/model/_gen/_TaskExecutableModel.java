@@ -18,10 +18,17 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: allowFailure
+     * 抛出异常时会自动忽略，不会对外抛出异常
+     */
+    private boolean _allowFailure  = false;
+    
+    /**
+     *  
      * xml name: catch
      * 捕获异常后如果不抛出异常，则认为是成功执行，会执行output返回
      */
-    private io.nop.core.lang.eval.IEvalAction _catch ;
+    private io.nop.core.lang.eval.IEvalFunction _catch ;
     
     /**
      *  
@@ -46,6 +53,13 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: disabled
+     * 如果设置为false，则此步骤会被跳过
+     */
+    private boolean _disabled  = false;
+    
+    /**
+     *  
      * xml name: displayName
      * 
      */
@@ -63,7 +77,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
      * xml name: finally
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _finally ;
+    private io.nop.core.lang.eval.IEvalFunction _finally ;
     
     /**
      *  
@@ -158,16 +172,35 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      * 
+     * xml name: allowFailure
+     *  抛出异常时会自动忽略，不会对外抛出异常
+     */
+    
+    public boolean isAllowFailure(){
+      return _allowFailure;
+    }
+
+    
+    public void setAllowFailure(boolean value){
+        checkAllowChange();
+        
+        this._allowFailure = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: catch
      *  捕获异常后如果不抛出异常，则认为是成功执行，会执行output返回
      */
     
-    public io.nop.core.lang.eval.IEvalAction getCatch(){
+    public io.nop.core.lang.eval.IEvalFunction getCatch(){
       return _catch;
     }
 
     
-    public void setCatch(io.nop.core.lang.eval.IEvalAction value){
+    public void setCatch(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._catch = value;
@@ -260,6 +293,25 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      * 
+     * xml name: disabled
+     *  如果设置为false，则此步骤会被跳过
+     */
+    
+    public boolean isDisabled(){
+      return _disabled;
+    }
+
+    
+    public void setDisabled(boolean value){
+        checkAllowChange();
+        
+        this._disabled = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: displayName
      *  
      */
@@ -302,12 +354,12 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getFinally(){
+    public io.nop.core.lang.eval.IEvalFunction getFinally(){
       return _finally;
     }
 
     
-    public void setFinally(io.nop.core.lang.eval.IEvalAction value){
+    public void setFinally(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._finally = value;
@@ -643,10 +695,12 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("allowFailure",this.isAllowFailure());
         out.putNotNull("catch",this.getCatch());
         out.putNotNull("catchInternalException",this.getCatchInternalException());
         out.putNotNull("decorators",this.getDecorators());
         out.putNotNull("description",this.getDescription());
+        out.putNotNull("disabled",this.isDisabled());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("executor",this.getExecutor());
         out.putNotNull("finally",this.getFinally());
@@ -674,10 +728,12 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     protected void copyTo(TaskExecutableModel instance){
         super.copyTo(instance);
         
+        instance.setAllowFailure(this.isAllowFailure());
         instance.setCatch(this.getCatch());
         instance.setCatchInternalException(this.getCatchInternalException());
         instance.setDecorators(this.getDecorators());
         instance.setDescription(this.getDescription());
+        instance.setDisabled(this.isDisabled());
         instance.setDisplayName(this.getDisplayName());
         instance.setExecutor(this.getExecutor());
         instance.setFinally(this.getFinally());

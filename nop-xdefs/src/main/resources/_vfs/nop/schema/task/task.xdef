@@ -21,7 +21,12 @@
 
     <beans xdef:ref="../beans.xdef"/>
 
+    <!--
+    @disabled 如果设置为false，则此步骤会被跳过
+    @allowFailure 抛出异常时会自动忽略，不会对外抛出异常
+    -->
     <xdef:define xdef:name="TaskExecutableModel" executor="bean-name" returnType="generic-type"
+                 disabled="!boolean=false" allowFailure="!boolean=false"
                  displayName="string" timeout="!long=0" persisVars="csv-set" catchInternalException="boolean">
 
         <description xdef:value="string"/>
@@ -78,9 +83,9 @@
         <validator xdef:value="xpl"/>
 
         <!-- 捕获异常后如果不抛出异常，则认为是成功执行，会执行output返回 -->
-        <catch xdef:value="xpl"/>
+        <catch xdef:value="xpl-fn:(EXCEPTION,stepRt)=>any"/>
 
-        <finally xdef:value="xpl"/>
+        <finally xdef:value="xpl-fn:(EXCEPTION,stepRt)=>any"/>
 
         <!--
           如果发生异常，则重试整个task
@@ -246,6 +251,12 @@
 
                 <otherwise to="var-name" xdef:ref="TaskStepsModel" xdef:name="TaskChooseOtherwiseModel"/>
             </choose>
+
+            <if name="!var-name" xdef:ref="TaskStepModel" xdef:name="IfTaskStepModel">
+                <condition xdef:value="xpl-predicate"/>
+                <then xdef:name="IfThenTaskStepModel" xdef:ref="TaskStepsModel"/>
+                <else xdef:name="IfElseTaskStepModel" xdef:ref="TaskStepsModel"/>
+            </if>
 
             <!-- 调用子任务 -->
             <call-task name="!var-name" taskName="!string" taskVersion="long"

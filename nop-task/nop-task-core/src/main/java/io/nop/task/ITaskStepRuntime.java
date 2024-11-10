@@ -118,4 +118,8 @@ public interface ITaskStepRuntime extends IEvalContext {
     void addStepCleanup(Runnable cleanup);
 
     void runStepCleanups();
+
+    Throwable getException();
+
+    void setException(Throwable exception);
 }

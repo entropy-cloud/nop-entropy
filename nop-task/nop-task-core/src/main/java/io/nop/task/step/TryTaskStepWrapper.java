@@ -8,7 +8,7 @@
 package io.nop.task.step;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
@@ -16,12 +16,12 @@ import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
 public class TryTaskStepWrapper extends DelegateTaskStep {
-    private final IEvalAction catchAction;
-    private final IEvalAction finallyAction;
+    private final IEvalFunction catchAction;
+    private final IEvalFunction finallyAction;
 
     private final boolean catchInternalException;
 
-    public TryTaskStepWrapper(ITaskStep body, IEvalAction catchAction, IEvalAction finallyAction,
+    public TryTaskStepWrapper(ITaskStep body, IEvalFunction catchAction, IEvalFunction finallyAction,
                               Boolean catchInternalException) {
         super(body);
         this.catchAction = catchAction;
@@ -32,6 +32,7 @@ public class TryTaskStepWrapper extends DelegateTaskStep {
     @Override
     @Nonnull
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
+        Throwable error = null;
 
         boolean async = false;
         try {
@@ -41,11 +42,12 @@ public class TryTaskStepWrapper extends DelegateTaskStep {
                 return result.thenCompose((ret, err) -> {
                     try {
                         if (err != null) {
+                            stepRt.setException(err);
                             if (!catchInternalException && TaskStepHelper.isCancelledException(err))
                                 throw NopException.adapt(err);
 
                             if (catchAction != null) {
-                                return TaskStepReturn.of(null, catchAction.invoke(stepRt));
+                                return TaskStepReturn.of(null, catchAction.call2(null, err, stepRt, stepRt.getEvalScope()));
                             } else {
                                 throw NopException.adapt(err);
                             }
@@ -54,19 +56,22 @@ public class TryTaskStepWrapper extends DelegateTaskStep {
                     } finally {
                         stepRt.runStepCleanups();
                         if (finallyAction != null)
-                            finallyAction.invoke(stepRt);
+                            finallyAction.call2(null, err, stepRt, stepRt.getEvalScope());
                     }
                 });
             } else {
                 return result;
             }
         } catch (Exception e) {
+            error = e;
+            stepRt.setException(e);
+
             if (!catchInternalException && TaskStepHelper.isCancelledException(e))
                 throw NopException.adapt(e);
 
             async = false;
             if (catchAction != null) {
-                return TaskStepReturn.of(null, catchAction.invoke(stepRt));
+                return TaskStepReturn.of(null, catchAction.call2(null, error, stepRt, stepRt.getEvalScope()));
             } else {
                 throw NopException.adapt(e);
             }
@@ -74,7 +79,7 @@ public class TryTaskStepWrapper extends DelegateTaskStep {
             if (!async) {
                 stepRt.runStepCleanups();
                 if (finallyAction != null) {
-                    finallyAction.invoke(stepRt);
+                    finallyAction.call2(null, error, stepRt, stepRt.getEvalScope());
                 }
             }
         }

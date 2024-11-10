@@ -13,6 +13,7 @@ public class GraphStepBuilder {
     public GraphTaskStep buildGraphStep(IGraphTaskStepModel stepModel, ITaskStepBuilder stepBuilder) {
         GraphTaskStep ret = new GraphTaskStep();
         List<GraphTaskStep.GraphStepNode> subSteps = stepModel.getSteps().stream()
+                .filter(step -> !step.isDisabled())
                 .map(subStep -> {
                     ITaskStepExecution step = stepBuilder.buildStepExecution(subStep);
                     boolean enter = stepModel.getEnterSteps().contains(subStep.getName());

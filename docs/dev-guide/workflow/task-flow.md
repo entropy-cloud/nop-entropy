@@ -214,3 +214,31 @@ NopTaskFlow内置了一个特殊的步骤类型custom，可以通过customType�
 另外，所有input输入的参数，也会自动成为标签的属性。
 
 通过这种转换机制可以尽量减小自定义扩展步骤和内置步骤之间的形式差异。除了多出一个名字空间之外，基本上与内置标签形式完全一致。
+
+## `in/out`名字空间
+`task.xdef`的元模型定义中引入了`xdef:transformer-class`，可以在加载XNode之后自动对结构进行转换。可以利用这个机制将多种不同的结构归一化为统一结构。
+
+InOutNodeTransformer自动识别`in:`前缀和`out:`前缀，并把它们自动转换为input和output子节点。
+
+```xml
+<xpl in:x="1" out:RESULT="x+y">
+   <in:y mandatory="true">2</in:y>
+</xpl>
+```
+
+等价于
+```xml
+<xpl>
+  <input name="x">
+     <source>1</source>
+  </input>
+  
+  <input name="y" mandatory="true">
+     <source>2</source>
+  </input>
+  
+  <output name="RESULT">
+     <source> x + y</source>
+  </output>
+</xpl>
+```

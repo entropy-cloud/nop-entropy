@@ -16,6 +16,7 @@ import io.nop.task.model.ForkNTaskStepModel;
 import io.nop.task.model.ForkTaskStepModel;
 import io.nop.task.model.GraphTaskStepModel;
 import io.nop.task.model.IGraphTaskStepModel;
+import io.nop.task.model.IfTaskStepModel;
 import io.nop.task.model.InvokeTaskStepModel;
 import io.nop.task.model.LoopNTaskStepModel;
 import io.nop.task.model.LoopTaskStepModel;
@@ -44,6 +45,7 @@ import io.nop.task.step.ExitTaskStep;
 import io.nop.task.step.ForkNTaskStep;
 import io.nop.task.step.ForkTaskStep;
 import io.nop.task.step.GraphTaskStep;
+import io.nop.task.step.IfTaskStep;
 import io.nop.task.step.InvokeTaskStep;
 import io.nop.task.step.LoopNTaskStep;
 import io.nop.task.step.LoopTaskStep;
@@ -111,6 +113,9 @@ public class TaskStepBuilder implements ITaskStepBuilder {
                 break;
             case TaskConstants.STEP_TYPE_CHOOSE:
                 step = buildChooseStep((ChooseTaskStepModel) stepModel);
+                break;
+            case TaskConstants.STEP_TYPE_IF:
+                step = buildIfStep((IfTaskStepModel) stepModel);
                 break;
             case TaskConstants.STEP_TYPE_SEQUENTIAL:
                 step = buildSequentialStep((SequentialTaskStepModel) stepModel);
@@ -237,9 +242,21 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         return ret;
     }
 
+    private AbstractTaskStep buildIfStep(IfTaskStepModel stepModel) {
+        IfTaskStep ret = new IfTaskStep();
+        ret.setCondition(stepModel.getCondition());
+        if (stepModel.getThen() != null)
+            ret.setThen(buildStepExecution(stepModel.getThen()));
+        if (stepModel.getElse() != null)
+            ret.setElseStep(buildStepExecution(stepModel.getElse()));
+        return ret;
+    }
+
     private SequentialTaskStep buildSequentialStep(TaskStepsModel stepModel) {
         List<ITaskStepExecution> steps = new ArrayList<>(stepModel.getSteps().size());
         for (TaskStepModel subStepModel : stepModel.getSteps()) {
+            if(subStepModel.isDisabled())
+                continue;
             steps.add(buildStepExecution(subStepModel));
         }
         SequentialTaskStep ret = new SequentialTaskStep();
@@ -254,6 +271,8 @@ public class TaskStepBuilder implements ITaskStepBuilder {
     private SelectorTaskStep buildSelectorStep(TaskStepsModel stepModel) {
         List<ITaskStepExecution> steps = new ArrayList<>(stepModel.getSteps().size());
         for (TaskStepModel subStepModel : stepModel.getSteps()) {
+            if(subStepModel.isDisabled())
+                continue;
             steps.add(buildStepExecution(subStepModel));
         }
         SelectorTaskStep ret = new SelectorTaskStep();
@@ -264,6 +283,8 @@ public class TaskStepBuilder implements ITaskStepBuilder {
     private ParallelTaskStep buildParallelStep(ParallelTaskStepModel stepModel) {
         List<ITaskStepExecution> steps = new ArrayList<>(stepModel.getSteps().size());
         for (TaskStepModel subStepModel : stepModel.getSteps()) {
+            if(subStepModel.isDisabled())
+                continue;
             steps.add(buildStepExecution(subStepModel));
         }
         ParallelTaskStep ret = new ParallelTaskStep();

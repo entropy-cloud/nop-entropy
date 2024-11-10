@@ -31,6 +31,7 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
     private Set<String> persistVars;
 
     private List<Runnable> stepCleanups;
+    private Throwable exception;
 
     public TaskStepRuntimeImpl(ITaskRuntime taskRt, ITaskStateStore stateStore, IEvalScope scope) {
         this.taskRt = taskRt;
@@ -158,5 +159,15 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
         } catch (Exception e) {
             LOG.error("nop.err.xpt.run-cleanup-error", e);
         }
+    }
+
+    @Override
+    public Throwable getException() {
+        return exception;
+    }
+
+    @Override
+    public void setException(Throwable exception) {
+        this.exception = exception;
     }
 }

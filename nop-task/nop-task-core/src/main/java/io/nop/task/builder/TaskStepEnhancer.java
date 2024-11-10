@@ -140,6 +140,10 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
 
         if (stepModel.isSync())
             step = new SyncTaskStepWrapper(step);
+
+        if (stepModel.isAllowFailure())
+            step = new TryTaskStepWrapper(step, new LogEvalFunction(stepModel.getName(), stepModel.getLocation()),
+                    null, false);
         return step;
     }
 

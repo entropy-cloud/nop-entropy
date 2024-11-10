@@ -112,6 +112,8 @@ public interface TaskConstants {
 
     String STEP_TYPE_CHOOSE = "choose";
 
+    String STEP_TYPE_IF = "if";
+
     String STEP_TYPE_SUSPEND = "suspend";
 
     String STEP_TYPE_SLEEP = "sleep";
