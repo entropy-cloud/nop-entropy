@@ -60,7 +60,7 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     public IThreadPoolExecutor getThreadPoolExecutor(IBeanProvider beanProvider, String executorBean) {
         IThreadPoolExecutor executor = GlobalExecutors.getExecutor(executorBean);
         if (executor == null)
-            executor = (IThreadPoolExecutor) beanProvider.getBean(EXECUTOR_BEAN_PREFIX + executorBean);
+            executor = (IThreadPoolExecutor) beanProvider.getBean(executorBean);
         return executor;
     }
 
