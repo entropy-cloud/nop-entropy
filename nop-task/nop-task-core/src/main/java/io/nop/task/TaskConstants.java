@@ -154,4 +154,6 @@ public interface TaskConstants {
     String BEAN_PREFIX_TASK_STEP_DECORATOR = "nopTaskStepDecorator_";
 
     String REASON_TASK_COMPLETE = "task-complete";
+
+    String EXECUTOR_BEAN_PREFIX = "executor_";
 }

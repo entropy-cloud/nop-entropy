@@ -8,12 +8,15 @@
 package io.nop.commons.concurrent.executor;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
+import io.nop.api.core.exceptions.NopException;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.commons.CommonConfigs.CFG_CONCURRENT_GLOBAL_TIMER_MAX_POOL_SIZE;
 import static io.nop.commons.CommonConfigs.CFG_CONCURRENT_GLOBAL_WORKER_MAX_POOL_SIZE;
+import static io.nop.commons.CommonErrors.ARG_NAME;
+import static io.nop.commons.CommonErrors.ERR_CONCURRENT_UNKNOWN_THREAD_POOL;
 
 @GlobalInstance
 public class GlobalExecutors {
@@ -21,6 +24,8 @@ public class GlobalExecutors {
     public static final String NOP_CACHED_THREAD_POOL = "nop-cached-thread-pool";
 
     public static final String NOP_GLOBAL_WORKER = "nop-global-worker";
+
+    public static final String NOP_VIRTUAL_THREAD = "nop-virtual-thread";
 
     private static final Map<String, IThreadPoolExecutor> g_executors = new ConcurrentHashMap<>();
 
@@ -39,6 +44,17 @@ public class GlobalExecutors {
             timer.init();
             return timer;
         });
+    }
+
+    public static IThreadPoolExecutor getExecutor(String name) {
+        return g_executors.get(name);
+    }
+
+    public static IThreadPoolExecutor requireExecutor(String name) {
+        IThreadPoolExecutor executor = getExecutor(name);
+        if (executor == null)
+            throw new NopException(ERR_CONCURRENT_UNKNOWN_THREAD_POOL).param(ARG_NAME, name);
+        return executor;
     }
 
     public static IThreadPoolExecutor cachedThreadPool() {

@@ -62,4 +62,7 @@ public interface CommonConfigs {
 
     @Description("内置加密算法的加密密钥")
     IConfigReference<String> CFG_CRYPT_DEFAULT_ENC_KEY = varRef(s_loc, "nop.crypt.default-enc-key", String.class, "");
+
+    @Description("是否启用虚拟线程池支持")
+    IConfigReference<Boolean> CFG_ENABLE_VIRTUAL_THREAD_POOL = varRef(s_loc, "nop.commons.enable-virtual-thread-pool", Boolean.class, true);
 }

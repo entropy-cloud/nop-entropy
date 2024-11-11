@@ -29,6 +29,7 @@ import io.nop.xlang.xdsl.DslModelParser;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
+import static io.nop.task.TaskConstants.EXECUTOR_BEAN_PREFIX;
 import static io.nop.task.TaskErrors.ARG_TASK_INSTANCE_ID;
 import static io.nop.task.TaskErrors.ERR_TASK_NO_PERSIST_STATE_STORE;
 import static io.nop.task.TaskErrors.ERR_TASK_UNKNOWN_TASK_INSTANCE;
@@ -57,11 +58,10 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
 
     @Override
     public IThreadPoolExecutor getThreadPoolExecutor(IBeanProvider beanProvider, String executorBean) {
-        if (GlobalExecutors.NOP_GLOBAL_WORKER.equals(executorBean))
-            return GlobalExecutors.globalWorker();
-        if (GlobalExecutors.NOP_GLOBAL_TIMER.equals(executorBean))
-            return GlobalExecutors.globalTimer();
-        return (IThreadPoolExecutor) beanProvider.getBean(executorBean);
+        IThreadPoolExecutor executor = GlobalExecutors.getExecutor(executorBean);
+        if (executor == null)
+            executor = (IThreadPoolExecutor) beanProvider.getBean(EXECUTOR_BEAN_PREFIX + executorBean);
+        return executor;
     }
 
     @Inject

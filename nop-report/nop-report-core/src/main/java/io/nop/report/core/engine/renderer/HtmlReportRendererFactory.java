@@ -65,7 +65,7 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
             MutableInt index = new MutableInt();
 
             if (sheetGenerator != null) {
-                sheetGenerator.generate(context, (sheet,ctx) -> {
+                sheetGenerator.generate(context, (sheet, ctx) -> {
                     index.incrementAndGet();
                     String sheetId = reportId + "-sheet-" + index;
                     renderSheet(sheet, sheetId, scopeCssPrefix, out, ctx);
@@ -107,7 +107,7 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
             out.append(".xpt-table{\n" +
                     "   border-collapse:collapse;border-spacing:0;table-layout:fixed;\n" +
                     "}\n" + ("#" + reportId + " ") +
-                    ".xpt-row{ line-height:normal}"+ // 前台如果引入ant-design-vue会导致行高不正确，需要这里重置一下
+                    ".xpt-row{ line-height:normal}" + // 前台如果引入ant-design-vue会导致行高不正确，需要这里重置一下
                     "}\n" + ("#" + reportId + " ") +
                     ".xpt-cell-num{ text-align:right; }\n" + ("#" + reportId + " ") +
                     ".xpt-cell{\n" +
@@ -132,42 +132,7 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
                 out.write(sheetId);
                 out.write("\">\n");
                 if (sheet.getImages() != null && !sheet.getImages().isEmpty()) {
-                    out.write("<style>\n");
-                    out.write("#");
-                    out.write(sheetId);
-                    out.write("{\n");
-
-                    double minHeight = 0;
-                    double minWidth = 0;
-
-                    boolean notPrint = false;
-                    for (ExcelImage image : sheet.getImages()) {
-                        if (image.getData() == null)
-                            continue;
-                        if (!image.isPrint()) {
-                            notPrint = true;
-                        }
-
-                        minHeight = Math.max(minHeight, image.getTop() + image.getHeight());
-                        minWidth = Math.max(minWidth, image.getLeft() + image.getWidth());
-                    }
-                    out.write("min-height:" + minHeight + "pt;\n");
-                    out.write("min-width:" + minWidth + "pt;\n");
-                    outputBackground(sheet.getImages().stream().filter(image -> image.getData() != null), out);
-                    out.write("}\n");
-
-                    // 有不打印的图片
-                    if (notPrint) {
-                        out.write("@media print {\n");
-                        out.write("#");
-                        out.write(sheetId);
-                        out.write("{\n");
-                        outputBackground(sheet.getImages().stream().filter(image -> image.getData() != null && image.isPrint()), out);
-                        out.write("}\n");
-                        out.write("}\n");
-                    }
-
-                    out.write("</style>\n");
+                    renderImages(sheet, sheetId, out);
                 }
                 HtmlTableOutput output = new HtmlTableOutput(sheet.getTable(), XptConstants.CSS_PREFIX_XPT);
                 output.setDefaultHeight(sheet.getDefaultRowHeight());
@@ -178,6 +143,45 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
             } catch (IOException e) {
                 throw NopException.adapt(e);
             }
+        }
+
+        protected void renderImages(IExcelSheet sheet, String sheetId, Writer out) throws IOException {
+            out.write("<style>\n");
+            out.write("#");
+            out.write(sheetId);
+            out.write("{\n");
+
+            double minHeight = 0;
+            double minWidth = 0;
+
+            boolean notPrint = false;
+            for (ExcelImage image : sheet.getImages()) {
+                if (image.getData() == null)
+                    continue;
+                if (!image.isPrint()) {
+                    notPrint = true;
+                }
+
+                minHeight = Math.max(minHeight, image.getTop() + image.getHeight());
+                minWidth = Math.max(minWidth, image.getLeft() + image.getWidth());
+            }
+            out.write("min-height:" + minHeight + "pt;\n");
+            out.write("min-width:" + minWidth + "pt;\n");
+            outputBackground(sheet.getImages().stream().filter(image -> image.getData() != null), out);
+            out.write("}\n");
+
+            // 有不打印的图片
+            if (notPrint) {
+                out.write("@media print {\n");
+                out.write("#");
+                out.write(sheetId);
+                out.write("{\n");
+                outputBackground(sheet.getImages().stream().filter(image -> image.getData() != null && image.isPrint()), out);
+                out.write("}\n");
+                out.write("}\n");
+            }
+
+            out.write("</style>\n");
         }
 
 

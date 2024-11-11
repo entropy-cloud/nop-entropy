@@ -219,6 +219,8 @@ public interface CommonErrors {
 
     ErrorCode ERR_CONCURRENT_STOP_POOLED_THREAD = define("nop.err.commons.concurrent.stop-pooled-thread", "停止线程池中的线程");
 
+    ErrorCode ERR_CONCURRENT_UNKNOWN_THREAD_POOL = define("nop.err.commons.concurrent.unknown-thread-pool", "未知的线程池[{name}]", ARG_NAME);
+
     ErrorCode ERR_CONCURRENT_CYCLE_ALREADY_BEGIN = define("nop.err.concurrent.cycle-already-begin",
             "正在处理过程中，不能再次启动一个处理过程");
 

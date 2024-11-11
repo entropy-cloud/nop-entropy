@@ -1,4 +1,4 @@
-# ���������
+# 流程设计器
 
 ```
 FlowEditor(flowData)
@@ -6,9 +6,9 @@ FlowEditor(flowData)
 FlowEditor = FlowEditorGenerator<flowEditorComponents, flowEditorStore, flowEditorSchema>
 ```
 
-* flowEditorComponents�ṩԭ��UI�����ԭ������ҵ���޹���ֻ�漰���ֲ���Ϣ��
-* flowEditorStore�ṩҵ���߼���װ��UI����ϵ��¼��ᴥ��Store�еķ�������Խ���ԭ������Ĺ���״̬����Ϊ���㼯��store�С�
-* flowEditorSchema ������֯ԭ��������ṩ��������
+* flowEditorComponents提供原子UI组件，原则上与业务无关且只涉及到局部信息。
+* flowEditorStore提供业务逻辑封装。UI组件上的事件会触发Store中的方法。跨越多个原子组件的共享状态和行为都汇集在store中。
+* flowEditorSchema 负责组织原子组件，提供表单定义
  
-* ����ֱ�Ӵ�������ͺ�������Ҳ������Ϊmodule��̬����
-* render��������schemaת��Ϊ����DOM
+* 可以直接传递组件和函数对象，也可以作为module动态加载
+* render函数负责将schema转换为虚拟DOM

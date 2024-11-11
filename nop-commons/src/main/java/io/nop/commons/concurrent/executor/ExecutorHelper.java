@@ -123,7 +123,7 @@ public class ExecutorHelper {
         }
     }
 
-    public static <T> CompletableFuture<T> submit(ThreadPoolExecutor executor, Callable<T> task) {
+    public static <T> CompletableFuture<T> submit(ExecutorService executor, Callable<T> task) {
         CompletableFuture<T> future = new CompletableFuture<>();
         Future<?> f = executor.submit(new Callable<Object>() {
             @Override
@@ -144,7 +144,7 @@ public class ExecutorHelper {
         return future;
     }
 
-    public static <T> CompletableFuture<T> submit(ThreadPoolExecutor executor, Runnable task, T result) {
+    public static <T> CompletableFuture<T> submit(ExecutorService executor, Runnable task, T result) {
         CompletableFuture<T> future = new CompletableFuture<>();
         Future<?> f = executor.submit(new Callable<Object>() {
             @Override
