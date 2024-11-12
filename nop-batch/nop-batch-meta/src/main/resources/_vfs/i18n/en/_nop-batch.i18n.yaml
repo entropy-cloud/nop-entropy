@@ -3,7 +3,7 @@ entity:
     NopBatchFile: Batch File
     NopBatchRecordResult: Batch Record Result
     NopBatchTask: Batch Task
-    NopBatchTaskState: Batch Task State
+    NopBatchTaskVar: Batch Task Variable
 prop:
   label:
     NopBatchFile:
@@ -45,17 +45,19 @@ prop:
       startTime: Start Time
       endTime: End Time
       taskParams: Task Params
+      execCount: Exec Count
       worker: Worker
       inputFileId: Input File
-      retryCount: Retry Count
       resultStatus: Result Status
       resultCode: Result Code
       resultMsg: Result Message
       errorStack: Error Stack
       completedIndex: Completed Index
-      completeCount: Complete Count
-      processCount: Process Count
-      skipCount: Skip Count
+      completeItemCount: Complete Item Count
+      retryChunkCount: Retry Chunk Count
+      processItemCount: Process Item Count
+      skipItemCount: Skip Item Count
+      writeItemCount: Write Item Count
       version: Version
       createdBy: Created By
       createTime: Create Time
@@ -63,9 +65,9 @@ prop:
       updateTime: Update Time
       remark: Remark
       inputFile: Input File
-      taskStates: Task State Vars
+      taskVars: Task State Vars
       taskParamsComponent: null
-    NopBatchTaskState:
+    NopBatchTaskVar:
       taskId: TASK_ID
       fieldName: Field Name
       fieldType: Field Type

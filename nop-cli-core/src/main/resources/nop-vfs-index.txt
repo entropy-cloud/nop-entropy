@@ -79,6 +79,7 @@
 /nop/dao/dialect/tdengine.dialect.xml
 /nop/dao/dialect/window-expr-support.dialect.xml
 /nop/dbtool/beans/dbtool-defaults.beans.xml
+/nop/excel/imp/dict-support.imp.xml
 /nop/excel/xlib/imp-gen.xlib
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql
@@ -141,6 +142,7 @@
 /nop/schema/query/query.xdef
 /nop/schema/record/packet-codec.xdef
 /nop/schema/record/record-definitions.xdef
+/nop/schema/record/record-enum.xdef
 /nop/schema/record/record-field.xdef
 /nop/schema/record/record-file.xdef
 /nop/schema/record/record-object.xdef
@@ -185,6 +187,7 @@
 /nop/schema/xui/style-component.xdef
 /nop/schema/xui/xuc.xdef
 /nop/schema/xui/xview.xdef
+/nop/task/batch/test-batch/v1.task.xml
 /nop/task/beans/task-defaults.beans.xml
 /nop/task/lib/common.task.xml
 /nop/task/xlib/task-gen.xlib

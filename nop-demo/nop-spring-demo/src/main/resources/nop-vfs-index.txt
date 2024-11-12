@@ -297,6 +297,7 @@
 /nop/dao/dialect/tdengine.dialect.xml
 /nop/dao/dialect/window-expr-support.dialect.xml
 /nop/demo/app.action-auth.xml
+/nop/excel/imp/dict-support.imp.xml
 /nop/excel/xlib/imp-gen.xlib
 /nop/file/_module
 /nop/file/beans/_dao.beans.xml
@@ -390,6 +391,7 @@
 /nop/schema/query/query.xdef
 /nop/schema/record/packet-codec.xdef
 /nop/schema/record/record-definitions.xdef
+/nop/schema/record/record-enum.xdef
 /nop/schema/record/record-field.xdef
 /nop/schema/record/record-file.xdef
 /nop/schema/record/record-object.xdef
