@@ -7,6 +7,9 @@
  */
 package io.nop.ioc.impl;
 
+import io.nop.commons.util.CollectionHelper;
+
+import java.util.List;
 import java.util.Set;
 
 public class BeanTypeMapping {
@@ -27,6 +30,10 @@ public class BeanTypeMapping {
 
     public Set<BeanDefinition> getBeans() {
         return beans;
+    }
+
+    public BeanDefinition getFirstBean() {
+        return CollectionHelper.first(beans);
     }
 
     public BeanDefinition getPrimaryBean() {

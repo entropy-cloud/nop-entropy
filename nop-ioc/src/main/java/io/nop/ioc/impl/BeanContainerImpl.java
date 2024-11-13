@@ -39,6 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.ioc.IocConstants.PRODUCER_BEAN_PREFIX;
 import static io.nop.ioc.IocErrors.ARG_BEAN;
+import static io.nop.ioc.IocErrors.ARG_BEANS;
 import static io.nop.ioc.IocErrors.ARG_BEAN_NAME;
 import static io.nop.ioc.IocErrors.ARG_BEAN_TYPE;
 import static io.nop.ioc.IocErrors.ARG_CONTAINER_ID;
@@ -46,6 +47,7 @@ import static io.nop.ioc.IocErrors.ARG_OTHER_BEAN;
 import static io.nop.ioc.IocErrors.ERR_IOC_CONTAINER_ALREADY_STARTED;
 import static io.nop.ioc.IocErrors.ERR_IOC_CONTAINER_NOT_STARTED;
 import static io.nop.ioc.IocErrors.ERR_IOC_MULTIPLE_BEAN_WITH_TYPE;
+import static io.nop.ioc.IocErrors.ERR_IOC_MULTIPLE_BEAN_WITH_TYPE_FOR_PROP;
 import static io.nop.ioc.IocErrors.ERR_IOC_NOT_PRODUCER_BEAN;
 import static io.nop.ioc.IocErrors.ERR_IOC_PRODUCER_BEAN_NOT_INITED;
 
@@ -324,9 +326,14 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         if (mapping.isEmpty())
             return null;
         if (mapping.getOtherPrimaryBean() != null)
-            throw new NopException(ERR_IOC_MULTIPLE_BEAN_WITH_TYPE).param(ARG_BEAN_TYPE, beanType)
+            throw new NopException(ERR_IOC_MULTIPLE_BEAN_WITH_TYPE_FOR_PROP).param(ARG_BEAN_TYPE, beanType)
                     .param(ARG_BEAN, mapping.getPrimaryBean()).param(ARG_OTHER_BEAN, mapping.getOtherPrimaryBean());
-        return mapping.getPrimaryBean();
+        BeanDefinition bean = mapping.getPrimaryBean();
+        if (bean == null) {
+            throw new NopException(ERR_IOC_MULTIPLE_BEAN_WITH_TYPE).param(ARG_BEAN_TYPE, beanType)
+                    .param(ARG_BEANS, mapping.getBeans());
+        }
+        return bean;
     }
 
     public void refreshConfig(String beanId) {

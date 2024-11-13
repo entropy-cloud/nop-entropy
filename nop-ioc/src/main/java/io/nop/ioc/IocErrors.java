@@ -18,6 +18,8 @@ public interface IocErrors {
     String ARG_BEAN_TYPE = "beanType";
     String ARG_BEAN_CLASS = "beanClass";
 
+    String ARG_BEANS = "beans";
+
     String ARG_BEFORE = "before";
     String ARG_AFTER = "after";
 
@@ -40,8 +42,6 @@ public interface IocErrors {
     String ARG_DEPEND = "depend";
 
     String ARG_PARAM_COUNT = "paramCount";
-
-    String ARG_BEANS = "beans";
 
     String ARG_PROP_NAME = "propName";
 
@@ -133,8 +133,11 @@ public interface IocErrors {
             "bean[{beanName}]的属性[{propName}]需要类型为[{beanType}]的bean，多个bean都标注了primary，出现冲突", ARG_BEAN_NAME,
             ARG_PROP_NAME, ARG_BEAN_TYPE);
 
+    ErrorCode ERR_IOC_MULTIPLE_BEAN_WITH_TYPE_FOR_PROP = define("nop.err.ioc.multiple-bean-with-type-when-for-prop",
+            "bean[{beanName}]的属性[{propName}]需要类型为[{beanType}]的bean，存在多个bean满足要求", ARG_BEAN_NAME, ARG_PROP_NAME, ARG_BEAN_TYPE);
+
     ErrorCode ERR_IOC_MULTIPLE_BEAN_WITH_TYPE = define("nop.err.ioc.multiple-bean-with-type",
-            "bean[{beanName}]的属性[{propName}]需要类型为[{beanType}]的bean，存在多个bean满足要求", ARG_BEAN_TYPE);
+            "存在多个bean的类型都是[{beanType}]", ARG_BEAN_TYPE);
 
     ErrorCode ERR_IOC_UNKNOWN_BEAN_PROP = define("nop.err.ioc.unknown-bean-prop",
             "id为[{beanName}]的bean没有定义属性[{propName}]", ARG_BEAN_NAME, ARG_PROP_NAME);

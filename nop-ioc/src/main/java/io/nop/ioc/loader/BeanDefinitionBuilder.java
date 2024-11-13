@@ -969,7 +969,7 @@ public class BeanDefinitionBuilder {
         } else if (mapping.getPrimaryBean() != null) {
             return mapping.getPrimaryBean().getId();
         } else {
-            throw new NopException(ERR_IOC_MULTIPLE_BEAN_WITH_TYPE).loc(loc).param(ARG_BEAN_NAME, bean.getId())
+            throw new NopException(ERR_IOC_MULTIPLE_BEAN_WITH_TYPE_FOR_PROP).loc(loc).param(ARG_BEAN_NAME, bean.getId())
                     .param(ARG_BEAN_TYPE, beanType).param(ARG_PROP_NAME, propName).param(ARG_BEANS, mapping.getBeans());
         }
     }
