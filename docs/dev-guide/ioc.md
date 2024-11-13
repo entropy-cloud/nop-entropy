@@ -186,7 +186,12 @@ NopIoC提供了类似SpringBoot的AutoConfiguration的机制。NopIoC在初始�
 
 与SpringBoot不同的是，NopIoC不是一边加载配置文件一边执行bean的注册过程。NopIoC只会在收集到所有bean的定义之后统一执行一次条件判断逻辑。因此，在NopIoC中bean定义的先后顺序原则上并不影响IoC容器动态计算的结果。
 
-### 3.10 单元测试支持
+### 3.10 按照类型获取bean
+
+`BeanContainer.getBeanByType(beanClass)`可以按照类型查找到对应的bean。如果存在多个bean都具有某个类型的情况，可以设置bean的primary属性为true，则会优先使用这个bean。
+或者设置其他bean的autowire-candidate属性为false，表示不作为候选bean。
+
+### 3.11 单元测试支持
 
 NopIoC与JUnit5进行了集成。在单元测试中，我们主要通过`@NopTestConfig`注解来控制IoC容器的初始化过程。
 

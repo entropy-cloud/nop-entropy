@@ -123,6 +123,12 @@ Nop平台大量使用了元编程来动态生成代码，为了有效跟踪代�
 
 在XDSL模型的根节点上，我们也可以增加`x:dump="true"`属性，它会把更细节的合并算法执行过程打印到日志中。
 
+```javascript
+DslNodeLoader.INSTANCE.loadFromResource(resource, null, XDslExtendPhase.validate);
+```
+
+通过DslNodeLoader可以加载XDSL文件并返回合并后的XNode。XNode节点合并内部分为多个阶段，可以通过XDslExtendPhase合并到某个中间阶段就返回。
+
 ## XLang调试器
 
 Nop平台的`nop-idea-plugin`模块提供了IDEA开发插件，其中包含了针对XScript脚本语言的调试器，可以为所有XDSL领域语言增加断点调试功能。具体参见文档 [idea-plugin.md](../user-guide/idea/idea-plugin.md)
