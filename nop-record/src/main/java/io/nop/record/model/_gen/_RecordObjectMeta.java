@@ -32,6 +32,20 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: baseType
+     * 
+     */
+    private java.lang.String _baseType ;
+    
+    /**
+     *  
+     * xml name: doc
+     * 
+     */
+    private java.lang.String _doc ;
+    
+    /**
+     *  
      * xml name: fields
      * 
      */
@@ -113,6 +127,44 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._afterWrite = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: baseType
+     *  
+     */
+    
+    public java.lang.String getBaseType(){
+      return _baseType;
+    }
+
+    
+    public void setBaseType(java.lang.String value){
+        checkAllowChange();
+        
+        this._baseType = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: doc
+     *  
+     */
+    
+    public java.lang.String getDoc(){
+      return _doc;
+    }
+
+    
+    public void setDoc(java.lang.String value){
+        checkAllowChange();
+        
+        this._doc = value;
            
     }
 
@@ -323,6 +375,8 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         
         out.putNotNull("afterRead",this.getAfterRead());
         out.putNotNull("afterWrite",this.getAfterWrite());
+        out.putNotNull("baseType",this.getBaseType());
+        out.putNotNull("doc",this.getDoc());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("params",this.getParams());
         out.putNotNull("readWhen",this.getReadWhen());
@@ -343,6 +397,8 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         
         instance.setAfterRead(this.getAfterRead());
         instance.setAfterWrite(this.getAfterWrite());
+        instance.setBaseType(this.getBaseType());
+        instance.setDoc(this.getDoc());
         instance.setFields(this.getFields());
         instance.setParams(this.getParams());
         instance.setReadWhen(this.getReadWhen());

@@ -43,21 +43,13 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
 
 
     @Override
-    public void flush() {
-        try {
-            baseOut.flush();
-        } catch (Exception e) {
-            throw NopException.adapt(e);
-        }
+    public void flush() throws IOException {
+        baseOut.flush();
     }
 
     @Override
-    public void close() {
-        try {
-            baseOut.close();
-        } catch (IOException e) {
-            throw NopException.adapt(e);
-        }
+    public void close() throws IOException {
+        baseOut.close();
     }
 
     @Override

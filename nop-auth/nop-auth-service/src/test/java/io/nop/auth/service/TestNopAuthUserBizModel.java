@@ -12,9 +12,12 @@ import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.core.login.UserContextImpl;
 import io.nop.auth.dao.entity.NopAuthUser;
+import io.nop.auth.service.entity.NopAuthUserBizModel;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.model.selection.FieldSelectionBeanParser;
@@ -24,6 +27,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.ioc.IocErrors;
 import io.nop.orm.IOrmTemplate;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdef.IStdDomainHandler;
@@ -37,6 +41,8 @@ import java.util.concurrent.CompletionStage;
 import static io.nop.auth.service.AuthTestHelper.saveRole;
 import static io.nop.auth.service.AuthTestHelper.saveUser;
 import static io.nop.auth.service.AuthTestHelper.saveUserRole;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @NopTestConfig(enableActionAuth = "false", initDatabaseSchema = true)
 public class TestNopAuthUserBizModel extends JunitAutoTestCase {
@@ -49,6 +55,17 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
 
     @Inject
     IOrmTemplate ormTemplate;
+
+    @EnableSnapshot
+    @Test
+    public void testFindBeanByType() {
+        try {
+            BeanContainer.getBeanByType(NopAuthUserBizModel.class);
+            fail();
+        } catch (NopException e) {
+            assertEquals(IocErrors.ERR_IOC_MULTIPLE_BEAN_WITH_TYPE.getErrorCode(), e.getErrorCode());
+        }
+    }
 
     @EnableSnapshot
     @Test

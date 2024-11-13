@@ -5,7 +5,9 @@
         xmlns:x="/nop/schema/xdsl.xdef"
         xmlns:xdef="/nop/schema/xdef.xdef"
         xdef:name="RecordObjectMeta" xdef:bean-package="io.nop.record.model"
-        type="generic-type" ref="string">
+        type="generic-type" ref="string" baseType="class-name">
+
+    <doc xdef:value="string"/>
 
     <params xdef:body-type="list" xdef:key-attr="name">
         <param name="!string" xdef:ref="record-param.xdef"/>

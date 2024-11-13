@@ -15,6 +15,7 @@ import io.nop.record.codec.IFieldTagBinaryCodec;
 import io.nop.record.codec.IFieldTagTextCodec;
 import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.model._gen._RecordFieldMeta;
+import io.nop.xlang.xmeta.ISchema;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -104,20 +105,16 @@ public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMe
     }
 
     public int safeGetMaxLen() {
-        if (getMaxLength() == null)
-            return getLength();
-        int max = getMaxLength();
-        if (max > 0)
-            return max;
+        ISchema schema = getSchema();
+        if (schema.getMaxLength() != null)
+            return schema.getMaxLength();
         return getLength();
     }
 
     public int safeGetMinLen() {
-        if (getMinLength() == null)
-            return getLength();
-        int min = getMinLength();
-        if (min > 0)
-            return min;
+        ISchema schema = getSchema();
+        if (schema.getMinLength() != null)
+            return schema.getMinLength();
         return getLength();
     }
 }

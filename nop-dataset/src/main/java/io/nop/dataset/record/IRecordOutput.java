@@ -9,6 +9,7 @@ package io.nop.dataset.record;
 
 import java.io.Closeable;
 import java.io.Flushable;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -42,5 +43,5 @@ public interface IRecordOutput<T> extends Closeable, Flushable {
         }
     }
 
-    void flush();
+    void flush() throws IOException;
 }

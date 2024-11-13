@@ -18,6 +18,13 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: comment
+     * 
+     */
+    private java.lang.String _comment ;
+    
+    /**
+     *  
      * xml name: displayName
      * 
      */
@@ -51,6 +58,25 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
      * 
      */
     private io.nop.core.type.IGenericType _type ;
+    
+    /**
+     * 
+     * xml name: comment
+     *  
+     */
+    
+    public java.lang.String getComment(){
+      return _comment;
+    }
+
+    
+    public void setComment(java.lang.String value){
+        checkAllowChange();
+        
+        this._comment = value;
+           
+    }
+
     
     /**
      * 
@@ -165,6 +191,7 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("comment",this.getComment());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("name",this.getName());
@@ -181,6 +208,7 @@ public abstract class _RecordParamMeta extends io.nop.core.resource.component.Ab
     protected void copyTo(RecordParamMeta instance){
         super.copyTo(instance);
         
+        instance.setComment(this.getComment());
         instance.setDisplayName(this.getDisplayName());
         instance.setMandatory(this.isMandatory());
         instance.setName(this.getName());

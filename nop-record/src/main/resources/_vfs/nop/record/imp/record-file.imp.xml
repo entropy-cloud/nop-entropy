@@ -7,11 +7,83 @@
         <sheet name="目录" ignore="true"/>
 
         <sheet name="文件结构">
+            <fields>
+                <field name="header" displayName="文件头">
+                    <schema stdDomain="class-name"/>
+                </field>
 
+                <field name="body" displayName="文件体">
+                    <schema stdDomain="class-name"/>
+                </field>
+
+                <field name="footer" displayName="文件尾">
+                    <schema stdDomain="class-name"/>
+                </field>
+
+                <field name="doc" displayName="说明">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="params" displayName="参数列表">
+                    <fields>
+                        <field name="name" displayName="参数名" mandatory="true">
+                            <schema stdDomain="var-name"/>
+                        </field>
+                        <field name="displayName" displayName="中文名" mandatory="true"/>
+
+                        <field name="i18n-en:displayName" displayName="英文名"/>
+                        <field name="type" displayName="类型" mandatory="true">
+                            <schema stdDomain="generic-type"/>
+                        </field>
+
+                        <field name="schema.stdDomain" displayName="标准域" mandatory="true">
+                            <schema stdDomain="std-domain"/>
+                        </field>
+
+                        <field name="schema.domain" displayName="数据域" mandatory="true">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="schema.dict" displayName="字典">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="precision" displayName="长度">
+                            <schema stdDomain="int-size"/>
+                        </field>
+                        <field name="scale" displayName="小数位数">
+                            <schema stdDomain="int-size"/>
+                        </field>
+
+                        <field name="extConfig" displayName="扩展配置" virtual="true">
+                            <schema stdDomain="json"/>
+                        </field>
+                    </fields>
+                </field>
+
+                <field name="aggregates" displayName="汇总计算">
+                    <fields>
+                        <field name="name" displayName="变量名" mandatory="true">
+                            <schema stdDomain="var-name"/>
+                        </field>
+
+                        <field name="aggFunc" displayName="汇总函数" mandatory="true">
+                            <schema stdDomain="var-name"/>
+                        </field>
+
+                        <field name="prop" displayName="来源属性">
+                            <schema stdDomain="prop-path"/>
+                        </field>
+
+                        <field name="valueExpr" displayName="计算表达式">
+                            <schema stdDomain="xpl"/>
+                        </field>
+                    </fields>
+                </field>
+            </fields>
         </sheet>
 
-        <sheet name="messageType" namePattern=".*" field="types" multiple="true" keyProp="name"
-               sheetNameProp="tableName">
+        <sheet name="messageType" namePattern=".*" field="types" multiple="true" keyProp="name">
             <normalizeFieldsExpr>
                 <c:script><![CDATA[
 
@@ -20,10 +92,7 @@
 
             <fields>
                 <field name="name" displayName="对象名">
-                    <schema stdDomain="class-name"/>
-                    <valueExpr>
-                        value?.$fullClassName(rootRecord['ext:entityPackageName'])
-                    </valueExpr>
+                    <schema stdDomain="var-name"/>
                 </field>
 
                 <field name="displayName" displayName="中文名" mandatory="true">
@@ -38,7 +107,7 @@
                     <schema stdDomain="csv-set"/>
                 </field>
 
-                <field name="description" displayName="描述">
+                <field name="doc" displayName="描述">
                     <schema stdDomain="string"/>
                 </field>
 
@@ -54,38 +123,52 @@
                             </valueExpr>
                         </field>
 
-                        <field name="name" displayName="属性名"
-                               xpt:formatExpr="cell.value == cell.rp?.ev?.code?.$colCodeToPropName()?'':cell.value">
+                        <field name="primary" displayName="主键">
+                            <schema stdDomain="boolean"/>
+                        </field>
+
+                        <field name="name" displayName="字段名">
                             <schema stdDomain="var-name"/>
+                        </field>
+
+                        <field name="prop" displayName="来源属性">
+                            <schema stdDomain="prop-path"/>
                         </field>
 
                         <field name="displayName" displayName="中文名" mandatory="true"/>
 
                         <field name="i18n-en:displayName" displayName="英文名"/>
 
-                        <field name="domain" displayName="数据域">
-                            <schema stdDomain="xml-name"/>
-                        </field>
-
-                        <field name="stdDomain" displayName="标准域">
-                            <schema stdDomain="xml-name"/>
-                        </field>
-
-                        <field name="precision" displayName="长度">
+                        <field name="length" displayName="长度">
                             <schema stdDomain="int-size"/>
                         </field>
-                        <field name="scale" displayName="小数位数">
-                            <schema stdDomain="int-size"/>
-                        </field>
-                        <field name="ext:dict" displayName="字典">
+
+                        <field name="codec" displayName="编码器">
                             <schema stdDomain="string"/>
                         </field>
-                        <field name="tagSet" displayName="标签">
-                            <schema stdDomain="csv-set"/>
+
+                        <field name="charset" displayName="字符集">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="padding" displayName="填充字符">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="leftPad" displayName="是否左填充">
+                            <schema stdDomain="boolean"/>
                         </field>
 
                         <field name="defaultValue" displayName="缺省值">
                             <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="exportExpr" displayName="导出表达式">
+                            <schema stdDomain="xpl"/>
+                        </field>
+
+                        <field name="parseExpr" displayName="解析表达式">
+                            <schema stdDomain="xpl"/>
                         </field>
                     </fields>
                 </field>

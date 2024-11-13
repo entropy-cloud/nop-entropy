@@ -29,6 +29,7 @@ import io.netty.util.ReferenceCountUtil;
 import io.nop.record.reader.IBinaryDataReader;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -337,11 +338,24 @@ public class ByteBufBinaryDataInput implements IBinaryDataReader {
      * @param n number of bytes to read
      * @return read bytes as byte array
      */
+    /**
+     * Reads designated number of bytes from the stream.
+     *
+     * @param n number of bytes to read
+     * @return read bytes as byte array
+     */
     @Override
     public byte[] readBytes(int n) {
         byte[] buf = new byte[n];
         bb.readBytes(buf);
         return buf;
+    }
+
+    @Override
+    public int read(byte[] data, int offset, int len) throws IOException {
+        int length = Math.min(len, bb.readableBytes());
+        bb.readBytes(data, offset, length);
+        return length;
     }
 
     /**
@@ -412,7 +426,7 @@ public class ByteBufBinaryDataInput implements IBinaryDataReader {
     }
 
     @Override
-    public void read(byte[] data, int offset, int len) {
+    public void readFully(byte[] data, int offset, int len) {
         bb.readBytes(data, offset, len);
     }
 

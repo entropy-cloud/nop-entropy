@@ -24,6 +24,7 @@
 package io.nop.record.reader;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
@@ -247,7 +248,7 @@ public class ByteBufferBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public short readU1() {
-        return (short)(bb.get() & 0xff);
+        return (short) (bb.get() & 0xff);
     }
 
     //region Big-endian
@@ -400,8 +401,15 @@ public class ByteBufferBinaryDataReader implements IBinaryDataReader {
     }
 
     @Override
-    public void read(byte[] data, int offset, int len) {
+    public void readFully(byte[] data, int offset, int len) {
         bb.get(data, offset, len);
+    }
+
+    @Override
+    public int read(byte[] data, int offset, int len) throws IOException {
+        int length = Math.min(len, bb.remaining());
+        bb.get(data, offset, length);
+        return length;
     }
 
     @Override
@@ -413,10 +421,12 @@ public class ByteBufferBinaryDataReader implements IBinaryDataReader {
     public IBinaryDataReader detach() {
         return new ByteBufferBinaryDataReader(bb.duplicate());
     }
+
     @Override
     public IBinaryDataReader duplicate() {
         return new ByteBufferBinaryDataReader(bb.duplicate());
     }
+
     @Override
     public boolean isDetached() {
         return true;

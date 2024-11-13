@@ -24,7 +24,7 @@ public class FixedLengthAsciiIntCodec implements IFieldBinaryCodec, IFieldTextCo
 
     @Override
     public Object decode(IBinaryDataReader input, Object record, int length,
-                         Charset charset, IFieldCodecContext context) {
+                         Charset charset, IFieldCodecContext context) throws IOException {
         byte[] bytes = input.readBytes(length);
         if (charset == null)
             charset = StandardCharsets.UTF_8;
@@ -43,7 +43,7 @@ public class FixedLengthAsciiIntCodec implements IFieldBinaryCodec, IFieldTextCo
 
     @Override
     public Object decode(ITextDataReader input, Object record,
-                         int length, IFieldCodecContext context) throws IOException{
+                         int length, IFieldCodecContext context) throws IOException {
         String text = input.read(length);
         return ConvertHelper.toPrimitiveInt(text, err -> new NopException(err).param(ARG_FIELD_PATH, context.getFieldPath()));
     }

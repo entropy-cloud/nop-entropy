@@ -3,5 +3,6 @@
        xmlns:xdef="/nop/schema/xdef.xdef"
        name="!string" displayName="string" type="!generic-type" mandatory="!boolean=false"
        xdef:name="RecordParamMeta" xdef:bean-package="io.nop.record.model">
+    <comment xdef:value="string" />
     <schema xdef:ref="../schema/schema.xdef"/>
 </param>

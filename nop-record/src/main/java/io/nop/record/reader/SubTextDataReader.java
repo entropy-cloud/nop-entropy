@@ -32,7 +32,7 @@ public class SubTextDataReader implements ITextDataReader {
     }
 
     @Override
-    public boolean isEof() {
+    public boolean isEof() throws IOException {
         int offset = pos();
         if (offset >= maxLength)
             return true;
@@ -45,7 +45,7 @@ public class SubTextDataReader implements ITextDataReader {
     }
 
     @Override
-    public int available() {
+    public int available() throws IOException {
         int offset = pos();
         if (offset >= maxLength)
             return 0;
@@ -59,7 +59,7 @@ public class SubTextDataReader implements ITextDataReader {
     }
 
     @Override
-    public void skip(int n) {
+    public void skip(int n) throws IOException {
         int avail = maxLength - pos();
         if (avail < n)
             throw new NopException(ERR_RECORD_NO_ENOUGH_DATA);
@@ -67,7 +67,7 @@ public class SubTextDataReader implements ITextDataReader {
     }
 
     @Override
-    public String read(int len) {
+    public String read(int len) throws IOException {
         int avail = maxLength - pos();
         if (avail < len)
             throw new NopException(ERR_RECORD_NO_ENOUGH_DATA);
@@ -75,14 +75,14 @@ public class SubTextDataReader implements ITextDataReader {
     }
 
     @Override
-    public int readChar() {
+    public int readChar() throws IOException {
         if (pos() >= maxLength)
             return -1;
         return input.readChar();
     }
 
     @Override
-    public String readLine(int maxLength) {
+    public String readLine(int maxLength) throws IOException {
         int avail = this.maxLength - pos();
         maxLength = Math.min(maxLength, avail);
         return input.readLine(maxLength);
@@ -94,7 +94,7 @@ public class SubTextDataReader implements ITextDataReader {
     }
 
     @Override
-    public void reset() {
+    public void reset() throws IOException {
         input.reset();
         input.skip(startOffset);
     }

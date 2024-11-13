@@ -35,6 +35,16 @@ public class ResourceRecordIO<T> implements IResourceRecordIO<T> {
 
     @Override
     public IRecordInput<T> openInput(IResource resource, String encoding) {
+        RecordFileMeta fileMeta = getFileMeta(resource);
+        if (fileMeta.isBinary()) {
+            //InputStream is = resource.getInputStream();
+            //IBinaryDataReader out = new StreamBinaryDataReader(in);
+            //return new ModelBasedBinaryRecordInput<>(out, fileMeta);
+        } else {
+            //Reader reader = ResourceHelper.toReader(resource, encoding, true);
+            //ITextDataReader in = new AppendableTextDataWriter(new BufferedWriter(writer));
+            //return new ModelBasedTextRecordInput<>(in, fileMeta);
+        }
         return null;
     }
 

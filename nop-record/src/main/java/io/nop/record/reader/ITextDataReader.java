@@ -7,14 +7,16 @@
  */
 package io.nop.record.reader;
 
+import java.io.IOException;
+
 public interface ITextDataReader extends IDataReaderBase {
-    int available();
+    int available() throws IOException;
 
-    void skip(int n);
+    void skip(int n) throws IOException;
 
-    String read(int len);
+    String read(int len) throws IOException;
 
-    default String readAvailableText() {
+    default String readAvailableText() throws IOException {
         int len = available();
         if (len < 0)
             return null;
@@ -23,16 +25,16 @@ public interface ITextDataReader extends IDataReaderBase {
         return read(len);
     }
 
-    int readChar();
+    int readChar() throws IOException;
 
-    String readLine(int maxLength);
+    String readLine(int maxLength) throws IOException;
 
     int pos();
 
     /**
      * 重置offset为0
      */
-    void reset();
+    void reset() throws IOException;
 
     default ITextDataReader subInput(int maxLength) {
         return new SubTextDataReader(this, maxLength);

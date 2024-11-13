@@ -1,8 +1,8 @@
 <file x:schema="/nop/schema/record/record-file.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <body>
         <fields>
-            <field name="a" type="int" padding=" "/>
-            <field name="b" type="String"/>
+            <field name="a" type="int" padding=" " length="5"/>
+            <field name="b" type="String" length="10"/>
         </fields>
     </body>
 </file>

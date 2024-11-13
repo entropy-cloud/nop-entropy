@@ -24,13 +24,22 @@ package io.nop.record.reader;
 
 import io.nop.commons.bytes.ByteString;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 /**
  * 从KaitaiStruct项目的KaitaiStream类拷贝部分实现代码
  */
-public interface IBinaryDataReader extends IDataReaderBase {
+public interface IBinaryDataReader extends IDataReaderBase, DataInput {
+
+    int DEFAULT_BUFFER_SIZE = 4 * 1024;
 
     //region Stream positioning
 
@@ -39,11 +48,11 @@ public interface IBinaryDataReader extends IDataReaderBase {
      *
      * @return true if we are located at the end of the stream
      */
-    boolean isEof();
+    boolean isEof() throws IOException;
 
-    boolean hasRemainingBytes();
+    boolean hasRemainingBytes() throws IOException;
 
-    default void seek(long newPos) {
+    default void seek(long newPos) throws IOException {
         reset();
         skip(newPos);
     }
@@ -66,25 +75,76 @@ public interface IBinaryDataReader extends IDataReaderBase {
      *
      * @return 1-byte integer read from a stream
      */
-    byte readS1();
+    default byte readS1() throws IOException {
+        int t = read();
+        if (t < 0) {
+            throw new EOFException();
+        } else {
+            return (byte) t;
+        }
+    }
 
     //region Big-endian
 
-    short readS2be();
+    default short readS2be() throws IOException {
+        int b1 = read();
+        int b2 = read();
+        if ((b1 | b2) < 0) {
+            throw new EOFException();
+        } else {
+            return (short) ((b1 << 8) + (b2));
+        }
+    }
 
-    int readS4be();
+    default int readS4be() throws IOException {
+        int b1 = read();
+        int b2 = read();
+        int b3 = read();
+        int b4 = read();
+        if ((b1 | b2 | b3 | b4) < 0) {
+            throw new EOFException();
+        } else {
+            return (b1 << 24) + (b2 << 16) + (b3 << 8) + (b4);
+        }
+    }
 
-    long readS8be();
+    default long readS8be() throws IOException {
+        long b1 = readU4be();
+        long b2 = readU4be();
+        return (b1 << 32) + (b2);
+    }
 
     //endregion
 
     //region Little-endian
 
-    short readS2le();
+    default short readS2le() throws IOException {
+        int b1 = read();
+        int b2 = read();
+        if ((b1 | b2) < 0) {
+            throw new EOFException();
+        } else {
+            return (short) ((b2 << 8) + (b1));
+        }
+    }
 
-    int readS4le();
+    default int readS4le() throws IOException {
+        int b1 = read();
+        int b2 = read();
+        int b3 = read();
+        int b4 = read();
+        if ((b1 | b2 | b3 | b4) < 0) {
+            throw new EOFException();
+        } else {
+            return (b4 << 24) + (b3 << 16) + (b2 << 8) + (b1);
+        }
+    }
 
-    long readS8le();
+    default long readS8le() throws IOException {
+        long b1 = readU4le();
+        long b2 = readU4le();
+        return (b2 << 32) + (b1);
+    }
 
     //endregion
 
@@ -92,13 +152,38 @@ public interface IBinaryDataReader extends IDataReaderBase {
 
     //region Unsigned
 
-    short readU1();
+    default short readU1() throws IOException {
+        int t = read();
+        if (t < 0) {
+            throw new EOFException();
+        } else {
+            return (short) t;
+        }
+    }
 
     //region Big-endian
 
-    int readU2be();
+    default int readU2be() throws IOException {
+        int b1 = read();
+        int b2 = read();
+        if ((b1 | b2) < 0) {
+            throw new EOFException();
+        } else {
+            return (b1 << 8) + (b2);
+        }
+    }
 
-    long readU4be();
+    default long readU4be() throws IOException {
+        long b1 = read();
+        long b2 = read();
+        long b3 = read();
+        long b4 = read();
+        if ((b1 | b2 | b3 | b4) < 0) {
+            throw new EOFException();
+        } else {
+            return (b1 << 24) + (b2 << 16) + (b3 << 8) + (b4);
+        }
+    }
 
     /**
      * Reads one unsigned 8-byte integer in big-endian encoding. As Java does not
@@ -106,7 +191,7 @@ public interface IBinaryDataReader extends IDataReaderBase {
      *
      * @return 8-byte signed integer (pretending to be unsigned) read from a stream
      */
-    default long readU8be() {
+    default long readU8be() throws IOException {
         return readS8be();
     }
 
@@ -114,9 +199,27 @@ public interface IBinaryDataReader extends IDataReaderBase {
 
     //region Little-endian
 
-    int readU2le();
+    default int readU2le() throws IOException {
+        int b1 = read();
+        int b2 = read();
+        if ((b1 | b2) < 0) {
+            throw new EOFException();
+        } else {
+            return (b2 << 8) + (b1);
+        }
+    }
 
-    long readU4le();
+    default long readU4le() throws IOException {
+        long b1 = read();
+        long b2 = read();
+        long b3 = read();
+        long b4 = read();
+        if ((b1 | b2 | b3 | b4) < 0) {
+            throw new EOFException();
+        } else {
+            return (b4 << 24) + (b3 << 16) + (b2 << 8) + (b1);
+        }
+    }
 
     /**
      * Reads one unsigned 8-byte integer in little-endian encoding. As Java does not
@@ -124,7 +227,7 @@ public interface IBinaryDataReader extends IDataReaderBase {
      *
      * @return 8-byte signed integer (pretending to be unsigned) read from a stream
      */
-    default long readU8le() {
+    default long readU8le() throws IOException {
         return readS8le();
     }
 
@@ -138,17 +241,25 @@ public interface IBinaryDataReader extends IDataReaderBase {
 
     //region Big-endian
 
-    float readF4be();
+    default float readF4be() throws IOException {
+        return readBufferBe(4).getFloat();
+    }
 
-    double readF8be();
+    default double readF8be() throws IOException {
+        return readBufferBe(8).getDouble();
+    }
 
     //endregion
 
     //region Little-endian
 
-    float readF4le();
+    default float readF4le() throws IOException {
+        return readBufferLe(4).getFloat();
+    }
 
-    double readF8le();
+    default double readF8le() throws IOException {
+        return readBufferLe(8).getDouble();
+    }
 
     //endregion
 
@@ -166,7 +277,7 @@ public interface IBinaryDataReader extends IDataReaderBase {
 
     void setBits(long bits);
 
-    default long readBitsIntBe(int n) {
+    default long readBitsIntBe(int n) throws IOException {
         long res = 0;
         int bitsLeft = getBitsLeft();
         long bits = getBits();
@@ -200,7 +311,7 @@ public interface IBinaryDataReader extends IDataReaderBase {
         return res;
     }
 
-    default long readBitsIntLe(int n) {
+    default long readBitsIntLe(int n) throws IOException {
         long res = 0;
         int bitsLeft = getBitsLeft();
         long bits = getBits();
@@ -254,9 +365,11 @@ public interface IBinaryDataReader extends IDataReaderBase {
      * @param n number of bytes to read
      * @return read bytes as byte array
      */
-    byte[] readBytes(int n);
+    default byte[] readBytes(int n) throws IOException {
+        return readFully(n);
+    }
 
-    default ByteString readByteString(int n) {
+    default ByteString readByteString(int n) throws IOException {
         return ByteString.of(readBytes(n));
     }
 
@@ -265,57 +378,166 @@ public interface IBinaryDataReader extends IDataReaderBase {
      *
      * @return all remaining bytes in a stream as byte array
      */
-    byte[] readAvailableBytes();
+    default byte[] readAvailableBytes() throws IOException {
+        byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-    byte[] readBytesTerm(byte term, boolean includeTerm, boolean consumeTerm, boolean eosError);
+        int readCount;
+        while (-1 != (readCount = read(buffer)))
+            baos.write(buffer, 0, readCount);
 
-    default String readString(int length, Charset charset) {
+        return baos.toByteArray();
+    }
+
+    default byte[] readBytesTerm(byte term, boolean includeTerm, boolean consumeTerm, boolean eosError) throws IOException {
+        ByteArrayOutputStream buf = new ByteArrayOutputStream();
+        while (true) {
+            int c = read();
+            if (c < 0) {
+                if (eosError) {
+                    throw new RuntimeException("End of stream reached, but no terminator " + term + " found");
+                } else {
+                    return buf.toByteArray();
+                }
+            } else if ((byte) c == term) {
+                if (includeTerm)
+                    buf.write(c);
+                if (!consumeTerm)
+                    seek(pos() - 1);
+                return buf.toByteArray();
+            }
+            buf.write(c);
+        }
+    }
+
+    default String readString(int length, Charset charset) throws IOException {
         if (charset == null)
             charset = StandardCharsets.UTF_8;
         byte[] data = readBytes(length);
         return new String(data, charset);
     }
 
-    long available();
+    @Override
+    default String readLine() throws IOException {
+        throw new UnsupportedOperationException("readLine");
+    }
 
-    void skip(long n);
+    @Override
+    default String readUTF() throws IOException {
+        return DataInputStream.readUTF(this);
+    }
 
-    void read(byte[] data, int offset, int len);
+    long available() throws IOException;
 
-    default int readByte() {
+    void skip(long n) throws IOException;
+
+    default int skipBytes(int n) throws IOException {
+        skip(n);
+        return n;
+    }
+
+    default int tryReadFully(byte[] data, int offset, int len) throws IOException {
+        int nRead = 0;
+        do {
+            int n = read(data, offset, len);
+            if (n < 0)
+                return nRead > 0 ? nRead : -1;
+            nRead += n;
+            len -= n;
+            if (len <= 0)
+                break;
+            offset += n;
+        } while (true);
+        return nRead;
+    }
+
+    default void readFully(byte[] data, int offset, int len) throws IOException {
+        int nRead = tryReadFully(data, offset, len);
+        if (nRead != len)
+            throw new EOFException("Read " + nRead + " bytes, but expected " + len);
+    }
+
+    default void readFully(byte[] data) throws IOException {
+        readFully(data, 0, data.length);
+    }
+
+    int read(byte[] data, int offset, int len) throws IOException;
+
+    default byte[] readFully(int n) throws IOException {
+        byte[] data = new byte[n];
+        readFully(data, 0, n);
+        return data;
+    }
+
+    default int read(byte[] data) throws IOException {
+        return read(data, 0, data.length);
+    }
+
+    default int read() throws IOException {
         return readS1();
     }
 
-    default short readShort() {
+    default boolean readBoolean() throws IOException {
+        int n = read();
+        if (n < 0)
+            throw new EOFException();
+        return n != 0;
+    }
+
+    default byte readByte() throws IOException {
+        return readS1();
+    }
+
+    default int readUnsignedByte() throws IOException{
+        return readU1();
+    }
+
+    default short readShort() throws IOException {
         return readS2be();
     }
 
-    default int readInt() {
+    default int readUnsignedShort() throws IOException {
+        return readU2be();
+    }
+
+    default char readChar() throws IOException {
+        return (char) readShort();
+    }
+
+    default int readInt() throws IOException {
         return readS4be();
     }
 
-    default long readLong() {
+    default long readLong() throws IOException {
         return readS8be();
     }
 
-    default float readFloat() {
+    default float readFloat() throws IOException {
         return readF4be();
     }
 
-    default double readDouble() {
+    default double readDouble() throws IOException {
         return readF8be();
+    }
+
+    default ByteBuffer readBufferLe(int count) throws IOException {
+        return ByteBuffer.wrap(readBytes(count)).order(ByteOrder.LITTLE_ENDIAN);
+    }
+
+    default ByteBuffer readBufferBe(int count) throws IOException {
+        return ByteBuffer.wrap(readBytes(count)).order(ByteOrder.BIG_ENDIAN);
     }
 
     /**
      * 重置offset为0
      */
-    void reset();
+    void reset() throws IOException;
 
-    IBinaryDataReader subInput(long maxLength);
+    IBinaryDataReader subInput(long maxLength) throws IOException;
 
-    IBinaryDataReader detach();
+    IBinaryDataReader detach() throws IOException;
 
-    IBinaryDataReader duplicate();
+    IBinaryDataReader duplicate() throws IOException;
 
     boolean isDetached();
 }

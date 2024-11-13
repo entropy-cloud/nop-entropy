@@ -46,6 +46,13 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: displayName
+     * 
+     */
+    private java.lang.String _displayName ;
+    
+    /**
+     *  
      * xml name: doc
      * 
      */
@@ -60,31 +67,10 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
-     * xml name: enum
-     * 
-     */
-    private java.lang.String _enum ;
-    
-    /**
-     *  
      * xml name: eosError
      * 
      */
     private boolean _eosError  = true;
-    
-    /**
-     *  
-     * xml name: excludeMax
-     * 
-     */
-    private java.lang.Boolean _excludeMax ;
-    
-    /**
-     *  
-     * xml name: excludeMin
-     * 
-     */
-    private java.lang.Boolean _excludeMin ;
     
     /**
      *  
@@ -99,13 +85,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
      * 解析结果是否包含terminator
      */
     private boolean _includeTerminator  = false;
-    
-    /**
-     *  
-     * xml name: label
-     * 字段的显示名称。抛出用户可读的异常消息时可能会用到
-     */
-    private java.lang.String _label ;
     
     /**
      *  
@@ -144,34 +123,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
-     * xml name: max
-     * 
-     */
-    private java.lang.Double _max ;
-    
-    /**
-     *  
-     * xml name: maxLength
-     * 
-     */
-    private java.lang.Integer _maxLength ;
-    
-    /**
-     *  
-     * xml name: min
-     * 
-     */
-    private java.lang.Double _min ;
-    
-    /**
-     *  
-     * xml name: minLength
-     * 
-     */
-    private java.lang.Integer _minLength ;
-    
-    /**
-     *  
      * xml name: name
      * 对应解析得到的属性名。如果指定了prop，则以prop为准
      */
@@ -200,13 +151,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
-     * xml name: pattern
-     * 
-     */
-    private java.lang.String _pattern ;
-    
-    /**
-     *  
      * xml name: prop
      * 如果设置了此属性，则这个prop才是实际对应的属性名
      */
@@ -218,6 +162,14 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
      * 
      */
     private io.nop.core.lang.eval.IEvalFunction _readWhen ;
+    
+    /**
+     *  
+     * xml name: schema
+     * schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
+     * Map对应props配置,  List对应item配置, Union对应oneOf配置
+     */
+    private io.nop.xlang.xmeta.ISchema _schema ;
     
     /**
      *  
@@ -239,13 +191,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
      * 
      */
     private boolean _skipWriteWhenEmpty  = false;
-    
-    /**
-     *  
-     * xml name: stdDomain
-     * 
-     */
-    private java.lang.String _stdDomain ;
     
     /**
      *  
@@ -374,6 +319,25 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      * 
+     * xml name: displayName
+     *  
+     */
+    
+    public java.lang.String getDisplayName(){
+      return _displayName;
+    }
+
+    
+    public void setDisplayName(java.lang.String value){
+        checkAllowChange();
+        
+        this._displayName = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: doc
      *  
      */
@@ -412,25 +376,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      * 
-     * xml name: enum
-     *  
-     */
-    
-    public java.lang.String getEnum(){
-      return _enum;
-    }
-
-    
-    public void setEnum(java.lang.String value){
-        checkAllowChange();
-        
-        this._enum = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: eosError
      *  
      */
@@ -444,44 +389,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._eosError = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: excludeMax
-     *  
-     */
-    
-    public java.lang.Boolean getExcludeMax(){
-      return _excludeMax;
-    }
-
-    
-    public void setExcludeMax(java.lang.Boolean value){
-        checkAllowChange();
-        
-        this._excludeMax = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: excludeMin
-     *  
-     */
-    
-    public java.lang.Boolean getExcludeMin(){
-      return _excludeMin;
-    }
-
-    
-    public void setExcludeMin(java.lang.Boolean value){
-        checkAllowChange();
-        
-        this._excludeMin = value;
            
     }
 
@@ -520,25 +427,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._includeTerminator = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: label
-     *  字段的显示名称。抛出用户可读的异常消息时可能会用到
-     */
-    
-    public java.lang.String getLabel(){
-      return _label;
-    }
-
-    
-    public void setLabel(java.lang.String value){
-        checkAllowChange();
-        
-        this._label = value;
            
     }
 
@@ -640,82 +528,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      * 
-     * xml name: max
-     *  
-     */
-    
-    public java.lang.Double getMax(){
-      return _max;
-    }
-
-    
-    public void setMax(java.lang.Double value){
-        checkAllowChange();
-        
-        this._max = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: maxLength
-     *  
-     */
-    
-    public java.lang.Integer getMaxLength(){
-      return _maxLength;
-    }
-
-    
-    public void setMaxLength(java.lang.Integer value){
-        checkAllowChange();
-        
-        this._maxLength = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: min
-     *  
-     */
-    
-    public java.lang.Double getMin(){
-      return _min;
-    }
-
-    
-    public void setMin(java.lang.Double value){
-        checkAllowChange();
-        
-        this._min = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: minLength
-     *  
-     */
-    
-    public java.lang.Integer getMinLength(){
-      return _minLength;
-    }
-
-    
-    public void setMinLength(java.lang.Integer value){
-        checkAllowChange();
-        
-        this._minLength = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: name
      *  对应解析得到的属性名。如果指定了prop，则以prop为准
      */
@@ -792,25 +604,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      * 
-     * xml name: pattern
-     *  
-     */
-    
-    public java.lang.String getPattern(){
-      return _pattern;
-    }
-
-    
-    public void setPattern(java.lang.String value){
-        checkAllowChange();
-        
-        this._pattern = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: prop
      *  如果设置了此属性，则这个prop才是实际对应的属性名
      */
@@ -843,6 +636,26 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._readWhen = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: schema
+     *  schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
+     * Map对应props配置,  List对应item配置, Union对应oneOf配置
+     */
+    
+    public io.nop.xlang.xmeta.ISchema getSchema(){
+      return _schema;
+    }
+
+    
+    public void setSchema(io.nop.xlang.xmeta.ISchema value){
+        checkAllowChange();
+        
+        this._schema = value;
            
     }
 
@@ -900,25 +713,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._skipWriteWhenEmpty = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: stdDomain
-     *  
-     */
-    
-    public java.lang.String getStdDomain(){
-      return _stdDomain;
-    }
-
-    
-    public void setStdDomain(java.lang.String value){
-        checkAllowChange();
-        
-        this._stdDomain = value;
            
     }
 
@@ -1064,6 +858,8 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._schema = io.nop.api.core.util.FreezeHelper.deepFreeze(this._schema);
+            
         }
     }
 
@@ -1075,35 +871,27 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         out.putNotNull("charset",this.getCharset());
         out.putNotNull("codec",this.getCodec());
         out.putNotNull("content",this.getContent());
+        out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("doc",this.getDoc());
         out.putNotNull("endian",this.getEndian());
-        out.putNotNull("enum",this.getEnum());
         out.putNotNull("eosError",this.isEosError());
-        out.putNotNull("excludeMax",this.getExcludeMax());
-        out.putNotNull("excludeMin",this.getExcludeMin());
         out.putNotNull("exportExpr",this.getExportExpr());
         out.putNotNull("includeTerminator",this.isIncludeTerminator());
-        out.putNotNull("label",this.getLabel());
         out.putNotNull("lazy",this.isLazy());
         out.putNotNull("leftPad",this.isLeftPad());
         out.putNotNull("length",this.getLength());
         out.putNotNull("lengthExpr",this.getLengthExpr());
         out.putNotNull("mandatory",this.isMandatory());
-        out.putNotNull("max",this.getMax());
-        out.putNotNull("maxLength",this.getMaxLength());
-        out.putNotNull("min",this.getMin());
-        out.putNotNull("minLength",this.getMinLength());
         out.putNotNull("name",this.getName());
         out.putNotNull("offset",this.getOffset());
         out.putNotNull("padding",this.getPadding());
         out.putNotNull("parseExpr",this.getParseExpr());
-        out.putNotNull("pattern",this.getPattern());
         out.putNotNull("prop",this.getProp());
         out.putNotNull("readWhen",this.getReadWhen());
+        out.putNotNull("schema",this.getSchema());
         out.putNotNull("skipWhenRead",this.isSkipWhenRead());
         out.putNotNull("skipWhenWrite",this.isSkipWhenWrite());
         out.putNotNull("skipWriteWhenEmpty",this.isSkipWriteWhenEmpty());
-        out.putNotNull("stdDomain",this.getStdDomain());
         out.putNotNull("terminator",this.getTerminator());
         out.putNotNull("tillEnd",this.isTillEnd());
         out.putNotNull("transformInExpr",this.getTransformInExpr());
@@ -1126,35 +914,27 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         instance.setCharset(this.getCharset());
         instance.setCodec(this.getCodec());
         instance.setContent(this.getContent());
+        instance.setDisplayName(this.getDisplayName());
         instance.setDoc(this.getDoc());
         instance.setEndian(this.getEndian());
-        instance.setEnum(this.getEnum());
         instance.setEosError(this.isEosError());
-        instance.setExcludeMax(this.getExcludeMax());
-        instance.setExcludeMin(this.getExcludeMin());
         instance.setExportExpr(this.getExportExpr());
         instance.setIncludeTerminator(this.isIncludeTerminator());
-        instance.setLabel(this.getLabel());
         instance.setLazy(this.isLazy());
         instance.setLeftPad(this.isLeftPad());
         instance.setLength(this.getLength());
         instance.setLengthExpr(this.getLengthExpr());
         instance.setMandatory(this.isMandatory());
-        instance.setMax(this.getMax());
-        instance.setMaxLength(this.getMaxLength());
-        instance.setMin(this.getMin());
-        instance.setMinLength(this.getMinLength());
         instance.setName(this.getName());
         instance.setOffset(this.getOffset());
         instance.setPadding(this.getPadding());
         instance.setParseExpr(this.getParseExpr());
-        instance.setPattern(this.getPattern());
         instance.setProp(this.getProp());
         instance.setReadWhen(this.getReadWhen());
+        instance.setSchema(this.getSchema());
         instance.setSkipWhenRead(this.isSkipWhenRead());
         instance.setSkipWhenWrite(this.isSkipWhenWrite());
         instance.setSkipWriteWhenEmpty(this.isSkipWriteWhenEmpty());
-        instance.setStdDomain(this.getStdDomain());
         instance.setTerminator(this.getTerminator());
         instance.setTillEnd(this.isTillEnd());
         instance.setTransformInExpr(this.getTransformInExpr());

@@ -20,7 +20,7 @@
 -->
 <field x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:xdef="/nop/schema/xdef.xdef"
-       name="!prop-name" label="string" type="!string" prop="prop-name"
+       name="!prop-name" displayName="string" type="!string" prop="prop-name"
        length="!int=0"
        codec="string" charset="string" lazy="!boolean=false"
        padding="encoded-bytes" leftPad="!boolean=false" trim="!boolean=false"
@@ -30,13 +30,11 @@
        endian="enum:io.nop.commons.bytes.EndianKind"
        tillEnd="!boolean=false" skipWhenRead="!boolean=false" skipWhenWrite="!boolean=false"
        xdef:name="RecordSimpleFieldMeta" xdef:bean-package="io.nop.record.model"
-       stdDomain="string" enum="string"
-       minLength="int" maxLength="int"
-       pattern="regex" min="double" max="double"
-       excludeMin="boolean" excludeMax="boolean"
        includeTerminator="!boolean=false" eosError="!boolean=true"
 >
     <doc xdef:value="string"/>
+
+    <schema xdef:ref="../schema/schema.xdef"/>
 
     <!--
     读取到terminator判断字段结束
@@ -53,7 +51,7 @@
     -->
     <writeWhen xdef:value="xpl-fn:(record,ctx)=>boolean"/>
 
-    <readWhen xdef:value="xpl-fn:(in,record,ctx)=>boolean" />
+    <readWhen xdef:value="xpl-fn:(in,record,ctx)=>boolean"/>
 
     <!--
     如果非空，则表示字段为固定内容。当输出字段到数据文件中时直接使用该内容输出
@@ -66,6 +64,6 @@
     <!-- 输出时不从实体上获取，根据表达式计算得到输出值 -->
     <exportExpr xdef:value="xpl-fn:(record,ctx)=>any"/>
 
-    <parseExpr xdef:value="xpl-fn:(in,record,ctx)=>any" />
+    <parseExpr xdef:value="xpl-fn:(in,record,ctx)=>any"/>
 
 </field>
