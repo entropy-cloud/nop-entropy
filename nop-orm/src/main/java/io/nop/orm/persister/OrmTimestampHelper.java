@@ -15,6 +15,8 @@ import io.nop.orm.model.IEntityModel;
 
 import java.sql.Timestamp;
 
+import static io.nop.orm.OrmConfigs.CFG_ORM_SYS_USER_NAME;
+
 public class OrmTimestampHelper {
     public static void onCreate(IEntityModel entityModel, IOrmEntity entity) {
         if (entity.orm_disableAutoStamp())
@@ -29,9 +31,9 @@ public class OrmTimestampHelper {
                     entity.orm_propValue(entityModel.getUpdaterPropId(), user);
             } else {
                 if (entityModel.getCreaterPropId() > 0 && entity.orm_propValue(entityModel.getCreaterPropId()) == null)
-                    entity.orm_propValue(entityModel.getCreaterPropId(), OrmConstants.USER_NAME_SYS);
+                    entity.orm_propValue(entityModel.getCreaterPropId(), CFG_ORM_SYS_USER_NAME.get());
                 if (entityModel.getUpdaterPropId() > 0 && entity.orm_propValue(entityModel.getUpdaterPropId()) == null)
-                    entity.orm_propValue(entityModel.getUpdaterPropId(), OrmConstants.USER_NAME_SYS);
+                    entity.orm_propValue(entityModel.getUpdaterPropId(), CFG_ORM_SYS_USER_NAME.get());
             }
         }
 
@@ -56,7 +58,7 @@ public class OrmTimestampHelper {
             if (entity.orm_propValue(entityModel.getCreaterPropId()) == null) {
                 String user = getCurrentUser();
                 if (user != null) {
-                    user = OrmConstants.USER_NAME_SYS;
+                    user = CFG_ORM_SYS_USER_NAME.get();
                 }
                 entity.orm_propValue(entityModel.getCreaterPropId(), user);
             }
@@ -72,7 +74,7 @@ public class OrmTimestampHelper {
             if (user != null) {
                 entity.orm_propValue(entityModel.getUpdaterPropId(), user);
             } else {
-                entity.orm_propValue(entityModel.getUpdaterPropId(), OrmConstants.USER_NAME_SYS);
+                entity.orm_propValue(entityModel.getUpdaterPropId(), CFG_ORM_SYS_USER_NAME.get());
             }
         }
 

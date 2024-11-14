@@ -78,5 +78,7 @@ public interface OrmConfigs {
     IConfigReference<Integer> CFG_ORM_MODEL_CACHE_TENANT_CACHE_CONTAINER_SIZE = varRef(s_loc,
             "nop.orm.orm-model-cache.tenant-cache-container-size", Integer.class, 100);
 
+    @Description("缺省的系统用户名，当上下文没有用户信息，且需要记录创建者时使用")
+    IConfigReference<String> CFG_ORM_SYS_USER_NAME = varRef(s_loc, "nop.orm.sys-user-name", String.class, OrmConstants.USER_NAME_SYS);
 
 }
