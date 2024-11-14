@@ -581,3 +581,21 @@ XLang内置了一些特殊的名字空间，比如x,xpl等，它们会在编译�
 ```xml
 <form id="query" x:abstract="true" />
 ```
+
+## 在Java中调用xpl
+
+### 调用xpl标签
+参考DdlSqlCreator.java
+
+```javascript
+    public String dropUniqueKey(IEntityModel table, OrmUniqueKeyModel uniqueKey) {
+        Map<String, Object> args = new HashMap<>();
+        args.put("table", table);
+        args.put("uniqueKey", uniqueKey);
+        args.put("dialect", dialect);
+        return XLang.getTagAction(dmlLibPath, "DropUniqueKey").generateText(XLang.newEvalScope(args));
+    }
+```
+
+XLang.getTagAction可以根据标签库路径和标签名获得xpl标签，然后通过IEvalScope传入标签参树。TagAction提供了generateText, invoke等多种函数，分别用于输出文本和作为函数调用返回执行值。
+

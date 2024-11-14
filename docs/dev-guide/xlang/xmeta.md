@@ -188,3 +188,52 @@ NopGraphQL引擎返回的对象信息完全由XMeta来定义。如果一个属�
 ```
 
 需要注意的是，在parent属性上设置queryable并不会自动使得parent的所有属性都开放查询。必须逐个属性指定。
+
+## 根据domain自动推定prop配置
+`meta-gen.xlib`的DefaultMetaPostExtends标签为所有模型驱动自动生成的meta增加了post-extends处理
+
+```xml
+        <DefaultMetaPostExtends outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <thisLib:GenDictLabelFields/>
+                <thisLib:GenConnectionFields/>
+                <thisLib:GenCodeRuleAutoExpr/>
+                <thisLib:GenMaskingExpr/>
+                <thisLib:GenFilterOp/>
+                <thisLib:GenPropForDomain/>
+            </source>
+        </DefaultMetaPostExtends>
+```
+
+* GenDictLabelFields 自动根据dict配置为每个字段值字段生成一个对应的label字段
+* GenConnectionFields 自动为具有connection标签的关联属性生成Relay Connection字段
+* GenCodeRuleAutoExpr 自动为具有`biz:codeRule`属性的字段增加autoExpr配置
+* GenMaskingExpr 自动为具有`ui:maskPattern`属性的字段增加transformOut配置
+* GenFilterOp 自动为具有like标签的字段增加`ui:filterOp`配置
+* GenPropForDomain 自动根据domain对象的属性生成prop配置
+
+这其中GenPropForDomain会执行`meta-prop.xlib`中的标签进行转换
+
+```xml
+ <domain-csv-list outputMode="node">
+    <attr name="propNode"/>
+
+    <source>
+        <prop name="${propNode.getAttr('name')}">
+            <schema type="List&lt;String>"/>
+
+            <transformIn>
+                return value?.$toCsvListString();
+            </transformIn>
+
+            <transformOut>
+                return value?.$toCsvList();
+            </transformOut>
+        </prop>
+    </source>
+</domain-csv-list>
+```
+
+比如以上标签为domain=csv-list的字段增加了schema和transformIn、transformOut配置。
