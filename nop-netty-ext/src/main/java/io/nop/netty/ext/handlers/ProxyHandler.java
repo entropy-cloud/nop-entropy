@@ -6,19 +6,15 @@ import io.nop.netty.tcp.NettyTcpServer;
 
 public class ProxyHandler extends ChannelDuplexHandler {
     private final NettyTcpServer server;
+    private final int rpcTimeout;
 
-    public ProxyHandler(NettyTcpServer server) {
+    public ProxyHandler(NettyTcpServer server, int rpcTimeout) {
         this.server = server;
+        this.rpcTimeout = rpcTimeout;
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        server.sendToAnyChannel(msg, 1000).whenComplete((v, e) -> {
-            if (e != null) {
-                ctx.close();
-            } else {
-                ctx.writeAndFlush(v);
-            }
-        });
+        server.sendToAnyChannel(msg, rpcTimeout);
     }
 }

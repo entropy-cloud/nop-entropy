@@ -23,6 +23,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import io.nop.api.core.exceptions.NopConnectException;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.service.LifeCycleSupport;
 import io.nop.commons.util.retry.IRetryPolicy;
@@ -278,7 +279,11 @@ public class NettyTcpClient extends LifeCycleSupport {
         }
     }
 
-    public CompletableFuture<Object> send(Object msg, int timeout) {
+    public Object send(Object msg, int timeout) {
+        return FutureHelper.syncGet(sendAsync(msg, timeout));
+    }
+
+    public CompletableFuture<Object> sendAsync(Object msg, int timeout) {
         Guard.checkArgument(timeout > 0);
         CompletableFuture<Object> ret = new CompletableFuture<>();
         ChannelFuture channelFuture = getConnectFuture();

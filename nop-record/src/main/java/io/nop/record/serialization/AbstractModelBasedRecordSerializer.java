@@ -34,7 +34,7 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
     static final Logger LOG = LoggerFactory.getLogger(AbstractModelBasedRecordSerializer.class);
 
     @Override
-    public boolean writeObject(Output out, RecordObjectMeta recordMeta, Object record, String name,
+    public boolean writeObject(Output out, RecordObjectMeta recordMeta, String name, Object record,
                                IFieldCodecContext context) throws IOException {
         if (!runIfExpr(recordMeta.getWriteWhen(), record, name, context))
             return false;
@@ -128,12 +128,12 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
     protected void writeVirtualField(Output out, IBitSet tags, RecordFieldMeta field,
                                      Object record, IFieldCodecContext context) throws IOException {
         if (field.isVirtual()) {
-            if (field.getFields() != null) {
+            if (field.hasFields()) {
                 for (RecordFieldMeta subField : field.getFields()) {
                     writeField(out, subField, record, context);
                 }
             }
-        } else if (field.getFields() != null) {
+        } else if (field.hasFields()) {
             Object value = getProp(field, record, context);
             writeTemplateOrFields(out, tags, field, field.getCharsetObj(), value, context);
         } else {

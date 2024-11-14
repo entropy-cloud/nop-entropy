@@ -1,16 +1,17 @@
 package io.nop.record.resource;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.dataset.record.IRecordInput;
-import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.model.RecordFileMeta;
 import io.nop.record.reader.IDataReaderBase;
 import io.nop.record.serialization.IModelBasedRecordDeserializer;
-import io.nop.record.serialization.IModelBasedRecordSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> implements IRecordInput<T> {
     static final Logger LOG = LoggerFactory.getLogger(AbstractModelBasedRecordOutput.class);
@@ -22,12 +23,31 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
     protected final IModelBasedRecordDeserializer<Input> deserializer;
     protected final IFieldCodecContext context;
 
+    private Map<String, Object> headerMeta;
+
     public AbstractModelBasedRecordInput(Input baseIn, RecordFileMeta fileMeta,
                                          IFieldCodecContext context, IModelBasedRecordDeserializer<Input> deserializer) {
         this.baseIn = baseIn;
         this.fileMeta = fileMeta;
         this.deserializer = deserializer;
         this.context = context;
+        readHeader();
+    }
+
+    void readHeader() {
+        if (fileMeta.getHeader() != null) {
+            headerMeta = new HashMap<>();
+            try {
+                deserializer.readObject(baseIn, fileMeta.getHeader(), null, headerMeta, context);
+            } catch (IOException e) {
+                throw NopException.adapt(e);
+            }
+        }
+    }
+
+    @Override
+    public Map<String, Object> getHeaderMeta() {
+        return headerMeta;
     }
 
     @Override

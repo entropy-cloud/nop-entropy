@@ -237,6 +237,24 @@ public class NettyTcpServer extends LifeCycleSupport {
             bootstrap.option(ChannelOption.SO_BACKLOG, config.getTcpAcceptBacklog());
     }
 
+    public CompletableFuture<Object> sendToChannel(String channelId, Object msg, int timeout) {
+        Channel channel = getChannelById(channelId);
+        if (channel == null) {
+            throw new NopException(ERR_NETTY_NO_AVAILABLE_CHANNEL);
+        }
+
+        return sendToChannel(channel, msg, timeout);
+    }
+
+    public Channel getChannelById(String channelId) {
+        for (Channel channel : channelGroup) {
+            if (channel.id().asLongText().equals(channelId)) {
+                return channel;
+            }
+        }
+        return null;
+    }
+
     public CompletableFuture<Object> sendToAnyChannel(Object msg, int timeout) {
         Channel channel = getAnyChannel();
         return sendToChannel(channel, msg, timeout);
@@ -273,6 +291,16 @@ public class NettyTcpServer extends LifeCycleSupport {
 
         // 随机选择一个channel
         return channels.get(MathHelper.random().nextInt(channels.size()));
+    }
+
+    public List<TcpChannelInfo> getChannelInfos() {
+        List<TcpChannelInfo> infos = new ArrayList<>();
+
+        for (Channel channel : channelGroup) {
+            TcpChannelInfo info = channel.attr(TcpChannelInfo.ATTR_KEY).get();
+            infos.add(info);
+        }
+        return infos;
     }
 
     @Override

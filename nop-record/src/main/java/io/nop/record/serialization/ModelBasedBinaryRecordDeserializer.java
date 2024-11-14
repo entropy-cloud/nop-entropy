@@ -72,4 +72,9 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
 
         }
     }
+
+    String decodeString(IBinaryDataReader in, Charset charset, int length) throws IOException {
+        byte[] bytes = in.readBytes(length);
+        return new String(bytes, charset == null ? StandardCharsets.UTF_8 : charset);
+    }
 }

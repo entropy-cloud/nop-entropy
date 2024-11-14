@@ -134,7 +134,7 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
     }
 
     public void writeObject(Output out, RecordObjectMeta recordMeta, Object record, String name) throws IOException {
-        getSerializer().writeObject(out, recordMeta, record, name, context);
+        getSerializer().writeObject(out, recordMeta, name, record, context);
     }
 
     protected IModelBasedRecordSerializer<Output> getSerializer() {

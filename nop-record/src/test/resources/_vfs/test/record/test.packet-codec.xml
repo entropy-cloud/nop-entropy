@@ -1,0 +1,11 @@
+<codec x:schema="/nop/schema/record/packet-codec.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       lengthFieldLength="2">
+    <types>
+        <type name="default">
+            <fields>
+                <field name="id" type="long" length="8" codec="u8be"/>
+                <field name="name" type="String" length="20" leftPad="true" padding=" "/>
+            </fields>
+        </type>
+    </types>
+</codec>

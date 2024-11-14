@@ -46,7 +46,7 @@ import java.nio.charset.StandardCharsets;
  *     <li>{@link MappedByteBuffer} backed by {@link FileChannel}</li>
  * </ul>
  */
-public class ByteBufBinaryDataInput implements IBinaryDataReader {
+public class ByteBufBinaryDataReader implements IBinaryDataReader {
     private ByteBuf bb;
     private int bitsLeft;
     private long bits;
@@ -58,7 +58,7 @@ public class ByteBufBinaryDataInput implements IBinaryDataReader {
      *
      * @param arr byte array to read
      */
-    public ByteBufBinaryDataInput(byte[] arr) {
+    public ByteBufBinaryDataReader(byte[] arr) {
         bb = Unpooled.wrappedBuffer(arr);
     }
 
@@ -87,9 +87,8 @@ public class ByteBufBinaryDataInput implements IBinaryDataReader {
      *
      * @param buffer ByteBuffer to read
      */
-    public ByteBufBinaryDataInput(ByteBuf buffer) {
+    public ByteBufBinaryDataReader(ByteBuf buffer) {
         bb = buffer;
-        ReferenceCountUtil.retain(buffer);
     }
 
     /**
@@ -404,7 +403,7 @@ public class ByteBufBinaryDataInput implements IBinaryDataReader {
         // 更新原始 ByteBuf 的读索引
         bb.readerIndex(bb.readerIndex() + (int) n);
 
-        return new ByteBufBinaryDataInput(newBuffer);
+        return new ByteBufBinaryDataReader(newBuffer);
     }
 
     @Override
@@ -437,12 +436,12 @@ public class ByteBufBinaryDataInput implements IBinaryDataReader {
 
     @Override
     public IBinaryDataReader detach() {
-        return new ByteBufBinaryDataInput(bb.duplicate());
+        return new ByteBufBinaryDataReader(bb.duplicate());
     }
 
     @Override
     public IBinaryDataReader duplicate() {
-        return new ByteBufBinaryDataInput(bb.duplicate());
+        return new ByteBufBinaryDataReader(bb.duplicate());
     }
 
     @Override

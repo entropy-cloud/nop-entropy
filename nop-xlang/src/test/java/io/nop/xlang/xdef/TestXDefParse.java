@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestXDefParse {
@@ -69,6 +70,8 @@ public class TestXDefParse {
         IXDefNode defNode = def.getXdefDefine("BeanListValue");
         IXDefNode valueNode = defNode.getChild("value");
         assertTrue(valueNode != null);
+
+        assertNotNull(def.getRootNode().getComment().getMainDescription());
     }
 
     @Test

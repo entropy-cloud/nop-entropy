@@ -17,11 +17,14 @@ import static io.nop.record.RecordErrors.ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG;
 
 public class DynLVFieldBinaryCodec implements IFieldBinaryCodec {
     private final IFieldBinaryCodec lengthCodec;
+    private final IFieldBinaryCodec valueCodec;
     private final Function<Object, Integer> lengthGetter;
 
-    public DynLVFieldBinaryCodec(IFieldBinaryCodec lengthCodec, Function<Object, Integer> lengthGetter) {
+    public DynLVFieldBinaryCodec(IFieldBinaryCodec lengthCodec, IFieldBinaryCodec valueCodec,
+                                 Function<Object, Integer> lengthGetter) {
         this.lengthCodec = lengthCodec;
         this.lengthGetter = lengthGetter;
+        this.valueCodec = valueCodec;
     }
 
     @Override
@@ -36,7 +39,10 @@ public class DynLVFieldBinaryCodec implements IFieldBinaryCodec {
             throw new NopException(ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG)
                     .param(ARG_LENGTH, len).param(ARG_MAX_LENGTH, length);
         }
-        return null;
+
+        if (valueCodec == null)
+            return len;
+        return valueCodec.decode(input, record, len, charset, context);
     }
 
     @Override
@@ -44,7 +50,13 @@ public class DynLVFieldBinaryCodec implements IFieldBinaryCodec {
                        IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder) throws IOException {
         int len = lengthGetter.apply(value);
         lengthCodec.encode(output, len, length, charset, context, null);
-        if (len > 0)
+        if (len > 0) {
+            if (valueCodec != null) {
+                valueCodec.encode(output, value, len, charset, context, null);
+                return;
+            }
+
             bodyEncoder.encode(output, value, len, charset, context, null);
+        }
     }
 }

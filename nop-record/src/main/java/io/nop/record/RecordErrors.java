@@ -19,6 +19,8 @@ public interface RecordErrors {
     String ARG_CODEC = "codec";
 
     String ARG_LENGTH = "length";
+
+    String ARG_MIN_LENGTH = "minLength";
     String ARG_MAX_VALUE = "maxValue";
 
     String ARG_MIN_VALUE = "minValue";
@@ -34,11 +36,13 @@ public interface RecordErrors {
     String ARG_POS = "pos";
     String ARG_EXPECTED = "expected";
 
+    String ARG_LENGTH_FIELD_LENGTH = "lengthFieldLength";
+
     ErrorCode ERR_RECORD_NO_ENOUGH_DATA =
             define("nop.err.record.no-enough-data", "缺少数据，无法读取");
 
     ErrorCode ERR_RECORD_UNKNOWN_FIELD_CODEC =
-            define("nop.err.record.unknown-field-codec", ARG_FIELD_NAME, ARG_CODEC);
+            define("nop.err.record.unknown-field-codec:{codec}", ARG_FIELD_NAME, ARG_CODEC);
 
     ErrorCode ERR_RECORD_FIELD_LENGTH_GREATER_THAN_MAX_VALUE =
             define("nop.err.record.field-length-greater-than-max-value",
@@ -68,4 +72,19 @@ public interface RecordErrors {
 
     ErrorCode ERR_RECORD_VALUE_NOT_MATCH_STRING = define("nop.err.record.value-not-match-string",
             "值与预想的情况不匹配:pos={},expected={}", ARG_POS, ARG_EXPECTED);
+
+    ErrorCode ERR_RECORD_UNSUPPORTED_PACKET_LENGTH_FIELD_LENGTH =
+            define("nop.err.record.unspported-packet-field-length-field",
+                    "不支持的包长度字段长度:{lengthFieldLength} (期望: 1, 2, 3, 4, 或 8)", ARG_LENGTH_FIELD_LENGTH);
+
+    ErrorCode ERR_RECORD_FIELD_LENGTH_IS_TOO_LARGE = define("nop.err.record.field-length-is-too-large",
+            "字段[{fieldName}]的长度超过最大值:{length}", ARG_FIELD_NAME, ARG_LENGTH);
+
+    ErrorCode ERR_RECORD_FIELD_LENGTH_IS_TOO_SMALL = define("nop.err.record.field-length-is-too-small",
+            "字段[{fieldName}]的长度小于最小值:{length}", ARG_FIELD_NAME, ARG_LENGTH);
+    ErrorCode ERR_RECORD_FIELD_LENGTH_IS_NEGATIVE = define("nop.err.record.field-length-is-negative",
+            "字段[{fieldName}]的长度为负数:{length}", ARG_FIELD_NAME, ARG_LENGTH);
+
+    ErrorCode ERR_RECORD_UNKNOWN_OBJ_TYPE = define("nop.err.record.unknown-obj-type",
+            "未知的对象类型:{typeName}", ARG_TYPE_NAME);
 }

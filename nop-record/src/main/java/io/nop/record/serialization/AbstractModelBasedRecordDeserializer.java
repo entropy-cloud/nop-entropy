@@ -109,12 +109,12 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     protected void readVirtualField(Input in, IBitSet tags, RecordFieldMeta field,
                                     Object record, IFieldCodecContext context) throws IOException {
         if (field.isVirtual()) {
-            if (field.getFields() != null) {
+            if (field.hasFields()) {
                 for (RecordFieldMeta subField : field.getFields()) {
                     readField(in, subField, record, context);
                 }
             }
-        } else if (field.getFields() != null) {
+        } else if (field.hasFields()) {
             Object value = makeObjectProp(in, field, record, context);
             readTemplateOrFields(in, tags, field, field.getCharsetObj(), value, context);
         } else {
@@ -170,7 +170,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     }
 
     protected void setPropByName(Object record, String propName, Object value) {
-        BeanTool.setComplexProperty(record, propName, value);
+        BeanTool.setProperty(record, propName, value);
     }
 
     protected boolean isUseBodyEncoder(RecordFieldMeta field) {

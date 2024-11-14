@@ -32,17 +32,17 @@ public abstract class _RecordDefinitions extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: defaultEndian
+     * 
+     */
+    private io.nop.commons.bytes.EndianKind _defaultEndian ;
+    
+    /**
+     *  
      * xml name: defaultTextEncoding
      * 
      */
     private java.lang.String _defaultTextEncoding  = "UTF-8";
-    
-    /**
-     *  
-     * xml name: endian
-     * 
-     */
-    private io.nop.commons.bytes.EndianKind _endian ;
     
     /**
      *  
@@ -98,6 +98,25 @@ public abstract class _RecordDefinitions extends io.nop.core.resource.component.
     
     /**
      * 
+     * xml name: defaultEndian
+     *  
+     */
+    
+    public io.nop.commons.bytes.EndianKind getDefaultEndian(){
+      return _defaultEndian;
+    }
+
+    
+    public void setDefaultEndian(io.nop.commons.bytes.EndianKind value){
+        checkAllowChange();
+        
+        this._defaultEndian = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: defaultTextEncoding
      *  
      */
@@ -111,25 +130,6 @@ public abstract class _RecordDefinitions extends io.nop.core.resource.component.
         checkAllowChange();
         
         this._defaultTextEncoding = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: endian
-     *  
-     */
-    
-    public io.nop.commons.bytes.EndianKind getEndian(){
-      return _endian;
-    }
-
-    
-    public void setEndian(io.nop.commons.bytes.EndianKind value){
-        checkAllowChange();
-        
-        this._endian = value;
            
     }
 
@@ -245,8 +245,8 @@ public abstract class _RecordDefinitions extends io.nop.core.resource.component.
         
         out.putNotNull("binary",this.isBinary());
         out.putNotNull("bitEndian",this.getBitEndian());
+        out.putNotNull("defaultEndian",this.getDefaultEndian());
         out.putNotNull("defaultTextEncoding",this.getDefaultTextEncoding());
-        out.putNotNull("endian",this.getEndian());
         out.putNotNull("enums",this.getEnums());
         out.putNotNull("types",this.getTypes());
     }
@@ -262,8 +262,8 @@ public abstract class _RecordDefinitions extends io.nop.core.resource.component.
         
         instance.setBinary(this.isBinary());
         instance.setBitEndian(this.getBitEndian());
+        instance.setDefaultEndian(this.getDefaultEndian());
         instance.setDefaultTextEncoding(this.getDefaultTextEncoding());
-        instance.setEndian(this.getEndian());
         instance.setEnums(this.getEnums());
         instance.setTypes(this.getTypes());
     }

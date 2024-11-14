@@ -1,4 +1,4 @@
-package io.nop.netty.ext.proxy;
+package io.nop.netty.ext.server;
 
 import io.nop.codec.IPacketCodec;
 import io.nop.commons.util.StringHelper;
@@ -7,14 +7,15 @@ import io.nop.fsm.execution.IStateMachine;
 import io.nop.fsm.execution.StateMachine;
 import io.nop.fsm.model.StateMachineModel;
 import io.nop.netty.config.NettyTcpServerConfig;
+import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.impl.ModelBasedPacketCodec;
 import io.nop.record.model.PacketCodecModel;
 
-public class TransferServerProxyConfig extends NettyTcpServerConfig {
+public class ModelBasedTcpServerConfig extends NettyTcpServerConfig {
     private String stateMachinePath;
     private String packetModelPath;
 
-    public TransferServerProxyConfig() {
+    public ModelBasedTcpServerConfig() {
         setUseChannelGroup(true);
         setChannelCloseOnError(true);
     }
@@ -42,8 +43,8 @@ public class TransferServerProxyConfig extends NettyTcpServerConfig {
         return new StateMachine(stm);
     }
 
-    public IPacketCodec loadPacketCodec() {
+    public IPacketCodec<Object> loadPacketCodec(FieldCodecRegistry registry) {
         PacketCodecModel codecModel = (PacketCodecModel) ResourceComponentManager.instance().loadComponentModel(packetModelPath);
-        return new ModelBasedPacketCodec(codecModel);
+        return new ModelBasedPacketCodec(codecModel, registry);
     }
 }

@@ -4,7 +4,7 @@
              xdef:name="RecordDefinitions" xdef:bean-package="io.nop.record.model"
              binary="!boolean=false" defaultTextEncoding="string=UTF-8"
              bitEndian="enum:io.nop.commons.bytes.EndianKind"
-             endian="enum:io.nop.commons.bytes.EndianKind"
+             defaultEndian="enum:io.nop.commons.bytes.EndianKind"
 >
     <types xdef:body-type="list" xdef:key-attr="name">
         <type name="!prop-name" xdef:ref="record-object.xdef" xdef:name="RecordTypeMeta"/>

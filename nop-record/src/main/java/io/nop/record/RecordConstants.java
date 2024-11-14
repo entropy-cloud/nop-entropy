@@ -20,4 +20,6 @@ public interface RecordConstants {
     String RECORD_FILE_XML_POSTFIX = ".record-file.xml";
 
     String RECORD_XML_POSTFIX = ".record.xml";
+
+    String TYPE_DEFAULT = "default";
 }

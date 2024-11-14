@@ -13,6 +13,15 @@ public class NettyTcpServerConfig extends NettyBaseConfig {
     private String host;
     private int port;
 
+    private int rpcTimeout;
+
+    public int getRpcTimeout() {
+        return rpcTimeout;
+    }
+    public void setRpcTimeout(int rpcTimeout) {
+        this.rpcTimeout = rpcTimeout;
+    }
+
     public int getBossGroupSize() {
         return bossGroupSize;
     }

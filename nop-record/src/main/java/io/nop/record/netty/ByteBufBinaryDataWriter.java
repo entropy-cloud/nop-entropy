@@ -21,7 +21,7 @@ public class ByteBufBinaryDataWriter implements IBinaryDataWriter {
     }
 
     public ByteBufBinaryDataWriter(ByteBuf byteBuf) {
-        this.byteBuf = byteBuf.retain();
+        this.byteBuf = byteBuf;
     }
 
     @Override

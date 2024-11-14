@@ -1,0 +1,8 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="packet-codec">
+
+    <loaders>
+        <xdsl-loader fileType="packet-codec.xml" schemaPath="/nop/schema/record/packet-codec.xdef"/>
+    </loaders>
+
+</model>

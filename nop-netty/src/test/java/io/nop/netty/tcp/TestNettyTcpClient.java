@@ -22,7 +22,7 @@ public class TestNettyTcpClient {
         NettyTcpClient client = createClient(port);
 
         try {
-            FutureHelper.syncGet(client.send("123", 1000));
+            FutureHelper.syncGet(client.sendAsync("123", 1000));
             fail();
         } catch (NopConnectException e) {
             assertEquals(NopNettyErrors.ERR_TCP_CONNECT_FAIL.getErrorCode(), e.getErrorCode());
@@ -42,7 +42,7 @@ public class TestNettyTcpClient {
         NettyTcpClient client = createClient(port);
 
         try {
-            FutureHelper.syncGet(client.send("123", 1000));
+            FutureHelper.syncGet(client.sendAsync("123", 1000));
             fail();
         } catch (NopConnectException e) {
             fail();
