@@ -157,6 +157,7 @@ public class OrmFetcherBuilder {
 
     IDataFetcher buildConnectionFetcher(String objType, GraphQLQueryMethod queryMethod,
                                         IEntityRelationModel propModel, IObjPropMeta propMeta) {
+        Boolean disableLogicalDelete = ConvertHelper.toBoolean(propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_DISABLE_LOGICAL_DELETE));
         int maxFetchSize = ConvertHelper.toPrimitiveInt(propMeta.prop_get(GraphQLConstants.ATTR_GRAPHQL_MAX_FETCH_SIZE),
                 -1, NopException::new);
 
@@ -176,7 +177,7 @@ public class OrmFetcherBuilder {
         List<OrderFieldBean> orderBy = ExtPropsGetter.getOrderBy(propMeta, GraphQLConstants.TAG_GRAPHQL_ORDER_BY);
 
         IBizObjectQueryProcessor<?> queryProcessor = queryProcessorBuilder.buildQueryProcessor(bizObjName);
-        return new OrmEntityPropConnectionFetcher(queryProcessor, authObjName, maxFetchSize,
+        return new OrmEntityPropConnectionFetcher(queryProcessor, authObjName, maxFetchSize, disableLogicalDelete,
                 queryMethod, filter, orderBy);
     }
 

@@ -47,12 +47,14 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
     private final GraphQLQueryMethod queryMethod;
     private final TreeBean filter;
     private final List<OrderFieldBean> orderBy;
+    private final Boolean disableLogicalDelete;
 
     public OrmEntityPropConnectionFetcher(IBizObjectQueryProcessor<?> queryProcessor, String authObjName,
-                                          int maxFetchSize,
+                                          int maxFetchSize, Boolean disableLogicalDelete,
                                           GraphQLQueryMethod queryMethod, TreeBean filter, List<OrderFieldBean> orderBy) {
         this.authObjName = authObjName;
         this.maxFetchSize = maxFetchSize;
+        this.disableLogicalDelete = disableLogicalDelete;
         this.queryMethod = queryMethod;
         this.filter = Guard.notNull(filter, "filter");
         this.orderBy = orderBy;
@@ -73,6 +75,9 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
 
         query.setOffset(input.getOffset());
         query.setLimit(input.getLimit());
+
+        if (disableLogicalDelete != null)
+            query.setDisableLogicalDelete(disableLogicalDelete);
 
         if (input.getFirst() > 0) {
             query.setLimit(input.getFirst());

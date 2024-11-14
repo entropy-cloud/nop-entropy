@@ -3977,6 +3977,33 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
+    public static String trimLeft(String str, char paddingChar) {
+        if (str == null || str.isEmpty())
+            return str;
+
+        for (int i = 0, n = str.length(); i < n; i++) {
+            if (str.charAt(i) != paddingChar) {
+                return str.substring(i);
+            }
+        }
+        return str;
+    }
+
+    @Deterministic
+    public static String trimRight(String str, char paddingChar) {
+        if (str == null || str.isEmpty())
+            return str;
+
+        for (int i = str.length() - 1; i >= 0; i--) {
+            if (str.charAt(i) != paddingChar) {
+                return str.substring(0, i + 1);
+            }
+        }
+        return str;
+    }
+
+
+    @Deterministic
     public static boolean isGraphQLNameStart(int c) {
         return '_' == c || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
     }

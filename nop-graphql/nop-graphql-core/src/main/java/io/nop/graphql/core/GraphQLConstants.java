@@ -25,6 +25,8 @@ public interface GraphQLConstants {
     String ATTR_GRAPHQL_PROP = "graphql:prop";
     String ATTR_GRAPHQL_MAX_FETCH_SIZE = "graphql:maxFetchSize";
 
+    String ATTR_GRAPHQL_DISABLE_LOGICAL_DELETE = "graphql:disableLogicalDelete";
+
     String ATTR_GRAPHQL_CONNECTION_PROP = "graphql:connectionProp";
 
     String ATTR_GRAPHQL_QUERY_METHOD = "graphql:queryMethod";

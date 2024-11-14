@@ -246,14 +246,16 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     public long doFindCount0(@Optional @Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                              @Name("authObjName") String authObjName, @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
                              IServiceContext context) {
-        if (query != null)
-            query.setDisableLogicalDelete(false);
-
         query = prepareFindPageQuery(query, authObjName, METHOD_FIND_COUNT, prepareQuery, context);
 
         IEntityDao<T> dao = dao();
 
         return dao.countByQuery(query);
+    }
+
+    @BizAction
+    public long doFindCountByQueryDirectly(@Name("query") QueryBean query, IServiceContext context) {
+        return dao().countByQuery(query);
     }
 
     @Description("@i18n:biz.findPage|分页查询")
@@ -284,13 +286,16 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                                    IServiceContext context) {
         query = prepareFindPageQuery(query, authObjName, METHOD_FIND_PAGE, prepareQuery, context);
 
-        IEntityDao<T> dao = dao();
+        return doFindPageByQueryDirectly(query, selection, context);
+    }
 
+    @BizAction
+    public PageBean<T> doFindPageByQueryDirectly(@Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
         PageBean<T> pageBean = new PageBean<>();
         pageBean.setLimit(query.getLimit());
         pageBean.setOffset(query.getOffset());
         pageBean.setTotal(-1L);
-
+        IEntityDao<T> dao = dao();
         if (selection != null && selection.hasSourceField(GraphQLConstants.FIELD_TOTAL)) {
             long total = dao.countByQuery(query);
             pageBean.setTotal(total);
@@ -308,6 +313,11 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             }
         }
         return pageBean;
+    }
+
+    @BizAction
+    public List<T> doFindListByQueryDirectly(@Name("query") QueryBean query, IServiceContext context) {
+        return dao().findPageByQuery(query);
     }
 
     protected QueryBean resolveQuery(QueryBean query) {
@@ -1384,8 +1394,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
             query.setLimit(CFG_GRAPHQL_MAX_PAGE_SIZE.get());
 
         query = prepareFindPageQuery(query, authObjName, METHOD_FIND_LIST, prepareQuery, context);
-        List<T> ret = dao().findPageByQuery(query);
-        return ret;
+        return doFindListByQueryDirectly(query, context);
     }
 
     @Description("@i18n:biz.findRoots|根据查询条件返回树形结构的根节点列表")
