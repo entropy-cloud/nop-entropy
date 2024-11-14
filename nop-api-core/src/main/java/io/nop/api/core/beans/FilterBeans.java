@@ -7,7 +7,6 @@
  */
 package io.nop.api.core.beans;
 
-import io.nop.api.core.ApiConstants;
 import io.nop.api.core.util.ApiStringHelper;
 
 import java.time.LocalDate;
@@ -64,6 +63,10 @@ public class FilterBeans {
         return new TreeBean(op).attr(FILTER_ATTR_NAME, name).attr(FILTER_ATTR_VALUE, value);
     }
 
+    public static TreeBean propCompareOp(String op, String name, String valueName) {
+        return new TreeBean(op).attr(FILTER_ATTR_NAME, name).attr(FILTER_ATTR_VALUE_NAME, valueName);
+    }
+
 
     public static TreeBean assertOp(String op, String name) {
         return new TreeBean(op).attr(FILTER_ATTR_NAME, name);
@@ -97,7 +100,7 @@ public class FilterBeans {
     }
 
     public static TreeBean dateBetween(String name, LocalDate min, LocalDate max) {
-        return new TreeBean(FILTER_OP_DATE_BETWEEN).attr(FILTER_ATTR_NAME,name).attr(FILTER_ATTR_MIN, min).attr(FILTER_ATTR_MAX, max);
+        return new TreeBean(FILTER_OP_DATE_BETWEEN).attr(FILTER_ATTR_NAME, name).attr(FILTER_ATTR_MIN, min).attr(FILTER_ATTR_MAX, max);
     }
 
     public static TreeBean dateBetween(String name, LocalDate min, LocalDate max, boolean excludeMin,
@@ -107,7 +110,7 @@ public class FilterBeans {
     }
 
     public static TreeBean dateTimeBetween(String name, LocalDateTime min, LocalDateTime max) {
-        return new TreeBean(FILTER_OP_DATETIME_BETWEEN).attr(FILTER_ATTR_NAME,name).attr(FILTER_ATTR_MIN, min).attr(FILTER_ATTR_MAX, max);
+        return new TreeBean(FILTER_OP_DATETIME_BETWEEN).attr(FILTER_ATTR_NAME, name).attr(FILTER_ATTR_MIN, min).attr(FILTER_ATTR_MAX, max);
     }
 
     public static TreeBean dateTimeBetween(String name, LocalDateTime min, LocalDateTime max, boolean excludeMin,
@@ -130,6 +133,46 @@ public class FilterBeans {
         TreeBean bean = new TreeBean(FILTER_OP_UTF8_LENGTH_BETWEEN).attr(FILTER_ATTR_NAME, name);
         bean.attrIgnoreNull(FILTER_ATTR_MIN, min).attrIgnoreNull(FILTER_ATTR_MAX, max);
         return bean;
+    }
+
+    public static TreeBean propEq(String name, String valueName) {
+        return propCompareOp(FILTER_OP_EQ, name, valueName);
+    }
+
+    public static TreeBean propNe(String name, String valueName) {
+        return propCompareOp(FILTER_OP_NE, name, valueName);
+    }
+
+    public static TreeBean propGt(String name, String valueName) {
+        return propCompareOp(FILTER_OP_GT, name, valueName);
+    }
+
+    public static TreeBean propGe(String name, String valueName) {
+        return propCompareOp(FILTER_OP_GE, name, valueName);
+    }
+
+    public static TreeBean propLt(String name, String valueName) {
+        return propCompareOp(FILTER_OP_LT, name, valueName);
+    }
+
+    public static TreeBean propLe(String name, String valueName) {
+        return propCompareOp(FILTER_OP_LE, name, valueName);
+    }
+
+    public static TreeBean propStartsWith(String name, String valueName) {
+        return propCompareOp(FILTER_OP_STARTS_WITH, name, valueName);
+    }
+
+    public static TreeBean propEndsWith(String name, String valueName) {
+        return propCompareOp(FILTER_OP_ENDS_WITH, name, valueName);
+    }
+
+    public static TreeBean propContains(String name, String valueName) {
+        return propCompareOp(FILTER_OP_CONTAINS, name, valueName);
+    }
+
+    public static TreeBean propRegex(String name, String valueName) {
+        return propCompareOp(FILTER_OP_REGEX, name, valueName);
     }
 
     public static TreeBean eq(String name, Object value) {
@@ -290,7 +333,7 @@ public class FilterBeans {
             return null;
         TreeBean tree = filter.toTreeBean();
         if (tree.getTagName().equals(DUMMY_TAG_NAME) || tree.getTagName().equals(FILTER_TAG_NAME)) {
-            if(filter.getChildCount() == 0)
+            if (filter.getChildCount() == 0)
                 return null;
 
             if (tree == filter)

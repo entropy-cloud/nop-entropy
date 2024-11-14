@@ -53,6 +53,29 @@ public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentMod
         this.setTagName(tagName);
     }
 
+    public boolean treeEquals(TreeBean node) {
+        if (!tagName.equals(node.getTagName()))
+            return false;
+
+        if (getChildCount() != node.getChildCount())
+            return false;
+
+        if (!Objects.equals(value, node.getContentValue()))
+            return false;
+
+        if (!Objects.equals(getAttrs(), node.getAttrs()))
+            return false;
+
+        if (children != null) {
+            for (int i = 0, n = children.size(); i < n; i++) {
+                TreeBean child = children.get(i);
+                if(!child.treeEquals(node.getChildren().get(i)))
+                    return false;
+            }
+        }
+        return true;
+    }
+
     public TreeBean attr(String name, Object value) {
         setAttr(name, value);
         return this;
