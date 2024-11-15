@@ -156,6 +156,8 @@ SUM(A3:D5)
 
 调试文件中的每个单元格中的内容为 `cellText <- cellLayerCoordinate`。
 
+同时在日志中会打印出报表单元格的父子关系
+
 ## 常见问题解答：
 
 ### 1. 单元格的展开值`cell.expandValue`和单元格个的值`cell.value`之间有什么区别?
