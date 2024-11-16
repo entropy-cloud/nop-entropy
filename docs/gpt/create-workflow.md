@@ -9,13 +9,13 @@
     <description/>
 
     <start startStepName="english" >
-        
+
     </start>
 
     <end>
     </end>
 
-   
+
     <actions>
         <!--
           @local 是否局部操作，不导致本步骤结束
@@ -36,7 +36,7 @@
             <description/>
 
             <when>condition-expr</when>
-        
+
             <source>javascript-code</source>
 
             <!--
@@ -47,7 +47,7 @@
                 <to-step stepName="!string">
                       <when>conditon-expr</when>
                 </to-step>
-                 
+
             </transition>
 
         </action>
@@ -57,7 +57,7 @@
         <!--
           @internal 标记为internal的步骤不会在界面中显示
           @optional 本步骤是否可选步骤，如果不是，则步骤出现异常时将导致异常向父节点传播，最终可能导致整个流程终止
-        
+
         -->
         <step name="!english" displayName="chinese" waitSignals="csv-set"
               internal="!boolean=false"
@@ -67,7 +67,7 @@
 
             <!-- 如果不自动迁移，则必须有assignment -->
             <assignment>
-               <actor actorName="string" actorType="role|user|group" actorId="string" /> 
+               <actor actorName="string" actorType="role|user|group" actorId="string" />
             </assignment>
 
             <ref-actions>
@@ -87,4 +87,4 @@
  请设计一个员工转正申请流程，要求经过组长和经理审批。如果员工级别大于10级，还需要经过总经理审批。
 ```
 
-表结构设计需要满足上面的元模型要求，要求仅以XML格式返回。
+流程设计需要满足上面的元模型要求，要求仅以XML格式返回。

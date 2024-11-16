@@ -91,8 +91,6 @@ public class XptModelInitializer {
 
         // 根据父子关系计算得到单元格展开时哪些父单元格需要被自动延展。如果父单元格与子单元格不在一行或者一列中，则不需要被延展。
         initExtendCells(sheet);
-
-        // new XptStructureToNode().buildNodeForSheet(sheet).dump();
     }
 
     private void initCols(ExcelSheet sheet) {
@@ -534,7 +532,7 @@ public class XptModelInitializer {
             if (rcModel.getRowIndex() <= beginIndex
                     && rcModel.getRowIndex() + rc.getRowSpan() >= endIndex) {
                 if (!xptModel.getRowDuplicateCells().containsKey(name)) {
-                    if (isRowExtendForSibling(rcModel, sheet.getModel())
+                    if (isRowExtendForSibling(rcModel, xptModel, sheet.getModel())
                             || rcModel.getRowIndex() + rc.getRowSpan() > endIndex // 除非不延展就会被插入的新行撕
                             || xptModel.getRowParent(name) != null
                     ) {
@@ -545,14 +543,18 @@ public class XptModelInitializer {
         }
     }
 
-    private boolean isRowExtendForSibling(XptCellModel rcModel, XptSheetModel sheetModel) {
+    private boolean isRowExtendForSibling(XptCellModel rcModel, XptCellModel cellModel, XptSheetModel sheetModel) {
         if (rcModel.getRowExtendForSibling() != null)
             return rcModel.getRowExtendForSibling();
         // 如果是同样需要展开的兄弟单元格，则不应该延展
         if (rcModel.getExpandType() == XptExpandType.r)
             return false;
-        if (sheetModel.getDefaultRowExtendForSibling() != null)
-            return sheetModel.getDefaultRowExtendForSibling();
+
+        // 如果不是同一个父的直接兄弟节点，则不允许扩展
+        ExcelCell rowParent = rcModel.getExpandableRowParent();
+        if (rowParent != null) {
+            return rowParent == cellModel.getExpandableRowParent();
+        }
         return true;
     }
 
@@ -576,14 +578,14 @@ public class XptModelInitializer {
                 continue;
 
             XptCellModel rcModel = rc.getModel();
-            String name = rc.getModel().getName();
+            String name = rcModel.getName();
 
             // 1. 整个单元格的延展范围包含了展开单元格的范围
             // 2. 且不是展开单元格的子单元格
             if (rcModel.getColIndex() <= beginIndex
                     && rcModel.getColIndex() + rc.getColSpan() >= endIndex) {
                 if (!xptModel.getColDuplicateCells().containsKey(name)) {
-                    if (isColExtendForSibling(rcModel, sheet.getModel())
+                    if (isColExtendForSibling(rcModel, xptModel, sheet.getModel())
                             || rcModel.getColIndex() + rc.getColSpan() > endIndex // 除非不延展就会被插入的新行撕
                             || xptModel.getColParent(name) != null
                     ) {
@@ -594,14 +596,17 @@ public class XptModelInitializer {
         }
     }
 
-    private boolean isColExtendForSibling(XptCellModel rcModel, XptSheetModel sheetModel) {
+    private boolean isColExtendForSibling(XptCellModel rcModel, XptCellModel cellModel, XptSheetModel sheetModel) {
         if (rcModel.getColExtendForSibling() != null)
             return rcModel.getColExtendForSibling();
         // 如果是同样需要展开的兄弟单元格，则不应该延展
         if (rcModel.getExpandType() == XptExpandType.c)
             return false;
-        if (sheetModel.getDefaultColExtendForSibling() != null)
-            return sheetModel.getDefaultColExtendForSibling();
+
+        // 如果不是同一个父的直接兄弟节点，则不允许扩展
+        ExcelCell colParent = rcModel.getExpandableColParent();
+        if (colParent != null)
+            return colParent == cellModel.getExpandableColParent();
         return true;
     }
 

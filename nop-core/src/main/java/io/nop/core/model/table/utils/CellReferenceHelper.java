@@ -93,7 +93,7 @@ public class CellReferenceHelper {
         if (StringHelper.isEmpty(abStr))
             return null;
 
-        if (CellPosition.NONE_NAME.equals(abStr))
+        if (CellPosition.NONE_NAME.equals(abStr) || CellPosition.NONE_STRING.equals(abStr))
             return CellPosition.NONE;
 
         String str = abStr;

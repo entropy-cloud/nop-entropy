@@ -10,6 +10,7 @@ package io.nop.excel.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.core.model.table.CellPosition;
 import io.nop.excel.model._gen._XptCellModel;
+import io.nop.excel.model.constants.XptExpandType;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -68,6 +69,38 @@ public class XptCellModel extends _XptCellModel {
 
     public void setCellPosition(CellPosition cellPosition) {
         this.cellPosition = cellPosition;
+    }
+
+    public boolean isColExpandOrColParentExpand() {
+        if (getExpandType() == XptExpandType.c)
+            return true;
+        if (colParentCell != null)
+            return colParentCell.getModel().isColExpandOrColParentExpand();
+        return false;
+    }
+
+    public boolean isRowExpandOrRowParentExpand() {
+        if (getExpandType() == XptExpandType.r)
+            return true;
+        if (rowParentCell != null)
+            return rowParentCell.getModel().isRowExpandOrRowParentExpand();
+        return false;
+    }
+
+    public ExcelCell getExpandableColParent() {
+        if (colParentCell == null)
+            return null;
+        if (colParentCell.getModel().getExpandType() != XptExpandType.c)
+            return colParentCell.getModel().getExpandableColParent();
+        return colParentCell;
+    }
+
+    public ExcelCell getExpandableRowParent() {
+        if (rowParentCell == null)
+            return null;
+        if (rowParentCell.getModel().getExpandType() != XptExpandType.r)
+            return rowParentCell.getModel().getExpandableRowParent();
+        return rowParentCell;
     }
 
     @JsonIgnore
@@ -150,6 +183,16 @@ public class XptCellModel extends _XptCellModel {
         }
         XptCellModel model = cell.getModel();
         colExtendCells.put(model.getName(), cell);
+    }
+
+    public void removeColExtendCell(String cellName) {
+        if (colExtendCells != null)
+            colExtendCells.remove(cellName);
+    }
+
+    public void removeRowExtendCell(String cellName) {
+        if (rowExtendCells != null)
+            rowExtendCells.remove(cellName);
     }
 
     @JsonIgnore

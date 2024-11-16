@@ -27,6 +27,7 @@ import static io.nop.core.model.table.utils.CellReferenceHelper.convertNumToColS
 @DataBean
 public class CellPosition implements Serializable, Comparable<CellPosition>, IJsonString {
     public static String NONE_NAME = "A0";
+    public static String NONE_STRING = "none";
     public static String NONE_RC_NAME = "R0C0";
 
     public static CellPosition NONE = new CellPosition();
@@ -60,7 +61,7 @@ public class CellPosition implements Serializable, Comparable<CellPosition>, IJs
 
     @StaticFactoryMethod
     public static CellPosition fromRCString(String str) {
-        if (NONE_RC_NAME.equals(str))
+        if (NONE_RC_NAME.equals(str) || NONE_STRING.equals(str))
             return NONE;
         return CellReferenceHelper.parsePositionRCString(str);
     }

@@ -433,7 +433,9 @@
 /nop/dyn/model/NopDynPage/_NopDynPage.xbiz
 /nop/dyn/model/NopDynPage/_NopDynPage.xmeta
 /nop/dyn/model/NopDynPatch/NopDynPatch.xbiz
+/nop/dyn/model/NopDynPatch/NopDynPatch.xmeta
 /nop/dyn/model/NopDynPatch/_NopDynPatch.xbiz
+/nop/dyn/model/NopDynPatch/_NopDynPatch.xmeta
 /nop/dyn/model/NopDynPatchFile/NopDynPatchFile.xbiz
 /nop/dyn/model/NopDynPatchFile/NopDynPatchFile.xmeta
 /nop/dyn/model/NopDynPatchFile/_NopDynPatchFile.xbiz
@@ -508,6 +510,11 @@
 /nop/dyn/pages/NopDynPage/main.page.yaml
 /nop/dyn/pages/NopDynPage/picker.page.yaml
 /nop/dyn/pages/NopDynPage/ref-module.page.yaml
+/nop/dyn/pages/NopDynPatch/NopDynPatch.lib.xjs
+/nop/dyn/pages/NopDynPatch/NopDynPatch.view.xml
+/nop/dyn/pages/NopDynPatch/_gen/_NopDynPatch.view.xml
+/nop/dyn/pages/NopDynPatch/main.page.yaml
+/nop/dyn/pages/NopDynPatch/picker.page.yaml
 /nop/dyn/pages/NopDynPatchFile/NopDynPatchFile.lib.xjs
 /nop/dyn/pages/NopDynPatchFile/NopDynPatchFile.view.xml
 /nop/dyn/pages/NopDynPatchFile/_gen/_NopDynPatchFile.view.xml
@@ -524,6 +531,7 @@
 /nop/dyn/pages/NopDynSql/_gen/_NopDynSql.view.xml
 /nop/dyn/pages/NopDynSql/main.page.yaml
 /nop/dyn/pages/NopDynSql/picker.page.yaml
+/nop/excel/imp/dict-support.imp.xml
 /nop/excel/xlib/imp-gen.xlib
 /nop/file/_module
 /nop/file/beans/_dao.beans.xml
@@ -538,7 +546,6 @@
 /nop/graphql/introspection.graphql
 /nop/http/beans/http-client-jdk.beans.xml
 /nop/integration/beans/zxing-defaults.beans.xml
-/nop/js/libs/nop-server-tool.mjs
 /nop/main/app.gateway.xml
 /nop/orm/beans/orm-defaults.beans.xml
 /nop/orm/defaults/default.orm.xml
@@ -584,6 +591,7 @@
 /nop/report/demo/base/13-复杂结构列展开.xpt.xlsx
 /nop/report/demo/base/14-复杂结构行展开.xpt.xlsx
 /nop/report/demo/base/15-兄弟节点同时展开.xpt.xlsx
+/nop/report/demo/base/16-多个数据源展开.xpt.xlsx
 /nop/report/demo/ext/report-with-params.xpt.xlsx
 /nop/report/demo/pages/demo.page.yaml
 /nop/report/demo/pages/report-with-params.page.yaml
@@ -742,6 +750,7 @@
 /nop/schema/query/query.xdef
 /nop/schema/record/packet-codec.xdef
 /nop/schema/record/record-definitions.xdef
+/nop/schema/record/record-enum.xdef
 /nop/schema/record/record-field.xdef
 /nop/schema/record/record-file.xdef
 /nop/schema/record/record-object.xdef
