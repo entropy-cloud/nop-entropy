@@ -106,7 +106,11 @@ public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHand
             context.onBeforeComplete(() -> {
                 Map<String, Object> trailer = aggregator.complete(null, state.combinedValue);
                 state.output.endWrite(trailer);
-                state.output.flush();
+                try{
+                    state.output.flush();
+                }catch(Exception e){
+                    throw NopException.adapt(e);
+                }
             });
 
             context.onAfterComplete(err -> {
