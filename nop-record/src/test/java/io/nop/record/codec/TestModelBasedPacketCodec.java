@@ -10,6 +10,7 @@ import io.nop.record.netty.ByteBufBinaryDataReader;
 import io.nop.record.netty.ByteBufBinaryDataWriter;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,7 +26,7 @@ public class TestModelBasedPacketCodec extends JunitBaseTestCase {
     }
 
     @Test
-    public void testByteBufInputOutput() {
+    public void testByteBufInputOutput() throws IOException {
         ByteBuf buf = UnpooledByteBufAllocator.DEFAULT.buffer();
         ByteBufBinaryDataReader reader = new ByteBufBinaryDataReader(buf);
         ByteBufBinaryDataWriter writer = new ByteBufBinaryDataWriter(buf);

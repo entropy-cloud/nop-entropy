@@ -30,7 +30,7 @@ public class FixedLengthAsciiCodec implements IFieldBinaryCodec, IFieldTextCodec
 
     @Override
     public Object decode(IBinaryDataReader input, Object record, int length,
-                         Charset charset, IFieldCodecContext context) {
+                         Charset charset, IFieldCodecContext context) throws IOException{
         byte[] bytes = input.readBytes(length);
         if (charset == null)
             charset = StandardCharsets.UTF_8;

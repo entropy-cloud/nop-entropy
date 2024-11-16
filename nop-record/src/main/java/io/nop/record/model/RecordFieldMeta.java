@@ -106,14 +106,14 @@ public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMe
 
     public int safeGetMaxLen() {
         ISchema schema = getSchema();
-        if (schema.getMaxLength() != null)
+        if (schema != null && schema.getMaxLength() != null)
             return schema.getMaxLength();
         return getLength();
     }
 
     public int safeGetMinLen() {
         ISchema schema = getSchema();
-        if (schema.getMinLength() != null)
+        if (schema != null && schema.getMinLength() != null)
             return schema.getMinLength();
         return getLength();
     }

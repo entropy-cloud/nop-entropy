@@ -2,6 +2,7 @@ package io.nop.record.serialization;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.bit.IBitSet;
+import io.nop.commons.util.StringHelper;
 import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldCodecContext;
@@ -59,17 +60,26 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
 
     @Override
     protected void readField0(IBinaryDataReader in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        IFieldBinaryCodec encoder = resolveBinaryCodec(field, registry);
-        if (encoder != null) {
+        IFieldBinaryCodec codec = resolveBinaryCodec(field, registry);
+        if (codec != null) {
             context.enterField(field.getName());
             try {
-                Object value = encoder.decode(in, record, field.getLength(), field.getCharsetObj(), context);
+                Object value = codec.decode(in, record, field.getLength(), field.getCharsetObj(), context);
                 setPropByName(record, field.getPropOrFieldName(), value);
             } finally {
                 context.leaveField(field.getName());
             }
         } else {
-
+            String str = decodeString(in, field.getCharsetObj(), field.getLength());
+            if (field.getPadding() != null) {
+                char c = (char) field.getPadding().at(0);
+                if (field.isLeftPad()) {
+                    str = StringHelper.trimLeft(str, c);
+                } else {
+                    str = StringHelper.trimRight(str, c);
+                }
+            }
+            setPropByName(record, field.getPropOrFieldName(), str);
         }
     }
 

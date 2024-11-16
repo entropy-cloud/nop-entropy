@@ -551,9 +551,9 @@ public class XptModelInitializer {
             return false;
 
         // 如果不是同一个父的直接兄弟节点，则不允许扩展
-        ExcelCell rowParent = rcModel.getExpandableRowParent();
+        ExcelCell rowParent = rcModel.getRowParentCell();
         if (rowParent != null) {
-            return rowParent == cellModel.getExpandableRowParent();
+            return rowParent == cellModel.getRowParentCell();
         }
         return true;
     }
@@ -604,9 +604,9 @@ public class XptModelInitializer {
             return false;
 
         // 如果不是同一个父的直接兄弟节点，则不允许扩展
-        ExcelCell colParent = rcModel.getExpandableColParent();
+        ExcelCell colParent = rcModel.getColParentCell();
         if (colParent != null)
-            return colParent == cellModel.getExpandableColParent();
+            return colParent == cellModel.getColParentCell();
         return true;
     }
 
