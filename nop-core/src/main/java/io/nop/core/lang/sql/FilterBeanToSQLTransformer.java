@@ -82,17 +82,47 @@ public class FilterBeanToSQLTransformer extends FilterBeanVisitor<Void> {
 
     @Override
     protected Void visitCompareOp(FilterOp filterOp, ITreeBean filter, IVariableScope scope) {
+        String op = filterOp.name();
+
         String owner = getOwner(filter, defaultOwner);
         validateVarName(owner, filter, scope);
         String name = getName(filter);
         validateVarName(name, filter, scope);
 
+
         String valueName = getValueName(filter);
         if (valueName != null) {
             validateVarName(valueName, filter, scope);
-        }
 
-        String op = filterOp.name();
+            if (op.equals(FILTER_OP_EQ)) {
+                // 如果是空字符串，实际生成的sql是name is null。也就是说，平台缺省情况下认为数据保存到数据库中空字符串会自动被转换为null，
+                // 这样约定是为了避免数据库移植的时候出现不一致性。
+                sb.owner(owner).append(name).sql(" = ").owner(owner).append(valueName);
+            } else if (op.equals(FILTER_OP_NE)) {
+                sb.owner(owner).append(name).sql(" <> ").owner(owner).append(valueName);
+            } else if (op.equals(FILTER_OP_GT)) {
+                sb.owner(owner).append(name).sql(" > ").owner(owner).append(valueName);
+            } else if (op.equals(FILTER_OP_GE)) {
+                sb.owner(owner).append(name).sql(" >= ").owner(owner).append(valueName);
+            } else if (op.equals(FILTER_OP_LT)) {
+                sb.owner(owner).append(name).sql(" < ").owner(owner).append(valueName);
+            } else if (op.equals(FILTER_OP_LE)) {
+                sb.owner(owner).append(name).sql(" <= ").owner(owner).append(valueName);
+            } else if (op.equals(FILTER_OP_STARTS_WITH)) {
+                sb.owner(owner).append(name).sql(" like ").owner(owner).append(valueName).sql(" || '%'");
+            } else if (op.equals(FILTER_OP_ENDS_WITH)) {
+                sb.owner(owner).append(name).sql(" like '%' || ").owner(owner).append(valueName);
+            } else if (op.equals(FILTER_OP_CONTAINS)) {
+                sb.owner(owner).append(name).sql(" like '%' || ").owner(owner).append(valueName).sql(" || '%'");
+            } else if (op.equals(FILTER_OP_LIKE)) {
+                sb.owner(owner).append(name).sql(" like ").owner(owner).append(valueName);
+            } else if (op.equals(FILTER_OP_ICONTAINS)) {
+                sb.owner(owner).append(name).sql(" ilike '%' || ").owner(owner).append(valueName).sql(" || '%'");
+            } else {
+                visitUnknown(op, filter, scope);
+            }
+            return null;
+        }
 
         // 对于空字符串和null，op=eq/ne的时候会转换为is null和is not null判断，其他情况下总是false
 
@@ -195,15 +225,15 @@ public class FilterBeanToSQLTransformer extends FilterBeanVisitor<Void> {
         Object min = getMin(filter);
         Object max = getMax(filter);
 
-        if(min == null && max == null){
-            List<?> value = ConvertHelper.toCsvList(getValue(filter),NopException::new);
-            if(value != null){
-                min = CollectionHelper.get(value,0);
-                max = CollectionHelper.get(value,1);
+        if (min == null && max == null) {
+            List<?> value = ConvertHelper.toCsvList(getValue(filter), NopException::new);
+            if (value != null) {
+                min = CollectionHelper.get(value, 0);
+                max = CollectionHelper.get(value, 1);
             }
         }
 
-        if(min == null && max == null){
+        if (min == null && max == null) {
             sb.alwaysFalse();
             return null;
         }

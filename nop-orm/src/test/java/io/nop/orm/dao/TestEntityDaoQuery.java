@@ -7,6 +7,7 @@
  */
 package io.nop.orm.dao;
 
+import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.app.SimsCollege;
@@ -58,5 +59,14 @@ public class TestEntityDaoQuery extends AbstractOrmTestCase {
         query.setFilter(not(and(or(eq("collegeId", 1), eq("collegeId", 2), eq("collegeId", 3)),
                 or(eq("collegeId", 100), eq("collegeId", 101)))));
         dao.countByQuery(query);
+    }
+
+    @Test
+    public void testPropGt() {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.propGt("f1", "f2"));
+        SQL sql = DaoQueryHelper.queryToSelectObjectSql("Test", query);
+        assertEquals("select o from Test as o \n" +
+                " where o.f1 > o.f2", sql.getText());
     }
 }
