@@ -283,6 +283,22 @@ public class NettyTcpClient extends LifeCycleSupport {
         return FutureHelper.syncGet(sendAsync(msg, timeout));
     }
 
+    public void sendOneway(Object msg) {
+        ChannelFuture channelFuture = getConnectFuture();
+
+        if (channelFuture.isDone()) {
+            channelFuture.channel().write(msg);
+        } else {
+            channelFuture.addListener(new GenericFutureListener<>() {
+                @Override
+                public void operationComplete(Future<? super Void> future) {
+                    channelFuture.channel().write(msg);
+                    channelFuture.removeListener(this);
+                }
+            });
+        }
+    }
+
     public CompletableFuture<Object> sendAsync(Object msg, int timeout) {
         Guard.checkArgument(timeout > 0);
         CompletableFuture<Object> ret = new CompletableFuture<>();

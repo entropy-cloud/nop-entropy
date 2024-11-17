@@ -5,7 +5,12 @@
              binary="!boolean=false" defaultTextEncoding="string=UTF-8"
              bitEndian="enum:io.nop.commons.bytes.EndianKind"
              defaultEndian="enum:io.nop.commons.bytes.EndianKind"
+             packageName="class-name"
 >
+    <imports xdef:body-type="list" xdef:key-attr="as">
+        <import from="v-path" name="!var-name" as="!var-name=@attr:name" xdef:name="RecordImportModel"/>
+    </imports>
+
     <types xdef:body-type="list" xdef:key-attr="name">
         <type name="!prop-name" xdef:ref="record-object.xdef" xdef:name="RecordTypeMeta"/>
     </types>

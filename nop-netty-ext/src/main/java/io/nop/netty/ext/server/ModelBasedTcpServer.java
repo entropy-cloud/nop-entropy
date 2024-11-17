@@ -30,6 +30,10 @@ public class ModelBasedTcpServer extends LifeCycleSupport {
         this.config = config;
     }
 
+    public ModelBasedTcpServerConfig getConfig() {
+        return config;
+    }
+
     public void setCodecRegistry(FieldCodecRegistry codecRegistry) {
         this.codecRegistry = codecRegistry;
     }

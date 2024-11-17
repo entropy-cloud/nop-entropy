@@ -67,6 +67,13 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: enum
+     * 
+     */
+    private java.lang.String _enum ;
+    
+    /**
+     *  
      * xml name: eosError
      * 
      */
@@ -370,6 +377,25 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._endian = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: enum
+     *  
+     */
+    
+    public java.lang.String getEnum(){
+      return _enum;
+    }
+
+    
+    public void setEnum(java.lang.String value){
+        checkAllowChange();
+        
+        this._enum = value;
            
     }
 
@@ -874,6 +900,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("doc",this.getDoc());
         out.putNotNull("endian",this.getEndian());
+        out.putNotNull("enum",this.getEnum());
         out.putNotNull("eosError",this.isEosError());
         out.putNotNull("exportExpr",this.getExportExpr());
         out.putNotNull("includeTerminator",this.isIncludeTerminator());
@@ -917,6 +944,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         instance.setDisplayName(this.getDisplayName());
         instance.setDoc(this.getDoc());
         instance.setEndian(this.getEndian());
+        instance.setEnum(this.getEnum());
         instance.setEosError(this.isEosError());
         instance.setExportExpr(this.getExportExpr());
         instance.setIncludeTerminator(this.isIncludeTerminator());

@@ -1,0 +1,11 @@
+<state-machine x:schema="/nop/schema/biz/state-machine.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+               messageTypeProp="type" initial="init">
+    <state id="init">
+
+    </state>
+
+    <state id="logon">
+
+    </state>
+
+</state-machine>

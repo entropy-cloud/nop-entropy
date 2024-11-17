@@ -1,0 +1,21 @@
+<state-machine x:schema="/nop/schema/biz/state-machine.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+               initial="init" messageTypeProp="type">
+    <state id="init">
+        <on-entry>
+            // send logon message to server
+        </on-entry>
+
+        <transition event="recv_logonOk" target="logon" />
+        <transition event="*" target="error" />
+    </state>
+
+    <state id="logon">
+        <transition event="send_default">
+            <invoke>
+                // send default message to server
+            </invoke>
+        </transition>
+        <transition event="*" target="error" />
+    </state>
+
+</state-machine>

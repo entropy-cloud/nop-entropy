@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-public class TestModelBasedServer extends BaseTestCase {
+public class TestModelBasedTcpServer extends BaseTestCase {
     ModelBasedTcpServer server;
 
     ModelBasedTcpClient client;
@@ -32,6 +32,7 @@ public class TestModelBasedServer extends BaseTestCase {
 
     void createClient() {
         ModelBasedTcpClientConfig config = new ModelBasedTcpClientConfig();
+        config.setRemotePort(server.getConfig().getPort());
         client = new ModelBasedTcpClient();
         client.setConfig(config);
         client.start();
@@ -49,6 +50,6 @@ public class TestModelBasedServer extends BaseTestCase {
         msg.put("id","1");
         msg.put("name","test");
 
-        client.sendAsync(msg, 1000);
+        client.send(msg, 1000);
     }
 }

@@ -21,7 +21,7 @@
 <field x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:xdef="/nop/schema/xdef.xdef"
        name="!prop-name" displayName="string" type="!string" prop="prop-name"
-       length="!int=0"
+       length="!int=0" enum="string"
        codec="string" charset="string" lazy="!boolean=false"
        padding="encoded-bytes" leftPad="!boolean=false" trim="!boolean=false"
        virtual="!boolean=false"

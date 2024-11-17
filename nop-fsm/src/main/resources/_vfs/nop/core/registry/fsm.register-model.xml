@@ -1,0 +1,6 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="state-machine">
+    <loaders>
+        <xdsl-loader fileType="fsm.xml" schemaPath="/nop/schema/biz/state-machine.xdef"/>
+    </loaders>
+</model>

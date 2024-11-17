@@ -53,6 +53,20 @@ public abstract class _RecordDefinitions extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: imports
+     * 
+     */
+    private KeyedList<io.nop.record.model.RecordImportModel> _imports = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: packageName
+     * 
+     */
+    private java.lang.String _packageName ;
+    
+    /**
+     *  
      * xml name: types
      * 
      */
@@ -181,6 +195,70 @@ public abstract class _RecordDefinitions extends io.nop.core.resource.component.
     
     /**
      * 
+     * xml name: imports
+     *  
+     */
+    
+    public java.util.List<io.nop.record.model.RecordImportModel> getImports(){
+      return _imports;
+    }
+
+    
+    public void setImports(java.util.List<io.nop.record.model.RecordImportModel> value){
+        checkAllowChange();
+        
+        this._imports = KeyedList.fromList(value, io.nop.record.model.RecordImportModel::getAs);
+           
+    }
+
+    
+    public io.nop.record.model.RecordImportModel getImport(String name){
+        return this._imports.getByKey(name);
+    }
+
+    public boolean hasImport(String name){
+        return this._imports.containsKey(name);
+    }
+
+    public void addImport(io.nop.record.model.RecordImportModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.record.model.RecordImportModel> list = this.getImports();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.record.model.RecordImportModel::getAs);
+            setImports(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_imports(){
+        return this._imports.keySet();
+    }
+
+    public boolean hasImports(){
+        return !this._imports.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: packageName
+     *  
+     */
+    
+    public java.lang.String getPackageName(){
+      return _packageName;
+    }
+
+    
+    public void setPackageName(java.lang.String value){
+        checkAllowChange();
+        
+        this._packageName = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: types
      *  
      */
@@ -234,6 +312,8 @@ public abstract class _RecordDefinitions extends io.nop.core.resource.component.
         
            this._enums = io.nop.api.core.util.FreezeHelper.deepFreeze(this._enums);
             
+           this._imports = io.nop.api.core.util.FreezeHelper.deepFreeze(this._imports);
+            
            this._types = io.nop.api.core.util.FreezeHelper.deepFreeze(this._types);
             
         }
@@ -248,6 +328,8 @@ public abstract class _RecordDefinitions extends io.nop.core.resource.component.
         out.putNotNull("defaultEndian",this.getDefaultEndian());
         out.putNotNull("defaultTextEncoding",this.getDefaultTextEncoding());
         out.putNotNull("enums",this.getEnums());
+        out.putNotNull("imports",this.getImports());
+        out.putNotNull("packageName",this.getPackageName());
         out.putNotNull("types",this.getTypes());
     }
 
@@ -265,6 +347,8 @@ public abstract class _RecordDefinitions extends io.nop.core.resource.component.
         instance.setDefaultEndian(this.getDefaultEndian());
         instance.setDefaultTextEncoding(this.getDefaultTextEncoding());
         instance.setEnums(this.getEnums());
+        instance.setImports(this.getImports());
+        instance.setPackageName(this.getPackageName());
         instance.setTypes(this.getTypes());
     }
 

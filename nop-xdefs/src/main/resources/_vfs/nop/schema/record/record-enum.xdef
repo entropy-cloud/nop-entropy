@@ -3,7 +3,7 @@
       xmlns:xdef="/nop/schema/xdef.xdef" xdef:bean-package="io.nop.record.model"
       name="!var-name" valueType="std-data-type" xdef:name="RecordEnum">
     <doc xdef:value="string"/>
-    <option value="!string" label="!string" xdef:unique-attr="value" xdef:name="RecordEnumOption">
+    <option value="!string" label="!string" code="string" xdef:unique-attr="value" xdef:name="RecordEnumOption">
         <doc xdef:value="string"/>
         <!--
         翻译为java doc的@see注释
