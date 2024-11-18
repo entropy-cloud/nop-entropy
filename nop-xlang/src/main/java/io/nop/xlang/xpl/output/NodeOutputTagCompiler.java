@@ -87,10 +87,11 @@ public class NodeOutputTagCompiler implements IXplUnknownTagCompiler {
                 return;
 
 
+            String oldName = name;
             if (name.startsWith(XplConstants.NAMESPACE_XGEN_PREFIX))
                 name = name.substring(XplConstants.NAMESPACE_XGEN_PREFIX.length());
 
-            Expression expr = XplParseHelper.parseAttrTemplateExpr(node, name, cp, scope);
+            Expression expr = XplParseHelper.parseAttrTemplateExpr(node, oldName, cp, scope);
             ret.add(GenNodeAttrExpression.valueOf(value.getLocation(), name, expr));
         });
         return ret;
