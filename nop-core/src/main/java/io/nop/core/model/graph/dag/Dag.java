@@ -22,7 +22,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -35,13 +37,20 @@ import static io.nop.core.CoreErrors.ERR_GRAPH_UNKNOWN_NODE;
 
 @DataBean
 public class Dag extends AbstractFreezable implements IGraphViewBase<DagNode, DefaultEdge<DagNode>> {
+    public static final String DEFAULT_ROOT_NAME = "__root__";
+
     private String rootNodeName;
-    private Map<String, DagNode> nodes = new HashMap<>();
+    private Map<String, DagNode> nodes = new LinkedHashMap<>();
 
     /**
      * 为了从一般性的图结构抽取得到DAG，需要删除哪些链接
      */
     private List<List<String>> loopEdges;
+
+    /**
+     * 没有后续节点的末端节点
+     */
+    private Set<String> endNodeNames;
 
     public Dag() {
     }
@@ -49,6 +58,10 @@ public class Dag extends AbstractFreezable implements IGraphViewBase<DagNode, De
     public Dag(String rootName) {
         setRootNodeName(rootName);
         nodes.put(rootName, new DagNode(rootName));
+    }
+
+    public Set<String> getNodeNames() {
+        return nodes.keySet();
     }
 
     public boolean containsLoop() {
@@ -67,8 +80,16 @@ public class Dag extends AbstractFreezable implements IGraphViewBase<DagNode, De
         return loopEdges;
     }
 
-    public void setLoopEdges(List<List<String>> loopEdges) {
+    void setLoopEdges(List<List<String>> loopEdges) {
         this.loopEdges = loopEdges;
+    }
+
+    public Set<String> getEndNodeNames() {
+        return endNodeNames;
+    }
+
+    void setEndNodeNames(Set<String> endNodeNames) {
+        this.endNodeNames = endNodeNames;
     }
 
     public String toDot() {
@@ -102,6 +123,18 @@ public class Dag extends AbstractFreezable implements IGraphViewBase<DagNode, De
             return Collections.emptyList();
 
         return nextNames.stream().map(this::requireNode).collect(Collectors.toList());
+    }
+
+    public Set<String> getNoDependNodeNames() {
+        Set<String> names = new HashSet<>();
+        forEachNode(node -> {
+            if (!node.hasPrevNode()) {
+                names.add(node.getName());
+            } else if (node.getPrevNodeNames().size() == 1 && node.getPrevNodeNames().contains(rootNodeName)) {
+                names.add(node.getName());
+            }
+        });
+        return names;
     }
 
     public void forEachNextNode(DagNode node, Consumer<DagNode> action) {
@@ -158,10 +191,13 @@ public class Dag extends AbstractFreezable implements IGraphViewBase<DagNode, De
         new DagAnalyzer(this).analyze();
     }
 
-    public DagNode addNextNodes(String nodeName, Set<String> next) {
+    public DagNode addNextNodes(String nodeName, Collection<String> next) {
         checkAllowChange();
         DagNode node = nodes.computeIfAbsent(nodeName, DagNode::new);
         if (next != null) {
+            for (String name : next) {
+                nodes.computeIfAbsent(name, DagNode::new);
+            }
             node.addNextNodes(next);
         }
         return node;
@@ -170,6 +206,7 @@ public class Dag extends AbstractFreezable implements IGraphViewBase<DagNode, De
     public DagNode addNextNode(String nodeName, String next) {
         checkAllowChange();
         DagNode node = nodes.computeIfAbsent(nodeName, DagNode::new);
+        nodes.computeIfAbsent(next, DagNode::new);
         node.addNextNode(next);
         return node;
     }

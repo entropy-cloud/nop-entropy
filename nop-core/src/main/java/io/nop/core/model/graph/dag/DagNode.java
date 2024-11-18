@@ -10,6 +10,7 @@ package io.nop.core.model.graph.dag;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -50,12 +51,20 @@ public class DagNode implements Comparable<DagNode> {
         return Integer.compare(this.nodeIndex, o.nodeIndex);
     }
 
+    public boolean hasPrevNode() {
+        return prevNodeNames != null && !prevNodeNames.isEmpty();
+    }
+
+    public boolean hasNextNode() {
+        return nextNodeNames != null && !nextNodeNames.isEmpty();
+    }
+
     public void removeNextNode(String name) {
         if (this.nextNodeNames != null)
             this.nextNodeNames.remove(name);
     }
 
-    public void addNextNodes(Set<String> next) {
+    public void addNextNodes(Collection<String> next) {
         if (next == null)
             return;
 

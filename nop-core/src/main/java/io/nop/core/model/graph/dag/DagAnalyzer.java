@@ -13,6 +13,7 @@ import io.nop.commons.util.CollectionHelper;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -61,6 +62,7 @@ public class DagAnalyzer {
         initDagNodes();
         initNodeDepth();
         initControlNode();
+        initEndNodes();
         dag.setLoopEdges(removedEdges);
     }
 
@@ -176,6 +178,20 @@ public class DagAnalyzer {
                 _initNodeDepth(next, depth);
             }
         }
+    }
+
+    private void initEndNodes() {
+        Set<String> endNodes = new HashSet<>();
+
+        dag.forEachNode(node -> {
+            if(node.getName().equals(dag.getRootNodeName()))
+                return;
+
+            if (node.getNextNodeNames() == null || node.getNextNodeNames().isEmpty()) {
+                endNodes.add(node.getName());
+            }
+        });
+        dag.setEndNodeNames(endNodes);
     }
 
     private Set<String> collectNormal(DagNode node, Function<DagNode, Set<String>> nextFetcher) {
