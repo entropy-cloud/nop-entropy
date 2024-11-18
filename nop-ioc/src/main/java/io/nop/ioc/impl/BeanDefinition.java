@@ -89,6 +89,8 @@ public class BeanDefinition implements IBeanDefinition {
     private boolean intercepted;
     private boolean removed;
 
+    private List<String> dependBeanIds;
+
     private Set<String> nextBeans = Collections.emptySet();
 
     /**
@@ -133,6 +135,14 @@ public class BeanDefinition implements IBeanDefinition {
 
     public void setConstructorAutowired(boolean constructorAutowired) {
         this.constructorAutowired = constructorAutowired;
+    }
+
+    public List<String> getDependBeanIds() {
+        return dependBeanIds;
+    }
+
+    public void setDependBeanIds(List<String> dependBeanIds) {
+        this.dependBeanIds = dependBeanIds;
     }
 
     public boolean isRemoved() {

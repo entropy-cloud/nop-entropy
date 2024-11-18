@@ -296,6 +296,7 @@
 /nop/core/registry/dao-wf.register-model.xml
 /nop/core/registry/dialect.register-model.xml
 /nop/core/registry/dict.register-model.xml
+/nop/core/registry/fsm.register-model.xml
 /nop/core/registry/gateway.register-model.xml
 /nop/core/registry/graph-designer.register-model.xml
 /nop/core/registry/imp.register-model.xml
@@ -433,9 +434,7 @@
 /nop/dyn/model/NopDynPage/_NopDynPage.xbiz
 /nop/dyn/model/NopDynPage/_NopDynPage.xmeta
 /nop/dyn/model/NopDynPatch/NopDynPatch.xbiz
-/nop/dyn/model/NopDynPatch/NopDynPatch.xmeta
 /nop/dyn/model/NopDynPatch/_NopDynPatch.xbiz
-/nop/dyn/model/NopDynPatch/_NopDynPatch.xmeta
 /nop/dyn/model/NopDynPatchFile/NopDynPatchFile.xbiz
 /nop/dyn/model/NopDynPatchFile/NopDynPatchFile.xmeta
 /nop/dyn/model/NopDynPatchFile/_NopDynPatchFile.xbiz
@@ -510,11 +509,6 @@
 /nop/dyn/pages/NopDynPage/main.page.yaml
 /nop/dyn/pages/NopDynPage/picker.page.yaml
 /nop/dyn/pages/NopDynPage/ref-module.page.yaml
-/nop/dyn/pages/NopDynPatch/NopDynPatch.lib.xjs
-/nop/dyn/pages/NopDynPatch/NopDynPatch.view.xml
-/nop/dyn/pages/NopDynPatch/_gen/_NopDynPatch.view.xml
-/nop/dyn/pages/NopDynPatch/main.page.yaml
-/nop/dyn/pages/NopDynPatch/picker.page.yaml
 /nop/dyn/pages/NopDynPatchFile/NopDynPatchFile.lib.xjs
 /nop/dyn/pages/NopDynPatchFile/NopDynPatchFile.view.xml
 /nop/dyn/pages/NopDynPatchFile/_gen/_NopDynPatchFile.view.xml

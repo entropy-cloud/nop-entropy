@@ -84,6 +84,15 @@ public class TestGenericDslParser extends BaseTestCase {
     public void testFilter() {
         XNode node = XNodeParser.instance().parseFromText(null, "<filter x:schema='/nop/schema/query/filter.xdef'><eq name='status' value='1'/></filter>");
         TreeBean bean = (TreeBean) new DslModelParser().parseFromNode(node);
-        System.out.println(JsonTool.serialize(bean,true));
+        System.out.println(JsonTool.serialize(bean, true));
+    }
+
+    @Test
+    public void testXGen() {
+        String text = "<view x:schema='/nop/schema/xui/xview.xdef'><x:gen-extends><view xgen-ui:default='true'/></x:gen-extends></view>";
+        XNode node = XNodeParser.instance().parseFromText(null, text);
+        DynamicObject result = new GenericDslParser().parseFromNode(node);
+        System.out.println(JsonTool.serialize(result, true));
+        assertEquals("true", result.prop_get("ui:default"));
     }
 }

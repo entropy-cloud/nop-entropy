@@ -74,9 +74,9 @@
     <bean id="io.nop.graphql.core.web.SysBizModel" ioc:type="@bean:id"/>
 
     <!--
-    BizModel模型初始化时需要校验obj字典是否有效，因此需要注册对应的DictLoader
+    BizModel模型初始化时需要校验obj字典是否有效，因此需要注册对应的DictLoader。为了避免并行初始化报错，这里还需要强制指定依赖于ormTemplate
     -->
-    <bean id="nopObjDictLoader" class="io.nop.biz.dict.ObjDictLoader" ioc:before="nopBizObjectManager"/>
+    <bean id="nopObjDictLoader" class="io.nop.biz.dict.ObjDictLoader" ioc:before="nopBizObjectManager" depends-on="nopOrmTemplate"/>
 
     <bean id="nopContextHttpServerFilter" class="io.nop.http.api.server.ContextHttpServerFilter">
         <ioc:condition>

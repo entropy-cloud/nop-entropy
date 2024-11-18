@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import static io.nop.ioc.IocConfigs.CFG_IOC_APP_BEANS_CONCURRENT_START;
 import static io.nop.ioc.IocConfigs.CFG_IOC_APP_BEANS_CONTAINER_START_MODE;
 import static io.nop.ioc.IocConfigs.CFG_IOC_APP_BEANS_FILES;
 import static io.nop.ioc.IocConfigs.CFG_IOC_APP_BEANS_FILE_ENABLED;
@@ -74,6 +75,7 @@ public class AppBeanContainerLoader {
 
     public IBeanContainerImplementor loadAppContainer(IBeanContainer parentContainer) {
         BeanContainerBuilder builder = new BeanContainerBuilder(classLoader, introspection, parentContainer);
+        builder.concurrentStart(CFG_IOC_APP_BEANS_CONCURRENT_START.get());
 
         BeanContainerStartMode startMode = BeanContainerStartMode
                 .fromText(CFG_IOC_APP_BEANS_CONTAINER_START_MODE.get());

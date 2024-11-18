@@ -105,6 +105,10 @@ public class BeanTopologySorter {
             }
         }
 
+        for(BeanDefinition bean: beans){
+            bean.setDependBeanIds(graph.getSourceVertexes(bean.getId()));
+        }
+
         if (LOG.isTraceEnabled())
             LOG.trace(graph.toDot(node -> node, "beans"));
 

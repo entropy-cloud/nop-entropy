@@ -199,7 +199,8 @@ public class AgroalDataSourceFactoryBean {
 
     @PreDestroy
     public void destroy() {
-        dataSource.close();
+        if (dataSource != null)
+            dataSource.close();
     }
 
     @BeanMethod

@@ -6564,6 +6564,29 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "name": "beanId"
+      },
+      {
+        "name": "created"
+      },
+      {
+        "name": "depends"
+      },
+      {
+        "name": "threadId"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.ioc.impl.BeanContainerImpl$BeanCreation"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [],
     "name": "io.nop.ioc.initialize.IocCoreInitializer"

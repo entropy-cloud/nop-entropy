@@ -14,9 +14,14 @@ import io.nop.api.core.config.IConfigProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainerStartMode;
 import io.nop.api.core.ioc.IBeanContainer;
+import io.nop.api.core.util.FutureHelper;
+import io.nop.api.core.util.ICancellable;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.lang.IClassLoader;
+import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.ClassHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.model.graph.TaskExecutionGraph;
 import io.nop.ioc.api.BeanScopeContext;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.api.IBeanDefinition;
@@ -35,6 +40,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.ioc.IocConstants.PRODUCER_BEAN_PREFIX;
@@ -62,7 +68,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
 
     private final List<BeanDefinition> orderedBeans;
     private volatile boolean running;
-    private boolean started;
+    private volatile boolean started;
 
     private final Map<Class<?>, BeanTypeMapping> beansByType = new ConcurrentHashMap<>();
     private final Map<Class<? extends Annotation>, List<BeanDefinition>> beansByAnnotation = new ConcurrentHashMap<>();
@@ -76,6 +82,12 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
 
     private BeanContainerStartMode startMode = BeanContainerStartMode.DEFAULT;
     private Map<String, AliasName> aliases;
+
+    private Cancellable cancellable;
+
+    private boolean concurrentStart;
+
+    private CompletableFuture<?> startFuture;
 
     public BeanContainerImpl(String id, Map<String, BeanDefinition> enabledBeans,
                              Collection<BeanDefinition> optionalBeans,
@@ -136,6 +148,10 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
 
     public void setClassIntrospection(IBeanClassIntrospection classIntrospection) {
         this.classIntrospection = classIntrospection;
+    }
+
+    public void setConcurrentStart(boolean concurrentStart) {
+        this.concurrentStart = concurrentStart;
     }
 
     public String getId() {
@@ -356,12 +372,17 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         if (includeCreating && beanScope != null) {
             Object bean = beanScope.get(beanDef.getId());
             if (bean != null) {
-                bean = beanDef.getBeanInstance(bean, onlyProducer);
-                if (bean == null)
-                    throw new NopException(ERR_IOC_PRODUCER_BEAN_NOT_INITED).param(ARG_BEAN, beanDef)
-                            .param(ARG_BEAN_NAME, beanDef.getId());
+                Object createdBean = beanDef.getBeanInstance(bean, onlyProducer);
+                if (createdBean == null) {
+                    // 如果是并行启动，则允许等待一段时间
+                    if (concurrentStart && !started)
+                        createdBean = ((ProducedBeanInstance) bean).awaitGetBean(10000);
+                    if (createdBean == null)
+                        throw new NopException(ERR_IOC_PRODUCER_BEAN_NOT_INITED).param(ARG_BEAN, beanDef)
+                                .param(ARG_BEAN_NAME, beanDef.getId());
+                }
 
-                return bean;
+                return createdBean;
             }
         }
 
@@ -378,6 +399,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
                 if (bean == null) {
                     LOG.info("nop.new-bean:{}", beanDef);
                     bean = beanDef.newObject(beanScope, this);
+                    LOG.trace("nop.new-bean-completed:{}", beanDef);
                     if (isStarted() && beanDef.hasDelayMethod()) {
                         beanDef.runDelayMethod(bean, beanScope, this);
                     }
@@ -439,35 +461,129 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         if (running)
             throw new NopException(ERR_IOC_CONTAINER_ALREADY_STARTED).param(ARG_CONTAINER_ID, id);
 
+        startFuture = null;
         LOG.info("nop.ioc.start-container:containerId={}", getId());
 
         running = true;
         singletonScope = new BeanScopeImpl(ApiConstants.BEAN_SCOPE_SINGLETON, XLang.newEvalScope(), this);
 
         try {
+            List<BeanDefinition> startBeans = new ArrayList<>();
+
             for (BeanDefinition bean : orderedBeans) {
                 if (bean.isSingleton()) {
                     if (startMode == BeanContainerStartMode.ALL_LAZY) {
                         // 只创建具有delayMethod的bean
                         if (bean.hasDelayMethod() && !bean.isLazyInit() || bean.isIocForceInit()) {
-                            getBean0(bean, true, true);
+                            startBean(startBeans, bean);
                         }
                     } else if (startMode == BeanContainerStartMode.ALL_EAGER || !bean.isLazyInit()) {
-                        getBean0(bean, true, true);
+                        startBean(startBeans, bean);
                     }
                 }
             }
 
-            runDelayMethod();
-        } catch (Exception e) {
-            try {
-                stop();
-            } catch (Exception e2) {
-                LOG.error("nop.err.ioc.stop-failed", e2);
+            if (concurrentStart) {
+                startFuture = asyncStartBeans(startBeans).whenComplete((ret, err) -> {
+                    if (err != null) {
+                        handleStartError(err);
+                    } else {
+                        runDelayMethod();
+                        started = true;
+                    }
+                    LOG.info("nop.ioc.async-start-finished:{}",getId());
+                });
+            } else {
+                runDelayMethod();
+                started = true;
+                LOG.info("nop.ioc.start-finished:{}",getId());
             }
+        } catch (Exception e) {
+            // dumpCreations();
+            handleStartError(e);
             throw e;
         }
-        started = true;
+    }
+
+    void handleStartError(Throwable e) {
+        LOG.error("nop.err.ioc.start-failed", e);
+        try {
+            stop();
+        } catch (Exception e2) {
+            LOG.error("nop.err.ioc.stop-failed", e2);
+        }
+    }
+
+    @Override
+    public void awaitStartFinished() {
+        if (startFuture != null)
+            FutureHelper.syncGet(startFuture);
+    }
+
+    /*
+    @DataBean
+    public static class BeanCreation {
+        final String threadName;
+        final String beanId;
+        final Set<String> depends;
+        final boolean created;
+
+        public BeanCreation(String threadName, String beanId, Set<String> depends, boolean created) {
+            this.threadName = threadName;
+            this.beanId = beanId;
+            this.depends = depends;
+            this.created = created;
+        }
+
+        public String toString() {
+            return StringHelper.rightPad(threadName,25,' ') + " " + beanId + (created ? depends : "");
+        }
+
+        public String getThreadName() {
+            return threadName;
+        }
+
+        public String getBeanId() {
+            return beanId;
+        }
+
+        public Set<String> getDepends() {
+            return depends;
+        }
+
+        public boolean isCreated() {
+            return created;
+        }
+    }
+
+    Queue<BeanCreation> beanCreations = new LinkedTransferQueue<>();
+
+    void dumpCreations() {
+        System.out.println(StringHelper.join(beanCreations,"\r\n"));
+    }*/
+
+    CompletableFuture<Void> asyncStartBeans(List<BeanDefinition> startBeans) {
+        TaskExecutionGraph graph = new TaskExecutionGraph("ioc-container-start");
+        for (BeanDefinition bean : startBeans) {
+            graph.addTaskWithDepends(bean.getId(),
+                    () -> {
+                        // beanCreations.add(new BeanCreation(Thread.currentThread().getName(), bean.getId(), graph.getDepends(bean.getId()), false));
+                        getBean0(bean, true, false);
+                        // beanCreations.add(new BeanCreation(Thread.currentThread().getName(), bean.getId(), graph.getDepends(bean.getId()), true));
+                    },
+                    bean.getDependBeanIds());
+        }
+        graph.analyze();
+        this.cancellable = new Cancellable();
+        return graph.runOnExecutor(GlobalExecutors.globalWorker(), this.cancellable);
+    }
+
+    void startBean(List<BeanDefinition> startBeans, BeanDefinition bean) {
+        if (concurrentStart) {
+            startBeans.add(bean);
+        } else {
+            getBean0(bean, true, false);
+        }
     }
 
     void runDelayMethod() {
@@ -479,6 +595,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
                     beanDef.runDelayMethod(instance, beanScope, this);
             }
         }
+        LOG.info("nop.ioc.run-delay-method-finished");
     }
 
     @Override
@@ -486,6 +603,10 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         LOG.info("nop.ioc.stop-container:containerId={}", getId());
         running = false;
         started = false;
+        if (cancellable != null) {
+            cancellable.cancel(ICancellable.CANCEL_REASON_STOP);
+            cancellable = null;
+        }
         if (singletonScope != null)
             singletonScope.close();
         BeanScopeContext.instance().onContainerStop(this);

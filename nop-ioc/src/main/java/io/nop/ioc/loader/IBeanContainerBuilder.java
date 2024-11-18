@@ -26,6 +26,8 @@ public interface IBeanContainerBuilder {
 
     IBeanContainerBuilder startMode(BeanContainerStartMode startMode);
 
+    IBeanContainerBuilder concurrentStart(boolean concurrentStart);
+
     <T> IBeanContainerBuilder registerBean(String beanName, Class<T> beanClass,
                                            Function<IBeanContainerImplementor, T> supplier, Consumer<BeanModel> customizer);
 

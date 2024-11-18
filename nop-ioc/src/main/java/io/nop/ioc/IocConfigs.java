@@ -18,6 +18,9 @@ public interface IocConfigs {
     IConfigReference<String> CFG_IOC_APP_BEANS_CONTAINER_START_MODE = AppConfig
             .varRef(s_loc, "nop.ioc.app-beans-container.start-mode", String.class, null);
 
+    @Description("是否初始化IoC容器")
+    IConfigReference<Boolean> CFG_IOC_APP_BEANS_CONCURRENT_START = AppConfig.varRef(s_loc, "nop.ioc.app-beans-container.concurrent-start", Boolean.class, false);
+
     @Description("是否自动装载所有模块下的beans/app-*.beans.xml文件")
     IConfigReference<Boolean> CFG_IOC_APP_BEANS_FILE_ENABLED = AppConfig.varRef(s_loc, "nop.ioc.app-beans-file.enabled",
             Boolean.class, true);

@@ -66,6 +66,7 @@ public class BeanContainerBuilder implements IBeanContainerBuilder {
     private final IBeanContainer parentContainer;
 
     private BeanContainerStartMode startMode;
+    private boolean concurrentStart;
 
     public BeanContainerBuilder(IClassLoader classLoader, IBeanClassIntrospection introspection,
                                 IBeanContainer parentContainer) {
@@ -85,6 +86,11 @@ public class BeanContainerBuilder implements IBeanContainerBuilder {
     @Override
     public IBeanContainerBuilder startMode(BeanContainerStartMode startMode) {
         this.startMode = startMode;
+        return this;
+    }
+
+    public IBeanContainerBuilder concurrentStart(boolean concurrentStart) {
+        this.concurrentStart = concurrentStart;
         return this;
     }
 
@@ -344,6 +350,8 @@ public class BeanContainerBuilder implements IBeanContainerBuilder {
                 enabledBeans, optionalBeans, aliases, parentContainer);
         if (startMode != null)
             container.setStartMode(startMode);
+        container.setConcurrentStart(concurrentStart);
+        container.setClassIntrospection(this.introspection);
         return container;
     }
 }

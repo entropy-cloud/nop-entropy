@@ -17,6 +17,13 @@ public interface IBeanContainer extends IBeanProvider {
 
     void start();
 
+    /**
+     * 异步启动时强制等待启动完毕
+     */
+    default void awaitStartFinished(){
+
+    }
+
     void stop();
 
     void restart();

@@ -24,7 +24,7 @@ public interface CommonConfigs {
 
     @Description("全局工作线程池的大小")
     IConfigReference<Integer> CFG_CONCURRENT_GLOBAL_WORKER_MAX_POOL_SIZE = varRef(s_loc,
-            "nop.commons.concurrent.global-worker.maxPoolSize", Integer.class, 50);
+            "nop.commons.concurrent.global-worker.maxPoolSize", Integer.class, 30);
 
     @Description("限制StringHelper.repeat函数的参数值小于指定值，不会过大")
     IConfigReference<Integer> CFG_UTILS_STRING_MAX_REPEAT_LEN = varRef(s_loc, "nop.commons.util.string-max-repeat-len",

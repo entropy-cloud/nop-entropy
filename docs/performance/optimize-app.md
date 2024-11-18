@@ -13,6 +13,7 @@
 * `nop.auth.login.allow-create-default-user`不设置或者设置为false,启动时就不会检查数据库中是否至少存在一个用户。
 * `nop.web.auto-load-dynamic-file`不设置或者设置为false, 启动时就不会自动将xjs翻译为js文件。
 * `nop.graphql.eager-init-biz-object`设置为false, 启动时不会立刻解析meta文件等创建BizObject，而是访问到某个对象时再延迟创建
+* `nop.ioc.app-beans-container.concurrent-start`设置为true, 则启动时在线程池上执行bean容器的初始化操作，不阻塞主线程
 
 ## 优化应用运行时性能
 * `nop.debug` 设置为false， 就不会在dump目录下产生输出
