@@ -9,8 +9,18 @@ package io.nop.record.model;
 
 import io.nop.record.model._gen._RecordFieldSwitchCase;
 
-public class RecordFieldSwitchCase extends _RecordFieldSwitchCase{
-    public RecordFieldSwitchCase(){
+public class RecordFieldSwitchCase extends _RecordFieldSwitchCase {
+    private RecordTypeMeta typeMeta;
 
+    public RecordFieldSwitchCase() {
+
+    }
+
+    public RecordTypeMeta getTypeMeta() {
+        return typeMeta;
+    }
+
+    public void init(RecordDefinitions defs) {
+        typeMeta = defs.resolveType(getType());
     }
 }

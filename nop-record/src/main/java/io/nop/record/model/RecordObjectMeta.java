@@ -7,8 +7,12 @@
  */
 package io.nop.record.model;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.text.SimpleTextTemplate;
 import io.nop.record.model._gen._RecordObjectMeta;
+
+import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
+import static io.nop.record.RecordErrors.ERR_RECORD_UNKNOWN_FIELD;
 
 public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFieldsMeta {
     private SimpleTextTemplate normalizedTemplate;
@@ -17,15 +21,27 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
 
     }
 
-    public SimpleTextTemplate getNormalizedTemplate() {
-        if (normalizedTemplate == null && getTemplate() != null) {
+    public void init(RecordDefinitions defs) {
+        if (getTemplate() != null) {
             this.normalizedTemplate = SimpleTextTemplate.normalize(getTemplate());
         }
+
+        for (RecordFieldMeta field : getFields()) {
+            field.init(defs);
+        }
+    }
+
+    @Override
+    public SimpleTextTemplate getNormalizedTemplate() {
         return this.normalizedTemplate;
     }
 
     @Override
     public RecordFieldMeta requireField(String fieldName) {
-        return null;
+        RecordFieldMeta field = getField(fieldName);
+        if (field == null)
+            throw new NopException(ERR_RECORD_UNKNOWN_FIELD)
+                    .param(ARG_FIELD_NAME, fieldName);
+        return field;
     }
 }

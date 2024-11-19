@@ -101,6 +101,13 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
     private KeyedList<io.nop.fsm.model.StateModel> _states = KeyedList.emptyList();
     
     /**
+     *  
+     * xml name: var
+     * IEvalScope中可以访问的变量
+     */
+    private KeyedList<io.nop.fsm.model.StateMachineVarModel> _vars = KeyedList.emptyList();
+    
+    /**
      * 
      * xml name: handle-error
      *  状态迁移出现异常时触发的监听函数。如果返回true，则认为异常已经被处理，不对外抛出异常
@@ -358,6 +365,51 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
         return !this._states.isEmpty();
     }
     
+    /**
+     * 
+     * xml name: var
+     *  IEvalScope中可以访问的变量
+     */
+    
+    public java.util.List<io.nop.fsm.model.StateMachineVarModel> getVars(){
+      return _vars;
+    }
+
+    
+    public void setVars(java.util.List<io.nop.fsm.model.StateMachineVarModel> value){
+        checkAllowChange();
+        
+        this._vars = KeyedList.fromList(value, io.nop.fsm.model.StateMachineVarModel::getName);
+           
+    }
+
+    
+    public io.nop.fsm.model.StateMachineVarModel getVar(String name){
+        return this._vars.getByKey(name);
+    }
+
+    public boolean hasVar(String name){
+        return this._vars.containsKey(name);
+    }
+
+    public void addVar(io.nop.fsm.model.StateMachineVarModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.fsm.model.StateMachineVarModel> list = this.getVars();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.fsm.model.StateMachineVarModel::getName);
+            setVars(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_vars(){
+        return this._vars.keySet();
+    }
+
+    public boolean hasVars(){
+        return !this._vars.isEmpty();
+    }
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -367,6 +419,8 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
            this._states = io.nop.api.core.util.FreezeHelper.deepFreeze(this._states);
+            
+           this._vars = io.nop.api.core.util.FreezeHelper.deepFreeze(this._vars);
             
         }
     }
@@ -387,6 +441,7 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
         out.putNotNull("stateProp",this.getStateProp());
         out.putNotNull("stateValueType",this.getStateValueType());
         out.putNotNull("states",this.getStates());
+        out.putNotNull("vars",this.getVars());
     }
 
     public StateMachineModel cloneInstance(){
@@ -410,6 +465,7 @@ public abstract class _StateMachineModel extends io.nop.core.resource.component.
         instance.setStateProp(this.getStateProp());
         instance.setStateValueType(this.getStateValueType());
         instance.setStates(this.getStates());
+        instance.setVars(this.getVars());
     }
 
     protected StateMachineModel newInstance(){

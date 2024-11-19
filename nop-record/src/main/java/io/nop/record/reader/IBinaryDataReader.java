@@ -33,6 +33,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Supplier;
 
 /**
  * 从KaitaiStruct项目的KaitaiStream类拷贝部分实现代码
@@ -55,6 +56,15 @@ public interface IBinaryDataReader extends IDataReaderBase, DataInput {
     default void seek(long newPos) throws IOException {
         reset();
         skip(newPos);
+    }
+
+    default <T> T doAtPos(Supplier<T> task) throws IOException {
+        long pos = pos();
+        try {
+            return task.get();
+        } finally {
+            seek(pos);
+        }
     }
 
     /**
@@ -488,7 +498,7 @@ public interface IBinaryDataReader extends IDataReaderBase, DataInput {
         return readS1();
     }
 
-    default int readUnsignedByte() throws IOException{
+    default int readUnsignedByte() throws IOException {
         return readU1();
     }
 

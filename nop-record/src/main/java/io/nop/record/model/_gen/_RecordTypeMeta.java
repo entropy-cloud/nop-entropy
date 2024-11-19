@@ -18,10 +18,36 @@ public abstract class _RecordTypeMeta extends io.nop.record.model.RecordObjectMe
     
     /**
      *  
+     * xml name: abstract
+     * 
+     */
+    private boolean _abstract  = false;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
     private java.lang.String _name ;
+    
+    /**
+     * 
+     * xml name: abstract
+     *  
+     */
+    
+    public boolean isAbstract(){
+      return _abstract;
+    }
+
+    
+    public void setAbstract(boolean value){
+        checkAllowChange();
+        
+        this._abstract = value;
+           
+    }
+
     
     /**
      * 
@@ -57,6 +83,7 @@ public abstract class _RecordTypeMeta extends io.nop.record.model.RecordObjectMe
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("abstract",this.isAbstract());
         out.putNotNull("name",this.getName());
     }
 
@@ -69,6 +96,7 @@ public abstract class _RecordTypeMeta extends io.nop.record.model.RecordObjectMe
     protected void copyTo(RecordTypeMeta instance){
         super.copyTo(instance);
         
+        instance.setAbstract(this.isAbstract());
         instance.setName(this.getName());
     }
 

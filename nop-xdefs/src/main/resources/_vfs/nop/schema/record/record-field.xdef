@@ -5,14 +5,18 @@
 
 @name 对应解析得到的属性名
 @tagsCodec 类似ISO8583协议，支持先输出一个bitmap标记哪些字段需要写出，然后根据tagIndex过滤只写出部分字段
+@repeatKind 如果是列表结构或者Map结构，则这里用来确定如何判断所有条目已经解析完毕
+@asMap 表示解析得到Map结构。要求fields中必须包含且只包含两个字段key和value，repeatKind不允许为空。
 -->
 <field x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:xdef="/nop/schema/xdef.xdef"
        name="!prop-name" xdef:ref="record-simple-field.xdef"
        xdef:name="RecordFieldMeta" xdef:bean-package="io.nop.record.model"
-       readRepeatKind="enum:io.nop.record.model.FieldRepeatKind"
-       tagsCodec="string" tagIndex="!int=0"
+       repeatKind="enum:io.nop.record.model.FieldRepeatKind"
+       tagsCodec="string" tagIndex="!int=0" div="!boolean=false" asMap="!boolean=false"
 >
+    <sizeField xdef:ref="record-simple-field.xdef" />
+
     <!--
     返回字段的循环次数
     -->

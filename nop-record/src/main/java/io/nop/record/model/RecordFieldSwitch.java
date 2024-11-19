@@ -10,6 +10,8 @@ package io.nop.record.model;
 import io.nop.record.model._gen._RecordFieldSwitch;
 
 public class RecordFieldSwitch extends _RecordFieldSwitch {
+    private RecordTypeMeta defaultType;
+
     public RecordFieldSwitch() {
 
     }
@@ -20,5 +22,18 @@ public class RecordFieldSwitch extends _RecordFieldSwitch {
             return caseMeta.getType();
         }
         return getDefault();
+    }
+
+    public RecordTypeMeta getDefaultType() {
+        return defaultType;
+    }
+
+    public void init(RecordDefinitions defs) {
+        for (RecordFieldSwitchCase caseMeta : getCases()) {
+            caseMeta.init(defs);
+        }
+
+        if (getDefault() != null)
+            this.defaultType = defs.resolveType(getDefault());
     }
 }

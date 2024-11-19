@@ -12,7 +12,7 @@
     </imports>
 
     <types xdef:body-type="list" xdef:key-attr="name">
-        <type name="!prop-name" xdef:ref="record-object.xdef" xdef:name="RecordTypeMeta"/>
+        <type name="!prop-name" xdef:ref="record-object.xdef" xdef:name="RecordTypeMeta" abstract="!boolean=false"/>
     </types>
 
     <enums xdef:body-type="list" xdef:key-attr="name">

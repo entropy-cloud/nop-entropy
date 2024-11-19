@@ -32,6 +32,20 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      *  
+     * xml name: asMap
+     * 表示解析得到Map结构。要求fields中必须包含且只包含两个字段key和value，repeatKind不允许为空。
+     */
+    private boolean _asMap  = false;
+    
+    /**
+     *  
+     * xml name: div
+     * 
+     */
+    private boolean _div  = false;
+    
+    /**
+     *  
      * xml name: fields
      * 
      */
@@ -46,17 +60,24 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      *  
-     * xml name: readRepeatKind
-     * 
-     */
-    private io.nop.record.model.FieldRepeatKind _readRepeatKind ;
-    
-    /**
-     *  
      * xml name: readRepeatUntil
      * 返回字段循环的终止条件
      */
     private io.nop.core.lang.eval.IEvalFunction _readRepeatUntil ;
+    
+    /**
+     *  
+     * xml name: repeatKind
+     * 如果是列表结构或者Map结构，则这里用来确定如何判断所有条目已经解析完毕
+     */
+    private io.nop.record.model.FieldRepeatKind _repeatKind ;
+    
+    /**
+     *  
+     * xml name: sizeField
+     * 定长记录的定义
+     */
+    private io.nop.record.model.RecordSimpleFieldMeta _sizeField ;
     
     /**
      *  
@@ -120,6 +141,44 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         checkAllowChange();
         
         this._afterWrite = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: asMap
+     *  表示解析得到Map结构。要求fields中必须包含且只包含两个字段key和value，repeatKind不允许为空。
+     */
+    
+    public boolean isAsMap(){
+      return _asMap;
+    }
+
+    
+    public void setAsMap(boolean value){
+        checkAllowChange();
+        
+        this._asMap = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: div
+     *  
+     */
+    
+    public boolean isDiv(){
+      return _div;
+    }
+
+    
+    public void setDiv(boolean value){
+        checkAllowChange();
+        
+        this._div = value;
            
     }
 
@@ -190,25 +249,6 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      * 
-     * xml name: readRepeatKind
-     *  
-     */
-    
-    public io.nop.record.model.FieldRepeatKind getReadRepeatKind(){
-      return _readRepeatKind;
-    }
-
-    
-    public void setReadRepeatKind(io.nop.record.model.FieldRepeatKind value){
-        checkAllowChange();
-        
-        this._readRepeatKind = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: readRepeatUntil
      *  返回字段循环的终止条件
      */
@@ -222,6 +262,44 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         checkAllowChange();
         
         this._readRepeatUntil = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: repeatKind
+     *  如果是列表结构或者Map结构，则这里用来确定如何判断所有条目已经解析完毕
+     */
+    
+    public io.nop.record.model.FieldRepeatKind getRepeatKind(){
+      return _repeatKind;
+    }
+
+    
+    public void setRepeatKind(io.nop.record.model.FieldRepeatKind value){
+        checkAllowChange();
+        
+        this._repeatKind = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: sizeField
+     *  定长记录的定义
+     */
+    
+    public io.nop.record.model.RecordSimpleFieldMeta getSizeField(){
+      return _sizeField;
+    }
+
+    
+    public void setSizeField(io.nop.record.model.RecordSimpleFieldMeta value){
+        checkAllowChange();
+        
+        this._sizeField = value;
            
     }
 
@@ -312,6 +390,8 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         
            this._fields = io.nop.api.core.util.FreezeHelper.deepFreeze(this._fields);
             
+           this._sizeField = io.nop.api.core.util.FreezeHelper.deepFreeze(this._sizeField);
+            
            this._switch = io.nop.api.core.util.FreezeHelper.deepFreeze(this._switch);
             
         }
@@ -323,10 +403,13 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         
         out.putNotNull("afterRead",this.getAfterRead());
         out.putNotNull("afterWrite",this.getAfterWrite());
+        out.putNotNull("asMap",this.isAsMap());
+        out.putNotNull("div",this.isDiv());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("readRepeatExpr",this.getReadRepeatExpr());
-        out.putNotNull("readRepeatKind",this.getReadRepeatKind());
         out.putNotNull("readRepeatUntil",this.getReadRepeatUntil());
+        out.putNotNull("repeatKind",this.getRepeatKind());
+        out.putNotNull("sizeField",this.getSizeField());
         out.putNotNull("switch",this.getSwitch());
         out.putNotNull("tagIndex",this.getTagIndex());
         out.putNotNull("tagsCodec",this.getTagsCodec());
@@ -344,10 +427,13 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         
         instance.setAfterRead(this.getAfterRead());
         instance.setAfterWrite(this.getAfterWrite());
+        instance.setAsMap(this.isAsMap());
+        instance.setDiv(this.isDiv());
         instance.setFields(this.getFields());
         instance.setReadRepeatExpr(this.getReadRepeatExpr());
-        instance.setReadRepeatKind(this.getReadRepeatKind());
         instance.setReadRepeatUntil(this.getReadRepeatUntil());
+        instance.setRepeatKind(this.getRepeatKind());
+        instance.setSizeField(this.getSizeField());
         instance.setSwitch(this.getSwitch());
         instance.setTagIndex(this.getTagIndex());
         instance.setTagsCodec(this.getTagsCodec());

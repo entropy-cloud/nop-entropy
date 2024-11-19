@@ -1,41 +1,62 @@
 <codec x:schema="/nop/schema/record/packet-codec.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        lengthFieldLength="2">
     <types>
-        <type name="header">
+        <type name="BaseMessage" abstract="true">
             <fields>
                 <field name="type" type="int" length="1" enum="MessageType"/>
             </fields>
         </type>
 
-        <type name="request">
+        <type name="MessageWithHeaders" abstract="true">
             <fields>
-                <field name="id" type="long" length="8" codec="u8be"/>
+                <field name="headers">
+                    <fields>
+                        <field name="name" type="String" codec="VLA" mandatory="true">
+                            <schema maxLength="50"/>
+                        </field>
+
+                        <field name="value" type="String" codec="VLA" mandatory="true">
+                            <schema maxLength="200"/>
+                        </field>
+                    </fields>
+                </field>
+            </fields>
+        </type>
+
+        <type name="Request" baseType="MessageWithHeaders">
+            <fields>
+                <field name="id" type="long" length="8" codec="u8be" mandatory="true"/>
                 <field name="name" type="String" length="20" codec="FLA"/>
             </fields>
         </type>
 
-        <type name="response">
+        <type name="Response" baseType="MessageWithHeaders">
+            <fields>
+                <field name="resultCode" type="long" length="8" codec="u8be"/>
+                <field name="resultData" type="String" length="20" codec="VLA"/>
+            </fields>
         </type>
 
-        <type name="logon">
+        <type name="Logon" baseType="BaseMessage">
+            <fields>
+            </fields>
+        </type>
+
+        <type name="LogonOk" abstract="BaseMessage">
 
         </type>
 
-        <type name="logonOk">
-
-        </type>
-
-        <type name="error">
+        <type name="Error">
 
         </type>
     </types>
 
     <enums>
         <enum name="MessageType" valueType="int">
-            <option code="request" value="1" label="Request"/>
-            <option code="response" value="2" label="Response"/>
-            <option code="logon" value="3" label="Logon"/>
-            <option code="logonOk" value="4" label="LogonOk"/>
+            <option code="Request" value="1" label="Request"/>
+            <option code="Response" value="2" label="Response"/>
+            <option code="Logon" value="3" label="Logon"/>
+            <option code="LogonOk" value="4" label="LogonOk"/>
         </enum>
     </enums>
 </codec>

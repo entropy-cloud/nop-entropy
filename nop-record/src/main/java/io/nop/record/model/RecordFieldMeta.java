@@ -35,6 +35,29 @@ public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMe
 
     }
 
+    public void init(RecordDefinitions defs) {
+        if (getTemplate() != null) {
+            this.normalizedTemplate = SimpleTextTemplate.of(StringHelper.normalizeTemplate(getTemplate()));
+        }
+
+        String charset = getCharset();
+        if (charset == null) {
+            charsetObj = StandardCharsets.UTF_8;
+        } else {
+            charsetObj = Charset.forName(charset);
+        }
+
+        for (RecordFieldMeta field : getFields()) {
+            field.init(defs);
+        }
+
+        if(getSwitch() != null){
+            getSwitch().init(defs);
+        }
+
+
+    }
+
     public boolean isMatchTag(IBitSet tags) {
         int tagIndex = getTagIndex();
         if (tagIndex < 0)
@@ -47,21 +70,10 @@ public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMe
     }
 
     public SimpleTextTemplate getNormalizedTemplate() {
-        if (normalizedTemplate == null && getTemplate() != null) {
-            this.normalizedTemplate = SimpleTextTemplate.of(StringHelper.normalizeTemplate(getTemplate()));
-        }
         return this.normalizedTemplate;
     }
 
     public Charset getCharsetObj() {
-        if (charsetObj == null) {
-            String charset = getCharset();
-            if (charset == null) {
-                charsetObj = StandardCharsets.UTF_8;
-            } else {
-                charsetObj = Charset.forName(charset);
-            }
-        }
         return charsetObj;
     }
 

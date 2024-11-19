@@ -25,17 +25,17 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     
     /**
      *  
-     * xml name: readRepeatKind
-     * 
-     */
-    private io.nop.record.model.FieldRepeatKind _readRepeatKind ;
-    
-    /**
-     *  
      * xml name: readRepeatUntil
      * 返回body行循环的终止条件
      */
     private io.nop.core.lang.eval.IEvalFunction _readRepeatUntil ;
+    
+    /**
+     *  
+     * xml name: repeatKind
+     * 
+     */
+    private io.nop.record.model.FieldRepeatKind _repeatKind ;
     
     /**
      * 
@@ -52,25 +52,6 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
         checkAllowChange();
         
         this._readRepeatExpr = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: readRepeatKind
-     *  
-     */
-    
-    public io.nop.record.model.FieldRepeatKind getReadRepeatKind(){
-      return _readRepeatKind;
-    }
-
-    
-    public void setReadRepeatKind(io.nop.record.model.FieldRepeatKind value){
-        checkAllowChange();
-        
-        this._readRepeatKind = value;
            
     }
 
@@ -94,6 +75,25 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     }
 
     
+    /**
+     * 
+     * xml name: repeatKind
+     *  
+     */
+    
+    public io.nop.record.model.FieldRepeatKind getRepeatKind(){
+      return _repeatKind;
+    }
+
+    
+    public void setRepeatKind(io.nop.record.model.FieldRepeatKind value){
+        checkAllowChange();
+        
+        this._repeatKind = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -110,8 +110,8 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
         super.outputJson(out);
         
         out.putNotNull("readRepeatExpr",this.getReadRepeatExpr());
-        out.putNotNull("readRepeatKind",this.getReadRepeatKind());
         out.putNotNull("readRepeatUntil",this.getReadRepeatUntil());
+        out.putNotNull("repeatKind",this.getRepeatKind());
     }
 
     public RecordFileBodyMeta cloneInstance(){
@@ -124,8 +124,8 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
         super.copyTo(instance);
         
         instance.setReadRepeatExpr(this.getReadRepeatExpr());
-        instance.setReadRepeatKind(this.getReadRepeatKind());
         instance.setReadRepeatUntil(this.getReadRepeatUntil());
+        instance.setRepeatKind(this.getRepeatKind());
     }
 
     protected RecordFileBodyMeta newInstance(){
