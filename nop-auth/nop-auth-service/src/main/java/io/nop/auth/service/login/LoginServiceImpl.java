@@ -191,6 +191,9 @@ public class LoginServiceImpl extends AbstractLoginService {
             if (errorCode == null)
                 errorCode = ERR_AUTH_LOGIN_WITH_UNKNOWN_USER;
 
+            LOG.info("nop.auth.login-fail:errorCode={},loginType={},principalId={}",
+                    errorCode, request.getLoginType(), request.getPrincipalId());
+
             failCount++;
             if (user != null)
                 userContextCache.setLoginFailCountForUser(user.getUserName(), failCount);
@@ -223,6 +226,7 @@ public class LoginServiceImpl extends AbstractLoginService {
                 if (userContextHook != null)
                     userContextHook.onLoginSuccess(userContext, request);
 
+                LOG.info("nop.auth.login-ok:loginType={},userName={}", request.getLoginType(), userContext.getUserName());
                 return userContextCache.saveUserContextAsync(userContext).thenApply(v -> userContext);
             });
         }
@@ -466,6 +470,7 @@ public class LoginServiceImpl extends AbstractLoginService {
         if (authToken == null)
             return FutureHelper.success(null);
 
+        LOG.info("nop.auth.logout:userName={},sessionId={},logoutType={}", authToken.getUserName(), authToken.getSessionId(), logoutType);
         return doLogout(logoutType, new SessionInfo(authToken.getUserName(), authToken.getSessionId()));
     }
 
