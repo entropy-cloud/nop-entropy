@@ -190,7 +190,7 @@ public interface IOrmSession extends AutoCloseable {
      *
      * @param entity
      */
-    void attach(IOrmEntity entity);
+    void attach(IOrmEntity entity, boolean cascade);
 
     void detach(IOrmEntity entity, FieldSelectionBean selection);
 

@@ -1296,39 +1296,37 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     }
 
     @Override
-    public void attach(IOrmEntity entity) {
+    public void attach(IOrmEntity entity, boolean cascade) {
         checkContext();
-        if (entity.orm_enhancer() == this)
-            return;
 
         if (isBindToOtherSession(entity))
             throw newError(ERR_ORM_ENTITY_NOT_DETACHED, entity);
-        cache.add(entity);
 
-        IEntityModel entityModel = entity.orm_entityModel();
-        for (IEntityRelationModel relModel : entityModel.getRelations()) {
-            String propName = relModel.getName();
-            if (!entity.orm_refLoaded(propName))
-                continue;
+        if (entity.orm_state().isTransient()) {
+            save(entity);
+            return;
+        }
 
-            if (relModel.isToOneRelation()) {
-                IOrmEntity refEntity = entity.orm_refEntity(propName);
-                if (refEntity.orm_enhancer() == this)
+        IOrmEntity oldEntity = cache.add(entity);
+        if (oldEntity == null || oldEntity == entity)
+            return;
+
+        if (cascade) {
+            IEntityModel entityModel = entity.orm_entityModel();
+            for (IEntityRelationModel relModel : entityModel.getRelations()) {
+                String propName = relModel.getName();
+                if (!entity.orm_refLoaded(propName))
                     continue;
 
-                if (refEntity.orm_enhancer() == null) {
-                    attach(refEntity);
-                } else {
-                    entity.orm_unsetRef(propName);
-                }
-            } else if (relModel.isToManyRelation()) {
-                IOrmEntitySet<? extends IOrmEntity> refSet = entity.orm_refEntitySet(propName);
-                for (IOrmEntity refEntity : refSet) {
-                    if (isBindToOtherSession(refEntity)) {
-                        refSet.orm_unload();
-                        break;
+                if (relModel.isToOneRelation()) {
+                    IOrmEntity refEntity = entity.orm_refEntity(propName);
+                    if (refEntity != null)
+                        attach(refEntity, true);
+                } else if (relModel.isToManyRelation()) {
+                    IOrmEntitySet<? extends IOrmEntity> refSet = entity.orm_refEntitySet(propName);
+                    for (IOrmEntity refEntity : refSet) {
+                        attach(refEntity, true);
                     }
-                    attach(refEntity);
                 }
             }
         }
