@@ -168,7 +168,7 @@ public interface IEntityDao<T extends IDaoEntity> {
     /**
      * 将detached的实体重新与session关联
      */
-    void attachEntity(T entity);
+    void attachEntity(T entity, boolean cascade);
 
     void batchFlush(Collection<T> entities);
 

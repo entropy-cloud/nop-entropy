@@ -220,7 +220,7 @@ public interface IOrmTemplate extends ISqlExecutor {
      */
     IOrmEntity newEntity(String entityName);
 
-    void attach(IOrmEntity entity);
+    void attach(IOrmEntity entity, boolean cascade);
 
     void detach(IOrmEntity entity, FieldSelectionBean selection);
 

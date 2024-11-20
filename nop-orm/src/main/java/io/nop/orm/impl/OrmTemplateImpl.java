@@ -438,8 +438,8 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
     }
 
     @Override
-    public void attach(IOrmEntity entity) {
-        requireSession().attach(entity);
+    public void attach(IOrmEntity entity, boolean cascade) {
+        requireSession().attach(entity, cascade);
     }
 
     @Override

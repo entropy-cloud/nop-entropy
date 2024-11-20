@@ -330,9 +330,9 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
     }
 
     @Override
-    public void attachEntity(T entity) {
+    public void attachEntity(T entity, boolean cascade) {
         checkEntityNameMatch(entity);
-        orm().attach(entity);
+        orm().attach(entity, cascade);
     }
 
     @Override
