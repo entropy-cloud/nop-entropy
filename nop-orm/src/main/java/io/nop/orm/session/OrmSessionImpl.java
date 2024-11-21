@@ -1274,6 +1274,11 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         checkContext();
         checkValid();
         cache.forEachCurrent(entity -> {
+            if(entity.orm_state().isGone() || entity.orm_state().isSaving()){
+                cache.remove(entity);
+                return;
+            }
+
             resetEntity(entity);
         });
     }
@@ -1292,7 +1297,15 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public void refresh(IOrmEntity entity) {
-        unload(entity);
+        if (!contains(entity))
+            throw newError(ERR_ORM_ENTITY_NOT_IN_SESSION, entity);
+
+        if (entity.orm_state().isProxy())
+            return;
+
+        entity.orm_unload();
+
+        internalLoad(entity);
     }
 
     @Override

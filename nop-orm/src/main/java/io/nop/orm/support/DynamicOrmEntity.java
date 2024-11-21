@@ -125,6 +125,12 @@ public class DynamicOrmEntity extends OrmEntity implements IPropSetMissingHook, 
     }
 
     @Override
+    public void orm_reset() {
+        super.orm_reset();
+        this.refProps.clear();
+    }
+
+    @Override
     public void orm_propValue(int propId, Object value) {
         checkPropIdRange(propId);
         IColumnModel col = requireEntityModel().getColumnByPropId(propId, false);
