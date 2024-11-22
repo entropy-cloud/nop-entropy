@@ -8,3 +8,15 @@ nop:
     jdbc-url: jdbc:h2:./db/demo
     username: sa
     password:
+
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+  endpoint:
+    prometheus:
+      enabled: true

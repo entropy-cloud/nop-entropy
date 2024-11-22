@@ -14,6 +14,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class SpringSimpleDemoMain {
 
     public static void main(String[] args) {
+        System.out.println("maxMem=" + Runtime.getRuntime().maxMemory() / 1024 / 1024 + "M");
         SpringApplication.run(SpringSimpleDemoMain.class, args);
     }
 }

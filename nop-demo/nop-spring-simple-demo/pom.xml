@@ -14,9 +14,9 @@
     <groupId>io.nop.demo</groupId>
     <artifactId>nop-spring-simple-demo</artifactId>
 
-	<properties>
-	    <maven.deploy.skip>true</maven.deploy.skip>
-	</properties>
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -25,10 +25,48 @@
         </dependency>
 
         <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-jdbc-h2</artifactId>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <!--                    <classifier>${repackage.classifier}</classifier>-->
+                    <!--                    <image>-->
+                    <!--                        <builder>paketobuildpacks/builder:tiny</builder>-->
+                    <!--                        <env>-->
+                    <!--                            <BP_NATIVE_IMAGE>true</BP_NATIVE_IMAGE>-->
+                    <!--                        </env>-->
+                    <!--                    </image>-->
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>exec</classifier>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
