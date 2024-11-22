@@ -10,7 +10,13 @@ package io.nop.batch.core.impl;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ProcessResult;
-import io.nop.batch.core.*;
+import io.nop.batch.core.BatchTaskGlobals;
+import io.nop.batch.core.IBatchChunkContext;
+import io.nop.batch.core.IBatchChunkProcessor;
+import io.nop.batch.core.IBatchStateStore;
+import io.nop.batch.core.IBatchTask;
+import io.nop.batch.core.IBatchTaskContext;
+import io.nop.batch.core.IBatchTaskMetrics;
 import io.nop.batch.core.exceptions.BatchCancelException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,36 +52,42 @@ public class BatchTaskExecution implements IBatchTask {
         IBatchTaskMetrics metrics = context.getMetrics();
         Object meter = metrics == null ? null : metrics.beginTask();
 
-        if (stateStore != null) {
-            stateStore.loadTaskState(context);
-        }
-
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
+        BatchTaskGlobals.provideTaskContext(context);
         try {
-            if (initializers != null)
-                initializers.forEach(initializer -> {
-                    initializer.accept(context);
-                });
+            if (stateStore != null) {
+                stateStore.loadTaskState(context);
+            }
 
-            context.fireTaskBegin();
-        } catch (Exception e) {
-            // onTaskBegin中有可能分配资源，必须调用onTaskEnd来释放资源
-            onTaskComplete(future, meter, e, context);
+            CompletableFuture<Void> future = new CompletableFuture<>();
+
+            try {
+                if (initializers != null)
+                    initializers.forEach(initializer -> {
+                        initializer.accept(context);
+                    });
+
+                context.fireTaskBegin();
+            } catch (Exception e) {
+                // onTaskBegin中有可能分配资源，必须调用onTaskEnd来释放资源
+                onTaskComplete(future, meter, e, context);
+                return future;
+            }
+
+            // 多个线程可以并发执行。loader/processor/consumer都需要是线程安全的
+            CompletableFuture<?>[] futures = new CompletableFuture[concurrency];
+            for (int i = 0; i < concurrency; i++) {
+                futures[i] = executeChunkLoop(context, i);
+            }
+
+            CompletableFuture.allOf(futures).whenComplete((ret, err) -> {
+                onTaskComplete(future, meter, err, context);
+            });
+
             return future;
+
+        } finally {
+            BatchTaskGlobals.removeTaskContext();
         }
-
-        // 多个线程可以并发执行。loader/processor/consumer都需要是线程安全的
-        CompletableFuture<?>[] futures = new CompletableFuture[concurrency];
-        for (int i = 0; i < concurrency; i++) {
-            futures[i] = executeChunkLoop(context, i);
-        }
-
-        CompletableFuture.allOf(futures).whenComplete((ret, err) -> {
-            onTaskComplete(future, meter, err, context);
-        });
-
-        return future;
     }
 
     void onTaskComplete(CompletableFuture<Void> future, Object meter, Throwable err, IBatchTaskContext context) {
@@ -118,6 +130,7 @@ public class BatchTaskExecution implements IBatchTask {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         executor.execute(() -> {
+            BatchTaskGlobals.provideTaskContext(context);
             try {
                 do {
                     if (context.isCancelled())
@@ -131,6 +144,8 @@ public class BatchTaskExecution implements IBatchTask {
                 future.complete(null);
             } catch (Exception e) {
                 future.completeExceptionally(e);
+            } finally {
+                BatchTaskGlobals.removeTaskContext();
             }
         });
         return future;

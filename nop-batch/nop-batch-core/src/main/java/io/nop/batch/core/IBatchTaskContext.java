@@ -113,7 +113,7 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void onBeforeChunkEnd(Consumer<IBatchChunkContext> action);
 
-    void onChunkEnd(BiConsumer<Throwable, IBatchChunkContext> action);
+    void onChunkEnd(BiConsumer<IBatchChunkContext,Throwable> action);
 
     void fireTaskBegin();
 

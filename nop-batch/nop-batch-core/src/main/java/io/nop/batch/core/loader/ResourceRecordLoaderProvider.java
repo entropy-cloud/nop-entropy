@@ -144,12 +144,12 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
             return load(batchSize, state);
         };
     }
-
     LoaderState<S> newLoaderState(IBatchTaskContext context) {
         LoaderState<S> state = new LoaderState<>();
         state.context = context;
         IResource resource = getResource(context);
         IRecordInput<S> input = recordIO.openInput(resource, encoding);
+
 
         long skipCount = getSkipCount(context);
 
@@ -157,9 +157,6 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
             state.combinedValue = aggregator.createCombinedValue(input.getHeaderMeta(), context);
             context.onBeforeComplete(() -> {
                 aggregator.complete(state.input.getTrailerMeta(), state.combinedValue);
-            });
-            context.onAfterComplete(err -> {
-                IoHelper.safeCloseObject(state.input);
             });
         }
 
@@ -176,6 +173,10 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         }
 
         state.input = input;
+
+        context.onAfterComplete(err -> {
+            IoHelper.safeCloseObject(state.input);
+        });
 
         if (saveState)
             state.processingItems = new TreeMap<>();

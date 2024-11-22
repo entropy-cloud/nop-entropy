@@ -199,11 +199,9 @@ public interface IBatchProcessor<S, R, C> {
 
 * IBatchProcessor接口还提供了一个then函数，可以将两个IBatchProcessor组合为一个整体的Processor，形成一种链式调用。这其实是类似函数式编程中Monad概念的一种应用。
 
+### 2.3 Writer命名不合适
 
-
-### 2.3 Writer不应该只处理结果数据
-
-SpringBatch中的ItemWriter一般固定用于消费Processor产生的结果数据，这样就导致固化了Read-Process-Write的处理流程。即使我们不需要处理过程或者写入过程，也不得不配置一个空的Processor或者Writer。
+SpringBatch中的ItemWriter从命名上看是用于消费Processor产生的结果数据，这样就导致在概念层面上固化了Read-Process-Write的处理流程。但有很多情况下我们并不需要写出结果，只需要消费输入的数据而已。
 
 NopBatch引入了通用的BatchConsumer概念，使得BatchConsumer和BatchLoader构成一对对偶的接口，BatchLoader加载的数据直接传递给BatchConsumer进行消费。
 
@@ -339,4 +337,483 @@ public class RetryBatchConsumer<R>
 
 * 如果有些已经成功完成的记录不需要被重复处理，则可以在consumer中成功处理之后，将它们加入到BatchChunkContext上下文对象中的completedItems集合中。重试整个chunk时，已经被完成的记录会被自动跳过。
 
-• Do not do things twice in a batch run
+### 2.6 分区并行处理能力有限
+SpringBatch提供将数据拆分成多个分区，并分配给多个从属步骤（slave steps）来实现并行处理的机制。以下是分区并行处理的主要步骤和组件：
+
+1. **定义分区器（Partitioner）**：
+   - 分区器负责将数据分成多个分区。每个分区包含一部分数据，并将这些分区信息存储在`ExecutionContext`中。
+
+2. **配置主步骤（Master Step）**：
+   - 主步骤负责管理分区和分配任务。它使用分区器生成分区，并将每个分区分配给从属步骤进行处理。
+
+3. **配置从属步骤（Slave Step）**：
+   - 从属步骤负责处理分配给它的分区数据。每个从属步骤可以并行执行，从而提高处理效率。
+
+4. **任务执行器（Task Executor）**：
+   - 任务执行器用于并行执行从属步骤。可以配置不同类型的任务执行器，如`SimpleAsyncTaskExecutor`或`ThreadPoolTaskExecutor`，以实现并行处理。
+
+通过以上步骤，Spring Batch可以有效地将大任务分解为多个小任务并行处理，从而提高处理效率和性能。
+
+```xml
+<batch:job id="partitionedJob">
+   <batch:step id="masterStep">
+      <batch:partition step="slaveStep" partitioner="rangePartitioner">                      <batch:handler grid-size="4" task-executor="taskExecutor"/>
+      </batch:partition>
+   </batch:step>
+</batch:job>
+
+<!-- Slave step definition -->
+<batch:step id="slaveStep">
+   <batch:tasklet>
+     <batch:chunk reader="itemReader" processor="itemProcessor" 
+                  writer="itemWriter" commit-interval="10"/>
+   </batch:tasklet>
+</batch:step>
+```
+
+SpringBatch的这种分区并行设计相当于是从Reader开始就实现分区读取，然后每个Slave步骤都使用专属于自己的Reader去读取数据，然后再做处理。如果某一个分区的数据特别多，其他分区的线程全部处理完毕空闲下来之后也无法帮助它
+
+## 三. NopBatch的架构变化
+
+### 3.1 通过context实现动态注册Listener
+
+SpringBatch中的reader/writer/processor如果需要监听步骤开始、步骤结束等事件，标准的方法是实现StepExecutionListener这种接口。
+
+```java
+class MyProcessor implements ItemProcessor, StepExecutionListener{
+    
+    @Override
+    public void beforeStep(StepExecution stepExecution) {
+        System.out.println("Before Step: " + stepExecution.getStepName());
+    }
+
+    @Override
+    public ExitStatus afterStep(StepExecution stepExecution) {
+        System.out.println("After Step: " + stepExecution.getStepName());
+        return stepExecution.getExitStatus();
+    }
+    ....
+}
+```
+
+这种做法造成两个问题
+
+1. 如果使用Spring容器来管理这些bean，则考虑到并发执行的情况，这些bean需要设置`scope=scope`而不能是全局Singleton单例。SpringBatch的StepScope实现非常tricky，导致要求开启全局开关`spring.main.allow-bean-definition-overriding `。而另一方面Spring在缺省情况下已经禁止Bean重定义，并且强烈建议关闭这个开关。参见[@StepScope not working when XML namespace activated](https://github.com/spring-projects/spring-batch/issues/3936)。
+
+2. 如果我们对Reader/Processor/Writer进行了包装，则会导致这些Listener无法自动被SpringBatch框架所发现。我们必须额外注册listener才可以。理想情况下，应该是注册Writer的时候就自动注册它所需要的Listener，而不需要在配置文件中额外配置Listener。
+
+```xml
+    <step id="step1">
+        <tasklet>
+            <chunk reader="itemReader" writer="compositeWriter" commit-interval="2">
+                <streams>
+                    <stream ref="fileItemWriter1"/>
+                    <stream ref="fileItemWriter2"/>
+                </streams>
+            </chunk>
+        </tasklet>
+    </step>
+    <beans:bean id="compositeWriter"
+                class="org.springframework.batch.item.support.CompositeItemWriter">
+        <beans:property name="delegates">
+            <beans:list>
+                <beans:ref bean="fileItemWriter1" />
+                <beans:ref bean="fileItemWriter2" />
+            </beans:list>
+        </beans:property>
+    </beans:bean>
+```
+
+比如上面的示例配置中，我们使用了一个CompositeWriter，它内部使用了两个Writer来实现功能。但是SpringBatch并不知道这件事情，它所接收到的compositeWriter上并没有实现ItemStream这种回调事件接口。为了要正确调用，我们需要额外增加streams配置，指定那些Writer实现了ItemStream回调接口，需要在适当的时候被调用。
+
+如果和前端框架的变革做一个对比，可以发现一件非常有趣的事情：SpringBatch的这个做法与传统的前端Class Component如出一辙。
+
+```javascript
+class MyComponent extends Vue {
+    // 组件挂载后执行的逻辑
+    mounted() {
+        console.log('Component mounted');
+    }
+
+    // 组件更新后执行的逻辑
+    updated() {
+        console.log('Component updated');
+    }
+
+    // 组件卸载前执行的逻辑
+    beforeDestroy() {
+        console.log('Component will be destroyed');
+    }
+
+    // 渲染函数
+    render(h) {
+        return (
+            <div>
+                {/* 组件的渲染逻辑 */}
+                Hello, Vue Class Component!
+            </div>
+        );
+    }
+}
+```
+
+核心的设计思想都是在组件上实现生命周期监听函数，框架在创建这些组件的时候注册对应的事件监听器，然后利用组件对象的成员变量来实现多个回调函数之间的信息传递和组织。
+
+前端领域后来出现了一个革命性的进展，就是引入了所谓的Hooks机制，抛弃了Class Based的组件方案。参见[从React Hooks看React的本质](https://mp.weixin.qq.com/s/-n5On67e3_46zH6ppPlkTA)
+
+在Hooks方案下，前端组件退化为一个响应式的render函数，考虑到一次性的初始化过程，Vue选择将组件抽象为render函数的构造器。
+
+```javascript
+defineComponent({
+    setup() {
+        onMounted(() => {
+            console.log('Component mounted');
+        });
+
+        onUpdated(() => {
+            console.log('Component updated');
+        });
+
+        onBeforeUnmount(() => {
+            console.log('Component will be destroyed');
+        });
+
+        return () => (
+            <div>
+                {/* 组件的渲染逻辑 */}
+                Hello, Vue Composition API!
+            </div>
+        );
+    }
+```
+
+Hooks方案相比于传统的类组件方案有如下优点：
+
+1. 事件监听函数可以独立于类结构被定义，可以很容易的实现二次封装。比如将上面的onMounted+onUpdated调用封装为一个可复用的useXXX的函数。
+
+2. 多个事件监听函数之间可以通过闭包传递信息，而不需要再通过this指针迂回。
+
+这里的关键性的架构变化是提供了一种全局的、动态事件注册机制，而不是将事件监听函数与某个对象指针绑定，必须是某个对象的成员函数。
+
+类似于Hooks方案，NopBatch将核心抽象从IBatchLoader这种运行组件变更为IBatchLoaderProvider这种工厂组件，它提供一个setup方法来创建IBatchLoader。
+
+```java
+public interface IBatchLoaderProvider<S> {
+    IBatchLoader<S> setup(IBatchTaskContext context);
+
+    interface IBatchLoader<S> {
+        List<S> load(int batchSize, IBatchChunkContext context);
+    }
+}
+```
+
+上下文对象context提供了onTaskBegin/onTaskEnd等回调函数注册方法。
+
+```java
+class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandler
+        implements IBatchLoaderProvider<S> {
+
+    public IBatchLoader<S> setup(IBatchTaskContext context) {
+        LoaderState<S> state = newLoaderState(context);
+        return (batchSize, chunkCtx) ->{
+            // 在一个chunk处理完毕后执行回调函数
+            chunkCtx.onAfterComplete(err -> onChunkEnd(err, chunkCtx, state));
+            return load(batchSize, state);
+        };
+    }
+    
+    LoaderState<S> newLoaderState(IBatchTaskContext context) {
+        LoaderState<S> state = new LoaderState<>();
+        state.context = context;
+        IResource resource = getResource(context);
+        IRecordInput<S> input = recordIO.openInput(resource, encoding);
+
+        if (recordRowNumber) {
+            input = new RowNumberRecordInput<>(input);
+        }
+
+        state.input = input;
+
+        // 注册回调函数，当task执行完毕时关闭资源
+        context.onAfterComplete(err -> {
+            IoHelper.safeCloseObject(state.input);
+        });
+
+        return state;
+    }
+}
+
+```
+
+在上面的示例中，我们通过显式传递的上下文对象上的onAfterComplete等函数来注册回调函数。如果做进一步的封装，使用ThreadLocal来存放context对象，则可以使得调用形式更加接近Hooks。
+
+```java
+public class BatchTaskGlobals {
+    static final ThreadLocal<IBatchTaskContext> s_taskContext = new NamedThreadLocal<>("batch-task-context");
+    static final ThreadLocal<IBatchChunkContext> s_chunkContext = new NamedThreadLocal<>("batch-chunk-context");
+
+    public static IBatchTaskContext useTaskContext() {
+        return s_taskContext.get();
+    }
+
+    public static void provideTaskContext(IBatchTaskContext taskContext) {
+        s_taskContext.set(taskContext);
+    }
+
+    public static void onTaskEnd(BiConsumer<IBatchTaskContext, Throwable> action) {
+        IBatchTaskContext ctx = useTaskContext();
+        ctx.onAfterComplete(error -> action.accept(ctx, error));
+    }
+
+    public static void onBeforeTaskEnd(Consumer<IBatchTaskContext> action) {
+        IBatchTaskContext ctx = useTaskContext();
+        ctx.onBeforeComplete(()-> action(ctx));
+    }
+}
+```
+
+导入BatchTaskGlobals上的静态方法后，就可以使用如下调用形式
+
+```java
+
+IBatchLoader setup(ITaskContext context){
+   init();
+   ...
+}
+
+void init(){
+   onBeforeTaskEnd(taskCtx ->{
+      ...
+   });
+     
+   onChunkBegin(chunkCtx ->{
+     ...
+   });
+}
+```
+
+类似的，IBatchProcessor和IBatchConsumer等对象都变更为IBatchProcessorProvider和IBatchConsumerProvider的setup函数的返回结果。
+
+Provider现在成为单例对象，可以使用IoC容器进行配置，不需要动态Scope支持。同时，无论封装多少层，都可以直接访问到上下文对象IBatchTaskContext，通过它动态注册各类事件监听函数。
+
+### 3.2 使用通用的TaskFlow来组织逻辑流
+SpringBatch提供了一种简易的逻辑流模型，在XML中可以配置多个步骤以及步骤之间的转移关系，还支持并行执行和条件跳转。
+
+```xml
+<job id="exampleJob" xmlns="http://www.springframework.org/schema/batch">
+    <split id="split1" task-executor="taskExecutor">
+        <flow>
+            <step id="step1">
+                <tasklet ref="tasklet1" />
+                <next on="COMPLETED" to="step2" />
+                <next on="FAILED" to="step4" />
+            </step>
+            <step id="step2">
+                <tasklet ref="tasklet2" />
+                <next on="COMPLETED" to="step4" />
+            </step>
+        </flow>
+        <flow>
+            <step id="step3">
+                <tasklet ref="tasklet3" />
+                <next on="COMPLETED" to="step4" />
+            </step>
+        </flow>
+    </split>
+    <step id="step4">
+        <tasklet ref="tasklet4" />
+    </step>
+</job>
+```
+
+SpringBatch中调度的步骤单元对应于Tasklet接口，chunk处理是Tasklet的一种具体实现。
+
+```java
+public class ChunkOrientedTasklet<I> implements Tasklet{
+   public RepeatStatus execute(StepContribution contribution, ChunkContext                   chunkContext) throws Exception {
+
+		Chunk<I> inputs = (Chunk<I>) chunkContext.getAttribute(INPUTS_KEY);
+		if (inputs == null) {
+			inputs = chunkProvider.provide(contribution);
+			if (buffering) {
+				chunkContext.setAttribute(INPUTS_KEY, inputs);
+			}
+		}
+		
+		chunkProcessor.process(contribution, inputs);
+		chunkProvider.postProcess(contribution, inputs);
+
+		chunkContext.removeAttribute(INPUTS_KEY);
+		chunkContext.setComplete();
+		return RepeatStatus.continueIf(!inputs.isEnd());
+	}
+}
+```
+
+有趣的是SpringBatch早期的设计中只有chunk处理，并没有引入通用的Tasklet接口，这反映出SpringBatch整体设计的抽象程度是先天不足的。
+
+> Tasklet接口由SpringBatch 2.0引入 ，参见[Spring Batch 2.0 Highlights](https://docs.spring.io/spring-batch/docs/2.2.x/migration/2.0-highlights.html)
+
+```java
+public interface Tasklet {
+
+	/**
+	 * Given the current context in the form of a step contribution, do whatever is
+	 * necessary to process this unit inside a transaction. Implementations return
+	 * {@link RepeatStatus#FINISHED} if finished. If not they return
+	 * {@link RepeatStatus#CONTINUABLE}. On failure throws an exception.
+	 * @param contribution mutable state to be passed back to update the current step
+	 * execution
+	 * @param chunkContext attributes shared between invocations but not between restarts
+	 * @return an {@link RepeatStatus} indicating whether processing is continuable.
+	 * Returning {@code null} is interpreted as {@link RepeatStatus#FINISHED}
+	 * @throws Exception thrown if error occurs during execution.
+	 */
+	RepeatStatus execute(StepContribution contribution, 
+           ChunkContext chunkContext) throws Exception;
+
+}
+```
+
+Tasklet接口本质上就是一个通用的函数接口，只是为了支持失败后重试，它需要通过StepContribution来实现持久化存储。
+
+SpringBatch的关键特性描述中强调了可重用性和可扩展性，但是实际情况是它的可重用性和可扩展性都很差。典型的，SpringBatch中所提供的核心接口也好，流程编排也好，都是特定于SpringBatch自身实现的，不能用于更广泛的场景。比如说，我们如果扩展了SpringBatch内置的FlatFileItemReader实现了某种数据文件格式的解析，则这个扩展类只能用于SpringBatch批处理这一个特定的场景，而且只能通过SpringBatch框架来使用。当我们想在SpringBatch框架之外复用任何SpringBatch相关的内容的时候都会发现困难重重。
+
+SpringBatch的job配置可以看作是一种非常简易且不通用的逻辑流编排机制，它只能编排批处理任务，不能作为一个通用的逻辑流编排引擎来使用。在NopBatch框架中我们明确将逻辑流编排从批处理引擎中剥离出来，使用通用的NopTaskFlow来编排逻辑，而NopBatch只负责一个流程步骤中的Chunk处理。这使得NopTaskFlow和NopBatch的设计都变得非常简单直接，它们的实现代码远比SpringBatch要简单（只有几千行代码），且具有非常强大的扩展能力。在NopTaskFlow和NopBatch中做的工作都可以应用到更加通用的场景中。
+
+NopTaskFlow是根据可逆计算原理从零开始构建的下一代逻辑流编排框架，它的核心抽象是支持Decorator和状态持久化的RichFunction。它的性能很高并且非常轻量级，可以用在所有需要进行函数配置化分解的地方。详细介绍参见[从零开始编写的下一代逻辑编排引擎 NopTaskFlow](https://mp.weixin.qq.com/s/2mFC0nQon_l2M82tOlJVhg)
+
+在NopTaskFlow中实现与上面SpringBatch Job等价的配置
+
+```xml
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+      <parallel nextOnError="step4" >
+        <steps>
+           <sequential timeout="3000">
+             <retry maxRetryCount="5" />
+             <decorator name="transaction" />
+             
+             <steps>
+               <simple name="step1" bean="tasklet1" />
+               <simple name="step2" bean="tasklet2" />
+             </steps>
+           </sequential>
+          
+           <simple name="step3" bean="tasklet3" />
+        </steps>  
+      </parallel>  
+      
+      <simple name="step4" bean="tasklet4" />
+    </steps>
+</task>
+```
+
+NopTaskFlow提供了parallel、sequential、loop、choose、fork等丰富的逻辑步骤类型，并且每个步骤都支持timeout、retry、decorator、catch、when、validator等通用的增强配置。比如，下面的配置表示在3秒内没有执行完毕则抛出超时异常，在未超时的情况下如果执行失败则重试5次，每次执行都在一个事务中执行。
+
+```xml
+ <sequential timeout="3000">
+    <retry maxRetryCount="5" />
+    <decorator name="transaction" />
+             
+    <steps>
+       <simple name="step1" bean="tasklet1" />
+       <simple name="step2" bean="tasklet2" />
+    </steps>
+ </sequential>
+```
+
+sequential表示按顺序执行，因此不需要在每个步骤上指定它的下一步是什么。当step1执行完毕没有报错时，它会自动执行到step2。这种执行模式非常类似于一般的程序语言，可以更容易的和程序语言对应起来。特别是，在SpringBatch中所有步骤是共享要一个全局变量空间，每个步骤再有一个自己的持久化变量空间，而在NopTaskFlow中，步骤之间嵌套调用可以形成一个堆栈，整个逻辑流执行过程中变量的可见范围可以类比于一般的函数调用；嵌套在内部的函数可以看到父函数作用域中的变量。
+
+NopTaskFlow还支持直接嵌套执行Xpl模板语言和XScript脚本。
+
+```xml
+<steps>
+   <xpl name="step1">
+     <source>
+       <c:script>
+         const isAdmin = svcCtx.userContext.hasRole('admin');
+       </c:script>
+       
+       <c:choose>
+         <when test="${isAdmin}">
+           <app:AdminService arg1="3" />
+         </when>
+         <otherwise>
+            <app:UserService arg1="4" />
+         </otherwise>  
+       </c:choose>  
+     </source>  
+   </xpl>  
+  
+  <script name="step2" lang="java">
+    <source>
+     import app.MyBuilder;
+    
+     const tool = new MyBuilder().build();
+     tool.run(arg1);
+    </source>  
+  </script>  
+</steps> 
+```
+
+NopTaskFlow中核心的步骤抽象对应于如下接口
+
+```java
+public interface ITaskStep extends ISourceLocationGetter {
+    /**
+     * 步骤类型
+     */
+    String getStepType();
+
+    Set<String> getPersistVars();
+
+    boolean isConcurrent();
+
+    /**
+     * 步骤执行所需要的输入变量
+     */
+    List<? extends ITaskInputModel> getInputs();
+
+    /**
+     * 步骤执行会返回Map，这里对应Map中的数据类型
+     */
+    List<? extends ITaskOutputModel> getOutputs();
+
+    /**
+     * 具体的执行动作
+     *
+     * @param stepRt 步骤执行过程中所有内部状态都保存到stepState中，基于它可以实现断点重启
+     * @return 可以返回同步或者异步对象，并动态决定下一个执行步骤。如果返回的结果值是CompletionStage，则外部调用者会自动等待异步执行完毕，
+     * 在此过程中可以通过cancelToken来取消异步执行。
+     */
+    TaskStepReturn execute(ITaskStepRuntime stepRt);
+}
+```
+
+ITaskStep提供了远比SpringBatch的Tasklet更加完善的抽象支持。比如说ITaskStep内置了cancel能力，可以随时调用`taskRuntime.cancel`来暂停当前逻辑流。每个step的inputs配置描述了输入参数的名称和类型，而output配置描述了产生的输出结果参数的名称和类型，这使得TaskStep可以直接映射到一般程序语言中的函数声明。
+
+```xml
+<xpl name="step1">
+   <input name="a" type="int">
+     <source> x + 1</source>
+   </input>  
+  <input name="b" type="int" >
+    <source> y + 2</source>
+  </input>  
+   <output name="RESULT" name="int" />
+  <source>
+     return a + b
+  </source>
+</xpl> 
+```
+
+以上代码等价于如下函数调用
+
+```javascript
+(function(a:int, b:int){
+   return { RESULT: a + b};
+})(x+1,y+2)
+```
+
+## 三. DSL森林: NopTaskFlow + NopBatch + NopRecord

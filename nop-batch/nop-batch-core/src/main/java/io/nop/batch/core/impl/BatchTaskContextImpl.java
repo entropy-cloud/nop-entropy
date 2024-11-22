@@ -52,7 +52,7 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private List<Consumer<Throwable>> onTaskEnds;
     private final List<Consumer<IBatchChunkContext>> onChunkBegins = new CopyOnWriteArrayList<>();
     private final List<Consumer<IBatchChunkContext>> onBeforeChunkEnds = new CopyOnWriteArrayList<>();
-    private final List<BiConsumer<Throwable, IBatchChunkContext>> onChunkEnds = new CopyOnWriteArrayList<>();
+    private final List<BiConsumer<IBatchChunkContext,Throwable>> onChunkEnds = new CopyOnWriteArrayList<>();
 
     public BatchTaskContextImpl(IServiceContext svcCtx, IEvalScope scope) {
         super(scope);
@@ -244,7 +244,7 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
 
 
     @Override
-    public void onChunkEnd(BiConsumer<Throwable, IBatchChunkContext> action) {
+    public void onChunkEnd(BiConsumer<IBatchChunkContext,Throwable> action) {
         synchronized (this) {
             if (isDone()) {
                 throw new IllegalStateException("nop.err.execution-already-completed");
@@ -292,11 +292,11 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
 
     @Override
     public void fireChunkEnd(Throwable err, IBatchChunkContext chunkContext) {
-        List<BiConsumer<Throwable, IBatchChunkContext>> callbacks = this.onChunkEnds;
+        List<BiConsumer<IBatchChunkContext,Throwable>> callbacks = this.onChunkEnds;
         if (callbacks != null) {
-            for (BiConsumer<Throwable, IBatchChunkContext> callback : callbacks) {
+            for (BiConsumer<IBatchChunkContext,Throwable> callback : callbacks) {
                 try {
-                    callback.accept(err, chunkContext);
+                    callback.accept(chunkContext,err);
                 } catch (Exception e) {
                     LOG.error("nop.err.core.execution-after-complete-callback-fail", e);
                 }
