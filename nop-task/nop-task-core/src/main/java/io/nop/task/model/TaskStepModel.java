@@ -22,9 +22,7 @@ public abstract class TaskStepModel extends _TaskStepModel {
     }
 
     public String getFullStepType() {
-        if (getExtType() == null)
-            return getType();
-        return getType() + ':' + getExtType();
+        return getType();
     }
 
     public abstract String getType();

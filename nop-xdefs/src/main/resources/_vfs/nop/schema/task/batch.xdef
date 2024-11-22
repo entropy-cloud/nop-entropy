@@ -19,7 +19,7 @@
         <exceptionFilter xdef:value="xpl-fn:(err)=>boolean"/>
     </retryPolicy>
 
-    <loadRetryPolicy xdef:ref="BatchRetryPolicyModel" />
+    <loadRetryPolicy xdef:ref="BatchRetryPolicyModel"/>
 
     <skipPolicy maxSkipCount="long" xdef:name="BatchSkipPolicyModel">
         <exceptionFilter xdef:value="xpl-fn:(err)=>boolean"/>
@@ -28,23 +28,27 @@
     <inputSorter xdef:ref="/nop/schema/query/order-by.xdef"/>
 
     <xdef:define xdef:name="BatchListenersModel">
-        <onTaskBegin xdef:value="xpl-fn:(ctx)=>void"/>
-        <onTaskEnd xdef:value="xpl-fn:(err,ctx)=>void"/>
+        <onTaskBegin xdef:value="xpl-fn:(taskCtx)=>void"/>
+        <onBeforeTaskEnd xdef:value="xpl-fn:(taskCtx)=>void" />
+        <onTaskEnd xdef:value="xpl-fn:(err,taskCtx)=>void"/>
 
-        <onChunkBegin xdef:value="xpl-fn:(ctx)=>void"/>
-        <onChunkEnd xdef:value="xpl-fn:(err,ctx)=>void"/>
+        <onChunkBegin xdef:value="xpl-fn:(chunkCtx)=>void"/>
+        <onBeforeChunkEnd xdef:value="xpl-fn:(chunkCtx)=>void" />
+        <onChunkEnd xdef:value="xpl-fn:(chunkCtx,err)=>void"/>
 
-        <onLoadBegin xdef:value="xpl-fn:(batchSize,ctx)=>void"/>
-        <onLoadEnd xdef:value="xpl-fn:(err,batchSize,ctx)=>void"/>
+        <onLoadBegin xdef:value="xpl-fn:(batchSize,chunkCtx)=>void"/>
+        <onLoadEnd xdef:value="xpl-fn:(chunkCtx, err)=>void"/>
 
-        <onConsumeBegin xdef:value="xpl-fn:(items,ctx)=>void"/>
-        <onConsumeEnd xdef:value="xpl-fn:(err,items,ctx)=>void"/>
+        <onConsumeBegin xdef:value="xpl-fn:(chunkCtx)=>void"/>
+        <onConsumeEnd xdef:value="xpl-fn:(chunkCtx, err)=>void"/>
     </xdef:define>
 
     <loader bean="bean-name" xdef:name="BatchLoaderModel" aggregator="bean-name"
             xdef:ref="BatchListenersModel" xdef:mandatory="true">
-        <file-reader pathExpr="!expr" xdef:name="BatchFileReaderModel" encoding="string"
+        <file-reader filePath="!t-expr" xdef:name="BatchFileReaderModel" encoding="string"
                      resourceLoader="bean-name" resourceIO="bean-name" maxCount="long">
+            <recordInputProvider xdef:value="xpl"/>
+
             <headers xdef:value="csv-set"/>
         </file-reader>
 
@@ -58,17 +62,17 @@
             <query xdef:value="xpl-node"/>
         </jdbc-reader>
 
-        <source xdef:value="xpl-fn:(batchSize,ctx)=>List"/>
+        <source xdef:value="xpl-fn:(batchSize,chunkCtx)=>List"/>
 
-        <adapter xdef:value="xpl-fn:(reader)=>any" />
+        <adapter xdef:value="xpl-fn:(reader)=>any"/>
 
     </loader>
 
     <processor bean="bean-name" name="var-name" order="!int=0"
                xdef:unique-attr="name" xdef:name="BatchProcessorModel" xdef:ref="BatchListenersModel">
-        <filter xdef:value="xpl-fn:(item,taskCtx)=>boolean"/>
+        <filter xdef:value="xpl-fn:(item,chunkCtx)=>boolean"/>
         <source xdef:value="xpl-fn:(item,consumer,chunkCtx)=>void"/>
-        <adapter xdef:value="xpl-fn:(processor)=>any" />
+        <adapter xdef:value="xpl-fn:(processor)=>any"/>
     </processor>
 
     <chunk-processor-builder bean="bean-name" xdef:name="BatchChunkProcessorBuilderModel"
@@ -76,16 +80,17 @@
     </chunk-processor-builder>
 
     <tagger bean="bean-name" xdef:name="BatchTaggerModel">
-        <source xdef:value="xpl-fn:(item,ctx)=>Collection"/>
+        <source xdef:value="xpl-fn:(item,chunkCtx)=>Collection"/>
     </tagger>
 
     <consumer bean="bean-name" name="var-name" order="!int=0" forTag="string"
-            xdef:unique-attr="name" xdef:name="BatchConsumerModel" xdef:ref="BatchListenersModel"
-            aggregator="bean-name" metaProvider="bean-name">
-        <filter xdef:value="xpl-fn:(item,taskCtx)=>boolean"/>
+              xdef:unique-attr="name" xdef:name="BatchConsumerModel" xdef:ref="BatchListenersModel"
+              aggregator="bean-name" metaProvider="bean-name">
+        <filter xdef:value="xpl-fn:(item,chunkCtx)=>boolean"/>
 
-        <file-writer pathExpr="!expr" xdef:name="BatchFileWriterModel" encoding="string"
+        <file-writer filePath="!t-expr" xdef:name="BatchFileWriterModel" encoding="string"
                      resourceLoader="bean-name" resourceIO="bean-name">
+            <recordOutputProvider xdef:value="xpl"/>
             <headers xdef:value="csv-set"/>
         </file-writer>
 
@@ -99,9 +104,9 @@
             <uniqueKey xdef:value="csv-set"/>
         </jdbc-writer>
 
-        <source xdef:value="xpl-fn:(items,ctx)=>void"/>
+        <source xdef:value="xpl-fn:(items,chunkCtx)=>void"/>
 
-        <adapter xdef:value="xpl-fn:(writer)=>any" />
+        <adapter xdef:value="xpl-fn:(writer)=>any"/>
     </consumer>
 
 </batch>

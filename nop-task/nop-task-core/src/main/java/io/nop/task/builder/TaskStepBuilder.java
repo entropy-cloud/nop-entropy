@@ -163,7 +163,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
                         .param(ARG_STEP_NAME, stepModel.getName())
                         .param(ARG_STEP_TYPE, type);
         }
-        // stepType设置为[基本步骤名:extType]
+
         step.setStepType(stepModel.getFullStepType());
         initAbstractStep(stepModel, step);
         return step;
@@ -255,7 +255,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
     private SequentialTaskStep buildSequentialStep(TaskStepsModel stepModel) {
         List<ITaskStepExecution> steps = new ArrayList<>(stepModel.getSteps().size());
         for (TaskStepModel subStepModel : stepModel.getSteps()) {
-            if(subStepModel.isDisabled())
+            if (subStepModel.isDisabled())
                 continue;
             steps.add(buildStepExecution(subStepModel));
         }
@@ -271,7 +271,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
     private SelectorTaskStep buildSelectorStep(TaskStepsModel stepModel) {
         List<ITaskStepExecution> steps = new ArrayList<>(stepModel.getSteps().size());
         for (TaskStepModel subStepModel : stepModel.getSteps()) {
-            if(subStepModel.isDisabled())
+            if (subStepModel.isDisabled())
                 continue;
             steps.add(buildStepExecution(subStepModel));
         }
@@ -283,7 +283,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
     private ParallelTaskStep buildParallelStep(ParallelTaskStepModel stepModel) {
         List<ITaskStepExecution> steps = new ArrayList<>(stepModel.getSteps().size());
         for (TaskStepModel subStepModel : stepModel.getSteps()) {
-            if(subStepModel.isDisabled())
+            if (subStepModel.isDisabled())
                 continue;
             steps.add(buildStepExecution(subStepModel));
         }

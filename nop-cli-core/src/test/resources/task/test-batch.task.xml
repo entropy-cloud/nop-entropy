@@ -1,0 +1,15 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:batch="/nop/batch/xlib/batch.xlib">
+    <input name="sysDate"/>
+
+    <steps>
+        <custom name="importDataFile" customType="batch:Step">
+            <batch:task>
+               <loader>
+                   <file-reader path="data/${sysDate}.txt">
+                      
+                   </file-reader>
+               </loader>
+            </batch:task>
+        </custom>
+    </steps>
+</task>

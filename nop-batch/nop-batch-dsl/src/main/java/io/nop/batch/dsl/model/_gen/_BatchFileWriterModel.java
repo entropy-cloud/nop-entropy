@@ -25,6 +25,13 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: filePath
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _filePath ;
+    
+    /**
+     *  
      * xml name: headers
      * 
      */
@@ -32,10 +39,10 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     
     /**
      *  
-     * xml name: pathExpr
+     * xml name: recordOutputProvider
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _pathExpr ;
+    private io.nop.core.lang.eval.IEvalAction _recordOutputProvider ;
     
     /**
      *  
@@ -72,6 +79,25 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     
     /**
      * 
+     * xml name: filePath
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getFilePath(){
+      return _filePath;
+    }
+
+    
+    public void setFilePath(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._filePath = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: headers
      *  
      */
@@ -91,19 +117,19 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     
     /**
      * 
-     * xml name: pathExpr
+     * xml name: recordOutputProvider
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getPathExpr(){
-      return _pathExpr;
+    public io.nop.core.lang.eval.IEvalAction getRecordOutputProvider(){
+      return _recordOutputProvider;
     }
 
     
-    public void setPathExpr(io.nop.core.lang.eval.IEvalAction value){
+    public void setRecordOutputProvider(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._pathExpr = value;
+        this._recordOutputProvider = value;
            
     }
 
@@ -162,8 +188,9 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
         super.outputJson(out);
         
         out.putNotNull("encoding",this.getEncoding());
+        out.putNotNull("filePath",this.getFilePath());
         out.putNotNull("headers",this.getHeaders());
-        out.putNotNull("pathExpr",this.getPathExpr());
+        out.putNotNull("recordOutputProvider",this.getRecordOutputProvider());
         out.putNotNull("resourceIO",this.getResourceIO());
         out.putNotNull("resourceLoader",this.getResourceLoader());
     }
@@ -178,8 +205,9 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
         super.copyTo(instance);
         
         instance.setEncoding(this.getEncoding());
+        instance.setFilePath(this.getFilePath());
         instance.setHeaders(this.getHeaders());
-        instance.setPathExpr(this.getPathExpr());
+        instance.setRecordOutputProvider(this.getRecordOutputProvider());
         instance.setResourceIO(this.getResourceIO());
         instance.setResourceLoader(this.getResourceLoader());
     }

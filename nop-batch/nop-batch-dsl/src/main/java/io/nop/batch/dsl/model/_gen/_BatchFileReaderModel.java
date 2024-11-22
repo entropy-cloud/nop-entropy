@@ -25,6 +25,13 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: filePath
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _filePath ;
+    
+    /**
+     *  
      * xml name: headers
      * 
      */
@@ -39,10 +46,10 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      *  
-     * xml name: pathExpr
+     * xml name: recordInputProvider
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _pathExpr ;
+    private io.nop.core.lang.eval.IEvalAction _recordInputProvider ;
     
     /**
      *  
@@ -73,6 +80,25 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
         checkAllowChange();
         
         this._encoding = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: filePath
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getFilePath(){
+      return _filePath;
+    }
+
+    
+    public void setFilePath(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._filePath = value;
            
     }
 
@@ -117,19 +143,19 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      * 
-     * xml name: pathExpr
+     * xml name: recordInputProvider
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getPathExpr(){
-      return _pathExpr;
+    public io.nop.core.lang.eval.IEvalAction getRecordInputProvider(){
+      return _recordInputProvider;
     }
 
     
-    public void setPathExpr(io.nop.core.lang.eval.IEvalAction value){
+    public void setRecordInputProvider(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._pathExpr = value;
+        this._recordInputProvider = value;
            
     }
 
@@ -188,9 +214,10 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
         super.outputJson(out);
         
         out.putNotNull("encoding",this.getEncoding());
+        out.putNotNull("filePath",this.getFilePath());
         out.putNotNull("headers",this.getHeaders());
         out.putNotNull("maxCount",this.getMaxCount());
-        out.putNotNull("pathExpr",this.getPathExpr());
+        out.putNotNull("recordInputProvider",this.getRecordInputProvider());
         out.putNotNull("resourceIO",this.getResourceIO());
         out.putNotNull("resourceLoader",this.getResourceLoader());
     }
@@ -205,9 +232,10 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
         super.copyTo(instance);
         
         instance.setEncoding(this.getEncoding());
+        instance.setFilePath(this.getFilePath());
         instance.setHeaders(this.getHeaders());
         instance.setMaxCount(this.getMaxCount());
-        instance.setPathExpr(this.getPathExpr());
+        instance.setRecordInputProvider(this.getRecordInputProvider());
         instance.setResourceIO(this.getResourceIO());
         instance.setResourceLoader(this.getResourceLoader());
     }

@@ -19,10 +19,10 @@
             </output>
         </xpl>
 
-        <xpl name="step3" extType="xpt:GenReport">
+        <custom name="step3" customType="xpt:GenReport">
             <input name="entity"/>
 
             <xpt:GenReport template="/xpt/test.xpt.xlsx" outputFile="target/gen/${today()}-2.html"/>
-        </xpl>
+        </custom>
     </steps>
 </task>

@@ -304,7 +304,7 @@ public class ModelBasedBatchTaskBuilderFactory {
         loader.setResourceLoader(resourceLoader);
         if (loaderModel.getMaxCount() != null)
             loader.setMaxCount(loaderModel.getMaxCount());
-        loader.setPathExpr(loaderModel.getPathExpr());
+        loader.setPathExpr(loaderModel.getFilePath());
         loader.setEncoding(loaderModel.getEncoding());
         loader.setAggregator(aggregator);
 
@@ -384,8 +384,8 @@ public class ModelBasedBatchTaskBuilderFactory {
 
         if (listenersModel.getOnChunkEnd() != null) {
             builder.addTaskInitializer(context -> {
-                context.onChunkEnd((err, ctx) -> {
-                    listenersModel.getOnChunkEnd().call2(null, err, ctx, ctx.getEvalScope());
+                context.onChunkEnd((ctx,err) -> {
+                    listenersModel.getOnChunkEnd().call2(null, ctx, err, ctx.getEvalScope());
                 });
             });
         }
@@ -457,7 +457,7 @@ public class ModelBasedBatchTaskBuilderFactory {
 
         ResourceRecordConsumerProvider<Object> writer = new ResourceRecordConsumerProvider<>();
         writer.setEncoding(consumerModel.getEncoding());
-        writer.setPathExpr(consumerModel.getPathExpr());
+        writer.setPathExpr(consumerModel.getFilePath());
         writer.setRecordIO(recordIO);
         writer.setResourceLoader(resourceLoader);
         return writer;

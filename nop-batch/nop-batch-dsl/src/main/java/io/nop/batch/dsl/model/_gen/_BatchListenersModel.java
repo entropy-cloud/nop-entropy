@@ -18,6 +18,20 @@ public abstract class _BatchListenersModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: onBeforeChunkEnd
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _onBeforeChunkEnd ;
+    
+    /**
+     *  
+     * xml name: onBeforeTaskEnd
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _onBeforeTaskEnd ;
+    
+    /**
+     *  
      * xml name: onChunkBegin
      * 
      */
@@ -71,6 +85,44 @@ public abstract class _BatchListenersModel extends io.nop.core.resource.componen
      * 
      */
     private io.nop.core.lang.eval.IEvalFunction _onTaskEnd ;
+    
+    /**
+     * 
+     * xml name: onBeforeChunkEnd
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getOnBeforeChunkEnd(){
+      return _onBeforeChunkEnd;
+    }
+
+    
+    public void setOnBeforeChunkEnd(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._onBeforeChunkEnd = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: onBeforeTaskEnd
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getOnBeforeTaskEnd(){
+      return _onBeforeTaskEnd;
+    }
+
+    
+    public void setOnBeforeTaskEnd(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._onBeforeTaskEnd = value;
+           
+    }
+
     
     /**
      * 
@@ -239,6 +291,8 @@ public abstract class _BatchListenersModel extends io.nop.core.resource.componen
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("onBeforeChunkEnd",this.getOnBeforeChunkEnd());
+        out.putNotNull("onBeforeTaskEnd",this.getOnBeforeTaskEnd());
         out.putNotNull("onChunkBegin",this.getOnChunkBegin());
         out.putNotNull("onChunkEnd",this.getOnChunkEnd());
         out.putNotNull("onConsumeBegin",this.getOnConsumeBegin());
@@ -258,6 +312,8 @@ public abstract class _BatchListenersModel extends io.nop.core.resource.componen
     protected void copyTo(BatchListenersModel instance){
         super.copyTo(instance);
         
+        instance.setOnBeforeChunkEnd(this.getOnBeforeChunkEnd());
+        instance.setOnBeforeTaskEnd(this.getOnBeforeTaskEnd());
         instance.setOnChunkBegin(this.getOnChunkBegin());
         instance.setOnChunkEnd(this.getOnChunkEnd());
         instance.setOnConsumeBegin(this.getOnConsumeBegin());
