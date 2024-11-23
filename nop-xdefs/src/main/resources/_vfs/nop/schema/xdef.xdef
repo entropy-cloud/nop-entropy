@@ -92,6 +92,8 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
 
     </meta:define>
 
+    <xdef:pre-parse meta:value="xpl"/>
+
     <xdef:post-parse meta:value="xpl"/>
 
 </meta:unknown-tag>

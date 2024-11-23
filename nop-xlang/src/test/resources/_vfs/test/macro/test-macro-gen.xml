@@ -1,0 +1,26 @@
+<model x:schema="/test/macro/test-macro-gen.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:batch="batch">
+    <x:pre-parse>
+        <c:script>
+            const task = _dsl_root.childByTag('batch:task');
+            _dsl_root.removeChild(task);
+
+            const count = task.childByTag('steps').getChildCount();
+
+            assign('metaChildCount', count);
+        </c:script>
+    </x:pre-parse>
+
+    <batch:task>
+        <steps>
+            <xpl id="step1">
+                <source>
+                    <c:log info="ss"/>
+                </source>
+            </xpl>
+        </steps>
+    </batch:task>
+
+    <filter>
+        <eq name="count" value="#{metaChildCount}" />
+    </filter>
+</model>

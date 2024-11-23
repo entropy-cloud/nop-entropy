@@ -17,6 +17,7 @@ public class XDslExtendResult {
     private XNode node;
     private XNode config;
     private XNode postExtends;
+    private XNode preParse;
     private XNode postParse;
     private boolean validated;
 
@@ -70,12 +71,23 @@ public class XDslExtendResult {
             ret.prependChild(cfg);
         }
 
+        if (preParse != null)
+            ret.appendChild(preParse.cloneInstance());
+
         if (postParse != null) {
             ret.appendChild(postParse.cloneInstance());
         }
         if (validated)
             ret.setAttr(keys.VALIDATED, true);
         return ret;
+    }
+
+    public XNode getPreParse() {
+        return preParse;
+    }
+
+    public void setPreParse(XNode preParse) {
+        this.preParse = preParse;
     }
 
     public XNode getBase() {

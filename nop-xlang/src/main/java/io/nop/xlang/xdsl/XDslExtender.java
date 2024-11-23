@@ -128,7 +128,7 @@ public class XDslExtender {
     }
 
     List<IXNodeTransformer> loadTransformers(IXDefinition xdef, IEvalScope scope) {
-        if(xdef == null)
+        if (xdef == null)
             return null;
 
         if (transformers != null)
@@ -160,6 +160,7 @@ public class XDslExtender {
         XNode node = result.getNode();
         XNode config = node.uniqueChild(keys.CONFIG);
         XNode postExtends = node.uniqueChild(keys.POST_EXTENDS);
+        XNode preParse = node.uniqueChild(keys.PRE_PARSE);
         XNode postParse = node.uniqueChild(keys.POST_PARSE);
 
         if (config != null) {
@@ -170,6 +171,10 @@ public class XDslExtender {
             postExtends.detach();
         }
 
+        if (preParse != null) {
+            preParse.detach();
+        }
+
         if (postParse != null) {
             postParse.detach();
         }
@@ -178,6 +183,7 @@ public class XDslExtender {
 
         result.setConfig(config);
         result.setPostExtends(postExtends);
+        result.setPreParse(preParse);
         result.setPostParse(postParse);
     }
 

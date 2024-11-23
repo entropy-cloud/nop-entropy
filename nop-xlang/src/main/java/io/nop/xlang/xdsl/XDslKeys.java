@@ -36,6 +36,7 @@ public final class XDslKeys implements Serializable {
     public final String CONFIG;
     public final String GEN_EXTENDS;
     public final String POST_EXTENDS;
+    public final String PRE_PARSE;
     public final String POST_PARSE;
 
     public final String PROTOTYPE;
@@ -67,6 +68,7 @@ public final class XDslKeys implements Serializable {
         this.CONFIG = getFullName(ns, "config");
         this.GEN_EXTENDS = getFullName(ns, "gen-extends");
         this.POST_EXTENDS = getFullName(ns, "post-extends");
+        this.PRE_PARSE = getFullName(ns, "pre-parse");
         this.POST_PARSE = getFullName(ns, "post-parse");
         this.PROTOTYPE = getFullName(ns, "prototype");
         this.PROTOTYPE_SUPER = getFullName(ns, "prototype-super");
@@ -86,7 +88,8 @@ public final class XDslKeys implements Serializable {
         this.ATTR_NAMES = CollectionHelper.buildImmutableSet(NAME, EXTENDS, PROTOTYPE, PROTOTYPE_OVERRIDE, ABSTRACT,
                 SCHEMA, KEY_ATTR, VALIDATED, VIRTUAL, INHERIT, FINAL, OVERRIDE, DUMP);
 
-        this.CHILD_NAMES = CollectionHelper.buildImmutableSet(ARGS, GEN_EXTENDS, CONFIG, POST_EXTENDS, POST_PARSE,
+        this.CHILD_NAMES = CollectionHelper.buildImmutableSet(ARGS, GEN_EXTENDS, CONFIG, POST_EXTENDS,
+                PRE_PARSE, POST_PARSE,
                 SUPER, PROTOTYPE_SUPER);
     }
 

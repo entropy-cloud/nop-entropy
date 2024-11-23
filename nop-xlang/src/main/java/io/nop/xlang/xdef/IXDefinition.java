@@ -65,6 +65,8 @@ public interface IXDefinition extends IXDefNode, IXDslModel {
 
     String getXdefDefaultExtends();
 
+    IEvalAction getXdefPreParse();
+
     IEvalAction getXdefPostParse();
 
     /**

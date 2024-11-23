@@ -91,6 +91,13 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
     
     /**
      *  
+     * xml name: xdef:pre-parse
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _xdefPreParse ;
+    
+    /**
+     *  
      * xml name: xdef:prop-ns
      * 对于没有名字空间的属性和标签名，它们会经过camelCase变换作为java对象的属性名。对于具有名字空间的属性名，则
      * 缺省情况下是作为扩展属性存在，并不会生成对应的java属性。
@@ -313,6 +320,25 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
     
     /**
      * 
+     * xml name: xdef:pre-parse
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getXdefPreParse(){
+      return _xdefPreParse;
+    }
+
+    
+    public void setXdefPreParse(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._xdefPreParse = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: xdef:prop-ns
      *  对于没有名字空间的属性和标签名，它们会经过camelCase变换作为java对象的属性名。对于具有名字空间的属性名，则
      * 缺省情况下是作为扩展属性存在，并不会生成对应的java属性。
@@ -414,6 +440,7 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
         out.putNotNull("xdefParseKeepComment",this.getXdefParseKeepComment());
         out.putNotNull("xdefParserClass",this.getXdefParserClass());
         out.putNotNull("xdefPostParse",this.getXdefPostParse());
+        out.putNotNull("xdefPreParse",this.getXdefPreParse());
         out.putNotNull("xdefPropNs",this.getXdefPropNs());
         out.putNotNull("xdefTransform",this.getXdefTransform());
         out.putNotNull("xdefTransformerClass",this.getXdefTransformerClass());
@@ -439,6 +466,7 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
         instance.setXdefParseKeepComment(this.getXdefParseKeepComment());
         instance.setXdefParserClass(this.getXdefParserClass());
         instance.setXdefPostParse(this.getXdefPostParse());
+        instance.setXdefPreParse(this.getXdefPreParse());
         instance.setXdefPropNs(this.getXdefPropNs());
         instance.setXdefTransform(this.getXdefTransform());
         instance.setXdefTransformerClass(this.getXdefTransformerClass());

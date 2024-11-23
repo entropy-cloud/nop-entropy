@@ -96,6 +96,7 @@ public class XDefKeys implements Serializable {
     public final Set<String> ROOT_CHILD_NAMES;
 
     public final String POST_PARSE;
+    public final String PRE_PARSE;
 
     public XDefKeys(String ns) {
         NS = ns;
@@ -158,6 +159,7 @@ public class XDefKeys implements Serializable {
         UNIT = getFullName(ns, "unit");
 
         POST_PARSE = getFullName(ns, "post-parse");
+        PRE_PARSE = getFullName(ns, "pre-parse");
 
         ATTR_NAMES = CollectionHelper.buildImmutableSet(SUPPORT_EXTENDS, BEAN_CLASS, BEAN_INTERFACES, BEAN_TAG_PROP,
                 BEAN_BODY_PROP, BEAN_COMMENT_PROP, BEAN_CHILD_NAME, BEAN_PROP, ID, REF_RESOLVED, BEAN_IMPLEMENTS_TYPES,
@@ -175,7 +177,7 @@ public class XDefKeys implements Serializable {
         CHILD_NAMES = CollectionHelper.buildImmutableSet(DEFINE, UNIT, UNKNOWN_TAG, GETTER, SETTER, IMPORT_EXPR,
                 EXPORT_EXPR, PROP);
         ROOT_CHILD_NAMES = CollectionHelper.buildImmutableSet(DEFINE, UNKNOWN_TAG, GETTER, SETTER, IMPORT_EXPR,
-                EXPORT_EXPR, POST_PARSE, PROP);
+                EXPORT_EXPR, POST_PARSE, PRE_PARSE, PROP);
     }
 
     private static String getFullName(String ns, String name) {

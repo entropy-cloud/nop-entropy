@@ -182,6 +182,11 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         def.setXdefModelNameProp(xdefModelNameProp);
         def.setXdefModelVersionProp(xdefModelVersionProp);
 
+        XNode preParse = node.uniqueChild(keys.PRE_PARSE);
+        if (preParse != null) {
+            def.setXdefPreParse(getCompileTool().compileTagBody(preParse));
+        }
+
         XNode postParse = node.uniqueChild(keys.POST_PARSE);
         if (postParse != null) {
             def.setXdefPostParse(getCompileTool().compileTagBody(postParse));

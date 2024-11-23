@@ -13,15 +13,19 @@ import io.nop.api.core.util.IComponentModel;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.impl.DefaultClassResolver;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.component.parse.AbstractResourceParser;
+import io.nop.core.type.IGenericType;
 import io.nop.core.type.IRawTypeResolver;
 import io.nop.xlang.XLangConstants;
+import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.ast.ImportAsDeclaration;
+import io.nop.xlang.ast.definition.ScopeVarDefinition;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xpl.tags.ImportTagCompiler;
 import org.slf4j.Logger;
@@ -114,11 +118,38 @@ public abstract class AbstractDslParser<T extends IComponentModel> extends Abstr
         setXdef(extendResult.getXdef());
 
         applyCompileConfig(extendResult.getConfig());
+        runPreParse(extendResult);
+
         T parseResult = doParseNode(extendResult.getNode());
 
         parseResult = runPostParse(parseResult, extendResult);
         return parseResult;
     }
+
+    protected void runPreParse(XDslExtendResult extendResult) {
+        XNode rootNode = extendResult.getNode();
+
+        IXLangCompileScope scope = compileTool.getScope();
+        scope.setLocalValue(null, XLangConstants.SCOPE_VAR_DSL_ROOT, rootNode);
+
+        if (getXdef().getXdefPreParse() != null) {
+            getXdef().getXdefPreParse().invoke(scope);
+        }
+
+        if (extendResult.getPreParse() != null) {
+            IEvalAction preParse = compileTool.compileTagBody(extendResult.getPreParse());
+            if (preParse != null) {
+                preParse.invoke(scope);
+            }
+        }
+
+        for (String name : scope.keySet()) {
+            Object value = scope.getLocalValue(name);
+            IGenericType type = value == null ? null : ReflectionManager.instance().buildRawType(value.getClass());
+            scope.registerScopeVarDefinition(ScopeVarDefinition.readOnly(name, type), true);
+        }
+    }
+
 
     protected void applyCompileConfig(XNode config) {
         if (config == null)
@@ -146,7 +177,7 @@ public abstract class AbstractDslParser<T extends IComponentModel> extends Abstr
     protected T runPostParse(T parseResult, XDslExtendResult extendResult) {
 
         if (getXdef().getXdefPostParse() != null) {
-            IEvalScope scope = XLang.newEvalScope();
+            IEvalScope scope = compileTool.getScope();
             scope.setLocalValue(null, XLangConstants.SYS_VAR_DSL_MODEL, parseResult);
             Object ret = getXdef().getXdefPostParse().invoke(scope);
             if (ret != null)
@@ -154,9 +185,9 @@ public abstract class AbstractDslParser<T extends IComponentModel> extends Abstr
         }
 
         if (extendResult.getPostParse() != null) {
-            IEvalAction postParse = compileTool.compileTagBody(extendResult.getPostExtends());
+            IEvalAction postParse = compileTool.compileTagBody(extendResult.getPostParse());
             if (postParse != null) {
-                IEvalScope scope = XLang.newEvalScope();
+                IEvalScope scope = compileTool.getScope();
                 scope.setLocalValue(null, XLangConstants.SYS_VAR_DSL_MODEL, parseResult);
                 Object ret = postParse.invoke(scope);
                 if (ret != null)
@@ -197,6 +228,8 @@ public abstract class AbstractDslParser<T extends IComponentModel> extends Abstr
         compileTool = XLang.newCompileTool();
 
         applyCompileConfig(extendResult.getConfig());
+        runPreParse(extendResult);
+
         T parseResult = doParseNode(extendResult.getNode());
 
         parseResult = runPostParse(parseResult, extendResult);
