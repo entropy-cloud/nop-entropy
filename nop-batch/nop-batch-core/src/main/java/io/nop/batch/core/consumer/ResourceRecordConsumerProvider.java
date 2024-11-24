@@ -16,7 +16,7 @@ import io.nop.batch.core.common.AbstractBatchResourceHandler;
 import io.nop.batch.core.exceptions.BatchCancelException;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.record.IResourceRecordIO;
+import io.nop.core.resource.record.IResourceRecordOutputProvider;
 import io.nop.dataset.record.IRecordOutput;
 
 import java.util.List;
@@ -32,7 +32,7 @@ import static io.nop.batch.core.BatchErrors.ERR_BATCH_WRITE_FILE_FAIL;
  */
 public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHandler
         implements IBatchConsumerProvider<R> {
-    private IResourceRecordIO<R> recordIO;
+    private IResourceRecordOutputProvider<R> recordIO;
     private String encoding;
 
     /**
@@ -54,11 +54,11 @@ public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHand
     }
 
 
-    public IResourceRecordIO<R> getRecordIO() {
+    public IResourceRecordOutputProvider<R> getRecordIO() {
         return recordIO;
     }
 
-    public void setRecordIO(IResourceRecordIO<R> recordIO) {
+    public void setRecordIO(IResourceRecordOutputProvider<R> recordIO) {
         this.recordIO = recordIO;
     }
 
@@ -106,9 +106,9 @@ public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHand
             context.onBeforeComplete(() -> {
                 Map<String, Object> trailer = aggregator.complete(null, state.combinedValue);
                 state.output.endWrite(trailer);
-                try{
+                try {
                     state.output.flush();
-                }catch(Exception e){
+                } catch (Exception e) {
                     throw NopException.adapt(e);
                 }
             });

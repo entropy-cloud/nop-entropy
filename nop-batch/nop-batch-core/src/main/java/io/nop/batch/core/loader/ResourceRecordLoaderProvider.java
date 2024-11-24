@@ -16,7 +16,7 @@ import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.common.AbstractBatchResourceHandler;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.record.IResourceRecordIO;
+import io.nop.core.resource.record.IResourceRecordInputProvider;
 import io.nop.dataset.record.IRecordInput;
 import io.nop.dataset.record.IRowNumberRecord;
 import io.nop.dataset.record.impl.RowNumberRecordInput;
@@ -40,7 +40,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         implements IBatchLoaderProvider<S> {
     static final String VAR_PROCESSED_ROW_NUMBER = "processedRowNumber";
 
-    private IResourceRecordIO<S> recordIO;
+    private IResourceRecordInputProvider<S> recordIO;
     private String encoding;
 
     // 对读取的数据进行汇总处理，例如统计读入的总行数等，最后在complete时写入到数据库中
@@ -96,11 +96,11 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         this.filter = filter;
     }
 
-    public IResourceRecordIO<S> getRecordIO() {
+    public IResourceRecordInputProvider<S> getRecordIO() {
         return recordIO;
     }
 
-    public void setRecordIO(IResourceRecordIO<S> recordIO) {
+    public void setRecordIO(IResourceRecordInputProvider<S> recordIO) {
         this.recordIO = recordIO;
     }
 
@@ -144,6 +144,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
             return load(batchSize, state);
         };
     }
+
     LoaderState<S> newLoaderState(IBatchTaskContext context) {
         LoaderState<S> state = new LoaderState<>();
         state.context = context;
