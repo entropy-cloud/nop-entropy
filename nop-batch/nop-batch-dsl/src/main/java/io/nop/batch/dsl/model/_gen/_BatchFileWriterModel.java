@@ -39,10 +39,10 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     
     /**
      *  
-     * xml name: recordOutputProvider
+     * xml name: newRecordOutputProvider
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _recordOutputProvider ;
+    private io.nop.core.lang.eval.IEvalAction _newRecordOutputProvider ;
     
     /**
      *  
@@ -117,19 +117,19 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     
     /**
      * 
-     * xml name: recordOutputProvider
+     * xml name: newRecordOutputProvider
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getRecordOutputProvider(){
-      return _recordOutputProvider;
+    public io.nop.core.lang.eval.IEvalAction getNewRecordOutputProvider(){
+      return _newRecordOutputProvider;
     }
 
     
-    public void setRecordOutputProvider(io.nop.core.lang.eval.IEvalAction value){
+    public void setNewRecordOutputProvider(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._recordOutputProvider = value;
+        this._newRecordOutputProvider = value;
            
     }
 
@@ -190,7 +190,7 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
         out.putNotNull("encoding",this.getEncoding());
         out.putNotNull("filePath",this.getFilePath());
         out.putNotNull("headers",this.getHeaders());
-        out.putNotNull("recordOutputProvider",this.getRecordOutputProvider());
+        out.putNotNull("newRecordOutputProvider",this.getNewRecordOutputProvider());
         out.putNotNull("resourceIO",this.getResourceIO());
         out.putNotNull("resourceLoader",this.getResourceLoader());
     }
@@ -207,7 +207,7 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
         instance.setEncoding(this.getEncoding());
         instance.setFilePath(this.getFilePath());
         instance.setHeaders(this.getHeaders());
-        instance.setRecordOutputProvider(this.getRecordOutputProvider());
+        instance.setNewRecordOutputProvider(this.getNewRecordOutputProvider());
         instance.setResourceIO(this.getResourceIO());
         instance.setResourceLoader(this.getResourceLoader());
     }

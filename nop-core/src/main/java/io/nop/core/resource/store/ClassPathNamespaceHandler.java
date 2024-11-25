@@ -18,7 +18,7 @@ public class ClassPathNamespaceHandler implements IResourceNamespaceHandler {
 
     @Override
     public String getNamespace() {
-        return ResourceConstants.CLASSPATH_NS;
+        return ResourceConstants.RESOURCE_NS_CLASSPATH;
     }
 
     @Override

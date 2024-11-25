@@ -27,7 +27,7 @@ public class DumpNamespaceHandler implements IResourceNamespaceHandler {
 
     @Override
     public String getNamespace() {
-        return ResourceConstants.DUMP_NS;
+        return ResourceConstants.RESOURCE_NS_DUMP;
     }
 
     @Override

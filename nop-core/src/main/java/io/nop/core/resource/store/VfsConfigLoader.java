@@ -47,7 +47,7 @@ public class VfsConfigLoader {
         String file = CFG_RESOURCE_VFS_CONFIG_FILE.get();
         if (StringHelper.isEmpty(file))
             return null;
-        if (ResourceHelper.startsWithNamespace(file, ResourceConstants.CLASSPATH_NS)) {
+        if (ResourceHelper.startsWithNamespace(file, ResourceConstants.RESOURCE_NS_CLASSPATH)) {
             return new ClassPathResource(file);
         }
         FileResource resource = new FileResource(new File(file));

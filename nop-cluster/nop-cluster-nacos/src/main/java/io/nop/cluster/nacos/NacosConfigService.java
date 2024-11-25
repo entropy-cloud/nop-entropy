@@ -109,7 +109,7 @@ public class NacosConfigService implements IConfigService, IDynamicTextConfigLoa
 
     protected IResource buildConfigResource(String path) {
         IResource resource;
-        if (ResourceHelper.startsWithNamespace(path, ResourceConstants.CLASSPATH_NS)) {
+        if (ResourceHelper.startsWithNamespace(path, ResourceConstants.RESOURCE_NS_CLASSPATH)) {
             resource = new ClassPathResource(path);
         } else {
             resource = new FileResource(new File(path));

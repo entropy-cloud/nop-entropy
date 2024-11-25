@@ -56,8 +56,8 @@ public class SourceLocationHelper {
         if(loc == null)
             return path;
 
-        if (path.equals(CoreConstants.SUPER_NS)) {
-            return ResourceConstants.SUPER_NS + ':' + loc.getPath();
+        if (path.equals(CoreConstants.RESOURCE_NS_SUPER)) {
+            return ResourceConstants.RESOURCE_NS_SUPER + ':' + loc.getPath();
         }
         return StringHelper.absolutePath(loc.getPath(), path);
     }

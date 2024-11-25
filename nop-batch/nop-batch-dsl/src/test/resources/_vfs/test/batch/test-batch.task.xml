@@ -1,6 +1,6 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
       x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-base.task.xml"
-      xmlns:batch="/nop/batch/xlib/batch.xlib" xmlns:record="record" x:dump="true">
+      xmlns:record="record" x:dump="true">
 
     <input name="bizDate" type="LocalDate" />
 
@@ -16,10 +16,11 @@
     </record:file-model>
 
     <steps>
-        <custom name="test" customType="batch:Execute" useParentScope="true">
+        <custom name="test" customType="batch:Execute" useParentScope="true"
+                xmlns:batch="/nop/batch/xlib/batch.xlib">
             <batch:task batchSize="100">
                 <loader>
-                    <file-reader filePath="/data/input/${bizDate}.dat" record:file-model="SimpleFile" />
+                    <file-reader filePath="dev:/target/input/${bizDate}.dat" record:file-model="SimpleFile" />
                 </loader>
 
                 <processor>
@@ -29,7 +30,7 @@
                 </processor>
 
                 <consumer name="all">
-                    <file-writer filePath="/data/output/${bizDate}-all.dat" record:file-model="SimpleFile"/>
+                    <file-writer filePath="dev:/target/output/${bizDate}-all.dat" record:file-model="SimpleFile"/>
                 </consumer>
 
                 <consumer name="selected">
@@ -37,7 +38,7 @@
                         return item.quantity > 100;
                     </filter>
 
-                    <file-writer filePath="/data/output/${bizDate}-selected.dat" record:file-model="SimpleFile"/>
+                    <file-writer filePath="dev:/target/output/${bizDate}-selected.dat" record:file-model="SimpleFile"/>
                 </consumer>
 
             </batch:task>

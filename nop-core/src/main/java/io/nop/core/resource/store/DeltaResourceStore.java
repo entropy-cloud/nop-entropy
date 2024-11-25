@@ -272,7 +272,7 @@ public class DeltaResourceStore implements IDeltaResourceStore {
 
             if (returnNullIfNotExists)
                 return null;
-            return new UnknownResource(ResourceConstants.SUPER_NS + ':' + path);
+            return new UnknownResource(ResourceConstants.RESOURCE_NS_SUPER + ':' + path);
         }
 
         if (deltaLayerIds != null) {

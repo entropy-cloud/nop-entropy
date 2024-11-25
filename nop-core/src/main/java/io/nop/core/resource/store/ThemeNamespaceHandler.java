@@ -44,7 +44,7 @@ public class ThemeNamespaceHandler implements IResourceNamespaceHandler {
 
     @Override
     public String getNamespace() {
-        return ResourceConstants.THEME_NS;
+        return ResourceConstants.RESOURCE_NS_THEME;
     }
 
     @Override

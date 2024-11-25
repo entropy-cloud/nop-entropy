@@ -20,38 +20,40 @@ public interface ResourceConstants {
 
     String RESOLVE_PREFIX = "resolve-";
 
-    String CP_NS = "cp";
+    String RESOURCE_NS_CP = "cp";
     String CP_PATH_SUFFIX = "c";
 
-    String CLASSPATH_NS = "classpath";
+    String RESOURCE_NS_DEV = "dev";
+
+    String RESOURCE_NS_CLASSPATH = "classpath";
     String CLASS_FILE_SUFFIX = ".class";
 
     // 模块文件，在每个模块目录下查找
-    String MODULE_NS = "module";
+    String RESOURCE_NS_MODULE = "module";
 
-    String MODULE_V = "v";
+    String RESOURCE_NS_V = "v";
 
     // 临时文件系统
-    String TEMP_NS = "temp";
+    String RESOURCE_NS_TEMP = "temp";
     // 调试目录
-    String DUMP_NS = "dump";
+    String RESOURCE_NS_DUMP = "dump";
 
     // 自选主题
-    String THEME_NS = "theme";
+    String RESOURCE_NS_THEME = "theme";
 
     // 操作系统文件
-    String FILE_NS = "file";
+    String RESOURCE_NS_FILE = "file";
 
     // 不进行虚拟路径解析
-    String RAW_NS = "raw";
+    String RESOURCE_NS_RAW = "raw";
 
     //
-    String SUPER_NS = "super";
+    String RESOURCE_NS_SUPER = "super";
 
     /**
      * 仅用于标识在内存中直接创建的模型对象
      */
-    String DYNAMIC_NS = "dynamic";
+    String RESOURCE_NS_DYNAMIC = "dynamic";
 
     String DYNAMIC_NS_PREFIX = "dynamic:";
 

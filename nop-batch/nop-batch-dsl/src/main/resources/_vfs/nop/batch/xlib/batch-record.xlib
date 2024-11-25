@@ -8,8 +8,8 @@
             <attr name="fileModel"/>
 
             <source>
-                import io.nop.record.resource.ResourceRecordIO;
-                return ResourceRecordIO.fromFileModel(fileModel);
+                import io.nop.record.resource.ModelBasedResourceRecordIO;
+                return ModelBasedResourceRecordIO.fromFileModel(fileModel);
             </source>
         </BuildRecordInputProviderFromFileModel>
 

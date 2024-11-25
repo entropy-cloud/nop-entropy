@@ -162,7 +162,7 @@ public class ResourceHelper {
 
     public static IResource getTempResource(String prefix) {
         String path = StringHelper.appendPath(prefix, genDayRandPath());
-        return VirtualFileSystem.instance().getResource(ResourceConstants.TEMP_NS + ":/" + path);
+        return VirtualFileSystem.instance().getResource(ResourceConstants.RESOURCE_NS_TEMP + ":/" + path);
     }
 
     public static boolean isValidModuleName(String moduleName) {
@@ -198,9 +198,9 @@ public class ResourceHelper {
     }
 
     public static String getCpPath(String path) {
-        if (startsWithNamespace(path, ResourceConstants.CP_NS))
+        if (startsWithNamespace(path, ResourceConstants.RESOURCE_NS_CP))
             return path;
-        return ResourceConstants.CP_NS + ':' + path + ResourceConstants.CP_PATH_SUFFIX;
+        return ResourceConstants.RESOURCE_NS_CP + ':' + path + ResourceConstants.CP_PATH_SUFFIX;
     }
 
     /**
@@ -357,7 +357,7 @@ public class ResourceHelper {
         dumpPath = StringHelper.replace(dumpPath, ":", "__");
         if (!dumpPath.startsWith("/"))
             dumpPath = "/" + dumpPath;
-        return buildNamespacePath(ResourceConstants.DUMP_NS, dumpPath);
+        return buildNamespacePath(ResourceConstants.RESOURCE_NS_DUMP, dumpPath);
     }
 
     public static void dumpResource(IResource resource, String source) {
@@ -436,8 +436,8 @@ public class ResourceHelper {
         String path = StringHelper.filePath(resource.getPath());
         path = StringHelper.appendPath(path, relativeName);
 
-        if (hasNamespace(path, ResourceConstants.FILE_NS)) {
-            path = path.substring(ResourceConstants.FILE_NS.length() + 1);
+        if (hasNamespace(path, ResourceConstants.RESOURCE_NS_FILE)) {
+            path = path.substring(ResourceConstants.RESOURCE_NS_FILE.length() + 1);
             return new FileResource(new File(path));
         }
 
@@ -954,17 +954,17 @@ public class ResourceHelper {
 
     public static ClassPathResource getClassPathResource(Package pkg, String fileName) {
         String pkgPath = pkg.getName().replace('.', '/');
-        return new ClassPathResource(ResourceConstants.CLASSPATH_NS + ':' + pkgPath + "/" + fileName);
+        return new ClassPathResource(ResourceConstants.RESOURCE_NS_CLASSPATH + ':' + pkgPath + "/" + fileName);
     }
 
     public static ClassPathResource getClassPathResource(Class clazz) {
         String path = clazz.getName().replace('.', '/') + ".class";
-        return new ClassPathResource(ResourceConstants.CLASSPATH_NS + ":" + path);
+        return new ClassPathResource(ResourceConstants.RESOURCE_NS_CLASSPATH + ":" + path);
     }
 
     public static String buildClassPath(Package pkg, String fileName) {
         String pkgPath = pkg.getName().replace('.', '/');
-        return ResourceConstants.CLASSPATH_NS + ':' + pkgPath + "/" + fileName;
+        return ResourceConstants.RESOURCE_NS_CLASSPATH + ':' + pkgPath + "/" + fileName;
     }
 
     public static IResource buildResourceFromURL(String path, URL url) {
@@ -1040,7 +1040,7 @@ public class ResourceHelper {
 
     public static IResource buildConfigResource(String path) {
         IResource resource;
-        if (ResourceHelper.startsWithNamespace(path, ResourceConstants.CLASSPATH_NS)) {
+        if (ResourceHelper.startsWithNamespace(path, ResourceConstants.RESOURCE_NS_CLASSPATH)) {
             resource = new ClassPathResource(path);
         } else {
             resource = new FileResource(new File(path));

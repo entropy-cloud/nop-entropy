@@ -49,6 +49,7 @@ public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshabl
         registerNamespaceHandler(ModuleNamespaceHandler.INSTANCE);
         registerNamespaceHandler(DynamicNamespaceHandler.INSTANCE);
         registerNamespaceHandler(VirtualNamespaceHandler.INSTANCE);
+        registerNamespaceHandler(DevResourceNamespaceHandler.INSTANCE);
 
         this.buildResourceStore();
     }
@@ -96,7 +97,7 @@ public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshabl
     class SuperNamespaceHandler implements IResourceNamespaceHandler {
         @Override
         public String getNamespace() {
-            return ResourceConstants.SUPER_NS;
+            return ResourceConstants.RESOURCE_NS_SUPER;
         }
 
         @Override
@@ -109,7 +110,7 @@ public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshabl
     class RawNamespaceHandler implements IResourceNamespaceHandler {
         @Override
         public String getNamespace() {
-            return ResourceConstants.RAW_NS;
+            return ResourceConstants.RESOURCE_NS_RAW;
         }
 
         @Override

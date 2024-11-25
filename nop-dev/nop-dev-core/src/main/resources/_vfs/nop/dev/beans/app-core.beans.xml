@@ -4,7 +4,6 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="nopDevModelStore" class="io.nop.dev.core.store.DevModelStoreImpl" />
+    <bean id="nopDevModelStore" class="io.nop.dev.core.store.DevModelStoreImpl"/>
 
-    <bean id="nopDevResourceNamespaceHandler" class="io.nop.dev.core.resource.DevResourceNamespaceHandler" />
 </beans>

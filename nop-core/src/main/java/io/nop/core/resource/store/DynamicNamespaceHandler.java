@@ -18,7 +18,7 @@ public class DynamicNamespaceHandler implements IResourceNamespaceHandler {
 
     @Override
     public String getNamespace() {
-        return ResourceConstants.DYNAMIC_NS;
+        return ResourceConstants.RESOURCE_NS_DYNAMIC;
     }
 
     @Override

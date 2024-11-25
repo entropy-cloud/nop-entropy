@@ -26,7 +26,7 @@ import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_INVALID_PATH_FOR_CLASSPATH_RESOURCE;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_OPEN_INPUT_STREAM_FAIL;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_OPEN_OUTPUT_STREAM_FAIL;
-import static io.nop.core.resource.ResourceConstants.CLASSPATH_NS;
+import static io.nop.core.resource.ResourceConstants.RESOURCE_NS_CLASSPATH;
 
 public class ClassPathResource extends AbstractResource {
 
@@ -46,20 +46,20 @@ public class ClassPathResource extends AbstractResource {
     }
 
     static String normalizeClassPath(String path) {
-        if (!ResourceHelper.startsWithNamespace(path, CLASSPATH_NS))
+        if (!ResourceHelper.startsWithNamespace(path, RESOURCE_NS_CLASSPATH))
             throw new NopException(ERR_RESOURCE_INVALID_PATH_FOR_CLASSPATH_RESOURCE).param(ARG_RESOURCE_PATH, path);
-        if (path.length() < CLASSPATH_NS.length() + 2)
+        if (path.length() < RESOURCE_NS_CLASSPATH.length() + 2)
             throw new NopException(ERR_RESOURCE_INVALID_PATH_FOR_CLASSPATH_RESOURCE).param(ARG_RESOURCE_PATH, path);
 
         // 不能是classpath:/a/b/c这种形式，而只能是classpath:a/b/c
-        if (path.charAt(CLASSPATH_NS.length() + 1) == '/') {
-            return CLASSPATH_NS + ':' + path.substring(CLASSPATH_NS.length() + 2);
+        if (path.charAt(RESOURCE_NS_CLASSPATH.length() + 1) == '/') {
+            return RESOURCE_NS_CLASSPATH + ':' + path.substring(RESOURCE_NS_CLASSPATH.length() + 2);
         }
         return path;
     }
 
     String getResPath() {
-        return getPath().substring(CLASSPATH_NS.length() + 1);
+        return getPath().substring(RESOURCE_NS_CLASSPATH.length() + 1);
     }
 
     public String toString() {

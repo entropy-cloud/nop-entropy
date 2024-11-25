@@ -30,7 +30,7 @@ public class FileNamespaceHandler implements IResourceNamespaceHandler {
 
     @Override
     public String getNamespace() {
-        return ResourceConstants.FILE_NS;
+        return ResourceConstants.RESOURCE_NS_FILE;
     }
 
     @Override
@@ -39,7 +39,7 @@ public class FileNamespaceHandler implements IResourceNamespaceHandler {
     }
 
     public static FileResource buildFileResource(String vPath, boolean checkAllowed) {
-        String path = ResourceHelper.removeNamespace(vPath, ResourceConstants.FILE_NS);
+        String path = ResourceHelper.removeNamespace(vPath, ResourceConstants.RESOURCE_NS_FILE);
         if (path.startsWith("///"))
             path = path.substring(2);
 
@@ -58,7 +58,7 @@ public class FileNamespaceHandler implements IResourceNamespaceHandler {
         }
 
         // file:///test 规范化为 file:/test
-        vPath = ResourceHelper.buildNamespacePath(ResourceConstants.FILE_NS, path);
+        vPath = ResourceHelper.buildNamespacePath(ResourceConstants.RESOURCE_NS_FILE, path);
 
         return new FileResource(vPath, new File(path));
     }

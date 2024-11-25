@@ -19,7 +19,7 @@ public class ModuleNamespaceHandler implements IResourceNamespaceHandler {
 
     @Override
     public String getNamespace() {
-        return ResourceConstants.MODULE_NS;
+        return ResourceConstants.RESOURCE_NS_MODULE;
     }
 
     @Override

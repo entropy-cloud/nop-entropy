@@ -25,7 +25,7 @@ public class TempNamespaceHandler implements IResourceNamespaceHandler {
 
     @Override
     public String getNamespace() {
-        return ResourceConstants.TEMP_NS;
+        return ResourceConstants.RESOURCE_NS_TEMP;
     }
 
     @Override

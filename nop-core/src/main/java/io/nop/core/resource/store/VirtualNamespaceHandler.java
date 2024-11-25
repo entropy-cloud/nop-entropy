@@ -18,7 +18,7 @@ public class VirtualNamespaceHandler implements IResourceNamespaceHandler {
 
     @Override
     public String getNamespace() {
-        return ResourceConstants.MODULE_V;
+        return ResourceConstants.RESOURCE_NS_V;
     }
 
     @Override

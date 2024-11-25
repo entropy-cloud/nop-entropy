@@ -27,7 +27,7 @@
                          <c:ast>
                             <c:script>
                                const batchTaskManager = inject('nopBatchTaskManager');
-                               const batchTaskContext = batchTaskManager.newBatchTaskContext(svcCtx);
+                               const batchTaskContext = batchTaskManager.newBatchTaskContext(svcCtx,$scope);
                                return batchTaskBuilder.buildTask(batchTaskContext).executeAsync(batchTaskContext);
                             </c:script>
                          </c:ast>

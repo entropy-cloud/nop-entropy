@@ -280,7 +280,7 @@ public class XDslExtender {
                     if (!StringHelper.isValidVPath(currentPath))
                         throw new NopException(ERR_XDSL_SUPER_EXTENDS_INVALID_PATH).param(ARG_NODE, node)
                                 .param(ARG_PATH, currentPath);
-                    extendPath = ResourceConstants.SUPER_NS + ':' + currentPath;
+                    extendPath = ResourceConstants.RESOURCE_NS_SUPER + ':' + currentPath;
                 } else {
                     extendPath = loc == null ? extendPath : StringHelper.absolutePath(loc.getPath(), extendPath);
                 }

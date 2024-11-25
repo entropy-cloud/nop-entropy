@@ -1643,6 +1643,10 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return appendBodyXml(null, xml, false);
     }
 
+    public XNode appendBodyXml(SourceLocation loc, String xml) {
+        return appendBodyXml(loc, xml, false);
+    }
+
     public XNode appendBodyXml(SourceLocation loc, String xml, boolean forHtml) {
 
         checkNotReadOnly();
@@ -1656,19 +1660,24 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return this;
     }
 
-    public void prependBodyXml(String xml) {
-        prependBodyXml(null, xml, false);
+    public XNode prependBodyXml(String xml) {
+        return prependBodyXml(null, xml, false);
     }
 
-    public void prependBodyXml(SourceLocation loc, String xml, boolean forHtml) {
+    public XNode prependBodyXml(SourceLocation loc, String xml) {
+        return prependBodyXml(loc, xml, false);
+    }
+
+    public XNode prependBodyXml(SourceLocation loc, String xml, boolean forHtml) {
         checkNotReadOnly();
 
         if (StringHelper.isEmpty(xml))
-            return;
+            return this;
 
         XNode node = XNodeParser.instance().forFragments(true).forHtml(forHtml).parseFromText(loc, xml);
         _normalizeContent(this);
         this.insertChildren(0, node.detachChildren());
+        return this;
     }
 
     public void forEachChild(Consumer<XNode> action) {

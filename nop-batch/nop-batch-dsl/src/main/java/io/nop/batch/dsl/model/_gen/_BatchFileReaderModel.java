@@ -46,10 +46,10 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      *  
-     * xml name: recordInputProvider
+     * xml name: newRecordInputProvider
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _recordInputProvider ;
+    private io.nop.core.lang.eval.IEvalAction _newRecordInputProvider ;
     
     /**
      *  
@@ -143,19 +143,19 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      * 
-     * xml name: recordInputProvider
+     * xml name: newRecordInputProvider
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getRecordInputProvider(){
-      return _recordInputProvider;
+    public io.nop.core.lang.eval.IEvalAction getNewRecordInputProvider(){
+      return _newRecordInputProvider;
     }
 
     
-    public void setRecordInputProvider(io.nop.core.lang.eval.IEvalAction value){
+    public void setNewRecordInputProvider(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._recordInputProvider = value;
+        this._newRecordInputProvider = value;
            
     }
 
@@ -217,7 +217,7 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
         out.putNotNull("filePath",this.getFilePath());
         out.putNotNull("headers",this.getHeaders());
         out.putNotNull("maxCount",this.getMaxCount());
-        out.putNotNull("recordInputProvider",this.getRecordInputProvider());
+        out.putNotNull("newRecordInputProvider",this.getNewRecordInputProvider());
         out.putNotNull("resourceIO",this.getResourceIO());
         out.putNotNull("resourceLoader",this.getResourceLoader());
     }
@@ -235,7 +235,7 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
         instance.setFilePath(this.getFilePath());
         instance.setHeaders(this.getHeaders());
         instance.setMaxCount(this.getMaxCount());
-        instance.setRecordInputProvider(this.getRecordInputProvider());
+        instance.setNewRecordInputProvider(this.getNewRecordInputProvider());
         instance.setResourceIO(this.getResourceIO());
         instance.setResourceLoader(this.getResourceLoader());
     }

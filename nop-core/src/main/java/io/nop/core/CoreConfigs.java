@@ -217,4 +217,7 @@ public interface CoreConfigs {
 
     @Description("资源文件启用租户支持")
     IConfigReference<Boolean> CFG_TENANT_RESOURCE_ENABLED = varRef(s_loc, "nop.core.tenant-resource.enabled", Boolean.class, false);
+
+    @Description("开发工程的根目录，子模块全部存放在此目录下")
+    IConfigReference<String> CFG_DEV_ROOT_PATH = varRef(s_loc, "nop.core.dev-root-path", String.class, null);
 }

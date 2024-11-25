@@ -31,16 +31,16 @@
                       const fileModel = node.attrText('record:file-model');
                       if(fileModel){
                          node.removeAttr('record:file-model');
-                         node.makeChild('recordInputProvider')
-                             .appendBodyXml('<batch-record:BuildRecordInputProviderFromFileModel fileModel="#{'
+                         node.makeChild('newRecordInputProvider')
+                             .appendBodyXml(location(),'<batch-record:BuildRecordInputProviderFromFileModel fileModel="#{'
                                             +fileModel+'}" xpl:lib="/nop/batch/xlib/batch-record.xlib" />');
                       }
                    }else if(node.tagName == 'file-writer'){
                       const fileModel = node.attrText('record:file-model');
                       if(fileModel){
                          node.removeAttr('record:file-model');
-                         node.makeChild('recordOutputProvider')
-                             .appendBodyXml('<batch-record:BuildRecordOutputProviderFromFileModel fileModel="#{'
+                         node.makeChild('newRecordOutputProvider')
+                             .appendBodyXml(location(),'<batch-record:BuildRecordOutputProviderFromFileModel fileModel="#{'
                                             +fileModel+'}" xpl:lib="/nop/batch/xlib/batch-record.xlib" />');
                       }
                    }

@@ -43,7 +43,8 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResourceLoader;
 import io.nop.core.resource.VirtualFileSystem;
-import io.nop.core.resource.record.IResourceRecordIO;
+import io.nop.core.resource.record.IResourceRecordInputProvider;
+import io.nop.core.resource.record.IResourceRecordOutputProvider;
 import io.nop.core.resource.record.csv.CsvResourceRecordIO;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IQueryBuilder;
@@ -56,6 +57,7 @@ import io.nop.dataset.record.support.RecordTagSplitter;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.utils.SingleSessionFunctionInvoker;
+import io.nop.xlang.api.XLang;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -295,7 +297,7 @@ public class ModelBasedBatchTaskBuilderFactory {
     private IBatchLoaderProvider<Object> buildFileReader(BatchFileReaderModel loaderModel,
                                                          IBeanProvider beanContainer,
                                                          IBatchAggregator<Object, Object, Map<String, Object>> aggregator) {
-        IResourceRecordIO<Object> recordIO = loadRecordIO(loaderModel.getResourceIO(), beanContainer);
+        IResourceRecordInputProvider<Object> recordIO = newRecordInputProvider(loaderModel, beanContainer);
         IResourceLoader resourceLoader = loadResourceLoader(loaderModel.getResourceLoader(), beanContainer);
 
         ResourceRecordLoaderProvider<Object> loader = new ResourceRecordLoaderProvider<>();
@@ -311,9 +313,23 @@ public class ModelBasedBatchTaskBuilderFactory {
         return loader;
     }
 
-    private IResourceRecordIO<Object> loadRecordIO(String beanName, IBeanProvider beanContainer) {
+    private IResourceRecordInputProvider<Object> newRecordInputProvider(BatchFileReaderModel readerModel, IBeanProvider beanContainer) {
+        String beanName = readerModel.getResourceIO();
         if (beanName != null)
-            return (IResourceRecordIO<Object>) beanContainer.getBean(beanName);
+            return (IResourceRecordInputProvider<Object>) beanContainer.getBean(beanName);
+
+        if (readerModel.getNewRecordInputProvider() != null)
+            return (IResourceRecordInputProvider<Object>) readerModel.getNewRecordInputProvider().invoke(XLang.newEvalScope());
+        return new CsvResourceRecordIO<>();
+    }
+
+    private IResourceRecordOutputProvider<Object> newRecordOutputProvider(BatchFileWriterModel readerModel, IBeanProvider beanContainer) {
+        String beanName = readerModel.getResourceIO();
+        if (beanName != null)
+            return (IResourceRecordOutputProvider<Object>) beanContainer.getBean(beanName);
+
+        if (readerModel.getNewRecordOutputProvider() != null)
+            return (IResourceRecordOutputProvider<Object>) readerModel.getNewRecordOutputProvider().invoke(XLang.newEvalScope());
         return new CsvResourceRecordIO<>();
     }
 
@@ -384,7 +400,7 @@ public class ModelBasedBatchTaskBuilderFactory {
 
         if (listenersModel.getOnChunkEnd() != null) {
             builder.addTaskInitializer(context -> {
-                context.onChunkEnd((ctx,err) -> {
+                context.onChunkEnd((ctx, err) -> {
                     listenersModel.getOnChunkEnd().call2(null, ctx, err, ctx.getEvalScope());
                 });
             });
@@ -452,7 +468,7 @@ public class ModelBasedBatchTaskBuilderFactory {
 
     private ResourceRecordConsumerProvider<Object> newFileWriter(BatchFileWriterModel consumerModel,
                                                                  IBeanProvider beanContainer) {
-        IResourceRecordIO<Object> recordIO = loadRecordIO(consumerModel.getResourceIO(), beanContainer);
+        IResourceRecordOutputProvider<Object> recordIO = newRecordOutputProvider(consumerModel, beanContainer);
         IResourceLoader resourceLoader = loadResourceLoader(consumerModel.getResourceLoader(), beanContainer);
 
         ResourceRecordConsumerProvider<Object> writer = new ResourceRecordConsumerProvider<>();

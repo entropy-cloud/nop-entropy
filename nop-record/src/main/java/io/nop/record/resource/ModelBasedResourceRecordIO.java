@@ -33,7 +33,7 @@ import java.io.OutputStream;
 import java.io.Writer;
 import java.nio.ByteBuffer;
 
-public class ResourceRecordIO<T> implements IResourceRecordIO<T> {
+public class ModelBasedResourceRecordIO<T> implements IResourceRecordIO<T> {
 
     private String modelFilePath = "/model/record/";
     private RecordFileMeta fileMeta;
@@ -46,9 +46,9 @@ public class ResourceRecordIO<T> implements IResourceRecordIO<T> {
         this.fileMeta = fileMeta;
     }
 
-    public static <T> ResourceRecordIO<T> fromFileModel(RecordFileMeta fileMeta) {
+    public static <T> ModelBasedResourceRecordIO<T> fromFileModel(RecordFileMeta fileMeta) {
         Guard.notNull(fileMeta, "fileMeta");
-        ResourceRecordIO<T> io = new ResourceRecordIO<>();
+        ModelBasedResourceRecordIO<T> io = new ModelBasedResourceRecordIO<>();
         io.setFileModel(fileMeta);
         return io;
     }

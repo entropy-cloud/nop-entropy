@@ -47,7 +47,7 @@
             xdef:ref="BatchListenersModel" xdef:mandatory="true">
         <file-reader filePath="!t-expr" xdef:name="BatchFileReaderModel" encoding="string"
                      resourceLoader="bean-name" resourceIO="bean-name" maxCount="long">
-            <recordInputProvider xdef:value="xpl"/>
+            <newRecordInputProvider xdef:value="xpl"/>
 
             <headers xdef:value="csv-set"/>
         </file-reader>
@@ -90,7 +90,7 @@
 
         <file-writer filePath="!t-expr" xdef:name="BatchFileWriterModel" encoding="string"
                      resourceLoader="bean-name" resourceIO="bean-name">
-            <recordOutputProvider xdef:value="xpl"/>
+            <newRecordOutputProvider xdef:value="xpl"/>
             <headers xdef:value="csv-set"/>
         </file-writer>
 
