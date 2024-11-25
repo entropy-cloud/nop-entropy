@@ -6,7 +6,7 @@
     <tags>
         <Execute ignoreUnknownAttrs="true" macro="true">
             <!-- slotType=node表示保持XNode节点内容传入到source段中。如果不设置这个属性，则会编译后传入 -->
-            <slot name="default" slotType="node"/>
+            <slot name="task" slotType="node"/>
 
             <description>
                 利用宏标签机制将XNode按照BatchTask模型解析，并转化为对BatchTask的调用。
@@ -14,22 +14,26 @@
 
             <source>
                 <c:script><![CDATA[
-                   const node = slot_default;
+                   const node = slot_task.cloneInstance();
+                   node.setAttrIfAbsent('x:schema','/nop/schema/task/batch.xdef');
+                   node.setAttr('xmlns:x','/nop/schema/xdsl.xdef');
+                   node.tagName = 'batch';
+
                    const batchTaskManager = inject('nopBatchTaskManager')
-                   const batchTaskFactory = batchTaskManager.newBatchTaskFactoryFromModel(
-                            node.getAttr('name')||'inline-task', node);
+                   const batchTaskBuilder = batchTaskManager.newBatchTaskBuilderFromModel(
+                            node.getAttr('name')||'inline-task', node,$beanProvider,$scope);
                     // 得到<c:script>对应的抽象语法树
                     let ast = xpl `
                          <c:ast>
                             <c:script>
                                const batchTaskManager = inject('nopBatchTaskManager');
-                               const batchTaskContext = batchTaskManager.newBatchTaskContext(svcCtx,$scope);
-                               return batchTaskFactory.newTask($beanProvider).executeAsync(batchTaskContext);
+                               const batchTaskContext = batchTaskManager.newBatchTaskContext(svcCtx);
+                               return batchTaskBuilder.buildTask(batchTaskContext).executeAsync(batchTaskContext);
                             </c:script>
                          </c:ast>
                      `
                     // 将抽象语法树中的标识名称替换为编译期解析得到的模型对象。这样在运行期就不需要动态加载模型并解析
-                    return ast.replaceIdentifier("batchTaskFactory",batchTaskFactory);
+                    return ast.replaceIdentifier("batchTaskBuilder",batchTaskBuilder);
                 ]]></c:script>
 
             </source>

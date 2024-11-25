@@ -689,7 +689,7 @@ public class LexicalScopeAnalysis extends XLangASTVisitor {
             return new ResolvedFuncDefinition(func);
         }
 
-        ScopeVarDefinition var = scope.getScopeVarDefinition(name, scope.isInMacro());
+        ScopeVarDefinition var = scope.resolveScopeVarDefinition(name, scope.isInMacro());
         if (var != null) {
             LOG.trace("nop.xlang.resolve-scope-var:name={},loc={},macro={}", name, identifier.getLocation(),
                     scope.isInMacro());

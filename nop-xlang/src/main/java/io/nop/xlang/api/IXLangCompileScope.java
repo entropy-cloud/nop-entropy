@@ -132,6 +132,8 @@ public interface IXLangCompileScope extends IEvalScope {
 
     ScopeVarDefinition getScopeVarDefinition(String varName, boolean macro);
 
+    ScopeVarDefinition resolveScopeVarDefinition(String varName, boolean macro);
+
     XLangIdentifierDefinition resolveVar(SourceLocation loc, String varName, boolean macro);
 
     XLangIdentifierDefinition resolveVarInFunctionScope(SourceLocation loc, String varName, boolean macro);

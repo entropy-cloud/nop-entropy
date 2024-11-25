@@ -71,7 +71,7 @@
     <processor bean="bean-name" name="var-name" order="!int=0"
                xdef:unique-attr="name" xdef:name="BatchProcessorModel" xdef:ref="BatchListenersModel">
         <filter xdef:value="xpl-fn:(item,chunkCtx)=>boolean"/>
-        <source xdef:value="xpl-fn:(item,consumer,chunkCtx)=>void"/>
+        <source xdef:value="xpl-fn:(item,consume,chunkCtx)=>void"/>
         <adapter xdef:value="xpl-fn:(processor)=>any"/>
     </processor>
 

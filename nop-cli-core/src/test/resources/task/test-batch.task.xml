@@ -2,7 +2,7 @@
     <input name="sysDate"/>
 
     <steps>
-        <custom name="importDataFile" customType="batch:Step">
+        <custom name="importDataFile" customType="batch-task:Execute">
             <batch:task>
                <loader>
                    <file-reader path="data/${sysDate}.txt">

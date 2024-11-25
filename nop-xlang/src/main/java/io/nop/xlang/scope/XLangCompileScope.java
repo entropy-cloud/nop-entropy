@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.xlang.XLangErrors.ARG_TAG_NAME;
 import static io.nop.xlang.XLangErrors.ARG_VAR_DECL1;
@@ -126,6 +127,20 @@ public class XLangCompileScope extends EvalScopeImpl implements IXLangCompileSco
     public IXLangCompileScope newChildScope(boolean inheritParentVars) {
         XLangCompileScope scope = new XLangCompileScope(this, new HashMap<>(), inheritParentVars,
                 this.compiler);
+        return scope;
+    }
+
+    @Override
+    public IEvalScope newChildScope(boolean inheritParentVars, boolean threadSafe) {
+        XLangCompileScope scope = new XLangCompileScope(this, threadSafe ? new ConcurrentHashMap<>() : new HashMap<>(),
+                inheritParentVars, this.compiler);
+        return scope;
+    }
+
+    @Override
+    public IEvalScope newChildScope(Map<String, Object> childVars) {
+        XLangCompileScope scope = new XLangCompileScope(this, childVars,
+                true, this.compiler);
         return scope;
     }
 
@@ -283,12 +298,23 @@ public class XLangCompileScope extends EvalScopeImpl implements IXLangCompileSco
         }
     }
 
+    @Override
     public ScopeVarDefinition getScopeVarDefinition(String varName, boolean macro) {
         if (macro) {
             return macroScopeVarDefs.get(varName);
         } else {
             return scopeVarDefs.get(varName);
         }
+    }
+
+    public ScopeVarDefinition resolveScopeVarDefinition(String varName, boolean macro) {
+        ScopeVarDefinition var = getScopeVarDefinition(varName, macro);
+        if (var != null)
+            return var;
+
+        if (isInheritParentVars() && getParentScope() != null)
+            return getParentScope().getScopeVarDefinition(varName, macro);
+        return null;
     }
 
     @Override

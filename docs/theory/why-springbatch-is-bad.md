@@ -1,4 +1,4 @@
-# 为什么SpringBatch是一个不好的设计？
+# 为什么SpringBatch是一个坏的设计？
 
 SpringBatch是目前Java生态中最常用的批处理框架，银行业务中经常使用SpringBatch来实现日终结算和报表输出等功能。SpringBatch的起源是2006年埃森哲（Accenture）将自己的私有批处理框架开源，与SpringSource（Spring Framework 的背后公司）合作发布了Spring Batch 1.0。
 后续SpringBatch的设计也经过多次重构，但是在今天看来已经存在严重的设计问题，对于性能优化、代码复用都极为不友好。本文将分析SpringBatch的设计问题，并结合NopBatch这一新的批处理框架的实现方案来介绍下一代批处理框架的设计思想。
@@ -138,14 +138,14 @@ class JdbcPagingItemReader<T> implements ItemReader<T> {
 NopBatch中使用IBatchLoader接口来实现批量加载，可以更好的支持批量读取优化。
 
 ```java
-public interface IBatchLoader<S,C> {
+public interface IBatchLoader<S> {
     /**
      * 加载数据
      *
      * @param batchSize 最多装载多少条数据
      * @return 返回空集合表示所有数据已经加载完毕
      */
-    List<S> load(int batchSize, C context);
+    List<S> load(int batchSize, IBatchChunkContext context);
 }
 ```
 
@@ -157,10 +157,10 @@ public interface IBatchLoader<S,C> {
 
 ```javascript
 List<T> data = loader.load(batchSize, context);
-batchLoadRelatedData(data, context);
+batchLoadRelatedData(data, context); // 批量加载其他相关数据
 ```
 
-当处理数据需要获取互斥锁的时候，SpringBatch的设计就显得非常不友好。因为SpringBatch的ItemReader是逐条读取的，导致获取锁的时候无法进行批量优化，并且获取锁的顺序也难以控制，存在死锁风险。
+当处理数据需要获取互斥锁的时候，SpringBatch的设计也显得非常不友好。因为SpringBatch的ItemReader是逐条读取的，导致获取锁的时候无法进行批量优化，并且获取锁的顺序也难以控制，存在死锁风险。
 而NopBatch的设计可以先按照某种规则对记录进行排序（不要求reader读取时整体排序），然后一次性获取所有需要的锁，这样就可以避免死锁风险。
 
 ### 2.2 Processor的每次调用不应该只返回一条记录
@@ -172,7 +172,7 @@ SpringBatch的处理逻辑类似于函数式编程中的map函数，`data.map(a-
 NopBatch仿照流处理框架，定义了如下处理接口
 
 ```java
-public interface IBatchProcessor<S, R, C> {
+public interface IBatchProcessor<S, R> {
     /**
      * 执行类似flatMap的操作
      *
@@ -180,7 +180,7 @@ public interface IBatchProcessor<S, R, C> {
      * @param consumer 接收返回结果，可能为一条或者多条。也可能不产生数据导致consumer不会被调用
      * @param context  上下文信息
      */
-    void process(S item, Consumer<R> consumer, C context);
+    void process(S item, Consumer<R> consumer, IBatchChunkContext context);
 
     /**
      * 两个processor合成为一个processor
@@ -189,7 +189,7 @@ public interface IBatchProcessor<S, R, C> {
      * @param <T>
      * @return
      */
-    default <T> IBatchProcessor<S, T, C> then(IBatchProcessor<R, T, C> processor) {
+    default <T> IBatchProcessor<S, T> then(IBatchProcessor<R, T> processor) {
         return new CompositeBatchProcessor<>(this, processor);
     }
 }
@@ -206,12 +206,12 @@ SpringBatch中的ItemWriter从命名上看是用于消费Processor产生的结�
 NopBatch引入了通用的BatchConsumer概念，使得BatchConsumer和BatchLoader构成一对对偶的接口，BatchLoader加载的数据直接传递给BatchConsumer进行消费。
 
 ```java
-public interface IBatchConsumer<R, C> {
+public interface IBatchConsumer<R> {
     /**
      * @param items   待处理的对象集合
      * @param context 上下文对象
      */
-    void consume(List<R> items, C context);
+    void consume(List<R> items, IBatchChunkContext context);
 }
 ```
 
@@ -228,7 +228,7 @@ Processor可以看作是一种可选的Consumer实现方案
 
 ```java
 public class BatchProcessorConsumer<S, R>
-   implements IBatchConsumer<S, IBatchChunkContext> {
+   implements IBatchConsumer<S> {
     @Override
     public void consume(List<S> items, IBatchChunkContext context) {
         List<R> collector = new ArrayList<>();
@@ -246,7 +246,7 @@ SpringBatch强制限定了一个Chunk的Read-Process-Write在一个事务中执�
 
 比如说，Processor可以在事务之外运行，当业务处理失败时不会产生数据库层面的回滚，从而降低了数据库的压力，也减少了数据库层面的锁竞争。在`OrmSession.flush()`调用的时候才会实际将内存中的修改数据更新到数据库中，此时如果发现乐观锁版本发生变化，则可以触发数据库回滚，避免多线程并发访问同一个业务数据出现冲突。
 
-在NopBatch中，我们根据transactionScope配置的不同，可以创建不同的支持事务处理的Consumer。
+在NopBatch中，我们根据transactionScope配置的不同，可以创建支持不同的事务范围的Consumer。
 
 ```javascript
  if (batchTransactionScope == BatchTransactionScope.consume
@@ -337,42 +337,6 @@ public class RetryBatchConsumer<R>
 
 * 如果有些已经成功完成的记录不需要被重复处理，则可以在consumer中成功处理之后，将它们加入到BatchChunkContext上下文对象中的completedItems集合中。重试整个chunk时，已经被完成的记录会被自动跳过。
 
-### 2.6 分区并行处理能力有限
-SpringBatch提供将数据拆分成多个分区，并分配给多个从属步骤（slave steps）来实现并行处理的机制。以下是分区并行处理的主要步骤和组件：
-
-1. **定义分区器（Partitioner）**：
-   - 分区器负责将数据分成多个分区。每个分区包含一部分数据，并将这些分区信息存储在`ExecutionContext`中。
-
-2. **配置主步骤（Master Step）**：
-   - 主步骤负责管理分区和分配任务。它使用分区器生成分区，并将每个分区分配给从属步骤进行处理。
-
-3. **配置从属步骤（Slave Step）**：
-   - 从属步骤负责处理分配给它的分区数据。每个从属步骤可以并行执行，从而提高处理效率。
-
-4. **任务执行器（Task Executor）**：
-   - 任务执行器用于并行执行从属步骤。可以配置不同类型的任务执行器，如`SimpleAsyncTaskExecutor`或`ThreadPoolTaskExecutor`，以实现并行处理。
-
-通过以上步骤，Spring Batch可以有效地将大任务分解为多个小任务并行处理，从而提高处理效率和性能。
-
-```xml
-<batch:job id="partitionedJob">
-   <batch:step id="masterStep">
-      <batch:partition step="slaveStep" partitioner="rangePartitioner">                      <batch:handler grid-size="4" task-executor="taskExecutor"/>
-      </batch:partition>
-   </batch:step>
-</batch:job>
-
-<!-- Slave step definition -->
-<batch:step id="slaveStep">
-   <batch:tasklet>
-     <batch:chunk reader="itemReader" processor="itemProcessor" 
-                  writer="itemWriter" commit-interval="10"/>
-   </batch:tasklet>
-</batch:step>
-```
-
-SpringBatch的这种分区并行设计相当于是从Reader开始就实现分区读取，然后每个Slave步骤都使用专属于自己的Reader去读取数据，然后再做处理。如果某一个分区的数据特别多，其他分区的线程全部处理完毕空闲下来之后也无法帮助它
-
 ## 三. NopBatch的架构变化
 
 ### 3.1 通过context实现动态注册Listener
@@ -381,7 +345,7 @@ SpringBatch中的reader/writer/processor如果需要监听步骤开始、步骤�
 
 ```java
 class MyProcessor implements ItemProcessor, StepExecutionListener{
-    
+
     @Override
     public void beforeStep(StepExecution stepExecution) {
         System.out.println("Before Step: " + stepExecution.getStepName());
@@ -521,7 +485,7 @@ class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandler
             return load(batchSize, state);
         };
     }
-    
+
     LoaderState<S> newLoaderState(IBatchTaskContext context) {
         LoaderState<S> state = new LoaderState<>();
         state.context = context;
@@ -542,7 +506,6 @@ class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandler
         return state;
     }
 }
-
 ```
 
 在上面的示例中，我们通过显式传递的上下文对象上的onAfterComplete等函数来注册回调函数。如果做进一步的封装，使用ThreadLocal来存放context对象，则可以使得调用形式更加接近Hooks。
@@ -575,7 +538,6 @@ public class BatchTaskGlobals {
 导入BatchTaskGlobals上的静态方法后，就可以使用如下调用形式
 
 ```java
-
 IBatchLoader setup(ITaskContext context){
    init();
    ...
@@ -585,7 +547,7 @@ void init(){
    onBeforeTaskEnd(taskCtx ->{
       ...
    });
-     
+
    onChunkBegin(chunkCtx ->{
      ...
    });
@@ -597,6 +559,7 @@ void init(){
 Provider现在成为单例对象，可以使用IoC容器进行配置，不需要动态Scope支持。同时，无论封装多少层，都可以直接访问到上下文对象IBatchTaskContext，通过它动态注册各类事件监听函数。
 
 ### 3.2 使用通用的TaskFlow来组织逻辑流
+
 SpringBatch提供了一种简易的逻辑流模型，在XML中可以配置多个步骤以及步骤之间的转移关系，还支持并行执行和条件跳转。
 
 ```xml
@@ -632,21 +595,21 @@ SpringBatch中调度的步骤单元对应于Tasklet接口，chunk处理是Taskle
 public class ChunkOrientedTasklet<I> implements Tasklet{
    public RepeatStatus execute(StepContribution contribution, ChunkContext                   chunkContext) throws Exception {
 
-		Chunk<I> inputs = (Chunk<I>) chunkContext.getAttribute(INPUTS_KEY);
-		if (inputs == null) {
-			inputs = chunkProvider.provide(contribution);
-			if (buffering) {
-				chunkContext.setAttribute(INPUTS_KEY, inputs);
-			}
-		}
-		
-		chunkProcessor.process(contribution, inputs);
-		chunkProvider.postProcess(contribution, inputs);
+        Chunk<I> inputs = (Chunk<I>) chunkContext.getAttribute(INPUTS_KEY);
+        if (inputs == null) {
+            inputs = chunkProvider.provide(contribution);
+            if (buffering) {
+                chunkContext.setAttribute(INPUTS_KEY, inputs);
+            }
+        }
 
-		chunkContext.removeAttribute(INPUTS_KEY);
-		chunkContext.setComplete();
-		return RepeatStatus.continueIf(!inputs.isEnd());
-	}
+        chunkProcessor.process(contribution, inputs);
+        chunkProvider.postProcess(contribution, inputs);
+
+        chunkContext.removeAttribute(INPUTS_KEY);
+        chunkContext.setComplete();
+        return RepeatStatus.continueIf(!inputs.isEnd());
+    }
 }
 ```
 
@@ -657,19 +620,19 @@ public class ChunkOrientedTasklet<I> implements Tasklet{
 ```java
 public interface Tasklet {
 
-	/**
-	 * Given the current context in the form of a step contribution, do whatever is
-	 * necessary to process this unit inside a transaction. Implementations return
-	 * {@link RepeatStatus#FINISHED} if finished. If not they return
-	 * {@link RepeatStatus#CONTINUABLE}. On failure throws an exception.
-	 * @param contribution mutable state to be passed back to update the current step
-	 * execution
-	 * @param chunkContext attributes shared between invocations but not between restarts
-	 * @return an {@link RepeatStatus} indicating whether processing is continuable.
-	 * Returning {@code null} is interpreted as {@link RepeatStatus#FINISHED}
-	 * @throws Exception thrown if error occurs during execution.
-	 */
-	RepeatStatus execute(StepContribution contribution, 
+    /**
+     * Given the current context in the form of a step contribution, do whatever is
+     * necessary to process this unit inside a transaction. Implementations return
+     * {@link RepeatStatus#FINISHED} if finished. If not they return
+     * {@link RepeatStatus#CONTINUABLE}. On failure throws an exception.
+     * @param contribution mutable state to be passed back to update the current step
+     * execution
+     * @param chunkContext attributes shared between invocations but not between restarts
+     * @return an {@link RepeatStatus} indicating whether processing is continuable.
+     * Returning {@code null} is interpreted as {@link RepeatStatus#FINISHED}
+     * @throws Exception thrown if error occurs during execution.
+     */
+    RepeatStatus execute(StepContribution contribution,
            ChunkContext chunkContext) throws Exception;
 
 }
@@ -693,17 +656,17 @@ NopTaskFlow是根据可逆计算原理从零开始构建的下一代逻辑流编
            <sequential timeout="3000">
              <retry maxRetryCount="5" />
              <decorator name="transaction" />
-             
+
              <steps>
                <simple name="step1" bean="tasklet1" />
                <simple name="step2" bean="tasklet2" />
              </steps>
            </sequential>
-          
+
            <simple name="step3" bean="tasklet3" />
-        </steps>  
-      </parallel>  
-      
+        </steps>
+      </parallel>
+
       <simple name="step4" bean="tasklet4" />
     </steps>
 </task>
@@ -715,7 +678,7 @@ NopTaskFlow提供了parallel、sequential、loop、choose、fork等丰富的逻�
  <sequential timeout="3000">
     <retry maxRetryCount="5" />
     <decorator name="transaction" />
-             
+
     <steps>
        <simple name="step1" bean="tasklet1" />
        <simple name="step2" bean="tasklet2" />
@@ -734,27 +697,27 @@ NopTaskFlow还支持直接嵌套执行Xpl模板语言和XScript脚本。
        <c:script>
          const isAdmin = svcCtx.userContext.hasRole('admin');
        </c:script>
-       
+
        <c:choose>
          <when test="${isAdmin}">
            <app:AdminService arg1="3" />
          </when>
          <otherwise>
             <app:UserService arg1="4" />
-         </otherwise>  
-       </c:choose>  
-     </source>  
-   </xpl>  
-  
+         </otherwise>
+       </c:choose>
+     </source>
+   </xpl>
+
   <script name="step2" lang="java">
     <source>
      import app.MyBuilder;
-    
+
      const tool = new MyBuilder().build();
      tool.run(arg1);
-    </source>  
-  </script>  
-</steps> 
+    </source>
+  </script>
+</steps>
 ```
 
 NopTaskFlow中核心的步骤抽象对应于如下接口
@@ -797,23 +760,214 @@ ITaskStep提供了远比SpringBatch的Tasklet更加完善的抽象支持。比�
 <xpl name="step1">
    <input name="a" type="int">
      <source> x + 1</source>
-   </input>  
+   </input>
   <input name="b" type="int" >
     <source> y + 2</source>
-  </input>  
+  </input>
    <output name="RESULT" name="int" />
   <source>
      return a + b
   </source>
-</xpl> 
+</xpl>
 ```
 
 以上代码等价于如下函数调用
 
 ```javascript
-(function(a:int, b:int){
+function step1(a:int, b:int){
    return { RESULT: a + b};
-})(x+1,y+2)
+}
+
+const {RESULT} = step1(x+1,y+2)
 ```
 
-## 三. DSL森林: NopTaskFlow + NopBatch + NopRecord
+### 3.3 支持工作共享的分区并行处理
+
+SpringBatch提供将数据拆分成多个分区，并分配给多个从属步骤（slave steps）来实现并行处理的机制。以下是分区并行处理的主要步骤和组件：
+
+1. **定义分区器（Partitioner）**：
+
+   - 分区器负责将数据分成多个分区。每个分区包含一部分数据，并将这些分区信息存储在`ExecutionContext`中。
+
+2. **配置主步骤（Master Step）**：
+
+   - 主步骤负责管理分区和分配任务。它使用分区器生成分区，并将每个分区分配给从属步骤进行处理。
+
+3. **配置从属步骤（Slave Step）**：
+
+   - 从属步骤负责处理分配给它的分区数据。每个从属步骤可以并行执行，从而提高处理效率。
+
+4. **任务执行器（Task Executor）**：
+
+   - 任务执行器用于并行执行从属步骤。可以配置不同类型的任务执行器，如`SimpleAsyncTaskExecutor`或`ThreadPoolTaskExecutor`，以实现并行处理。
+
+通过以上步骤，Spring Batch可以有效地将大任务分解为多个小任务并行处理，从而提高处理效率和性能。
+
+```xml
+<batch:job id="partitionedJob">
+   <batch:step id="masterStep">
+      <batch:partition step="slaveStep" partitioner="rangePartitioner">                      <batch:handler grid-size="4" task-executor="taskExecutor"/>
+      </batch:partition>
+   </batch:step>
+</batch:job>
+
+<!-- Slave step definition -->
+<batch:step id="slaveStep">
+   <batch:tasklet>
+     <batch:chunk reader="itemReader" processor="itemProcessor"
+                  writer="itemWriter" commit-interval="10"/>
+   </batch:tasklet>
+</batch:step>
+```
+
+SpringBatch的这种分区并行设计相当于是从Reader开始就实现分区读取，然后每个Slave步骤都使用专属于自己的Reader去读取数据，然后再做处理。如果某一个分区的数据特别多，其他分区的线程全部处理完毕空闲下来之后也无法帮助它。
+在实际业务中，往往存在更细粒度的分区可能性。比如说，银行业务中往往只需要保证单个账户的数据按照顺序处理，不同账户的数据可以并行处理。NopBatch提供了更加灵活的分区并行处理策略。
+
+首先，NopBatch中的BatchTask具有concurrency参数，通过它可以指定使用多少个并行线程去处理。同时，在IBatchChunkContext中保存concurrency参数和当前线程索引参数，这样在处理的时候，我们就可以直接知道总共有多少个处理线程，当前线程是其中的第几个线程，便于内部执行分区操作。
+
+```java
+interface IBatchChunkContext{
+  int getConcurrency();
+  int getThreadIndex();
+  ...
+}
+
+class BatchTaskExecution{
+   public CompletableFuture<Void> executeAsync(IBatchTaskContext context){
+      CompletableFuture<Void> future = new CompletableFuture<>();
+
+      context.fireTaskBegin();
+
+      // 多个线程可以并发执行。loader/processor/consumer都需要是线程安全的
+      CompletableFuture<?>[] futures = new CompletableFuture[concurrency];
+      for (int i = 0; i < concurrency; i++) {
+           futures[i] = executeChunkLoop(context, i);
+      }
+
+      CompletableFuture.allOf(futures).whenComplete((ret, err) -> {
+           onTaskComplete(future, meter, err, context);
+      });
+
+      return future;
+   }
+
+   CompletableFuture<Void> executeChunkLoop(IBatchTaskContext context,
+                                            int threadIndex) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        executor.execute(() -> {
+            BatchTaskGlobals.provideTaskContext(context);
+            try {
+                do {
+                    if (context.isCancelled())
+                        throw new BatchCancelException(ERR_BATCH_CANCEL_PROCESS);
+
+                    IBatchChunkContext chunkContext = context.newChunkContext();
+                    chunkContext.setConcurrency(concurrency);
+                    chunkContext.setThreadIndex(threadIndex);
+
+                    if (processChunk(chunkContext)!= ProcessResult.CONTINUE)
+                        break;
+                } while (true);
+
+                future.complete(null);
+            } catch (Exception e) {
+                future.completeExceptionally(e);
+            } finally {
+                BatchTaskGlobals.removeTaskContext();
+            }
+        });
+        return future;
+    }
+}
+```
+
+与SpringBatch的grid分区不同，NopBatch的步骤级别并行处理时是共享Loader、Processor和Consumer的，只是通过IBatchChunkContext传入了concurrency和threadIndex参数。
+
+NopBatch内置了一个PartitionDispatchLoaderProvider，它提供了一种灵活的分区加载能力。PartitionDispatchLoaderProvider在setup的时候会启动几个加载线程去实际加载数据，然后在内存中通过散列函数根据业务关键信息计算得到一个0到32767之间的Hash值，每个Hash值对应于一个微队列，每个队列中的记录都必须按顺序进行处理。所有的微队列放到PartitionDispatchQueue中统一管理。
+
+每个处理线程去加载chunk数据的时候，可以从PartitionDispatchQueue中的微队列中获取数据，每次获取到数据后就标记对应的微队列已经被使用，阻止其他线程去处理同样的微队列。当chunk处理完毕之后，会在onChunkEnd回调函数中释放对应的微队列。
+
+在SpringBatch中每个线程对应一个分区，分区的个数等于线程的个数。而在NopBatch中实际分区的个数最大为32768，它远大于批处理任务的并行线程数，同时又远小于实际业务实体数，可以保证分区比较均衡同时又不需要在内存中维护太多的队列。
+
+如果确实需要类似SpringBatch的步骤级别的并行处理能力，可以直接使用NopTaskFlow中的fork或者fork-n步骤配置。
+
+```xml
+<fork name="processFile" var="fileName" aggregateVarName="results"
+      executor="nop-global-worker">
+     <producer>
+       return ["a.dat","b.dat"]
+     </producer>
+
+     <steps>
+        <!-- 上下文环境中存在名称为fileName的变量 -->
+     </steps>
+
+     <aggregator>
+       <!-- 当所有fork步骤执行完毕之后可以执行一个可选的汇总动作 -->
+     </aggregator>
+</fork>
+```
+
+fork步骤的producer可以动态计算得到一个列表，然后针对其中的每个元素会启动一个单独的步骤实例。
+
+## 三. DSL森林: NopTaskFlow + NopBatch + NopRecord + NopORM
+
+SpringBatch虽然号称是声明式开发，但是它的声明式是利用Spring IoC有限的Bean组装描述，大量的业务相关内容仍然是需要写在Java代码中，并没有建立一个完整的能够实现细粒度的声明式开发的批处理模型。另外一方面，如果SpringBatch真的提出一个专用于批处理的领域特定模型，似乎又难以保证它的可扩展性，有可能会限制它的应用范围。
+
+NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方案，也就是所谓的DSL森林：通过复用一组无缝嵌套在一起的、适用于不同局部领域的DSL来解决问题，而不是依靠一个单一的、大而全的、专门针对批处理设计的DSL。针对批处理，我们只建立一个最小化的NopBatch批处理模型，它负责抽象Batch领域特定的Chunk处理逻辑，并提供一系列的辅助实现类，比如PartitionDispatcherQueue。在更宏观的任务编排层面上，我们复用已有的NopTaskFlow来实现。NopTaskFlow完全不具备批处理相关的知识，也不需要为了与NopBatch集成在一起在引擎内部做任何适应性改造，而是通过元编程抹平两者之间融合所产生的一切沟沟坎坎。
+
+在文件解析层面，SpringBatch提供了一个FlatFileItemReader，通过它可以进行一系列的配置来实现对简单结构的数据文件实现解析。
+
+```xml
+<bean id="flatFileItemReader" class="org.springframework.batch.item.file.FlatFileItemReader">
+    <property name="resource" value="classpath:data/input.dat" />
+    <property name="lineMapper">
+        <bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+            <property name="lineTokenizer">
+                <bean class="org.springframework.batch.item.file.transform.FixedLengthTokenizer">
+                    <property name="names" value="length,name,price,quantity" />
+                    <property name="columns">
+                        <list>
+                            <bean class="org.springframework.batch.item.file.transform.Range">
+                                <constructor-arg value="1" />
+                                <constructor-arg value="4" />
+                            </bean>
+                            <bean class="org.springframework.batch.item.file.transform.Range">
+                                <constructor-arg value="5" />
+                                <constructor-arg value="24" />
+                            </bean>
+                            <bean class="org.springframework.batch.item.file.transform.Range">
+                                <constructor-arg value="25" />
+                                <constructor-arg value="30" />
+                            </bean>
+                            <bean class="org.springframework.batch.item.file.transform.Range">
+                                <constructor-arg value="31" />
+                                <constructor-arg value="36" />
+                            </bean>
+                        </list>
+                    </property>
+                </bean>
+            </property>
+            <property name="fieldSetMapper">
+                <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper">
+                    <property name="targetType" value="com.example.MyRecord" />
+                </bean>
+            </property>
+        </bean>
+    </property>
+</bean>
+```
+
+显然这种配置是非常臃肿的，而且这种配置是专用于SpringBatch的文件Reader。在SpringBatch之外如果我们想解析同样的数据文件，一般很难直接复用SpringBatch中的配置信息。
+
+在Nop平台中，我们定义了一种专用于数据消息格式解析和生成的Record模型，但它并不是为批处理文件解析专门设计，而是可以用于所有需要消息解析和生成的地方，是一种通用的声明式开发机制，而且能力远比SpringBatch中的FlatFile配置强大。
+
+在数据库存取方面，NopORM提供了完整的ORM模型支持，内置多租户、逻辑删除、字段加解密、柔性事务处理、数据关联查询、批量加载和批量保存优化等完善的数据访问层能力。
+
+结合NopTaskFlow、NopBatch、NopRecord和NopORM等多个领域模型，Nop平台就可以做到在一般业务开发时完全通过声明式的方式实现批处理任务，而不需要编写Java代码。
+
+```xml
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+</task>
+```

@@ -17,6 +17,9 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.IOrmTemplate;
+import io.nop.xlang.api.IXLangCompileScope;
+import io.nop.xlang.api.XLang;
+import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdsl.DslModelParser;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
@@ -71,10 +74,17 @@ public class BatchTaskManagerImpl implements IBatchTaskManager {
     }
 
     @Override
-    public IBatchTaskBuilder newBatchTaskBuilderFromModel(String batchTaskName, XNode node, IBeanProvider beanProvider) {
-        BatchTaskModel taskModel = (BatchTaskModel) new DslModelParser().parseFromNode(node);
-        return new ModelBasedBatchTaskBuilderFactory(batchTaskName, taskModel, stateStore, transactionTemplate,
-                ormTemplate, jdbcTemplate, daoProvider).newTaskBuilder(beanProvider);
+    public IBatchTaskBuilder newBatchTaskBuilderFromModel(String batchTaskName, XNode node, IBeanProvider beanProvider, IXLangCompileScope scope) {
+        XLangCompileTool compileTool = scope == null ? XLang.newCompileTool() : new XLangCompileTool(scope.newChildScope(true));
+        boolean allowUnregisteredVar = compileTool.isAllowUnregisteredScopeVar();
+        try {
+            compileTool.allowUnregisteredScopeVar(true);
+            BatchTaskModel taskModel = (BatchTaskModel) new DslModelParser(BatchDslConstants.XDEF_BATCH).withCompileTool(compileTool).parseFromNode(node);
+            return new ModelBasedBatchTaskBuilderFactory(batchTaskName, taskModel, stateStore, transactionTemplate,
+                    ormTemplate, jdbcTemplate, daoProvider).newTaskBuilder(beanProvider);
+        } finally {
+            compileTool.allowUnregisteredScopeVar(allowUnregisteredVar);
+        }
     }
 
     public BatchTaskModel loadBatchTaskModel(String batchTaskName, Long taskVersion) {

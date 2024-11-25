@@ -12,6 +12,7 @@ import io.nop.xlang.xdef.IXDefinition;
 
 public class XDslExtendResult {
     private final XDslKeys keys;
+    private boolean dump;
     private IXDefinition xdef;
     private XNode base;
     private XNode node;
@@ -26,6 +27,14 @@ public class XDslExtendResult {
 
     public XDslExtendResult(XDslKeys keys) {
         this.keys = keys;
+    }
+
+    public boolean isDump() {
+        return dump;
+    }
+
+    public void setDump(boolean dump) {
+        this.dump = dump;
     }
 
     public boolean isValidated() {

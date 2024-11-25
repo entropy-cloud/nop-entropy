@@ -1,0 +1,6 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:batch-gen="batch-gen" xmlns:xpl="xpl">
+    <x:pre-parse>
+        <batch-gen:PreParseFileModel xpl:lib="/nop/batch/xlib/batch-gen.xlib"/>
+    </x:pre-parse>
+</task>

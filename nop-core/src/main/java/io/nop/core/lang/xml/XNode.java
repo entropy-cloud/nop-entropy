@@ -600,6 +600,11 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         this.setAttr(null, name, value);
     }
 
+    public void setAttrIfAbsent(String name, Object value) {
+        if (!hasAttr(name))
+            setAttr(name, value);
+    }
+
     public XNode withAttr(String name, Object value) {
         setAttr(name, value);
         return this;

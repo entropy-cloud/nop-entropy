@@ -126,7 +126,7 @@ public class ChildNodeMap {
                     continue;
                 }
                 // 如果def模型不允许未知节点
-                if (defNode != null && !supportUnknownChild(defNode))
+                if (!containsNamespace(child) && defNode != null && !supportUnknownChild(defNode))
                     throw new NopException(ERR_XDSL_UNDEFINED_CHILD_NODE).param(ARG_TAG_NAME, child.getTagName())
                             .param(ARG_NODE, child).param(ARG_XDEF_NODE, defNode)
                             .param(ARG_XDEF_NODE_NAME, defNode.getTagName());
@@ -154,6 +154,10 @@ public class ChildNodeMap {
                 }
             }
         }
+    }
+
+    private boolean containsNamespace(XNode node){
+        return node.getTagName().indexOf(':') > 0;
     }
 
     boolean supportUnknownChild(IXDefNode defNode) {

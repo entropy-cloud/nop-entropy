@@ -123,7 +123,7 @@
     @waitSteps 图模式执行时，需要等待前置步骤执行完毕才能执行本步骤
     -->
     <xdef:define xdef:name="TaskStepModel" xdef:ref="TaskExecutableModel" concurrent="!boolean=false"
-                 tagSet="csv-set" name="var-name" sync="!boolean=false"
+                 tagSet="csv-set" name="var-name" sync="!boolean=false" extType="xml-name"
                  allowStartIfComplete="!boolean=false" internal="!boolean=false" errorName="var-name"
                  runOnContext="!boolean=false" waitSteps="csv-set" waitErrorSteps="csv-set"
                  ignoreResult="!boolean=false" graphql:operationType="string" recordMetrics="!boolean=false"

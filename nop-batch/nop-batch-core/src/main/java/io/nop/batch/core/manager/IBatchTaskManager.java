@@ -7,6 +7,7 @@ import io.nop.batch.core.IBatchTaskContext;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
+import io.nop.xlang.api.IXLangCompileScope;
 
 public interface IBatchTaskManager {
 
@@ -27,5 +28,5 @@ public interface IBatchTaskManager {
 
     IBatchTaskBuilder newBatchTaskBuilder(String batchTaskName, Long batchTaskVersion, IBeanProvider beanProvider);
 
-    IBatchTaskBuilder newBatchTaskBuilderFromModel(String batchTaskName, XNode node, IBeanProvider beanProvider);
+    IBatchTaskBuilder newBatchTaskBuilderFromModel(String batchTaskName, XNode node, IBeanProvider beanProvider, IXLangCompileScope scope);
 }

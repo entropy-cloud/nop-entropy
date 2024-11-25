@@ -262,7 +262,7 @@ public class ModelBasedBatchTaskBuilderFactory {
     }
 
     private IBatchAggregator<Object, Object, Map<String, Object>> loadAggregator(String beanName, IBeanProvider beanContainer) {
-        if (beanName != null)
+        if (beanName == null)
             return null;
         return (IBatchAggregator) beanContainer.getBean(beanName);
     }

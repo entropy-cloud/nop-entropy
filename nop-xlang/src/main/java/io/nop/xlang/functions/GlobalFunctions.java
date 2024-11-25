@@ -168,30 +168,35 @@ public class GlobalFunctions {
     }
 
     @Description("设置scope变量。在表达式中无法直接调用$scope.setLocalValue函数来设置变量值，只能通过assign函数进行。例如 assign(\"a\",1)")
-    @Macro
-    public static Expression assign(@Name("scope") IXLangCompileScope scope, @Name("expr") CallExpression expr) {
-        if (expr.getArguments().size() != 2)
-            throw new NopEvalException(ERR_EXEC_INVALID_ARG_COUNT).param(ARG_EXPR, expr).param(ARG_EXPECTED, 2)
-                    .param(ARG_ARG_COUNT, expr.getArguments().size());
-
-        if (!(expr.getArguments().get(0) instanceof Literal))
-            throw new NopEvalException(ERR_MACRO_INVALID_ARG_AST).param(ARG_EXPR, expr.getArguments().get(0))
-                    .param(ARG_ACTUAL_TYPE, expr.getArguments().get(0).getASTKind())
-                    .param(ARG_EXPECTED_TYPE, XLangASTKind.Literal);
-
-        Literal literal = (Literal) expr.getArguments().get(0);
-        if (!StringHelper.isValidSimpleVarName(literal.getStringValue()))
-            throw new NopEvalException(ERR_XLANG_INVALID_VAR_NAME).param(ARG_VAR_NAME, literal.getStringValue());
-
-        Expression value = expr.getArguments().get(1);
-        value.setASTParent(null);
-        Identifier id = Identifier.valueOf(literal.getLocation(), literal.getStringValue());
-        id.setIdentifierKind(IdentifierKind.SCOPE_VAR_REF);
-        ScopeVarDefinition var = new ScopeVarDefinition(id.getName());
-        var.setAllowAssignment(true);
-        id.setResolvedDefinition(var);
-        return AssignmentExpression.valueOf(expr.getLocation(), id, XLangOperator.ASSIGN, value);
+    @EvalMethod
+    public static void assign(IEvalScope scope, String name, Object value){
+        scope.setLocalValue(name, value);
     }
+
+//    @Macro
+//    public static Expression assign(@Name("scope") IXLangCompileScope scope, @Name("expr") CallExpression expr) {
+//        if (expr.getArguments().size() != 2)
+//            throw new NopEvalException(ERR_EXEC_INVALID_ARG_COUNT).param(ARG_EXPR, expr).param(ARG_EXPECTED, 2)
+//                    .param(ARG_ARG_COUNT, expr.getArguments().size());
+//
+//        if (!(expr.getArguments().get(0) instanceof Literal))
+//            throw new NopEvalException(ERR_MACRO_INVALID_ARG_AST).param(ARG_EXPR, expr.getArguments().get(0))
+//                    .param(ARG_ACTUAL_TYPE, expr.getArguments().get(0).getASTKind())
+//                    .param(ARG_EXPECTED_TYPE, XLangASTKind.Literal);
+//
+//        Literal literal = (Literal) expr.getArguments().get(0);
+//        if (!StringHelper.isValidSimpleVarName(literal.getStringValue()))
+//            throw new NopEvalException(ERR_XLANG_INVALID_VAR_NAME).param(ARG_VAR_NAME, literal.getStringValue());
+//
+//        Expression value = expr.getArguments().get(1);
+//        value.setASTParent(null);
+//        Identifier id = Identifier.valueOf(literal.getLocation(), literal.getStringValue());
+//        id.setIdentifierKind(IdentifierKind.SCOPE_VAR_REF);
+//        ScopeVarDefinition var = new ScopeVarDefinition(id.getName());
+//        var.setAllowAssignment(true);
+//        id.setResolvedDefinition(var);
+//        return AssignmentExpression.valueOf(expr.getLocation(), id, XLangOperator.ASSIGN, value);
+//    }
 
     @Description("返回当前scope环境中的变量")
     @EvalMethod

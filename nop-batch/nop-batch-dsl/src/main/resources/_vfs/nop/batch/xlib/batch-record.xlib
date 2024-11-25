@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
+    <tags>
+        <BuildRecordInputProviderFromFileModel>
+            <attr name="fileModel"/>
+
+            <source>
+                import io.nop.record.resource.ResourceRecordIO;
+                return ResourceRecordIO.fromFileModel(fileModel);
+            </source>
+        </BuildRecordInputProviderFromFileModel>
+
+        <BuildRecordOutputProviderFromFileModel x:prototype="BuildRecordInputProviderFromFileModel"/>
+    </tags>
+</lib>

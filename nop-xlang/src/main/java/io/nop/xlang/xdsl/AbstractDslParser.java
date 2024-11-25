@@ -76,6 +76,11 @@ public abstract class AbstractDslParser<T extends IComponentModel> extends Abstr
         return compileTool;
     }
 
+    public AbstractDslParser<T> withCompileTool(XLangCompileTool compileTool) {
+        this.setCompileTool(compileTool);
+        return this;
+    }
+
     public IRawTypeResolver getRawTypeResolver() {
         return rawTypeResolver;
     }
@@ -114,7 +119,8 @@ public abstract class AbstractDslParser<T extends IComponentModel> extends Abstr
     protected T doParseResource(IResource resource) {
         XDslExtendResult extendResult = modelLoader.loadFromResource(resource, getRequiredSchema(),
                 XDslExtendPhase.validate);
-        compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
+        if (compileTool == null)
+            compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
         setXdef(extendResult.getXdef());
 
         applyCompileConfig(extendResult.getConfig());
@@ -132,13 +138,17 @@ public abstract class AbstractDslParser<T extends IComponentModel> extends Abstr
         IXLangCompileScope scope = compileTool.getScope();
         scope.setLocalValue(null, XLangConstants.SCOPE_VAR_DSL_ROOT, rootNode);
 
+        boolean runPreParse = false;
+
         if (getXdef().getXdefPreParse() != null) {
+            runPreParse = true;
             getXdef().getXdefPreParse().invoke(scope);
         }
 
         if (extendResult.getPreParse() != null) {
             IEvalAction preParse = compileTool.compileTagBody(extendResult.getPreParse());
             if (preParse != null) {
+                runPreParse = true;
                 preParse.invoke(scope);
             }
         }
@@ -146,8 +156,15 @@ public abstract class AbstractDslParser<T extends IComponentModel> extends Abstr
         for (String name : scope.keySet()) {
             Object value = scope.getLocalValue(name);
             IGenericType type = value == null ? null : ReflectionManager.instance().buildRawType(value.getClass());
-            scope.registerScopeVarDefinition(ScopeVarDefinition.readOnly(name, type), true);
+            ScopeVarDefinition varDef = ScopeVarDefinition.readOnly(name, type);
+            ScopeVarDefinition oldDef = scope.getScopeVarDefinition(name,true);
+            if(oldDef != null)
+                scope.unregisterScopeVarDefinition(oldDef, true);
+            scope.registerScopeVarDefinition(varDef, true);
         }
+
+        if (runPreParse && extendResult.isDump())
+            rootNode.dump("run-pre-parse");
     }
 
 
@@ -225,7 +242,8 @@ public abstract class AbstractDslParser<T extends IComponentModel> extends Abstr
         XDslExtendResult extendResult = modelLoader.loadFromNode(node.cloneInstance(), getRequiredSchema(),
                 XDslExtendPhase.validate);
         setXdef(extendResult.getXdef());
-        compileTool = XLang.newCompileTool();
+        if (compileTool == null)
+            compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
 
         applyCompileConfig(extendResult.getConfig());
         runPreParse(extendResult);

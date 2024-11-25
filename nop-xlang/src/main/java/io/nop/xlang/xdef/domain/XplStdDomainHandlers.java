@@ -473,7 +473,7 @@ public class XplStdDomainHandlers {
             try {
                 return cp.compileTemplateExpr(loc, text, false, ExprPhase.eval);
             } catch (Exception e) {
-                throw newPropError(loc, propName, text);
+                throw newPropError(loc, propName, text).cause(e);
             } finally {
                 cp.outputMode(oldMode);
             }

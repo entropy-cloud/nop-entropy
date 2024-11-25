@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+
+    <tags>
+        <PreParseFileModel>
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source><![CDATA[
+                import io.nop.record.util.RecordModelParseHelper;
+
+                _dsl_root.children.removeIf(node=>{
+                  if(!node.tagName.equals('record:file-model'))
+                    return false;
+
+                  const name = node.attrText('name') || 'RecordFileMeta';
+                  node.tagName = 'file';
+                  node.removeAttr('name');
+                  node.setAttrIfAbsent('x:schema', '/nop/schema/record/record-file.xdef');
+                  node.setAttr('xmlns:x', '/nop/schema/xdsl.xdef');
+
+                  const model = RecordModelParseHelper.parseRecordFileMetaFromNode(node);
+                  assign(name, model);
+
+                  return true;
+                });
+
+                _dsl_root.forEachNode(node=>{
+                   if(node.tagName == 'file-reader'){
+                      const fileModel = node.attrText('record:file-model');
+                      if(fileModel){
+                         node.removeAttr('record:file-model');
+                         node.makeChild('recordInputProvider')
+                             .appendBodyXml('<batch-record:BuildRecordInputProviderFromFileModel fileModel="#{'
+                                            +fileModel+'}" xpl:lib="/nop/batch/xlib/batch-record.xlib" />');
+                      }
+                   }else if(node.tagName == 'file-writer'){
+                      const fileModel = node.attrText('record:file-model');
+                      if(fileModel){
+                         node.removeAttr('record:file-model');
+                         node.makeChild('recordOutputProvider')
+                             .appendBodyXml('<batch-record:BuildRecordOutputProviderFromFileModel fileModel="#{'
+                                            +fileModel+'}" xpl:lib="/nop/batch/xlib/batch-record.xlib" />');
+                      }
+                   }
+                })
+            ]]></source>
+        </PreParseFileModel>
+    </tags>
+</lib>

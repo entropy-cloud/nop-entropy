@@ -51,8 +51,12 @@ public class RandomAccessFileBinaryDataReader implements IBinaryDataReader {
     private long bits;
     private int bitsLeft;
 
-    public RandomAccessFileBinaryDataReader(File file) throws IOException {
-        raf = new RandomAccessFile(file, "r");
+    public RandomAccessFileBinaryDataReader(File file) {
+        try {
+            raf = new RandomAccessFile(file, "r");
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
     }
 
     @Override

@@ -121,6 +121,7 @@ public class XDslExtender {
         boolean dump = XplParseHelper.getAttrBool(ret, keys.DUMP, false);
         if (dump)
             ret.dump("xtend-completed");
+        result.setDump(dump);
 
         ret.setLocation(loc);
         normalize(result);
