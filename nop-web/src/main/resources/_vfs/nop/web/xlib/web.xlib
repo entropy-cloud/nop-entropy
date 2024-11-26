@@ -564,7 +564,7 @@
             <source>
                 <c:include src="/nop/web/xlib/web/init_grid_gen_scope.xpl"/>
                 <c:collect outputMode="xjson">
-                    <input-table removable="@:true" addable="@:true" editable="@:true" needConfirm="@:false">
+                    <input-table removable="@:true" addable="@:true" editable="@:true" needConfirm="@:false" showIndex="@:true" affixRow="${gridModel.affixRow}">
                         <columns j:list="true">
                             <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" editMode="${editMode}"/>
                         </columns>
