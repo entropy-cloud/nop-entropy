@@ -23,7 +23,10 @@ public class FieldBinaryCodec_u2be implements IFieldBinaryCodec{
         if(value == null){
             output.writeU2be(0);
         }else{
-            output.writeU2be((Integer)value);
+            
+                    output.writeU2be((Integer)value);
+                
+
         }
     }
 }

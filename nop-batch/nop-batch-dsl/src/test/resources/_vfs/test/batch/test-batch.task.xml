@@ -10,7 +10,7 @@
                 <field name="name" type="String" length="10" padding=" "/>
                 <field name="product" type="String" length="5" padding=" "/>
                 <field name="price" type="double" codec="f8be"/>
-                <field name="quantity" type="int" codec="u8be"/>
+                <field name="quantity" type="int" codec="s4be"/>
             </fields>
         </body>
     </record:file-model>
@@ -18,7 +18,10 @@
     <steps>
         <custom name="test" customType="batch:Execute" useParentScope="true"
                 xmlns:batch="/nop/batch/xlib/batch.xlib">
-            <batch:task batchSize="100">
+            <batch:task taskName="test.loadData" batchSize="100">
+
+                <taskKeyExpr>bizDate</taskKeyExpr>
+
                 <loader>
                     <file-reader filePath="dev:/target/input/${bizDate}.dat" record:file-model="SimpleFile" />
                 </loader>
@@ -35,7 +38,7 @@
 
                 <consumer name="selected">
                     <filter>
-                        return item.quantity > 100;
+                        return item.quantity > 500;
                     </filter>
 
                     <file-writer filePath="dev:/target/output/${bizDate}-selected.dat" record:file-model="SimpleFile"/>

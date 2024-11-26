@@ -2,22 +2,28 @@ package io.nop.batch.dsl;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.autotest.junit.JunitAutoTestCase;
-import io.nop.commons.util.FileHelper;
+import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.impl.FileResource;
+import io.nop.record.model.RecordFileMeta;
+import io.nop.record.util.RecordFileHelper;
 import io.nop.task.ITask;
 import io.nop.task.ITaskFlowManager;
 import io.nop.task.ITaskRuntime;
+import io.nop.xlang.xdsl.DslModelParser;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @NopTestConfig(localDb = true)
-public class TestBatchTask extends JunitAutoTestCase {
+public class TestBatchTaskDsl extends JunitBaseTestCase {
 
     @Inject
     ITaskFlowManager taskFlowManager;
@@ -38,6 +44,12 @@ public class TestBatchTask extends JunitAutoTestCase {
 
     void makeInputFile(LocalDate bizDate) {
         File file = getTargetFile("input/" + bizDate + ".dat");
-        FileHelper.writeText(file, "sss", null);
+        RecordFileMeta fileMeta = (RecordFileMeta) new DslModelParser().parseFromResource(
+                VirtualFileSystem.instance().getResource("/test/batch/simple.record-file.xml"));
+        List<Object> records = new ArrayList<>();
+        for (int i = 0; i < 997; i++) {
+            records.add(Map.of("name", "N" + i, "product", "P" + i, "price", i * 1000.0, "quantity", i));
+        }
+        RecordFileHelper.writeRecords(new FileResource(file), fileMeta, records);
     }
 }

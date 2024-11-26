@@ -140,7 +140,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
     public IBatchLoader<S> setup(IBatchTaskContext context) {
         LoaderState<S> state = newLoaderState(context);
         return (batchSize, ctx) -> {
-            ctx.onAfterComplete(err -> onChunkEnd(err, ctx, state));
+            ctx.onAfterComplete(err -> onChunkEnd(ctx, err, state));
             return load(batchSize, state);
         };
     }
@@ -211,7 +211,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         }
     }
 
-    public synchronized void onChunkEnd(Throwable exception, IBatchChunkContext context, LoaderState<S> state) {
+    public synchronized void onChunkEnd(IBatchChunkContext context, Throwable exception, LoaderState<S> state) {
         if (saveState) {
             // 多个chunk有可能被并行处理，所以可能会乱序完成
             if (context.getChunkItems() != null) {

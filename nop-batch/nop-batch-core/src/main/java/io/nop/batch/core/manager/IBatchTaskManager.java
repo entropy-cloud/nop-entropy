@@ -28,5 +28,5 @@ public interface IBatchTaskManager {
 
     IBatchTaskBuilder newBatchTaskBuilder(String batchTaskName, Long batchTaskVersion, IBeanProvider beanProvider);
 
-    IBatchTaskBuilder newBatchTaskBuilderFromModel(String batchTaskName, XNode node, IBeanProvider beanProvider, IXLangCompileScope scope);
+    IBatchTaskBuilder newBatchTaskBuilderFromModel(XNode node, IBeanProvider beanProvider, IXLangCompileScope scope);
 }

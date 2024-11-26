@@ -1,0 +1,10 @@
+<file x:schema="/nop/schema/record/record-file.xdef" xmlns:x="/nop/schema/xdsl.xdef" binary="true">
+    <body>
+        <fields>
+            <field name="name" type="String" length="10" padding=" "/>
+            <field name="product" type="String" length="5" padding=" "/>
+            <field name="price" type="double" codec="f8be"/>
+            <field name="quantity" type="int" codec="s4be"/>
+        </fields>
+    </body>
+</file>

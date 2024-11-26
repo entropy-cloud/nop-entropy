@@ -88,6 +88,10 @@ public enum BinaryWordType {
         }
     }
 
+    public boolean isLongValue(){
+        return getValueType() == Long.class;
+    }
+
     public Class<?> getValueType() {
         switch (this) {
             case s1:

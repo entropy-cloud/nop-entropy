@@ -206,6 +206,13 @@ public class ByteBufBinaryDataReader implements IBinaryDataReader {
         return bb.readByte();
     }
 
+    @Override
+    public int read() throws IOException {
+        if (bb.isReadable())
+            return bb.readByte();
+        return -1;
+    }
+
     //region Big-endian
 
     @Override

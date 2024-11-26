@@ -7,4 +7,7 @@ public interface BatchDslErrors {
 
     ErrorCode ERR_BATCH_TASK_NO_LOADER =
             ErrorCode.define("nop.err.batch.task-no-loader", "批处理任务没有定义loader", ARG_BATCH_TASK_NAME);
+
+    ErrorCode ERR_BATCH_TASK_NAME_EMPTY =
+            ErrorCode.define("nop.err.batch.task-name-empty", "批处理任务名称为空", ARG_BATCH_TASK_NAME);
 }

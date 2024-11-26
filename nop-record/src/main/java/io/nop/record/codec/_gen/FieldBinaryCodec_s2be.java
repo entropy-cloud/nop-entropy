@@ -23,7 +23,10 @@ public class FieldBinaryCodec_s2be implements IFieldBinaryCodec{
         if(value == null){
             output.writeS2be((short) 0);
         }else{
-            output.writeS2be((Short)value);
+            
+                    output.writeS2be((Short)value);
+                
+
         }
     }
 }

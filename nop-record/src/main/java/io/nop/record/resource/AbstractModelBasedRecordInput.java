@@ -1,20 +1,22 @@
 package io.nop.record.resource;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.dataset.record.IRecordInput;
 import io.nop.record.codec.IFieldCodecContext;
+import io.nop.record.model.FieldRepeatKind;
+import io.nop.record.model.RecordFileBodyMeta;
 import io.nop.record.model.RecordFileMeta;
 import io.nop.record.reader.IDataReaderBase;
 import io.nop.record.serialization.IModelBasedRecordDeserializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> implements IRecordInput<T> {
-    static final Logger LOG = LoggerFactory.getLogger(AbstractModelBasedRecordOutput.class);
+    //static final Logger LOG = LoggerFactory.getLogger(AbstractModelBasedRecordOutput.class);
 
     private final Input baseIn;
     private long readCount;
@@ -24,6 +26,10 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
     protected final IFieldCodecContext context;
 
     private Map<String, Object> headerMeta;
+    private T nextRecord;
+    private FieldRepeatKind repeatKind;
+    private RecordFileBodyMeta bodyMeta;
+    private long totalCount;
 
     public AbstractModelBasedRecordInput(Input baseIn, RecordFileMeta fileMeta,
                                          IFieldCodecContext context, IModelBasedRecordDeserializer<Input> deserializer) {
@@ -32,15 +38,30 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
         this.deserializer = deserializer;
         this.context = context;
         readHeader();
+        this.repeatKind = fileMeta.getBody().getRepeatKind();
+        if (repeatKind == null)
+            repeatKind = FieldRepeatKind.eos;
+        this.bodyMeta = fileMeta.getBody();
+        readRepeatCount();
+        if (bodyMeta != null)
+            fetchNext();
     }
 
     void readHeader() {
-        if (fileMeta.getHeader() != null) {
-            headerMeta = new HashMap<>();
-            try {
+        try {
+            if (fileMeta.getHeader() != null && !baseIn.isEof()) {
+                headerMeta = new HashMap<>();
                 deserializer.readObject(baseIn, fileMeta.getHeader(), null, headerMeta, context);
-            } catch (IOException e) {
-                throw NopException.adapt(e);
+            }
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    void readRepeatCount() {
+        if (repeatKind == FieldRepeatKind.expr) {
+            if (bodyMeta.getReadRepeatExpr() != null) {
+                this.totalCount = ConvertHelper.toPrimitiveLong(bodyMeta.getReadRepeatExpr().call2(null, baseIn, null, context.getEvalScope()), NopException::new);
             }
         }
     }
@@ -62,11 +83,56 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
 
     @Override
     public boolean hasNext() {
-        return false;
+        return nextRecord != null;
     }
 
     @Override
     public T next() {
-        return null;
+        if (nextRecord == null)
+            throw new NoSuchElementException();
+        readCount++;
+        T ret = nextRecord;
+        fetchNext();
+        return ret;
+    }
+
+    private void fetchNext() {
+        try {
+            this.nextRecord = null;
+
+            switch (repeatKind) {
+                case eos: {
+                    if (!baseIn.isEof())
+                        readOneRecord();
+                    break;
+                }
+                case expr: {
+                    if (readCount < totalCount) {
+                        readOneRecord();
+                    }
+                    break;
+                }
+                case until: {
+                    if (bodyMeta.getReadRepeatUntil() != null) {
+                        boolean ret = ConvertHelper.toTruthy(bodyMeta.getReadRepeatUntil().call2(null, baseIn, null, context.getEvalScope()), NopException::new);
+                        if (!ret) {
+                            readOneRecord();
+                        }
+                    } else {
+                        if (!baseIn.isEof())
+                            readOneRecord();
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    void readOneRecord() throws IOException {
+        T record = (T) bodyMeta.newBean();
+        if (deserializer.readObject(this.baseIn, bodyMeta, "body", record, context)) {
+            this.nextRecord = record;
+        }
     }
 }

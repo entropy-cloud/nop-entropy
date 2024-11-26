@@ -23,7 +23,10 @@ public class FieldBinaryCodec_u1 implements IFieldBinaryCodec{
         if(value == null){
             output.writeU1((short) 0);
         }else{
-            output.writeU1((Short)value);
+            
+                    output.writeU1((Short)value);
+                
+
         }
     }
 }

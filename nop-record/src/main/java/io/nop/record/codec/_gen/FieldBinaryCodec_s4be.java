@@ -23,7 +23,10 @@ public class FieldBinaryCodec_s4be implements IFieldBinaryCodec{
         if(value == null){
             output.writeS4be(0);
         }else{
-            output.writeS4be((Integer)value);
+            
+                    output.writeS4be((Integer)value);
+                
+
         }
     }
 }

@@ -7,6 +7,7 @@
  */
 package io.nop.batch.core.impl;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ProcessResult;
@@ -18,6 +19,8 @@ import io.nop.batch.core.IBatchTask;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.IBatchTaskMetrics;
 import io.nop.batch.core.exceptions.BatchCancelException;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.IEvalFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,15 +34,22 @@ import static io.nop.batch.core.BatchErrors.ERR_BATCH_CANCEL_PROCESS;
 public class BatchTaskExecution implements IBatchTask {
     static final Logger LOG = LoggerFactory.getLogger(BatchTaskExecution.class);
 
+    private final String taskName;
+    private final long taskVersion;
+    private final IEvalFunction taskKeyExpr;
     private final Executor executor;
     private final IBatchChunkProcessor chunkProcessor;
     private final IBatchStateStore stateStore;
     private final List<Consumer<IBatchTaskContext>> initializers;
     private final int concurrency;
 
-    public BatchTaskExecution(Executor executor, int concurrency, List<Consumer<IBatchTaskContext>> initializers,
+    public BatchTaskExecution(String taskName, long taskVersion,
+                              IEvalFunction taskKeyExpr, Executor executor, int concurrency,
+                              List<Consumer<IBatchTaskContext>> initializers,
                               IBatchChunkProcessor chunkProcessor, IBatchStateStore stateStore) {
-
+        this.taskName = taskName;
+        this.taskVersion = taskVersion;
+        this.taskKeyExpr = taskKeyExpr;
         this.executor = executor;
         this.initializers = initializers;
         this.chunkProcessor = chunkProcessor;
@@ -54,6 +64,14 @@ public class BatchTaskExecution implements IBatchTask {
 
         BatchTaskGlobals.provideTaskContext(context);
         try {
+            // 如果context中已经设置，则以context中的值为准
+            if (context.getTaskName() == null)
+                context.setTaskName(taskName);
+            if (context.getTaskVersion() == null)
+                context.setTaskVersion(taskVersion);
+
+            initTaskKey(context);
+
             if (stateStore != null) {
                 stateStore.loadTaskState(context);
             }
@@ -88,6 +106,16 @@ public class BatchTaskExecution implements IBatchTask {
         } finally {
             BatchTaskGlobals.removeTaskContext();
         }
+    }
+
+    void initTaskKey(IBatchTaskContext context) {
+        String taskKey = context.getTaskKey();
+        if (taskKeyExpr != null && !StringHelper.isEmpty(taskKey)) {
+            taskKey = ConvertHelper.toString(taskKeyExpr.call1(null, context, context.getEvalScope()));
+        }
+        if (StringHelper.isEmpty(taskKey))
+            taskKey = StringHelper.generateUUID();
+        context.setTaskKey(taskKey);
     }
 
     void onTaskComplete(CompletableFuture<Void> future, Object meter, Throwable err, IBatchTaskContext context) {

@@ -9,13 +9,20 @@ package io.nop.record.model;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.text.SimpleTextTemplate;
+import io.nop.core.reflect.ReflectionManager;
+import io.nop.core.reflect.bean.IBeanConstructor;
+import io.nop.core.reflect.bean.MethodBeanConstructor;
 import io.nop.record.model._gen._RecordObjectMeta;
+
+import java.util.LinkedHashMap;
 
 import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
 import static io.nop.record.RecordErrors.ERR_RECORD_UNKNOWN_FIELD;
 
 public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFieldsMeta {
     private SimpleTextTemplate normalizedTemplate;
+
+    private IBeanConstructor constructor;
 
     public RecordObjectMeta() {
 
@@ -29,6 +36,16 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
         for (RecordFieldMeta field : getFields()) {
             field.init(defs);
         }
+
+        if (getBeanClass() != null) {
+            constructor = new MethodBeanConstructor(ReflectionManager.instance().loadClassModel(getBeanClass()).getConstructor(0));
+        } else {
+            constructor = LinkedHashMap::new;
+        }
+    }
+
+    public Object newBean() {
+        return constructor.newInstance();
     }
 
     @Override

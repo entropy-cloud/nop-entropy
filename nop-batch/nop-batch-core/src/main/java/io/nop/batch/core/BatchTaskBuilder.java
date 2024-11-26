@@ -28,6 +28,7 @@ import io.nop.commons.concurrent.executor.ExecutorHelper;
 import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.functional.IFunctionInvoker;
 import io.nop.commons.util.retry.IRetryPolicy;
+import io.nop.core.lang.eval.IEvalFunction;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -39,6 +40,8 @@ import java.util.function.Consumer;
  * 负责创建{@link IBatchTask}的工厂类。它负责组织skip/retry/transaction/process/listener的处理顺序
  */
 public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
+    private String taskName;
+    private Long taskVersion;
     private IBatchLoaderProvider<S> loader;
     private IBatchConsumerProvider<R> consumer;
     private IBatchProcessorProvider<S, R> processor;
@@ -98,8 +101,28 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
      */
     private double jitterRatio;
 
+    private IEvalFunction taskKeyExpr;
+
     public static <S, R> BatchTaskBuilder<S, R> create() {
         return new BatchTaskBuilder<>();
+    }
+
+    @PropertySetter
+    public BatchTaskBuilder<S, R> taskName(String taskName) {
+        this.taskName = taskName;
+        return this;
+    }
+
+    @PropertySetter
+    public BatchTaskBuilder<S, R> taskVersion(Long taskVersion) {
+        this.taskVersion = taskVersion;
+        return this;
+    }
+
+    @PropertySetter
+    public BatchTaskBuilder<S, R> taskKeyExpr(IEvalFunction expr) {
+        this.taskKeyExpr = expr;
+        return this;
     }
 
     public void addTaskInitializer(Consumer<IBatchTaskContext> initializer) {
@@ -258,7 +281,8 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
     public IBatchTask buildTask(IBatchTaskContext context) {
         IBatchChunkProcessor chunkProcessor = buildChunkProcessor(context);
 
-        return new BatchTaskExecution(executor, concurrency, taskInitializers, chunkProcessor, stateStore);
+        return new BatchTaskExecution(taskName, taskVersion == null ? 0 : taskVersion, taskKeyExpr,
+                executor, concurrency, taskInitializers, chunkProcessor, stateStore);
     }
 
     @SuppressWarnings("rawtypes")

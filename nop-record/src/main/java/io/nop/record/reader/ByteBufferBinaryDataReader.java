@@ -198,23 +198,27 @@ public class ByteBufferBinaryDataReader implements IBinaryDataReader {
         return bb.get();
     }
 
+    @Override
+    public int read() throws IOException {
+        if (bb.hasRemaining())
+            return bb.get();
+        return -1;
+    }
+
     //region Big-endian
 
     @Override
     public short readS2be() {
-        bb.order(ByteOrder.BIG_ENDIAN);
         return bb.getShort();
     }
 
     @Override
     public int readS4be() {
-        bb.order(ByteOrder.BIG_ENDIAN);
         return bb.getInt();
     }
 
     @Override
     public long readS8be() {
-        bb.order(ByteOrder.BIG_ENDIAN);
         return bb.getLong();
     }
 
@@ -225,19 +229,31 @@ public class ByteBufferBinaryDataReader implements IBinaryDataReader {
     @Override
     public short readS2le() {
         bb.order(ByteOrder.LITTLE_ENDIAN);
-        return bb.getShort();
+        try {
+            return bb.getShort();
+        } finally {
+            bb.order(ByteOrder.BIG_ENDIAN);
+        }
     }
 
     @Override
     public int readS4le() {
         bb.order(ByteOrder.LITTLE_ENDIAN);
-        return bb.getInt();
+        try {
+            return bb.getInt();
+        } finally {
+            bb.order(ByteOrder.BIG_ENDIAN);
+        }
     }
 
     @Override
     public long readS8le() {
         bb.order(ByteOrder.LITTLE_ENDIAN);
-        return bb.getLong();
+        try {
+            return bb.getLong();
+        } finally {
+            bb.order(ByteOrder.BIG_ENDIAN);
+        }
     }
 
     //endregion
@@ -255,13 +271,11 @@ public class ByteBufferBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public int readU2be() {
-        bb.order(ByteOrder.BIG_ENDIAN);
         return bb.getShort() & 0xffff;
     }
 
     @Override
     public long readU4be() {
-        bb.order(ByteOrder.BIG_ENDIAN);
         return bb.getInt() & 0xffffffffL;
     }
 
@@ -271,13 +285,11 @@ public class ByteBufferBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public int readU2le() {
-        bb.order(ByteOrder.LITTLE_ENDIAN);
         return bb.getShort() & 0xffff;
     }
 
     @Override
     public long readU4le() {
-        bb.order(ByteOrder.LITTLE_ENDIAN);
         return bb.getInt() & 0xffffffffL;
     }
 
@@ -293,13 +305,11 @@ public class ByteBufferBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public float readF4be() {
-        bb.order(ByteOrder.BIG_ENDIAN);
         return bb.getFloat();
     }
 
     @Override
     public double readF8be() {
-        bb.order(ByteOrder.BIG_ENDIAN);
         return bb.getDouble();
     }
 
@@ -310,13 +320,21 @@ public class ByteBufferBinaryDataReader implements IBinaryDataReader {
     @Override
     public float readF4le() {
         bb.order(ByteOrder.LITTLE_ENDIAN);
-        return bb.getFloat();
+        try {
+            return bb.getFloat();
+        } finally {
+            bb.order(ByteOrder.BIG_ENDIAN);
+        }
     }
 
     @Override
     public double readF8le() {
         bb.order(ByteOrder.LITTLE_ENDIAN);
-        return bb.getDouble();
+        try {
+            return bb.getDouble();
+        } finally {
+            bb.order(ByteOrder.BIG_ENDIAN);
+        }
     }
 
     //endregion

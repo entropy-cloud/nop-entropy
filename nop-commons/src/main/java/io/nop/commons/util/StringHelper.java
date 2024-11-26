@@ -4447,4 +4447,13 @@ public class StringHelper extends ApiStringHelper {
         }
         return sb.toString();
     }
+
+    @Deterministic
+    public static String filePathMd5(String filePath) {
+        String fileName = StringHelper.fileFullName(filePath);
+        // fileName仅仅用于显示。为了避免过长，这里限制了最大长度。唯一性靠md5保证
+        if (fileName.length() > 20)
+            fileName = fileName.substring(0, 20);
+        return md5Hash(filePath) + '-' + fileName;
+    }
 }

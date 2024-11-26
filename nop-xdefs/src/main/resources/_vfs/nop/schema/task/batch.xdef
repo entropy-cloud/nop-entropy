@@ -6,14 +6,18 @@
 @jitterRatio 多线程执行时，如果每个线程处理的batchSize都相同，则可能导致同时读取数据库和同时写数据库，产生资源征用。 通过设置一个随机比例，将每个线程处理的batchSize动态调整为originalBatchSize * (1
                    + jitterRatio * random)， 使得每个线程的每个批次的负载随机化，从而破坏潜在的同步效应。
 -->
-<batch name="string" batchSize="!int" concurrency="!int=1" retryOneByOne="boolean=false"
-       singleMode="boolean=false" singleSession="boolean"
+<batch taskName="string" taskVersion="long" batchSize="!int" concurrency="!int=1" retryOneByOne="boolean=false"
+       singleMode="boolean=false" singleSession="boolean"  saveState="boolean"
        transactionScope="enum:io.nop.batch.core.BatchTransactionScope"
        rateLimit="double" jitterRatio="double"
        executor="string" xdef:name="BatchTaskModel" xdef:bean-package="io.nop.batch.dsl.model"
        x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xdef:model-name-prop="taskName" xdef:model-version-prop="taskVersion"
        xmlns:xdef="/nop/schema/xdef.xdef"
 >
+    <!-- taskKey用于区分taskName相同的不同执行实例。同样的taskName+taskKey只允许执行一次 -->
+    <taskKeyExpr xdef:value="xpl-fn:(taskCtx)=>string"/>
+
     <retryPolicy maxRetryCount="int" retryDelay="int" maxRetryDelay="int" xdef:name="BatchRetryPolicyModel"
                  exponentialDelay="boolean=true" jitterRatio="double=0.3">
         <exceptionFilter xdef:value="xpl-fn:(err)=>boolean"/>
@@ -29,11 +33,11 @@
 
     <xdef:define xdef:name="BatchListenersModel">
         <onTaskBegin xdef:value="xpl-fn:(taskCtx)=>void"/>
-        <onBeforeTaskEnd xdef:value="xpl-fn:(taskCtx)=>void" />
+        <onBeforeTaskEnd xdef:value="xpl-fn:(taskCtx)=>void"/>
         <onTaskEnd xdef:value="xpl-fn:(err,taskCtx)=>void"/>
 
         <onChunkBegin xdef:value="xpl-fn:(chunkCtx)=>void"/>
-        <onBeforeChunkEnd xdef:value="xpl-fn:(chunkCtx)=>void" />
+        <onBeforeChunkEnd xdef:value="xpl-fn:(chunkCtx)=>void"/>
         <onChunkEnd xdef:value="xpl-fn:(chunkCtx,err)=>void"/>
 
         <onLoadBegin xdef:value="xpl-fn:(batchSize,chunkCtx)=>void"/>

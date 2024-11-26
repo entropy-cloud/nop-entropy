@@ -82,13 +82,6 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
-     * xml name: name
-     * 
-     */
-    private java.lang.String _name ;
-    
-    /**
-     *  
      * xml name: processor
      * 
      */
@@ -117,6 +110,13 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: saveState
+     * 
+     */
+    private java.lang.Boolean _saveState ;
+    
+    /**
+     *  
      * xml name: singleMode
      * 
      */
@@ -142,6 +142,27 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
      * 
      */
     private io.nop.batch.dsl.model.BatchTaggerModel _tagger ;
+    
+    /**
+     *  
+     * xml name: taskKeyExpr
+     * taskKey用于区分taskName相同的不同执行实例。同样的taskName+taskKey只允许执行一次
+     */
+    private io.nop.core.lang.eval.IEvalFunction _taskKeyExpr ;
+    
+    /**
+     *  
+     * xml name: taskName
+     * 
+     */
+    private java.lang.String _taskName ;
+    
+    /**
+     *  
+     * xml name: taskVersion
+     * 
+     */
+    private java.lang.Long _taskVersion ;
     
     /**
      *  
@@ -376,25 +397,6 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
-     * xml name: name
-     *  
-     */
-    
-    public java.lang.String getName(){
-      return _name;
-    }
-
-    
-    public void setName(java.lang.String value){
-        checkAllowChange();
-        
-        this._name = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: processor
      *  
      */
@@ -497,6 +499,25 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: saveState
+     *  
+     */
+    
+    public java.lang.Boolean getSaveState(){
+      return _saveState;
+    }
+
+    
+    public void setSaveState(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._saveState = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: singleMode
      *  
      */
@@ -573,6 +594,63 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: taskKeyExpr
+     *  taskKey用于区分taskName相同的不同执行实例。同样的taskName+taskKey只允许执行一次
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getTaskKeyExpr(){
+      return _taskKeyExpr;
+    }
+
+    
+    public void setTaskKeyExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._taskKeyExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: taskName
+     *  
+     */
+    
+    public java.lang.String getTaskName(){
+      return _taskName;
+    }
+
+    
+    public void setTaskName(java.lang.String value){
+        checkAllowChange();
+        
+        this._taskName = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: taskVersion
+     *  
+     */
+    
+    public java.lang.Long getTaskVersion(){
+      return _taskVersion;
+    }
+
+    
+    public void setTaskVersion(java.lang.Long value){
+        checkAllowChange();
+        
+        this._taskVersion = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: transactionScope
      *  
      */
@@ -632,15 +710,18 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         out.putNotNull("jitterRatio",this.getJitterRatio());
         out.putNotNull("loadRetryPolicy",this.getLoadRetryPolicy());
         out.putNotNull("loader",this.getLoader());
-        out.putNotNull("name",this.getName());
         out.putNotNull("processors",this.getProcessors());
         out.putNotNull("rateLimit",this.getRateLimit());
         out.putNotNull("retryOneByOne",this.getRetryOneByOne());
         out.putNotNull("retryPolicy",this.getRetryPolicy());
+        out.putNotNull("saveState",this.getSaveState());
         out.putNotNull("singleMode",this.getSingleMode());
         out.putNotNull("singleSession",this.getSingleSession());
         out.putNotNull("skipPolicy",this.getSkipPolicy());
         out.putNotNull("tagger",this.getTagger());
+        out.putNotNull("taskKeyExpr",this.getTaskKeyExpr());
+        out.putNotNull("taskName",this.getTaskName());
+        out.putNotNull("taskVersion",this.getTaskVersion());
         out.putNotNull("transactionScope",this.getTransactionScope());
     }
 
@@ -662,15 +743,18 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         instance.setJitterRatio(this.getJitterRatio());
         instance.setLoadRetryPolicy(this.getLoadRetryPolicy());
         instance.setLoader(this.getLoader());
-        instance.setName(this.getName());
         instance.setProcessors(this.getProcessors());
         instance.setRateLimit(this.getRateLimit());
         instance.setRetryOneByOne(this.getRetryOneByOne());
         instance.setRetryPolicy(this.getRetryPolicy());
+        instance.setSaveState(this.getSaveState());
         instance.setSingleMode(this.getSingleMode());
         instance.setSingleSession(this.getSingleSession());
         instance.setSkipPolicy(this.getSkipPolicy());
         instance.setTagger(this.getTagger());
+        instance.setTaskKeyExpr(this.getTaskKeyExpr());
+        instance.setTaskName(this.getTaskName());
+        instance.setTaskVersion(this.getTaskVersion());
         instance.setTransactionScope(this.getTransactionScope());
     }
 

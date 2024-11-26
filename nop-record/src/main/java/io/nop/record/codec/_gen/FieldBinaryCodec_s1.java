@@ -23,7 +23,10 @@ public class FieldBinaryCodec_s1 implements IFieldBinaryCodec{
         if(value == null){
             output.writeS1((byte) 0);
         }else{
-            output.writeS1((Byte)value);
+            
+                    output.writeS1((Byte)value);
+                
+
         }
     }
 }

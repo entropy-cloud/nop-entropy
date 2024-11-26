@@ -26,6 +26,10 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void setTaskName(String taskName);
 
+    Long getTaskVersion();
+
+    void setTaskVersion(Long taskVersion);
+
     String getTaskId();
 
     void setTaskId(String taskId);

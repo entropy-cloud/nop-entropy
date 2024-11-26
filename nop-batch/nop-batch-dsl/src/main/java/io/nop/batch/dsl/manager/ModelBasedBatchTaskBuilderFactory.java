@@ -78,12 +78,12 @@ public class ModelBasedBatchTaskBuilderFactory {
     private final IDaoProvider daoProvider;
     private final IBatchStateStore stateStore;
 
-    public ModelBasedBatchTaskBuilderFactory(String batchTaskName, BatchTaskModel batchTaskModel,
+    public ModelBasedBatchTaskBuilderFactory(BatchTaskModel batchTaskModel,
                                              IBatchStateStore stateStore,
                                              ITransactionTemplate transactionTemplate,
                                              IOrmTemplate ormTemplate, IJdbcTemplate jdbcTemplate,
                                              IDaoProvider daoProvider) {
-        this.batchTaskName = batchTaskName;
+        this.batchTaskName = batchTaskModel.getTaskName();
         this.stateStore = stateStore;
         this.batchTaskModel = batchTaskModel;
         this.transactionTemplate = transactionTemplate;
@@ -94,6 +94,10 @@ public class ModelBasedBatchTaskBuilderFactory {
 
     public IBatchTaskBuilder newTaskBuilder(IBeanProvider beanContainer) {
         BatchTaskBuilder<Object, Object> builder = new BatchTaskBuilder<>();
+        builder.taskName(batchTaskModel.getTaskName());
+        builder.taskVersion(batchTaskModel.getTaskVersion());
+        builder.taskKeyExpr(batchTaskModel.getTaskKeyExpr());
+
         builder.batchSize(batchTaskModel.getBatchSize());
         if (batchTaskModel.getJitterRatio() != null)
             builder.jitterRatio(batchTaskModel.getJitterRatio());
@@ -137,7 +141,8 @@ public class ModelBasedBatchTaskBuilderFactory {
             builder.singleSessionInvoker(new SingleSessionFunctionInvoker(ormTemplate));
         }
 
-        builder.stateStore(stateStore);
+        if (Boolean.TRUE.equals(batchTaskModel.getSaveState()))
+            builder.stateStore(stateStore);
 
         if (batchTaskModel.getLoadRetryPolicy() != null) {
             builder.loadRetryPolicy((IRetryPolicy<IBatchChunkContext>) this.batchTaskModel.getLoadRetryPolicy().buildRetryPolicy());
@@ -386,7 +391,7 @@ public class ModelBasedBatchTaskBuilderFactory {
         if (listenersModel.getOnTaskEnd() != null)
             builder.addTaskInitializer(context -> {
                 context.onAfterComplete(err -> {
-                    listenersModel.getOnTaskEnd().call2(null, err, context, context.getEvalScope());
+                    listenersModel.getOnTaskEnd().call2(null, context, err, context.getEvalScope());
                 });
             });
 
@@ -424,8 +429,11 @@ public class ModelBasedBatchTaskBuilderFactory {
 
     private IBatchConsumerProvider<Object> getWriter(BatchConsumerModel consumerModel, IBeanProvider beanContainer) {
         IBatchConsumerProvider<Object> provider = getWriter0(consumerModel, beanContainer);
+        if (provider == null)
+            throw new IllegalArgumentException("nop.err.batch.null-writer:" + consumerModel.getLocation());
+
         if (consumerModel.getAdapter() == null)
-            return null;
+            return provider;
         return context -> {
             IBatchConsumerProvider.IBatchConsumer<Object> writer = provider.setup(context);
             return (IBatchConsumerProvider.IBatchConsumer<Object>) consumerModel.getAdapter().call1(null, writer, context.getEvalScope());

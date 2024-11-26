@@ -98,7 +98,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             IBitSet tags = readTags(in, field, typeMeta, context);
             readTemplateOrFields(in, tags, typeMeta, field.getCharsetObj(), value, context);
             if (typeMeta.getAfterRead() != null)
-                typeMeta.getAfterRead().call1(null, record, context.getEvalScope());
+                typeMeta.getAfterRead().call2(null, in, record, context.getEvalScope());
             return;
         }
 
@@ -121,7 +121,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             readField0(in, field, record, context);
         }
         if (field.getAfterRead() != null)
-            field.getAfterRead().call1(null, record, context.getEvalScope());
+            field.getAfterRead().call2(null, in, record, context.getEvalScope());
     }
 
     protected void readTemplateOrFields(Input in, IBitSet tags,

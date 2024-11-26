@@ -35,6 +35,7 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private final IServiceContext serviceContext;
 
     private String taskName;
+    private Long taskVersion;
     private String taskId;
     private String taskKey;
     private Map<String, Object> params;
@@ -52,7 +53,7 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private List<Consumer<Throwable>> onTaskEnds;
     private final List<Consumer<IBatchChunkContext>> onChunkBegins = new CopyOnWriteArrayList<>();
     private final List<Consumer<IBatchChunkContext>> onBeforeChunkEnds = new CopyOnWriteArrayList<>();
-    private final List<BiConsumer<IBatchChunkContext,Throwable>> onChunkEnds = new CopyOnWriteArrayList<>();
+    private final List<BiConsumer<IBatchChunkContext, Throwable>> onChunkEnds = new CopyOnWriteArrayList<>();
 
     public BatchTaskContextImpl(IServiceContext svcCtx, IEvalScope scope) {
         super(scope);
@@ -80,6 +81,16 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
 
     public void setTaskName(String taskName) {
         this.taskName = taskName;
+    }
+
+    @Override
+    public Long getTaskVersion() {
+        return taskVersion;
+    }
+
+    @Override
+    public void setTaskVersion(Long taskVersion) {
+        this.taskVersion = taskVersion;
     }
 
     @Override
@@ -244,7 +255,7 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
 
 
     @Override
-    public void onChunkEnd(BiConsumer<IBatchChunkContext,Throwable> action) {
+    public void onChunkEnd(BiConsumer<IBatchChunkContext, Throwable> action) {
         synchronized (this) {
             if (isDone()) {
                 throw new IllegalStateException("nop.err.execution-already-completed");
@@ -269,7 +280,7 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     }
 
     @Override
-    public void fireBeforeChunkEnd(IBatchChunkContext chunkContext){
+    public void fireBeforeChunkEnd(IBatchChunkContext chunkContext) {
         List<Consumer<IBatchChunkContext>> callbacks = this.onBeforeChunkEnds;
 
         if (callbacks != null) {
@@ -292,11 +303,11 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
 
     @Override
     public void fireChunkEnd(Throwable err, IBatchChunkContext chunkContext) {
-        List<BiConsumer<IBatchChunkContext,Throwable>> callbacks = this.onChunkEnds;
+        List<BiConsumer<IBatchChunkContext, Throwable>> callbacks = this.onChunkEnds;
         if (callbacks != null) {
-            for (BiConsumer<IBatchChunkContext,Throwable> callback : callbacks) {
+            for (BiConsumer<IBatchChunkContext, Throwable> callback : callbacks) {
                 try {
-                    callback.accept(chunkContext,err);
+                    callback.accept(chunkContext, err);
                 } catch (Exception e) {
                     LOG.error("nop.err.core.execution-after-complete-callback-fail", e);
                 }

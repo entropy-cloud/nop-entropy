@@ -7,6 +7,7 @@
 @tagsCodec 类似ISO8583协议，支持先输出一个bitmap标记哪些字段需要写出，然后根据tagIndex过滤只写出部分字段
 @repeatKind 如果是列表结构或者Map结构，则这里用来确定如何判断所有条目已经解析完毕
 @asMap 表示解析得到Map结构。要求fields中必须包含且只包含两个字段key和value，repeatKind不允许为空。
+@div 表示是否仅仅是作为分组使用，并不对应于一个真实的对象
 -->
 <field x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:xdef="/nop/schema/xdef.xdef"
@@ -15,17 +16,17 @@
        repeatKind="enum:io.nop.record.model.FieldRepeatKind"
        tagsCodec="string" tagIndex="!int=0" div="!boolean=false" asMap="!boolean=false"
 >
-    <sizeField xdef:ref="record-simple-field.xdef" />
+    <sizeField xdef:ref="record-simple-field.xdef"/>
 
     <!--
     返回字段的循环次数
     -->
-    <readRepeatExpr xdef:value="xpl-fn:(record,ctx)=>int"/>
+    <readRepeatExpr xdef:value="xpl-fn:(in,record,ctx)=>long"/>
 
     <!--
     返回字段循环的终止条件
     -->
-    <readRepeatUntil xdef:value="xpl-fn:(record,ctx)=>boolean"/>
+    <readRepeatUntil xdef:value="xpl-fn:(in,record,ctx)=>boolean"/>
 
     <!--
     动态确定字段类型
@@ -49,10 +50,10 @@
         <field name="!prop-name" xdef:ref="RecordFieldMeta"/>
     </fields>
 
-    <afterWrite xdef:value="xpl-fn:(record,ctx)=>any"/>
+    <afterWrite xdef:value="xpl-fn:(out,record,ctx)=>any"/>
 
     <!-- 在所有子字段都读取到之后执行 -->
-    <afterRead xdef:value="xpl-fn:(record,ctx)=>any"/>
+    <afterRead xdef:value="xpl-fn:(in,record,ctx)=>any"/>
 
     <!-- 文本输出时使用template更加直观  -->
     <template xdef:value="string"/>

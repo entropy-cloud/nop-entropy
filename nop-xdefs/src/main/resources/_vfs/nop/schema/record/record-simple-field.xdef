@@ -44,7 +44,7 @@
     <!--
     动态确定字段长度。在表达式中record指向父结构，_root指向根结构。
     -->
-    <lengthExpr xdef:value="xpl-fn:(record,ctx)=>int"/>
+    <lengthExpr xdef:value="xpl-fn:(in,record,ctx)=>int"/>
 
     <!--
     当表达式返回false时，此字段将被跳过，不会被处理

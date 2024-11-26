@@ -23,7 +23,10 @@ public class FieldBinaryCodec_f8le implements IFieldBinaryCodec{
         if(value == null){
             output.writeF8le(0.0);
         }else{
-            output.writeF8le((Double)value);
+            
+                    output.writeF8le((Double)value);
+                
+
         }
     }
 }

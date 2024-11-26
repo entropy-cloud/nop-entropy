@@ -23,7 +23,10 @@ public class FieldBinaryCodec_s8le implements IFieldBinaryCodec{
         if(value == null){
             output.writeS8le(0L);
         }else{
-            output.writeS8le((Long)value);
+            
+                    output.writeS8le(((Number)value).longValue());
+                
+
         }
     }
 }

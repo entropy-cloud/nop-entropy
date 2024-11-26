@@ -20,8 +20,7 @@
                    node.tagName = 'batch';
 
                    const batchTaskManager = inject('nopBatchTaskManager')
-                   const batchTaskBuilder = batchTaskManager.newBatchTaskBuilderFromModel(
-                            node.getAttr('name')||'inline-task', node,$beanProvider,$scope);
+                   const batchTaskBuilder = batchTaskManager.newBatchTaskBuilderFromModel(node,$beanProvider,$scope);
                     // 得到<c:script>对应的抽象语法树
                     let ast = xpl `
                          <c:ast>

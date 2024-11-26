@@ -23,7 +23,10 @@ public class FieldBinaryCodec_u4be implements IFieldBinaryCodec{
         if(value == null){
             output.writeU4be(0L);
         }else{
-            output.writeU4be((Long)value);
+            
+                    output.writeU4be(((Number)value).longValue());
+                
+
         }
     }
 }

@@ -1,5 +1,6 @@
 package io.nop.batch.dsl.manager;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.batch.core.IBatchStateStore;
 import io.nop.batch.core.IBatchTaskBuilder;
@@ -8,6 +9,7 @@ import io.nop.batch.core.impl.BatchTaskContextImpl;
 import io.nop.batch.core.manager.IBatchTaskManager;
 import io.nop.batch.dsl.BatchDslConstants;
 import io.nop.batch.dsl.model.BatchTaskModel;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
@@ -23,6 +25,8 @@ import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdsl.DslModelParser;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
+
+import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_NAME_EMPTY;
 
 public class BatchTaskManagerImpl implements IBatchTaskManager {
 
@@ -69,18 +73,21 @@ public class BatchTaskManagerImpl implements IBatchTaskManager {
     @Override
     public IBatchTaskBuilder newBatchTaskBuilder(String batchTaskName, Long batchTaskVersion, IBeanProvider beanProvider) {
         BatchTaskModel taskModel = loadBatchTaskModel(batchTaskName, batchTaskVersion);
-        return new ModelBasedBatchTaskBuilderFactory(batchTaskName, taskModel, stateStore, transactionTemplate,
+        return new ModelBasedBatchTaskBuilderFactory(taskModel, stateStore, transactionTemplate,
                 ormTemplate, jdbcTemplate, daoProvider).newTaskBuilder(beanProvider);
     }
 
     @Override
-    public IBatchTaskBuilder newBatchTaskBuilderFromModel(String batchTaskName, XNode node, IBeanProvider beanProvider, IXLangCompileScope scope) {
+    public IBatchTaskBuilder newBatchTaskBuilderFromModel(XNode node, IBeanProvider beanProvider, IXLangCompileScope scope) {
         XLangCompileTool compileTool = scope == null ? XLang.newCompileTool() : new XLangCompileTool(scope.newChildScope(true));
         boolean allowUnregisteredVar = compileTool.isAllowUnregisteredScopeVar();
         try {
             compileTool.allowUnregisteredScopeVar(true);
             BatchTaskModel taskModel = (BatchTaskModel) new DslModelParser(BatchDslConstants.XDEF_BATCH).withCompileTool(compileTool).parseFromNode(node);
-            return new ModelBasedBatchTaskBuilderFactory(batchTaskName, taskModel, stateStore, transactionTemplate,
+            if (StringHelper.isEmpty(taskModel.getTaskName()) && Boolean.TRUE.equals(taskModel.getSaveState()))
+                throw new NopException(ERR_BATCH_TASK_NAME_EMPTY).source(node);
+
+            return new ModelBasedBatchTaskBuilderFactory(taskModel, stateStore, transactionTemplate,
                     ormTemplate, jdbcTemplate, daoProvider).newTaskBuilder(beanProvider);
         } finally {
             compileTool.allowUnregisteredScopeVar(allowUnregisteredVar);

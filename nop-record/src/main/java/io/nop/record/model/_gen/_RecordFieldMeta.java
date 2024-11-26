@@ -40,7 +40,7 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     /**
      *  
      * xml name: div
-     * 
+     * 表示是否仅仅是作为分组使用，并不对应于一个真实的对象
      */
     private boolean _div  = false;
     
@@ -167,7 +167,7 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     /**
      * 
      * xml name: div
-     *  
+     *  表示是否仅仅是作为分组使用，并不对应于一个真实的对象
      */
     
     public boolean isDiv(){

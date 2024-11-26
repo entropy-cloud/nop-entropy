@@ -483,9 +483,7 @@ public interface IBinaryDataReader extends IDataReaderBase, DataInput {
         return read(data, 0, data.length);
     }
 
-    default int read() throws IOException {
-        return readS1();
-    }
+    int read() throws IOException;
 
     default boolean readBoolean() throws IOException {
         int n = read();

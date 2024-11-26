@@ -23,7 +23,15 @@ public class FieldBinaryCodec_${wordType.name} implements IFieldBinaryCodec{
         if(value == null){
             output.write${wordType.name.$capitalize()}(${wordType.obj.defaultValueInitializer});
         }else{
-            output.write${wordType.name.$capitalize()}((${wordType.obj.valueTypeName})value);
+            <c:iif test="${wordType.obj.longValue}">
+                <c:unit>
+                    output.write${wordType.name.$capitalize()}(((Number)value).longValue());
+                </c:unit>
+                <c:unit>
+                    output.write${wordType.name.$capitalize()}((${wordType.obj.valueTypeName})value);
+                </c:unit>
+            </c:iif>
+
         }
     }
 }

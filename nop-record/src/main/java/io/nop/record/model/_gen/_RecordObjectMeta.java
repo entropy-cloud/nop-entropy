@@ -39,6 +39,13 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: beanClass
+     * 
+     */
+    private java.lang.String _beanClass ;
+    
+    /**
+     *  
      * xml name: doc
      * 
      */
@@ -78,13 +85,6 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
      * 
      */
     private java.lang.String _template ;
-    
-    /**
-     *  
-     * xml name: type
-     * 
-     */
-    private io.nop.core.type.IGenericType _type ;
     
     /**
      *  
@@ -146,6 +146,25 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._baseType = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: beanClass
+     *  
+     */
+    
+    public java.lang.String getBeanClass(){
+      return _beanClass;
+    }
+
+    
+    public void setBeanClass(java.lang.String value){
+        checkAllowChange();
+        
+        this._beanClass = value;
            
     }
 
@@ -318,25 +337,6 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      * 
-     * xml name: type
-     *  
-     */
-    
-    public io.nop.core.type.IGenericType getType(){
-      return _type;
-    }
-
-    
-    public void setType(io.nop.core.type.IGenericType value){
-        checkAllowChange();
-        
-        this._type = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: writeWhen
      *  
      */
@@ -376,13 +376,13 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         out.putNotNull("afterRead",this.getAfterRead());
         out.putNotNull("afterWrite",this.getAfterWrite());
         out.putNotNull("baseType",this.getBaseType());
+        out.putNotNull("beanClass",this.getBeanClass());
         out.putNotNull("doc",this.getDoc());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("params",this.getParams());
         out.putNotNull("readWhen",this.getReadWhen());
         out.putNotNull("ref",this.getRef());
         out.putNotNull("template",this.getTemplate());
-        out.putNotNull("type",this.getType());
         out.putNotNull("writeWhen",this.getWriteWhen());
     }
 
@@ -398,13 +398,13 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         instance.setAfterRead(this.getAfterRead());
         instance.setAfterWrite(this.getAfterWrite());
         instance.setBaseType(this.getBaseType());
+        instance.setBeanClass(this.getBeanClass());
         instance.setDoc(this.getDoc());
         instance.setFields(this.getFields());
         instance.setParams(this.getParams());
         instance.setReadWhen(this.getReadWhen());
         instance.setRef(this.getRef());
         instance.setTemplate(this.getTemplate());
-        instance.setType(this.getType());
         instance.setWriteWhen(this.getWriteWhen());
     }
 

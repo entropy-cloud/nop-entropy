@@ -131,6 +131,11 @@ public class RandomAccessFileBinaryDataReader implements IBinaryDataReader {
     }
 
     @Override
+    public int read() throws IOException {
+        return raf.read();
+    }
+
+    @Override
     public IBinaryDataReader subInput(long n) throws IOException {
         // This implementation mirrors what ksc was doing up to v0.10, and the fallback that
         // it is still doing in case something non-trivial has to happen with the byte contents.
