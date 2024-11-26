@@ -9,7 +9,7 @@ import io.nop.commons.util.ClassHelper;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from /nop/schema/excel/workbook.xdef <p>
+ * generate from /nop/schema/excel/font.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -54,9 +54,7 @@ public abstract class _ExcelFont extends io.nop.core.resource.component.Abstract
     /**
      *  
      * xml name: fontSize
-     * 用来表示字体大小的半点，一个点等于两个半点，如表示 12pt 可以这样写
-     * 24 = 12pt
-     * 1pt = 20 twips, 1twips=1/1440英寸
+     * 
      */
     private java.lang.Float _fontSize ;
     
@@ -186,9 +184,7 @@ public abstract class _ExcelFont extends io.nop.core.resource.component.Abstract
     /**
      * 
      * xml name: fontSize
-     *  用来表示字体大小的半点，一个点等于两个半点，如表示 12pt 可以这样写
-     * 24 = 12pt
-     * 1pt = 20 twips, 1twips=1/1440英寸
+     *  
      */
     
     public java.lang.Float getFontSize(){

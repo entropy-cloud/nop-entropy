@@ -1,0 +1,103 @@
+<table x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+       xdef:name="ExcelTable" xdef:bean-package="io.nop.excel.model" xmlns:qr="qr" xdef:check-ns="qr"
+       xdef:bean-extends-type="io.nop.core.model.table.impl.AbstractTable&lt;io.nop.excel.model.ExcelRow>"
+>
+
+    <cols xdef:body-type="list">
+        <!--
+        @width [列宽] 列的宽度，单位为pt
+        -->
+        <col width="double" xdef:name="ExcelColumnConfig" styleId="string" hidden="!boolean=false">
+            <styleIdExpr xdef:value="xpl"/>
+        </col>
+    </cols>
+
+    <rows xdef:body-type="list">
+        <row xdef:name="ExcelRow" styleId="string" height="double"
+             autoFitHeight="!boolean=false" name="string" hidden="!boolean=false"
+             xdef:bean-extends-type="io.nop.core.model.table.impl.AbstractRow"
+        >
+            <cells xdef:body-type="list">
+                <!--
+                   @mergeAcross 向右合并的列数。mergeAcross + 1 == colSpan
+                   -->
+                <cell name="string" mergeAcross="!int=0" mergeDown="!int=0" xdef:name="ExcelCell"
+                      linkUrl="string"
+                      xdef:bean-extends-type="io.nop.core.model.table.impl.AbstractCell"
+                      styleId="string" type="enum:io.nop.commons.type.StdDataType">
+
+                    <value xdef:value="any"/>
+                    <formula xdef:value="string"/>
+
+                    <richText xdef:name="ExcelRichText" xdef:body-type="list" xdef:bean-body-prop="parts">
+                        <part xdef:name="ExcelRichTextPart">
+                            <font xdef:ref="font.xdef"/>
+                            <text xdef:value="string"/>
+                        </part>
+                    </richText>
+
+                    <comment xdef:value="string"/>
+                    <!--
+                    @exportFormula 导出到Excel时保持公式
+                    @expandInplaceCount 在模板中已经预留了几个展开单元格空间。如果展开表达式返回个数小于这个值，则不需要新增单元格。
+                    @expandMaxCount 控制展开表达式最多返回多少行
+                    @expandMinCount 控制展开表达式返回的条目数不足时，自动补空行
+                    @rowExtendForSibling 同一行的兄弟单元格展开时是否自动拉伸本单元格。缺省为true
+                    @colExtendForSibling 同一列的兄弟单元格展开时是否自动拉伸本单元格。缺省为true
+                    @keepExpandEmpty 当展开集合为空时，如果设置为false，则会删除模板中定义的单元格以及它所在的行或者列。
+                               但是如果keepExpandEmpty为true，则只是清除当前单元格以及所有子单元格的内容，但是并不自动删除。缺省为true
+                    @exportFormattedValue 如果设置为true，则导出Excel时会应用formatExpr或者Excel配置的NumberFormat，
+                        格式化为字符串后导出，而不是导出单元格的原始值。缺省情况下会导出原始值，使用Excel的NumberFormat来格式化
+                    -->
+                    <model xdef:name="XptCellModel" domain="string" editorId="var-name" viewerId="var-name"
+                           field="prop-path" ds="var-name" expandInplaceCount="int"
+                           exportFormula="boolean" expandMaxCount="int" expandMinCount="int"
+                           expandType="enum:io.nop.excel.model.constants.XptExpandType"
+                           keepExpandEmpty="boolean" exportFormattedValue="boolean"
+                           rowExtendForSibling="boolean" colExtendForSibling="boolean"
+                           rowParent="cell-pos" colParent="cell-pos"
+                           qr:barcodeFormat="string" qr:margin="int" qr:imgType="string" qr:width="double"
+                           qr:height="double" qr:encoding="string" qr:errorCorrection="int"
+                    >
+                        <!--
+                        单元格展开时首先根据expandExpr计算得到expandedValue。如果没有指定expandExpr，但是指定了field和ds,
+                        在自动根据ds中的field数据进行分组汇总，返回分组汇总得到的结果。
+                        注意：展开表达式执行时还没有完成Excel层次坐标的构建，所以这里不能使用层次坐标表达式
+                        -->
+                        <expandExpr xdef:value="xpl"/>
+
+                        <!--
+                        对expandExpr返回的列表进行排序
+                        -->
+                        <expandOrderBy xdef:value="sql-order-by"/>
+
+                        <!--
+                        在单元格展开之后执行，可以通过层次坐标获取到相关联单元格
+                        -->
+                        <valueExpr xdef:value="report-expr"/>
+
+                        <!--
+                        在valueExpr执行后执行，计算得到用于显示的单元格文本
+                        -->
+                        <formatExpr xdef:value="report-expr"/>
+                        <linkExpr xdef:value="report-expr"/>
+                        <styleIdExpr xdef:value="report-expr"/>
+                        <processExpr xdef:value="report-expr"/>
+
+                        <!--
+                        返回false的时候表示当前单元格所在的行需要被删除
+                        -->
+                        <rowTestExpr xdef:value="xpl-predicate"/>
+                        <colTestExpr xdef:value="xpl-predicate"/>
+                    </model>
+                </cell>
+            </cells>
+
+            <model xdef:name="XptRowModel">
+                <testExpr xdef:value="xpl-predicate"/>
+                <visibleExpr xdef:value="xpl"/>
+                <styleIdExpr xdef:value="xpl"/>
+            </model>
+        </row>
+    </rows>
+</table>

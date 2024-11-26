@@ -1,0 +1,28 @@
+<!--
+       @rotate 旋转角度，从1到360
+       -->
+<style x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+        id="!string" name="string" xdef:name="ExcelStyle" xdef:bean-package="io.nop.excel.model"
+       indent="int"
+       wrapText="!boolean=false" shrinkToFit="!boolean=false" rotate="int"
+       verticalAlign="enum:io.nop.excel.model.constants.ExcelVerticalAlignment"
+       horizontalAlign="enum:io.nop.excel.model.constants.ExcelHorizontalAlignment"
+       fillBgColor="string" fillPattern="string" fillFgColor="string"
+>
+    <numberFormat xdef:value="string"/>
+    <!--
+    @fontSize 用来表示字体大小的半点，一个点等于两个半点，如表示 12pt 可以这样写
+            24 = 12pt
+            1pt = 20 twips, 1twips=1/1440英寸
+    -->
+    <font xdef:ref="font.xdef"/>
+
+    <topBorder xdef:name="ExcelBorderStyle" type="enum:io.nop.excel.model.constants.ExcelLineStyle"
+               weight="!int=0" color="string"/>
+
+    <bottomBorder xdef:ref="ExcelBorderStyle"/>
+    <leftBorder xdef:ref="ExcelBorderStyle"/>
+    <rightBorder xdef:ref="ExcelBorderStyle"/>
+    <diagonalLeftBorder xdef:ref="ExcelBorderStyle"/>
+    <diagonalRightBorder xdef:ref="ExcelBorderStyle"/>
+</style>

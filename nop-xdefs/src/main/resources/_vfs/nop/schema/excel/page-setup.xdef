@@ -1,0 +1,24 @@
+<!--
+            @scale 放大百分比
+            @paperSize 为ooxml中定义的标准页面大小。如果设置了paperWidth和paperHeight时，以这两个值为准
+            @paperWidth 单位为pt
+            -->
+<pageSetup x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+           xdef:name="ExcelPageSetup" xdef:bean-package="io.nop.excel.model"
+           orientationHorizontal="boolean"
+           horizontalCentered="boolean" verticalCentered="boolean"
+           paperSize="int" paperWidth="float" paperHeight="float" scale="int"
+           fitToHeight="boolean" fitToWidth="boolean" gridLines="boolean"
+           firstPageNumber="int" blackAndWhite="boolean">
+    <header xdef:name="ExcelHeaderFooter">
+        <left xdef:value="string"/>
+        <center xdef:value="string"/>
+        <right xdef:value="string"/>
+        <leftExpr xdef:value="xpl"/>
+        <centerExpr xdef:value="xpl"/>
+        <rightExpr xdef:value="xpl"/>
+        <style xdef:ref="style.xdef"/>
+    </header>
+
+    <footer xdef:ref="ExcelHeaderFooter"/>
+</pageSetup>

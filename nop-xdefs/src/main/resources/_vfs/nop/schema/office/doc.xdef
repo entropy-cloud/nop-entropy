@@ -1,0 +1,10 @@
+<doc x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+     xdef:bean-package="io.nop.office.doc.model" xdef:check-ns="qr"
+     xdef:name="OfficeDocModel" width="!double" height="!double">
+
+    <pages xdef:body-type="list" xdef:key-attr="name">
+        <page name="!string" xdef:name="OfficeDocPageModel" orientation="">
+
+        </page>
+    </pages>
+</doc>
