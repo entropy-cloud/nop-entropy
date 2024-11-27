@@ -22,7 +22,6 @@ import io.nop.batch.core.processor.FilterBatchProcessor;
 import io.nop.batch.core.processor.MultiBatchProcessorProvider;
 import io.nop.batch.dsl.model.BatchChunkProcessorBuilderModel;
 import io.nop.batch.dsl.model.BatchConsumerModel;
-import io.nop.batch.dsl.model.BatchJdbcWriterModel;
 import io.nop.batch.dsl.model.BatchListenersModel;
 import io.nop.batch.dsl.model.BatchLoaderModel;
 import io.nop.batch.dsl.model.BatchOrmWriterModel;
@@ -53,10 +52,11 @@ import java.util.concurrent.Executor;
 
 import static io.nop.batch.dsl.BatchDslErrors.ARG_BATCH_TASK_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_NO_LOADER;
-import static io.nop.batch.dsl.manager.FileBatchSupport.buildFileReader;
+import static io.nop.batch.dsl.manager.FileBatchSupport.newFileReader;
 import static io.nop.batch.dsl.manager.FileBatchSupport.newFileWriter;
-import static io.nop.batch.dsl.manager.JdbcBatchSupport.buildJdbcReader;
-import static io.nop.batch.dsl.manager.OrmBatchSupport.buildOrmReader;
+import static io.nop.batch.dsl.manager.JdbcBatchSupport.newJdbcReader;
+import static io.nop.batch.dsl.manager.JdbcBatchSupport.newJdbcWriter;
+import static io.nop.batch.dsl.manager.OrmBatchSupport.newOrmReader;
 
 public class ModelBasedBatchTaskBuilderFactory {
     private final String batchTaskName;
@@ -248,11 +248,11 @@ public class ModelBasedBatchTaskBuilderFactory {
         boolean saveState = Boolean.TRUE.equals(loaderModel.getSaveState());
 
         if (loaderModel.getFileReader() != null) {
-            return buildFileReader(loaderModel.getFileReader(), beanProvider, saveState, aggregator);
+            return newFileReader(loaderModel.getFileReader(), beanProvider, saveState, aggregator);
         } else if (loaderModel.getJdbcReader() != null) {
-            return buildJdbcReader(loaderModel.getJdbcReader(), beanProvider, jdbcTemplate, sqlLibManager);
+            return newJdbcReader(loaderModel.getJdbcReader(), beanProvider, jdbcTemplate, sqlLibManager);
         } else if (loaderModel.getOrmReader() != null) {
-            return buildOrmReader(loaderModel.getOrmReader(), daoProvider);
+            return newOrmReader(loaderModel.getOrmReader(), daoProvider);
         } else if (loaderModel.getSource() != null) {
             return context -> (batchSize, ctx) -> (List<Object>) loaderModel.getSource().call2(null,
                     batchSize, ctx, ctx.getEvalScope());
@@ -377,7 +377,7 @@ public class ModelBasedBatchTaskBuilderFactory {
         } else if (consumerModel.getOrmWriter() != null) {
             ret = newOrmWriter(consumerModel.getOrmWriter(), beanContainer);
         } else if (consumerModel.getJdbcWriter() != null) {
-            ret = newJdbcWriter(consumerModel.getJdbcWriter(), beanContainer);
+            ret = newJdbcWriter(consumerModel.getJdbcWriter(), jdbcTemplate);
         } else {
             ret = null;
         }
@@ -403,10 +403,6 @@ public class ModelBasedBatchTaskBuilderFactory {
 
 
     private IBatchConsumerProvider<Object> newOrmWriter(BatchOrmWriterModel consumerModel, IBeanProvider beanContainer) {
-        return null;
-    }
-
-    private IBatchConsumerProvider<Object> newJdbcWriter(BatchJdbcWriterModel consumerModel, IBeanProvider beanProvider) {
         return null;
     }
 }

@@ -23,9 +23,9 @@ import java.util.Map;
 public class FileBatchSupport {
 
 
-    public static IBatchLoaderProvider<Object> buildFileReader(BatchFileReaderModel loaderModel,
-                                                               IBeanProvider beanContainer, boolean saveState,
-                                                               IBatchAggregator<Object, Object, Map<String, Object>> aggregator) {
+    public static IBatchLoaderProvider<Object> newFileReader(BatchFileReaderModel loaderModel,
+                                                             IBeanProvider beanContainer, boolean saveState,
+                                                             IBatchAggregator<Object, Object, Map<String, Object>> aggregator) {
         IResourceRecordInputProvider<Object> recordIO = newRecordInputProvider(loaderModel, beanContainer);
         IResourceLoader resourceLoader = loadResourceLoader(loaderModel.getResourceLoader(), beanContainer);
 

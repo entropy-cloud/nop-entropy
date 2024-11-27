@@ -32,10 +32,17 @@ public abstract class _BatchWriteFieldModel extends io.nop.core.resource.compone
     
     /**
      *  
-     * xml name: sqlType
+     * xml name: stdDataType
      * 
      */
-    private io.nop.commons.type.StdSqlType _sqlType ;
+    private io.nop.commons.type.StdDataType _stdDataType ;
+    
+    /**
+     *  
+     * xml name: stdSqlType
+     * 
+     */
+    private io.nop.commons.type.StdSqlType _stdSqlType ;
     
     /**
      * 
@@ -77,19 +84,38 @@ public abstract class _BatchWriteFieldModel extends io.nop.core.resource.compone
     
     /**
      * 
-     * xml name: sqlType
+     * xml name: stdDataType
      *  
      */
     
-    public io.nop.commons.type.StdSqlType getSqlType(){
-      return _sqlType;
+    public io.nop.commons.type.StdDataType getStdDataType(){
+      return _stdDataType;
     }
 
     
-    public void setSqlType(io.nop.commons.type.StdSqlType value){
+    public void setStdDataType(io.nop.commons.type.StdDataType value){
         checkAllowChange();
         
-        this._sqlType = value;
+        this._stdDataType = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: stdSqlType
+     *  
+     */
+    
+    public io.nop.commons.type.StdSqlType getStdSqlType(){
+      return _stdSqlType;
+    }
+
+    
+    public void setStdSqlType(io.nop.commons.type.StdSqlType value){
+        checkAllowChange();
+        
+        this._stdSqlType = value;
            
     }
 
@@ -111,7 +137,8 @@ public abstract class _BatchWriteFieldModel extends io.nop.core.resource.compone
         
         out.putNotNull("from",this.getFrom());
         out.putNotNull("name",this.getName());
-        out.putNotNull("sqlType",this.getSqlType());
+        out.putNotNull("stdDataType",this.getStdDataType());
+        out.putNotNull("stdSqlType",this.getStdSqlType());
     }
 
     public BatchWriteFieldModel cloneInstance(){
@@ -125,7 +152,8 @@ public abstract class _BatchWriteFieldModel extends io.nop.core.resource.compone
         
         instance.setFrom(this.getFrom());
         instance.setName(this.getName());
-        instance.setSqlType(this.getSqlType());
+        instance.setStdDataType(this.getStdDataType());
+        instance.setStdSqlType(this.getStdSqlType());
     }
 
     protected BatchWriteFieldModel newInstance(){

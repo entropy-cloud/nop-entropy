@@ -620,6 +620,10 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
             return append(" select ");
         }
 
+        public SqlBuilder star() {
+            return append(" * ");
+        }
+
         public SqlBuilder from() {
             return append(" from ");
         }

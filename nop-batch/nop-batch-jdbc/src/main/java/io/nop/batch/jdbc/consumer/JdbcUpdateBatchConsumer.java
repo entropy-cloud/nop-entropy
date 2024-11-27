@@ -18,6 +18,7 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.JdbcBatcher;
 import io.nop.dataset.binder.IDataParameterBinder;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -25,12 +26,12 @@ public class JdbcUpdateBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
     private final IJdbcTemplate jdbcTemplate;
     private final IDialect dialect;
     private final String tableName;
-    private final List<String> keyFields;
+    private final Collection<String> keyFields;
 
     private final Map<String, IDataParameterBinder> colBinders;
 
     public JdbcUpdateBatchConsumer(IJdbcTemplate jdbcTemplate, IDialect dialect, String tableName,
-                                   List<String> keyFields,
+                                   Collection<String> keyFields,
                                    Map<String, IDataParameterBinder> colBinders) {
         this.jdbcTemplate = jdbcTemplate;
         this.dialect = dialect;

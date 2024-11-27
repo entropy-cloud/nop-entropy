@@ -1,9 +1,12 @@
 package io.nop.batch.dsl.manager;
 
 import io.nop.api.core.ioc.IBeanProvider;
+import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.dsl.BatchDslConstants;
 import io.nop.batch.dsl.model.BatchJdbcReaderModel;
+import io.nop.batch.dsl.model.BatchJdbcWriterModel;
+import io.nop.batch.jdbc.consumer.JdbcBatchConsumerProvider;
 import io.nop.batch.jdbc.loader.JdbcBatchLoaderProvider;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.dao.api.INamedSqlBuilder;
@@ -13,10 +16,10 @@ import io.nop.dataset.rowmapper.ColumnMapRowMapper;
 
 public class JdbcBatchSupport {
 
-    public static IBatchLoaderProvider<Object> buildJdbcReader(BatchJdbcReaderModel loaderModel,
-                                                               IBeanProvider beanProvider,
-                                                               IJdbcTemplate jdbcTemplate,
-                                                               INamedSqlBuilder sqlLibManager) {
+    public static IBatchLoaderProvider<Object> newJdbcReader(BatchJdbcReaderModel loaderModel,
+                                                             IBeanProvider beanProvider,
+                                                             IJdbcTemplate jdbcTemplate,
+                                                             INamedSqlBuilder sqlLibManager) {
         JdbcBatchLoaderProvider<Object> loader = new JdbcBatchLoaderProvider<>();
         loader.setQuerySpace(loaderModel.getQuerySpace());
         loader.setJdbcTemplate(jdbcTemplate);
@@ -59,4 +62,16 @@ public class JdbcBatchSupport {
         return loader;
     }
 
+    public static IBatchConsumerProvider<Object> newJdbcWriter(BatchJdbcWriterModel consumerModel,
+                                                               IJdbcTemplate jdbcTemplate) {
+        JdbcBatchConsumerProvider<Object> provider = new JdbcBatchConsumerProvider<>();
+        provider.setJdbcTemplate(jdbcTemplate);
+        provider.setKeyFields(consumerModel.getKeyFields());
+        provider.setAllowInsert(consumerModel.isAllowInsert());
+        provider.setAllowUpdate(consumerModel.isAllowUpdate());
+        provider.setFields(consumerModel.getFields());
+        provider.setTableName(consumerModel.getTableName());
+        provider.setQuerySpace(consumerModel.getQuerySpace());
+        return provider;
+    }
 }

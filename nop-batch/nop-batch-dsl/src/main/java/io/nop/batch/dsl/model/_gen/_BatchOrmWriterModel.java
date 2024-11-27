@@ -39,10 +39,10 @@ public abstract class _BatchOrmWriterModel extends io.nop.core.resource.componen
     
     /**
      *  
-     * xml name: uniqueKey
+     * xml name: keyFields
      * 
      */
-    private java.util.Set<java.lang.String> _uniqueKey ;
+    private java.util.Set<java.lang.String> _keyFields ;
     
     /**
      * 
@@ -103,19 +103,19 @@ public abstract class _BatchOrmWriterModel extends io.nop.core.resource.componen
     
     /**
      * 
-     * xml name: uniqueKey
+     * xml name: keyFields
      *  
      */
     
-    public java.util.Set<java.lang.String> getUniqueKey(){
-      return _uniqueKey;
+    public java.util.Set<java.lang.String> getKeyFields(){
+      return _keyFields;
     }
 
     
-    public void setUniqueKey(java.util.Set<java.lang.String> value){
+    public void setKeyFields(java.util.Set<java.lang.String> value){
         checkAllowChange();
         
-        this._uniqueKey = value;
+        this._keyFields = value;
            
     }
 
@@ -138,7 +138,7 @@ public abstract class _BatchOrmWriterModel extends io.nop.core.resource.componen
         out.putNotNull("allowInsert",this.isAllowInsert());
         out.putNotNull("allowUpdate",this.isAllowUpdate());
         out.putNotNull("entityName",this.getEntityName());
-        out.putNotNull("uniqueKey",this.getUniqueKey());
+        out.putNotNull("keyFields",this.getKeyFields());
     }
 
     public BatchOrmWriterModel cloneInstance(){
@@ -153,7 +153,7 @@ public abstract class _BatchOrmWriterModel extends io.nop.core.resource.componen
         instance.setAllowInsert(this.isAllowInsert());
         instance.setAllowUpdate(this.isAllowUpdate());
         instance.setEntityName(this.getEntityName());
-        instance.setUniqueKey(this.getUniqueKey());
+        instance.setKeyFields(this.getKeyFields());
     }
 
     protected BatchOrmWriterModel newInstance(){

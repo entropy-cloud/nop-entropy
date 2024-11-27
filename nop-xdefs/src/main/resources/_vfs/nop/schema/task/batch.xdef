@@ -121,14 +121,16 @@
 
         <orm-writer entityName="!string" xdef:name="BatchOrmWriterModel" allowUpdate="!boolean=false"
                     allowInsert="!boolean=true">
-            <uniqueKey xdef:value="csv-set"/>
+            <keyFields xdef:value="csv-set"/>
         </orm-writer>
 
-        <jdbc-writer tableName="!string" xdef:name="BatchJdbcWriterModel" allowUpdate="!boolean=false"
+        <jdbc-writer querySpace="string" tableName="!string" xdef:name="BatchJdbcWriterModel"
+                     allowUpdate="!boolean=false"
                      allowInsert="!boolean=true">
-            <uniqueKey xdef:value="csv-set"/>
+            <keyFields xdef:value="csv-set"/>
             <fields xdef:body-type="list" xdef:key-attr="name">
-                <field name="!string" from="string" sqlType="!std-sql-type" xdef:name="BatchWriteFieldModel"/>
+                <field name="!string" from="string" stdSqlType="!std-sql-type" stdDataType="std-data-type"
+                       xdef:name="BatchWriteFieldModel"/>
             </fields>
         </jdbc-writer>
 

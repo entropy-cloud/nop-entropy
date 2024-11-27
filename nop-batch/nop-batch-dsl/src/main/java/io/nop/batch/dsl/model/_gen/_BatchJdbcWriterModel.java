@@ -39,17 +39,24 @@ public abstract class _BatchJdbcWriterModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: keyFields
+     * 
+     */
+    private java.util.Set<java.lang.String> _keyFields ;
+    
+    /**
+     *  
+     * xml name: querySpace
+     * 
+     */
+    private java.lang.String _querySpace ;
+    
+    /**
+     *  
      * xml name: tableName
      * 
      */
     private java.lang.String _tableName ;
-    
-    /**
-     *  
-     * xml name: uniqueKey
-     * 
-     */
-    private java.util.Set<java.lang.String> _uniqueKey ;
     
     /**
      * 
@@ -136,6 +143,44 @@ public abstract class _BatchJdbcWriterModel extends io.nop.core.resource.compone
     
     /**
      * 
+     * xml name: keyFields
+     *  
+     */
+    
+    public java.util.Set<java.lang.String> getKeyFields(){
+      return _keyFields;
+    }
+
+    
+    public void setKeyFields(java.util.Set<java.lang.String> value){
+        checkAllowChange();
+        
+        this._keyFields = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: querySpace
+     *  
+     */
+    
+    public java.lang.String getQuerySpace(){
+      return _querySpace;
+    }
+
+    
+    public void setQuerySpace(java.lang.String value){
+        checkAllowChange();
+        
+        this._querySpace = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: tableName
      *  
      */
@@ -149,25 +194,6 @@ public abstract class _BatchJdbcWriterModel extends io.nop.core.resource.compone
         checkAllowChange();
         
         this._tableName = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: uniqueKey
-     *  
-     */
-    
-    public java.util.Set<java.lang.String> getUniqueKey(){
-      return _uniqueKey;
-    }
-
-    
-    public void setUniqueKey(java.util.Set<java.lang.String> value){
-        checkAllowChange();
-        
-        this._uniqueKey = value;
            
     }
 
@@ -192,8 +218,9 @@ public abstract class _BatchJdbcWriterModel extends io.nop.core.resource.compone
         out.putNotNull("allowInsert",this.isAllowInsert());
         out.putNotNull("allowUpdate",this.isAllowUpdate());
         out.putNotNull("fields",this.getFields());
+        out.putNotNull("keyFields",this.getKeyFields());
+        out.putNotNull("querySpace",this.getQuerySpace());
         out.putNotNull("tableName",this.getTableName());
-        out.putNotNull("uniqueKey",this.getUniqueKey());
     }
 
     public BatchJdbcWriterModel cloneInstance(){
@@ -208,8 +235,9 @@ public abstract class _BatchJdbcWriterModel extends io.nop.core.resource.compone
         instance.setAllowInsert(this.isAllowInsert());
         instance.setAllowUpdate(this.isAllowUpdate());
         instance.setFields(this.getFields());
+        instance.setKeyFields(this.getKeyFields());
+        instance.setQuerySpace(this.getQuerySpace());
         instance.setTableName(this.getTableName());
-        instance.setUniqueKey(this.getUniqueKey());
     }
 
     protected BatchJdbcWriterModel newInstance(){
