@@ -52,80 +52,96 @@ public class _NopBatchTask extends DynamicOrmEntity{
     public static final String PROP_NAME_execCount = "execCount";
     public static final int PROP_ID_execCount = 8;
     
-    /* 执行者: WORKER VARCHAR */
-    public static final String PROP_NAME_worker = "worker";
-    public static final int PROP_ID_worker = 9;
+    /* 执行者: WORKER_ID VARCHAR */
+    public static final String PROP_NAME_workerId = "workerId";
+    public static final int PROP_ID_workerId = 9;
     
     /* 输入文件: INPUT_FILE_ID VARCHAR */
     public static final String PROP_NAME_inputFileId = "inputFileId";
     public static final int PROP_ID_inputFileId = 10;
     
+    /* 关联流程步骤ID: FLOW_STEP_ID VARCHAR */
+    public static final String PROP_NAME_flowStepId = "flowStepId";
+    public static final int PROP_ID_flowStepId = 11;
+    
+    /* 重启时间: RESTART_TIME TIMESTAMP */
+    public static final String PROP_NAME_restartTime = "restartTime";
+    public static final int PROP_ID_restartTime = 12;
+    
     /* 返回状态码: RESULT_STATUS INTEGER */
     public static final String PROP_NAME_resultStatus = "resultStatus";
-    public static final int PROP_ID_resultStatus = 11;
+    public static final int PROP_ID_resultStatus = 13;
     
     /* 返回码: RESULT_CODE VARCHAR */
     public static final String PROP_NAME_resultCode = "resultCode";
-    public static final int PROP_ID_resultCode = 12;
+    public static final int PROP_ID_resultCode = 14;
     
     /* 返回消息: RESULT_MSG VARCHAR */
     public static final String PROP_NAME_resultMsg = "resultMsg";
-    public static final int PROP_ID_resultMsg = 13;
+    public static final int PROP_ID_resultMsg = 15;
     
     /* 错误堆栈: ERROR_STACK VARCHAR */
     public static final String PROP_NAME_errorStack = "errorStack";
-    public static final int PROP_ID_errorStack = 14;
+    public static final int PROP_ID_errorStack = 16;
     
     /* 已完成记录下标: COMPLETED_INDEX BIGINT */
     public static final String PROP_NAME_completedIndex = "completedIndex";
-    public static final int PROP_ID_completedIndex = 15;
+    public static final int PROP_ID_completedIndex = 17;
     
     /* 完成条目数量: COMPLETE_ITEM_COUNT BIGINT */
     public static final String PROP_NAME_completeItemCount = "completeItemCount";
-    public static final int PROP_ID_completeItemCount = 16;
+    public static final int PROP_ID_completeItemCount = 18;
     
-    /* 重试分块次数: RETRY_CHUNK_COUNT INTEGER */
-    public static final String PROP_NAME_retryChunkCount = "retryChunkCount";
-    public static final int PROP_ID_retryChunkCount = 17;
+    /* 重试加载次数: LOAD_RETRY_COUNT INTEGER */
+    public static final String PROP_NAME_loadRetryCount = "loadRetryCount";
+    public static final int PROP_ID_loadRetryCount = 19;
+    
+    /* 加载跳过数量: LOAD_SKIP_COUNT BIGINT */
+    public static final String PROP_NAME_loadSkipCount = "loadSkipCount";
+    public static final int PROP_ID_loadSkipCount = 20;
+    
+    /* 重试条目次数: RETRY_ITEM_COUNT INTEGER */
+    public static final String PROP_NAME_retryItemCount = "retryItemCount";
+    public static final int PROP_ID_retryItemCount = 21;
     
     /* 处理条目数量: PROCESS_ITEM_COUNT BIGINT */
     public static final String PROP_NAME_processItemCount = "processItemCount";
-    public static final int PROP_ID_processItemCount = 18;
+    public static final int PROP_ID_processItemCount = 22;
     
     /* 跳过条目数量: SKIP_ITEM_COUNT BIGINT */
     public static final String PROP_NAME_skipItemCount = "skipItemCount";
-    public static final int PROP_ID_skipItemCount = 19;
+    public static final int PROP_ID_skipItemCount = 23;
     
     /* 写入条目数量: WRITE_ITEM_COUNT BIGINT */
     public static final String PROP_NAME_writeItemCount = "writeItemCount";
-    public static final int PROP_ID_writeItemCount = 20;
+    public static final int PROP_ID_writeItemCount = 24;
     
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 21;
+    public static final int PROP_ID_version = 25;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 22;
+    public static final int PROP_ID_createdBy = 26;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 23;
+    public static final int PROP_ID_createTime = 27;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 24;
+    public static final int PROP_ID_updatedBy = 28;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 25;
+    public static final int PROP_ID_updateTime = 29;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 26;
+    public static final int PROP_ID_remark = 30;
     
 
-    private static int _PROP_ID_BOUND = 27;
+    private static int _PROP_ID_BOUND = 31;
 
     
     /* relation: 批处理文件 */
@@ -138,7 +154,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[27];
+    private static final String[] PROP_ID_TO_NAME = new String[31];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -166,11 +182,17 @@ public class _NopBatchTask extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_execCount] = PROP_NAME_execCount;
           PROP_NAME_TO_ID.put(PROP_NAME_execCount, PROP_ID_execCount);
       
-          PROP_ID_TO_NAME[PROP_ID_worker] = PROP_NAME_worker;
-          PROP_NAME_TO_ID.put(PROP_NAME_worker, PROP_ID_worker);
+          PROP_ID_TO_NAME[PROP_ID_workerId] = PROP_NAME_workerId;
+          PROP_NAME_TO_ID.put(PROP_NAME_workerId, PROP_ID_workerId);
       
           PROP_ID_TO_NAME[PROP_ID_inputFileId] = PROP_NAME_inputFileId;
           PROP_NAME_TO_ID.put(PROP_NAME_inputFileId, PROP_ID_inputFileId);
+      
+          PROP_ID_TO_NAME[PROP_ID_flowStepId] = PROP_NAME_flowStepId;
+          PROP_NAME_TO_ID.put(PROP_NAME_flowStepId, PROP_ID_flowStepId);
+      
+          PROP_ID_TO_NAME[PROP_ID_restartTime] = PROP_NAME_restartTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_restartTime, PROP_ID_restartTime);
       
           PROP_ID_TO_NAME[PROP_ID_resultStatus] = PROP_NAME_resultStatus;
           PROP_NAME_TO_ID.put(PROP_NAME_resultStatus, PROP_ID_resultStatus);
@@ -190,8 +212,14 @@ public class _NopBatchTask extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_completeItemCount] = PROP_NAME_completeItemCount;
           PROP_NAME_TO_ID.put(PROP_NAME_completeItemCount, PROP_ID_completeItemCount);
       
-          PROP_ID_TO_NAME[PROP_ID_retryChunkCount] = PROP_NAME_retryChunkCount;
-          PROP_NAME_TO_ID.put(PROP_NAME_retryChunkCount, PROP_ID_retryChunkCount);
+          PROP_ID_TO_NAME[PROP_ID_loadRetryCount] = PROP_NAME_loadRetryCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_loadRetryCount, PROP_ID_loadRetryCount);
+      
+          PROP_ID_TO_NAME[PROP_ID_loadSkipCount] = PROP_NAME_loadSkipCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_loadSkipCount, PROP_ID_loadSkipCount);
+      
+          PROP_ID_TO_NAME[PROP_ID_retryItemCount] = PROP_NAME_retryItemCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_retryItemCount, PROP_ID_retryItemCount);
       
           PROP_ID_TO_NAME[PROP_ID_processItemCount] = PROP_NAME_processItemCount;
           PROP_NAME_TO_ID.put(PROP_NAME_processItemCount, PROP_ID_processItemCount);
@@ -247,11 +275,17 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /* 执行次数: EXEC_COUNT */
     private java.lang.Integer _execCount;
     
-    /* 执行者: WORKER */
-    private java.lang.String _worker;
+    /* 执行者: WORKER_ID */
+    private java.lang.String _workerId;
     
     /* 输入文件: INPUT_FILE_ID */
     private java.lang.String _inputFileId;
+    
+    /* 关联流程步骤ID: FLOW_STEP_ID */
+    private java.lang.String _flowStepId;
+    
+    /* 重启时间: RESTART_TIME */
+    private java.sql.Timestamp _restartTime;
     
     /* 返回状态码: RESULT_STATUS */
     private java.lang.Integer _resultStatus;
@@ -271,8 +305,14 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /* 完成条目数量: COMPLETE_ITEM_COUNT */
     private java.lang.Long _completeItemCount;
     
-    /* 重试分块次数: RETRY_CHUNK_COUNT */
-    private java.lang.Integer _retryChunkCount;
+    /* 重试加载次数: LOAD_RETRY_COUNT */
+    private java.lang.Integer _loadRetryCount;
+    
+    /* 加载跳过数量: LOAD_SKIP_COUNT */
+    private java.lang.Long _loadSkipCount;
+    
+    /* 重试条目次数: RETRY_ITEM_COUNT */
+    private java.lang.Integer _retryItemCount;
     
     /* 处理条目数量: PROCESS_ITEM_COUNT */
     private java.lang.Long _processItemCount;
@@ -399,11 +439,17 @@ public class _NopBatchTask extends DynamicOrmEntity{
             case PROP_ID_execCount:
                return getExecCount();
         
-            case PROP_ID_worker:
-               return getWorker();
+            case PROP_ID_workerId:
+               return getWorkerId();
         
             case PROP_ID_inputFileId:
                return getInputFileId();
+        
+            case PROP_ID_flowStepId:
+               return getFlowStepId();
+        
+            case PROP_ID_restartTime:
+               return getRestartTime();
         
             case PROP_ID_resultStatus:
                return getResultStatus();
@@ -423,8 +469,14 @@ public class _NopBatchTask extends DynamicOrmEntity{
             case PROP_ID_completeItemCount:
                return getCompleteItemCount();
         
-            case PROP_ID_retryChunkCount:
-               return getRetryChunkCount();
+            case PROP_ID_loadRetryCount:
+               return getLoadRetryCount();
+        
+            case PROP_ID_loadSkipCount:
+               return getLoadSkipCount();
+        
+            case PROP_ID_retryItemCount:
+               return getRetryItemCount();
         
             case PROP_ID_processItemCount:
                return getProcessItemCount();
@@ -544,13 +596,13 @@ public class _NopBatchTask extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_worker:{
+            case PROP_ID_workerId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_worker));
+                       err-> newTypeConversionError(PROP_NAME_workerId));
                }
-               setWorker(typedValue);
+               setWorkerId(typedValue);
                break;
             }
         
@@ -561,6 +613,26 @@ public class _NopBatchTask extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_inputFileId));
                }
                setInputFileId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_flowStepId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_flowStepId));
+               }
+               setFlowStepId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_restartTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_restartTime));
+               }
+               setRestartTime(typedValue);
                break;
             }
         
@@ -624,13 +696,33 @@ public class _NopBatchTask extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_retryChunkCount:{
+            case PROP_ID_loadRetryCount:{
                java.lang.Integer typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_retryChunkCount));
+                       err-> newTypeConversionError(PROP_NAME_loadRetryCount));
                }
-               setRetryChunkCount(typedValue);
+               setLoadRetryCount(typedValue);
+               break;
+            }
+        
+            case PROP_ID_loadSkipCount:{
+               java.lang.Long typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toLong(value,
+                       err-> newTypeConversionError(PROP_NAME_loadSkipCount));
+               }
+               setLoadSkipCount(typedValue);
+               break;
+            }
+        
+            case PROP_ID_retryItemCount:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_retryItemCount));
+               }
+               setRetryItemCount(typedValue);
                break;
             }
         
@@ -789,9 +881,9 @@ public class _NopBatchTask extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_worker:{
+            case PROP_ID_workerId:{
                onInitProp(propId);
-               this._worker = (java.lang.String)value;
+               this._workerId = (java.lang.String)value;
                
                break;
             }
@@ -799,6 +891,20 @@ public class _NopBatchTask extends DynamicOrmEntity{
             case PROP_ID_inputFileId:{
                onInitProp(propId);
                this._inputFileId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_flowStepId:{
+               onInitProp(propId);
+               this._flowStepId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_restartTime:{
+               onInitProp(propId);
+               this._restartTime = (java.sql.Timestamp)value;
                
                break;
             }
@@ -845,9 +951,23 @@ public class _NopBatchTask extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_retryChunkCount:{
+            case PROP_ID_loadRetryCount:{
                onInitProp(propId);
-               this._retryChunkCount = (java.lang.Integer)value;
+               this._loadRetryCount = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_loadSkipCount:{
+               onInitProp(propId);
+               this._loadSkipCount = (java.lang.Long)value;
+               
+               break;
+            }
+        
+            case PROP_ID_retryItemCount:{
+               onInitProp(propId);
+               this._retryItemCount = (java.lang.Integer)value;
                
                break;
             }
@@ -1074,20 +1194,20 @@ public class _NopBatchTask extends DynamicOrmEntity{
     }
     
     /**
-     * 执行者: WORKER
+     * 执行者: WORKER_ID
      */
-    public java.lang.String getWorker(){
-         onPropGet(PROP_ID_worker);
-         return _worker;
+    public java.lang.String getWorkerId(){
+         onPropGet(PROP_ID_workerId);
+         return _workerId;
     }
 
     /**
-     * 执行者: WORKER
+     * 执行者: WORKER_ID
      */
-    public void setWorker(java.lang.String value){
-        if(onPropSet(PROP_ID_worker,value)){
-            this._worker = value;
-            internalClearRefs(PROP_ID_worker);
+    public void setWorkerId(java.lang.String value){
+        if(onPropSet(PROP_ID_workerId,value)){
+            this._workerId = value;
+            internalClearRefs(PROP_ID_workerId);
             
         }
     }
@@ -1107,6 +1227,44 @@ public class _NopBatchTask extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_inputFileId,value)){
             this._inputFileId = value;
             internalClearRefs(PROP_ID_inputFileId);
+            
+        }
+    }
+    
+    /**
+     * 关联流程步骤ID: FLOW_STEP_ID
+     */
+    public java.lang.String getFlowStepId(){
+         onPropGet(PROP_ID_flowStepId);
+         return _flowStepId;
+    }
+
+    /**
+     * 关联流程步骤ID: FLOW_STEP_ID
+     */
+    public void setFlowStepId(java.lang.String value){
+        if(onPropSet(PROP_ID_flowStepId,value)){
+            this._flowStepId = value;
+            internalClearRefs(PROP_ID_flowStepId);
+            
+        }
+    }
+    
+    /**
+     * 重启时间: RESTART_TIME
+     */
+    public java.sql.Timestamp getRestartTime(){
+         onPropGet(PROP_ID_restartTime);
+         return _restartTime;
+    }
+
+    /**
+     * 重启时间: RESTART_TIME
+     */
+    public void setRestartTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_restartTime,value)){
+            this._restartTime = value;
+            internalClearRefs(PROP_ID_restartTime);
             
         }
     }
@@ -1226,20 +1384,58 @@ public class _NopBatchTask extends DynamicOrmEntity{
     }
     
     /**
-     * 重试分块次数: RETRY_CHUNK_COUNT
+     * 重试加载次数: LOAD_RETRY_COUNT
      */
-    public java.lang.Integer getRetryChunkCount(){
-         onPropGet(PROP_ID_retryChunkCount);
-         return _retryChunkCount;
+    public java.lang.Integer getLoadRetryCount(){
+         onPropGet(PROP_ID_loadRetryCount);
+         return _loadRetryCount;
     }
 
     /**
-     * 重试分块次数: RETRY_CHUNK_COUNT
+     * 重试加载次数: LOAD_RETRY_COUNT
      */
-    public void setRetryChunkCount(java.lang.Integer value){
-        if(onPropSet(PROP_ID_retryChunkCount,value)){
-            this._retryChunkCount = value;
-            internalClearRefs(PROP_ID_retryChunkCount);
+    public void setLoadRetryCount(java.lang.Integer value){
+        if(onPropSet(PROP_ID_loadRetryCount,value)){
+            this._loadRetryCount = value;
+            internalClearRefs(PROP_ID_loadRetryCount);
+            
+        }
+    }
+    
+    /**
+     * 加载跳过数量: LOAD_SKIP_COUNT
+     */
+    public java.lang.Long getLoadSkipCount(){
+         onPropGet(PROP_ID_loadSkipCount);
+         return _loadSkipCount;
+    }
+
+    /**
+     * 加载跳过数量: LOAD_SKIP_COUNT
+     */
+    public void setLoadSkipCount(java.lang.Long value){
+        if(onPropSet(PROP_ID_loadSkipCount,value)){
+            this._loadSkipCount = value;
+            internalClearRefs(PROP_ID_loadSkipCount);
+            
+        }
+    }
+    
+    /**
+     * 重试条目次数: RETRY_ITEM_COUNT
+     */
+    public java.lang.Integer getRetryItemCount(){
+         onPropGet(PROP_ID_retryItemCount);
+         return _retryItemCount;
+    }
+
+    /**
+     * 重试条目次数: RETRY_ITEM_COUNT
+     */
+    public void setRetryItemCount(java.lang.Integer value){
+        if(onPropSet(PROP_ID_retryItemCount,value)){
+            this._retryItemCount = value;
+            internalClearRefs(PROP_ID_retryItemCount);
             
         }
     }

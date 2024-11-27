@@ -14,8 +14,8 @@ import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
 import io.nop.dao.metrics.IDaoMetrics;
 import io.nop.dao.txn.ITransactionTemplate;
-
 import jakarta.annotation.Nonnull;
+
 import java.sql.Connection;
 import java.sql.Timestamp;
 import java.util.function.Function;
@@ -29,6 +29,8 @@ public interface IJdbcTemplate extends ISqlExecutor, IDialectProvider {
     ITransactionTemplate txn();
 
     Connection currentConnection(String querySpace);
+
+    Connection openConnection(String querySpace);
 
     <T> T runWithConnection(SQL sql, Function<Connection, T> callback);
 

@@ -12,6 +12,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
 
+import java.sql.Connection;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -25,6 +26,8 @@ public interface ITransactionTemplate extends IDialectProvider {
     boolean isQuerySpaceDefined(String querySpace);
 
     IDialect getDialectForQuerySpace(String querySpace);
+
+    Connection openConnection(String querySpace);
 
     /**
      * 返回指定分支事务组对应的主事务组

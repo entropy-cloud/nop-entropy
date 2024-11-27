@@ -48,36 +48,35 @@ public class DaoBatchStateStore implements IBatchStateStore {
             task.setTaskName(context.getTaskName());
             setTaskRecord(context, task);
             taskDao.saveEntity(task);
+            context.setTaskId(task.getSid());
             return;
         }
 
-        if (!task.isNotCompleted())
+        if (task.isCompleted())
             throw new NopException(ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_EXIST_RUNNING_INSTANCE)
                     .param(ARG_TASK_NAME, task.getTaskName())
                     .param(ARG_TASK_KEY, task.getTaskKey())
                     .param(ARG_TASK_ID, task.getSid())
                     .param(ARG_TASK_STATUS, task.getTaskStatus());
 
-        NopBatchTask newTask = newTask(taskDao);
-        newTask.setTaskName(task.getTaskName());
-        newTask.setTaskKey(task.getTaskKey());
-        newTask.setExecCount(task.getExecCount() + 1);
-        newTask.setCompletedIndex(task.getCompletedIndex());
-        newTask.setCompleteItemCount(task.getCompleteItemCount());
-        newTask.setWriteItemCount(task.getWriteItemCount());
-        newTask.setRetryChunkCount(task.getRetryChunkCount());
-        newTask.setSkipItemCount(task.getSkipItemCount());
-        newTask.setWorker(AppConfig.hostId());
-        taskDao.saveEntity(newTask);
+        task.setTaskStatus(NopBatchDaoConstants.TASK_STATUS_RUNNING);
+        task.setRestartTime(CoreMetrics.currentTimestamp());
+        task.setResultMsg(null);
+        task.setResultStatus(null);
+        task.setResultCode(null);
+        task.incExecCount();
+        task.setWorkerId(AppConfig.hostId());
+        taskDao.updateEntityDirectly(task);
 
         context.setTaskName(task.getTaskName());
         context.setTaskKey(task.getTaskKey());
+        context.setTaskId(task.getSid());
         context.setCompletedIndex(task.getCompletedIndex());
         context.setCompleteItemCount(task.getCompleteItemCount());
         context.setSkipItemCount(task.getSkipItemCount());
         context.setProcessItemCount(task.getProcessItemCount());
         context.setRecoverMode(true);
-        setTaskRecord(context, newTask);
+        setTaskRecord(context, task);
     }
 
     void setTaskRecord(IBatchTaskContext context, NopBatchTask task) {
@@ -108,8 +107,13 @@ public class DaoBatchStateStore implements IBatchStateStore {
     }
 
     @Override
-    public void saveTaskState(boolean complete, Throwable err, IBatchTaskContext context) {
+    public synchronized void saveTaskState(boolean complete, Throwable err, IBatchTaskContext context) {
         NopBatchTask task = getTaskRecord(context);
+        task.setCompleteItemCount(context.getCompleteItemCount());
+        task.setSkipItemCount(context.getSkipItemCount());
+        task.setCompletedIndex(context.getCompletedIndex());
+        task.setProcessItemCount(context.getProcessItemCount());
+
         if (err != null) {
             ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(null, err);
             task.setResultCode(errorBean.getErrorCode());
@@ -120,6 +124,7 @@ public class DaoBatchStateStore implements IBatchStateStore {
         if (complete) {
             int taskStatus = getTaskStatus(err, context);
             task.setTaskStatus(taskStatus);
+            task.setEndTime(CoreMetrics.currentTimestamp());
         }
         IEntityDao<NopBatchTask> taskDao = taskDao();
         taskDao.updateEntityDirectly(task);
@@ -146,15 +151,18 @@ public class DaoBatchStateStore implements IBatchStateStore {
 
     NopBatchTask newTask(IEntityDao<NopBatchTask> taskDao) {
         NopBatchTask task = taskDao.newEntity();
-        task.setCompletedIndex(-1L);
-        task.setCompleteItemCount(0L);
-        task.setProcessItemCount(0L);
         task.setStartTime(CoreMetrics.currentTimestamp());
         task.setExecCount(1);
         task.setTaskStatus(NopBatchDaoConstants.TASK_STATUS_RUNNING);
+        task.setCompletedIndex(-1L);
+        task.setCompleteItemCount(0L);
+        task.setProcessItemCount(0L);
         task.setSkipItemCount(0L);
         task.setWriteItemCount(0L);
-        task.setRetryChunkCount(0);
+        task.setRetryItemCount(0);
+        task.setLoadRetryCount(0);
+        task.setLoadSkipCount(0L);
+        task.setWorkerId(AppConfig.hostId());
         return task;
     }
 }

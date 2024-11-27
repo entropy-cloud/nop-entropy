@@ -10,7 +10,7 @@ import io.nop.commons.util.ClassHelper;
 // tell cpd to start ignoring code - CPD-OFF
 /**
  * generate from /nop/schema/task/batch.xdef <p>
- * 
+ * 当resourceIO/newRecordInputProvider/fileModelPath都没有指定的时候，会使用CsvResourceIO
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -19,56 +19,70 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     /**
      *  
      * xml name: encoding
-     * 
+     * 文件编码，缺省值为UTF-8
      */
     private java.lang.String _encoding ;
     
     /**
      *  
+     * xml name: fileModelPath
+     * 文件模型路径。当没有指定resourceIO和newRecordInputProvider时，根据fileModelPath自动生成resourceIO
+     */
+    private java.lang.String _fileModelPath ;
+    
+    /**
+     *  
      * xml name: filePath
-     * 
+     * 用于定位数据文件。支持表达式，支持使用${}引用变量
      */
     private io.nop.core.lang.eval.IEvalAction _filePath ;
     
     /**
      *  
-     * xml name: headers
+     * xml name: filter
      * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _filter ;
+    
+    /**
+     *  
+     * xml name: headers
+     * 仅当使用缺省的CsvResourceIO时会使用这里的配置，它用于指定从数据文件中导入哪些列，如果不指定，则导入所有列。假定数据文件的第一行是列名
      */
     private java.util.Set<java.lang.String> _headers ;
     
     /**
      *  
      * xml name: maxCount
-     * 
+     * 读取的最大记录数，缺省值为-1，表示不限制
      */
     private java.lang.Long _maxCount ;
     
     /**
      *  
      * xml name: newRecordInputProvider
-     * 
+     * 动态创建resourceIO
      */
     private io.nop.core.lang.eval.IEvalAction _newRecordInputProvider ;
     
     /**
      *  
      * xml name: resourceIO
-     * 
+     * 指定resourceIO对应的bean的名称。用于读取数据文件，如果不指定，则使用newRecordInputProvider，或者根据fileModelPath自动生成
      */
     private java.lang.String _resourceIO ;
     
     /**
      *  
      * xml name: resourceLoader
-     * 
+     * 用于定位filePath对应的数据文件。如果不指定，则使用VirtualFileSystem
      */
     private java.lang.String _resourceLoader ;
     
     /**
      * 
      * xml name: encoding
-     *  
+     *  文件编码，缺省值为UTF-8
      */
     
     public java.lang.String getEncoding(){
@@ -86,8 +100,27 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      * 
+     * xml name: fileModelPath
+     *  文件模型路径。当没有指定resourceIO和newRecordInputProvider时，根据fileModelPath自动生成resourceIO
+     */
+    
+    public java.lang.String getFileModelPath(){
+      return _fileModelPath;
+    }
+
+    
+    public void setFileModelPath(java.lang.String value){
+        checkAllowChange();
+        
+        this._fileModelPath = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: filePath
-     *  
+     *  用于定位数据文件。支持表达式，支持使用${}引用变量
      */
     
     public io.nop.core.lang.eval.IEvalAction getFilePath(){
@@ -105,8 +138,27 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      * 
-     * xml name: headers
+     * xml name: filter
      *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getFilter(){
+      return _filter;
+    }
+
+    
+    public void setFilter(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._filter = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: headers
+     *  仅当使用缺省的CsvResourceIO时会使用这里的配置，它用于指定从数据文件中导入哪些列，如果不指定，则导入所有列。假定数据文件的第一行是列名
      */
     
     public java.util.Set<java.lang.String> getHeaders(){
@@ -125,7 +177,7 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     /**
      * 
      * xml name: maxCount
-     *  
+     *  读取的最大记录数，缺省值为-1，表示不限制
      */
     
     public java.lang.Long getMaxCount(){
@@ -144,7 +196,7 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     /**
      * 
      * xml name: newRecordInputProvider
-     *  
+     *  动态创建resourceIO
      */
     
     public io.nop.core.lang.eval.IEvalAction getNewRecordInputProvider(){
@@ -163,7 +215,7 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     /**
      * 
      * xml name: resourceIO
-     *  
+     *  指定resourceIO对应的bean的名称。用于读取数据文件，如果不指定，则使用newRecordInputProvider，或者根据fileModelPath自动生成
      */
     
     public java.lang.String getResourceIO(){
@@ -182,7 +234,7 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     /**
      * 
      * xml name: resourceLoader
-     *  
+     *  用于定位filePath对应的数据文件。如果不指定，则使用VirtualFileSystem
      */
     
     public java.lang.String getResourceLoader(){
@@ -214,7 +266,9 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
         super.outputJson(out);
         
         out.putNotNull("encoding",this.getEncoding());
+        out.putNotNull("fileModelPath",this.getFileModelPath());
         out.putNotNull("filePath",this.getFilePath());
+        out.putNotNull("filter",this.getFilter());
         out.putNotNull("headers",this.getHeaders());
         out.putNotNull("maxCount",this.getMaxCount());
         out.putNotNull("newRecordInputProvider",this.getNewRecordInputProvider());
@@ -232,7 +286,9 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
         super.copyTo(instance);
         
         instance.setEncoding(this.getEncoding());
+        instance.setFileModelPath(this.getFileModelPath());
         instance.setFilePath(this.getFilePath());
+        instance.setFilter(this.getFilter());
         instance.setHeaders(this.getHeaders());
         instance.setMaxCount(this.getMaxCount());
         instance.setNewRecordInputProvider(this.getNewRecordInputProvider());

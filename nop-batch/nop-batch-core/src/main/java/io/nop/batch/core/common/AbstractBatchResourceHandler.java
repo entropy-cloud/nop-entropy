@@ -13,7 +13,7 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceLoader;
 
-public class AbstractBatchResourceHandler extends AbstractBatchHandler {
+public class AbstractBatchResourceHandler {
     private IResourceLoader resourceLoader;
     private String resourcePath;
 

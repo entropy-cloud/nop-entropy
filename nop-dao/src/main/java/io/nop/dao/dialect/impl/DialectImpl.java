@@ -216,6 +216,11 @@ public class DialectImpl implements IDialect {
     }
 
     @Override
+    public Integer getStreamingFetchSize() {
+        return dialectModel.getStreamingFetchSize();
+    }
+
+    @Override
     public boolean isSupportExecuteLargeUpdate() {
         return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportExecuteLargeUpdate());
     }

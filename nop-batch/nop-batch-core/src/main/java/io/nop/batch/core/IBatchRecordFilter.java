@@ -7,13 +7,15 @@
  */
 package io.nop.batch.core;
 
+import io.nop.core.context.IEvalContext;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
-public interface IBatchRecordFilter<R> {
-    boolean accept(R record, IBatchTaskContext context);
+public interface IBatchRecordFilter<R, C extends IEvalContext> {
+    boolean accept(R record, C context);
 
-    default List<R> filter(List<R> records, IBatchTaskContext context) {
+    default List<R> filter(List<R> records, C context) {
         return records.stream().filter(record -> {
             return accept(record, context);
         }).collect(Collectors.toList());

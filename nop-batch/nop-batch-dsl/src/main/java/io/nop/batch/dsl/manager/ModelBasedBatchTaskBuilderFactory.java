@@ -1,6 +1,5 @@
 package io.nop.batch.dsl.manager;
 
-import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.batch.core.BatchTaskBuilder;
@@ -19,45 +18,32 @@ import io.nop.batch.core.consumer.MultiBatchConsumerProvider;
 import io.nop.batch.core.consumer.ResourceRecordConsumerProvider;
 import io.nop.batch.core.consumer.SplitBatchConsumer;
 import io.nop.batch.core.filter.EvalBatchRecordFilter;
-import io.nop.batch.core.loader.ResourceRecordLoaderProvider;
 import io.nop.batch.core.processor.FilterBatchProcessor;
 import io.nop.batch.core.processor.MultiBatchProcessorProvider;
 import io.nop.batch.dsl.model.BatchChunkProcessorBuilderModel;
 import io.nop.batch.dsl.model.BatchConsumerModel;
-import io.nop.batch.dsl.model.BatchFileReaderModel;
-import io.nop.batch.dsl.model.BatchFileWriterModel;
-import io.nop.batch.dsl.model.BatchJdbcReaderModel;
+import io.nop.batch.dsl.model.BatchJdbcWriterModel;
 import io.nop.batch.dsl.model.BatchListenersModel;
 import io.nop.batch.dsl.model.BatchLoaderModel;
-import io.nop.batch.dsl.model.BatchOrmReaderModel;
+import io.nop.batch.dsl.model.BatchOrmWriterModel;
 import io.nop.batch.dsl.model.BatchProcessorModel;
 import io.nop.batch.dsl.model.BatchTaggerModel;
 import io.nop.batch.dsl.model.BatchTaskModel;
-import io.nop.batch.orm.loader.OrmQueryBatchLoaderProvider;
 import io.nop.commons.collections.OrderByComparator;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.core.lang.eval.IEvalFunction;
-import io.nop.core.lang.xml.IXNodeGenerator;
-import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.bean.BeanTool;
-import io.nop.core.resource.IResourceLoader;
-import io.nop.core.resource.VirtualFileSystem;
-import io.nop.core.resource.record.IResourceRecordInputProvider;
-import io.nop.core.resource.record.IResourceRecordOutputProvider;
-import io.nop.core.resource.record.csv.CsvResourceRecordIO;
 import io.nop.dao.api.IDaoProvider;
-import io.nop.dao.api.IQueryBuilder;
+import io.nop.dao.api.INamedSqlBuilder;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.dao.utils.TransactionalFunctionInvoker;
 import io.nop.dataset.record.IRecordSplitter;
 import io.nop.dataset.record.IRecordTagger;
 import io.nop.dataset.record.support.RecordTagSplitter;
-import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.utils.SingleSessionFunctionInvoker;
-import io.nop.xlang.api.XLang;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,6 +53,10 @@ import java.util.concurrent.Executor;
 
 import static io.nop.batch.dsl.BatchDslErrors.ARG_BATCH_TASK_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_NO_LOADER;
+import static io.nop.batch.dsl.manager.FileBatchSupport.buildFileReader;
+import static io.nop.batch.dsl.manager.FileBatchSupport.newFileWriter;
+import static io.nop.batch.dsl.manager.JdbcBatchSupport.buildJdbcReader;
+import static io.nop.batch.dsl.manager.OrmBatchSupport.buildOrmReader;
 
 public class ModelBasedBatchTaskBuilderFactory {
     private final String batchTaskName;
@@ -76,13 +66,14 @@ public class ModelBasedBatchTaskBuilderFactory {
 
     private final IJdbcTemplate jdbcTemplate;
     private final IDaoProvider daoProvider;
+    private final INamedSqlBuilder sqlLibManager;
     private final IBatchStateStore stateStore;
 
     public ModelBasedBatchTaskBuilderFactory(BatchTaskModel batchTaskModel,
                                              IBatchStateStore stateStore,
                                              ITransactionTemplate transactionTemplate,
                                              IOrmTemplate ormTemplate, IJdbcTemplate jdbcTemplate,
-                                             IDaoProvider daoProvider) {
+                                             IDaoProvider daoProvider, INamedSqlBuilder sqlLibManager) {
         this.batchTaskName = batchTaskModel.getTaskName();
         this.stateStore = stateStore;
         this.batchTaskModel = batchTaskModel;
@@ -90,6 +81,7 @@ public class ModelBasedBatchTaskBuilderFactory {
         this.ormTemplate = ormTemplate;
         this.jdbcTemplate = jdbcTemplate;
         this.daoProvider = daoProvider;
+        this.sqlLibManager = sqlLibManager;
     }
 
     public IBatchTaskBuilder newTaskBuilder(IBeanProvider beanContainer) {
@@ -253,13 +245,14 @@ public class ModelBasedBatchTaskBuilderFactory {
         }
 
         IBatchAggregator<Object, Object, Map<String, Object>> aggregator = loadAggregator(loaderModel.getAggregator(), beanProvider);
+        boolean saveState = Boolean.TRUE.equals(loaderModel.getSaveState());
 
         if (loaderModel.getFileReader() != null) {
-            return buildFileReader(loaderModel.getFileReader(), beanProvider, aggregator);
+            return buildFileReader(loaderModel.getFileReader(), beanProvider, saveState, aggregator);
         } else if (loaderModel.getJdbcReader() != null) {
-            return buildJdbcReader(loaderModel.getJdbcReader());
+            return buildJdbcReader(loaderModel.getJdbcReader(), beanProvider, jdbcTemplate, sqlLibManager);
         } else if (loaderModel.getOrmReader() != null) {
-            return buildOrmReader(loaderModel.getOrmReader());
+            return buildOrmReader(loaderModel.getOrmReader(), daoProvider);
         } else if (loaderModel.getSource() != null) {
             return context -> (batchSize, ctx) -> (List<Object>) loaderModel.getSource().call2(null,
                     batchSize, ctx, ctx.getEvalScope());
@@ -274,75 +267,6 @@ public class ModelBasedBatchTaskBuilderFactory {
         return (IBatchAggregator) beanContainer.getBean(beanName);
     }
 
-    private IBatchLoaderProvider<Object> buildOrmReader(BatchOrmReaderModel loaderModel) {
-        IXNodeGenerator query = loaderModel.getQuery();
-        List<String> batchLoadProps = loaderModel.getBatchLoadProps();
-
-        OrmQueryBatchLoaderProvider<IOrmEntity> loader = new OrmQueryBatchLoaderProvider<>();
-        loader.setBatchLoadProps(batchLoadProps);
-        loader.setDaoProvider(daoProvider);
-        if (query != null)
-            loader.setQueryBuilder(newQueryBuilder(query));
-        //loader.setSqlGenerator(loaderModel.getEql());
-
-        return (IBatchLoaderProvider) loader;
-    }
-
-    private IQueryBuilder newQueryBuilder(IXNodeGenerator generator) {
-        return context -> {
-            XNode node = generator.generateNode(context);
-            return BeanTool.buildBeanFromTreeBean(node, QueryBean.class);
-        };
-    }
-
-    private IBatchLoaderProvider<Object> buildJdbcReader(BatchJdbcReaderModel loaderModel) {
-        return null;
-    }
-
-    private IBatchLoaderProvider<Object> buildFileReader(BatchFileReaderModel loaderModel,
-                                                         IBeanProvider beanContainer,
-                                                         IBatchAggregator<Object, Object, Map<String, Object>> aggregator) {
-        IResourceRecordInputProvider<Object> recordIO = newRecordInputProvider(loaderModel, beanContainer);
-        IResourceLoader resourceLoader = loadResourceLoader(loaderModel.getResourceLoader(), beanContainer);
-
-        ResourceRecordLoaderProvider<Object> loader = new ResourceRecordLoaderProvider<>();
-        loader.setName("reader");
-        loader.setRecordIO(recordIO);
-        loader.setResourceLoader(resourceLoader);
-        if (loaderModel.getMaxCount() != null)
-            loader.setMaxCount(loaderModel.getMaxCount());
-        loader.setPathExpr(loaderModel.getFilePath());
-        loader.setEncoding(loaderModel.getEncoding());
-        loader.setAggregator(aggregator);
-
-        return loader;
-    }
-
-    private IResourceRecordInputProvider<Object> newRecordInputProvider(BatchFileReaderModel readerModel, IBeanProvider beanContainer) {
-        String beanName = readerModel.getResourceIO();
-        if (beanName != null)
-            return (IResourceRecordInputProvider<Object>) beanContainer.getBean(beanName);
-
-        if (readerModel.getNewRecordInputProvider() != null)
-            return (IResourceRecordInputProvider<Object>) readerModel.getNewRecordInputProvider().invoke(XLang.newEvalScope());
-        return new CsvResourceRecordIO<>();
-    }
-
-    private IResourceRecordOutputProvider<Object> newRecordOutputProvider(BatchFileWriterModel readerModel, IBeanProvider beanContainer) {
-        String beanName = readerModel.getResourceIO();
-        if (beanName != null)
-            return (IResourceRecordOutputProvider<Object>) beanContainer.getBean(beanName);
-
-        if (readerModel.getNewRecordOutputProvider() != null)
-            return (IResourceRecordOutputProvider<Object>) readerModel.getNewRecordOutputProvider().invoke(XLang.newEvalScope());
-        return new CsvResourceRecordIO<>();
-    }
-
-    private IResourceLoader loadResourceLoader(String loaderBean, IBeanProvider beanContainer) {
-        if (loaderBean != null)
-            return (IResourceLoader) beanContainer.getBean(loaderBean);
-        return VirtualFileSystem.instance();
-    }
 
     @SuppressWarnings("unchecked")
     private IBatchProcessorProvider<Object, Object> buildProcessor(BatchProcessorModel processorModel,
@@ -447,10 +371,13 @@ public class ModelBasedBatchTaskBuilderFactory {
         IBatchConsumerProvider<Object> ret;
         if (consumerModel.getFileWriter() != null) {
             ResourceRecordConsumerProvider<Object> writer = newFileWriter(consumerModel.getFileWriter(), beanContainer);
-            writer.setName(consumerModel.getName());
             writer.setAggregator(aggregator);
             writer.setMetaProvider(metaProvider);
             ret = writer;
+        } else if (consumerModel.getOrmWriter() != null) {
+            ret = newOrmWriter(consumerModel.getOrmWriter(), beanContainer);
+        } else if (consumerModel.getJdbcWriter() != null) {
+            ret = newJdbcWriter(consumerModel.getJdbcWriter(), beanContainer);
         } else {
             ret = null;
         }
@@ -464,7 +391,7 @@ public class ModelBasedBatchTaskBuilderFactory {
         if (consumer == null)
             consumer = EmptyBatchConsumer.instance();
 
-        IBatchRecordFilter<Object> filter = new EvalBatchRecordFilter<>(consumerModel.getFilter());
+        IBatchRecordFilter<Object, IBatchChunkContext> filter = new EvalBatchRecordFilter<>(consumerModel.getFilter());
         return consumer.withFilter(filter);
     }
 
@@ -474,16 +401,12 @@ public class ModelBasedBatchTaskBuilderFactory {
         return (IBatchMetaProvider) beanContainer.getBean(beanName);
     }
 
-    private ResourceRecordConsumerProvider<Object> newFileWriter(BatchFileWriterModel consumerModel,
-                                                                 IBeanProvider beanContainer) {
-        IResourceRecordOutputProvider<Object> recordIO = newRecordOutputProvider(consumerModel, beanContainer);
-        IResourceLoader resourceLoader = loadResourceLoader(consumerModel.getResourceLoader(), beanContainer);
 
-        ResourceRecordConsumerProvider<Object> writer = new ResourceRecordConsumerProvider<>();
-        writer.setEncoding(consumerModel.getEncoding());
-        writer.setPathExpr(consumerModel.getFilePath());
-        writer.setRecordIO(recordIO);
-        writer.setResourceLoader(resourceLoader);
-        return writer;
+    private IBatchConsumerProvider<Object> newOrmWriter(BatchOrmWriterModel consumerModel, IBeanProvider beanContainer) {
+        return null;
+    }
+
+    private IBatchConsumerProvider<Object> newJdbcWriter(BatchJdbcWriterModel consumerModel, IBeanProvider beanProvider) {
+        return null;
     }
 }

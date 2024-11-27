@@ -51,7 +51,7 @@ public class SequentialTaskStep extends AbstractTaskStep {
 
             ITaskStepExecution step = steps.get(index);
 
-            TaskStepReturn stepResult = step.executeWithParentRt(stepRt);
+            TaskStepReturn stepResult = step.executeWithParentRt(stepRt).syncIfDone();
             if (stepResult.isSuspend())
                 return stepResult;
 

@@ -37,7 +37,7 @@ public class WithHistoryBatchConsumer<R> implements IBatchConsumer<R> {
                 if (historyConsumer != null) {
                     List<R> history = new ArrayList<>();
                     for (R item : items) {
-                        if (!CollectionHelper.identityContains(filtered, item)) {
+                        if (!filtered.contains(item)) {
                             context.addCompletedItem(item);
                             history.add(item);
                         }
@@ -45,7 +45,7 @@ public class WithHistoryBatchConsumer<R> implements IBatchConsumer<R> {
                     historyConsumer.consume(history, context);
                 } else {
                     for (R item : items) {
-                        if (!CollectionHelper.identityContains(filtered, item)) {
+                        if (!filtered.contains(item)) {
                             context.addCompletedItem(item);
                         }
                     }
@@ -59,10 +59,9 @@ public class WithHistoryBatchConsumer<R> implements IBatchConsumer<R> {
                 throw NopException.adapt(e);
             }
             historyStore.saveProcessed(filtered, null, context);
+            context.addCompletedItems(filtered);
         } else {
-            items.forEach(context::addCompletedItem);
-            if (historyConsumer != null)
-                historyConsumer.consume(filtered, context);
+            context.addCompletedItems(items);
         }
     }
 }

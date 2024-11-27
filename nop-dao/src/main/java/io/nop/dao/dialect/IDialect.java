@@ -50,6 +50,8 @@ public interface IDialect extends IComponentModel {
 
     int getMaxBytesSize();
 
+    Integer getStreamingFetchSize();
+
     boolean isSupportExecuteLargeUpdate();
 
     boolean isSupportQueryTimeout();

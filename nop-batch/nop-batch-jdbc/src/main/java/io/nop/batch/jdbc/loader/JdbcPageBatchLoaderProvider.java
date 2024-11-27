@@ -22,7 +22,7 @@ import jakarta.inject.Inject;
 
 import java.util.List;
 
-public class JdbcPageBatchLoader<T> implements IBatchLoaderProvider<T> {
+public class JdbcPageBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
     private IJdbcTemplate jdbcTemplate;
 
     private ISqlGenerator sqlGenerator;

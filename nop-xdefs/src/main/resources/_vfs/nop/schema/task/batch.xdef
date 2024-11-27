@@ -1,5 +1,5 @@
 <!--
-@concurrency 同时启动多少个线程去并行处理
+@concurrency 同时启动多少个线程去并行处理。设置了concurrency的情况下，还需要设置executor才会真正并行执行，否则会使用SyncExecutor在当前线程上串行执行
 @retryOneByOne 重试的时候是否逐个重试，还是一整批重试
 @singleMode表示批量读取数据，然后逐条处理、消费，而不是批量消费。
 @rateLimit 每秒最多处理多少条记录
@@ -7,7 +7,7 @@
                    + jitterRatio * random)， 使得每个线程的每个批次的负载随机化，从而破坏潜在的同步效应。
 -->
 <batch taskName="string" taskVersion="long" batchSize="!int" concurrency="!int=1" retryOneByOne="boolean=false"
-       singleMode="boolean=false" singleSession="boolean"  saveState="boolean"
+       singleMode="boolean=false" singleSession="boolean" saveState="boolean"
        transactionScope="enum:io.nop.batch.core.BatchTransactionScope"
        rateLimit="double" jitterRatio="double"
        executor="string" xdef:name="BatchTaskModel" xdef:bean-package="io.nop.batch.dsl.model"
@@ -34,7 +34,7 @@
     <xdef:define xdef:name="BatchListenersModel">
         <onTaskBegin xdef:value="xpl-fn:(taskCtx)=>void"/>
         <onBeforeTaskEnd xdef:value="xpl-fn:(taskCtx)=>void"/>
-        <onTaskEnd xdef:value="xpl-fn:(err,taskCtx)=>void"/>
+        <onTaskEnd xdef:value="xpl-fn:(taskCtx,err)=>void"/>
 
         <onChunkBegin xdef:value="xpl-fn:(chunkCtx)=>void"/>
         <onBeforeChunkEnd xdef:value="xpl-fn:(chunkCtx)=>void"/>
@@ -47,12 +47,29 @@
         <onConsumeEnd xdef:value="xpl-fn:(chunkCtx, err)=>void"/>
     </xdef:define>
 
-    <loader bean="bean-name" xdef:name="BatchLoaderModel" aggregator="bean-name"
+    <loader bean="bean-name" xdef:name="BatchLoaderModel" aggregator="bean-name" saveState="boolean"
             xdef:ref="BatchListenersModel" xdef:mandatory="true">
+
+        <!--
+        当resourceIO/newRecordInputProvider/fileModelPath都没有指定的时候，会使用CsvResourceIO
+
+        @filePath 用于定位数据文件。支持表达式，支持使用${}引用变量
+        @encoding 文件编码，缺省值为UTF-8
+        @resourceLoader 用于定位filePath对应的数据文件。如果不指定，则使用VirtualFileSystem
+        @resourceIO 指定resourceIO对应的bean的名称。用于读取数据文件，如果不指定，则使用newRecordInputProvider，或者根据fileModelPath自动生成
+        @maxCount 读取的最大记录数，缺省值为-1，表示不限制
+        @fileModelPath 文件模型路径。当没有指定resourceIO和newRecordInputProvider时，根据fileModelPath自动生成resourceIO
+        -->
         <file-reader filePath="!t-expr" xdef:name="BatchFileReaderModel" encoding="string"
-                     resourceLoader="bean-name" resourceIO="bean-name" maxCount="long">
+                     resourceLoader="bean-name" resourceIO="bean-name" maxCount="long" fileModelPath="v-path">
+            <!-- 动态创建resourceIO -->
             <newRecordInputProvider xdef:value="xpl"/>
 
+            <filter xdef:value="xpl-fn:(item,taskCtx)=>boolean"/>
+
+            <!--
+            仅当使用缺省的CsvResourceIO时会使用这里的配置，它用于指定从数据文件中导入哪些列，如果不指定，则导入所有列。假定数据文件的第一行是列名
+            -->
             <headers xdef:value="csv-set"/>
         </file-reader>
 
@@ -61,14 +78,18 @@
             <query xdef:value="xpl-node"/>
         </orm-reader>
 
-        <jdbc-reader querySpace="string" sqlName="string" xdef:name="BatchJdbcReaderModel">
+        <jdbc-reader querySpace="string" fetchSize="int" sqlName="string" maxRows="long" maxFieldSize="int"
+                     queryTimeout="int"
+                     rowMapper="bean-name" streaming="!boolean=false" xdef:name="BatchJdbcReaderModel">
             <sql xdef:value="xpl-sql"/>
             <query xdef:value="xpl-node"/>
+
+            <transformer xdef:value="xpl-fn:(item,chunkCtx)=>any"/>
         </jdbc-reader>
 
         <source xdef:value="xpl-fn:(batchSize,chunkCtx)=>List"/>
 
-        <adapter xdef:value="xpl-fn:(reader)=>any"/>
+        <adapter xdef:value="xpl-fn:(loader)=>any"/>
 
     </loader>
 
@@ -93,7 +114,7 @@
         <filter xdef:value="xpl-fn:(item,chunkCtx)=>boolean"/>
 
         <file-writer filePath="!t-expr" xdef:name="BatchFileWriterModel" encoding="string"
-                     resourceLoader="bean-name" resourceIO="bean-name">
+                     resourceLoader="bean-name" resourceIO="bean-name" fileModelPath="v-path">
             <newRecordOutputProvider xdef:value="xpl"/>
             <headers xdef:value="csv-set"/>
         </file-writer>
@@ -106,11 +127,14 @@
         <jdbc-writer tableName="!string" xdef:name="BatchJdbcWriterModel" allowUpdate="!boolean=false"
                      allowInsert="!boolean=true">
             <uniqueKey xdef:value="csv-set"/>
+            <fields xdef:body-type="list" xdef:key-attr="name">
+                <field name="!string" from="string" sqlType="!std-sql-type" xdef:name="BatchWriteFieldModel"/>
+            </fields>
         </jdbc-writer>
 
         <source xdef:value="xpl-fn:(items,chunkCtx)=>void"/>
 
-        <adapter xdef:value="xpl-fn:(writer)=>any"/>
+        <adapter xdef:value="xpl-fn:(consumer)=>any"/>
     </consumer>
 
 </batch>

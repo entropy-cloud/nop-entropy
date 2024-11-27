@@ -62,4 +62,9 @@ public class JdbcTransactionFactory implements ITransactionFactory {
     public ITransaction newTransaction(String querySpace) {
         return new JdbcTransaction(querySpace, this::getConnection, dialect, eagerReleaseConnection, daoMetrics);
     }
+
+    @Override
+    public Connection openConnection(String txnGroup) {
+        return getConnection();
+    }
 }

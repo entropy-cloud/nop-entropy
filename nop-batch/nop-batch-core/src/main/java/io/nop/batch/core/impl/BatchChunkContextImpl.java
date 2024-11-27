@@ -11,6 +11,7 @@ import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.core.context.ExecutionContextImpl;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -24,6 +25,7 @@ public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatc
     private boolean singleMode = true;
     private int threadIndex;
     private int concurrency;
+    private int processCount;
 
     public BatchChunkContextImpl(IBatchTaskContext context) {
         this.context = context;
@@ -77,6 +79,13 @@ public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatc
     }
 
     @Override
+    public <T> void addCompletedItems(Collection<T> items) {
+        if (completedItems == null)
+            completedItems = new HashSet<>();
+        completedItems.addAll(items);
+    }
+
+    @Override
     public int getLoadRetryCount() {
         return loadRetryCount;
     }
@@ -94,6 +103,16 @@ public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatc
     @Override
     public void setRetryCount(int retryCount) {
         this.retryCount = retryCount;
+    }
+
+    @Override
+    public int getProcessCount() {
+        return processCount;
+    }
+
+    @Override
+    public void setProcessCount(int processCount) {
+        this.processCount = processCount;
     }
 
     @Override

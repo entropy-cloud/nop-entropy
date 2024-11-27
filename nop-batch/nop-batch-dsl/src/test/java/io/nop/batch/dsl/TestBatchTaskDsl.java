@@ -1,8 +1,8 @@
 package io.nop.batch.dsl;
 
+import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.autotest.junit.JunitAutoTestCase;
-import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
@@ -22,12 +22,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-@NopTestConfig(localDb = true)
-public class TestBatchTaskDsl extends JunitBaseTestCase {
+@NopTestConfig(localDb = true, initDatabaseSchema = true)
+public class TestBatchTaskDsl extends JunitAutoTestCase {
 
     @Inject
     ITaskFlowManager taskFlowManager;
 
+    @EnableSnapshot
     @Test
     public void testBatchTask() {
         forceStackTrace();

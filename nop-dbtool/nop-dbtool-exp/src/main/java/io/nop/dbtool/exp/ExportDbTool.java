@@ -9,12 +9,17 @@ package io.nop.dbtool.exp;
 
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
-import io.nop.batch.core.*;
+import io.nop.batch.core.BatchTaskBuilder;
+import io.nop.batch.core.IBatchConsumerProvider;
+import io.nop.batch.core.IBatchLoaderProvider;
+import io.nop.batch.core.IBatchProcessorProvider;
+import io.nop.batch.core.IBatchTask;
+import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.consumer.MultiBatchConsumerProvider;
 import io.nop.batch.core.consumer.ResourceRecordConsumerProvider;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
 import io.nop.batch.jdbc.consumer.GenInsertSqlRecordIO;
-import io.nop.batch.jdbc.loader.JdbcBatchLoader;
+import io.nop.batch.jdbc.loader.JdbcBatchLoaderProvider;
 import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.SyncThreadPoolExecutor;
@@ -26,6 +31,7 @@ import io.nop.core.resource.record.IResourceRecordIO;
 import io.nop.core.resource.record.csv.CsvResourceRecordIO;
 import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
+import io.nop.dao.jdbc.impl.JdbcFactory;
 import io.nop.dbtool.core.DataBaseMeta;
 import io.nop.dbtool.core.discovery.jdbc.JdbcMetaDiscovery;
 import io.nop.dbtool.exp.config.ExportDbConfig;
@@ -37,7 +43,12 @@ import io.nop.orm.model.OrmEntityModel;
 
 import javax.sql.DataSource;
 import java.io.File;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class ExportDbTool {
@@ -201,8 +212,8 @@ public class ExportDbTool {
 
     private IBatchLoaderProvider<Map<String, Object>> newLoader(ExportTableConfig tableConfig,
                                                                 DataSource ds) {
-        JdbcBatchLoader<Map<String, Object>> loader = new JdbcBatchLoader<>();
-        loader.setDataSource(ds);
+        JdbcBatchLoaderProvider<Map<String, Object>> loader = new JdbcBatchLoaderProvider<>();
+        loader.setJdbcTemplate(JdbcFactory.newJdbcTemplateFor(ds));
         loader.setSqlGenerator(ctx -> tableConfig.buildSQL(config.getFetchSize(), ctx));
         return loader;
     }

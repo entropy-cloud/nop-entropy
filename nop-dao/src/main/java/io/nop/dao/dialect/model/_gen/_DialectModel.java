@@ -179,6 +179,13 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: streamingFetchSize
+     * 查询结果集时，如果数据量很大，则采用streaming方式去获取数据，可能需要设置fetchSize标记。比如MySQL要求设置fetchSize为Integer.MIN_VALUE
+     */
+    private java.lang.Integer _streamingFetchSize ;
+    
+    /**
+     *  
      * xml name: tableNameCase
      * 
      */
@@ -694,6 +701,25 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
     
     /**
      * 
+     * xml name: streamingFetchSize
+     *  查询结果集时，如果数据量很大，则采用streaming方式去获取数据，可能需要设置fetchSize标记。比如MySQL要求设置fetchSize为Integer.MIN_VALUE
+     */
+    
+    public java.lang.Integer getStreamingFetchSize(){
+      return _streamingFetchSize;
+    }
+
+    
+    public void setStreamingFetchSize(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._streamingFetchSize = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: tableNameCase
      *  
      */
@@ -780,6 +806,7 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("sqlDataTypes",this.getSqlDataTypes());
         out.putNotNull("sqlExceptionTranslator",this.getSqlExceptionTranslator());
         out.putNotNull("sqls",this.getSqls());
+        out.putNotNull("streamingFetchSize",this.getStreamingFetchSize());
         out.putNotNull("tableNameCase",this.getTableNameCase());
         out.putNotNull("upsertHandler",this.getUpsertHandler());
     }
@@ -816,6 +843,7 @@ public abstract class _DialectModel extends io.nop.core.resource.component.Abstr
         instance.setSqlDataTypes(this.getSqlDataTypes());
         instance.setSqlExceptionTranslator(this.getSqlExceptionTranslator());
         instance.setSqls(this.getSqls());
+        instance.setStreamingFetchSize(this.getStreamingFetchSize());
         instance.setTableNameCase(this.getTableNameCase());
         instance.setUpsertHandler(this.getUpsertHandler());
     }

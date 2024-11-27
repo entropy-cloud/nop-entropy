@@ -5,13 +5,14 @@
 @keywordQuote 列名如果是数据库的关键字，则需要进行转义。这里指定转义时使用的quote字符
 @keywordUnderscore 关键字是否允许以下划线为第一个字符。oracle不允许。
 @defaultNullsFirst 缺省按照升序排序时，null被被认为是最小还是最大
+@streamingFetchSize 查询结果集时，如果数据量很大，则采用streaming方式去获取数据，可能需要设置fetchSize标记。比如MySQL要求设置fetchSize为Integer.MIN_VALUE
 -->
 <dialect xdef:name="DialectModel" xdef:bean-package="io.nop.dao.dialect.model"
          x:schema="/nop/schema/xdef.xdef"
          xmlns:xdef="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
          class="class-name" maxStringSize="int" maxBytesSize="int"
          keywordQuote="char" keywordUnderscore="boolean=true"
-         defaultNullsFirst="boolean"
+         defaultNullsFirst="boolean" streamingFetchSize="int"
          tableNameCase="enum:io.nop.commons.text.CharacterCase" columnNameCase="enum:io.nop.commons.text.CharacterCase"
 >
 
@@ -134,7 +135,8 @@
         @returnFirstArgType 返回类型是否与第一个参数的类型相同
         -->
         <native name="!string" returnType="std-sql-type" hasParenthesis="boolean=true" argTypes="std-sql-type-list"
-                minArgCount="int" maxArgCount="int" realName="string" special="boolean" onlyForWindowExpr="!boolean=false"
+                minArgCount="int" maxArgCount="int" realName="string" special="boolean"
+                onlyForWindowExpr="!boolean=false"
                 xdef:name="SqlNativeFunctionModel" returnFirstArgType="!boolean=false"
                 xdef:bean-tag-prop="type">
             <description xdef:value="string"/>

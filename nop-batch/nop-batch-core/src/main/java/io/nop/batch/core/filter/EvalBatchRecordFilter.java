@@ -3,10 +3,10 @@ package io.nop.batch.core.filter;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchRecordFilter;
-import io.nop.batch.core.IBatchTaskContext;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalFunction;
 
-public class EvalBatchRecordFilter<R> implements IBatchRecordFilter<R> {
+public class EvalBatchRecordFilter<R, C extends IEvalContext> implements IBatchRecordFilter<R, C> {
     private final IEvalFunction func;
 
     public EvalBatchRecordFilter(IEvalFunction func) {
@@ -14,7 +14,7 @@ public class EvalBatchRecordFilter<R> implements IBatchRecordFilter<R> {
     }
 
     @Override
-    public boolean accept(R record, IBatchTaskContext context) {
+    public boolean accept(R record, C context) {
         Object result = func.call2(null, record, context, context.getEvalScope());
         return ConvertHelper.toTruthy(result);
     }

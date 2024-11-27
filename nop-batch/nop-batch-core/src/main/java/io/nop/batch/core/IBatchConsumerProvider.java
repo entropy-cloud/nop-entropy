@@ -8,7 +8,7 @@ public interface IBatchConsumerProvider<R> {
 
     IBatchConsumer<R> setup(IBatchTaskContext context);
 
-    default IBatchConsumerProvider<R> withFilter(IBatchRecordFilter<R> filter) {
+    default IBatchConsumerProvider<R> withFilter(IBatchRecordFilter<R, IBatchChunkContext> filter) {
         return context -> {
             IBatchConsumer<R> consumer = setup(context);
             return new FilteredBatchConsumer<>(filter, consumer);

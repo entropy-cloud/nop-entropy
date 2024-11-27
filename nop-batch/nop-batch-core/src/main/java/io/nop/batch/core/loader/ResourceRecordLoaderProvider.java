@@ -38,7 +38,6 @@ import static io.nop.batch.core.BatchErrors.ERR_BATCH_TOO_MANY_PROCESSING_ITEMS;
  */
 public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandler
         implements IBatchLoaderProvider<S> {
-    static final String VAR_PROCESSED_ROW_NUMBER = "processedRowNumber";
 
     private IResourceRecordInputProvider<S> recordIO;
     private String encoding;
@@ -46,7 +45,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
     // 对读取的数据进行汇总处理，例如统计读入的总行数等，最后在complete时写入到数据库中
     private IBatchAggregator<S, Object, ?> aggregator;
 
-    private IBatchRecordFilter<S> filter;
+    private IBatchRecordFilter<S, IBatchTaskContext> filter;
 
     /**
      * 最多读取多少行数据（包含跳过的记录）
@@ -92,7 +91,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         this.aggregator = aggregator;
     }
 
-    public void setFilter(IBatchRecordFilter<S> filter) {
+    public void setFilter(IBatchRecordFilter<S, IBatchTaskContext> filter) {
         this.filter = filter;
     }
 
@@ -185,10 +184,10 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
     }
 
     private long getSkipCount(IBatchTaskContext context) {
-        Long processedRowNumber = getPersistLong(context, VAR_PROCESSED_ROW_NUMBER);
+        long processedRowNumber = context.getCompletedIndex();
 
         long skipCount = this.skipCount;
-        if (processedRowNumber != null && processedRowNumber > skipCount) {
+        if (processedRowNumber > skipCount) {
             skipCount = processedRowNumber;
         }
         return skipCount;
@@ -238,7 +237,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
 
             // 如果处理阶段异常，则不会保存到状态变量中，这样下次处理的时候仍然会处理到这些记录
             if (completedRow > 0 && exception != null) {
-                setPersistVar(context.getTaskContext(), VAR_PROCESSED_ROW_NUMBER, completedRow);
+                context.getTaskContext().setCompletedIndex(completedRow);
             }
         }
     }

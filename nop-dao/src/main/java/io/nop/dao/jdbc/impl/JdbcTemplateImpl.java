@@ -133,6 +133,11 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
     }
 
     @Override
+    public Connection openConnection(String querySpace) {
+        return transactionTemplate.openConnection(querySpace);
+    }
+
+    @Override
     public <T> T runWithConnection(SQL sql, Function<Connection, T> callback) {
         return runWithConnection("jdbc.runWithConnection", sql, null, callback);
     }

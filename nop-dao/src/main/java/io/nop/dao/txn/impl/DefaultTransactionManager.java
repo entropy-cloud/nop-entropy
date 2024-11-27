@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -202,6 +203,12 @@ public class DefaultTransactionManager implements ITransactionManager {
         if (transactionMetrics != null)
             txn.addListener(metricsListener);
         return txn;
+    }
+
+    @Override
+    public Connection openConnection(String querySpace) {
+        querySpace = DaoHelper.normalizeQuerySpace(querySpace);
+        return getTransactionFactory(querySpace).openConnection(querySpace);
     }
 
     @Override

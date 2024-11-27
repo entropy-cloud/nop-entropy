@@ -15,8 +15,8 @@ import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.sql.ISqlGenerator;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.INamedSqlBuilder;
-import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
+import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.dataset.JdbcDataSet;
 import io.nop.dao.jdbc.impl.JdbcHelper;
 import io.nop.dataset.IDataSet;
@@ -26,15 +26,16 @@ import io.nop.dataset.record.impl.RecordInputImpls;
 import io.nop.dataset.rowmapper.ColumnMapRowMapper;
 import jakarta.inject.Inject;
 
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.function.BiFunction;
 
-public class JdbcBatchLoader<T> implements IBatchLoaderProvider<T> {
-    private DataSource dataSource;
+public class JdbcBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
+    private IJdbcTemplate jdbcTemplate;
+    private String querySpace;
 
     private ISqlGenerator sqlGenerator;
 
@@ -45,23 +46,58 @@ public class JdbcBatchLoader<T> implements IBatchLoaderProvider<T> {
     @SuppressWarnings("unchecked")
     private IRowMapper<T> rowMapper = (IRowMapper<T>) ColumnMapRowMapper.CASE_INSENSITIVE;
 
+    private BiFunction<T, IBatchChunkContext, T> transformer;
+
     private long maxRows;
 
-    private int maxFieldsSize;
+    private int maxFieldSize;
+
+    private Integer fetchSize;
+
+    private boolean streaming;
+
+    private int queryTimeout;
+
+    public String getQuerySpace() {
+        return querySpace;
+    }
+
+    public void setQuerySpace(String querySpace) {
+        this.querySpace = querySpace;
+    }
+
+    public void setTransformer(BiFunction<T,IBatchChunkContext,T> transformer){
+        this.transformer = transformer;
+    }
+
+    public int getQueryTimeout() {
+        return queryTimeout;
+    }
+
+    public void setQueryTimeout(int queryTimeout) {
+        this.queryTimeout = queryTimeout;
+    }
+
+    public void setFetchSize(Integer fetchSize) {
+        this.fetchSize = fetchSize;
+    }
+
+    public void setStreaming(boolean streaming) {
+        this.streaming = streaming;
+    }
 
 
     public void setRowMapper(IRowMapper<T> rowMapper) {
         this.rowMapper = rowMapper;
     }
 
-    @Inject
     public void setNamedSqlBuilder(INamedSqlBuilder sqlBuilder) {
         this.namedSqlBuilder = sqlBuilder;
     }
 
     @Inject
-    public void setDataSource(DataSource dataSource) {
-        this.dataSource = dataSource;
+    public void setJdbcTemplate(IJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     public void setSqlGenerator(ISqlGenerator sqlGenerator) {
@@ -90,14 +126,15 @@ public class JdbcBatchLoader<T> implements IBatchLoaderProvider<T> {
         this.maxRows = maxRows;
     }
 
-    public void setMaxFieldsSize(int maxFieldsSize) {
-        this.maxFieldsSize = maxFieldsSize;
+    public void setMaxFieldSize(int maxFieldSize) {
+        this.maxFieldSize = maxFieldSize;
     }
 
     static class LoaderState {
         SQL sql;
         IDialect dialect;
         Connection connection;
+        boolean closeConnection;
 
         IDataSet dataSet;
 
@@ -106,7 +143,8 @@ public class JdbcBatchLoader<T> implements IBatchLoaderProvider<T> {
         public void close() {
             IoHelper.safeCloseObject(ps);
             IoHelper.safeCloseObject(dataSet);
-            IoHelper.safeCloseObject(connection);
+            if (closeConnection)
+                IoHelper.safeCloseObject(connection);
         }
 
     }
@@ -128,18 +166,31 @@ public class JdbcBatchLoader<T> implements IBatchLoaderProvider<T> {
 
 
         SQL sql = sqlGenerator.generateSql(context);
-        IDialect dialect = DialectManager.instance().getDialectForDataSource(dataSource);
-        Connection connection;
-        try {
-            connection = dataSource.getConnection();
-        } catch (SQLException e) {
-            throw dialect.getSQLExceptionTranslator().translate("nop.err.jdbc.open-connection", e);
+        IDialect dialect = jdbcTemplate.getDialectForQuerySpace(querySpace);
+        boolean closeConnection = false;
+        Connection connection = jdbcTemplate.currentConnection(querySpace);
+        if (connection == null) {
+            connection = jdbcTemplate.openConnection(querySpace);
+            closeConnection = true;
         }
 
 
         try {
             PreparedStatement ps = JdbcHelper.prepareStatement(dialect, connection, sql);
-            JdbcHelper.setQueryTimeout(dialect, ps, sql, false);
+            if (queryTimeout > 0) {
+                if (dialect.isSupportQueryTimeout()) {
+                    ps.setQueryTimeout((queryTimeout + 999) / 1000);
+                }
+            } else {
+                JdbcHelper.setQueryTimeout(dialect, ps, sql, false);
+            }
+
+            if (streaming && dialect.getStreamingFetchSize() != null) {
+                ps.setFetchSize(dialect.getStreamingFetchSize());
+            } else {
+                if (sql.getFetchSize() != -1 && fetchSize != null)
+                    ps.setFetchSize(fetchSize);
+            }
 
             if (maxRows > 0) {
                 if (maxRows < Integer.MAX_VALUE) {
@@ -149,26 +200,38 @@ public class JdbcBatchLoader<T> implements IBatchLoaderProvider<T> {
                 }
             }
 
-            if (maxFieldsSize > 0)
-                ps.setMaxFieldSize(maxFieldsSize);
+            if (maxFieldSize > 0)
+                ps.setMaxFieldSize(maxFieldSize);
 
             ResultSet rs = ps.executeQuery();
             IDataSet dataSet = new JdbcDataSet(dialect, rs);
-
 
             LoaderState state = new LoaderState();
             state.dialect = dialect;
             state.sql = sql;
             state.ps = ps;
             state.dataSet = dataSet;
+            state.connection = connection;
+            state.closeConnection = closeConnection;
             return state;
         } catch (SQLException e) {
+            if (closeConnection)
+                IoHelper.safeCloseObject(connection);
             throw dialect.getSQLExceptionTranslator().translate(sql, e);
         }
     }
 
     synchronized List<T> load(int batchSize, IBatchChunkContext context, LoaderState state) {
-        return RecordInputImpls.defaultReadBatch(state.dataSet, batchSize,
-                row -> rowMapper.mapRow(row, -1, DefaultFieldMapper.INSTANCE));
+        List<T> list = RecordInputImpls.defaultReadBatch(state.dataSet, batchSize,
+                row -> {
+                    T data = rowMapper.mapRow(row, -1, DefaultFieldMapper.INSTANCE);
+                    if (transformer != null)
+                        return transformer.apply(data, context);
+                    return data;
+                });
+        if (list.isEmpty()) {
+            state.close();
+        }
+        return list;
     }
 }

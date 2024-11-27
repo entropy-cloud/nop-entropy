@@ -18,7 +18,14 @@ public class NopBatchTask extends _NopBatchTask implements IBatchTaskRecord {
     public NopBatchTask() {
     }
 
-    public boolean isNotCompleted() {
-        return getTaskStatus() < NopBatchDaoConstants.TASK_STATUS_COMPLETED;
+    public boolean isCompleted() {
+        return getTaskStatus() >= NopBatchDaoConstants.TASK_STATUS_COMPLETED;
+    }
+
+    public void incExecCount() {
+        Integer count = getExecCount();
+        if (count == null)
+            count = 0;
+        setExecCount(count + 1);
     }
 }

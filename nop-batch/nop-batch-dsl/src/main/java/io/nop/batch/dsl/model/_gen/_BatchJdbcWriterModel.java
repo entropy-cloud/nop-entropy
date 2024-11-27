@@ -32,6 +32,13 @@ public abstract class _BatchJdbcWriterModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: fields
+     * 
+     */
+    private KeyedList<io.nop.batch.dsl.model.BatchWriteFieldModel> _fields = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: tableName
      * 
      */
@@ -84,6 +91,51 @@ public abstract class _BatchJdbcWriterModel extends io.nop.core.resource.compone
     
     /**
      * 
+     * xml name: fields
+     *  
+     */
+    
+    public java.util.List<io.nop.batch.dsl.model.BatchWriteFieldModel> getFields(){
+      return _fields;
+    }
+
+    
+    public void setFields(java.util.List<io.nop.batch.dsl.model.BatchWriteFieldModel> value){
+        checkAllowChange();
+        
+        this._fields = KeyedList.fromList(value, io.nop.batch.dsl.model.BatchWriteFieldModel::getName);
+           
+    }
+
+    
+    public io.nop.batch.dsl.model.BatchWriteFieldModel getField(String name){
+        return this._fields.getByKey(name);
+    }
+
+    public boolean hasField(String name){
+        return this._fields.containsKey(name);
+    }
+
+    public void addField(io.nop.batch.dsl.model.BatchWriteFieldModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.batch.dsl.model.BatchWriteFieldModel> list = this.getFields();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.batch.dsl.model.BatchWriteFieldModel::getName);
+            setFields(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_fields(){
+        return this._fields.keySet();
+    }
+
+    public boolean hasFields(){
+        return !this._fields.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: tableName
      *  
      */
@@ -128,6 +180,8 @@ public abstract class _BatchJdbcWriterModel extends io.nop.core.resource.compone
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._fields = io.nop.api.core.util.FreezeHelper.deepFreeze(this._fields);
+            
         }
     }
 
@@ -137,6 +191,7 @@ public abstract class _BatchJdbcWriterModel extends io.nop.core.resource.compone
         
         out.putNotNull("allowInsert",this.isAllowInsert());
         out.putNotNull("allowUpdate",this.isAllowUpdate());
+        out.putNotNull("fields",this.getFields());
         out.putNotNull("tableName",this.getTableName());
         out.putNotNull("uniqueKey",this.getUniqueKey());
     }
@@ -152,6 +207,7 @@ public abstract class _BatchJdbcWriterModel extends io.nop.core.resource.compone
         
         instance.setAllowInsert(this.isAllowInsert());
         instance.setAllowUpdate(this.isAllowUpdate());
+        instance.setFields(this.getFields());
         instance.setTableName(this.getTableName());
         instance.setUniqueKey(this.getUniqueKey());
     }

@@ -27,15 +27,19 @@ CREATE TABLE nop_batch_task(
   END_TIME TIMESTAMP  ,
   TASK_PARAMS VARCHAR2(4000)  ,
   EXEC_COUNT INTEGER NOT NULL ,
-  WORKER VARCHAR2(100) NOT NULL ,
+  WORKER_ID VARCHAR2(100) NOT NULL ,
   INPUT_FILE_ID VARCHAR2(32)  ,
+  FLOW_STEP_ID VARCHAR2(50)  ,
+  RESTART_TIME TIMESTAMP  ,
   RESULT_STATUS INTEGER  ,
   RESULT_CODE VARCHAR2(100)  ,
   RESULT_MSG VARCHAR2(500)  ,
   ERROR_STACK VARCHAR2(4000)  ,
   COMPLETED_INDEX NUMBER(20) NOT NULL ,
   COMPLETE_ITEM_COUNT NUMBER(20) NOT NULL ,
-  RETRY_CHUNK_COUNT INTEGER NOT NULL ,
+  LOAD_RETRY_COUNT INTEGER NOT NULL ,
+  LOAD_SKIP_COUNT NUMBER(20) NOT NULL ,
+  RETRY_ITEM_COUNT INTEGER NOT NULL ,
   PROCESS_ITEM_COUNT NUMBER(20) NOT NULL ,
   SKIP_ITEM_COUNT NUMBER(20) NOT NULL ,
   WRITE_ITEM_COUNT NUMBER(20) NOT NULL ,
@@ -131,9 +135,13 @@ CREATE TABLE nop_batch_record_result(
                     
       COMMENT ON COLUMN nop_batch_task.EXEC_COUNT IS '执行次数';
                     
-      COMMENT ON COLUMN nop_batch_task.WORKER IS '执行者';
+      COMMENT ON COLUMN nop_batch_task.WORKER_ID IS '执行者';
                     
       COMMENT ON COLUMN nop_batch_task.INPUT_FILE_ID IS '输入文件';
+                    
+      COMMENT ON COLUMN nop_batch_task.FLOW_STEP_ID IS '关联流程步骤ID';
+                    
+      COMMENT ON COLUMN nop_batch_task.RESTART_TIME IS '重启时间';
                     
       COMMENT ON COLUMN nop_batch_task.RESULT_STATUS IS '返回状态码';
                     
@@ -147,7 +155,11 @@ CREATE TABLE nop_batch_record_result(
                     
       COMMENT ON COLUMN nop_batch_task.COMPLETE_ITEM_COUNT IS '完成条目数量';
                     
-      COMMENT ON COLUMN nop_batch_task.RETRY_CHUNK_COUNT IS '重试分块次数';
+      COMMENT ON COLUMN nop_batch_task.LOAD_RETRY_COUNT IS '重试加载次数';
+                    
+      COMMENT ON COLUMN nop_batch_task.LOAD_SKIP_COUNT IS '加载跳过数量';
+                    
+      COMMENT ON COLUMN nop_batch_task.RETRY_ITEM_COUNT IS '重试条目次数';
                     
       COMMENT ON COLUMN nop_batch_task.PROCESS_ITEM_COUNT IS '处理条目数量';
                     

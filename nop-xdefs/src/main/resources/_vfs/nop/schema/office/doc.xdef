@@ -4,7 +4,23 @@
 
     <pages xdef:body-type="list" xdef:key-attr="name">
         <page name="!string" xdef:name="OfficeDocPageModel" orientation="">
+            <header xdef:body-type="list" xdef:key-attr="id">
+                <p id="!string" xdef:name="OfficeParagraphModel" xdef:bean-prop="paragraphs">
+                    <r id="!string" xdef:name="OfficeRunModel" xdef:unique-attr="id" xdef:bean-prop="runs">
+                        <style xdef:ref="../excel/style.xdef"/>
+                        <t xdef:value="string"/>
+                    </r>
+                </p>
+            </header>
 
+            <footer xdef:body-type="list" xdef:key-attr="id">
+                <p id="!string" xdef:ref="OfficeParagraphModel"/>
+            </footer>
+
+            <body xdef:body-type="list" xdef:key-attr="id">
+                <p id="!string" xdef:ref="OfficeParagraphModel"/>
+                <table id="!string" xdef:ref="../excel/excel-table.xdef"/>
+            </body>
         </page>
     </pages>
 </doc>

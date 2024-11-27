@@ -110,7 +110,7 @@ public class BatchTaskExecution implements IBatchTask {
 
     void initTaskKey(IBatchTaskContext context) {
         String taskKey = context.getTaskKey();
-        if (taskKeyExpr != null && !StringHelper.isEmpty(taskKey)) {
+        if (taskKeyExpr != null && StringHelper.isEmpty(taskKey)) {
             taskKey = ConvertHelper.toString(taskKeyExpr.call1(null, context, context.getEvalScope()));
         }
         if (StringHelper.isEmpty(taskKey))
@@ -192,9 +192,10 @@ public class BatchTaskExecution implements IBatchTask {
         Object meter = metrics == null ? null : metrics.beginChunk();
 
         long beginTime = CoreMetrics.currentTimeMillis();
-        LOG.info("nop.batch.process-chunk-begin:taskName={},taskId={},threadIndex={}",
-                context.getTaskName(), context.getTaskId(), threadIndex);
+        LOG.info("nop.batch.process-chunk-begin:taskName={},taskId={},taskKey={},threadIndex={}",
+                context.getTaskName(), context.getTaskId(), context.getTaskKey(), threadIndex);
 
+        boolean syncCount = false;
         ProcessResult result;
         boolean success = true;
         try {
@@ -206,6 +207,9 @@ public class BatchTaskExecution implements IBatchTask {
 
             chunkContext.getTaskContext().fireBeforeChunkEnd(chunkContext);
 
+            context.incCompleteItemCount(chunkContext.getCompletedItemCount());
+            syncCount = true;
+
             if (stateStore != null)
                 stateStore.saveTaskState(false, null, context);
 
@@ -214,9 +218,12 @@ public class BatchTaskExecution implements IBatchTask {
 
         } catch (Exception e) {
             success = false;
-            LOG.error("nop.err.batch.task-chunk-fail:taskName={},taskId={},threadIndex={}",
-                    context.getTaskName(), context.getTaskId(), threadIndex,
+            LOG.error("nop.err.batch.task-chunk-fail:taskName={},taskId={},taskKey={},threadIndex={}",
+                    context.getTaskName(), context.getTaskId(), context.getTaskKey(), threadIndex,
                     e);
+
+            if (!syncCount)
+                context.incCompleteItemCount(chunkContext.getCompletedItemCount());
 
             try {
                 chunkContext.getTaskContext().fireChunkEnd(e, chunkContext);
@@ -231,8 +238,8 @@ public class BatchTaskExecution implements IBatchTask {
             throw e;
         } finally {
             long endTime = CoreMetrics.currentTimeMillis();
-            LOG.info("nop.batch.process-chunk-end:taskName={},taskId={},threadIndex={},usedTime={}", context.getTaskName(),
-                    context.getTaskId(), threadIndex, endTime - beginTime);
+            LOG.info("nop.batch.process-chunk-end:taskName={},taskId={},taskKey={},threadIndex={},usedTime={}", context.getTaskName(),
+                    context.getTaskId(), context.getTaskKey(), threadIndex, endTime - beginTime);
 
             if (metrics != null)
                 metrics.endChunk(meter, success);

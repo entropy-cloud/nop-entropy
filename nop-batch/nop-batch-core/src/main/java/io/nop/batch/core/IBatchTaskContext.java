@@ -95,6 +95,12 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void setSkipItemCount(long count);
 
+    long getRetryItemCount();
+
+    void incRetryItemCount(int count);
+
+    void setRetryItemCount(long count);
+
     long getCompleteItemCount();
 
     void setCompleteItemCount(long count);
@@ -117,7 +123,7 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void onBeforeChunkEnd(Consumer<IBatchChunkContext> action);
 
-    void onChunkEnd(BiConsumer<IBatchChunkContext,Throwable> action);
+    void onChunkEnd(BiConsumer<IBatchChunkContext, Throwable> action);
 
     void fireTaskBegin();
 

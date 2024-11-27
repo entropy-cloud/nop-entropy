@@ -46,6 +46,8 @@ public class BatchProcessorConsumer<S, R> implements IBatchConsumer<S> {
             Object meter = metrics == null ? null : metrics.beginProcess();
             boolean success = false;
             try {
+                context.incProcessCount();
+                context.getTaskContext().incProcessItemCount(1);
                 processor.process(item, collector::add, context);
                 success = true;
             } finally {

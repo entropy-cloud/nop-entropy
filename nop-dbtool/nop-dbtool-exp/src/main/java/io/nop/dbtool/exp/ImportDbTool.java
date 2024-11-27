@@ -10,7 +10,14 @@ package io.nop.dbtool.exp;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
-import io.nop.batch.core.*;
+import io.nop.batch.core.BatchTaskBuilder;
+import io.nop.batch.core.IBatchConsumerProvider;
+import io.nop.batch.core.IBatchLoaderProvider;
+import io.nop.batch.core.IBatchProcessorProvider;
+import io.nop.batch.core.IBatchRecordFilter;
+import io.nop.batch.core.IBatchRecordHistoryStore;
+import io.nop.batch.core.IBatchTask;
+import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
 import io.nop.batch.core.loader.ResourceRecordLoaderProvider;
 import io.nop.batch.jdbc.consumer.JdbcInsertBatchConsumer;
@@ -34,7 +41,11 @@ import io.nop.dao.jdbc.impl.JdbcFactory;
 import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dbtool.core.DataBaseMeta;
 import io.nop.dbtool.core.discovery.jdbc.JdbcMetaDiscovery;
-import io.nop.dbtool.exp.config.*;
+import io.nop.dbtool.exp.config.IFieldConfig;
+import io.nop.dbtool.exp.config.ImportDbConfig;
+import io.nop.dbtool.exp.config.ImportTableConfig;
+import io.nop.dbtool.exp.config.JdbcConnectionConfig;
+import io.nop.dbtool.exp.config.TableFieldConfig;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.OrmEntityModel;
 
@@ -265,7 +276,7 @@ public class ImportDbTool {
         loader.setResourceLoader(inputResourceLoader);
 
         if (tableConfig.getFilter() != null) {
-            IBatchRecordFilter<S> filter = (record, ctx) ->
+            IBatchRecordFilter<S, IBatchTaskContext> filter = (record, ctx) ->
                     ConvertHelper.toTruthy(tableConfig.getFilter().call1(null, record, ctx.getEvalScope()));
             loader.setFilter(filter);
         }

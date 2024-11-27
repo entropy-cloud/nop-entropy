@@ -103,12 +103,12 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
         }
 
         IBitSet tags = readTags(in, field, null, context);
-        readVirtualField(in, tags, field, record, context);
+        readDivField(in, tags, field, record, context);
     }
 
-    protected void readVirtualField(Input in, IBitSet tags, RecordFieldMeta field,
-                                    Object record, IFieldCodecContext context) throws IOException {
-        if (field.isVirtual()) {
+    protected void readDivField(Input in, IBitSet tags, RecordFieldMeta field,
+                                Object record, IFieldCodecContext context) throws IOException {
+        if (field.isDiv()) {
             if (field.hasFields()) {
                 for (RecordFieldMeta subField : field.getFields()) {
                     readField(in, subField, record, context);

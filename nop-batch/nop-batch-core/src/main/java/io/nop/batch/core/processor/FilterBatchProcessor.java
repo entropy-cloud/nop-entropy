@@ -16,9 +16,9 @@ import io.nop.batch.core.IBatchTaskContext;
 import java.util.function.Consumer;
 
 public class FilterBatchProcessor<T> implements IBatchProcessor<T, T>, IBatchProcessorProvider<T,T> {
-    private final IBatchRecordFilter<T> predicate;
+    private final IBatchRecordFilter<T,IBatchChunkContext> predicate;
 
-    public FilterBatchProcessor(IBatchRecordFilter<T> predicate) {
+    public FilterBatchProcessor(IBatchRecordFilter<T,IBatchChunkContext> predicate) {
         this.predicate = predicate;
     }
 
@@ -29,7 +29,7 @@ public class FilterBatchProcessor<T> implements IBatchProcessor<T, T>, IBatchPro
 
     @Override
     public void process(T item, Consumer<T> consumer, IBatchChunkContext context) {
-        if (predicate.accept(item, context.getTaskContext())) {
+        if (predicate.accept(item, context)) {
             consumer.accept(item);
         }
     }

@@ -10,6 +10,8 @@ package io.nop.dao.txn;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
 
+import java.sql.Connection;
+
 public interface ITransactionFactory extends IDialectProvider {
     ITransaction newTransaction(String txnGroup);
 
@@ -18,4 +20,6 @@ public interface ITransactionFactory extends IDialectProvider {
     default ITransaction getSynchronization(String txnGroup) {
         return null;
     }
+
+    Connection openConnection(String txnGroup);
 }

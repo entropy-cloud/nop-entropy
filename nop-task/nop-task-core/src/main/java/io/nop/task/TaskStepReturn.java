@@ -126,6 +126,14 @@ public final class TaskStepReturn {
         return FutureHelper.isFutureDone(future);
     }
 
+    public TaskStepReturn syncIfDone() {
+        if (future == null)
+            return this;
+        if (isDone())
+            return sync();
+        return this;
+    }
+
     public Map<String, Object> syncGet() {
         if (future == null)
             return outputs;

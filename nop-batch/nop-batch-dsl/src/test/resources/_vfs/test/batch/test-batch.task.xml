@@ -18,7 +18,7 @@
     <steps>
         <custom name="test" customType="batch:Execute" useParentScope="true"
                 xmlns:batch="/nop/batch/xlib/batch.xlib">
-            <batch:task taskName="test.loadData" batchSize="100">
+            <batch:task taskName="test.loadData" batchSize="100" saveState="true">
 
                 <taskKeyExpr>bizDate</taskKeyExpr>
 

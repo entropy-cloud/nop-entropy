@@ -54,6 +54,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
                 consumeSingle(items, context);
             } else {
                 consumer.consume(items, context);
+                context.addCompletedItems(items);
             }
         } catch (BatchCancelException e) {
             throw e;
@@ -91,6 +92,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
 
         do {
             context.incRetryCount();
+
             long delay = retryPolicy.getRetryDelay(exception, retryCount, context);
             if (delay < 0) {
                 throw NopException.adapt(exception);
@@ -149,6 +151,8 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
         IBatchTaskMetrics metrics = context.getTaskContext().getMetrics();
         if (metrics != null)
             metrics.retry(items.size());
+
+        context.getTaskContext().incRetryItemCount(items.size());
 
         // 放弃批处理，逐个重试
         if (retryOneByOne) {

@@ -89,8 +89,18 @@ public class ModelBasedResourceRecordIO<T> implements IResourceRecordIO<T> {
 
     protected String getFileMetaPath(IResource resource) {
         String fileName = StringHelper.fileNameNoExt(resource.getName());
-        String prefix = StringHelper.firstPart(fileName, '-');
-        String path = StringHelper.appendPath(modelFilePath, prefix) + RecordConstants.RECORD_FILE_XML_POSTFIX;
+
+        String path = StringHelper.renderTemplate(modelFilePath, name -> {
+            if (name.equals(RecordConstants.VAR_FILE_NAME)) {
+                return fileName;
+            } else if (name.equals(RecordConstants.VAR_FILE_NAME_PREFIX)) {
+                return StringHelper.firstPart(fileName, '-');
+            } else if (name.equals(RecordConstants.VAR_FILE_NAME_SUFFIX)) {
+                return StringHelper.lastPart(fileName, '-');
+            } else {
+                throw new IllegalArgumentException("nop.err.record.invalid-placeholder-in-model-path:" + name + ",path=" + modelFilePath);
+            }
+        });
         return path;
     }
 

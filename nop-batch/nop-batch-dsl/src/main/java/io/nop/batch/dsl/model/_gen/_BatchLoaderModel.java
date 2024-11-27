@@ -40,7 +40,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
     /**
      *  
      * xml name: file-reader
-     * 
+     * 当resourceIO/newRecordInputProvider/fileModelPath都没有指定的时候，会使用CsvResourceIO
      */
     private io.nop.batch.dsl.model.BatchFileReaderModel _fileReader ;
     
@@ -57,6 +57,13 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
      * 
      */
     private io.nop.batch.dsl.model.BatchOrmReaderModel _ormReader ;
+    
+    /**
+     *  
+     * xml name: saveState
+     * 
+     */
+    private java.lang.Boolean _saveState ;
     
     /**
      *  
@@ -125,7 +132,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
     /**
      * 
      * xml name: file-reader
-     *  
+     *  当resourceIO/newRecordInputProvider/fileModelPath都没有指定的时候，会使用CsvResourceIO
      */
     
     public io.nop.batch.dsl.model.BatchFileReaderModel getFileReader(){
@@ -181,6 +188,25 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      * 
+     * xml name: saveState
+     *  
+     */
+    
+    public java.lang.Boolean getSaveState(){
+      return _saveState;
+    }
+
+    
+    public void setSaveState(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._saveState = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: source
      *  
      */
@@ -225,6 +251,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         out.putNotNull("fileReader",this.getFileReader());
         out.putNotNull("jdbcReader",this.getJdbcReader());
         out.putNotNull("ormReader",this.getOrmReader());
+        out.putNotNull("saveState",this.getSaveState());
         out.putNotNull("source",this.getSource());
     }
 
@@ -243,6 +270,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         instance.setFileReader(this.getFileReader());
         instance.setJdbcReader(this.getJdbcReader());
         instance.setOrmReader(this.getOrmReader());
+        instance.setSaveState(this.getSaveState());
         instance.setSource(this.getSource());
     }
 

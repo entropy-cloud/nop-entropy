@@ -18,6 +18,27 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: fetchSize
+     * 
+     */
+    private java.lang.Integer _fetchSize ;
+    
+    /**
+     *  
+     * xml name: maxFieldSize
+     * 
+     */
+    private java.lang.Integer _maxFieldSize ;
+    
+    /**
+     *  
+     * xml name: maxRows
+     * 
+     */
+    private java.lang.Long _maxRows ;
+    
+    /**
+     *  
      * xml name: query
      * 
      */
@@ -32,6 +53,20 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: queryTimeout
+     * 
+     */
+    private java.lang.Integer _queryTimeout ;
+    
+    /**
+     *  
+     * xml name: rowMapper
+     * 
+     */
+    private java.lang.String _rowMapper ;
+    
+    /**
+     *  
      * xml name: sql
      * 
      */
@@ -43,6 +78,77 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
      * 
      */
     private java.lang.String _sqlName ;
+    
+    /**
+     *  
+     * xml name: streaming
+     * 
+     */
+    private boolean _streaming  = false;
+    
+    /**
+     *  
+     * xml name: transformer
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _transformer ;
+    
+    /**
+     * 
+     * xml name: fetchSize
+     *  
+     */
+    
+    public java.lang.Integer getFetchSize(){
+      return _fetchSize;
+    }
+
+    
+    public void setFetchSize(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._fetchSize = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: maxFieldSize
+     *  
+     */
+    
+    public java.lang.Integer getMaxFieldSize(){
+      return _maxFieldSize;
+    }
+
+    
+    public void setMaxFieldSize(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._maxFieldSize = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: maxRows
+     *  
+     */
+    
+    public java.lang.Long getMaxRows(){
+      return _maxRows;
+    }
+
+    
+    public void setMaxRows(java.lang.Long value){
+        checkAllowChange();
+        
+        this._maxRows = value;
+           
+    }
+
     
     /**
      * 
@@ -78,6 +184,44 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
         checkAllowChange();
         
         this._querySpace = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: queryTimeout
+     *  
+     */
+    
+    public java.lang.Integer getQueryTimeout(){
+      return _queryTimeout;
+    }
+
+    
+    public void setQueryTimeout(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._queryTimeout = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: rowMapper
+     *  
+     */
+    
+    public java.lang.String getRowMapper(){
+      return _rowMapper;
+    }
+
+    
+    public void setRowMapper(java.lang.String value){
+        checkAllowChange();
+        
+        this._rowMapper = value;
            
     }
 
@@ -120,6 +264,44 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
     }
 
     
+    /**
+     * 
+     * xml name: streaming
+     *  
+     */
+    
+    public boolean isStreaming(){
+      return _streaming;
+    }
+
+    
+    public void setStreaming(boolean value){
+        checkAllowChange();
+        
+        this._streaming = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: transformer
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getTransformer(){
+      return _transformer;
+    }
+
+    
+    public void setTransformer(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._transformer = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -135,10 +317,17 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("fetchSize",this.getFetchSize());
+        out.putNotNull("maxFieldSize",this.getMaxFieldSize());
+        out.putNotNull("maxRows",this.getMaxRows());
         out.putNotNull("query",this.getQuery());
         out.putNotNull("querySpace",this.getQuerySpace());
+        out.putNotNull("queryTimeout",this.getQueryTimeout());
+        out.putNotNull("rowMapper",this.getRowMapper());
         out.putNotNull("sql",this.getSql());
         out.putNotNull("sqlName",this.getSqlName());
+        out.putNotNull("streaming",this.isStreaming());
+        out.putNotNull("transformer",this.getTransformer());
     }
 
     public BatchJdbcReaderModel cloneInstance(){
@@ -150,10 +339,17 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
     protected void copyTo(BatchJdbcReaderModel instance){
         super.copyTo(instance);
         
+        instance.setFetchSize(this.getFetchSize());
+        instance.setMaxFieldSize(this.getMaxFieldSize());
+        instance.setMaxRows(this.getMaxRows());
         instance.setQuery(this.getQuery());
         instance.setQuerySpace(this.getQuerySpace());
+        instance.setQueryTimeout(this.getQueryTimeout());
+        instance.setRowMapper(this.getRowMapper());
         instance.setSql(this.getSql());
         instance.setSqlName(this.getSqlName());
+        instance.setStreaming(this.isStreaming());
+        instance.setTransformer(this.getTransformer());
     }
 
     protected BatchJdbcReaderModel newInstance(){

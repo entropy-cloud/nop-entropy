@@ -28,6 +28,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.SQLException;
 
 /**
  * 与spring事务机制集成。底层事务直接使用PlatformTransactionManager提供。
@@ -51,6 +52,15 @@ public class NopSpringTransactionFactory implements ITransactionFactory {
             this.dialect = DialectManager.instance().getDialectForDataSource(dataSource);
         }
         return dialect;
+    }
+
+    @Override
+    public Connection openConnection(String txnGroup) {
+        try {
+            return dataSource.getConnection();
+        } catch (SQLException e) {
+            throw getDialectForQuerySpace(txnGroup).getSQLExceptionTranslator().translate("ds.getConnection", e);
+        }
     }
 
     @Override
@@ -158,9 +168,9 @@ public class NopSpringTransactionFactory implements ITransactionFactory {
         protected void doClose() {
             if (txn != null) {
                 if (!txn.isCompleted()) {
-                    if(txn.isRollbackOnly()) {
+                    if (txn.isRollbackOnly()) {
                         transactionManager.rollback(txn);
-                    }else{
+                    } else {
                         transactionManager.commit(txn);
                     }
                 }

@@ -126,11 +126,12 @@ public class LoopTaskStep extends AbstractTaskStep {
                 return stepResult;
 
             if (stepResult.isDone()) {
+                stepResult = stepResult.sync();
+
                 stateBean.incIndex();
                 stepRt.setBodyStepIndex(0);
                 stepRt.saveState();
 
-                stepResult = stepResult.sync();
                 if (stepResult.isEnd())
                     return stepResult;
                 if (stepResult.isExit())

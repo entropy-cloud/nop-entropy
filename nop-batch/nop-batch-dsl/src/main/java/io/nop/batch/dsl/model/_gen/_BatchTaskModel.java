@@ -33,7 +33,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     /**
      *  
      * xml name: concurrency
-     * 同时启动多少个线程去并行处理
+     * 同时启动多少个线程去并行处理。设置了concurrency的情况下，还需要设置executor才会真正并行执行，否则会使用SyncExecutor在当前线程上串行执行
      */
     private int _concurrency  = 1;
     
@@ -212,7 +212,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: concurrency
-     *  同时启动多少个线程去并行处理
+     *  同时启动多少个线程去并行处理。设置了concurrency的情况下，还需要设置executor才会真正并行执行，否则会使用SyncExecutor在当前线程上串行执行
      */
     
     public int getConcurrency(){

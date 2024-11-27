@@ -30,4 +30,10 @@ public interface RecordConstants {
     String RECORD_XML_POSTFIX = ".record.xml";
 
     String TYPE_DEFAULT = "default";
+
+    String VAR_FILE_NAME = "fileName";
+
+    String VAR_FILE_NAME_PREFIX = "fileNamePrefix";
+
+    String VAR_FILE_NAME_SUFFIX = "fileNameSuffix";
 }

@@ -17,6 +17,7 @@ import io.nop.dao.txn.ITransactionManager;
 import io.nop.dao.txn.ITransactionTemplate;
 import jakarta.inject.Inject;
 
+import java.sql.Connection;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -45,6 +46,11 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
     @Override
     public IDialect getDialectForQuerySpace(String querySpace) {
         return transactionManager.getDialectForQuerySpace(querySpace);
+    }
+
+    @Override
+    public Connection openConnection(String querySpace) {
+        return transactionManager.openConnection(querySpace);
     }
 
     @Override

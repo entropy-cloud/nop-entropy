@@ -9,6 +9,7 @@ package io.nop.batch.core;
 
 import io.nop.core.context.IExecutionContext;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -41,6 +42,16 @@ public interface IBatchChunkContext extends IExecutionContext {
     }
 
     <T> void addCompletedItem(T item);
+
+    <T> void addCompletedItems(Collection<T> items);
+
+    int getProcessCount();
+
+    void setProcessCount(int count);
+
+    default void incProcessCount() {
+        setProcessCount(getProcessCount() + 1);
+    }
 
     /**
      * 第一次执行时retryCount=0。重试执行时retryCount从1开始，不断递增

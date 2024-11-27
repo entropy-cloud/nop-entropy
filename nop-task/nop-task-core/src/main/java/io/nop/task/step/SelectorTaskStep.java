@@ -40,7 +40,7 @@ public class SelectorTaskStep extends AbstractTaskStep {
 
             TaskStepReturn stepResult;
             try {
-                stepResult = step.executeWithParentRt(stepRt);
+                stepResult = step.executeWithParentRt(stepRt).syncIfDone();
             } catch (Exception e) {
                 if (TaskStepHelper.isCancelledException(e))
                     throw e;
