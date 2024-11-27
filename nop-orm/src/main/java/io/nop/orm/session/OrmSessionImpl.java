@@ -509,6 +509,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         entity.orm_markFullyLoaded();
 
         flushSave(entity);
+        this.batchActionQueue.flush();
 
         return entity.get_id();
     }
@@ -526,6 +527,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
             return;
 
         flushUpdate(entity);
+        this.batchActionQueue.flush();
     }
 
     @Override
@@ -538,6 +540,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
             throw newError(ERR_ORM_UPDATE_ENTITY_NOT_MANAGED, entity);
 
         flushDelete(entity);
+        this.batchActionQueue.flush();
     }
 
     private void update(IOrmEntity entity) {
