@@ -77,7 +77,7 @@ public class MdxQueryExecutor {
                 sourceName = query.getSourceName();
 
             BaseDataFieldMeta fieldMeta = new BaseDataFieldMeta(field.getLabel(), field.getName(), sourceName,
-                    StdDataType.ANY, false);
+                    StdDataType.ANY, null, false);
             fieldMetas.add(fieldMeta);
         }
         return new BaseDataSetMeta(fieldMetas);

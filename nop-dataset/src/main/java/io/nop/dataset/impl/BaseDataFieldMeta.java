@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.data.ImmutableBean;
 import io.nop.commons.type.StdDataType;
+import io.nop.commons.type.StdSqlType;
 import io.nop.dataset.IDataFieldMeta;
 
 import java.util.ArrayList;
@@ -25,23 +26,26 @@ public class BaseDataFieldMeta implements IDataFieldMeta {
     private final String fieldName;
     private final String sourceFieldName;
     private final String fieldOwnerEntityName;
-    private final StdDataType fieldStdType;
+    private final StdDataType stdDataType;
+    private final StdSqlType stdSqlType;
     private final boolean computed;
 
     public BaseDataFieldMeta(@JsonProperty("fieldName") String fieldName,
                              @JsonProperty("sourceFieldName") String sourceFieldName,
                              @JsonProperty("fieldOwnerEntityName") String fieldOwnerEntityName,
-                             @JsonProperty("fieldStdType") StdDataType fieldStdType,
+                             @JsonProperty("stdDataType") StdDataType stdDataType,
+                             @JsonProperty("stdSqlType") StdSqlType stdSqlType,
                              @JsonProperty("computed") boolean computed) {
         this.fieldName = fieldName;
         this.sourceFieldName = sourceFieldName;
         this.fieldOwnerEntityName = fieldOwnerEntityName;
-        this.fieldStdType = fieldStdType;
+        this.stdDataType = stdDataType;
+        this.stdSqlType = stdSqlType;
         this.computed = computed;
     }
 
     public static BaseDataFieldMeta build(String fieldName, StdDataType fieldStdType) {
-        return new BaseDataFieldMeta(fieldName, null, null, fieldStdType, false);
+        return new BaseDataFieldMeta(fieldName, null, null, fieldStdType, StdSqlType.fromStdDataTYpe(fieldStdType), false);
     }
 
     public static BaseDataFieldMeta fromColumnMeta(IDataFieldMeta columnMeta) {
@@ -49,7 +53,7 @@ public class BaseDataFieldMeta implements IDataFieldMeta {
             return (BaseDataFieldMeta) columnMeta;
 
         return new BaseDataFieldMeta(columnMeta.getFieldName(), columnMeta.getSourceFieldName(),
-                columnMeta.getFieldOwnerEntityName(), columnMeta.getFieldStdType(), columnMeta.isComputed());
+                columnMeta.getFieldOwnerEntityName(), columnMeta.getStdDataType(), columnMeta.getStdSqlType(), columnMeta.isComputed());
     }
 
     public static List<BaseDataFieldMeta> fromColumnMetas(List<? extends IDataFieldMeta> metas) {
@@ -77,8 +81,8 @@ public class BaseDataFieldMeta implements IDataFieldMeta {
     }
 
     @Override
-    public StdDataType getFieldStdType() {
-        return fieldStdType;
+    public StdDataType getStdDataType() {
+        return stdDataType;
     }
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -87,7 +91,12 @@ public class BaseDataFieldMeta implements IDataFieldMeta {
         return sourceFieldName;
     }
 
+    @Override
+    public StdSqlType getStdSqlType() {
+        return stdSqlType;
+    }
+
     public BaseDataFieldMeta renameTo(String newName) {
-        return new BaseDataFieldMeta(newName, sourceFieldName, fieldOwnerEntityName, fieldStdType, computed);
+        return new BaseDataFieldMeta(newName, sourceFieldName, fieldOwnerEntityName, stdDataType, stdSqlType, computed);
     }
 }

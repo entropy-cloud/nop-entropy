@@ -14,6 +14,7 @@ import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.IDialectProvider;
 import io.nop.dao.metrics.IDaoMetrics;
 import io.nop.dao.txn.ITransactionTemplate;
+import io.nop.dataset.IDataSetMeta;
 import jakarta.annotation.Nonnull;
 
 import java.sql.Connection;
@@ -51,4 +52,6 @@ public interface IJdbcTemplate extends ISqlExecutor, IDialectProvider {
     IEstimatedClock getDbEstimatedClock(String querySpace);
 
     boolean isQuerySpaceDefined(String querySpace);
+
+    IDataSetMeta getTableMeta(String querySpace, String tableName);
 }

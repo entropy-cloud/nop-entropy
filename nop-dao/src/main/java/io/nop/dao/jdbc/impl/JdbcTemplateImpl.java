@@ -36,6 +36,7 @@ import io.nop.dao.utils.DaoHelper;
 import io.nop.dao.utils.DbEstimatedClock;
 import io.nop.dataset.IComplexDataSet;
 import io.nop.dataset.IDataSet;
+import io.nop.dataset.IDataSetMeta;
 import io.nop.dataset.IRowMapper;
 import io.nop.dataset.binder.DataParameterBinders;
 import io.nop.dataset.impl.DataSetCacheData;
@@ -502,5 +503,11 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
             return new DbEstimatedClock(normalized, this, CFG_DAO_DB_TIME_CACHE_TIMEOUT);
         });
         return clock;
+    }
+
+    @Override
+    public IDataSetMeta getTableMeta(String querySpace, String tableName) {
+        SQL sql = SQL.begin().querySpace(querySpace).select().star().from().sql(tableName).where().alwaysFalse().end();
+        return executeQuery(sql, IDataSet::getMeta);
     }
 }

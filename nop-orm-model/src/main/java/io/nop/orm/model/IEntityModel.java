@@ -179,6 +179,10 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
         return getProp(propName, false);
     }
 
+    default IColumnModel requireColumn(String name) {
+        return getColumn(name, false);
+    }
+
     Map<String, IEntityPropModel> getAllProps();
 
     /**

@@ -1,19 +1,26 @@
 package io.nop.dao.jdbc.impl;
 
 import io.nop.api.core.ioc.BeanContainer;
+import io.nop.commons.type.StdDataType;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.DaoConstants;
 import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.dataset.JdbcDataSet;
 import io.nop.dao.utils.DaoHelper;
+import io.nop.dataset.IDataFieldMeta;
 import io.nop.dataset.IDataSet;
+import io.nop.dataset.binder.IDataParameterBinder;
+import io.nop.dataset.impl.AutoConvertDataParameterBinder;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 public class JdbcDataSetHelper {
 
@@ -35,5 +42,24 @@ public class JdbcDataSetHelper {
         } catch (SQLException e) {
             throw dialect.getSQLExceptionTranslator().translate(sql, e);
         }
+    }
+
+
+    public static Map<String, IDataParameterBinder> getColBinders(List<? extends IDataFieldMeta> cols, IDialect dialect) {
+        Map<String, IDataParameterBinder> binders = CollectionHelper.newCaseInsensitiveMap(cols.size());
+
+        for (IDataFieldMeta col : cols) {
+            String key = col.getFieldName();
+            IDataParameterBinder binder;
+            if (col.getStdDataType() == null) {
+                StdDataType dataType = col.getStdSqlType().getStdDataType();
+                binder = dialect.getDataParameterBinder(dataType, col.getStdSqlType());
+                binder = new AutoConvertDataParameterBinder(dataType, binder);
+            } else {
+                binder = dialect.getDataParameterBinder(col.getStdDataType(), col.getStdSqlType());
+            }
+            binders.put(key, binder);
+        }
+        return binders;
     }
 }

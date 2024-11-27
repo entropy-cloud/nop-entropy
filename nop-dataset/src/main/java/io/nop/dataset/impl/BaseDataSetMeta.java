@@ -78,8 +78,8 @@ public class BaseDataSetMeta implements IDataSetMeta {
     public static BaseDataSetMeta fromColNames(String[] columnNames) {
         List<BaseDataFieldMeta> colMetas = new ArrayList<>(columnNames.length);
         for (int i = 0, n = columnNames.length; i < n; i++) {
-            BaseDataFieldMeta colMeta = new BaseDataFieldMeta(
-                    columnNames[i], null, null, StdDataType.ANY, false);
+            BaseDataFieldMeta colMeta = BaseDataFieldMeta.build(
+                    columnNames[i], StdDataType.ANY);
             colMetas.add(colMeta);
         }
         return new BaseDataSetMeta(colMetas);
@@ -143,7 +143,7 @@ public class BaseDataSetMeta implements IDataSetMeta {
 
     @Override
     public StdDataType getFieldStdType(int index) {
-        return fieldMetas.get(index).getFieldStdType();
+        return fieldMetas.get(index).getStdDataType();
     }
 
     @Override

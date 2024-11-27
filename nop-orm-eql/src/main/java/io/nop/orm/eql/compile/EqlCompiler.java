@@ -121,7 +121,7 @@ public class EqlCompiler implements ISqlCompiler {
             ownerEntityName = propModel.getOwnerEntityModel().getName();
         }
         BaseDataFieldMeta field = new BaseDataFieldMeta(fieldName, sourceFieldName, ownerEntityName,
-                exprMeta.getStdDataType(), false);
+                exprMeta.getStdDataType(), exprMeta.getStdSqlType(), false);
         return field;
     }
 

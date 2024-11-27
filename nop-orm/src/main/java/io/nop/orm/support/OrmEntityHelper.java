@@ -182,6 +182,9 @@ public class OrmEntityHelper {
             return OrmCompositePk.build(entityModel, (Object[]) id);
         }
 
+        if (id instanceof List)
+            return OrmCompositePk.build(entityModel, ((List<?>) id).toArray());
+
         throw new OrmException(ERR_ORM_INVALID_ENTITY_ID).param(ARG_ENTITY_NAME, entityModel.getName())
                 .param(ARG_ENTITY_ID, id);
     }

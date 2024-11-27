@@ -8,6 +8,7 @@
 package io.nop.dataset;
 
 import io.nop.commons.type.StdDataType;
+import io.nop.commons.type.StdSqlType;
 
 import java.io.Serializable;
 
@@ -21,7 +22,9 @@ public interface IDataFieldMeta extends Serializable {
      */
     String getFieldOwnerEntityName();
 
-    StdDataType getFieldStdType();
+    StdDataType getStdDataType();
+
+    StdSqlType getStdSqlType();
 
     default boolean isComputed(){
         return false;

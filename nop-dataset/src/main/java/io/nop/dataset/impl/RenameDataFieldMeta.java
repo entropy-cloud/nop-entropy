@@ -8,6 +8,7 @@
 package io.nop.dataset.impl;
 
 import io.nop.commons.type.StdDataType;
+import io.nop.commons.type.StdSqlType;
 import io.nop.dataset.IDataFieldMeta;
 
 public class RenameDataFieldMeta implements IDataFieldMeta {
@@ -36,8 +37,13 @@ public class RenameDataFieldMeta implements IDataFieldMeta {
     }
 
     @Override
-    public StdDataType getFieldStdType() {
-        return fieldMeta.getFieldStdType();
+    public StdDataType getStdDataType() {
+        return fieldMeta.getStdDataType();
+    }
+
+    @Override
+    public StdSqlType getStdSqlType() {
+        return fieldMeta.getStdSqlType();
     }
 
     @Override
