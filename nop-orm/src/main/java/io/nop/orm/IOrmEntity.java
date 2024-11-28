@@ -163,6 +163,10 @@ public interface IOrmEntity extends IDaoEntity, IOrmObject, ICloneable, IOrmEnti
 
     void orm_propValueByName(String propName, Object value);
 
+    default void orm_propValues(Map<String,Object> values){
+        values.forEach(this::orm_propValueByName);
+    }
+
     /**
      * 得到指定属性的值
      *
