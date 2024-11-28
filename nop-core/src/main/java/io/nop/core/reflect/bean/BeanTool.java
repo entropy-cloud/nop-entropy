@@ -8,6 +8,7 @@
 package io.nop.core.reflect.bean;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
@@ -59,6 +60,10 @@ public class BeanTool {
 
     public static void copyBean(Object src, Object target, Type targetType, boolean deep) {
         instance().copyBean(src, target, getGenericType(targetType), deep, BeanCopyOptions.DEFAULT);
+    }
+
+    public static Object pluckSelected(Object src, FieldSelectionBean selection) {
+        return instance().pluckSelected(src, selection);
     }
 
     public static Object getByIndex(Object bean, int index) {

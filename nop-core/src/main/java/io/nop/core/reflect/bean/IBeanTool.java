@@ -8,6 +8,7 @@
 package io.nop.core.reflect.bean;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.core.type.IGenericType;
 
@@ -30,4 +31,6 @@ public interface IBeanTool extends IBeanObjectAdapter, IBeanCopier {
     void setByIndex(Object bean, int index, Object value);
 
     Object buildBeanFromTreeBean(ITreeBean src, IGenericType targetType, BeanCopyOptions options);
+
+    Object pluckSelected(Object bean, FieldSelectionBean selection);
 }

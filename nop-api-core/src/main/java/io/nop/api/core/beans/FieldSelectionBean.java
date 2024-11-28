@@ -274,6 +274,10 @@ public class FieldSelectionBean implements Serializable, IDeepCloneable, IFreeza
         this.directives.putAll(directives);
     }
 
+    public int getFieldCount() {
+        return fields == null ? 0 : fields.size();
+    }
+
     /**
      * 隐藏字段仅在内部处理时使用，一般不返回给外部调用者。例如前段请求计算字段a, 后端处理时发现为了计算字段a需要加载字段b和c,
      * 则会给selection集合追加两个字段，然后交给底层装载器去批量加载。

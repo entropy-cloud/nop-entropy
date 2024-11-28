@@ -7,13 +7,14 @@
  */
 package io.nop.core.reflect.bean;
 
+import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.core.type.IGenericType;
-
 import jakarta.annotation.Nonnull;
+
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.util.HashSet;
@@ -151,5 +152,10 @@ public class BeanToolImpl implements IBeanTool {
     @Override
     public Object buildBeanFromTreeBean(ITreeBean src, IGenericType targetType, BeanCopyOptions options) {
         return TreeBeanBuilder.INSTANCE.buildBeanFromTreeBean(src, targetType, options);
+    }
+
+    @Override
+    public Object pluckSelected(Object src, FieldSelectionBean selection) {
+        return FieldSelectionHelper.pluckSelected(src, selection);
     }
 }
