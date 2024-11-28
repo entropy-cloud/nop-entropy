@@ -16,7 +16,7 @@
        xmlns:xdef="/nop/schema/xdef.xdef"
 >
     <!-- taskKey用于区分taskName相同的不同执行实例。同样的taskName+taskKey只允许执行一次 -->
-    <taskKeyExpr xdef:value="xpl-fn:(taskCtx)=>string"/>
+    <taskKeyExpr xdef:value="xpl-fn:(batchTaskCtx)=>string"/>
 
     <retryPolicy maxRetryCount="int" retryDelay="int" maxRetryDelay="int" xdef:name="BatchRetryPolicyModel"
                  exponentialDelay="boolean=true" jitterRatio="double=0.3">
@@ -32,19 +32,19 @@
     <inputSorter xdef:ref="/nop/schema/query/order-by.xdef"/>
 
     <xdef:define xdef:name="BatchListenersModel">
-        <onTaskBegin xdef:value="xpl-fn:(taskCtx)=>void"/>
-        <onBeforeTaskEnd xdef:value="xpl-fn:(taskCtx)=>void"/>
-        <onTaskEnd xdef:value="xpl-fn:(taskCtx,err)=>void"/>
+        <onTaskBegin xdef:value="xpl-fn:(batchTaskCtx)=>void"/>
+        <onBeforeTaskEnd xdef:value="xpl-fn:(batchTaskCtx)=>void"/>
+        <onTaskEnd xdef:value="xpl-fn:(batchTaskCtx,err)=>void"/>
 
-        <onChunkBegin xdef:value="xpl-fn:(chunkCtx)=>void"/>
-        <onBeforeChunkEnd xdef:value="xpl-fn:(chunkCtx)=>void"/>
-        <onChunkEnd xdef:value="xpl-fn:(chunkCtx,err)=>void"/>
+        <onChunkBegin xdef:value="xpl-fn:(batchChunkCtx)=>void"/>
+        <onBeforeChunkEnd xdef:value="xpl-fn:(batchChunkCtx)=>void"/>
+        <onChunkEnd xdef:value="xpl-fn:(batchChunkCtx,err)=>void"/>
 
-        <onLoadBegin xdef:value="xpl-fn:(batchSize,chunkCtx)=>void"/>
-        <onLoadEnd xdef:value="xpl-fn:(chunkCtx, err)=>void"/>
+        <onLoadBegin xdef:value="xpl-fn:(batchSize,batchChunkCtx)=>void"/>
+        <onLoadEnd xdef:value="xpl-fn:(batchChunkCtx, err)=>void"/>
 
-        <onConsumeBegin xdef:value="xpl-fn:(chunkCtx)=>void"/>
-        <onConsumeEnd xdef:value="xpl-fn:(chunkCtx, err)=>void"/>
+        <onConsumeBegin xdef:value="xpl-fn:(batchChunkCtx)=>void"/>
+        <onConsumeEnd xdef:value="xpl-fn:(batchChunkCtx, err)=>void"/>
     </xdef:define>
 
     <loader bean="bean-name" xdef:name="BatchLoaderModel" aggregator="bean-name" saveState="boolean"
@@ -65,7 +65,7 @@
             <!-- 动态创建resourceIO -->
             <newRecordInputProvider xdef:value="xpl"/>
 
-            <filter xdef:value="xpl-fn:(item,taskCtx)=>boolean"/>
+            <filter xdef:value="xpl-fn:(item,batchTaskCtx)=>boolean"/>
 
             <!--
             仅当使用缺省的CsvResourceIO时会使用这里的配置，它用于指定从数据文件中导入哪些列，如果不指定，则导入所有列。假定数据文件的第一行是列名
@@ -84,19 +84,19 @@
             <sql xdef:value="xpl-sql"/>
             <query xdef:value="xpl-node"/>
 
-            <transformer xdef:value="xpl-fn:(item,chunkCtx)=>any"/>
+            <transformer xdef:value="xpl-fn:(item,batchChunkCtx)=>any"/>
         </jdbc-reader>
 
-        <source xdef:value="xpl-fn:(batchSize,chunkCtx)=>List"/>
+        <source xdef:value="xpl-fn:(batchSize,batchChunkCtx)=>List"/>
 
         <adapter xdef:value="xpl-fn:(loader)=>any"/>
 
     </loader>
 
-    <processor bean="bean-name" name="var-name" order="!int=0"
+    <processor bean="bean-name" name="!var-name" order="!int=0"
                xdef:unique-attr="name" xdef:name="BatchProcessorModel" xdef:ref="BatchListenersModel">
-        <filter xdef:value="xpl-fn:(item,chunkCtx)=>boolean"/>
-        <source xdef:value="xpl-fn:(item,consume,chunkCtx)=>void"/>
+        <filter xdef:value="xpl-fn:(item,batchChunkCtx)=>boolean"/>
+        <source xdef:value="xpl-fn:(item,consume,batchChunkCtx)=>void"/>
         <adapter xdef:value="xpl-fn:(processor)=>any"/>
     </processor>
 
@@ -105,13 +105,13 @@
     </chunk-processor-builder>
 
     <tagger bean="bean-name" xdef:name="BatchTaggerModel">
-        <source xdef:value="xpl-fn:(item,chunkCtx)=>Collection"/>
+        <source xdef:value="xpl-fn:(item,batchChunkCtx)=>Collection"/>
     </tagger>
 
-    <consumer bean="bean-name" name="var-name" order="!int=0" forTag="string"
+    <consumer bean="bean-name" name="!var-name" order="!int=0" forTag="string"
               xdef:unique-attr="name" xdef:name="BatchConsumerModel" xdef:ref="BatchListenersModel"
               aggregator="bean-name" metaProvider="bean-name">
-        <filter xdef:value="xpl-fn:(item,chunkCtx)=>boolean"/>
+        <filter xdef:value="xpl-fn:(item,batchChunkCtx)=>boolean"/>
 
         <file-writer filePath="!t-expr" xdef:name="BatchFileWriterModel" encoding="string"
                      resourceLoader="bean-name" resourceIO="bean-name" fileModelPath="v-path">
@@ -134,7 +134,7 @@
             </fields>
         </jdbc-writer>
 
-        <source xdef:value="xpl-fn:(items,chunkCtx)=>void"/>
+        <source xdef:value="xpl-fn:(items,batchChunkCtx)=>void"/>
 
         <adapter xdef:value="xpl-fn:(consumer)=>any"/>
     </consumer>

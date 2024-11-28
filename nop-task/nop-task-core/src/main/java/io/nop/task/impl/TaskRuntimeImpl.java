@@ -8,6 +8,7 @@ import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.core.CoreConstants;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.task.ITask;
@@ -54,14 +55,20 @@ public class TaskRuntimeImpl implements ITaskRuntime {
 
     public TaskRuntimeImpl(ITaskFlowManagerImplementor taskManager,
                            ITaskStateStore stateStore,
-                           IServiceContext svcCtx, boolean recoverMode) {
+                           IServiceContext svcCtx, IEvalScope scope, boolean recoverMode) {
         this.taskManager = taskManager;
         this.stateStore = stateStore;
         this.svcCtx = svcCtx;
         this.recoverMode = recoverMode;
+        if (scope == null) {
+            scope = svcCtx != null ? svcCtx.getEvalScope().newChildScope(true, true)
+                    : XLang.newEvalScope(CollectionHelper.newConcurrentMap(4));
+        } else {
+            scope = scope.newChildScope(true, true);
+        }
         // taskRt可能会被多线程访问，所以这里scope线程安全
-        this.scope = svcCtx != null ? svcCtx.getEvalScope().newChildScope(true, true)
-                : XLang.newEvalScope(CollectionHelper.newConcurrentMap(4));
+        this.scope = scope;
+        this.scope.setLocalValue(CoreConstants.VAR_SVC_CTX, svcCtx);
         this.scope.setLocalValue(TaskConstants.VAR_TASK_RT, this);
         this.context = svcCtx == null ? ContextProvider.getOrCreateContext() : svcCtx.getContext();
     }

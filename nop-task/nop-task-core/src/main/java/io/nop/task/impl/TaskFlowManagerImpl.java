@@ -9,6 +9,7 @@ import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.component.version.ResourceVersionHelper;
@@ -70,9 +71,9 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     }
 
     @Override
-    public ITaskRuntime newTaskRuntime(ITask task, boolean saveState, IServiceContext svcCtx) {
+    public ITaskRuntime newTaskRuntime(ITask task, boolean saveState, IServiceContext svcCtx, IEvalScope scope) {
         ITaskStateStore stateStore = saveState ? requirePersistStateState() : nonPersistStateStore;
-        TaskRuntimeImpl taskRt = new TaskRuntimeImpl(this, stateStore, svcCtx, false);
+        TaskRuntimeImpl taskRt = new TaskRuntimeImpl(this, stateStore, svcCtx, scope,false);
 
         ITaskState taskState = stateStore.newTaskState(task.getTaskName(), task.getTaskVersion(), taskRt);
         taskRt.setTaskState(taskState);
@@ -94,9 +95,9 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     }
 
     @Override
-    public ITaskRuntime getTaskRuntime(String taskInstanceId, IServiceContext svcCtx) {
+    public ITaskRuntime getTaskRuntime(String taskInstanceId, IServiceContext svcCtx, IEvalScope scope) {
         ITaskStateStore stateStore = requirePersistStateState();
-        TaskRuntimeImpl taskRt = new TaskRuntimeImpl(this, stateStore, svcCtx, true);
+        TaskRuntimeImpl taskRt = new TaskRuntimeImpl(this, stateStore, svcCtx, scope, true);
         ITaskState taskState = stateStore.loadTaskState(taskInstanceId, taskRt);
         if (taskState == null)
             throw new NopException(ERR_TASK_UNKNOWN_TASK_INSTANCE)

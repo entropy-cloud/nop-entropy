@@ -1,10 +1,10 @@
-<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpl="xpl"
 >
 
     <tags>
 
         <GenActionFromTaskFlow>
-            <attr name="name" type="String" mandatory="true" />
+            <attr name="name" type="String" mandatory="true"/>
             <attr name="taskName" type="String" mandatory="true"/>
             <attr name="taskVersion" type="Long" optional="true"/>
 
@@ -30,12 +30,39 @@
                     <source><![CDATA[
                         const taskFlowManager = inject('nopTaskFlowManager');
                         const task = taskFlowManager.getTask(taskName,taskVersion);
-                        const taskRt = taskFlowManager.newTaskRuntime(task, false, svcCtx);
-                        return task.executeAsync(taskRt, selection?.sourceFields);
+                        const taskRt = taskFlowManager.newTaskRuntime(task, false, svcCtx,$scope);
+                        return task.execute(taskRt, selection?.sourceFields).asyncOutputs();
                     ]]></source>
                 </query>
             </source>
         </GenActionFromTaskFlow>
+
+        <Execute>
+            <attr name="taskModelPath" stdDomain="v-path" optional="true" />
+            <attr name="taskName" type="String" optional="true"/>
+            <attr name="taskVersion" type="Long" optional="true"/>
+            <attr name="inputs" type="Map" optional="true" />
+            <attr name="outputNames" optional="true"/>
+            <attr name="asyncOutputs" type="Boolean" optional="true"/>
+
+            <attr name="svcCtx" type="io.nop.core.context.IServiceContext" implicit="true" optional="true"/>
+
+            <source><![CDATA[
+                const taskFlowManager = inject('nopTaskFlowManager');
+                const task = taskModelPath? taskFlowManager.loadTaskFromPath(taskModelPath) :
+                            taskFlowManager.getTask(taskName,taskVersion);
+
+                const taskRt = taskFlowManager.newTaskRuntime(task, false, svcCtx, $scope);
+                if(inputs != null){
+                    taskRt.setInputs(inputs);
+                }
+                if(asyncOutputs){
+                    return task.execute(taskRt, outputNames).asyncOutputs();
+                }else{
+                    return task.execute(taskRt, outputNames).syncGetOutputs();
+                }
+            ]]></source>
+        </Execute>
 
     </tags>
 </lib>

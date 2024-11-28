@@ -37,7 +37,7 @@ public abstract class AbstractTaskTestCase extends BaseTestCase {
     protected Map<String, Object> runTask(String taskName) {
         ITask task = taskFlowManager.getTask(taskName, 0);
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
-        Map<String, Object> ret = task.execute(taskRt).syncGet();
+        Map<String, Object> ret = task.execute(taskRt).syncGetOutputs();
         assertEquals("OK", ret.get(TaskConstants.VAR_RESULT));
         return ret;
     }

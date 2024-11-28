@@ -47,5 +47,20 @@
                 })
             ]]></source>
         </PreParseFileModel>
+
+        <PostExtendsForTaskFlow>
+            <attr name="_dsl_root" implicit="true" />
+
+            <source><![CDATA[
+                _dsl_root.forEachNode(node=>{
+                   if(node.tagName == 'processor' && node.attrText('task:taskModelPath')){
+                      const modelPath = node.attrVPath('task:taskModelPath');
+                      node.makeChild('source')
+                         .appendBodyXml('<task:Execute taskModelPath="'+modelPath
+                               +'" inputs="${{item,consume,batchChunkCtx}}" xpl:lib="/nop/task/xlib/task.xlib"/>');
+                   }
+                });
+            ]]></source>
+        </PostExtendsForTaskFlow>
     </tags>
 </lib>

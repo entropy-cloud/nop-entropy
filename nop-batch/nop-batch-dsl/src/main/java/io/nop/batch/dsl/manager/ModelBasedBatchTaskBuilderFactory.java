@@ -51,7 +51,9 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 
 import static io.nop.batch.dsl.BatchDslErrors.ARG_BATCH_TASK_NAME;
+import static io.nop.batch.dsl.BatchDslErrors.ARG_PROCESSOR_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_NO_LOADER;
+import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_PROCESSOR_IS_NULL;
 import static io.nop.batch.dsl.manager.FileBatchSupport.newFileReader;
 import static io.nop.batch.dsl.manager.FileBatchSupport.newFileWriter;
 import static io.nop.batch.dsl.manager.JdbcBatchSupport.newJdbcReader;
@@ -274,8 +276,11 @@ public class ModelBasedBatchTaskBuilderFactory {
         addListeners(builder, processorModel);
 
         IBatchProcessorProvider<Object, Object> provider = buildProcessor0(processorModel, beanContainer);
+        if (provider == null)
+            throw new NopException(ERR_BATCH_TASK_PROCESSOR_IS_NULL).param(ARG_PROCESSOR_NAME, processorModel.getName());
+
         if (processorModel.getAdapter() == null)
-            return null;
+            return provider;
         return context -> {
             IBatchProcessorProvider.IBatchProcessor<Object, Object> processor = provider.setup(context);
             return (IBatchProcessorProvider.IBatchProcessor<Object, Object>) processorModel.getAdapter().call1(null, processor, context.getEvalScope());
@@ -286,9 +291,13 @@ public class ModelBasedBatchTaskBuilderFactory {
         if (processorModel.getBean() != null)
             return (IBatchProcessorProvider) beanContainer.getBean(processorModel.getBean());
 
-        return context -> (item, consumer, ctx) -> {
-            processorModel.getSource().call3(null, item, consumer, ctx, ctx.getEvalScope());
-        };
+        if (processorModel.getSource() != null) {
+            return context -> (item, consumer, ctx) -> {
+                processorModel.getSource().call3(null, item, consumer, ctx, ctx.getEvalScope());
+            };
+        } else {
+            return null;
+        }
     }
 
     private IBatchChunkProcessorBuilder<Object> buildChunkProcessorBuilder(BatchTaskBuilder<Object, Object> builder, IBeanProvider beanContainer) {

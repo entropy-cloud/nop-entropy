@@ -258,7 +258,7 @@
             </if>
 
             <!-- 调用子任务 -->
-            <call-task name="!var-name" taskName="!string" taskVersion="long"
+            <call-task name="!var-name" taskName="string" taskVersion="long" taskModelPath="v-path"
                        xdef:ref="TaskStepModel" xdef:name="CallTaskStepModel"/>
 
             <!--

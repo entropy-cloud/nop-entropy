@@ -315,6 +315,14 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return attrText(CoreConstants.NS_XMLNS_PREFIX + ns);
     }
 
+    public String attrVPath(String name) {
+        ValueWithLocation vl = attrValueLoc(name);
+        if (vl.isEmpty())
+            return null;
+        String path = vl.asString();
+        return StringHelper.absolutePath(vl.resourceStdPath(), path);
+    }
+
     /**
      * 占位使用，只有XDocNode具有docType
      */

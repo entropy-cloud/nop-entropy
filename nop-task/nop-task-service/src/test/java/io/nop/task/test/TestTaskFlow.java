@@ -34,7 +34,7 @@ public class TestTaskFlow extends JunitBaseTestCase {
             // 设置beanContainer
             taskRt.getEvalScope().setBeanProvider(container);
 
-            Map<String, Object> ret = task.execute(taskRt).syncGet();
+            Map<String, Object> ret = task.execute(taskRt).syncGetOutputs();
             assertEquals("OK", ret.get(TaskConstants.VAR_RESULT));
         } finally {
             container.stop();

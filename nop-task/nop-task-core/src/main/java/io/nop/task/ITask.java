@@ -7,14 +7,11 @@
  */
 package io.nop.task;
 
-import io.nop.api.core.util.FutureHelper;
 import io.nop.task.model.ITaskInputModel;
 import io.nop.task.model.ITaskOutputModel;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletionStage;
 
 public interface ITask {
     String getTaskName();
@@ -31,15 +28,4 @@ public interface ITask {
         return execute(taskRt, null);
     }
 
-    default CompletionStage<Map<String, Object>> executeAsync(ITaskRuntime taskRt) {
-        return executeAsync(taskRt, null);
-    }
-
-    default CompletionStage<Map<String, Object>> executeAsync(ITaskRuntime taskRt, Set<String> outputNames) {
-        try {
-            return execute(taskRt).getReturnPromise().thenApply(TaskStepReturn::getOutputs);
-        } catch (Exception e) {
-            return FutureHelper.reject(e);
-        }
-    }
 }

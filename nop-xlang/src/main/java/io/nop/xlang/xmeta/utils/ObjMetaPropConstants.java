@@ -8,4 +8,6 @@ public interface ObjMetaPropConstants {
     String ATTR_STD_DOMAIN = "stdDomain";
 
     String LIB_PATH_META_PROP = "/nop/core/xlib/meta-prop.xlib";
+
+    String SELECTION_F_DEFAULTS = "F_defaults";
 }

@@ -11,6 +11,7 @@ import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.NopRebuildException;
 import io.nop.commons.lang.impl.Cancellable;
+import io.nop.core.lang.eval.EvalExprProvider;
 import io.nop.core.lang.eval.EvalScopeImpl;
 import io.nop.core.lang.eval.IEvalScope;
 import org.slf4j.Logger;
@@ -38,7 +39,7 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
 
     public ExecutionContextImpl(Map<String, Object> attributes) {
         this.attributes = attributes == null ? new ConcurrentHashMap<>() : attributes;
-        scope = new EvalScopeImpl(getAttributes());
+        scope = EvalExprProvider.newEvalScope(attributes);
     }
 
     public ExecutionContextImpl() {
@@ -47,7 +48,7 @@ public class ExecutionContextImpl extends Cancellable implements IExecutionConte
 
     protected ExecutionContextImpl(IEvalScope parentScope) {
         this.attributes = new ConcurrentHashMap<>();
-        this.scope = parentScope != null ? parentScope.newChildScope(attributes) : new EvalScopeImpl(attributes);
+        this.scope = parentScope != null ? parentScope.newChildScope(attributes) : EvalExprProvider.newEvalScope(attributes);
     }
 
     public String getExecutionId() {

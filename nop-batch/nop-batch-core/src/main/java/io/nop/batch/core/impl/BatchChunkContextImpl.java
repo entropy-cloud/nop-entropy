@@ -7,6 +7,7 @@
  */
 package io.nop.batch.core.impl;
 
+import io.nop.batch.core.BatchConstants;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.core.context.ExecutionContextImpl;
@@ -28,7 +29,9 @@ public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatc
     private int processCount;
 
     public BatchChunkContextImpl(IBatchTaskContext context) {
+        super(context.getEvalScope());
         this.context = context;
+        this.getEvalScope().setLocalValue(BatchConstants.VAR_BATCH_CHUNK_CTX, this);
     }
 
     @Override

@@ -1,0 +1,14 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-base.task.xml">
+    <input name="consume"/>
+    <input name="item"/>
+    <input name="batchChunkCtx"/>
+
+    <steps>
+        <xpl name="test" useParentScope="true">
+            <source><![CDATA[
+                consume(item);
+            ]]></source>
+        </xpl>
+    </steps>
+</task>

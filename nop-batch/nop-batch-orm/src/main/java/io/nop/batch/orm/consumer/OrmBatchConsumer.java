@@ -1,5 +1,7 @@
 package io.nop.batch.orm.consumer;
 
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchConsumerProvider;
@@ -11,6 +13,7 @@ import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -65,6 +68,7 @@ public class OrmBatchConsumer<S extends IOrmEntity, R> implements IBatchConsumer
         } else {
             map = new HashMap<>();
             QueryBean query = new QueryBean();
+            appendFilter(query, keyMap);
             List<S> list = dao.findAllByQuery(query);
             for (S entity : list) {
                 Object key = getKeyFromEntity(entity);
@@ -91,6 +95,28 @@ public class OrmBatchConsumer<S extends IOrmEntity, R> implements IBatchConsumer
         });
     }
 
+    private void appendFilter(QueryBean query, Map<Object, R> keyMap) {
+        if (keyCol != null) {
+            query.addFilter(FilterBeans.in(keyCol.getName(), keyMap.keySet()));
+        } else {
+            List<TreeBean> filters = new ArrayList<>();
+            for (Object key : keyMap.keySet()) {
+                List<Object> keys = (List<Object>) key;
+                List<TreeBean> cond = buildEqCond(keys);
+                filters.add(FilterBeans.and(cond));
+            }
+            query.addFilter(FilterBeans.or(filters));
+        }
+    }
+
+    private List<TreeBean> buildEqCond(List<Object> keys) {
+        List<TreeBean> cond = new ArrayList<>();
+        for (int i = 0, n = keys.size(); i < n; i++) {
+            IColumnModel col = keyCols.get(i);
+            cond.add(FilterBeans.eq(col.getName(), keys.get(i)));
+        }
+        return cond;
+    }
 
     private Object getKey(R item) {
         if (keyCol != null) {

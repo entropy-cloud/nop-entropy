@@ -12,6 +12,7 @@ import io.nop.batch.core.BatchConstants;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.IBatchTaskMetrics;
+import io.nop.core.CoreConstants;
 import io.nop.core.context.ExecutionContextImpl;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
@@ -62,11 +63,12 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     public BatchTaskContextImpl(IServiceContext svcCtx, IEvalScope scope) {
         super(scope);
         this.serviceContext = svcCtx;
+        getEvalScope().setLocalValue(CoreConstants.VAR_SVC_CTX, svcCtx);
         getEvalScope().setLocalValue(BatchConstants.VAR_BATCH_TASK_CTX, this);
     }
 
     public BatchTaskContextImpl(IServiceContext svcCtx) {
-        this(svcCtx, svcCtx == null ? XLang.newEvalScope() : svcCtx.getEvalScope());
+        this(svcCtx, svcCtx == null ? null : svcCtx.getEvalScope());
     }
 
     public BatchTaskContextImpl() {

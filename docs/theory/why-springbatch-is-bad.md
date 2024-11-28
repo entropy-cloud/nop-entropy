@@ -479,9 +479,9 @@ class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandler
 
     public IBatchLoader<S> setup(IBatchTaskContext context) {
         LoaderState<S> state = newLoaderState(context);
-        return (batchSize, chunkCtx) ->{
+        return (batchSize, batchChunkCtx) ->{
             // 在一个chunk处理完毕后执行回调函数
-            chunkCtx.onAfterComplete(err -> onChunkEnd(err, chunkCtx, state));
+            batchChunkCtx.onAfterComplete(err -> onChunkEnd(err, batchChunkCtx, state));
             return load(batchSize, state);
         };
     }
@@ -548,7 +548,7 @@ void init(){
       ...
    });
 
-   onChunkBegin(chunkCtx ->{
+   onChunkBegin(batchChunkCtx ->{
      ...
    });
 }

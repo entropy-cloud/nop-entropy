@@ -128,6 +128,11 @@ public interface ITaskRuntime extends IEvalContext {
         getEvalScope().setLocalValue(name, value);
     }
 
+    default void setInputs(Map<String, Object> inputs) {
+        if (inputs != null)
+            inputs.forEach(this::setInput);
+    }
+
     Object computeAttributeIfAbsent(String name, Function<String, Object> action);
 
     IScheduledExecutor getScheduledExecutor();

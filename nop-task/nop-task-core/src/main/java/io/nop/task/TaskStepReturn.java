@@ -134,14 +134,14 @@ public final class TaskStepReturn {
         return this;
     }
 
-    public Map<String, Object> syncGet() {
+    public Map<String, Object> syncGetOutputs() {
         if (future == null)
             return outputs;
         return FutureHelper.syncGet(future).get();
     }
 
     public Object syncGetResult() {
-        Map<String, Object> ret = syncGet();
+        Map<String, Object> ret = syncGetOutputs();
         if (ret == null)
             return null;
         return ret.get(TaskConstants.VAR_RESULT);
@@ -195,10 +195,12 @@ public final class TaskStepReturn {
         return FutureHelper.success(this);
     }
 
-    public CompletionStage<Object> getResultValuePromise() {
+    public CompletionStage<Map<String, Object>> asyncOutputs() {
+        return getReturnPromise().thenApply(TaskStepReturn::getOutputs);
+    }
+
+    public CompletionStage<Object> asyncResult() {
         return getReturnPromise().thenApply(ret -> {
-            if (ret.getOutputs() == null || ret.getOutputs().isEmpty())
-                return null;
             return ret.getOutput(TaskConstants.VAR_RESULT);
         });
     }

@@ -12,6 +12,8 @@ public interface BatchConstants {
 
     String VAR_BATCH_TASK_CTX = "batchTaskCtx";
 
+    String VAR_BATCH_CHUNK_CTX = "batchChunkCtx";
+
     String DEFAULT_METER_PREFIX = "nop.";
 
     String METER_TASK = "batch.task";
