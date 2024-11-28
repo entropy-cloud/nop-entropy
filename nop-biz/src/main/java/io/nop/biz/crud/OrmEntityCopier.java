@@ -149,7 +149,7 @@ public class OrmEntityCopier {
                     copyField(beanModel, map, src, target, name, name, null, propMeta, baseBizObjName, scope);
                 }
             } else {
-                beanModel.forEachSerializableProp(propModel -> {
+                beanModel.forEachReadWriteProp(propModel -> {
                     String name = propModel.getName();
                     if (name.equals(OrmConstants.PROP_ID))
                         return;
