@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:i18n-en="i18n-en">
+	 <x:gen-extends>
+		<orm-gen:GenModelFromExcel path="demo.orm.xlsx" />
+	 </x:gen-extends>
+</orm>	 	 

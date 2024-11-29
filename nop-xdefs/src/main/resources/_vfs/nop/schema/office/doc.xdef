@@ -3,7 +3,7 @@
      xdef:name="OfficeDocModel" width="!double" height="!double">
 
     <pages xdef:body-type="list" xdef:key-attr="name">
-        <page name="!string" xdef:name="OfficeDocPageModel" orientation="">
+        <page name="!string" xdef:name="OfficeDocPageModel" orientation="string">
             <header xdef:body-type="list" xdef:key-attr="id">
                 <p id="!string" xdef:name="OfficeParagraphModel" xdef:bean-prop="paragraphs">
                     <r id="!string" xdef:name="OfficeRunModel" xdef:unique-attr="id" xdef:bean-prop="runs">

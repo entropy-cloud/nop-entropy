@@ -30,6 +30,7 @@
 /nop/core/_module
 /nop/core/app.module.yaml
 /nop/core/registry/api.register-model.xml
+/nop/core/registry/batch.register-model.xml
 /nop/core/registry/dialect.register-model.xml
 /nop/core/registry/dict.register-model.xml
 /nop/core/registry/export-db.register-model.xml
@@ -125,10 +126,16 @@
 /nop/schema/designer/graph-designer.xdef
 /nop/schema/errors.xdef
 /nop/schema/excel/anchor.xdef
+/nop/schema/excel/excel-table.xdef
+/nop/schema/excel/font.xdef
 /nop/schema/excel/imp.xdef
+/nop/schema/excel/page-margins.xdef
+/nop/schema/excel/page-setup.xdef
+/nop/schema/excel/style.xdef
 /nop/schema/excel/workbook.xdef
 /nop/schema/gateway.xdef
 /nop/schema/message.xdef
+/nop/schema/office/doc.xdef
 /nop/schema/orm/dialect.xdef
 /nop/schema/orm/dict.xdef
 /nop/schema/orm/entity.xdef

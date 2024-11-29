@@ -44,14 +44,18 @@ prop:
       endTime: 任务结束时间
       errorStack: 错误堆栈
       execCount: 执行次数
+      flowStepId: 关联流程步骤ID
       inputFile: 批处理文件
       inputFileId: 输入文件
+      loadRetryCount: 重试加载次数
+      loadSkipCount: 加载跳过数量
       processItemCount: 处理条目数量
       remark: 备注
+      restartTime: 重启时间
       resultCode: 返回码
       resultMsg: 返回消息
       resultStatus: 返回状态码
-      retryChunkCount: 重试分块次数
+      retryItemCount: 重试条目次数
       sid: SID
       skipItemCount: 跳过条目数量
       startTime: 任务启动时间
@@ -65,7 +69,7 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
-      worker: 执行者
+      workerId: 执行者
       writeItemCount: 写入条目数量
     NopBatchTaskVar:
       createTime: 创建时间

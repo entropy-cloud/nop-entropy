@@ -50,14 +50,15 @@ public class ExcelToXptModelTransformer {
     public void transform(ExcelWorkbook workbook) {
         ImportModel importModel = ImportModelHelper.getImportModel(XptConstants.XPT_IMP_MODEL_PATH);
         IXDefinition xptXDef = SchemaLoader.loadXDefinition(XptConstants.XDSL_SCHEMA_WORKBOOK);
-        IXDefNode cellModelNode = xptXDef.getXdefDefine(XptConstants.XDEF_NODE_EXCEL_CELL).getChild(XptConstants.PROP_MODEL);
+        IXDefinition tableDef = SchemaLoader.loadXDefinition(XptConstants.XDSL_SCHEMA_EXCEL_TABLE);
+        IXDefNode cellModelNode = tableDef.getXdefDefine(XptConstants.XDEF_NODE_EXCEL_CELL).getChild(XptConstants.PROP_MODEL);
         IXDefNode imageNode = xptXDef.getXdefDefine(XptConstants.XDEF_NODE_EXCEL_IMAGE);
 
         XptConfigParseHelper.parseWorkbookModel(workbook, importModel);
 
         ImportSheetModel impSheetModel = importModel.getSheet(XptConstants.SHEET_NAME_XPT_SHEET_MODEL);
 
-        XLangCompileTool compileTool = XLang.newCompileTool();
+        XLangCompileTool compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
         DslXNodeToJsonTransformer transformer =
                 new DslXNodeToJsonTransformer(false, xptXDef, compileTool);
 

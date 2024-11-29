@@ -43,6 +43,7 @@ public interface XptConstants {
 
     String XPT_IMP_MODEL_PATH = "/nop/report/imp/xpt.imp.xml";
     String XDSL_SCHEMA_WORKBOOK = "/nop/schema/excel/workbook.xdef";
+    String XDSL_SCHEMA_EXCEL_TABLE = "/nop/schema/excel/excel-table.xdef";
 
     String XDEF_NODE_EXCEL_CELL = "ExcelCell";
 

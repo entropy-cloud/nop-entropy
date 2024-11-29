@@ -1,0 +1,19 @@
+//{
+//  channelId: "A",
+//  cardType: "A1",
+//  cycleDay: 14,
+//  custormer: {
+//    familyName: "AUTO_TEST_1",
+//    firstName: "A",
+//    gender: 1,
+//    idCard: "@uuid:16",
+//  },
+//  productId: 123
+//}
+
+{
+  creditLimit: {
+    cachLimit: 1200,
+    installmentLimit: 20000
+  }
+}

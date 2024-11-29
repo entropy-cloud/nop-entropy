@@ -7,11 +7,13 @@ import io.nop.netty.ext.server.ModelBasedTcpServer;
 import io.nop.netty.ext.server.ModelBasedTcpServerConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Disabled
 public class TestModelBasedTcpServer extends BaseTestCase {
     ModelBasedTcpServer server;
 

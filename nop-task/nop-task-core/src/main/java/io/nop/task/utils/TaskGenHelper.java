@@ -80,7 +80,7 @@ public class TaskGenHelper {
         if (useResult) {
             return "\nreturn task.execute(taskRt).getResultValuePromise();\n";
         } else {
-            return "\nreturn task.executeAsync(taskRt,_selection?.sourceFields);\n";
+            return "\nreturn task.execute(taskRt,_selection?.sourceFields).asyncOutputs();\n";
         }
     }
 

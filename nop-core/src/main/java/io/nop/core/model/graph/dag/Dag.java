@@ -60,6 +60,7 @@ public class Dag extends AbstractFreezable implements IGraphViewBase<DagNode, De
         nodes.put(rootName, new DagNode(rootName));
     }
 
+    @JsonIgnore
     public Set<String> getNodeNames() {
         return nodes.keySet();
     }
@@ -84,6 +85,7 @@ public class Dag extends AbstractFreezable implements IGraphViewBase<DagNode, De
         this.loopEdges = loopEdges;
     }
 
+    @JsonIgnore
     public Set<String> getEndNodeNames() {
         return endNodeNames;
     }
@@ -125,6 +127,7 @@ public class Dag extends AbstractFreezable implements IGraphViewBase<DagNode, De
         return nextNames.stream().map(this::requireNode).collect(Collectors.toList());
     }
 
+    @JsonIgnore
     public Set<String> getNoDependNodeNames() {
         Set<String> names = new HashSet<>();
         forEachNode(node -> {

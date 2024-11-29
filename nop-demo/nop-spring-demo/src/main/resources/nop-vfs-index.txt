@@ -253,6 +253,7 @@
 /nop/core/registry/api.register-model.xml
 /nop/core/registry/dialect.register-model.xml
 /nop/core/registry/dict.register-model.xml
+/nop/core/registry/fsm.register-model.xml
 /nop/core/registry/gateway.register-model.xml
 /nop/core/registry/imp.register-model.xml
 /nop/core/registry/orm.register-model.xml
@@ -349,6 +350,7 @@
 /nop/report/demo/base/13-复杂结构列展开.xpt.xlsx
 /nop/report/demo/base/14-复杂结构行展开.xpt.xlsx
 /nop/report/demo/base/15-兄弟节点同时展开.xpt.xlsx
+/nop/report/demo/base/16-多个数据源展开.xpt.xlsx
 /nop/report/demo/ext/report-with-params.xpt.xlsx
 /nop/report/demo/pages/demo.page.yaml
 /nop/report/demo/pages/report-with-params.page.yaml
@@ -374,10 +376,16 @@
 /nop/schema/designer/graph-designer.xdef
 /nop/schema/errors.xdef
 /nop/schema/excel/anchor.xdef
+/nop/schema/excel/excel-table.xdef
+/nop/schema/excel/font.xdef
 /nop/schema/excel/imp.xdef
+/nop/schema/excel/page-margins.xdef
+/nop/schema/excel/page-setup.xdef
+/nop/schema/excel/style.xdef
 /nop/schema/excel/workbook.xdef
 /nop/schema/gateway.xdef
 /nop/schema/message.xdef
+/nop/schema/office/doc.xdef
 /nop/schema/orm/dialect.xdef
 /nop/schema/orm/dict.xdef
 /nop/schema/orm/entity.xdef

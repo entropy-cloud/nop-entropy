@@ -76,6 +76,7 @@ public class XDslParseHelper {
     public static NopException newAttrError(ErrorCode err, XNode node, String attrName) {
         ValueWithLocation attr = node.attrValueLoc(attrName);
         return new NopException(err).source(attr).param(ARG_ATTR_VALUE, attr.getValue()).param(ARG_NODE, node)
+                .param(ARG_TAG_NAME, node.getTagName())
                 .param(ARG_ATTR_NAME, attrName);
     }
 

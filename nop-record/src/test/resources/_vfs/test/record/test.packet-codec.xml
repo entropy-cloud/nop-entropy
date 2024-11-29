@@ -4,7 +4,7 @@
         <type name="default">
             <fields>
                 <field name="id" type="long" length="8" codec="u8be"/>
-                <field name="name" type="String" length="20" leftPad="true" padding=" "/>
+                <field name="name" type="String" length="20" padding=" "/>
             </fields>
         </type>
     </types>

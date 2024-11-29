@@ -46,15 +46,19 @@ prop:
       endTime: End Time
       taskParams: Task Params
       execCount: Exec Count
-      worker: Worker
+      workerId: Worker ID
       inputFileId: Input File
+      flowStepId: Flow Step ID
+      restartTime: Restart Time
       resultStatus: Result Status
       resultCode: Result Code
       resultMsg: Result Message
       errorStack: Error Stack
       completedIndex: Completed Index
       completeItemCount: Complete Item Count
-      retryChunkCount: Retry Chunk Count
+      loadRetryCount: Load Retry Count
+      loadSkipCount: Load Skip Count
+      retryItemCount: Retry Item Count
       processItemCount: Process Item Count
       skipItemCount: Skip Item Count
       writeItemCount: Write Item Count

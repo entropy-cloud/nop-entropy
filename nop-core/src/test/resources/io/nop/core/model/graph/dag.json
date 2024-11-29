@@ -26,6 +26,21 @@
       ],
       "nodeIndex": 0
     },
+    "f": {
+      "controlNodeName": "a",
+      "depth": 3,
+      "internal": false,
+      "name": "f",
+      "nodeIndex": 6,
+      "prevNodeNames": [
+        "d",
+        "e"
+      ],
+      "prevNormalNodeNames": [
+        "d",
+        "e"
+      ]
+    },
     "b": {
       "controlNodeName": "a",
       "depth": 1,
@@ -68,6 +83,19 @@
         "a"
       ]
     },
+    "g": {
+      "controlNodeName": "c",
+      "depth": 2,
+      "internal": false,
+      "name": "g",
+      "nodeIndex": 5,
+      "prevNodeNames": [
+        "c"
+      ],
+      "prevNormalNodeNames": [
+        "c"
+      ]
+    },
     "d": {
       "controlNodeName": "b",
       "depth": 2,
@@ -105,34 +133,6 @@
       ],
       "prevNormalNodeNames": [
         "a",
-        "c"
-      ]
-    },
-    "f": {
-      "controlNodeName": "a",
-      "depth": 3,
-      "internal": false,
-      "name": "f",
-      "nodeIndex": 6,
-      "prevNodeNames": [
-        "d",
-        "e"
-      ],
-      "prevNormalNodeNames": [
-        "d",
-        "e"
-      ]
-    },
-    "g": {
-      "controlNodeName": "c",
-      "depth": 2,
-      "internal": false,
-      "name": "g",
-      "nodeIndex": 5,
-      "prevNodeNames": [
-        "c"
-      ],
-      "prevNormalNodeNames": [
         "c"
       ]
     }
