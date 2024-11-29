@@ -14,16 +14,15 @@
 @absoluteOffset 是否绝对偏移。如果是，则offset是相对于父字段的起始位置来定位，否则是相对于前一个字段来定位
 @length 缺省长度。如果padding不为空，则会补全到该长度
 @padding 用于padding的字符
-@leftPad  如果padding不为空且length大于0，则缺省在右侧增加pad。如果配置了leftPad=true，则在左侧增加pad。p
 @includeTerminator 解析结果是否包含terminator
 @skipWhenRead 当读取记录时忽略此字段，此字段可能仅用于输出
 -->
 <field x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:xdef="/nop/schema/xdef.xdef"
-       name="prop-name" displayName="string" type="string" prop="prop-name"
+       name="prop-name" displayName="string" type="generic-type" prop="prop-name"
        length="!int=0" enum="string"
        codec="string" charset="string" lazy="!boolean=false"
-       padding="encoded-bytes" leftPad="!boolean=false" trim="!boolean=false"
+       padding="encoded-bytes" trim="!boolean=false"
        virtual="!boolean=false" value="any"
        offset="!int=0" absoluteOffset="!boolean=false"
        mandatory="!boolean=false" skipWriteWhenEmpty="!boolean=false"

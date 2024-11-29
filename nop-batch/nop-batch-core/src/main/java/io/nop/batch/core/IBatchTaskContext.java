@@ -12,6 +12,7 @@ import io.nop.core.context.IExecutionContext;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.utils.IVarSet;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -86,6 +87,14 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void setMetrics(IBatchTaskMetrics metrics);
 
+    Boolean getAllowStartIfComplete();
+
+    void setAllowStartIfComplete(Boolean allowStartIfComplete);
+
+    int getStartLimit();
+
+    void setStartLimit(int startLimit);
+
     /**
      * 处理过程中因为出错跳过的记录条目数
      */
@@ -125,11 +134,15 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void onChunkEnd(BiConsumer<IBatchChunkContext, Throwable> action);
 
+    void onChunkRetry(BiConsumer<IBatchChunkContext, List<?>> action);
+
     void fireTaskBegin();
 
     void fireChunkBegin(IBatchChunkContext chunkContext);
 
     void fireBeforeChunkEnd(IBatchChunkContext chunkContext);
 
-    void fireChunkEnd(Throwable err, IBatchChunkContext chunkContext);
+    void fireChunkEnd(IBatchChunkContext chunkContext, Throwable err);
+
+    void fireChunkRetry(IBatchChunkContext chunkContext, List<?> items);
 }

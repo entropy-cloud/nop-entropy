@@ -7,6 +7,8 @@
  */
 package io.nop.batch.orm.loader;
 
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchLoaderProvider;
@@ -33,6 +35,8 @@ public class OrmQueryBatchLoaderProvider<S extends IDaoEntity> implements IBatch
 
     private String entityName;
 
+    private String partitionIndexField;
+
     static class LoaderState<S extends IDaoEntity> {
         S lastEntity;
         QueryBean query;
@@ -46,6 +50,14 @@ public class OrmQueryBatchLoaderProvider<S extends IDaoEntity> implements IBatch
     @Inject
     public void setSqlLibManager(ISqlLibManager sqlLibManager) {
         this.sqlLibManager = sqlLibManager;
+    }
+
+    public String getPartitionIndexField() {
+        return partitionIndexField;
+    }
+
+    public void setPartitionIndexField(String partitionIndexField) {
+        this.partitionIndexField = partitionIndexField;
     }
 
     @Inject
@@ -90,6 +102,13 @@ public class OrmQueryBatchLoaderProvider<S extends IDaoEntity> implements IBatch
     LoaderState<S> newLoaderState(IBatchTaskContext context) {
         LoaderState<S> state = new LoaderState<>();
         state.query = queryBuilder.buildQuery(context);
+        IntRangeBean range = context.getPartition();
+
+        // 自动增加分区条件
+        if (partitionIndexField != null && range != null) {
+            state.query.addFilter(FilterBeans.between(partitionIndexField, range.getOffset(), range.getLast()));
+        }
+
         state.lastEntity = null;
         String entityName = this.entityName;
         if (state.query.getSourceName() != null)

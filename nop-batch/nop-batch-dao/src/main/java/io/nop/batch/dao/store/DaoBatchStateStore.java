@@ -22,7 +22,10 @@ import static io.nop.batch.dao.NopBatchDaoErrors.ARG_TASK_ID;
 import static io.nop.batch.dao.NopBatchDaoErrors.ARG_TASK_KEY;
 import static io.nop.batch.dao.NopBatchDaoErrors.ARG_TASK_NAME;
 import static io.nop.batch.dao.NopBatchDaoErrors.ARG_TASK_STATUS;
+import static io.nop.batch.dao.NopBatchDaoErrors.ERR_BATCH_TASK_EXCEED_START_LIMIT;
+import static io.nop.batch.dao.NopBatchDaoErrors.ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_COMPLETED;
 import static io.nop.batch.dao.NopBatchDaoErrors.ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_EXIST_RUNNING_INSTANCE;
+import static io.nop.batch.dao.NopBatchDaoErrors.ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_KILLED;
 import static io.nop.batch.dao.entity._gen._NopBatchTask.PROP_NAME_taskKey;
 import static io.nop.batch.dao.entity._gen._NopBatchTask.PROP_NAME_taskName;
 
@@ -34,7 +37,7 @@ public class DaoBatchStateStore implements IBatchStateStore {
         this.daoProvider = daoProvider;
     }
 
-    IEntityDao<NopBatchTask> taskDao() {
+    protected IEntityDao<NopBatchTask> taskDao() {
         return daoProvider.daoFor(NopBatchTask.class);
     }
 
@@ -47,17 +50,40 @@ public class DaoBatchStateStore implements IBatchStateStore {
             task.setTaskKey(context.getTaskKey());
             task.setTaskName(context.getTaskName());
             setTaskRecord(context, task);
-            taskDao.saveEntity(task);
+            saveTask(taskDao, task);
             context.setTaskId(task.getSid());
             return;
         }
 
-        if (task.isCompleted())
+        if (task.getTaskStatus() == NopBatchDaoConstants.TASK_STATUS_KILLED)
+            throw new NopException(ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_KILLED)
+                    .param(ARG_TASK_NAME, task.getTaskName())
+                    .param(ARG_TASK_KEY, task.getTaskKey())
+                    .param(ARG_TASK_ID, task.getSid())
+                    .param(ARG_TASK_STATUS, task.getTaskStatus());
+
+        if (context.getStartLimit() > 0 && task.getExecCount() >= context.getStartLimit())
+            throw new NopException(ERR_BATCH_TASK_EXCEED_START_LIMIT)
+                    .param(ARG_TASK_NAME, task.getTaskName())
+                    .param(ARG_TASK_KEY, task.getTaskKey())
+                    .param(ARG_TASK_ID, task.getSid())
+                    .param(ARG_TASK_STATUS, task.getTaskStatus());
+
+        if (task.getTaskStatus() <= NopBatchDaoConstants.TASK_STATUS_RUNNING) {
             throw new NopException(ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_EXIST_RUNNING_INSTANCE)
                     .param(ARG_TASK_NAME, task.getTaskName())
                     .param(ARG_TASK_KEY, task.getTaskKey())
                     .param(ARG_TASK_ID, task.getSid())
                     .param(ARG_TASK_STATUS, task.getTaskStatus());
+        }
+
+        if (!Boolean.TRUE.equals(context.getAllowStartIfComplete()) && task.getTaskStatus() == NopBatchDaoConstants.TASK_STATUS_COMPLETED) {
+            throw new NopException(ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_COMPLETED)
+                    .param(ARG_TASK_NAME, task.getTaskName())
+                    .param(ARG_TASK_KEY, task.getTaskKey())
+                    .param(ARG_TASK_ID, task.getSid())
+                    .param(ARG_TASK_STATUS, task.getTaskStatus());
+        }
 
         task.setTaskStatus(NopBatchDaoConstants.TASK_STATUS_RUNNING);
         task.setRestartTime(CoreMetrics.currentTimestamp());
@@ -87,7 +113,7 @@ public class DaoBatchStateStore implements IBatchStateStore {
         return (NopBatchTask) context.getAttribute(NopBatchTask.class.getSimpleName());
     }
 
-    NopBatchTask loadExistingTask(IEntityDao<NopBatchTask> dao, IBatchTaskContext context) {
+    protected NopBatchTask loadExistingTask(IEntityDao<NopBatchTask> dao, IBatchTaskContext context) {
         String taskId = context.getTaskId();
         if (!StringHelper.isEmpty(taskId))
             return dao.requireEntityById(taskId);
@@ -104,6 +130,15 @@ public class DaoBatchStateStore implements IBatchStateStore {
             return dao.findFirstByQuery(query);
         }
         return null;
+    }
+
+    protected void saveTask(IEntityDao<NopBatchTask> dao, NopBatchTask task) {
+        dao.saveEntity(task);
+    }
+
+    protected void updateTask(IEntityDao<NopBatchTask> dao, NopBatchTask task) {
+        // task此时有可能在session之外
+        dao.updateEntityDirectly(task);
     }
 
     @Override
@@ -127,7 +162,7 @@ public class DaoBatchStateStore implements IBatchStateStore {
             task.setEndTime(CoreMetrics.currentTimestamp());
         }
         IEntityDao<NopBatchTask> taskDao = taskDao();
-        taskDao.updateEntityDirectly(task);
+        updateTask(taskDao, task);
     }
 
     int getTaskStatus(Throwable err, IBatchTaskContext context) {
@@ -149,7 +184,7 @@ public class DaoBatchStateStore implements IBatchStateStore {
         return NopBatchDaoConstants.TASK_STATUS_COMPLETED;
     }
 
-    NopBatchTask newTask(IEntityDao<NopBatchTask> taskDao) {
+    protected NopBatchTask newTask(IEntityDao<NopBatchTask> taskDao) {
         NopBatchTask task = taskDao.newEntity();
         task.setStartTime(CoreMetrics.currentTimestamp());
         task.setExecCount(1);

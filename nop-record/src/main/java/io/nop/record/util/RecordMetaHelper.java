@@ -138,11 +138,7 @@ public class RecordMetaHelper {
             ByteString padding = field.getPadding();
             if (padding != null) {
                 String paddingStr = padding.toString(field.getCharset());
-                if (field.isLeftPad()) {
-                    str = StringHelper.leftPad(str, expected, paddingStr.charAt(0));
-                } else {
-                    str = StringHelper.rightPad(str, expected, paddingStr.charAt(0));
-                }
+                str = StringHelper.rightPad(str, expected, paddingStr.charAt(0));
             }
         }
         return str;
@@ -160,11 +156,7 @@ public class RecordMetaHelper {
 
             ByteString padding = field.getPadding();
             if (padding != null) {
-                if (field.isLeftPad()) {
-                    str = str.leftPad(expected, padding.at(0));
-                } else {
-                    str = str.rightPad(expected, padding.at(0));
-                }
+                str = str.rightPad(expected, padding.at(0));
             }
         }
         return str;

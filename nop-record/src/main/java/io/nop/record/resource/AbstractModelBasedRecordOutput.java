@@ -59,10 +59,10 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
 
     @Override
     public void beginWrite(Map<String, Object> attributes) {
-        if (fileMeta.getHeader() != null) {
+        if (fileMeta.getResolvedHeaderType() != null) {
             IBeanVariableScope scope = name -> getScopeValue(attributes, name);
             try {
-                writeObject(baseOut, fileMeta.getHeader(), scope, RecordConstants.HEADER_NAME);
+                writeObject(baseOut, fileMeta.getResolvedHeaderType(), scope, RecordConstants.HEADER_NAME);
             } catch (Exception e) {
                 throw NopException.adapt(e);
             }
@@ -84,10 +84,10 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
 
     @Override
     public void endWrite(Map<String, Object> trailerMeta) {
-        if (fileMeta.getTrailer() != null) {
+        if (fileMeta.getResolvedTrailerType() != null) {
             IBeanVariableScope scope = name -> getScopeValue(trailerMeta, name);
             try {
-                writeObject(baseOut, fileMeta.getTrailer(), scope, RecordConstants.TRAILER_NAME);
+                writeObject(baseOut, fileMeta.getResolvedTrailerType(), scope, RecordConstants.TRAILER_NAME);
             } catch (Exception e) {
                 throw NopException.adapt(e);
             }
@@ -99,7 +99,7 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
         writeCount++;
         try {
             beforeWriteRecord(record);
-            writeObject(baseOut, fileMeta.getBody(), record, RecordConstants.BODY_NAME);
+            writeObject(baseOut, fileMeta.getResolvedBodyType(), record, RecordConstants.BODY_NAME);
             afterWriteRecord(record);
         } catch (Exception e) {
             throw NopException.adapt(e);

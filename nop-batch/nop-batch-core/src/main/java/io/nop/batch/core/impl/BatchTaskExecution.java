@@ -214,7 +214,7 @@ public class BatchTaskExecution implements IBatchTask {
                 stateStore.saveTaskState(false, null, context);
 
             chunkContext.complete();
-            chunkContext.getTaskContext().fireChunkEnd(null, chunkContext);
+            chunkContext.getTaskContext().fireChunkEnd(chunkContext, null);
 
         } catch (Exception e) {
             success = false;
@@ -226,7 +226,7 @@ public class BatchTaskExecution implements IBatchTask {
                 context.incCompleteItemCount(chunkContext.getCompletedItemCount());
 
             try {
-                chunkContext.getTaskContext().fireChunkEnd(e, chunkContext);
+                chunkContext.getTaskContext().fireChunkEnd(chunkContext, e);
 
                 if (stateStore != null)
                     stateStore.saveTaskState(false, e, context);

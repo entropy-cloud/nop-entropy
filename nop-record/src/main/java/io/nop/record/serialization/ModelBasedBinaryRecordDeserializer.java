@@ -65,7 +65,8 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
             context.enterField(field.getName());
             try {
                 Object value = codec.decode(in, record, field.getLength(), field.getCharsetObj(), context);
-                setPropByName(record, field.getPropOrFieldName(), value);
+                if (!field.isVirtual())
+                    setPropByName(record, field.getPropOrFieldName(), value);
             } finally {
                 context.leaveField(field.getName());
             }
@@ -73,13 +74,10 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
             String str = decodeString(in, field.getCharsetObj(), field.getLength());
             if (field.getPadding() != null) {
                 char c = (char) field.getPadding().at(0);
-                if (field.isLeftPad()) {
-                    str = StringHelper.trimLeft(str, c);
-                } else {
-                    str = StringHelper.trimRight(str, c);
-                }
+                str = StringHelper.trimRight(str, c);
             }
-            setPropByName(record, field.getPropOrFieldName(), str);
+            if (!field.isVirtual())
+                setPropByName(record, field.getPropOrFieldName(), str);
         }
     }
 

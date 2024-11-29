@@ -1,0 +1,8 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="batch">
+
+    <loaders>
+        <xdsl-loader fileType="batch.xml" schemaPath="/nop/schema/task/batch.xdef"/>
+    </loaders>
+
+</model>

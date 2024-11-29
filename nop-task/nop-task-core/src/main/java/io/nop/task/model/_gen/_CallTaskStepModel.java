@@ -18,6 +18,13 @@ public abstract class _CallTaskStepModel extends io.nop.task.model.TaskStepModel
     
     /**
      *  
+     * xml name: taskModelPath
+     * 
+     */
+    private java.lang.String _taskModelPath ;
+    
+    /**
+     *  
      * xml name: taskName
      * 
      */
@@ -36,6 +43,25 @@ public abstract class _CallTaskStepModel extends io.nop.task.model.TaskStepModel
      * 
      */
     private java.lang.String _type ;
+    
+    /**
+     * 
+     * xml name: taskModelPath
+     *  
+     */
+    
+    public java.lang.String getTaskModelPath(){
+      return _taskModelPath;
+    }
+
+    
+    public void setTaskModelPath(java.lang.String value){
+        checkAllowChange();
+        
+        this._taskModelPath = value;
+           
+    }
+
     
     /**
      * 
@@ -109,6 +135,7 @@ public abstract class _CallTaskStepModel extends io.nop.task.model.TaskStepModel
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("taskModelPath",this.getTaskModelPath());
         out.putNotNull("taskName",this.getTaskName());
         out.putNotNull("taskVersion",this.getTaskVersion());
         out.putNotNull("type",this.getType());
@@ -123,6 +150,7 @@ public abstract class _CallTaskStepModel extends io.nop.task.model.TaskStepModel
     protected void copyTo(CallTaskStepModel instance){
         super.copyTo(instance);
         
+        instance.setTaskModelPath(this.getTaskModelPath());
         instance.setTaskName(this.getTaskName());
         instance.setTaskVersion(this.getTaskVersion());
         instance.setType(this.getType());

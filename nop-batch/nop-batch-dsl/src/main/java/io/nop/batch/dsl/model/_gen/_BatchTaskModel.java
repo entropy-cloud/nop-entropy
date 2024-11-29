@@ -18,6 +18,13 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: allowStartIfComplete
+     * 
+     */
+    private java.lang.Boolean _allowStartIfComplete ;
+    
+    /**
+     *  
      * xml name: batchSize
      * 
      */
@@ -138,6 +145,13 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: startLimit
+     * 
+     */
+    private int _startLimit  = 0;
+    
+    /**
+     *  
      * xml name: tagger
      * 
      */
@@ -170,6 +184,25 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
      * 
      */
     private io.nop.batch.core.BatchTransactionScope _transactionScope ;
+    
+    /**
+     * 
+     * xml name: allowStartIfComplete
+     *  
+     */
+    
+    public java.lang.Boolean getAllowStartIfComplete(){
+      return _allowStartIfComplete;
+    }
+
+    
+    public void setAllowStartIfComplete(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._allowStartIfComplete = value;
+           
+    }
+
     
     /**
      * 
@@ -575,6 +608,25 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: startLimit
+     *  
+     */
+    
+    public int getStartLimit(){
+      return _startLimit;
+    }
+
+    
+    public void setStartLimit(int value){
+        checkAllowChange();
+        
+        this._startLimit = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: tagger
      *  
      */
@@ -701,6 +753,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("allowStartIfComplete",this.getAllowStartIfComplete());
         out.putNotNull("batchSize",this.getBatchSize());
         out.putNotNull("chunkProcessorBuilder",this.getChunkProcessorBuilder());
         out.putNotNull("concurrency",this.getConcurrency());
@@ -718,6 +771,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         out.putNotNull("singleMode",this.getSingleMode());
         out.putNotNull("singleSession",this.getSingleSession());
         out.putNotNull("skipPolicy",this.getSkipPolicy());
+        out.putNotNull("startLimit",this.getStartLimit());
         out.putNotNull("tagger",this.getTagger());
         out.putNotNull("taskKeyExpr",this.getTaskKeyExpr());
         out.putNotNull("taskName",this.getTaskName());
@@ -734,6 +788,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     protected void copyTo(BatchTaskModel instance){
         super.copyTo(instance);
         
+        instance.setAllowStartIfComplete(this.getAllowStartIfComplete());
         instance.setBatchSize(this.getBatchSize());
         instance.setChunkProcessorBuilder(this.getChunkProcessorBuilder());
         instance.setConcurrency(this.getConcurrency());
@@ -751,6 +806,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         instance.setSingleMode(this.getSingleMode());
         instance.setSingleSession(this.getSingleSession());
         instance.setSkipPolicy(this.getSkipPolicy());
+        instance.setStartLimit(this.getStartLimit());
         instance.setTagger(this.getTagger());
         instance.setTaskKeyExpr(this.getTaskKeyExpr());
         instance.setTaskName(this.getTaskName());

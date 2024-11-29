@@ -18,7 +18,6 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.utils.IVarSet;
 import io.nop.core.utils.MapVarSet;
-import io.nop.xlang.api.XLang;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +43,8 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private IntRangeBean partition;
     private boolean recoverMode;
     private IBatchTaskMetrics metrics;
+    private Boolean allowStartIfComplete;
+    private int startLimit;
 
     private final AtomicLong skipItemCount = new AtomicLong();
     private final AtomicLong completeItemCount = new AtomicLong();
@@ -59,6 +60,7 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private final List<Consumer<IBatchChunkContext>> onChunkBegins = new CopyOnWriteArrayList<>();
     private final List<Consumer<IBatchChunkContext>> onBeforeChunkEnds = new CopyOnWriteArrayList<>();
     private final List<BiConsumer<IBatchChunkContext, Throwable>> onChunkEnds = new CopyOnWriteArrayList<>();
+    private final List<BiConsumer<IBatchChunkContext, List<?>>> onChunkRetrys = new CopyOnWriteArrayList<>();
 
     public BatchTaskContextImpl(IServiceContext svcCtx, IEvalScope scope) {
         super(scope);
@@ -169,6 +171,26 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     @Override
     public void setMetrics(IBatchTaskMetrics metrics) {
         this.metrics = metrics;
+    }
+
+    @Override
+    public Boolean getAllowStartIfComplete() {
+        return allowStartIfComplete;
+    }
+
+    @Override
+    public void setAllowStartIfComplete(Boolean allowStartIfComplete) {
+        this.allowStartIfComplete = allowStartIfComplete;
+    }
+
+    @Override
+    public int getStartLimit() {
+        return startLimit;
+    }
+
+    @Override
+    public void setStartLimit(int startLimit) {
+        this.startLimit = startLimit;
     }
 
     @Override
@@ -286,6 +308,16 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     }
 
     @Override
+    public void onChunkRetry(BiConsumer<IBatchChunkContext, List<?>> action) {
+        synchronized (this) {
+            if (isDone()) {
+                throw new IllegalStateException("nop.err.execution-already-completed");
+            }
+            onChunkRetrys.add(action);
+        }
+    }
+
+    @Override
     public void fireTaskBegin() {
         List<Runnable> callbacks;
         synchronized (this) {
@@ -323,15 +355,25 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     }
 
     @Override
-    public void fireChunkEnd(Throwable err, IBatchChunkContext chunkContext) {
+    public void fireChunkEnd(IBatchChunkContext chunkContext, Throwable err) {
         List<BiConsumer<IBatchChunkContext, Throwable>> callbacks = this.onChunkEnds;
         if (callbacks != null) {
             for (BiConsumer<IBatchChunkContext, Throwable> callback : callbacks) {
                 try {
                     callback.accept(chunkContext, err);
                 } catch (Exception e) {
-                    LOG.error("nop.err.core.execution-after-complete-callback-fail", e);
+                    LOG.error("nop.err.core.execution-after-chunk-end-callback-fail", e);
                 }
+            }
+        }
+    }
+
+    @Override
+    public void fireChunkRetry(IBatchChunkContext chunkContext, List<?> items) {
+        List<BiConsumer<IBatchChunkContext, List<?>>> callbacks = this.onChunkRetrys;
+        if (callbacks != null) {
+            for (BiConsumer<IBatchChunkContext, List<?>> callback : callbacks) {
+                callback.accept(chunkContext, items);
             }
         }
     }

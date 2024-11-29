@@ -2,6 +2,7 @@ package io.nop.record.serialization;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.bit.IBitSet;
+import io.nop.commons.util.StringHelper;
 import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.IFieldTagTextCodec;
@@ -61,12 +62,19 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
             context.enterField(field.getName());
             try {
                 Object value = encoder.decode(in, record, field.getLength(), context);
-                setPropByName(record, field.getPropOrFieldName(), value);
+                if (!field.isVirtual())
+                    setPropByName(record, field.getPropOrFieldName(), value);
             } finally {
                 context.leaveField(field.getName());
             }
         } else {
-
+            String str = in.read(field.getLength());
+            if (field.getPadding() != null) {
+                char c = (char) field.getPadding().at(0);
+                str = StringHelper.trimRight(str, c);
+            }
+            if (!field.isVirtual())
+                setPropByName(record, field.getPropOrFieldName(), str);
         }
     }
 }

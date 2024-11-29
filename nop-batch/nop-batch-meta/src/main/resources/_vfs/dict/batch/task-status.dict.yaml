@@ -9,13 +9,13 @@ options:
     value: 0
     description: 
   
-  - label: 已暂停
-    value: 10
-    description: 
-  
   - label: 执行中
-    value: 20
+    value: 10
     description: 正在执行
+  
+  - label: 已暂停
+    value: 20
+    description: 临时挂起
   
   - label: 已完成
     value: 30

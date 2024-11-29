@@ -74,17 +74,17 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      *  
-     * xml name: ref
-     * 引用types段中定义的类型
-     */
-    private java.lang.String _ref ;
-    
-    /**
-     *  
      * xml name: template
      * 
      */
     private java.lang.String _template ;
+    
+    /**
+     *  
+     * xml name: typeRef
+     * 引用types段中定义的类型
+     */
+    private java.lang.String _typeRef ;
     
     /**
      *  
@@ -299,25 +299,6 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      * 
-     * xml name: ref
-     *  引用types段中定义的类型
-     */
-    
-    public java.lang.String getRef(){
-      return _ref;
-    }
-
-    
-    public void setRef(java.lang.String value){
-        checkAllowChange();
-        
-        this._ref = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: template
      *  
      */
@@ -331,6 +312,25 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._template = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: typeRef
+     *  引用types段中定义的类型
+     */
+    
+    public java.lang.String getTypeRef(){
+      return _typeRef;
+    }
+
+    
+    public void setTypeRef(java.lang.String value){
+        checkAllowChange();
+        
+        this._typeRef = value;
            
     }
 
@@ -381,8 +381,8 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         out.putNotNull("fields",this.getFields());
         out.putNotNull("params",this.getParams());
         out.putNotNull("readWhen",this.getReadWhen());
-        out.putNotNull("ref",this.getRef());
         out.putNotNull("template",this.getTemplate());
+        out.putNotNull("typeRef",this.getTypeRef());
         out.putNotNull("writeWhen",this.getWriteWhen());
     }
 
@@ -403,8 +403,8 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         instance.setFields(this.getFields());
         instance.setParams(this.getParams());
         instance.setReadWhen(this.getReadWhen());
-        instance.setRef(this.getRef());
         instance.setTemplate(this.getTemplate());
+        instance.setTypeRef(this.getTypeRef());
         instance.setWriteWhen(this.getWriteWhen());
     }
 

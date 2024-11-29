@@ -91,6 +91,8 @@ public class ModelBasedBatchTaskBuilderFactory {
         builder.taskName(batchTaskModel.getTaskName());
         builder.taskVersion(batchTaskModel.getTaskVersion());
         builder.taskKeyExpr(batchTaskModel.getTaskKeyExpr());
+        builder.allowStartIfComplete(batchTaskModel.getAllowStartIfComplete());
+        builder.startLimit(batchTaskModel.getStartLimit());
 
         builder.batchSize(batchTaskModel.getBatchSize());
         if (batchTaskModel.getJitterRatio() != null)

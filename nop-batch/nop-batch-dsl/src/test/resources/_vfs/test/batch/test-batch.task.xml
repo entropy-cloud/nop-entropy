@@ -7,8 +7,8 @@
     <record:file-model name="SimpleFile" binary="true">
         <body>
             <fields>
-                <field name="name" type="String" length="10" padding=" "/>
-                <field name="product" type="String" length="5" padding=" "/>
+                <field name="name" type="String" length="10" codec="FLS-RP"/>
+                <field name="product" type="String" length="5" codec="FLS-RP"/>
                 <field name="price" type="double" codec="f8be"/>
                 <field name="quantity" type="int" codec="s4be"/>
             </fields>
@@ -23,7 +23,7 @@
                 <taskKeyExpr>bizDate</taskKeyExpr>
 
                 <loader>
-                    <file-reader filePath="dev:/target/input/${bizDate}.dat" record:file-model="SimpleFile" />
+                    <file-reader filePath="dev:/target/input/${bizDate}.dat" fileModelPath="simple.record-file.xlsx" />
                 </loader>
 
                 <processor name="processor1">

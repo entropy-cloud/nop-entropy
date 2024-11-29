@@ -9,14 +9,14 @@ public interface _NopBatchDaoConstants {
     int TASK_STATUS_CREATED = 0;
                     
     /**
-     * 批处理任务状态: 已暂停 
-     */
-    int TASK_STATUS_SUSPENDED = 10;
-                    
-    /**
      * 批处理任务状态: 执行中 正在执行
      */
-    int TASK_STATUS_RUNNING = 20;
+    int TASK_STATUS_RUNNING = 10;
+                    
+    /**
+     * 批处理任务状态: 已暂停 临时挂起
+     */
+    int TASK_STATUS_SUSPENDED = 20;
                     
     /**
      * 批处理任务状态: 已完成 正常结束

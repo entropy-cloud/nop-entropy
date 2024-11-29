@@ -2,7 +2,7 @@
              xmlns:x="/nop/schema/xdsl.xdef"
              xmlns:xdef="/nop/schema/xdef.xdef"
              xdef:name="RecordDefinitions" xdef:bean-package="io.nop.record.model"
-             binary="!boolean=false" defaultTextEncoding="string=UTF-8"
+             binary="!boolean=false" defaultCharset="string=UTF-8"
              bitEndian="enum:io.nop.commons.bytes.EndianKind"
              defaultEndian="enum:io.nop.commons.bytes.EndianKind"
              packageName="class-name"

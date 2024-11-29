@@ -10,6 +10,10 @@ package io.nop.record.model;
 import io.nop.record.model._gen._RecordFileMeta;
 
 public class RecordFileMeta extends _RecordFileMeta {
+    private RecordObjectMeta resolvedHeaderType;
+    private RecordObjectMeta resolvedBodyType;
+    private RecordObjectMeta resolvedTrailerType;
+
     public RecordFileMeta() {
 
     }
@@ -18,20 +22,50 @@ public class RecordFileMeta extends _RecordFileMeta {
         return hasAggregates() || getPagination() != null && getPagination().hasAggregates();
     }
 
+    public RecordObjectMeta getResolvedHeaderType() {
+        return resolvedHeaderType;
+    }
+
+    public RecordObjectMeta getResolvedBodyType() {
+        return resolvedBodyType;
+    }
+
+    public RecordObjectMeta getResolvedTrailerType() {
+        return resolvedTrailerType;
+    }
+
     @Override
     public void init() {
         super.init();
 
-        if(getHeader() != null)
-            getHeader().init(this);
+        if (getHeader() != null) {
+            if (getHeader().getTypeRef() != null) {
+                resolvedHeaderType = resolveType(getHeader().getTypeRef());
+            } else {
+                resolvedBodyType = getHeader();
+                getHeader().init(this);
+            }
+        }
 
-        if(getBody() != null)
-            getBody().init(this);
+        if (getBody() != null) {
+            if (getBody().getTypeRef() != null) {
+                resolvedBodyType = resolveType(getBody().getTypeRef());
+            } else {
+                resolvedBodyType = getBody();
+                getBody().init(this);
+            }
+        }
 
-        if(getTrailer() != null)
-            getTrailer().init(this);
+        if (getTrailer() != null) {
+            if (getTrailer().getTypeRef() != null) {
+                resolvedTrailerType = resolveType(getTrailer().getTypeRef());
+            } else {
+                resolvedBodyType = getTrailer();
+                getTrailer().init(this);
+            }
+        }
 
-        if(getPagination() != null)
+        if (getPagination() != null)
             getPagination().init(this);
     }
 }

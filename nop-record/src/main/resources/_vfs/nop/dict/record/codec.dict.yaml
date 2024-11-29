@@ -1,0 +1,45 @@
+label: 编码器
+locale: zh-CN
+description: 解析和生成Record所使用的编解码器
+static: true
+options:
+  - label: 固定长度字符串，右填充
+    value: FLS-RP
+  - label: 固定长度字符串，左填充
+    value: FLS-LP
+  - label: 固定长度数字字符串，左补0
+    value: FLAI
+  - label: 字节
+    value: u1
+  - label: 有符号短整型，大端
+    value: s2be
+  - label: 无符号短整型，大端
+    value: u2be
+  - label: 有符号整型，大端
+    value: s4be
+  - label: 无符号整型，大端
+    value: u4be
+  - label: 无符号长整型，大端
+    value: u8be
+  - label: 有符号长整型，大端
+    value: s8be
+  - label: 单精度浮点数，大端
+    value: f4be
+  - label: 双精度浮点数，大端
+    value: f8be
+  - label: 有符号短整型，小端
+    value: s2le
+  - label: 无符号短整型，小端
+    value: u2le
+  - label: 有符号整型，小端
+    value: s4le
+  - label: 无符号整型，小端
+    value: u4le
+  - label: 有符号长整型，小端
+    value: s8le
+  - label: 无符号长整型，小端
+    value: u8le
+  - label: 单精度浮点数，小端
+    value: f4le
+  - label: 双精度浮点数，小端
+    value: f8le

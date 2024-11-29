@@ -69,6 +69,8 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
     private Executor executor = ExecutorHelper.syncExecutor();
 
     private IBatchStateStore stateStore;
+    private Boolean allowStartIfComplete;
+    private int startLimit;
 
     /**
      * 在事务环境中执行
@@ -105,6 +107,18 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
 
     public static <S, R> BatchTaskBuilder<S, R> create() {
         return new BatchTaskBuilder<>();
+    }
+
+    @PropertySetter
+    public BatchTaskBuilder<S, R> startLimit(int startLimit) {
+        this.startLimit = startLimit;
+        return this;
+    }
+
+    @PropertySetter
+    public BatchTaskBuilder<S, R> allowStartIfComplete(Boolean allowStartIfComplete) {
+        this.allowStartIfComplete = allowStartIfComplete;
+        return this;
     }
 
     @PropertySetter
@@ -279,6 +293,13 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
 
     @Override
     public IBatchTask buildTask(IBatchTaskContext context) {
+        // 如果context上尚未设置限制，则设置，否则以外部设置的为准
+        if (context.getAllowStartIfComplete() == null && allowStartIfComplete != null)
+            context.setAllowStartIfComplete(allowStartIfComplete);
+
+        if (context.getStartLimit() <= 0)
+            context.setStartLimit(startLimit);
+
         IBatchChunkProcessor chunkProcessor = buildChunkProcessor(context);
 
         return new BatchTaskExecution(taskName, taskVersion == null ? 0 : taskVersion, taskKeyExpr,

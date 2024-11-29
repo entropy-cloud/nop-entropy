@@ -3,6 +3,7 @@
 
     <loaders>
         <xdsl-loader fileType="record-file.xml" schemaPath="/nop/schema/record/record-file.xdef"/>
+        <xlsx-loader fileType="record-file.xlsx" impPath="/nop/record/imp/record-file.imp.xml" />
     </loaders>
 
 </model>

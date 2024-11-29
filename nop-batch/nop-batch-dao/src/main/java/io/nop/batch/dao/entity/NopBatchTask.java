@@ -18,8 +18,12 @@ public class NopBatchTask extends _NopBatchTask implements IBatchTaskRecord {
     public NopBatchTask() {
     }
 
-    public boolean isCompleted() {
+    public boolean isHistory() {
         return getTaskStatus() >= NopBatchDaoConstants.TASK_STATUS_COMPLETED;
+    }
+
+    public boolean isSuspended() {
+        return getTaskStatus() == NopBatchDaoConstants.TASK_STATUS_SUSPENDED;
     }
 
     public void incExecCount() {

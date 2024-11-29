@@ -11,8 +11,8 @@ import io.nop.api.core.annotations.core.GlobalInstance;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.record.codec._gen.FieldBinaryCodecRegistrar;
 import io.nop.record.codec.impl.BitmapTagBinaryCodec;
-import io.nop.record.codec.impl.FixedLengthAsciiCodec;
 import io.nop.record.codec.impl.FixedLengthAsciiIntCodec;
+import io.nop.record.codec.impl.FixedLengthStringCodec;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,8 +30,10 @@ public class FieldCodecRegistry {
         DEFAULT.registerTextCodec("FLAI", FixedLengthAsciiIntCodec.INSTANCE);
         DEFAULT.registerBinaryCodec("FLAI", FixedLengthAsciiIntCodec.INSTANCE);
         DEFAULT.registerTagBinaryCodec("bitmap128", BitmapTagBinaryCodec.INSTANCE);
-        DEFAULT.registerBinaryCodec("FLA-LP", FixedLengthAsciiCodec.LEFT_PAD);
-        DEFAULT.registerBinaryCodec("FLA-RP", FixedLengthAsciiCodec.RIGHT_PAD);
+        DEFAULT.registerBinaryCodec("FLS-LP", FixedLengthStringCodec.LEFT_PAD);
+        DEFAULT.registerBinaryCodec("FLS-RP", FixedLengthStringCodec.RIGHT_PAD);
+        DEFAULT.registerTextCodec("FLS-LP", FixedLengthStringCodec.LEFT_PAD);
+        DEFAULT.registerTextCodec("FLS-RP", FixedLengthStringCodec.RIGHT_PAD);
     }
 
     private final Map<String, IFieldTextCodec> textEncoders = new ConcurrentHashMap<>();

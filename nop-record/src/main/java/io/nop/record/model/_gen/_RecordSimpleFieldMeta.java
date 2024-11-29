@@ -102,13 +102,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
-     * xml name: leftPad
-     * 如果padding不为空且length大于0，则缺省在右侧增加pad。如果配置了leftPad=true，则在左侧增加pad。p
-     */
-    private boolean _leftPad  = false;
-    
-    /**
-     *  
      * xml name: length
      * 缺省长度。如果padding不为空，则会补全到该长度
      */
@@ -232,7 +225,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
      * xml name: type
      * 引用已有的字段定义
      */
-    private java.lang.String _type ;
+    private io.nop.core.type.IGenericType _type ;
     
     /**
      *  
@@ -479,25 +472,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._lazy = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: leftPad
-     *  如果padding不为空且length大于0，则缺省在右侧增加pad。如果配置了leftPad=true，则在左侧增加pad。p
-     */
-    
-    public boolean isLeftPad(){
-      return _leftPad;
-    }
-
-    
-    public void setLeftPad(boolean value){
-        checkAllowChange();
-        
-        this._leftPad = value;
            
     }
 
@@ -832,12 +806,12 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
      *  引用已有的字段定义
      */
     
-    public java.lang.String getType(){
+    public io.nop.core.type.IGenericType getType(){
       return _type;
     }
 
     
-    public void setType(java.lang.String value){
+    public void setType(io.nop.core.type.IGenericType value){
         checkAllowChange();
         
         this._type = value;
@@ -931,7 +905,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         out.putNotNull("exportExpr",this.getExportExpr());
         out.putNotNull("includeTerminator",this.isIncludeTerminator());
         out.putNotNull("lazy",this.isLazy());
-        out.putNotNull("leftPad",this.isLeftPad());
         out.putNotNull("length",this.getLength());
         out.putNotNull("lengthExpr",this.getLengthExpr());
         out.putNotNull("mandatory",this.isMandatory());
@@ -976,7 +949,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         instance.setExportExpr(this.getExportExpr());
         instance.setIncludeTerminator(this.isIncludeTerminator());
         instance.setLazy(this.isLazy());
-        instance.setLeftPad(this.isLeftPad());
         instance.setLength(this.getLength());
         instance.setLengthExpr(this.getLengthExpr());
         instance.setMandatory(this.isMandatory());

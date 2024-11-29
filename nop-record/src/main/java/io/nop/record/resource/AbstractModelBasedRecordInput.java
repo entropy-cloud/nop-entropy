@@ -7,6 +7,7 @@ import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.model.FieldRepeatKind;
 import io.nop.record.model.RecordFileBodyMeta;
 import io.nop.record.model.RecordFileMeta;
+import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.reader.IDataReaderBase;
 import io.nop.record.serialization.IModelBasedRecordDeserializer;
 
@@ -29,6 +30,7 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
     private T nextRecord;
     private FieldRepeatKind repeatKind;
     private RecordFileBodyMeta bodyMeta;
+    private RecordObjectMeta resolvedBody;
     private long totalCount;
 
     public AbstractModelBasedRecordInput(Input baseIn, RecordFileMeta fileMeta,
@@ -42,6 +44,7 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
         if (repeatKind == null)
             repeatKind = FieldRepeatKind.eos;
         this.bodyMeta = fileMeta.getBody();
+        this.resolvedBody = fileMeta.getResolvedBodyType();
         readRepeatCount();
         if (bodyMeta != null)
             fetchNext();
@@ -49,9 +52,9 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
 
     void readHeader() {
         try {
-            if (fileMeta.getHeader() != null && !baseIn.isEof()) {
+            if (fileMeta.getResolvedHeaderType() != null && !baseIn.isEof()) {
                 headerMeta = new HashMap<>();
-                deserializer.readObject(baseIn, fileMeta.getHeader(), null, headerMeta, context);
+                deserializer.readObject(baseIn, fileMeta.getResolvedHeaderType(), null, headerMeta, context);
             }
         } catch (IOException e) {
             throw NopException.adapt(e);
@@ -130,8 +133,8 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
     }
 
     void readOneRecord() throws IOException {
-        T record = (T) bodyMeta.newBean();
-        if (deserializer.readObject(this.baseIn, bodyMeta, "body", record, context)) {
+        T record = (T) resolvedBody.newBean();
+        if (deserializer.readObject(this.baseIn, resolvedBody, "body", record, context)) {
             this.nextRecord = record;
         }
     }

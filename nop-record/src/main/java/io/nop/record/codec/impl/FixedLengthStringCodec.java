@@ -16,14 +16,14 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
-public class FixedLengthAsciiCodec implements IFieldBinaryCodec, IFieldTextCodec {
-    public static FixedLengthAsciiCodec LEFT_PAD = new FixedLengthAsciiCodec(PaddingKind.left, ' ');
-    public static FixedLengthAsciiCodec RIGHT_PAD = new FixedLengthAsciiCodec(PaddingKind.right, ' ');
+public class FixedLengthStringCodec implements IFieldBinaryCodec, IFieldTextCodec {
+    public static FixedLengthStringCodec LEFT_PAD = new FixedLengthStringCodec(PaddingKind.left, ' ');
+    public static FixedLengthStringCodec RIGHT_PAD = new FixedLengthStringCodec(PaddingKind.right, ' ');
 
     private final PaddingKind paddingKind;
     private final char paddingChar;
 
-    public FixedLengthAsciiCodec(PaddingKind paddingKind, char paddingChar) {
+    public FixedLengthStringCodec(PaddingKind paddingKind, char paddingChar) {
         this.paddingKind = paddingKind;
         this.paddingChar = paddingChar;
     }

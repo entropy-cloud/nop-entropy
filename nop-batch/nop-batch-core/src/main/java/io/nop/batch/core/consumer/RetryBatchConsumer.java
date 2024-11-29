@@ -104,6 +104,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
 
             try {
                 List<R> restoredItems = restoreItems(snapshot, items, context);
+
                 RetryOnceResult result = retryConsumeOnce(retryCount, restoredItems, context);
                 if (result == null) {
                     // 返回null表示全部items被成功处理
@@ -153,11 +154,12 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
             metrics.retry(items.size());
 
         context.getTaskContext().incRetryItemCount(items.size());
-
         // 放弃批处理，逐个重试
         if (retryOneByOne) {
             return retryConsumeOneByOne(retryCount, items, context);
         } else {
+            context.getTaskContext().fireChunkRetry(context, items);
+
             try {
                 consumer.consume(items, context);
             } catch (BatchCancelException e) {
@@ -179,7 +181,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
 
         for (R item : items) {
             List<R> single = Collections.singletonList(item);
-
+            context.getTaskContext().fireChunkRetry(context, single);
 
             try {
                 consumer.consume(single, context);

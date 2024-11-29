@@ -141,7 +141,7 @@
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="template" displayName="模板" >
+                <field name="template" displayName="模板">
                     <schema stdDomain="string"/>
                 </field>
 
@@ -215,7 +215,7 @@
                             <schema stdDomain="std-domain"/>
                         </field>
 
-                        <field name="schema.domain" displayName="数据域" >
+                        <field name="schema.domain" displayName="数据域">
                             <schema stdDomain="string"/>
                         </field>
 

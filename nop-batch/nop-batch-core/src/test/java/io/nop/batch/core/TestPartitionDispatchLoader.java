@@ -53,7 +53,7 @@ public class TestPartitionDispatchLoader {
                         }
                         list.addAll(batch);
                         // System.out.println(StringHelper.join(batch, "\n"));
-                        context.fireChunkEnd(null, chunkContext);
+                        context.fireChunkEnd(chunkContext, null);
                         chunkContext.complete();
                     } catch (Exception e) {
                         chunkContext.completeExceptionally(e);

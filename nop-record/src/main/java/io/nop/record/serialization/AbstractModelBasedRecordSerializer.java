@@ -122,12 +122,12 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
         }
 
         IBitSet tags = writeTags(out, field, null, record, context);
-        writeVirtualField(out, tags, field, record, context);
+        writeDiv(out, tags, field, record, context);
     }
 
-    protected void writeVirtualField(Output out, IBitSet tags, RecordFieldMeta field,
-                                     Object record, IFieldCodecContext context) throws IOException {
-        if (field.isVirtual()) {
+    protected void writeDiv(Output out, IBitSet tags, RecordFieldMeta field,
+                            Object record, IFieldCodecContext context) throws IOException {
+        if (field.isDiv()) {
             if (field.hasFields()) {
                 for (RecordFieldMeta subField : field.getFields()) {
                     writeField(out, subField, record, context);

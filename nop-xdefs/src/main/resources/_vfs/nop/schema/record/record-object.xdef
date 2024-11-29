@@ -1,11 +1,11 @@
 <!--
-@ref 引用types段中定义的类型
+@typeRef 引用types段中定义的类型
 -->
 <object x:schema="/nop/schema/xdef.xdef"
         xmlns:x="/nop/schema/xdsl.xdef"
         xmlns:xdef="/nop/schema/xdef.xdef"
         xdef:name="RecordObjectMeta" xdef:bean-package="io.nop.record.model"
-        beanClass="class-name" ref="string" baseType="class-name">
+        beanClass="class-name" typeRef="string" baseType="class-name">
 
     <doc xdef:value="string"/>
 
