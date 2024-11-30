@@ -20,9 +20,9 @@ import io.nop.batch.dao.entity.NopBatchTaskVar;
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopBatchTaskVar extends DynamicOrmEntity{
     
-    /* 主键: TASK_ID VARCHAR */
-    public static final String PROP_NAME_taskId = "taskId";
-    public static final int PROP_ID_taskId = 1;
+    /* 主键: BATCH_TASK_ID VARCHAR */
+    public static final String PROP_NAME_batchTaskId = "batchTaskId";
+    public static final int PROP_ID_batchTaskId = 1;
     
     /* 变量名: FIELD_NAME VARCHAR */
     public static final String PROP_NAME_fieldName = "fieldName";
@@ -80,15 +80,15 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     public static final String PROP_NAME_task = "task";
     
 
-    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_taskId,PROP_NAME_fieldName);
-    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_taskId,PROP_ID_fieldName};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_batchTaskId,PROP_NAME_fieldName);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_batchTaskId,PROP_ID_fieldName};
 
     private static final String[] PROP_ID_TO_NAME = new String[14];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
-          PROP_ID_TO_NAME[PROP_ID_taskId] = PROP_NAME_taskId;
-          PROP_NAME_TO_ID.put(PROP_NAME_taskId, PROP_ID_taskId);
+          PROP_ID_TO_NAME[PROP_ID_batchTaskId] = PROP_NAME_batchTaskId;
+          PROP_NAME_TO_ID.put(PROP_NAME_batchTaskId, PROP_ID_batchTaskId);
       
           PROP_ID_TO_NAME[PROP_ID_fieldName] = PROP_NAME_fieldName;
           PROP_NAME_TO_ID.put(PROP_NAME_fieldName, PROP_ID_fieldName);
@@ -129,8 +129,8 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     }
 
     
-    /* 主键: TASK_ID */
-    private java.lang.String _taskId;
+    /* 主键: BATCH_TASK_ID */
+    private java.lang.String _batchTaskId;
     
     /* 变量名: FIELD_NAME */
     private java.lang.String _fieldName;
@@ -216,7 +216,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     @Override
     public boolean orm_isPrimary(int propId) {
         
-            return propId == PROP_ID_taskId || propId == PROP_ID_fieldName;
+            return propId == PROP_ID_batchTaskId || propId == PROP_ID_fieldName;
           
     }
 
@@ -242,8 +242,8 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     public Object orm_propValue(int propId) {
         switch(propId){
         
-            case PROP_ID_taskId:
-               return getTaskId();
+            case PROP_ID_batchTaskId:
+               return getBatchTaskId();
         
             case PROP_ID_fieldName:
                return getFieldName();
@@ -292,13 +292,13 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     public void orm_propValue(int propId, Object value){
         switch(propId){
         
-            case PROP_ID_taskId:{
+            case PROP_ID_batchTaskId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_taskId));
+                       err-> newTypeConversionError(PROP_NAME_batchTaskId));
                }
-               setTaskId(typedValue);
+               setBatchTaskId(typedValue);
                break;
             }
         
@@ -431,9 +431,9 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     public void orm_internalSet(int propId, Object value) {
         switch(propId){
         
-            case PROP_ID_taskId:{
+            case PROP_ID_batchTaskId:{
                onInitProp(propId);
-               this._taskId = (java.lang.String)value;
+               this._batchTaskId = (java.lang.String)value;
                orm_id(); // 如果是设置主键字段，则触发watcher
                break;
             }
@@ -529,20 +529,20 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
 
     
     /**
-     * 主键: TASK_ID
+     * 主键: BATCH_TASK_ID
      */
-    public java.lang.String getTaskId(){
-         onPropGet(PROP_ID_taskId);
-         return _taskId;
+    public java.lang.String getBatchTaskId(){
+         onPropGet(PROP_ID_batchTaskId);
+         return _batchTaskId;
     }
 
     /**
-     * 主键: TASK_ID
+     * 主键: BATCH_TASK_ID
      */
-    public void setTaskId(java.lang.String value){
-        if(onPropSet(PROP_ID_taskId,value)){
-            this._taskId = value;
-            internalClearRefs(PROP_ID_taskId);
+    public void setBatchTaskId(java.lang.String value){
+        if(onPropSet(PROP_ID_batchTaskId,value)){
+            this._batchTaskId = value;
+            internalClearRefs(PROP_ID_batchTaskId);
             orm_id();
         }
     }
@@ -786,12 +786,12 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
    
            if(refEntity == null){
            
-                   this.setTaskId(null);
+                   this.setBatchTaskId(null);
                
            }else{
            internalSetRefEntity(PROP_NAME_task, refEntity,()->{
            
-                           this.setTaskId(refEntity.getSid());
+                           this.setBatchTaskId(refEntity.getSid());
                        
            });
            }

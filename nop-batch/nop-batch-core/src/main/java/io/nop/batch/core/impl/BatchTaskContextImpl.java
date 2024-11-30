@@ -45,6 +45,8 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private IBatchTaskMetrics metrics;
     private Boolean allowStartIfComplete;
     private int startLimit;
+    private String flowStepId;
+    private String flowId;
 
     private final AtomicLong skipItemCount = new AtomicLong();
     private final AtomicLong completeItemCount = new AtomicLong();
@@ -118,6 +120,26 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     @Override
     public void setTaskKey(String taskKey) {
         this.taskKey = taskKey;
+    }
+
+    @Override
+    public String getFlowStepId() {
+        return flowStepId;
+    }
+
+    @Override
+    public void setFlowStepId(String flowStepId) {
+        this.flowStepId = flowStepId;
+    }
+
+    @Override
+    public String getFlowId() {
+        return flowId;
+    }
+
+    @Override
+    public void setFlowId(String flowId) {
+        this.flowId = flowId;
     }
 
     @Override

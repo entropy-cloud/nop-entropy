@@ -12,6 +12,8 @@ import io.nop.task.ITaskStepState;
 import io.nop.task.TaskStepReturn;
 
 public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskStepState {
+    private String taskId;
+    private String stepId;
     private String stepPath;
     private int runId;
 
@@ -72,6 +74,26 @@ public class TaskStepStateBean extends AbstractTaskStateCommon implements ITaskS
     @Override
     public void exception(Throwable exp) {
 
+    }
+
+    @Override
+    public String getTaskId() {
+        return taskId;
+    }
+
+    @Override
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
+    }
+
+    @Override
+    public String getStepId() {
+        return stepId;
+    }
+
+    @Override
+    public void setStepId(String stepId) {
+        this.stepId = stepId;
     }
 
     @Override

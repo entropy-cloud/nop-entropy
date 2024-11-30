@@ -39,6 +39,14 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void setTaskKey(String taskKey);
 
+    String getFlowStepId();
+
+    void setFlowStepId(String flowStepId);
+
+    String getFlowId();
+
+    void setFlowId(String flowId);
+
     /**
      * 外部传入的只读参数，在任务执行过程中不会被修改
      */

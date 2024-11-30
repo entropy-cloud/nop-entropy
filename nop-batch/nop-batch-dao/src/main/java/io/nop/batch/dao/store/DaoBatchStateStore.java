@@ -49,6 +49,8 @@ public class DaoBatchStateStore implements IBatchStateStore {
             task = newTask(taskDao);
             task.setTaskKey(context.getTaskKey());
             task.setTaskName(context.getTaskName());
+            task.setFlowId(context.getFlowId());
+            task.setFlowStepId(context.getFlowStepId());
             setTaskRecord(context, task);
             saveTask(taskDao, task);
             context.setTaskId(task.getSid());
@@ -92,6 +94,15 @@ public class DaoBatchStateStore implements IBatchStateStore {
         task.setResultCode(null);
         task.incExecCount();
         task.setWorkerId(AppConfig.hostId());
+
+        if (context.getFlowId() != null) {
+            task.setFlowId(context.getFlowId());
+        }
+
+        if (context.getFlowStepId() != null) {
+            task.setFlowStepId(context.getFlowStepId());
+        }
+
         taskDao.updateEntityDirectly(task);
 
         context.setTaskName(task.getTaskName());
@@ -102,6 +113,8 @@ public class DaoBatchStateStore implements IBatchStateStore {
         context.setSkipItemCount(task.getSkipItemCount());
         context.setProcessItemCount(task.getProcessItemCount());
         context.setRecoverMode(true);
+        context.setFlowId(task.getFlowId());
+        context.setFlowStepId(task.getFlowStepId());
         setTaskRecord(context, task);
     }
 

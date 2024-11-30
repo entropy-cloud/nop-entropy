@@ -11,7 +11,7 @@ public class NopBatchRecordResultPkBuilder{
     private Object[] values = new Object[2];
 
    
-    public NopBatchRecordResultPkBuilder setTaskId(java.lang.String value){
+    public NopBatchRecordResultPkBuilder setBatchTaskId(java.lang.String value){
         this.values[0] = value;
         return this;
     }

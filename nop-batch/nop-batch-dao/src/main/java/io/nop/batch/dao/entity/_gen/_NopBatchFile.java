@@ -44,11 +44,11 @@ public class _NopBatchFile extends DynamicOrmEntity{
     public static final String PROP_NAME_fileSource = "fileSource";
     public static final int PROP_ID_fileSource = 6;
     
-    /* 当前处理任务: CURRENT_TASK_ID VARCHAR */
-    public static final String PROP_NAME_currentTaskId = "currentTaskId";
-    public static final int PROP_ID_currentTaskId = 7;
+    /* 批处理任务: BATCH_TASK_ID VARCHAR */
+    public static final String PROP_NAME_batchTaskId = "batchTaskId";
+    public static final int PROP_ID_batchTaskId = 7;
     
-    /* 处理状态: PROCESS_STATE INTEGER */
+    /* 处理状态: PROCESS_STATE VARCHAR */
     public static final String PROP_NAME_processState = "processState";
     public static final int PROP_ID_processState = 8;
     
@@ -110,8 +110,8 @@ public class _NopBatchFile extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_fileSource] = PROP_NAME_fileSource;
           PROP_NAME_TO_ID.put(PROP_NAME_fileSource, PROP_ID_fileSource);
       
-          PROP_ID_TO_NAME[PROP_ID_currentTaskId] = PROP_NAME_currentTaskId;
-          PROP_NAME_TO_ID.put(PROP_NAME_currentTaskId, PROP_ID_currentTaskId);
+          PROP_ID_TO_NAME[PROP_ID_batchTaskId] = PROP_NAME_batchTaskId;
+          PROP_NAME_TO_ID.put(PROP_NAME_batchTaskId, PROP_ID_batchTaskId);
       
           PROP_ID_TO_NAME[PROP_ID_processState] = PROP_NAME_processState;
           PROP_NAME_TO_ID.put(PROP_NAME_processState, PROP_ID_processState);
@@ -158,11 +158,11 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /* 文件来源: FILE_SOURCE */
     private java.lang.String _fileSource;
     
-    /* 当前处理任务: CURRENT_TASK_ID */
-    private java.lang.String _currentTaskId;
+    /* 批处理任务: BATCH_TASK_ID */
+    private java.lang.String _batchTaskId;
     
     /* 处理状态: PROCESS_STATE */
-    private java.lang.Integer _processState;
+    private java.lang.String _processState;
     
     /* 文件接收时间: ACCEPT_DATE */
     private java.time.LocalDate _acceptDate;
@@ -277,8 +277,8 @@ public class _NopBatchFile extends DynamicOrmEntity{
             case PROP_ID_fileSource:
                return getFileSource();
         
-            case PROP_ID_currentTaskId:
-               return getCurrentTaskId();
+            case PROP_ID_batchTaskId:
+               return getBatchTaskId();
         
             case PROP_ID_processState:
                return getProcessState();
@@ -375,20 +375,20 @@ public class _NopBatchFile extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_currentTaskId:{
+            case PROP_ID_batchTaskId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_currentTaskId));
+                       err-> newTypeConversionError(PROP_NAME_batchTaskId));
                }
-               setCurrentTaskId(typedValue);
+               setBatchTaskId(typedValue);
                break;
             }
         
             case PROP_ID_processState:{
-               java.lang.Integer typedValue = null;
+               java.lang.String typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toInteger(value,
+                   typedValue = ConvertHelper.toString(value,
                        err-> newTypeConversionError(PROP_NAME_processState));
                }
                setProcessState(typedValue);
@@ -516,16 +516,16 @@ public class _NopBatchFile extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_currentTaskId:{
+            case PROP_ID_batchTaskId:{
                onInitProp(propId);
-               this._currentTaskId = (java.lang.String)value;
+               this._batchTaskId = (java.lang.String)value;
                
                break;
             }
         
             case PROP_ID_processState:{
                onInitProp(propId);
-               this._processState = (java.lang.Integer)value;
+               this._processState = (java.lang.String)value;
                
                break;
             }
@@ -700,20 +700,20 @@ public class _NopBatchFile extends DynamicOrmEntity{
     }
     
     /**
-     * 当前处理任务: CURRENT_TASK_ID
+     * 批处理任务: BATCH_TASK_ID
      */
-    public java.lang.String getCurrentTaskId(){
-         onPropGet(PROP_ID_currentTaskId);
-         return _currentTaskId;
+    public java.lang.String getBatchTaskId(){
+         onPropGet(PROP_ID_batchTaskId);
+         return _batchTaskId;
     }
 
     /**
-     * 当前处理任务: CURRENT_TASK_ID
+     * 批处理任务: BATCH_TASK_ID
      */
-    public void setCurrentTaskId(java.lang.String value){
-        if(onPropSet(PROP_ID_currentTaskId,value)){
-            this._currentTaskId = value;
-            internalClearRefs(PROP_ID_currentTaskId);
+    public void setBatchTaskId(java.lang.String value){
+        if(onPropSet(PROP_ID_batchTaskId,value)){
+            this._batchTaskId = value;
+            internalClearRefs(PROP_ID_batchTaskId);
             
         }
     }
@@ -721,7 +721,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 处理状态: PROCESS_STATE
      */
-    public java.lang.Integer getProcessState(){
+    public java.lang.String getProcessState(){
          onPropGet(PROP_ID_processState);
          return _processState;
     }
@@ -729,7 +729,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 处理状态: PROCESS_STATE
      */
-    public void setProcessState(java.lang.Integer value){
+    public void setProcessState(java.lang.String value){
         if(onPropSet(PROP_ID_processState,value)){
             this._processState = value;
             internalClearRefs(PROP_ID_processState);

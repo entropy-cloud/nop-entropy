@@ -64,84 +64,88 @@ public class _NopBatchTask extends DynamicOrmEntity{
     public static final String PROP_NAME_flowStepId = "flowStepId";
     public static final int PROP_ID_flowStepId = 11;
     
+    /* 关联流程ID: FLOW_ID VARCHAR */
+    public static final String PROP_NAME_flowId = "flowId";
+    public static final int PROP_ID_flowId = 12;
+    
     /* 重启时间: RESTART_TIME TIMESTAMP */
     public static final String PROP_NAME_restartTime = "restartTime";
-    public static final int PROP_ID_restartTime = 12;
+    public static final int PROP_ID_restartTime = 13;
     
     /* 返回状态码: RESULT_STATUS INTEGER */
     public static final String PROP_NAME_resultStatus = "resultStatus";
-    public static final int PROP_ID_resultStatus = 13;
+    public static final int PROP_ID_resultStatus = 14;
     
     /* 返回码: RESULT_CODE VARCHAR */
     public static final String PROP_NAME_resultCode = "resultCode";
-    public static final int PROP_ID_resultCode = 14;
+    public static final int PROP_ID_resultCode = 15;
     
     /* 返回消息: RESULT_MSG VARCHAR */
     public static final String PROP_NAME_resultMsg = "resultMsg";
-    public static final int PROP_ID_resultMsg = 15;
+    public static final int PROP_ID_resultMsg = 16;
     
     /* 错误堆栈: ERROR_STACK VARCHAR */
     public static final String PROP_NAME_errorStack = "errorStack";
-    public static final int PROP_ID_errorStack = 16;
+    public static final int PROP_ID_errorStack = 17;
     
     /* 已完成记录下标: COMPLETED_INDEX BIGINT */
     public static final String PROP_NAME_completedIndex = "completedIndex";
-    public static final int PROP_ID_completedIndex = 17;
+    public static final int PROP_ID_completedIndex = 18;
     
     /* 完成条目数量: COMPLETE_ITEM_COUNT BIGINT */
     public static final String PROP_NAME_completeItemCount = "completeItemCount";
-    public static final int PROP_ID_completeItemCount = 18;
+    public static final int PROP_ID_completeItemCount = 19;
     
     /* 重试加载次数: LOAD_RETRY_COUNT INTEGER */
     public static final String PROP_NAME_loadRetryCount = "loadRetryCount";
-    public static final int PROP_ID_loadRetryCount = 19;
+    public static final int PROP_ID_loadRetryCount = 20;
     
     /* 加载跳过数量: LOAD_SKIP_COUNT BIGINT */
     public static final String PROP_NAME_loadSkipCount = "loadSkipCount";
-    public static final int PROP_ID_loadSkipCount = 20;
+    public static final int PROP_ID_loadSkipCount = 21;
     
     /* 重试条目次数: RETRY_ITEM_COUNT INTEGER */
     public static final String PROP_NAME_retryItemCount = "retryItemCount";
-    public static final int PROP_ID_retryItemCount = 21;
+    public static final int PROP_ID_retryItemCount = 22;
     
     /* 处理条目数量: PROCESS_ITEM_COUNT BIGINT */
     public static final String PROP_NAME_processItemCount = "processItemCount";
-    public static final int PROP_ID_processItemCount = 22;
+    public static final int PROP_ID_processItemCount = 23;
     
     /* 跳过条目数量: SKIP_ITEM_COUNT BIGINT */
     public static final String PROP_NAME_skipItemCount = "skipItemCount";
-    public static final int PROP_ID_skipItemCount = 23;
+    public static final int PROP_ID_skipItemCount = 24;
     
     /* 写入条目数量: WRITE_ITEM_COUNT BIGINT */
     public static final String PROP_NAME_writeItemCount = "writeItemCount";
-    public static final int PROP_ID_writeItemCount = 24;
+    public static final int PROP_ID_writeItemCount = 25;
     
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 25;
+    public static final int PROP_ID_version = 26;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 26;
+    public static final int PROP_ID_createdBy = 27;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 27;
+    public static final int PROP_ID_createTime = 28;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 28;
+    public static final int PROP_ID_updatedBy = 29;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 29;
+    public static final int PROP_ID_updateTime = 30;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 30;
+    public static final int PROP_ID_remark = 31;
     
 
-    private static int _PROP_ID_BOUND = 31;
+    private static int _PROP_ID_BOUND = 32;
 
     
     /* relation: 批处理文件 */
@@ -154,7 +158,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[31];
+    private static final String[] PROP_ID_TO_NAME = new String[32];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -190,6 +194,9 @@ public class _NopBatchTask extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_flowStepId] = PROP_NAME_flowStepId;
           PROP_NAME_TO_ID.put(PROP_NAME_flowStepId, PROP_ID_flowStepId);
+      
+          PROP_ID_TO_NAME[PROP_ID_flowId] = PROP_NAME_flowId;
+          PROP_NAME_TO_ID.put(PROP_NAME_flowId, PROP_ID_flowId);
       
           PROP_ID_TO_NAME[PROP_ID_restartTime] = PROP_NAME_restartTime;
           PROP_NAME_TO_ID.put(PROP_NAME_restartTime, PROP_ID_restartTime);
@@ -283,6 +290,9 @@ public class _NopBatchTask extends DynamicOrmEntity{
     
     /* 关联流程步骤ID: FLOW_STEP_ID */
     private java.lang.String _flowStepId;
+    
+    /* 关联流程ID: FLOW_ID */
+    private java.lang.String _flowId;
     
     /* 重启时间: RESTART_TIME */
     private java.sql.Timestamp _restartTime;
@@ -447,6 +457,9 @@ public class _NopBatchTask extends DynamicOrmEntity{
         
             case PROP_ID_flowStepId:
                return getFlowStepId();
+        
+            case PROP_ID_flowId:
+               return getFlowId();
         
             case PROP_ID_restartTime:
                return getRestartTime();
@@ -623,6 +636,16 @@ public class _NopBatchTask extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_flowStepId));
                }
                setFlowStepId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_flowId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_flowId));
+               }
+               setFlowId(typedValue);
                break;
             }
         
@@ -898,6 +921,13 @@ public class _NopBatchTask extends DynamicOrmEntity{
             case PROP_ID_flowStepId:{
                onInitProp(propId);
                this._flowStepId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_flowId:{
+               onInitProp(propId);
+               this._flowId = (java.lang.String)value;
                
                break;
             }
@@ -1246,6 +1276,25 @@ public class _NopBatchTask extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_flowStepId,value)){
             this._flowStepId = value;
             internalClearRefs(PROP_ID_flowStepId);
+            
+        }
+    }
+    
+    /**
+     * 关联流程ID: FLOW_ID
+     */
+    public java.lang.String getFlowId(){
+         onPropGet(PROP_ID_flowId);
+         return _flowId;
+    }
+
+    /**
+     * 关联流程ID: FLOW_ID
+     */
+    public void setFlowId(java.lang.String value){
+        if(onPropSet(PROP_ID_flowId,value)){
+            this._flowId = value;
+            internalClearRefs(PROP_ID_flowId);
             
         }
     }

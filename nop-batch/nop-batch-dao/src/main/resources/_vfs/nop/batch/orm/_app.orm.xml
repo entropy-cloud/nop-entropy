@@ -72,45 +72,47 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Input File"/>
                 <column code="FLOW_STEP_ID" displayName="关联流程步骤ID" name="flowStepId" precision="50" propId="11"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Flow Step ID"/>
-                <column code="RESTART_TIME" displayName="重启时间" name="restartTime" propId="12" stdDataType="timestamp"
+                <column code="FLOW_ID" displayName="关联流程ID" name="flowId" precision="50" propId="12"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Flow ID"/>
+                <column code="RESTART_TIME" displayName="重启时间" name="restartTime" propId="13" stdDataType="timestamp"
                         stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Restart Time"/>
-                <column code="RESULT_STATUS" comment="0表示成功" displayName="返回状态码" name="resultStatus" propId="13"
+                <column code="RESULT_STATUS" comment="0表示成功" displayName="返回状态码" name="resultStatus" propId="14"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Result Status"/>
                 <column code="RESULT_CODE" comment="失败时对应错误码" displayName="返回码" name="resultCode" precision="100"
-                        propId="14" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Result Code"/>
-                <column code="RESULT_MSG" displayName="返回消息" name="resultMsg" precision="500" propId="15"
+                        propId="15" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Result Code"/>
+                <column code="RESULT_MSG" displayName="返回消息" name="resultMsg" precision="500" propId="16"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Result Message"/>
-                <column code="ERROR_STACK" displayName="错误堆栈" name="errorStack" precision="4000" propId="16"
+                <column code="ERROR_STACK" displayName="错误堆栈" name="errorStack" precision="4000" propId="17"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Stack"/>
-                <column code="COMPLETED_INDEX" displayName="已完成记录下标" mandatory="true" name="completedIndex" propId="17"
+                <column code="COMPLETED_INDEX" displayName="已完成记录下标" mandatory="true" name="completedIndex" propId="18"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Completed Index"/>
                 <column code="COMPLETE_ITEM_COUNT" displayName="完成条目数量" mandatory="true" name="completeItemCount"
-                        propId="18" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Complete Item Count"/>
-                <column code="LOAD_RETRY_COUNT" displayName="重试加载次数" mandatory="true" name="loadRetryCount" propId="19"
+                        propId="19" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Complete Item Count"/>
+                <column code="LOAD_RETRY_COUNT" displayName="重试加载次数" mandatory="true" name="loadRetryCount" propId="20"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Load Retry Count"/>
-                <column code="LOAD_SKIP_COUNT" displayName="加载跳过数量" mandatory="true" name="loadSkipCount" propId="20"
+                <column code="LOAD_SKIP_COUNT" displayName="加载跳过数量" mandatory="true" name="loadSkipCount" propId="21"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Load Skip Count"/>
-                <column code="RETRY_ITEM_COUNT" displayName="重试条目次数" mandatory="true" name="retryItemCount" propId="21"
+                <column code="RETRY_ITEM_COUNT" displayName="重试条目次数" mandatory="true" name="retryItemCount" propId="22"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Retry Item Count"/>
                 <column code="PROCESS_ITEM_COUNT" displayName="处理条目数量" mandatory="true" name="processItemCount"
-                        propId="22" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Process Item Count"/>
-                <column code="SKIP_ITEM_COUNT" displayName="跳过条目数量" mandatory="true" name="skipItemCount" propId="23"
+                        propId="23" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Process Item Count"/>
+                <column code="SKIP_ITEM_COUNT" displayName="跳过条目数量" mandatory="true" name="skipItemCount" propId="24"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Skip Item Count"/>
-                <column code="WRITE_ITEM_COUNT" displayName="写入条目数量" mandatory="true" name="writeItemCount" propId="24"
+                <column code="WRITE_ITEM_COUNT" displayName="写入条目数量" mandatory="true" name="writeItemCount" propId="25"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Write Item Count"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="25"
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="26"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="26" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="27" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="27" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="28" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="28" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="29" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="29" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
-                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="30"
+                        propId="30" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="31"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
             <relations>
@@ -125,7 +127,7 @@
                          refEntityName="io.nop.batch.dao.entity.NopBatchTaskVar" refPropName="task"
                          tagSet="pub,cascade-delete" i18n-en:displayName="Task State Vars">
                     <join>
-                        <on leftProp="sid" rightProp="taskId"/>
+                        <on leftProp="sid" rightProp="batchTaskId"/>
                     </join>
                 </to-many>
             </relations>
@@ -135,8 +137,9 @@
                 tableName="nop_batch_task_var" tagSet="no-web,kvTable" updateTimeProp="updateTime"
                 updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Batch Task Variable">
             <columns>
-                <column code="TASK_ID" displayName="主键" mandatory="true" name="taskId" precision="32" primary="true"
-                        propId="1" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="TASK_ID"/>
+                <column code="BATCH_TASK_ID" displayName="主键" mandatory="true" name="batchTaskId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Batch Task Id"/>
                 <column code="FIELD_NAME" displayName="变量名" mandatory="true" name="fieldName" precision="100"
                         primary="true" propId="2" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Field Name"/>
@@ -172,7 +175,7 @@
                         tagSet="pub,ref-pub,ref-cascade-delete" i18n-en:displayName="Batch Task"
                         ref-i18n-en:displayName="Task State Vars">
                     <join>
-                        <on leftProp="taskId" rightProp="sid"/>
+                        <on leftProp="batchTaskId" rightProp="sid"/>
                     </join>
                     <ref-set/>
                 </to-one>
@@ -183,8 +186,9 @@
                 registerShortName="true" tableName="nop_batch_record_result" updateTimeProp="updateTime"
                 updaterProp="updatedBy" versionProp="version" i18n-en:displayName="Batch Record Result">
             <columns>
-                <column code="TASK_ID" displayName="主键" mandatory="true" name="taskId" precision="32" primary="true"
-                        propId="1" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Task ID"/>
+                <column code="BATCH_TASK_ID" displayName="主键" mandatory="true" name="batchTaskId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Batch Task ID"/>
                 <column code="RECORD_KEY" displayName="记录唯一键" mandatory="true" name="recordKey" precision="200"
                         primary="true" propId="2" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Record Key"/>
@@ -214,7 +218,7 @@
                 <to-one displayName="批处理任务" name="task" refEntityName="io.nop.batch.dao.entity.NopBatchTask"
                         tagSet="pub,ref-pub" i18n-en:displayName="Batch Task">
                     <join>
-                        <on leftProp="taskId" rightProp="sid"/>
+                        <on leftProp="batchTaskId" rightProp="sid"/>
                     </join>
                     <ref-set/>
                 </to-one>
@@ -237,11 +241,10 @@
                         propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="File Category"/>
                 <column code="FILE_SOURCE" displayName="文件来源" mandatory="true" name="fileSource" precision="10"
                         propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="File Source"/>
-                <column code="CURRENT_TASK_ID" displayName="当前处理任务" mandatory="true" name="currentTaskId" precision="32"
-                        propId="7" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Current Task"/>
-                <column code="PROCESS_STATE" displayName="处理状态" mandatory="true" name="processState" propId="8"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Process State"
-                        ext:dict="batch/process-state"/>
+                <column code="BATCH_TASK_ID" displayName="批处理任务" mandatory="true" name="batchTaskId" precision="32"
+                        propId="7" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Batch Task ID"/>
+                <column code="PROCESS_STATE" displayName="处理状态" mandatory="true" name="processState" precision="10"
+                        propId="8" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Process State"/>
                 <column code="ACCEPT_DATE" displayName="文件接收时间" mandatory="true" name="acceptDate" propId="9"
                         stdDataType="date" stdSqlType="DATE" i18n-en:displayName="Accept Date"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="10"
