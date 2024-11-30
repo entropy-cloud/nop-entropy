@@ -31,9 +31,9 @@
                             <c:script>
                                const batchTaskManager = inject('nopBatchTaskManager');
                                const batchTaskContext = batchTaskManager.newBatchTaskContext(svcCtx,$scope);
-                               const stepRt = get('stepRt');
-                               batchTaskContext.setFlowId(stepRt?.taskId);
-                               batchTaskContext.setFlowStepId(stepRt?.stepId);
+                               const taskStepRt = get('taskStepRt');
+                               batchTaskContext.setFlowId(taskStepRt?.taskInstanceId);
+                               batchTaskContext.setFlowStepId(taskStepRt?.stepInstanceId);
                                return batchTaskBuilder.buildTask(batchTaskContext).executeAsync(batchTaskContext);
                             </c:script>
                          </c:ast>

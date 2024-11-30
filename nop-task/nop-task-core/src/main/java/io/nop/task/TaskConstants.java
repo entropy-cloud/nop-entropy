@@ -44,7 +44,7 @@ public interface TaskConstants {
     String STEP_NAME_SUSPEND = "@suspend";
 
     String VAR_TASK_RT = "taskRt";
-    String VAR_STEP_RT = "stepRt";
+    String VAR_TASK_STEP_RT = "taskStepRt";
     String VAR_RESULT = "RESULT";
 
     String VAR_STEP_RESULTS = "STEP_RESULTS";

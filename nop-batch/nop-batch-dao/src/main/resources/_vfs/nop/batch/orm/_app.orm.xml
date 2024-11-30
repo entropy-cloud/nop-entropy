@@ -71,9 +71,9 @@
                 <column code="INPUT_FILE_ID" displayName="输入文件" name="inputFileId" precision="32" propId="10"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Input File"/>
                 <column code="FLOW_STEP_ID" displayName="关联流程步骤ID" name="flowStepId" precision="50" propId="11"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Flow Step ID"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="Flow Step ID"/>
                 <column code="FLOW_ID" displayName="关联流程ID" name="flowId" precision="50" propId="12"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Flow ID"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="Flow ID"/>
                 <column code="RESTART_TIME" displayName="重启时间" name="restartTime" propId="13" stdDataType="timestamp"
                         stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Restart Time"/>
                 <column code="RESULT_STATUS" comment="0表示成功" displayName="返回状态码" name="resultStatus" propId="14"

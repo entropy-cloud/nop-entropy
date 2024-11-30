@@ -37,7 +37,7 @@ public class TaskStepRuntimeImpl implements ITaskStepRuntime {
         this.taskRt = taskRt;
         this.stateStore = stateStore;
         this.scope = scope;
-        this.scope.setLocalValue(TaskConstants.VAR_STEP_RT, this);
+        this.scope.setLocalValue(TaskConstants.VAR_TASK_STEP_RT, this);
     }
 
     @Override

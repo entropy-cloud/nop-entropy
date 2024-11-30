@@ -33,6 +33,8 @@ public class DefaultTaskStateStore implements ITaskStateStore {
     @Override
     public ITaskStepState newStepState(ITaskStepState parentState, String stepName, String stepType, ITaskRuntime taskRt) {
         TaskStepStateBean state = new TaskStepStateBean();
+        state.setStepInstanceId(StringHelper.generateUUID());
+        state.setTaskInstanceId(taskRt.getTaskInstanceId());
         String parentPath = parentState == null ? null : parentState.getStepPath();
         state.setStepPath(TaskStepHelper.buildStepPath(parentPath, stepName));
         state.setRunId(taskRt.newRunId());

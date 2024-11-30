@@ -16,13 +16,13 @@ import io.nop.commons.util.StringHelper;
  * 持久化状态包含返回结果（正常返回值以及抛出的异常），因此重复执行时发现结果已存在，则直接返回结果，跳过具体执行过程。
  */
 public interface ITaskStepState extends ITaskStateCommon {
-    String getTaskId();
+    String getTaskInstanceId();
 
-    String getStepId();
+    String getStepInstanceId();
 
-    void setTaskId(String taskId);
+    void setTaskInstanceId(String taskInstanceId);
 
-    void setStepId(String stepId);
+    void setStepInstanceId(String stepInstanceId);
 
     /**
      * stepName为静态定义的步骤name. runId为动态执行路径所确定的id. 两者结合在一起唯一确定一个TaskStepState

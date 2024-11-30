@@ -13,12 +13,12 @@ public interface ITaskStepRuntime extends IEvalContext {
         return getTaskRuntime().getContext();
     }
 
-    default String getTaskId() {
-        return getState().getTaskId();
+    default String getTaskInstanceId() {
+        return getState().getTaskInstanceId();
     }
 
-    default String getStepId() {
-        return getState().getStepId();
+    default String getStepInstanceId() {
+        return getState().getStepInstanceId();
     }
 
     ITaskRuntime getTaskRuntime();
