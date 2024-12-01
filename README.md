@@ -12,7 +12,10 @@
 **Nop is nOt Programming(非编程)**
 
 Nop Platform 2.0 is a next-generation low-code development platform built from scratch based on the principles of reversible computation, adopting a language-oriented programming paradigm. It includes a suite of fully designed engines such as a GraphQL engine, ORM engine, workflow engine, reporting engine, rule engine, and batch processing engine, all developed from scratch based on new principles. It automatically generates GraphQL/REST/gRPC services according to Excel data models, allowing for customized development without modifying the source code of the basic product. It supports native compilation with GraalVM, and is free for commercial use by small and medium-sized enterprises.
-Nop Platform 2.0基于可逆计算原理从零开始构建的采用面向语言编程范式的下一代低代码开发平台。包含基于全新原理从零开始研发的GraphQL引擎、ORM引擎、工作流引擎、报表引擎、规则引擎、批处理引引擎等完整设计，根据Excel数据模型自动生成GraphQL/REST/gRPC服务，定制化开发无需修改基础产品源码，支持GraalVM原生编译，中小企业可以免费商用。
+
+Nop Platform 2.0是基于可逆计算原理从零开始构建的采用面向语言编程范式的下一代低代码开发平台。包含基于全新原理从零开始研发的GraphQL引擎、ORM引擎、工作流引擎、报表引擎、规则引擎、批处理引引擎等完整设计，根据Excel数据模型自动生成GraphQL/REST/gRPC服务，定制化开发无需修改基础产品源码，支持GraalVM原生编译，中小企业可以免费商用。
+
+**Nop平台的底层没有使用Spring等第三方框架，而是基于新的软件构造原理重新设计并实现，极大降低了框架内在结构的复杂性，同时大幅提升框架的灵活性、可扩展性和性能。它的设计目标是探索下一代软件生产技术，为AI时代的软件智能生产奠定技术基础**
 
 - nop-entropy是Nop平台的后端部分。它采用Java语言实现，不依赖第三方框架，可以和Quarkus、Spring或者Solon框架集成在一起使用。
 
@@ -21,15 +24,15 @@ Nop Platform 2.0基于可逆计算原理从零开始构建的采用面向语言�
   框架编译为原生可执行程序，运行时不需要安装JDK，且启动速度提升数十倍。
 
 - **nop-entropy的设计目标是成为简单易用的领域语言工作台（Domain Language Workbench）**
-  。通过增加简单的元数据定义，就可以自动得到对应的解析器、验证器、IDE插件、调试工具等，并自动为DSL领域语言增加模块分解、差量定制、元编程等通用语言特性。在这一点上，它类似于Jetbrains公司的[MPS产品](https://www.jetbrains.com/mps/)
+  。在Nop平台中，我们一般并不直接使用通用的程序语言如Java来表达业务逻辑，而是先设计一个DSL语言，然后再用DSL来表达业务。通过增加简单的元数据定义，就可以自动得到对应的解析器、验证器、IDE插件、调试工具等，并自动为DSL领域语言增加模块分解、差量定制、元编程等通用语言特性。 在这一点上，它类似于Jetbrains公司的[MPS产品](https://www.jetbrains.com/mps/)
   ，只是它的设计原理和技术实现路径与MPS有着本质性差别。
 
 - nop-entropy采用云原生设计，内置分布式事务和多租户支持，可以单机运行，也可以作为分布式集群运行，可以提供在线的API服务，也可以将针对单个业务对象的在线服务自动包装为针对批处理文件的批处理任务。对于大多数业务应用场景均提供相应的模型支持，只需少量配置即可完成主要功能，大大降低对手工编码的需求。
 
 - nop-entropy在开发期可以作为**支持增量式开发的低代码平台**，自动生成各类代码以及相关文档，在运行期可以作为*
-  *面向最终用户的无代码平台的支撑技术**，允许客户在线调整业务模块功能，以所见即所得的方式进行产品迭代。
+  *面向最终用户的无代码平台的支撑技术**，允许客户在线调整业务模块功能，以所见即所得的方式进行产品迭代。**Nop平台可以作为一个非常精巧的通用SAAS平台底座**，基于它只需要做少量包装即可实现一个完善的针对特定领域的SAAS平台。
 
-目前开源的部分主要包含XLang语言的实现，以及ORM、依赖注入容器(IoC)、分布式配置（Config）、GraphQLEngine、报表引擎（Report
+目前Nop平台开源的部分主要包含XLang语言的实现，以及ORM、依赖注入容器(IoC)、分布式配置（Config）、GraphQLEngine、报表引擎（Report
 Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessing Engine）、规则引擎（Rule Engine）等基础框架，
 后续规划包括工作流引擎（Workflow Engine）、商业智能（BI）、流处理引擎等业务开发常用部分。
 

@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<orm ext:mavenArtifactId="demo-ddd" ext:entityPackageName="app.demo.ddd.entity" ext:allowIdAsColName="true"
+     ext:basePackageName="app.demo" ext:appName="demo-ddd" ext:mavenVersion="1.0.0-SNAPSHOT"
+     ext:registerShortName="true" ext:mavenGroupId="app.demo" ext:platformVersion="2.0.0-SNAPSHOT"
+     ext:dialect="mysql,oracle,postgresql" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:i18n-en="i18n-en" xmlns:ref-i18n-en="ref-i18n-en" xmlns:ext="ext" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl"
+     xmlns:ui="ui">
+
+    <x:post-extends x:override="replace">
+        <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:post-extends>
+
+    <dicts>
+        <dict label="路由状态" name="ddd/routing-status" valueType="string" i18n-en:label="Routing Status">
+            <option code="NOT_ROUTED" label="未路由" value="NOT_ROUTED" i18n-en:label="Not Routed"/>
+            <option code="ROUTED" label="已路由" value="ROUTED" i18n-en:label="Routed"/>
+            <option code="MISROUTED" label="错误路由" value="MISROUTED" i18n-en:label="Misrouted"/>
+        </dict>
+        <dict label="运输状态" name="ddd/transport-status" valueType="string" i18n-en:label="Transport Status">
+            <option code="NOT_RECEIVED" label="未接收" value="NOT_RECEIVED" i18n-en:label="Not Received"/>
+            <option code="IN_PORT" label="已到港" value="IN_PORT" i18n-en:label="In Port"/>
+            <option code="ONBOARD_CARRIER" label="已装货" value="ONBOARD_CARRIER" i18n-en:label="Onboard Carrier"/>
+            <option code="CLAIMED" label="已认领" value="CLAIMED" i18n-en:label="Claimed"/>
+            <option code="UNKNOWN" label="未知" value="UNKNOWN" i18n-en:label="Unknown"/>
+        </dict>
+    </dicts>
+
+    <entities>
+        <entity className="app.demo.ddd.entity.Cargo" displayName="货物" name="app.demo.ddd.entity.Cargo"
+                registerShortName="true" tableName="cargo" i18n-en:displayName="Cargo">
+            <columns>
+                <column code="ID" displayName="Id" mandatory="true" name="id" primary="true" propId="1"
+                        stdDataType="long" stdSqlType="BIGINT" tagSet="X" i18n-en:displayName="Id"/>
+                <column code="CALCULATED_AT" displayName="计算时间" name="calculatedAt" propId="2" stdDataType="datetime"
+                        stdSqlType="DATETIME" i18n-en:displayName="CalculatedAt"/>
+                <column code="ETA" displayName="预计到达时间" name="eta" propId="3" stdDataType="datetime"
+                        stdSqlType="DATETIME" i18n-en:displayName="Eta"/>
+                <column code="UNLOADED_AT_DEST" displayName="目的地卸载时间" name="unloadedAtDest" propId="4"
+                        stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="UnloadedAtDest"/>
+                <column code="MISDIRECTED" displayName="路线错误" name="misdirected" propId="5" stdDataType="boolean"
+                        stdSqlType="BOOLEAN" i18n-en:displayName="Misdirected"/>
+                <column code="NEXT_EXPECTED_HANDLING_EVENT_TYPE" displayName="下一步预期处理事件类型"
+                        name="nextExpectedHandlingEventType" precision="255" propId="6" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="NextExpectedHandlingEventType"/>
+                <column code="ROUTING_STATUS" displayName="路由状态" name="routingStatus" precision="255" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="RoutingStatus"/>
+                <column code="TRANSPORT_STATUS" displayName="运输状态" name="transportStatus" precision="255" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="TransportStatus"/>
+                <column code="SPEC_ARRIVAL_DEADLINE" displayName="指定到达期限" mandatory="true" name="specArrivalDeadline"
+                        propId="9" stdDataType="datetime" stdSqlType="DATETIME"
+                        i18n-en:displayName="SpecArrivalDeadline"/>
+                <column code="TRACKING_ID" displayName="跟踪ID" name="trackingId" precision="255" propId="10"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="TrackingId"/>
+                <column code="CURRENT_VOYAGE_ID" displayName="当前航程ID" name="currentVoyageId" propId="11"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="CurrentVoyageId"/>
+                <column code="LAST_EVENT_ID" displayName="最后事件ID" name="lastEventId" propId="12" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="LastEventId"/>
+                <column code="LAST_KNOWN_LOCATION_ID" displayName="最后已知位置ID" name="lastKnownLocationId" propId="13"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="LastKnownLocationId"/>
+                <column code="NEXT_EXPECTED_LOCATION_ID" displayName="下一个预期位置ID" name="nextExpectedLocationId"
+                        propId="14" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="NextExpectedLocationId"/>
+                <column code="NEXT_EXPECTED_VOYAGE_ID" displayName="下一个预期航程ID" name="nextExpectedVoyageId" propId="15"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="NextExpectedVoyageId"/>
+                <column code="ORIGIN_ID" displayName="出发地ID" name="originId" propId="16" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="OriginId"/>
+                <column code="SPEC_DESTINATION_ID" displayName="指定目的地ID" name="specDestinationId" propId="17"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="SpecDestinationId"/>
+                <column code="SPEC_ORIGIN_ID" displayName="指定出发地ID" name="specOriginId" propId="18" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="SpecOriginId"/>
+            </columns>
+            <relations>
+                <to-one displayName="下一个预期航程" name="nextExpectedVoyage" refEntityName="app.demo.ddd.entity.Voyage"
+                        tagSet="pub" i18n-en:displayName="Next Expected Voyage">
+                    <join>
+                        <on leftProp="nextExpectedVoyageId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="指定目的地" name="specDestination" refEntityName="app.demo.ddd.entity.Location"
+                        tagSet="pub" i18n-en:displayName="Spec Destination">
+                    <join>
+                        <on leftProp="specDestinationId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="出发地" name="origin" refEntityName="app.demo.ddd.entity.Location" tagSet="pub"
+                        i18n-en:displayName="Origin">
+                    <join>
+                        <on leftProp="originId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="最后事件" ignoreDepends="true" name="lastEvent"
+                        refEntityName="app.demo.ddd.entity.HandlingEvent" tagSet="pub" i18n-en:displayName="Last Event">
+                    <join>
+                        <on leftProp="lastEventId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="最后已知位置" name="lastKnownLocation" refEntityName="app.demo.ddd.entity.Location"
+                        tagSet="pub" i18n-en:displayName="Last Known Location">
+                    <join>
+                        <on leftProp="lastKnownLocationId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="当前航程" name="currentVoyage" refEntityName="app.demo.ddd.entity.Voyage" tagSet="pub"
+                        i18n-en:displayName="Current Voyage">
+                    <join>
+                        <on leftProp="currentVoyageId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="下一个预期位置" name="nextExpectedLocation" refEntityName="app.demo.ddd.entity.Location"
+                        tagSet="pub" i18n-en:displayName="Next Expected Location">
+                    <join>
+                        <on leftProp="nextExpectedLocationId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="指定出发地" name="specOrigin" refEntityName="app.demo.ddd.entity.Location" tagSet="pub"
+                        i18n-en:displayName="Spec Origin">
+                    <join>
+                        <on leftProp="specOriginId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+            </relations>
+            <unique-keys>
+                <unique-key columns="trackingId" name="UK_TRACKING_ID"/>
+            </unique-keys>
+        </entity>
+        <entity className="app.demo.ddd.entity.CarrierMovement" displayName="运输动作"
+                name="app.demo.ddd.entity.CarrierMovement" registerShortName="true" tableName="carrier_movement"
+                i18n-en:displayName="Carrier Movement">
+            <columns>
+                <column code="ID" displayName="Id" mandatory="true" name="id" primary="true" propId="1"
+                        stdDataType="long" stdSqlType="BIGINT" tagSet="X" i18n-en:displayName="Id"/>
+                <column code="ARRIVAL_TIME" displayName="到达时间" mandatory="true" name="arrivalTime" propId="2"
+                        stdDataType="datetime" stdSqlType="DATETIME" i18n-en:displayName="ArrivalTime"/>
+                <column code="DEPARTURE_TIME" displayName="出发时间" mandatory="true" name="departureTime" propId="3"
+                        stdDataType="datetime" stdSqlType="DATETIME" i18n-en:displayName="DepartureTime"/>
+                <column code="ARRIVAL_LOCATION_ID" displayName="到达地点ID" mandatory="true" name="arrivalLocationId"
+                        propId="4" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="ArrivalLocationId"/>
+                <column code="DEPARTURE_LOCATION_ID" displayName="出发地点ID" mandatory="true" name="departureLocationId"
+                        propId="5" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="DepartureLocationId"/>
+                <column code="VOYAGE_ID" displayName="航程ID" name="voyageId" propId="6" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="VoyageId"/>
+            </columns>
+            <relations>
+                <to-one displayName="航程" name="voyage" refEntityName="app.demo.ddd.entity.Voyage" tagSet="pub"
+                        i18n-en:displayName="Voyage">
+                    <join>
+                        <on leftProp="voyageId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="出发地点" name="departureLocation" refEntityName="app.demo.ddd.entity.Location"
+                        tagSet="pub" i18n-en:displayName="Departure Location">
+                    <join>
+                        <on leftProp="departureLocationId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="到达地点" name="arrivalLocation" refEntityName="app.demo.ddd.entity.Location"
+                        tagSet="pub" i18n-en:displayName="Arrival Location">
+                    <join>
+                        <on leftProp="arrivalLocationId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="app.demo.ddd.entity.HandlingEvent" displayName="业务时间"
+                name="app.demo.ddd.entity.HandlingEvent" registerShortName="true" tableName="handling_event"
+                i18n-en:displayName="Handling Event">
+            <columns>
+                <column code="ID" displayName="Id" mandatory="true" name="id" primary="true" propId="1"
+                        stdDataType="long" stdSqlType="BIGINT" tagSet="X" i18n-en:displayName="Id"/>
+                <column code="COMPLETION_TIME" displayName="完成时间" name="completionTime" propId="2"
+                        stdDataType="datetime" stdSqlType="DATETIME" tagSet="clock" i18n-en:displayName="CompletionTime"/>
+                <column code="REGISTRATION_TIME" displayName="注册时间" name="registrationTime" propId="3"
+                        stdDataType="datetime" stdSqlType="DATETIME" tagSet="clock"
+                        i18n-en:displayName="RegistrationTime"/>
+                <column code="TYPE" displayName="类型" name="type" precision="255" propId="4" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="Type"/>
+                <column code="CARGO_ID" displayName="货物ID" name="cargoId" propId="5" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="CargoId"/>
+                <column code="LOCATION_ID" displayName="位置ID" name="locationId" propId="6" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="LocationId"/>
+                <column code="VOYAGE_ID" displayName="航程ID" name="voyageId" propId="7" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="VoyageId"/>
+            </columns>
+            <relations>
+                <to-one displayName="货物" name="cargo" refEntityName="app.demo.ddd.entity.Cargo" tagSet="pub"
+                        i18n-en:displayName="Cargo">
+                    <join>
+                        <on leftProp="cargoId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="航程" name="voyage" refEntityName="app.demo.ddd.entity.Voyage" tagSet="pub"
+                        i18n-en:displayName="Voyage">
+                    <join>
+                        <on leftProp="voyageId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="位置" name="location" refEntityName="app.demo.ddd.entity.Location" tagSet="pub"
+                        i18n-en:displayName="Location">
+                    <join>
+                        <on leftProp="locationId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="app.demo.ddd.entity.Leg" displayName="航段" name="app.demo.ddd.entity.Leg"
+                registerShortName="true" tableName="leg" i18n-en:displayName="Leg">
+            <columns>
+                <column code="ID" displayName="Id" mandatory="true" name="id" primary="true" propId="1"
+                        stdDataType="long" stdSqlType="BIGINT" tagSet="X" i18n-en:displayName="Id"/>
+                <column code="LOAD_TIME" displayName="装货时间" name="loadTime" propId="2" stdDataType="datetime"
+                        stdSqlType="DATETIME" i18n-en:displayName="LoadTime"/>
+                <column code="UNLOAD_TIME" displayName="卸货时间" name="unloadTime" propId="3" stdDataType="datetime"
+                        stdSqlType="DATETIME" i18n-en:displayName="UnloadTime"/>
+                <column code="LOAD_LOCATION_ID" displayName="装货地点" name="loadLocationId" propId="4" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="LoadLocationId"/>
+                <column code="UNLOAD_LOCATION_ID" displayName="卸货地点" name="unloadLocationId" propId="5"
+                        stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="UnloadLocationId"/>
+                <column code="VOYAGE_ID" displayName="航程ID" name="voyageId" propId="6" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="VoyageId"/>
+                <column code="CARGO_ID" displayName="货物ID" name="cargoId" propId="7" stdDataType="long"
+                        stdSqlType="BIGINT" i18n-en:displayName="CargoId"/>
+            </columns>
+            <relations>
+                <to-one displayName="装货地点" name="loadLocation" refEntityName="app.demo.ddd.entity.Location" tagSet="pub"
+                        i18n-en:displayName="Load Location">
+                    <join>
+                        <on leftProp="loadLocationId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="货物" name="cargo" refEntityName="app.demo.ddd.entity.Cargo" tagSet="pub"
+                        i18n-en:displayName="Cargo">
+                    <join>
+                        <on leftProp="cargoId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="航程" name="voyage" refEntityName="app.demo.ddd.entity.Voyage" tagSet="pub"
+                        i18n-en:displayName="Voyage">
+                    <join>
+                        <on leftProp="voyageId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+                <to-one displayName="卸载地点" name="unloadLocation" refEntityName="app.demo.ddd.entity.Location"
+                        tagSet="pub" i18n-en:displayName="Unload Location">
+                    <join>
+                        <on leftProp="unloadLocationId" rightProp="id"/>
+                    </join>
+                    <ref-set/>
+                </to-one>
+            </relations>
+        </entity>
+        <entity className="app.demo.ddd.entity.Location" displayName="位置" name="app.demo.ddd.entity.Location"
+                registerShortName="true" tableName="location" i18n-en:displayName="Location">
+            <columns>
+                <column code="ID" displayName="Id" mandatory="true" name="id" primary="true" propId="1"
+                        stdDataType="long" stdSqlType="BIGINT" tagSet="X" i18n-en:displayName="Id"/>
+                <column code="NAME" displayName="名称" mandatory="true" name="name" precision="255" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Name"/>
+                <column code="UNLOCODE" displayName="UN编码" mandatory="true" name="unlocode" precision="255" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Unlocode"/>
+            </columns>
+            <unique-keys>
+                <unique-key columns="unlocode" name="UK_UNLOCODE"/>
+            </unique-keys>
+        </entity>
+        <entity className="app.demo.ddd.entity.Voyage" displayName="航程" name="app.demo.ddd.entity.Voyage"
+                registerShortName="true" tableName="voyage" i18n-en:displayName="Voyage">
+            <columns>
+                <column code="ID" displayName="Id" mandatory="true" name="id" primary="true" propId="1"
+                        stdDataType="long" stdSqlType="BIGINT" tagSet="X" i18n-en:displayName="Id"/>
+                <column code="VOYAGE_NUMBER" displayName="航程号" name="voyageNumber" precision="255" propId="2"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="VoyageNumber"/>
+            </columns>
+            <unique-keys>
+                <unique-key columns="voyageNumber" name="UK_VOYAGE_NUMBER"/>
+            </unique-keys>
+        </entity>
+    </entities>
+</orm>

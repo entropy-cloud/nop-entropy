@@ -1,0 +1,1 @@
+java -Dfile.encoding=UTF8 -Dnop.orm.check-entity-loop-dependency=false -jar ../target/nop-cli-2.0.0-BETA.1.jar reverse-db ddd -c=com.mysql.cj.jdbc.Driver --username=nop --password=nop-test --jdbcUrl="jdbc:mysql://127.0.0.1:3306/ddd?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC"

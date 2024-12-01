@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:extends="_demo-ddd.action-auth.xml" x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <site id="main"/>
+</auth>

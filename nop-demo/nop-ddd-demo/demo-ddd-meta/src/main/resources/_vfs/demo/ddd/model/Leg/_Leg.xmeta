@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="航段" i18n-en:displayName="Leg" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>app.demo.ddd.entity.Leg</entityName>
+
+    <primaryKey>id</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="id" displayName="Id" propId="1" i18n-en:displayName="Id" tagSet="X" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" graphql:type="String">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="loadTime" displayName="装货时间" propId="2" i18n-en:displayName="LoadTime" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.time.LocalDateTime"/>
+        </prop>
+        <prop name="unloadTime" displayName="卸货时间" propId="3" i18n-en:displayName="UnloadTime" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.time.LocalDateTime"/>
+        </prop>
+        <prop name="loadLocationId" displayName="装货地点" propId="4" i18n-en:displayName="LoadLocationId" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="loadLocation">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="unloadLocationId" displayName="卸货地点" propId="5" i18n-en:displayName="UnloadLocationId"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="unloadLocation">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="voyageId" displayName="航程ID" propId="6" i18n-en:displayName="VoyageId" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="voyage">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="cargoId" displayName="货物ID" propId="7" i18n-en:displayName="CargoId" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="cargo">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="loadLocation" displayName="装货地点" i18n-en:displayName="Load Location" tagSet="pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="loadLocationId" ext:joinRightProp="id"
+              insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="Location"/>
+        </prop>
+        <prop name="cargo" displayName="货物" i18n-en:displayName="Cargo" tagSet="pub" ext:kind="to-one" internal="true"
+              queryable="true" ext:joinLeftProp="cargoId" ext:joinRightProp="id" insertable="false" updatable="false"
+              lazy="true">
+            <schema bizObjName="Cargo"/>
+        </prop>
+        <prop name="voyage" displayName="航程" i18n-en:displayName="Voyage" tagSet="pub" ext:kind="to-one" internal="true"
+              queryable="true" ext:joinLeftProp="voyageId" ext:joinRightProp="id" insertable="false" updatable="false"
+              lazy="true">
+            <schema bizObjName="Voyage"/>
+        </prop>
+        <prop name="unloadLocation" displayName="卸载地点" i18n-en:displayName="Unload Location" tagSet="pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="unloadLocationId"
+              ext:joinRightProp="id" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="Location"/>
+        </prop>
+    </props>
+</meta>

@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="Cargo" xmlns:i18n-en="i18n-en" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+
+    <objMeta>/demo/ddd/model/Cargo/Cargo.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--Id-->
+                <col id="id" mandatory="true" sortable="true"/>
+
+                <!--计算时间-->
+                <col id="calculatedAt" sortable="true"/>
+
+                <!--预计到达时间-->
+                <col id="eta" sortable="true"/>
+
+                <!--目的地卸载时间-->
+                <col id="unloadedAtDest" sortable="true"/>
+
+                <!--路线错误-->
+                <col id="misdirected" sortable="true"/>
+
+                <!--下一步预期处理事件类型-->
+                <col id="nextExpectedHandlingEventType" sortable="true"/>
+
+                <!--路由状态-->
+                <col id="routingStatus" sortable="true"/>
+
+                <!--运输状态-->
+                <col id="transportStatus" sortable="true"/>
+
+                <!--指定到达期限-->
+                <col id="specArrivalDeadline" mandatory="true" sortable="true"/>
+
+                <!--跟踪ID-->
+                <col id="trackingId" sortable="true"/>
+
+                <!--当前航程ID-->
+                <col id="currentVoyageId" sortable="true"/>
+
+                <!--最后事件ID-->
+                <col id="lastEventId" sortable="true"/>
+
+                <!--最后已知位置ID-->
+                <col id="lastKnownLocationId" sortable="true"/>
+
+                <!--下一个预期位置ID-->
+                <col id="nextExpectedLocationId" sortable="true"/>
+
+                <!--下一个预期航程ID-->
+                <col id="nextExpectedVoyageId" sortable="true"/>
+
+                <!--出发地ID-->
+                <col id="originId" sortable="true"/>
+
+                <!--指定目的地ID-->
+                <col id="specDestinationId" sortable="true"/>
+
+                <!--指定出发地ID-->
+                <col id="specOriginId" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-货物" i18n-en:title="View Cargo">
+            <layout>
+ id[Id] calculatedAt[计算时间]
+ eta[预计到达时间] unloadedAtDest[目的地卸载时间]
+ misdirected[路线错误] nextExpectedHandlingEventType[下一步预期处理事件类型]
+ routingStatus[路由状态] transportStatus[运输状态]
+ specArrivalDeadline[指定到达期限] trackingId[跟踪ID]
+ currentVoyageId[当前航程ID] lastEventId[最后事件ID]
+ lastKnownLocationId[最后已知位置ID] nextExpectedLocationId[下一个预期位置ID]
+ nextExpectedVoyageId[下一个预期航程ID] originId[出发地ID]
+ specDestinationId[指定目的地ID] specOriginId[指定出发地ID]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-货物" i18n-en:title="Add Cargo" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-货物" i18n-en:title="Edit Cargo">
+            <layout>
+ id[Id] calculatedAt[计算时间]
+ eta[预计到达时间] unloadedAtDest[目的地卸载时间]
+ misdirected[路线错误] nextExpectedHandlingEventType[下一步预期处理事件类型]
+ routingStatus[路由状态] transportStatus[运输状态]
+ specArrivalDeadline[指定到达期限] trackingId[跟踪ID]
+ currentVoyageId[当前航程ID] lastEventId[最后事件ID]
+ lastKnownLocationId[最后已知位置ID] nextExpectedLocationId[下一个预期位置ID]
+ nextExpectedVoyageId[下一个预期航程ID] originId[出发地ID]
+ specDestinationId[指定目的地ID] specOriginId[指定出发地ID]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-货物" i18n-en:title="Update Cargo"/>
+    </forms>
+
+    <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:Cargo__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:Cargo__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:Cargo__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:Cargo__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:Cargo__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table noOperations="true">
+                <api url="@query:Cargo__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:Cargo__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:Cargo__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:Cargo__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:Cargo__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

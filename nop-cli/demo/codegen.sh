@@ -1,0 +1,1 @@
+java -Dfile.encoding=UTF8 -jar ../target/nop-cli-2.0.0-BETA.1.jar gen -t=v:/nop/templates/orm ../../nop-demo/nop-ddd-demo/model/demo-ddd.orm.xlsx -o=target

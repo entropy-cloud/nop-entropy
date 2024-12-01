@@ -1,0 +1,77 @@
+entity:
+  label:
+    Cargo: 货物
+    CarrierMovement: 运输动作
+    HandlingEvent: 业务时间
+    Leg: 航段
+    Location: 位置
+    Voyage: 航程
+prop:
+  label:
+    Cargo:
+      calculatedAt: 计算时间
+      currentVoyage: 当前航程
+      currentVoyageId: 当前航程ID
+      eta: 预计到达时间
+      id: Id
+      lastEvent: 最后事件
+      lastEventId: 最后事件ID
+      lastKnownLocation: 最后已知位置
+      lastKnownLocationId: 最后已知位置ID
+      misdirected: 路线错误
+      nextExpectedHandlingEventType: 下一步预期处理事件类型
+      nextExpectedLocation: 下一个预期位置
+      nextExpectedLocationId: 下一个预期位置ID
+      nextExpectedVoyage: 下一个预期航程
+      nextExpectedVoyageId: 下一个预期航程ID
+      origin: 出发地
+      originId: 出发地ID
+      routingStatus: 路由状态
+      specArrivalDeadline: 指定到达期限
+      specDestination: 指定目的地
+      specDestinationId: 指定目的地ID
+      specOrigin: 指定出发地
+      specOriginId: 指定出发地ID
+      trackingId: 跟踪ID
+      transportStatus: 运输状态
+      unloadedAtDest: 目的地卸载时间
+    CarrierMovement:
+      arrivalLocation: 到达地点
+      arrivalLocationId: 到达地点ID
+      arrivalTime: 到达时间
+      departureLocation: 出发地点
+      departureLocationId: 出发地点ID
+      departureTime: 出发时间
+      id: Id
+      voyage: 航程
+      voyageId: 航程ID
+    HandlingEvent:
+      cargo: 货物
+      cargoId: 货物ID
+      completionTime: 完成时间
+      id: Id
+      location: 位置
+      locationId: 位置ID
+      registrationTime: 注册时间
+      type: 类型
+      voyage: 航程
+      voyageId: 航程ID
+    Leg:
+      cargo: 货物
+      cargoId: 货物ID
+      id: Id
+      loadLocation: 装货地点
+      loadLocationId: 装货地点
+      loadTime: 装货时间
+      unloadLocation: 卸载地点
+      unloadLocationId: 卸货地点
+      unloadTime: 卸货时间
+      voyage: 航程
+      voyageId: 航程ID
+    Location:
+      id: Id
+      name: 名称
+      unlocode: UN编码
+    Voyage:
+      id: Id
+      voyageNumber: 航程号

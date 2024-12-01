@@ -1,0 +1,13 @@
+{
+  "id": 0,
+  "loadTime": "2000-01-01 14:00:00",
+  "unloadTime": "2000-01-01 14:00:00",
+  "loadLocationId": 0,
+  "unloadLocationId": 0,
+  "voyageId": 0,
+  "cargoId": 0,
+  "loadLocation": null,
+  "cargo": null,
+  "voyage": null,
+  "unloadLocation": null
+}

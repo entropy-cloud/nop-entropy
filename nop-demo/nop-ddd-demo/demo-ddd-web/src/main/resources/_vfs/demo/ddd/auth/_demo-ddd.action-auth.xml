@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<auth x:schema="/nop/schema/action-auth.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en">
+
+    <site id="main">
+        <resource id="test-orm-demo-ddd" displayName="测试demo-ddd" icon="ion:grid-outline" resourceType="TOPM"
+                  orderNo="10000" routePath="/test-orm-demo-ddd" component="layouts/default/index">
+            <children>
+                <resource id="Cargo-main" displayName="货物" orderNo="10001" i18n-en:displayName="Cargo"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/demo/ddd/pages/Cargo/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:Cargo:query" displayName="查询货物" orderNo="10002" resourceType="FNPT">
+                            <permissions>Cargo:query</permissions>
+                        </resource>
+                        <resource id="FNPT:Cargo:mutation" displayName="修改货物" orderNo="10003" resourceType="FNPT">
+                            <permissions>Cargo:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="CarrierMovement-main" displayName="运输动作" orderNo="10004"
+                          i18n-en:displayName="Carrier Movement" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/demo/ddd/pages/CarrierMovement/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:CarrierMovement:query" displayName="查询运输动作" orderNo="10005"
+                                  resourceType="FNPT">
+                            <permissions>CarrierMovement:query</permissions>
+                        </resource>
+                        <resource id="FNPT:CarrierMovement:mutation" displayName="修改运输动作" orderNo="10006"
+                                  resourceType="FNPT">
+                            <permissions>CarrierMovement:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="HandlingEvent-main" displayName="业务时间" orderNo="10007"
+                          i18n-en:displayName="Handling Event" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/demo/ddd/pages/HandlingEvent/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:HandlingEvent:query" displayName="查询业务时间" orderNo="10008" resourceType="FNPT">
+                            <permissions>HandlingEvent:query</permissions>
+                        </resource>
+                        <resource id="FNPT:HandlingEvent:mutation" displayName="修改业务时间" orderNo="10009"
+                                  resourceType="FNPT">
+                            <permissions>HandlingEvent:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="Leg-main" displayName="航段" orderNo="10010" i18n-en:displayName="Leg"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/demo/ddd/pages/Leg/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:Leg:query" displayName="查询航段" orderNo="10011" resourceType="FNPT">
+                            <permissions>Leg:query</permissions>
+                        </resource>
+                        <resource id="FNPT:Leg:mutation" displayName="修改航段" orderNo="10012" resourceType="FNPT">
+                            <permissions>Leg:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="Location-main" displayName="位置" orderNo="10013" i18n-en:displayName="Location"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/demo/ddd/pages/Location/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:Location:query" displayName="查询位置" orderNo="10014" resourceType="FNPT">
+                            <permissions>Location:query</permissions>
+                        </resource>
+                        <resource id="FNPT:Location:mutation" displayName="修改位置" orderNo="10015" resourceType="FNPT">
+                            <permissions>Location:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="Voyage-main" displayName="航程" orderNo="10016" i18n-en:displayName="Voyage"
+                          icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
+                          url="/demo/ddd/pages/Voyage/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:Voyage:query" displayName="查询航程" orderNo="10017" resourceType="FNPT">
+                            <permissions>Voyage:query</permissions>
+                        </resource>
+                        <resource id="FNPT:Voyage:mutation" displayName="修改航程" orderNo="10018" resourceType="FNPT">
+                            <permissions>Voyage:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+            </children>
+        </resource>
+    </site>
+</auth>

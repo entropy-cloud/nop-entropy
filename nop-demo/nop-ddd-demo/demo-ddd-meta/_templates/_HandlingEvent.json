@@ -1,0 +1,12 @@
+{
+  "id": 0,
+  "completionTime": "2000-01-01 14:00:00",
+  "registrationTime": "2000-01-01 14:00:00",
+  "type": "",
+  "cargoId": 0,
+  "locationId": 0,
+  "voyageId": 0,
+  "cargo": null,
+  "voyage": null,
+  "location": null
+}

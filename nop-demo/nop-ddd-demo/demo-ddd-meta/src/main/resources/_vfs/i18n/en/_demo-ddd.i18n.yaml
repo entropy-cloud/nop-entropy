@@ -1,0 +1,77 @@
+entity:
+  label:
+    Cargo: Cargo
+    CarrierMovement: Carrier Movement
+    HandlingEvent: Handling Event
+    Leg: Leg
+    Location: Location
+    Voyage: Voyage
+prop:
+  label:
+    Cargo:
+      id: Id
+      calculatedAt: CalculatedAt
+      eta: Eta
+      unloadedAtDest: UnloadedAtDest
+      misdirected: Misdirected
+      nextExpectedHandlingEventType: NextExpectedHandlingEventType
+      routingStatus: RoutingStatus
+      transportStatus: TransportStatus
+      specArrivalDeadline: SpecArrivalDeadline
+      trackingId: TrackingId
+      currentVoyageId: CurrentVoyageId
+      lastEventId: LastEventId
+      lastKnownLocationId: LastKnownLocationId
+      nextExpectedLocationId: NextExpectedLocationId
+      nextExpectedVoyageId: NextExpectedVoyageId
+      originId: OriginId
+      specDestinationId: SpecDestinationId
+      specOriginId: SpecOriginId
+      nextExpectedVoyage: Next Expected Voyage
+      specDestination: Spec Destination
+      origin: Origin
+      lastEvent: Last Event
+      lastKnownLocation: Last Known Location
+      currentVoyage: Current Voyage
+      nextExpectedLocation: Next Expected Location
+      specOrigin: Spec Origin
+    CarrierMovement:
+      id: Id
+      arrivalTime: ArrivalTime
+      departureTime: DepartureTime
+      arrivalLocationId: ArrivalLocationId
+      departureLocationId: DepartureLocationId
+      voyageId: VoyageId
+      voyage: Voyage
+      departureLocation: Departure Location
+      arrivalLocation: Arrival Location
+    HandlingEvent:
+      id: Id
+      completionTime: CompletionTime
+      registrationTime: RegistrationTime
+      type: Type
+      cargoId: CargoId
+      locationId: LocationId
+      voyageId: VoyageId
+      cargo: Cargo
+      voyage: Voyage
+      location: Location
+    Leg:
+      id: Id
+      loadTime: LoadTime
+      unloadTime: UnloadTime
+      loadLocationId: LoadLocationId
+      unloadLocationId: UnloadLocationId
+      voyageId: VoyageId
+      cargoId: CargoId
+      loadLocation: Load Location
+      cargo: Cargo
+      voyage: Voyage
+      unloadLocation: Unload Location
+    Location:
+      id: Id
+      name: Name
+      unlocode: Unlocode
+    Voyage:
+      id: Id
+      voyageNumber: VoyageNumber

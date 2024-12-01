@@ -34,6 +34,7 @@
         <module>nop-delta-demo</module>
         <module>nop-delta-lib</module>
         <module>nop-jdk17-demo</module>
+        <module>nop-ddd-demo</module>
     </modules>
 
 </project>

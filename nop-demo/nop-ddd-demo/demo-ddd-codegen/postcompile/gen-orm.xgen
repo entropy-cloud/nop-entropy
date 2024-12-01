@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<c:script>
+// 根据ORM模型生成dao/entity/xbiz
+codeGenerator.withTargetDir("../").renderModel('../../model/demo-ddd.orm.xlsx','/nop/templates/orm', '/',$scope);
+codeGenerator.withTargetDir("../demo-ddd-dao/src/main/java").renderModel('../../demo-ddd-dao/src/main/resources/_vfs/demo/ddd/orm/app.orm.xml',
+    '/nop/templates/orm-entity','/',$scope);
+</c:script>

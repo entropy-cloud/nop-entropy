@@ -1,0 +1,11 @@
+{
+  "id": 0,
+  "arrivalTime": "2000-01-01 14:00:00",
+  "departureTime": "2000-01-01 14:00:00",
+  "arrivalLocationId": 0,
+  "departureLocationId": 0,
+  "voyageId": 0,
+  "voyage": null,
+  "departureLocation": null,
+  "arrivalLocation": null
+}

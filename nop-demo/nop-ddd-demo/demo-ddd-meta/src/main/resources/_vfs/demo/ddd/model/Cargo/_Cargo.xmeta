@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="货物" i18n-en:displayName="Cargo" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>app.demo.ddd.entity.Cargo</entityName>
+
+    <primaryKey>id</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys>
+        <key name="UK_TRACKING_ID" props="trackingId"/>
+    </keys>
+
+    <props>
+        <prop name="id" displayName="Id" propId="1" i18n-en:displayName="Id" tagSet="X" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" graphql:type="String">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="calculatedAt" displayName="计算时间" propId="2" i18n-en:displayName="CalculatedAt" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.time.LocalDateTime"/>
+        </prop>
+        <prop name="eta" displayName="预计到达时间" propId="3" i18n-en:displayName="Eta" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.time.LocalDateTime"/>
+        </prop>
+        <prop name="unloadedAtDest" displayName="目的地卸载时间" propId="4" i18n-en:displayName="UnloadedAtDest"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="misdirected" displayName="路线错误" propId="5" i18n-en:displayName="Misdirected" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="nextExpectedHandlingEventType" displayName="下一步预期处理事件类型" propId="6"
+              i18n-en:displayName="NextExpectedHandlingEventType" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="255"/>
+        </prop>
+        <prop name="routingStatus" displayName="路由状态" propId="7" i18n-en:displayName="RoutingStatus" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="255"/>
+        </prop>
+        <prop name="transportStatus" displayName="运输状态" propId="8" i18n-en:displayName="TransportStatus"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="255"/>
+        </prop>
+        <prop name="specArrivalDeadline" displayName="指定到达期限" propId="9" i18n-en:displayName="SpecArrivalDeadline"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.time.LocalDateTime"/>
+        </prop>
+        <prop name="trackingId" displayName="跟踪ID" propId="10" i18n-en:displayName="TrackingId" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="255"/>
+        </prop>
+        <prop name="currentVoyageId" displayName="当前航程ID" propId="11" i18n-en:displayName="CurrentVoyageId"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="currentVoyage">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="lastEventId" displayName="最后事件ID" propId="12" i18n-en:displayName="LastEventId" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="lastEvent">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="lastKnownLocationId" displayName="最后已知位置ID" propId="13" i18n-en:displayName="LastKnownLocationId"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="lastKnownLocation">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="nextExpectedLocationId" displayName="下一个预期位置ID" propId="14"
+              i18n-en:displayName="NextExpectedLocationId" queryable="true" sortable="true" insertable="true"
+              updatable="true" ext:relation="nextExpectedLocation">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="nextExpectedVoyageId" displayName="下一个预期航程ID" propId="15" i18n-en:displayName="NextExpectedVoyageId"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="nextExpectedVoyage">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="originId" displayName="出发地ID" propId="16" i18n-en:displayName="OriginId" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="origin">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="specDestinationId" displayName="指定目的地ID" propId="17" i18n-en:displayName="SpecDestinationId"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="specDestination">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="specOriginId" displayName="指定出发地ID" propId="18" i18n-en:displayName="SpecOriginId" queryable="true"
+              sortable="true" insertable="true" updatable="true" ext:relation="specOrigin">
+            <schema type="java.lang.Long"/>
+        </prop>
+        <prop name="nextExpectedVoyage" displayName="下一个预期航程" i18n-en:displayName="Next Expected Voyage" tagSet="pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="nextExpectedVoyageId"
+              ext:joinRightProp="id" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="Voyage"/>
+        </prop>
+        <prop name="specDestination" displayName="指定目的地" i18n-en:displayName="Spec Destination" tagSet="pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="specDestinationId"
+              ext:joinRightProp="id" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="Location"/>
+        </prop>
+        <prop name="origin" displayName="出发地" i18n-en:displayName="Origin" tagSet="pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="originId" ext:joinRightProp="id" insertable="false"
+              updatable="false" lazy="true">
+            <schema bizObjName="Location"/>
+        </prop>
+        <prop name="lastEvent" displayName="最后事件" i18n-en:displayName="Last Event" tagSet="pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="lastEventId" ext:joinRightProp="id" insertable="false"
+              updatable="false" lazy="true">
+            <schema bizObjName="HandlingEvent"/>
+        </prop>
+        <prop name="lastKnownLocation" displayName="最后已知位置" i18n-en:displayName="Last Known Location" tagSet="pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="lastKnownLocationId"
+              ext:joinRightProp="id" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="Location"/>
+        </prop>
+        <prop name="currentVoyage" displayName="当前航程" i18n-en:displayName="Current Voyage" tagSet="pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="currentVoyageId"
+              ext:joinRightProp="id" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="Voyage"/>
+        </prop>
+        <prop name="nextExpectedLocation" displayName="下一个预期位置" i18n-en:displayName="Next Expected Location"
+              tagSet="pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="nextExpectedLocationId"
+              ext:joinRightProp="id" insertable="false" updatable="false" lazy="true">
+            <schema bizObjName="Location"/>
+        </prop>
+        <prop name="specOrigin" displayName="指定出发地" i18n-en:displayName="Spec Origin" tagSet="pub" ext:kind="to-one"
+              internal="true" queryable="true" ext:joinLeftProp="specOriginId" ext:joinRightProp="id" insertable="false"
+              updatable="false" lazy="true">
+            <schema bizObjName="Location"/>
+        </prop>
+    </props>
+</meta>

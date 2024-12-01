@@ -1,0 +1,27 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 运输状态
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 未接收
+    value: NOT_RECEIVED
+    description: 
+  
+  - label: 已到港
+    value: IN_PORT
+    description: 
+  
+  - label: 已装货
+    value: ONBOARD_CARRIER
+    description: 
+  
+  - label: 已认领
+    value: CLAIMED
+    description: 
+  
+  - label: 未知
+    value: UNKNOWN
+    description: 
+  

@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 路由状态
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 未路由
+    value: NOT_ROUTED
+    description: 
+  
+  - label: 已路由
+    value: ROUTED
+    description: 
+  
+  - label: 错误路由
+    value: MISROUTED
+    description: 
+  
