@@ -29,6 +29,7 @@ import io.nop.orm.model.OrmDomainModel;
 import io.nop.orm.model.OrmEntityModel;
 import io.nop.orm.model.OrmJoinOnModel;
 import io.nop.orm.model.OrmModel;
+import io.nop.orm.model.OrmModelConfigs;
 import io.nop.orm.model.OrmModelConstants;
 import io.nop.orm.model.OrmRefSetModel;
 import io.nop.orm.model.OrmReferenceModel;
@@ -489,7 +490,7 @@ public class OrmModelInitializer {
     }
 
     private boolean isDynamicRelation(IEntityRelationModel rel) {
-        if(rel.isDynamicRelation())
+        if (rel.isDynamicRelation())
             return true;
 
         // 左实体没有租户，它关联的实体如果有租户，则不能缓存
@@ -500,7 +501,7 @@ public class OrmModelInitializer {
     }
 
     private boolean isRefColAligned(List<? extends IEntityJoinConditionModel> join, List<? extends IColumnModel> cols) {
-        if(join.size()  != cols.size())
+        if (join.size() != cols.size())
             return false;
 
         for (int i = 0, n = join.size(); i < n; i++) {
@@ -540,7 +541,11 @@ public class OrmModelInitializer {
 
         if (!it.getRemaining().isEmpty()) {
             Set<String> names = it.getRemaining().stream().map(IEntityModel::getName).collect(Collectors.toSet());
-            throw new NopException(ERR_ORM_MODEL_REF_DEPENDS_CONTAINS_LOOP).param(ARG_LOOP_ENTITY_NAMES, names);
+            if (OrmModelConfigs.CFG_ORM_CHECK_ENTITY_LOOP_DEPENDENCY.get()) {
+                throw new NopException(ERR_ORM_MODEL_REF_DEPENDS_CONTAINS_LOOP).param(ARG_LOOP_ENTITY_NAMES, names);
+            } else {
+                LOG.warn("nop.orm.entity-dependency-contains-loop:model={},loopEntityNames={}", ormModel.getLocation(), names);
+            }
         }
     }
 
