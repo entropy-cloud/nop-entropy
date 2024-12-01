@@ -1,4 +1,4 @@
-# 为什么SpringBatch是一个坏的设计？
+# 为什么SpringBatch是一个糟糕的设计？
 
 SpringBatch是目前Java生态中最常用的批处理框架，银行业务中经常使用SpringBatch来实现日终结算和报表输出等功能。SpringBatch的起源是2006年埃森哲（Accenture）将自己的私有批处理框架开源，与SpringSource（Spring Framework 的背后公司）合作发布了Spring Batch 1.0。
 后续SpringBatch的设计也经过多次重构，但是在今天看来已经存在严重的设计问题，对于性能优化、代码复用都极为不友好。本文将分析SpringBatch的设计问题，并结合NopBatch这一新的批处理框架的实现方案来介绍下一代批处理框架的设计思想。
