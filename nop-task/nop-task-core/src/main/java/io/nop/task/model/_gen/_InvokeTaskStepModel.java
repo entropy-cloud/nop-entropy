@@ -32,13 +32,6 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
     
     /**
      *  
-     * xml name: returnAs
-     * 指定bean方法的返回值所对应的返回变量名，缺省为RESULT
-     */
-    private java.lang.String _returnAs ;
-    
-    /**
-     *  
      * xml name: 
      * 
      */
@@ -84,25 +77,6 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
     
     /**
      * 
-     * xml name: returnAs
-     *  指定bean方法的返回值所对应的返回变量名，缺省为RESULT
-     */
-    
-    public java.lang.String getReturnAs(){
-      return _returnAs;
-    }
-
-    
-    public void setReturnAs(java.lang.String value){
-        checkAllowChange();
-        
-        this._returnAs = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: 
      *  
      */
@@ -137,7 +111,6 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
         
         out.putNotNull("bean",this.getBean());
         out.putNotNull("method",this.getMethod());
-        out.putNotNull("returnAs",this.getReturnAs());
         out.putNotNull("type",this.getType());
     }
 
@@ -152,7 +125,6 @@ public abstract class _InvokeTaskStepModel extends io.nop.task.model.TaskStepMod
         
         instance.setBean(this.getBean());
         instance.setMethod(this.getMethod());
-        instance.setReturnAs(this.getReturnAs());
         instance.setType(this.getType());
     }
 

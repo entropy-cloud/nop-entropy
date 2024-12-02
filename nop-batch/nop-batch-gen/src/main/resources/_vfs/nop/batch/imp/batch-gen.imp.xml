@@ -9,7 +9,7 @@
         const subCaseMap = {}
 
         function normalizeCase(subCase){
-           subCase.subCases = subCase.subCases?.map(caseItem=>{
+           subCase.subCases?.map(caseItem=>{
               caseItem.subCases?.map(caseName=>{
                  return $.notNull(subCaseMap[caseName],"invalid caseName:"+caseName);
               });
@@ -17,13 +17,15 @@
            });
         }
 
-        rootRecord.subCases.$('sss')?.forEach(subCase=>{
+        rootRecord.subCaseMap?.forEach(subCase=>{
           subCaseMap[subCase.name] = subCase;
         });
 
         rootRecord.subCaseMap?.forEach(normalizeCase);
 
         rootRecord.removeProp('subCaseMap');
+
+        normalizeCase(rootRecord);
 
     ]]></normalizeFieldsExpr>
 

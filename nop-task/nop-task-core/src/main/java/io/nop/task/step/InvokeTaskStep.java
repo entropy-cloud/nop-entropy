@@ -8,7 +8,6 @@
 package io.nop.task.step;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreErrors;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.IClassModel;
@@ -18,9 +17,7 @@ import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
 import jakarta.annotation.Nonnull;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CompletionStage;
 
 import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
 import static io.nop.core.CoreErrors.ARG_COUNT;
@@ -32,8 +29,6 @@ public class InvokeTaskStep extends AbstractTaskStep {
 
     private List<String> argNames;
 
-    private String returnAs;
-
     public void setBeanName(String beanName) {
         this.beanName = beanName;
     }
@@ -44,14 +39,6 @@ public class InvokeTaskStep extends AbstractTaskStep {
 
     public void setArgNames(List<String> argNames) {
         this.argNames = argNames;
-    }
-
-    public String getReturnAs() {
-        return returnAs;
-    }
-
-    public void setReturnAs(String returnAs) {
-        this.returnAs = returnAs;
     }
 
     @Nonnull
@@ -73,15 +60,6 @@ public class InvokeTaskStep extends AbstractTaskStep {
                     .param(ARG_COUNT, args.length);
 
         Object returnValue = method.invoke(bean, args, scope);
-        if (StringHelper.isEmpty(returnAs)) {
-            return TaskStepReturn.of(null, returnValue);
-        } else {
-            if (returnValue instanceof CompletionStage) {
-                return TaskStepReturn.of(null, ((CompletionStage) returnValue).thenApply(
-                        v -> Collections.singletonMap(returnAs, v)));
-            } else {
-                return TaskStepReturn.RETURN(Collections.singletonMap(returnAs, returnValue));
-            }
-        }
+        return makeReturn(returnValue);
     }
 }

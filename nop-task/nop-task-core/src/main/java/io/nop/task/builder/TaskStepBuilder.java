@@ -393,5 +393,6 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         step.setInputs(stepModel.getInputs());
         step.setOutputs(stepModel.getOutputs());
         step.setConcurrent(stepModel.isConcurrent());
+        step.setReturnAs(stepModel.getReturnAs());
     }
 }

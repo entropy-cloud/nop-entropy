@@ -23,6 +23,6 @@ public class EvalTaskStep extends AbstractTaskStep {
     @Override
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         Object result = source.invoke(stepRt);
-        return TaskStepReturn.of(null, result);
+        return makeReturn(result);
     }
 }

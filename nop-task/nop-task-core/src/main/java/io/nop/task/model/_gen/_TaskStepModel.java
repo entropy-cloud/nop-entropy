@@ -88,6 +88,13 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      *  
+     * xml name: returnAs
+     * 
+     */
+    private java.lang.String _returnAs ;
+    
+    /**
+     *  
      * xml name: runOnContext
      * 指定本步骤中的操作都使用IContext.runOnContext来执行
      */
@@ -327,6 +334,25 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      * 
+     * xml name: returnAs
+     *  
+     */
+    
+    public java.lang.String getReturnAs(){
+      return _returnAs;
+    }
+
+    
+    public void setReturnAs(java.lang.String value){
+        checkAllowChange();
+        
+        this._returnAs = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: runOnContext
      *  指定本步骤中的操作都使用IContext.runOnContext来执行
      */
@@ -483,6 +509,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         out.putNotNull("next",this.getNext());
         out.putNotNull("nextOnError",this.getNextOnError());
         out.putNotNull("recordMetrics",this.isRecordMetrics());
+        out.putNotNull("returnAs",this.getReturnAs());
         out.putNotNull("runOnContext",this.isRunOnContext());
         out.putNotNull("saveState",this.getSaveState());
         out.putNotNull("sync",this.isSync());
@@ -511,6 +538,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         instance.setNext(this.getNext());
         instance.setNextOnError(this.getNextOnError());
         instance.setRecordMetrics(this.isRecordMetrics());
+        instance.setReturnAs(this.getReturnAs());
         instance.setRunOnContext(this.isRunOnContext());
         instance.setSaveState(this.getSaveState());
         instance.setSync(this.isSync());

@@ -7,6 +7,9 @@ quarkus:
         level: INFO
 
 nop:
+  orm:
+    init-database-schema: true
+
   datasource:
     driver-class-name: org.h2.Driver
     jdbc-url: jdbc:h2:mem:test

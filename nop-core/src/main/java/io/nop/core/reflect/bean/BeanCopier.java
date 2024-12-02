@@ -279,6 +279,9 @@ public class BeanCopier implements IBeanCopier {
 
     private Object _buildBean(Object src, IGenericType targetType, FieldSelectionBean selection,
                               BeanCopyOptions options) {
+        if(src == null)
+            return null;
+
         Object target = options.getMappedObj(src);
         if (target != null)
             return target;

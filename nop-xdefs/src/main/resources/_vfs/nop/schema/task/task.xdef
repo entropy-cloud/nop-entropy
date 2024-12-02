@@ -126,7 +126,8 @@
                  tagSet="csv-set" name="var-name" sync="!boolean=false" extType="xml-name"
                  allowStartIfComplete="!boolean=false" internal="!boolean=false" errorName="var-name"
                  runOnContext="!boolean=false" waitSteps="csv-set" waitErrorSteps="csv-set"
-                 ignoreResult="!boolean=false" graphql:operationType="string" recordMetrics="!boolean=false"
+                 returnAs="var-name" ignoreResult="!boolean=false"
+                 graphql:operationType="string" recordMetrics="!boolean=false"
                  next="string" nextOnError="string" saveState="boolean" useParentScope="!boolean=false">
     </xdef:define>
 
