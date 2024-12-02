@@ -1,0 +1,28 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-base.task.xml"
+      xmlns:task="task" x:dump="true">
+
+    <input name="totalCount" type="int"/>
+    <input name="taskKey" type="String"/>
+
+    <steps>
+        <custom name="createCard" customType="batch:Execute" useParentScope="true"
+                xmlns:batch="/nop/batch/xlib/batch.xlib">
+            <batch:task taskName="demo.createCard" batchSize="100" saveState="true">
+                <taskKeyExpr>taskKey</taskKeyExpr>
+
+                <loader>
+                    <generator genModelPath="create-card.batch-gen.xlsx" totalCountExpr="totalCount"/>
+                </loader>
+
+                <processor name="callCreateCardTask">
+                    <source>
+                        <task:Execute taskName="demo/create-card" inputs="${{request:item,consume}}"
+                            xpl:lib="/nop/task/xlib/task.xlib"/>
+                    </source>
+                </processor>
+
+            </batch:task>
+        </custom>
+    </steps>
+</task>

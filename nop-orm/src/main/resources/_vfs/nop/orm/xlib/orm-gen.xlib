@@ -9,6 +9,7 @@
         <DefaultPostExtends outputMode="xml">
             <attr name="_dsl_root" implicit="true"/>
             <source>
+                <thisLib:ForceDynamicEntitySupport/>
                 <thisLib:DelTagSupport />
                 <thisLib:JsonComponentSupport/>
                 <thisLib:XmlComponentSupport/>
@@ -17,6 +18,21 @@
                 <thisLib:TenantSupport feature:on="nop.orm.enable-tenant-by-default"/>
             </source>
         </DefaultPostExtends>
+
+        <ForceDynamicEntitySupport outputMode="none">
+            <attr name="_dsl_root" implicit="true" />
+            <source><![CDATA[
+               if(_dsl_root.attrBoolean('orm:forceDynamicEntity')){
+                  _dsl_root.childByTag('entities').forEachChild(entityNode=>{
+                     if(entityNode.attrCsvSet('tagSet')?.contains('kv-table')){
+                        entityNode.setAttr('className', 'io.nop.orm.support.DynamicOrmKeyValueTable');
+                     }else{
+                        entityNode.setAttr('className','io.nop.orm.support.DynamicOrmEntity');
+                     }
+                  });
+               }
+            ]]></source>
+        </ForceDynamicEntitySupport>
 
         <ForceUseIdSupport outputMode="none">
             <attr name="_dsl_root" implicit="true" />

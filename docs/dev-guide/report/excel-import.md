@@ -14,7 +14,7 @@
 
 ## 配置说明
 
-## 如果解析列表
+## 如何解析列表
 
 * sheet或者field上标注list=true，表示将会解析得到一个列表
 * 列表的第一列必须是数字列，不要求编号唯一，也不要求编号列在字段列表中定义。它仅仅被用于确定列表行的范围。
@@ -23,7 +23,7 @@
 
 ```xml
 <sheet name="ss" namePattern=".*" multiple="true" multipleAsMap="true" field="ss">
-    
+
 </sheet>
 ```
 
@@ -45,7 +45,7 @@
 ExcelReportHelper中提供了根据导入的业务数据自动生成html或者xlsx文件的方法。
 
 ```javascript
-    Object bean = ExcelHelper.loadXlsxObject("/nop/test/imp/test5.imp.xml", resource);    
+    Object bean = ExcelHelper.loadXlsxObject("/nop/test/imp/test5.imp.xml", resource);
     String html = ExcelReportHelper.getHtmlForXlsxObject(impModelPath, bean, scope);
     ExcelReportHelper.saveXlsxObject(impModelPath, resource, bean);
 ```
@@ -66,7 +66,7 @@ ExcelReportHelper中提供了根据导入的业务数据自动生成html或者xl
 <field name="columns" displayName="项目指标" list="true">
     <fields>
         <field name="name" displayName="指标" mandatory="true"/>
-        
+
         <field name="indexValue" displayName="X年指标" virtual="true">
             <schema stdDomain="int"/>
             <valueExpr>
@@ -88,7 +88,7 @@ ExcelReportHelper中提供了根据导入的业务数据自动生成html或者xl
 
             <xpt:valueExpr>
                 _.findWhere(cell.rp.ev.indexValues,'year',cell.cp.ev.$toInt()).value
-            </xpt:valueExpr>            
+            </xpt:valueExpr>
         </field>
 
     </fields>
@@ -201,17 +201,20 @@ ExcelReportHelper中提供了根据导入的业务数据自动生成html或者xl
 如果要使用Nop平台的Excel导入导出功能，只需要在pom文件中引入如下模块
 
 ```xml
-        <!-- 实现Nop平台与spring框架的集成，不依赖于数据库，不依赖Web环境 -->
-<dependency>
+
+<dependencies>
+  <!-- 实现Nop平台与spring框架的集成，不依赖于数据库，不依赖Web环境 -->
+  <dependency>
     <groupId>io.github.entropy-cloud</groupId>
     <artifactId>nop-spring-core-starter</artifactId>
-</dependency>
+  </dependency>
 
-        <!-- Excel解析和报表引擎支持 -->
-<dependency>
-<groupId>io.github.entropy-cloud</groupId>
-<artifactId>nop-report-core</artifactId>
-</dependency>
+  <!-- Excel解析和报表引擎支持 -->
+  <dependency>
+    <groupId>io.github.entropy-cloud</groupId>
+    <artifactId>nop-report-core</artifactId>
+  </dependency>
+</dependencies>
 
 ```
 

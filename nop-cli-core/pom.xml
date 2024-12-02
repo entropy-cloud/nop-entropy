@@ -100,6 +100,11 @@
             <artifactId>nop-task-core</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-batch-dsl</artifactId>
+        </dependency>
+
         <!--    <dependency>-->
         <!--      <groupId>io.quarkus</groupId>-->
         <!--      <artifactId>quarkus-resteasy-reactive</artifactId>-->

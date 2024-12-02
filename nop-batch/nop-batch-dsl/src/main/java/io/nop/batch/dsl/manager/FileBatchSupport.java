@@ -34,8 +34,8 @@ public class FileBatchSupport {
         loader.setResourceLoader(resourceLoader);
         loader.setSaveState(Boolean.TRUE.equals(saveState));
 
-        if (loaderModel.getMaxCount() != null)
-            loader.setMaxCount(loaderModel.getMaxCount());
+        if (loaderModel.getMaxCountExpr() != null)
+            loader.setMaxCountExpr(loaderModel.getMaxCountExpr());
         loader.setPathExpr(loaderModel.getFilePath());
         loader.setEncoding(loaderModel.getEncoding());
         loader.setAggregator(aggregator);

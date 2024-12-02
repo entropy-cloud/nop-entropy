@@ -186,6 +186,13 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     private io.nop.batch.core.BatchTransactionScope _transactionScope ;
     
     /**
+     *  
+     * xml name: useBatchRequestGenerator
+     * 
+     */
+    private boolean _useBatchRequestGenerator  = false;
+    
+    /**
      * 
      * xml name: allowStartIfComplete
      *  
@@ -720,6 +727,25 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     }
 
     
+    /**
+     * 
+     * xml name: useBatchRequestGenerator
+     *  
+     */
+    
+    public boolean isUseBatchRequestGenerator(){
+      return _useBatchRequestGenerator;
+    }
+
+    
+    public void setUseBatchRequestGenerator(boolean value){
+        checkAllowChange();
+        
+        this._useBatchRequestGenerator = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -777,6 +803,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         out.putNotNull("taskName",this.getTaskName());
         out.putNotNull("taskVersion",this.getTaskVersion());
         out.putNotNull("transactionScope",this.getTransactionScope());
+        out.putNotNull("useBatchRequestGenerator",this.isUseBatchRequestGenerator());
     }
 
     public BatchTaskModel cloneInstance(){
@@ -812,6 +839,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         instance.setTaskName(this.getTaskName());
         instance.setTaskVersion(this.getTaskVersion());
         instance.setTransactionScope(this.getTransactionScope());
+        instance.setUseBatchRequestGenerator(this.isUseBatchRequestGenerator());
     }
 
     protected BatchTaskModel newInstance(){

@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-     xmlns:i18n-en="i18n-en">
+	 orm:forceDynamicEntity="true"
+     xmlns:i18n-en="i18n-en" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:orm="orm">
 	 <x:gen-extends>
-		<orm-gen:GenModelFromExcel path="demo.orm.xlsx" />
+		<orm-gen:GenModelFromExcel path="demo.orm.xlsx" xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
 	 </x:gen-extends>
 </orm>	 	 

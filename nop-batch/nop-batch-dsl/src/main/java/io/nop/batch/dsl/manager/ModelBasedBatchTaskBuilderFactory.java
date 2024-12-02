@@ -22,17 +22,21 @@ import io.nop.batch.core.processor.FilterBatchProcessor;
 import io.nop.batch.core.processor.MultiBatchProcessorProvider;
 import io.nop.batch.dsl.model.BatchChunkProcessorBuilderModel;
 import io.nop.batch.dsl.model.BatchConsumerModel;
+import io.nop.batch.dsl.model.BatchGeneratorModel;
 import io.nop.batch.dsl.model.BatchListenersModel;
 import io.nop.batch.dsl.model.BatchLoaderModel;
 import io.nop.batch.dsl.model.BatchOrmWriterModel;
 import io.nop.batch.dsl.model.BatchProcessorModel;
 import io.nop.batch.dsl.model.BatchTaggerModel;
 import io.nop.batch.dsl.model.BatchTaskModel;
+import io.nop.batch.gen.loader.BatchGenLoaderProvider;
 import io.nop.commons.collections.OrderByComparator;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.retry.IRetryPolicy;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.INamedSqlBuilder;
 import io.nop.dao.jdbc.IJdbcTemplate;
@@ -93,6 +97,7 @@ public class ModelBasedBatchTaskBuilderFactory {
         builder.taskKeyExpr(batchTaskModel.getTaskKeyExpr());
         builder.allowStartIfComplete(batchTaskModel.getAllowStartIfComplete());
         builder.startLimit(batchTaskModel.getStartLimit());
+        builder.useBatchRequestGenerator(batchTaskModel.isUseBatchRequestGenerator());
 
         builder.batchSize(batchTaskModel.getBatchSize());
         if (batchTaskModel.getJitterRatio() != null)
@@ -257,12 +262,24 @@ public class ModelBasedBatchTaskBuilderFactory {
             return newJdbcReader(loaderModel.getJdbcReader(), beanProvider, jdbcTemplate, sqlLibManager);
         } else if (loaderModel.getOrmReader() != null) {
             return newOrmReader(loaderModel.getOrmReader(), daoProvider);
+        } else if (loaderModel.getGenerator() != null) {
+            return newGenerator(loaderModel.getGenerator());
         } else if (loaderModel.getSource() != null) {
             return context -> (batchSize, ctx) -> (List<Object>) loaderModel.getSource().call2(null,
                     batchSize, ctx, ctx.getEvalScope());
         } else {
             return null;
         }
+    }
+
+    private IBatchLoaderProvider<Object> newGenerator(BatchGeneratorModel generatorModel) {
+        String genModelPath = generatorModel.getGenModelPath();
+        IEvalAction totalCountExpr = generatorModel.getTotalCountExpr();
+        BatchGenLoaderProvider<Object> provider = new BatchGenLoaderProvider<>();
+        provider.setTotalCount(totalCountExpr);
+        provider.setResourcePath(genModelPath);
+        provider.setResourceLoader(VirtualFileSystem.instance());
+        return provider;
     }
 
     private IBatchAggregator<Object, Object, Map<String, Object>> loadAggregator(String beanName, IBeanProvider beanContainer) {

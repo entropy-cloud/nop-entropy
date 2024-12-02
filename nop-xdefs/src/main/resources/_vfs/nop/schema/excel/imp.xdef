@@ -18,6 +18,8 @@
     <xpt:beforeExpand xdef:value="xml"/>
     <xpt:afterExpand xdef:value="xml"/>
 
+    <normalizeFieldsExpr xdef:value="xpl"/>
+
     <validator xdef:value="xpl"/>
 
     <sheets xdef:body-type="list" xdef:key-attr="name">

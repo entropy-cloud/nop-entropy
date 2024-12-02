@@ -7,6 +7,7 @@
  */
 package io.nop.batch.core.loader;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.IBatchAggregator;
 import io.nop.batch.core.IBatchChunkContext;
@@ -15,6 +16,7 @@ import io.nop.batch.core.IBatchRecordFilter;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.common.AbstractBatchResourceHandler;
 import io.nop.commons.util.IoHelper;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.record.IResourceRecordInputProvider;
 import io.nop.dataset.record.IRecordInput;
@@ -50,7 +52,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
     /**
      * 最多读取多少行数据（包含跳过的记录）
      */
-    long maxCount;
+    IEvalAction maxCountExpr;
 
     /**
      * 跳过起始的多少行数据
@@ -111,12 +113,8 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         return saveState;
     }
 
-    public long getMaxCount() {
-        return maxCount;
-    }
-
-    public void setMaxCount(long maxCount) {
-        this.maxCount = maxCount;
+    public void setMaxCountExpr(IEvalAction maxCountExpr) {
+        this.maxCountExpr = maxCountExpr;
     }
 
     public long getSkipCount() {
@@ -164,8 +162,10 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
             skip(input, skipCount, state);
         }
 
-        if (maxCount > 0) {
-            input = input.limit(maxCount);
+        if (maxCountExpr != null) {
+            Long maxCount = ConvertHelper.toLong(maxCountExpr.invoke(context));
+            if (maxCount != null)
+                input = input.limit(maxCount);
         }
 
         if (recordRowNumber) {

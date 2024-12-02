@@ -10,6 +10,7 @@
        singleMode="boolean=false" singleSession="boolean" saveState="boolean"
        transactionScope="enum:io.nop.batch.core.BatchTransactionScope"
        rateLimit="double" jitterRatio="double" allowStartIfComplete="boolean" startLimit="!int=0"
+       useBatchRequestGenerator="!boolean=false"
        executor="bean-name" xdef:name="BatchTaskModel" xdef:bean-package="io.nop.batch.dsl.model"
        x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xdef:model-name-prop="taskName" xdef:model-version-prop="taskVersion"
@@ -61,7 +62,7 @@
         @fileModelPath 文件模型路径。当没有指定resourceIO和newRecordInputProvider时，根据fileModelPath自动生成resourceIO
         -->
         <file-reader filePath="!t-expr" xdef:name="BatchFileReaderModel" encoding="string"
-                     resourceLoader="bean-name" resourceIO="bean-name" maxCount="long" fileModelPath="v-path">
+                     resourceLoader="bean-name" resourceIO="bean-name" maxCountExpr="expr" fileModelPath="v-path">
             <!-- 动态创建resourceIO -->
             <newRecordInputProvider xdef:value="xpl"/>
 
@@ -86,6 +87,9 @@
 
             <transformer xdef:value="xpl-fn:(item,batchChunkCtx)=>any"/>
         </jdbc-reader>
+
+        <generator genModelPath="v-path" xdef:name="BatchGeneratorModel" totalCountExpr="!expr"/>
+
 
         <source xdef:value="xpl-fn:(batchSize,batchChunkCtx)=>List"/>
 

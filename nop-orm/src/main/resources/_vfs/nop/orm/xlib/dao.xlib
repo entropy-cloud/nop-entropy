@@ -112,5 +112,14 @@
                 ]]></c:script>
             </source>
         </ExecuteUpdate>
+
+        <SaveEntity>
+            <attr name="entityName" mandatory="true" />
+            <attr name="data" mandatory="true" />
+            <source>
+                import io.nop.orm.utils.OrmDaoHelper;
+                return OrmDaoHelper.saveEntity(entityName, data);
+            </source>
+        </SaveEntity>
     </tags>
 </lib>

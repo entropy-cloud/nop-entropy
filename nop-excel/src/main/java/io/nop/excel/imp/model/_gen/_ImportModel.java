@@ -53,6 +53,13 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: normalizeFieldsExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _normalizeFieldsExpr ;
+    
+    /**
+     *  
      * xml name: resultType
      * 
      */
@@ -177,6 +184,25 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._ignoreUnknownSheet = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: normalizeFieldsExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getNormalizeFieldsExpr(){
+      return _normalizeFieldsExpr;
+    }
+
+    
+    public void setNormalizeFieldsExpr(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._normalizeFieldsExpr = value;
            
     }
 
@@ -324,6 +350,7 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("defaultStripText",this.isDefaultStripText());
         out.putNotNull("dump",this.isDump());
         out.putNotNull("ignoreUnknownSheet",this.isIgnoreUnknownSheet());
+        out.putNotNull("normalizeFieldsExpr",this.getNormalizeFieldsExpr());
         out.putNotNull("resultType",this.getResultType());
         out.putNotNull("sheets",this.getSheets());
         out.putNotNull("templatePath",this.getTemplatePath());
@@ -345,6 +372,7 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
         instance.setDefaultStripText(this.isDefaultStripText());
         instance.setDump(this.isDump());
         instance.setIgnoreUnknownSheet(this.isIgnoreUnknownSheet());
+        instance.setNormalizeFieldsExpr(this.getNormalizeFieldsExpr());
         instance.setResultType(this.getResultType());
         instance.setSheets(this.getSheets());
         instance.setTemplatePath(this.getTemplatePath());

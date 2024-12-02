@@ -1,229 +1,115 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpt="xpt"
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef"
      x:extends="/nop/excel/imp/dict-support.imp.xml"
-     resultType="io.nop.record.model.RecordFileMeta"
+     resultType="io.nop.batch.gen.model.BatchGenModel"
      templatePath="template.record-file.xlsx" xdef="/nop/schema/record/record-file.xdef" defaultStripText="true">
+
+    <normalizeFieldsExpr><![CDATA[
+        const subCaseMap = {}
+
+        function normalizeCase(subCase){
+           subCase.subCases = subCase.subCases?.map(caseItem=>{
+              caseItem.subCases?.map(caseName=>{
+                 return $.notNull(subCaseMap[caseName],"invalid caseName:"+caseName);
+              });
+              caseItem.removeProp('subCases');
+           });
+        }
+
+        rootRecord.subCases.$('sss')?.forEach(subCase=>{
+          subCaseMap[subCase.name] = subCase;
+        });
+
+        rootRecord.subCaseMap?.forEach(normalizeCase);
+
+        rootRecord.removeProp('subCaseMap');
+
+    ]]></normalizeFieldsExpr>
+
     <sheets>
         <sheet name="目录" ignore="true"/>
 
-        <sheet name="文件结构">
+        <sheet name="生成模型">
             <fields>
-                <field name="header.typeRef" displayName="文件头">
-                    <schema stdDomain="var-name"/>
-                </field>
-
-                <field name="body.typeRef" displayName="文件体">
-                    <schema stdDomain="var-name"/>
-                </field>
-
-                <field name="footer.typeRef" displayName="文件尾">
-                    <schema stdDomain="var-name"/>
-                </field>
-
-                <field name="doc" displayName="说明">
+                <field name="name" displayName="名称">
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="defaultCharset" displayName="缺省字符集">
-                    <schema stdDomain="string"/>
-                </field>
-
-                <field name="binary" displayName="是否二进制文件">
+                <field name="sequential" displayName="是否串行">
                     <schema stdDomain="boolean"/>
                 </field>
 
-                <field name="params" displayName="参数列表" list="true" keyProp="name">
-                    <fields>
-                        <field name="name" displayName="参数名" mandatory="true">
-                            <schema stdDomain="var-name"/>
-                        </field>
-                        <field name="displayName" displayName="中文名" mandatory="true"/>
+                <field name="beanType" displayName="消息类型">
+                    <schema stdDomain="generic-type"/>
+                </field>
 
-                        <field name="i18n-en:displayName" displayName="英文名"/>
-                        <field name="type" displayName="类型" mandatory="true">
+                <field name="template" displayName="数据模板">
+                    <schema stdDomain="json"/>
+                </field>
+
+                <field name="outputVars" displayName="输出变量">
+                    <schema stdDomain="json"/>
+                </field>
+
+                <field name="description" displayName="描述">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="subCases" displayName="子用例列表" list="true" keyProp="name">
+                    <fields>
+
+                        <field name="name" displayName="名称">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="sequential" displayName="是否串行">
+                            <schema stdDomain="boolean"/>
+                        </field>
+
+                        <field name="beanType" displayName="消息类型">
                             <schema stdDomain="generic-type"/>
                         </field>
 
-                        <field name="tagSet" displayName="标签">
-                            <schema stdDomain="csv-set"/>
-                        </field>
-
-                        <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
-                            <schema stdDomain="boolean"/>
-                            <valueExpr>
-                                <c:script>
-                                    value == 'M' || value == 'Y' || value == true || value == 'true'
-                                </c:script>
-                            </valueExpr>
-                        </field>
-
-                        <field name="schema.stdDomain" displayName="标准域">
-                            <schema stdDomain="std-domain"/>
-                        </field>
-
-                        <field name="schema.domain" displayName="数据域">
-                            <schema stdDomain="string"/>
-                        </field>
-
-                        <field name="schema.dict" displayName="字典">
-                            <schema stdDomain="string"/>
-                        </field>
-
-                        <field name="precision" displayName="长度">
-                            <schema stdDomain="int-size"/>
-                        </field>
-                        <field name="scale" displayName="小数位数">
-                            <schema stdDomain="int-size"/>
-                        </field>
-
-                        <field name="defaultValue" displayName="缺省值">
-                            <schema stdDomain="string"/>
-                        </field>
-
-                        <field name="comment" displayName="备注">
-                            <schema stdDomain="string"/>
-                        </field>
-
-                        <field name="extConfig" displayName="扩展配置" virtual="true">
+                        <field name="template" displayName="数据模板">
                             <schema stdDomain="json"/>
                         </field>
-                    </fields>
-                </field>
 
-                <field name="aggregates" list="true" displayName="汇总计算" keyProp="name">
-                    <fields>
-                        <field name="name" displayName="变量名" mandatory="true">
-                            <schema stdDomain="var-name"/>
+                        <field name="outputVars" displayName="输出变量">
+                            <schema stdDomain="json"/>
                         </field>
 
-                        <field name="aggFunc" displayName="汇总函数" mandatory="true">
-                            <schema stdDomain="var-name"/>
+                        <field name="description" displayName="描述">
+                            <schema stdDomain="string"/>
                         </field>
 
-                        <field name="prop" displayName="来源属性">
-                            <schema stdDomain="prop-path"/>
+                        <field name="weight" displayName="权重">
+                            <schema stdDomain="double"/>
                         </field>
 
-                        <field name="valueExpr" displayName="计算表达式">
-                            <schema stdDomain="xpl"/>
+                        <field name="inheritParent" displayName="继承父模板">
+                            <schema stdDomain="boolean"/>
+                        </field>
+
+                        <field name="subCases" displayName="子用例">
+                            <schema stdDomain="csv-list"/>
                         </field>
                     </fields>
                 </field>
             </fields>
         </sheet>
 
-        <sheet name="messageType" namePattern=".*" field="types" multiple="true" keyProp="name">
-            <normalizeFieldsExpr>
-                <c:script><![CDATA[
-
-                ]]></c:script>
-            </normalizeFieldsExpr>
+        <sheet name="子用例模型" namePattern=".*" field="subCaseMap" multiple="true" keyProp="name"
+               x:prototype="生成模型">
 
             <fields>
-                <field name="name" displayName="对象名" mandatory="true">
-                    <schema stdDomain="var-name"/>
+
+                <field name="weight" displayName="权重">
+                    <schema stdDomain="double"/>
                 </field>
 
-                <field name="displayName" displayName="中文名">
-                    <schema stdDomain="string"/>
-                </field>
-
-                <field name="i18n-en:displayName" displayName="英文名">
-                    <schema stdDomain="string"/>
-                </field>
-
-                <field name="tagSet" displayName="标签">
-                    <schema stdDomain="csv-set"/>
-                </field>
-
-                <field name="doc" displayName="描述">
-                    <schema stdDomain="string"/>
-                </field>
-
-                <field name="template" displayName="模板">
-                    <schema stdDomain="string"/>
-                </field>
-
-                <field name="fields" displayName="字段列表" list="true" keyProp="name">
-                    <fields>
-
-                        <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
-                            <schema stdDomain="boolean"/>
-                            <valueExpr>
-                                <c:script>
-                                    value == 'M' || value == 'Y' || value == true || value == 'true'
-                                </c:script>
-                            </valueExpr>
-                        </field>
-
-                        <field name="primary" displayName="主键">
-                            <schema stdDomain="boolean"/>
-                        </field>
-
-                        <field name="tagSet" displayName="标签">
-                            <schema stdDomain="csv-set"/>
-                        </field>
-
-                        <field name="name" displayName="字段名" mandatory="true">
-                            <schema stdDomain="var-name"/>
-                        </field>
-
-                        <field name="prop" displayName="来源属性">
-                            <schema stdDomain="prop-path"/>
-                        </field>
-
-                        <field name="displayName" displayName="中文名"/>
-
-                        <field name="i18n-en:displayName" displayName="英文名"/>
-
-                        <field name="doc" displayName="备注"/>
-
-                        <field name="length" displayName="长度">
-                            <schema stdDomain="int-size"/>
-                        </field>
-
-                        <field name="type" displayName="类型">
-                            <schema stdDomain="generic-type"/>
-                        </field>
-
-                        <field name="codec" displayName="编码器">
-                            <schema stdDomain="string"/>
-                        </field>
-
-                        <field name="charset" displayName="字符集">
-                            <schema stdDomain="string"/>
-                        </field>
-
-                        <field name="padding" displayName="填充字符">
-                            <schema stdDomain="string"/>
-                        </field>
-
-                        <field name="defaultValue" displayName="缺省值">
-                            <schema stdDomain="string"/>
-                        </field>
-
-                        <field name="exportExpr" displayName="导出表达式">
-                            <schema stdDomain="xpl"/>
-                        </field>
-
-                        <field name="parseExpr" displayName="解析表达式">
-                            <schema stdDomain="xpl"/>
-                        </field>
-
-                        <field name="schema.stdDomain" displayName="标准域">
-                            <schema stdDomain="std-domain"/>
-                        </field>
-
-                        <field name="schema.domain" displayName="数据域">
-                            <schema stdDomain="string"/>
-                        </field>
-
-                        <field name="schema.dict" displayName="字典">
-                            <schema stdDomain="string"/>
-                        </field>
-
-                    </fields>
+                <field name="inheritParent" displayName="继承父模板">
+                    <schema stdDomain="boolean"/>
                 </field>
             </fields>
         </sheet>

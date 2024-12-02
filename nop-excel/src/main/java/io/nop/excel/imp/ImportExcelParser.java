@@ -123,6 +123,10 @@ public class ImportExcelParser {
             }
         }
 
+        if (importModel.getNormalizeFieldsExpr() != null) {
+            importModel.getNormalizeFieldsExpr().invoke(scope);
+        }
+
         if (importModel.getValidator() != null) {
             try {
                 importModel.getValidator().invoke(scope);

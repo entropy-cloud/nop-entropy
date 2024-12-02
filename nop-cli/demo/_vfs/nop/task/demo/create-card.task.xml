@@ -1,0 +1,47 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-base.task.xml"
+      xmlns:c="c" xmlns:dao="dao">
+
+    <input name="request" type="Map"/>
+    <input name="consume"/>
+
+    <steps>
+        <xpl name="createCustomer" useParentScope="true">
+            <source>
+                <c:var name="customerNumber" value="'C' + $Strings.randomDigits(20)"/>
+                <dao:SaveEntity entityName="DemoCustomer" data="${{
+                    firstName: request.customer.firstName,
+                    lastName: request.customer.lastName,
+                    gender: request.customer.gender,
+                    customerNumber,
+                    idCard: request.customer.idCard
+                    partitionIndex: customerNumber.$shortHash()
+                }}"/>
+            </source>
+            <output name="customer">RESULT</output>
+        </xpl>
+
+        <xpl name="createAccount" useParentScope="true">
+            <source>
+                <dao:SaveEntity entityName="DemoAccount" data="${{
+                    customerId: customer.id,
+                    partitionIndex: customer.partitionIndex
+                    accountNumber: 'A'+$Strings.randomDigits(20),
+                    balance: request.account.balance
+                }}"/>
+            </source>
+            <output name="account">RESULT</output>
+        </xpl>
+
+        <custom name="createCard" customType="dao:SaveEntity"
+                dao:entityName="DemoCard" xmlns:dao="/nop/dao/xlib/dao.xlib"
+                dao:data="${{
+                    customerId: customer.id,
+                    accountId: account.id,
+                    accountType: 'A',
+                    authLimit: request.creditLimit.totalLimit,
+                    cashLimit: request.creditLimit.cashLimit
+                }}">
+        </custom>
+    </steps>
+</task>

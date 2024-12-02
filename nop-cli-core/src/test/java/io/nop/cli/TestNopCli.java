@@ -8,17 +8,21 @@
 package io.nop.cli;
 
 import io.nop.api.core.config.AppConfig;
+import io.nop.core.CoreConfigs;
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.core.unittest.BaseTestCase;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
 
+import java.io.File;
+
 import static io.nop.codegen.CodeGenConfigs.CFG_CODEGEN_TRACE_ENABLED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
-public class TestNopCli {
+public class TestNopCli extends BaseTestCase {
 
     @Inject
     CommandLine.IFactory factory;
@@ -75,5 +79,18 @@ public class TestNopCli {
         app.setFactory(factory);
         int ret = app.run(args);
         assertEquals(0, ret);
+    }
+
+    @Test
+    public void testRunBatchDemo(){
+        CoreInitialization.destroy();
+        File file = new File(getModuleDir(),"../nop-cli/demo/_vfs");
+        System.setProperty(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName(), file.getAbsolutePath());
+        String[] args = new String[]{"run-task", "v:/batch/batch-demo.task.xml","-i","{totalCount:250,taskKey:'abc'}"};
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        int ret = app.run(args);
+        assertEquals(0, ret);
+        System.getProperties().remove(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName());
     }
 }

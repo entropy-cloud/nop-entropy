@@ -23,6 +23,7 @@ import io.nop.batch.core.impl.BatchTaskExecution;
 import io.nop.batch.core.loader.ChunkSortBatchLoader;
 import io.nop.batch.core.loader.RetryBatchLoader;
 import io.nop.batch.core.processor.BatchChunkProcessor;
+import io.nop.batch.core.processor.BatchSequentialProcessor;
 import io.nop.batch.core.processor.InvokerBatchChunkProcessor;
 import io.nop.commons.concurrent.executor.ExecutorHelper;
 import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
@@ -44,6 +45,7 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
     private Long taskVersion;
     private IBatchLoaderProvider<S> loader;
     private IBatchConsumerProvider<R> consumer;
+    private boolean useBatchRequestGenerator;
     private IBatchProcessorProvider<S, R> processor;
     private int batchSize = 100;
 
@@ -130,6 +132,12 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
     @PropertySetter
     public BatchTaskBuilder<S, R> taskVersion(Long taskVersion) {
         this.taskVersion = taskVersion;
+        return this;
+    }
+
+    @PropertySetter
+    public BatchTaskBuilder<S, R> useBatchRequestGenerator(boolean b) {
+        this.useBatchRequestGenerator = b;
         return this;
     }
 
@@ -328,6 +336,9 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
         if (this.processor != null) {
             // 如果设置了processor,则先执行processor再调用consumer，否则直接调用consumer
             IBatchProcessor<S, R> processor = this.processor.setup(context);
+            if (useBatchRequestGenerator) {
+                processor = new BatchSequentialProcessor(processor);
+            }
             consumer = new BatchProcessorConsumer<>(processor, (IBatchConsumer<R>) consumer);
         }
 

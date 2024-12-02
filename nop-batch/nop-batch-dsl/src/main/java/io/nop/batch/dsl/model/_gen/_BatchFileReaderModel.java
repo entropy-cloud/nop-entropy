@@ -53,10 +53,10 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      *  
-     * xml name: maxCount
-     * 读取的最大记录数，缺省值为-1，表示不限制
+     * xml name: maxCountExpr
+     * 
      */
-    private java.lang.Long _maxCount ;
+    private io.nop.core.lang.eval.IEvalAction _maxCountExpr ;
     
     /**
      *  
@@ -176,19 +176,19 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      * 
-     * xml name: maxCount
-     *  读取的最大记录数，缺省值为-1，表示不限制
+     * xml name: maxCountExpr
+     *  
      */
     
-    public java.lang.Long getMaxCount(){
-      return _maxCount;
+    public io.nop.core.lang.eval.IEvalAction getMaxCountExpr(){
+      return _maxCountExpr;
     }
 
     
-    public void setMaxCount(java.lang.Long value){
+    public void setMaxCountExpr(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
-        this._maxCount = value;
+        this._maxCountExpr = value;
            
     }
 
@@ -270,7 +270,7 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
         out.putNotNull("filePath",this.getFilePath());
         out.putNotNull("filter",this.getFilter());
         out.putNotNull("headers",this.getHeaders());
-        out.putNotNull("maxCount",this.getMaxCount());
+        out.putNotNull("maxCountExpr",this.getMaxCountExpr());
         out.putNotNull("newRecordInputProvider",this.getNewRecordInputProvider());
         out.putNotNull("resourceIO",this.getResourceIO());
         out.putNotNull("resourceLoader",this.getResourceLoader());
@@ -290,7 +290,7 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
         instance.setFilePath(this.getFilePath());
         instance.setFilter(this.getFilter());
         instance.setHeaders(this.getHeaders());
-        instance.setMaxCount(this.getMaxCount());
+        instance.setMaxCountExpr(this.getMaxCountExpr());
         instance.setNewRecordInputProvider(this.getNewRecordInputProvider());
         instance.setResourceIO(this.getResourceIO());
         instance.setResourceLoader(this.getResourceLoader());

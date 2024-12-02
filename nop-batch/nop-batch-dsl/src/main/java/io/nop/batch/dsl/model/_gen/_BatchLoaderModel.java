@@ -46,6 +46,13 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      *  
+     * xml name: generator
+     * 
+     */
+    private io.nop.batch.dsl.model.BatchGeneratorModel _generator ;
+    
+    /**
+     *  
      * xml name: jdbc-reader
      * 
      */
@@ -150,6 +157,25 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      * 
+     * xml name: generator
+     *  
+     */
+    
+    public io.nop.batch.dsl.model.BatchGeneratorModel getGenerator(){
+      return _generator;
+    }
+
+    
+    public void setGenerator(io.nop.batch.dsl.model.BatchGeneratorModel value){
+        checkAllowChange();
+        
+        this._generator = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: jdbc-reader
      *  
      */
@@ -234,6 +260,8 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         
            this._fileReader = io.nop.api.core.util.FreezeHelper.deepFreeze(this._fileReader);
             
+           this._generator = io.nop.api.core.util.FreezeHelper.deepFreeze(this._generator);
+            
            this._jdbcReader = io.nop.api.core.util.FreezeHelper.deepFreeze(this._jdbcReader);
             
            this._ormReader = io.nop.api.core.util.FreezeHelper.deepFreeze(this._ormReader);
@@ -249,6 +277,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         out.putNotNull("aggregator",this.getAggregator());
         out.putNotNull("bean",this.getBean());
         out.putNotNull("fileReader",this.getFileReader());
+        out.putNotNull("generator",this.getGenerator());
         out.putNotNull("jdbcReader",this.getJdbcReader());
         out.putNotNull("ormReader",this.getOrmReader());
         out.putNotNull("saveState",this.getSaveState());
@@ -268,6 +297,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         instance.setAggregator(this.getAggregator());
         instance.setBean(this.getBean());
         instance.setFileReader(this.getFileReader());
+        instance.setGenerator(this.getGenerator());
         instance.setJdbcReader(this.getJdbcReader());
         instance.setOrmReader(this.getOrmReader());
         instance.setSaveState(this.getSaveState());

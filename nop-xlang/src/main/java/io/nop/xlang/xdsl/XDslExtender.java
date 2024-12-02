@@ -351,7 +351,8 @@ public class XDslExtender {
         if (AppConfig.isDebugMode())
             addPathRef(extendsNode, currentPath);
 
-        List<XNode> genExtends = extendsNode.detachChildren();
+        List<XNode> genExtends = !extendsNode.isDummyNode() ?
+                Collections.singletonList(extendsNode) : extendsNode.detachChildren();
         List<XDslSource> ret = new ArrayList<>(genExtends.size());
         for (XNode gen : genExtends) {
             if (XplParseHelper.getAttrBool(gen, keys.DUMP, false)) {

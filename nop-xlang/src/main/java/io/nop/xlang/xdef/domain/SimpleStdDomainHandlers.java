@@ -654,6 +654,7 @@ public class SimpleStdDomainHandlers {
 
             JsonParseOptions opts = new JsonParseOptions();
             opts.setKeepLocation(true);
+            opts.setStrictMode(false);
             try {
                 return JsonTool.instance().parseFromText(loc, text.toString(), opts);
             } catch (Exception e) {

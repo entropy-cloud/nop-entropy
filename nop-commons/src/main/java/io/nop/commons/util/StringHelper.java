@@ -4456,4 +4456,12 @@ public class StringHelper extends ApiStringHelper {
             fileName = fileName.substring(0, 20);
         return md5Hash(filePath) + '-' + fileName;
     }
+
+    @Deterministic
+    public static short shortHash(String str) {
+        if (str == null)
+            str = "";
+        int hash = HashHelper.murmur3_32(str);
+        return (short) (hash % Short.MAX_VALUE);
+    }
 }
