@@ -33,7 +33,7 @@ public class SequentialBatchRequestGenerator<S, R> implements IBatchRequestGener
 
     @Override
     public S nextRequest(IBatchChunkContext context) {
-        scope.setLocalValue(null, BatchGenConstants.VAR_CHUNK_CONTEXT, context);
+        scope.setLocalValue(null, BatchGenConstants.VAR_BATCH_CHUNK_CONTEXT, context);
         do {
             if (subIndex >= subCases.size()) {
                 return null;
@@ -59,7 +59,7 @@ public class SequentialBatchRequestGenerator<S, R> implements IBatchRequestGener
             Boolean b = new FilterBeanEvaluator().visit(subCase.getWhen(), context.getEvalScope());
             return Boolean.TRUE.equals(b);
         }
-        return false;
+        return true;
     }
 
     @Override
@@ -68,10 +68,11 @@ public class SequentialBatchRequestGenerator<S, R> implements IBatchRequestGener
         BatchGenState subCase = subCases.get(lastIndex);
         Map<String, Object> outputVars = subCase.getOutputVars();
         if (outputVars != null) {
+            scope.setLocalValue(BatchGenConstants.VAR_CHUNK_RESPONSE, response);
             // 根据响应数据生成输出变量，更新上下文环境
             Map<String, Object> vars = (Map<String, Object>) genContext.getProducer().produce(outputVars,
-                    PredefinedGenericTypes.MAP_STRING_ANY_TYPE, genContext);
-            scope.setLocalValues(null, vars);
+                    PredefinedGenericTypes.MAP_STRING_ANY_TYPE, scope);
+            genContext.getEvalScope().setLocalValues(null, vars);
         }
     }
 }

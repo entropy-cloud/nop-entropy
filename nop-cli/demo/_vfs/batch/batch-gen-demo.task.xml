@@ -8,7 +8,7 @@
     <steps>
         <custom name="createCard" customType="batch:Execute"
                 xmlns:batch="/nop/batch/xlib/batch.xlib">
-            <batch:task taskName="demo.createCard" batchSize="100" saveState="true">
+            <batch:task taskName="demo.createCard" batchSize="100" saveState="true" useBatchRequestGenerator="true">
                 <taskKeyExpr>taskKey</taskKeyExpr>
 
                 <loader>

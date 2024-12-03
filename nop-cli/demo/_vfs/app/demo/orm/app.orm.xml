@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-	 orm:forceDynamicEntity="true"
-     xmlns:i18n-en="i18n-en" xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:orm="orm">
-	 <x:gen-extends>
-		<orm-gen:GenModelFromExcel path="demo.orm.xlsx" xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
-	 </x:gen-extends>
-</orm>	 	 
+     orm:forceDynamicEntity="true"
+     xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:orm="orm">
+    <x:gen-extends>
+        <!-- 根据orm.xlsx自动生成orm.xml，可以直接进行可视化编辑，并且立刻起效 -->
+        <orm-gen:GenModelFromExcel path="demo.orm.xlsx" xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:gen-extends>
+</orm>

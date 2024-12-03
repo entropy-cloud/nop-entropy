@@ -10,6 +10,7 @@ package io.nop.batch.gen.generator;
 import io.nop.api.core.util.CloneHelper;
 import io.nop.batch.gen.IBatchGenContext;
 import io.nop.batch.gen.model.IBatchTemplateBasedProducer;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.EvalExprProvider;
 import io.nop.core.lang.eval.IEvalExprParser;
 import io.nop.core.lang.json.bind.JsonBindExprEvaluator;
@@ -29,7 +30,7 @@ public class BatchTemplateBasedProducer implements IBatchTemplateBasedProducer {
     }
 
     @Override
-    public Object produce(Map<String, Object> template, IGenericType targetType, IBatchGenContext context) {
+    public Object produce(Map<String, Object> template, IGenericType targetType, IEvalContext context) {
         Map<String,Object> resolved = (Map<String, Object>) JsonBindExprEvaluator.evalBindExpr(template,
                 true, exprParser, registry, context.getEvalScope());
 

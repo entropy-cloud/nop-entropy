@@ -19,6 +19,6 @@ public interface BatchGenConstants {
 
     String XDSL_BATCH_GEN_IMP_PATH = "/nop/batch/imp/batch-gen.imp.xml";
 
-    String VAR_CHUNK_CONTEXT = BatchConstants.VAR_BATCH_CHUNK_CTX;
+    String VAR_BATCH_CHUNK_CONTEXT = BatchConstants.VAR_BATCH_CHUNK_CTX;
     String VAR_CHUNK_RESPONSE = "response";
 }

@@ -10,10 +10,9 @@
 
         function normalizeCase(subCase){
            subCase.subCases?.map(caseItem=>{
-              caseItem.subCases?.map(caseName=>{
+              caseItem.subCases = caseItem.subCases?.map(caseName=>{
                  return $.notNull(subCaseMap[caseName],"invalid caseName:"+caseName);
               });
-              caseItem.removeProp('subCases');
            });
         }
 

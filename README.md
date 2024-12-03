@@ -13,6 +13,8 @@
 
 Nop Platform 2.0 is a next-generation low-code development platform built from scratch based on the principles of reversible computation, adopting a language-oriented programming paradigm. It includes a suite of fully designed engines such as a GraphQL engine, ORM engine, workflow engine, reporting engine, rule engine, and batch processing engine, all developed from scratch based on new principles. It automatically generates GraphQL/REST/gRPC services according to Excel data models, allowing for customized development without modifying the source code of the basic product. It supports native compilation with GraalVM, and is free for commercial use by small and medium-sized enterprises.
 
+The underlying architecture of the Nop platform does not utilize third-party frameworks such as Spring. Instead, it has been redesigned and implemented based on new software construction principles, greatly reducing the complexity of the framework’s internal structure while significantly enhancing its flexibility, scalability, and performance. Its design goal is to explore next-generation software production technologies, laying the technical foundation for intelligent software production in the AI era.
+
 Nop Platform 2.0是基于可逆计算原理从零开始构建的采用面向语言编程范式的下一代低代码开发平台。包含基于全新原理从零开始研发的GraphQL引擎、ORM引擎、工作流引擎、报表引擎、规则引擎、批处理引引擎等完整设计，根据Excel数据模型自动生成GraphQL/REST/gRPC服务，定制化开发无需修改基础产品源码，支持GraalVM原生编译，中小企业可以免费商用。
 
 **Nop平台的底层没有使用Spring等第三方框架，而是基于新的软件构造原理重新设计并实现，极大降低了框架内在结构的复杂性，同时大幅提升框架的灵活性、可扩展性和性能。它的设计目标是探索下一代软件生产技术，为AI时代的软件智能生产奠定技术基础**

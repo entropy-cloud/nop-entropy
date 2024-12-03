@@ -3,7 +3,7 @@
       xmlns:c="c" xmlns:dao="dao">
 
     <input name="request" type="Map"/>
-    <input name="consume"/>
+    <input name="consume" />
 
     <x:config>
         <c:import from="/nop/orm/xlib/dao.xlib"/>
@@ -12,10 +12,10 @@
     <steps>
         <xpl name="createCustomer" useParentScope="true" returnAs="customer">
             <source>
-                <c:var name="customerNumber" value="${'C' + $String.randomDigits(20)}"/>
+                <c:var name="customerNumber" value="${'C' + $String.randomDigits(19)}"/>
                 <dao:SaveEntity entityName="DemoCustomer" data="${{
                     firstName: request.customer.firstName,
-                    lastName: request.customer.lastName,
+                    lastName: request.customer.familyName,
                     gender: request.customer.gender,
                     customerNumber,
                     idCard: request.customer.idCard,
@@ -29,21 +29,37 @@
                 <dao:SaveEntity entityName="DemoAccount" data="${{
                     customerId: customer.id,
                     partitionIndex: customer.partitionIndex,
-                    accountNumber: 'A'+$String.randomDigits(20),
-                    balance: request.account.balance
+                    accountNumber: 'A'+$String.randomDigits(19),
+                    accountType: 'A',
+                    balance: 0,
+                    cycleDay: request.cycleDay!,
+                    dueDate: $Date.currentDate().plusMonths(1),
+                    status: 1
                 }}"/>
             </source>
         </xpl>
 
-        <custom name="createCard" customType="dao:SaveEntity"
+        <custom name="createCard" customType="dao:SaveEntity" returnAs="card"
                 dao:entityName="DemoCard" xmlns:dao="/nop/orm/xlib/dao.xlib"
                 dao:data="${{
                     customerId: customer.id,
                     accountId: account.id,
-                    accountType: 'A',
+                    cardNumber: 'D' + $String.randomDigits(16),
+                    cardType: request.cardType,
+                    cardStyle: request.cardStyle!,
                     authLimit: request.creditLimit.totalLimit,
-                    cashLimit: request.creditLimit.cashLimit
+                    cashLimit: request.creditLimit.cashLimit,
+                    usedCredit: 0,
+                    mainCardId: request.mainCardId,
+                    partitionIndex: customer.partitionIndex
                 }}">
         </custom>
+
+        <xpl name="returnResponse">
+            <source>
+                consume(card);
+            </source>
+        </xpl>
     </steps>
+
 </task>

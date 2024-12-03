@@ -13,6 +13,8 @@
 
 Nop Platform 2.0 is a next-generation low-code development platform built from scratch based on the principles of reversible computation, adopting a language-oriented programming paradigm. It includes a suite of fully designed engines such as a GraphQL engine, ORM engine, workflow engine, reporting engine, rule engine, and batch processing engine, all developed from scratch based on new principles. It automatically generates GraphQL/REST/gRPC services according to Excel data models, allowing for customized development without modifying the source code of the basic product. It supports native compilation with GraalVM, and is free for commercial use by small and medium-sized enterprises.
 
+The underlying architecture of the Nop platform does not utilize third-party frameworks such as Spring. Instead, it has been redesigned and implemented based on new software construction principles, greatly reducing the complexity of the framework’s internal structure while significantly enhancing its flexibility, scalability, and performance. Its design goal is to explore next-generation software production technologies, laying the technical foundation for intelligent software production in the AI era.
+
 -nop-entropy is the back-end part of the Nop platform. It is implemented in Java language, does not rely on third-party frameworks, and can be integrated with Quarkus, Spring or Solon frameworks.
 
 -nop-entropy support for GraalVM technology, with the help of [Quarkus](https://quarkus.io/)

@@ -107,6 +107,8 @@ public class ModelBasedBatchTaskBuilderFactory {
         }
         if (batchTaskModel.getSingleSession() != null) {
             builder.singleSession(batchTaskModel.getSingleSession());
+        }else{
+            builder.singleSession(true);
         }
 
         if (batchTaskModel.getRateLimit() != null)

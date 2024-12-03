@@ -25,11 +25,11 @@ public class ScopeVarResolver implements IValueResolver {
 
     @Override
     public Object resolveValue(IEvalContext ctx) {
-        return ctx.getEvalScope().getValue(varName);
+        return ctx.getEvalScope().getValueByPropPath(varName);
     }
 
     public static IValueResolver compile(SourceLocation loc, Object value, ValueResolverCompileOptions options) {
-        String config = ValueResolverCompileHelper.getStringConfig("uuid", loc, value);
+        String config = ValueResolverCompileHelper.getStringConfig("var", loc, value);
         if (StringHelper.isEmpty(config)) {
             return null;
         }

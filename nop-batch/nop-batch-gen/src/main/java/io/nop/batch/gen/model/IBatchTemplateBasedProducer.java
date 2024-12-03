@@ -8,6 +8,7 @@
 package io.nop.batch.gen.model;
 
 import io.nop.batch.gen.IBatchGenContext;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.type.IGenericType;
 
 import java.util.Map;
@@ -16,5 +17,5 @@ import java.util.Map;
  * 根据测试数据模板配置和当前上下文环境生成一个测试数据对象
  */
 public interface IBatchTemplateBasedProducer {
-    Object produce(Map<String, Object> template, IGenericType targetType, IBatchGenContext context);
+    Object produce(Map<String, Object> template, IGenericType targetType, IEvalContext context);
 }

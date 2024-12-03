@@ -82,11 +82,11 @@ public class TestNopCli extends BaseTestCase {
     }
 
     @Test
-    public void testRunBatchDemo(){
+    public void testRunBatchGenDemo(){
         CoreInitialization.destroy();
         File file = new File(getModuleDir(),"../nop-cli/demo/_vfs");
         System.setProperty(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName(), file.getAbsolutePath());
-        String[] args = new String[]{"run-task", "v:/batch/batch-demo.task.xml","-i","{totalCount:250,taskKey:'abc'}"};
+        String[] args = new String[]{"run-task", "v:/batch/batch-gen-demo.task.xml","-i","{totalCount:250,taskKey:'abc'}"};
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);
         int ret = app.run(args);
