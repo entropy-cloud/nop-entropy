@@ -167,6 +167,9 @@ public class ExpandedSheetEvaluator {
             if (formatExpr != null) {
                 Object formattedValue = formatExpr.invoke(xptRt);
                 cell.setFormattedValue(formattedValue);
+            } else if (cellModel.getDict() != null) {
+                String label = xptRt.getLabelByValue(cellModel.getDict(), cell.getValue());
+                cell.setFormattedValue(label);
             } else if (cell.getStyleId() != null && workbook != null && cell.getValue() instanceof Number) {
                 ExcelStyle style = workbook.getStyle(cell.getStyleId());
                 if (style != null && style.getNumberFormat() != null) {

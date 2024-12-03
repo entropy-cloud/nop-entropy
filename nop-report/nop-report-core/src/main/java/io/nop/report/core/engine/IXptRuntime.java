@@ -7,7 +7,11 @@
  */
 package io.nop.report.core.engine;
 
+import io.nop.api.core.beans.DictBean;
+import io.nop.api.core.context.ContextProvider;
+import io.nop.commons.cache.ICache;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.dict.DictProvider;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelWorkbook;
@@ -45,6 +49,17 @@ public interface IXptRuntime extends IEvalContext {
     ExcelWorkbook getWorkbook();
 
     void setWorkbook(ExcelWorkbook workbook);
+
+    ICache<Object, Object> getCache();
+
+    default DictBean getDict(String dictName) {
+        String locale = ContextProvider.currentLocale();
+        return DictProvider.instance().requireDict(locale, dictName, getCache(), this);
+    }
+
+    default String getLabelByValue(String dictName, Object value) {
+        return getDict(dictName).getLabelByValue(value);
+    }
 
     Object evaluateCell(ExpandedCell cell);
 

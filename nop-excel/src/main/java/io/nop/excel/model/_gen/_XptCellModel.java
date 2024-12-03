@@ -39,6 +39,13 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: dict
+     * 
+     */
+    private java.lang.String _dict ;
+    
+    /**
+     *  
      * xml name: domain
      * 
      */
@@ -248,6 +255,25 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         checkAllowChange();
         
         this._colTestExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: dict
+     *  
+     */
+    
+    public java.lang.String getDict(){
+      return _dict;
+    }
+
+    
+    public void setDict(java.lang.String value){
+        checkAllowChange();
+        
+        this._dict = value;
            
     }
 
@@ -692,6 +718,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("colExtendForSibling",this.getColExtendForSibling());
         out.putNotNull("colParent",this.getColParent());
         out.putNotNull("colTestExpr",this.getColTestExpr());
+        out.putNotNull("dict",this.getDict());
         out.putNotNull("domain",this.getDomain());
         out.putNotNull("ds",this.getDs());
         out.putNotNull("editorId",this.getEditorId());
@@ -728,6 +755,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         instance.setColExtendForSibling(this.getColExtendForSibling());
         instance.setColParent(this.getColParent());
         instance.setColTestExpr(this.getColTestExpr());
+        instance.setDict(this.getDict());
         instance.setDomain(this.getDomain());
         instance.setDs(this.getDs());
         instance.setEditorId(this.getEditorId());

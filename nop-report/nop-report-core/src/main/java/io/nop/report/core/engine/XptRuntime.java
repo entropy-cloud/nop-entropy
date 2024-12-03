@@ -11,8 +11,11 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IVariableScope;
+import io.nop.commons.cache.ICache;
+import io.nop.commons.cache.MapCache;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
@@ -58,6 +61,8 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
 
     private List<Runnable> sheetLoopCleanups = null;
 
+    private ICache<Object, Object> cache;
+
     private final Map<String, IExecutableExpression> cellExprCache = new HashMap<>();
 
     public XptRuntime(IEvalScope scope) {
@@ -73,6 +78,19 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
 
     public void setWorkbook(ExcelWorkbook workbook) {
         this.workbook = workbook;
+    }
+
+    @Override
+    public synchronized ICache<Object, Object> getCache() {
+        if (cache != null)
+            return cache;
+        IServiceContext svcCtx = IServiceContext.fromEvalContext(scope);
+        if (svcCtx != null) {
+            cache = svcCtx.getCache();
+        } else {
+            cache = new MapCache<>("xpt-runtime-cache", false);
+        }
+        return cache;
     }
 
     @Override

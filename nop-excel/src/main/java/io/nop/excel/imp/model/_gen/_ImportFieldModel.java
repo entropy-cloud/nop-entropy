@@ -81,6 +81,13 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: importDictLabel
+     * 
+     */
+    private boolean _importDictLabel  = false;
+    
+    /**
+     *  
      * xml name: keyProp
      * 当list=true时，keyProp表示集合中每个对象采用这个属性作为唯一键。解析的得到的列表会使用KeyedList对象
      */
@@ -372,6 +379,25 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._ignoreWhenEmpty = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: importDictLabel
+     *  
+     */
+    
+    public boolean isImportDictLabel(){
+      return _importDictLabel;
+    }
+
+    
+    public void setImportDictLabel(boolean value){
+        checkAllowChange();
+        
+        this._importDictLabel = value;
            
     }
 
@@ -674,6 +700,7 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         out.putNotNull("fields",this.getFields());
         out.putNotNull("groupField",this.getGroupField());
         out.putNotNull("ignoreWhenEmpty",this.isIgnoreWhenEmpty());
+        out.putNotNull("importDictLabel",this.isImportDictLabel());
         out.putNotNull("keyProp",this.getKeyProp());
         out.putNotNull("list",this.isList());
         out.putNotNull("mandatory",this.isMandatory());
@@ -708,6 +735,7 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         instance.setFields(this.getFields());
         instance.setGroupField(this.getGroupField());
         instance.setIgnoreWhenEmpty(this.isIgnoreWhenEmpty());
+        instance.setImportDictLabel(this.isImportDictLabel());
         instance.setKeyProp(this.getKeyProp());
         instance.setList(this.isList());
         instance.setMandatory(this.isMandatory());

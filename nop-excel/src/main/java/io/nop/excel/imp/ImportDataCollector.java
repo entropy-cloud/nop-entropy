@@ -235,16 +235,23 @@ public class ImportDataCollector implements ITableDataEventListener {
                             + sheetName);
                     throw e;
                 }
-                DictOptionBean option = dictBean.getOptionByValue(value);
-                if (option == null) {
+                DictOptionBean option;
+                boolean useLabel = false;
+                if (field.isImportDictLabel()) {
                     option = dictBean.getOptionByLabel(value.toString());
+                    useLabel = true;
+                } else {
+                    option = dictBean.getOptionByValue(value);
+                    if (option == null) {
+                        option = dictBean.getOptionByLabel(value.toString());
+                    }
                 }
                 if (option == null) {
                     throw new NopException(ERR_IMPORT_FIELD_VALUE_NOT_IN_DICT).param(ARG_SHEET_NAME, sheetName)
                             .param(ARG_FIELD_NAME, field.getName())
                             .param(ARG_DISPLAY_NAME, field.getName())
                             .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex)).param(ARG_VALUE, value)
-                            .param(ARG_ALLOWED_VALUES, dictBean.getValues());
+                            .param(ARG_ALLOWED_VALUES, useLabel ? dictBean.getLabels() : dictBean.getValues());
                 } else {
                     value = option.getValue();
                 }

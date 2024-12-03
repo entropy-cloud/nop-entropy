@@ -434,6 +434,11 @@ public class ExcelTemplateToXptModelTransformer {
                 cellModel.setFormatExpr(buildFormatExpr(fieldModel.getLocation(), formatExpr));
             }
 
+            if (fieldModel.isImportDictLabel() && fieldModel.getSchema() != null && fieldModel.getSchema().getDict() != null) {
+                cellModel.setExportFormattedValue(true);
+                cellModel.setDict(fieldModel.getSchema().getDict());
+            }
+
             Boolean exportFormattedValue = ConvertHelper.toBoolean(fieldModel.prop_get(XptConstants.EXT_PROP_XPT_EXPORT_FORMATTED_VALUE));
             if (exportFormattedValue != null) {
                 cellModel.setExportFormattedValue(exportFormattedValue);

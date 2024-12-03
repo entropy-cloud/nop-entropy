@@ -55,7 +55,7 @@
                            expandType="enum:io.nop.excel.model.constants.XptExpandType"
                            keepExpandEmpty="boolean" exportFormattedValue="boolean"
                            rowExtendForSibling="boolean" colExtendForSibling="boolean"
-                           rowParent="cell-pos" colParent="cell-pos"
+                           rowParent="cell-pos" colParent="cell-pos" dict="string"
                            qr:barcodeFormat="string" qr:margin="int" qr:imgType="string" qr:width="double"
                            qr:height="double" qr:encoding="string" qr:errorCorrection="int"
                     >
