@@ -19,6 +19,7 @@ import io.nop.batch.gen.generator.BatchGenState;
 import io.nop.batch.gen.model.BatchGenModel;
 import io.nop.batch.gen.model.BatchGenModelParser;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.json.bind.ValueResolverCompilerRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +31,11 @@ public class BatchGenLoaderProvider<C> extends AbstractBatchResourceHandler
      * 总共生成多少条记录
      */
     private IEvalAction totalCountExpr;
+    private ValueResolverCompilerRegistry registry = ValueResolverCompilerRegistry.DEFAULT;
+
+    public void setValueResolverCompilerRegistry(ValueResolverCompilerRegistry registry){
+        this.registry = registry;
+    }
 
     public void setTotalCount(IEvalAction totalCountExpr) {
         this.totalCountExpr = totalCountExpr;
@@ -48,7 +54,7 @@ public class BatchGenLoaderProvider<C> extends AbstractBatchResourceHandler
         LoaderState state = new LoaderState();
         state.genModel = new BatchGenModelParser().parseFromResource(getResource(context));
         state.genState = new BatchGenState(state.genModel, totalCount);
-        state.genContext = new BatchGenContextImpl();
+        state.genContext = new BatchGenContextImpl(registry);
         return (batchSize, ctx) -> load(batchSize, ctx, state);
     }
 

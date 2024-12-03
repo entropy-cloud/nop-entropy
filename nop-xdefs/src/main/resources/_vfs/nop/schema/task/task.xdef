@@ -8,7 +8,7 @@
 -->
 <task defaultSaveState="!boolean=false" version="!long=0" recordMetrics="!boolean=true"
       restartable="!boolean=true" graphMode="!boolean=false" enterSteps="csv-set" exitSteps="csv-set"
-      useParentBeanContainer="!boolean=false"
+      useParentBeanContainer="!boolean=false" defaultUseParentScope="boolean"
       x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
       xdef:transformer-class="io.nop.xlang.xdsl.transformer.InOutNodeTransformer"
       xdef:name="TaskFlowModel" xdef:bean-package="io.nop.task.model" xmlns:graphql="graphql"
@@ -128,7 +128,7 @@
                  runOnContext="!boolean=false" waitSteps="csv-set" waitErrorSteps="csv-set"
                  returnAs="var-name" ignoreResult="!boolean=false"
                  graphql:operationType="string" recordMetrics="!boolean=false"
-                 next="string" nextOnError="string" saveState="boolean" useParentScope="!boolean=false">
+                 next="string" nextOnError="string" saveState="boolean" useParentScope="boolean">
     </xdef:define>
 
     <!--

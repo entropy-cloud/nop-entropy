@@ -20,12 +20,27 @@ public class TaskFlowAnalyzer {
         forEachStep(flowModel, TaskStepModel::normalize);
         forEachStep(flowModel, stepModel -> {
             checkStepRef(stepModel);
+
+            if (Boolean.TRUE.equals(flowModel.getDefaultUseParentScope()))
+                forceUseParentScope(stepModel);
+
             if (stepModel instanceof IGraphTaskStepModel) {
                 IGraphTaskStepModel graphModel = (IGraphTaskStepModel) stepModel;
                 if (graphModel.isGraphMode())
                     new GraphStepAnalyzer().analyze(graphModel);
             }
         });
+    }
+
+    void forceUseParentScope(TaskStepModel stepModel) {
+        if (stepModel.getUseParentScope() == null)
+            stepModel.setUseParentScope(true);
+
+        if (stepModel instanceof TaskStepsModel) {
+            for (TaskStepModel subStep : ((TaskStepsModel) stepModel).getSteps()) {
+                forceUseParentScope(subStep);
+            }
+        }
     }
 
     private void checkStepRef(TaskStepModel stepModel) {

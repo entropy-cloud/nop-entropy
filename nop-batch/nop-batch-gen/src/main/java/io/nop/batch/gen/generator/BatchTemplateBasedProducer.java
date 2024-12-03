@@ -10,17 +10,32 @@ package io.nop.batch.gen.generator;
 import io.nop.api.core.util.CloneHelper;
 import io.nop.batch.gen.IBatchGenContext;
 import io.nop.batch.gen.model.IBatchTemplateBasedProducer;
+import io.nop.core.lang.eval.EvalExprProvider;
+import io.nop.core.lang.eval.IEvalExprParser;
+import io.nop.core.lang.json.bind.JsonBindExprEvaluator;
+import io.nop.core.lang.json.bind.ValueResolverCompilerRegistry;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.type.IGenericType;
 
 import java.util.Map;
 
 public class BatchTemplateBasedProducer implements IBatchTemplateBasedProducer {
+    private final ValueResolverCompilerRegistry registry;
+    private final IEvalExprParser exprParser;
+
+    public BatchTemplateBasedProducer(ValueResolverCompilerRegistry registry) {
+        this.registry = registry;
+        this.exprParser = EvalExprProvider.getDefaultExprParser();
+    }
+
     @Override
     public Object produce(Map<String, Object> template, IGenericType targetType, IBatchGenContext context) {
-        if (targetType == null)
-            return CloneHelper.deepCloneMap(template);
+        Map<String,Object> resolved = (Map<String, Object>) JsonBindExprEvaluator.evalBindExpr(template,
+                true, exprParser, registry, context.getEvalScope());
 
-        return BeanTool.buildBean(template, targetType);
+        if (targetType == null)
+            return CloneHelper.deepCloneMap(resolved);
+
+        return BeanTool.buildBean(resolved, targetType);
     }
 }

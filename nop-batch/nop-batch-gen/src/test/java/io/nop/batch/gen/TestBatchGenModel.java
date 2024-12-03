@@ -13,6 +13,7 @@ import io.nop.batch.gen.generator.BatchGenState;
 import io.nop.batch.gen.model.BatchGenModel;
 import io.nop.batch.gen.model.BatchGenModelParser;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.core.lang.json.bind.ValueResolverCompilerRegistry;
 import io.nop.core.resource.IResource;
 import io.nop.core.unittest.BaseTestCase;
 import org.junit.jupiter.api.Test;
@@ -45,7 +46,7 @@ public class TestBatchGenModel extends BaseTestCase {
 
     <T> List<T> genAll(BatchGenModel genModel, int totalCount) {
         BatchGenState genState = new BatchGenState(genModel, totalCount);
-        BatchGenContextImpl context = new BatchGenContextImpl();
+        BatchGenContextImpl context = new BatchGenContextImpl(ValueResolverCompilerRegistry.DEFAULT);
 
         List<Object> ret = new ArrayList<>();
         while (genState.hasNext()) {

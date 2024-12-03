@@ -39,6 +39,13 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
     
     /**
      *  
+     * xml name: defaultUseParentScope
+     * 
+     */
+    private java.lang.Boolean _defaultUseParentScope ;
+    
+    /**
+     *  
      * xml name: enterSteps
      * 
      */
@@ -132,6 +139,25 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
         checkAllowChange();
         
         this._defaultSaveState = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: defaultUseParentScope
+     *  
+     */
+    
+    public java.lang.Boolean getDefaultUseParentScope(){
+      return _defaultUseParentScope;
+    }
+
+    
+    public void setDefaultUseParentScope(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._defaultUseParentScope = value;
            
     }
 
@@ -272,6 +298,7 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
         out.putNotNull("auth",this.getAuth());
         out.putNotNull("beans",this.getBeans());
         out.putNotNull("defaultSaveState",this.isDefaultSaveState());
+        out.putNotNull("defaultUseParentScope",this.getDefaultUseParentScope());
         out.putNotNull("enterSteps",this.getEnterSteps());
         out.putNotNull("exitSteps",this.getExitSteps());
         out.putNotNull("graphMode",this.isGraphMode());
@@ -292,6 +319,7 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
         instance.setAuth(this.getAuth());
         instance.setBeans(this.getBeans());
         instance.setDefaultSaveState(this.isDefaultSaveState());
+        instance.setDefaultUseParentScope(this.getDefaultUseParentScope());
         instance.setEnterSteps(this.getEnterSteps());
         instance.setExitSteps(this.getExitSteps());
         instance.setGraphMode(this.isGraphMode());

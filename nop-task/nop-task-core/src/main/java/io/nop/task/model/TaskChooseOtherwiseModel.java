@@ -21,7 +21,7 @@ public class TaskChooseOtherwiseModel extends _TaskChooseOtherwiseModel {
     }
 
     @Override
-    public boolean isUseParentScope() {
+    public Boolean getUseParentScope() {
         return true;
     }
 }

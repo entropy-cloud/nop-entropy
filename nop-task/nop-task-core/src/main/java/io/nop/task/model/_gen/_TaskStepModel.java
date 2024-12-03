@@ -126,7 +126,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
      * xml name: useParentScope
      * 
      */
-    private boolean _useParentScope  = false;
+    private java.lang.Boolean _useParentScope ;
     
     /**
      *  
@@ -433,12 +433,12 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
      *  
      */
     
-    public boolean isUseParentScope(){
+    public java.lang.Boolean getUseParentScope(){
       return _useParentScope;
     }
 
     
-    public void setUseParentScope(boolean value){
+    public void setUseParentScope(java.lang.Boolean value){
         checkAllowChange();
         
         this._useParentScope = value;
@@ -514,7 +514,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         out.putNotNull("saveState",this.getSaveState());
         out.putNotNull("sync",this.isSync());
         out.putNotNull("tagSet",this.getTagSet());
-        out.putNotNull("useParentScope",this.isUseParentScope());
+        out.putNotNull("useParentScope",this.getUseParentScope());
         out.putNotNull("waitErrorSteps",this.getWaitErrorSteps());
         out.putNotNull("waitSteps",this.getWaitSteps());
     }
@@ -543,7 +543,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         instance.setSaveState(this.getSaveState());
         instance.setSync(this.isSync());
         instance.setTagSet(this.getTagSet());
-        instance.setUseParentScope(this.isUseParentScope());
+        instance.setUseParentScope(this.getUseParentScope());
         instance.setWaitErrorSteps(this.getWaitErrorSteps());
         instance.setWaitSteps(this.getWaitSteps());
     }

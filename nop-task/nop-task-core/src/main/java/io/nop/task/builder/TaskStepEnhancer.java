@@ -81,7 +81,7 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
                 stepModel.getFlags(), stepModel.getWhen(), step,
                 stepModel.getNextOnError(), stepModel.getNextOnError(), stepModel.isIgnoreResult(),
                 stepModel.isRecordMetrics(),
-                stepModel.getErrorName(), stepModel.isUseParentScope());
+                stepModel.getErrorName(), Boolean.TRUE.equals(stepModel.getUseParentScope()));
     }
 
 //    private IEvalAction buildValidator(ValidatorModel validatorModel) {

@@ -69,6 +69,9 @@ cell对应于 ExpandedCell类型
 
 - expandMaxCount: 控制展开时最多有多少个元素。超过的行将会被自动丢弃
 * rowParent和colParent如果设置为A0，则表示它们是根单元格，没有父格。
+* formatExpr: 单元格具有value和formattedValue两个属性。value是计算出来的值，而formattedValue是格式化后的值。如果配置了formatExpr，则formattedValue会被设置为formatExpr的值。
+* dict: 如果配置了字典表，且没有配置formatExpr，则自动计算formattedValue为字典项的label。也就是说显示在界面上的是经过字典翻译后的文本。
+   如果没有配置formatExpr，也没有配置dict，则会考虑Excel的单元格样式中是否配置了格式化规则，会尝试使用Excel格式化规则来得到formattedValue
 
 批注中可配置的属性参考 workflow.xdef元模型中的cell节点的model部分。
 

@@ -11,14 +11,15 @@ import io.nop.batch.gen.IBatchGenContext;
 import io.nop.batch.gen.model.IBatchTemplateBasedProducer;
 import io.nop.core.lang.eval.EvalExprProvider;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.json.bind.ValueResolverCompilerRegistry;
 
 public class BatchGenContextImpl implements IBatchGenContext {
     private IEvalScope scope;
     private IBatchTemplateBasedProducer producer;
 
-    public BatchGenContextImpl() {
+    public BatchGenContextImpl(ValueResolverCompilerRegistry registry) {
         scope = EvalExprProvider.newEvalScope();
-        producer = new BatchTemplateBasedProducer();
+        producer = new BatchTemplateBasedProducer(registry);
     }
 
     @Override

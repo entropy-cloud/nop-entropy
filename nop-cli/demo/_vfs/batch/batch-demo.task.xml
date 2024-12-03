@@ -1,27 +1,33 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
       x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-base.task.xml"
-      xmlns:task="task" x:dump="true">
+      x:dump="true" defaultUseParentScope="true">
 
-    <input name="totalCount" type="int"/>
-    <input name="taskKey" type="String"/>
+    <input name="bizDate" type="LocalDate"/>
 
     <steps>
-        <custom name="createCard" customType="batch:Execute" useParentScope="true"
+        <custom name="importIntoDb" customType="batch:Execute"
                 xmlns:batch="/nop/batch/xlib/batch.xlib">
-            <batch:task taskName="demo.createCard" batchSize="100" saveState="true">
-                <taskKeyExpr>taskKey</taskKeyExpr>
+            <batch:task taskName="demo.loadData" batchSize="100" saveState="true">
+
+                <taskKeyExpr>bizDate</taskKeyExpr>
 
                 <loader>
-                    <generator genModelPath="create-card.batch-gen.xlsx" totalCountExpr="totalCount"/>
+                    <file-reader filePath="dev:/target/input/${bizDate}.dat" fileModelPath="simple.record-file.xlsx"/>
                 </loader>
 
-                <processor name="callCreateCardTask">
-                    <source>
-                        <task:Execute taskName="demo/create-card" inputs="${{request:item,consume}}"
-                            xpl:lib="/nop/task/xlib/task.xlib"/>
-                    </source>
-                </processor>
+                <consumer name="all">
+                    <orm-writer entityName="">
+                    </orm-writer>
+                </consumer>
 
+            </batch:task>
+        </custom>
+
+        <custom name="processDataInDb" customType="batch:Execute" xmlns:batch="/nop/batch/xlib/batch.xlib">
+            <batch:task taskName="demo.processData" batchSize="100" saveState="true" concurrency="4">
+                <taskKeyExpr>bizDate</taskKeyExpr>
+
+                
             </batch:task>
         </custom>
     </steps>
