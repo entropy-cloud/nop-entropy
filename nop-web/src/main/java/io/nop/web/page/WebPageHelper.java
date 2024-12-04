@@ -79,8 +79,10 @@ public class WebPageHelper {
                         return true;
                 }
             } else if (value instanceof Collection) {
-                if (name.equals("rules"))
-                    return true;
+                if(((Collection<?>) value).isEmpty()) {
+                    if (name.equals("rules"))
+                        return true;
+                }
             }
             return false;
         });
