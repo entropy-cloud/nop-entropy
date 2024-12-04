@@ -7,7 +7,6 @@ import io.nop.record.reader.IBinaryDataReader;
 import io.nop.record.writer.IBinaryDataWriter;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,30 +25,30 @@ public class CountArrayBinaryCodec implements IFieldBinaryCodec {
     }
 
     @Override
-    public Object decode(IBinaryDataReader input, Object record, int length, Charset charset,
+    public Object decode(IBinaryDataReader input, Object record, int length,
                          IFieldCodecContext context) throws IOException {
-        int count = (Integer) countCodec.decode(input, record, length, charset, context);
+        int count = (Integer) countCodec.decode(input, record, length, context);
 
         IBinaryDataReader arrayInput = input.subInput(length);
 
         List<Object> ret = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            Object item = itemCodec.decode(arrayInput, record, itemLength, charset, context);
+            Object item = itemCodec.decode(arrayInput, record, itemLength, context);
             ret.add(item);
         }
         return ret;
     }
 
     @Override
-    public void encode(IBinaryDataWriter output, Object value, int length, Charset charset,
+    public void encode(IBinaryDataWriter output, Object value, int length,
                        IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder) throws IOException {
         Collection<Object> list = (Collection<Object>) value;
         if (list == null)
             list = Collections.emptyList();
 
-        countCodec.encode(output, list.size(), -1, charset, context, null);
+        countCodec.encode(output, list.size(), -1, context, null);
         for (Object item : list) {
-            itemCodec.encode(output, item, itemLength, charset, context, null);
+            itemCodec.encode(output, item, itemLength, context, null);
         }
     }
 }

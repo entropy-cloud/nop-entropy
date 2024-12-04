@@ -14,6 +14,7 @@ import io.nop.core.lang.json.IJsonSerializable;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.type.IGenericType;
 import io.nop.xlang.xdef.IStdDomainHandler;
+import io.nop.xlang.xdef.IStdDomainOptions;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.ISchemaNode;
@@ -23,6 +24,7 @@ import java.util.Map;
 
 public abstract class SchemaNodeImpl extends _SchemaNodeImpl implements ISchemaNode, IJsonSerializable {
     private ISchema refSchema;
+    private IStdDomainOptions stdDomainOptionsObj;
 
     public String toString() {
         return getClass().getSimpleName() + "[name=" + getName() + ",loc=" + getLocation() + "]";
@@ -44,6 +46,19 @@ public abstract class SchemaNodeImpl extends _SchemaNodeImpl implements ISchemaN
     public void setRefSchema(ISchema refSchema) {
         checkAllowChange();
         this.refSchema = refSchema;
+    }
+
+    @Override
+    public IStdDomainOptions getStdDomainOptionsObj() {
+        if (stdDomainOptionsObj == null) {
+            String stdDomain = getStdDomain();
+            String stdDomainOptions = getStdDomainOptions();
+            if (stdDomainOptions != null && stdDomain != null) {
+                this.stdDomainOptionsObj = StdDomainRegistry.instance()
+                        .getStdDomainHandler(stdDomain).parseOptions(getLocation(), stdDomainOptions);
+            }
+        }
+        return stdDomainOptionsObj;
     }
 
     @Override

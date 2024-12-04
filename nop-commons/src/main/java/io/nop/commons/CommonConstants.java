@@ -38,6 +38,7 @@ public interface CommonConstants {
     String BASE_64_PREFIX = "@base64:";
     String HEX_PREFIX = "@hex:";
     String UTF8_PREFIX = "@utf8:";
+    String HEX_BYTES_PREFIX = "0x";
 
 
     String PREFIX_INTERNAL_TAG = "~";

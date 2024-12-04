@@ -1,14 +1,16 @@
 label: 编码器
 locale: zh-CN
-description: 解析和生成Record所使用的编解码器
+description: 解析和生成Record所使用的编解码器, 在FieldCodecRegistry中注册
 static: true
 options:
   - label: 固定长度字符串，右填充
-    value: FLS-RP
+    value: FLS
   - label: 固定长度字符串，左填充
     value: FLS-LP
   - label: 固定长度数字字符串，左补0
-    value: FLAI
+    value: FLA-INT-L0
+  - label: 固定长度日期字符串，左补0
+    value: FLA-DATE
   - label: 字节
     value: u1
   - label: 有符号短整型，大端

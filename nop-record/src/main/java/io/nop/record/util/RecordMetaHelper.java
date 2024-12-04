@@ -20,7 +20,9 @@ import io.nop.record.model.RecordFieldMeta;
 import static io.nop.record.RecordErrors.ARG_CODEC;
 import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
 import static io.nop.record.RecordErrors.ARG_LENGTH;
+import static io.nop.record.RecordErrors.ARG_MIN_LENGTH;
 import static io.nop.record.RecordErrors.ERR_RECORD_FIELD_LENGTH_GREATER_THAN_MAX_VALUE;
+import static io.nop.record.RecordErrors.ERR_RECORD_FIELD_LENGTH_LESS_THAN_MIN_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_UNKNOWN_FIELD_CODEC;
 import static io.nop.xlang.XLangErrors.ARG_MAX_LENGTH;
 
@@ -31,17 +33,17 @@ public class RecordMetaHelper {
             throw new NopException(ERR_RECORD_FIELD_LENGTH_GREATER_THAN_MAX_VALUE)
                     .param(ARG_FIELD_NAME, field.getName())
                     .param(ARG_LENGTH, len)
-                    .param(ARG_MAX_LENGTH, len);
+                    .param(ARG_MAX_LENGTH, max);
         }
     }
 
     public static void checkMinLen(int len, RecordFieldMeta field) {
         int min = field.safeGetMaxLen();
         if (min > 0 && len > min) {
-            throw new NopException(ERR_RECORD_FIELD_LENGTH_GREATER_THAN_MAX_VALUE)
+            throw new NopException(ERR_RECORD_FIELD_LENGTH_LESS_THAN_MIN_VALUE)
                     .param(ARG_FIELD_NAME, field.getName())
                     .param(ARG_LENGTH, len)
-                    .param(ARG_MAX_LENGTH, len);
+                    .param(ARG_MIN_LENGTH, min);
         }
     }
 
@@ -54,7 +56,7 @@ public class RecordMetaHelper {
         if (codec == null)
             return null;
 
-        resolved = registry.getTextCodec(codec);
+        resolved = registry.getTextCodec(codec, field);
         if (resolved == null)
             throw new NopException(ERR_RECORD_UNKNOWN_FIELD_CODEC)
                     .source(field)
@@ -74,7 +76,7 @@ public class RecordMetaHelper {
         if (codec == null)
             return null;
 
-        resolved = registry.getBinaryCodec(codec);
+        resolved = registry.getBinaryCodec(codec, field);
         if (resolved == null)
             throw new NopException(ERR_RECORD_UNKNOWN_FIELD_CODEC)
                     .source(field)
@@ -138,7 +140,11 @@ public class RecordMetaHelper {
             ByteString padding = field.getPadding();
             if (padding != null) {
                 String paddingStr = padding.toString(field.getCharset());
-                str = StringHelper.rightPad(str, expected, paddingStr.charAt(0));
+                if(field.isLeftPad()){
+                    str = StringHelper.leftPad(str, expected, paddingStr.charAt(0));
+                }else {
+                    str = StringHelper.rightPad(str, expected, paddingStr.charAt(0));
+                }
             }
         }
         return str;
@@ -156,7 +162,11 @@ public class RecordMetaHelper {
 
             ByteString padding = field.getPadding();
             if (padding != null) {
-                str = str.rightPad(expected, padding.at(0));
+                if (field.isLeftPad()) {
+                    str = str.leftPad(expected, padding.at(0));
+                } else {
+                    str = str.rightPad(expected, padding.at(0));
+                }
             }
         }
         return str;

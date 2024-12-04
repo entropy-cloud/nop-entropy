@@ -46,23 +46,23 @@ public class BeanBinaryCodec implements IFieldBinaryCodec {
     }
 
     @Override
-    public Object decode(IBinaryDataReader input, Object record, int length, Charset charset,
+    public Object decode(IBinaryDataReader input, Object record, int length,
                          IFieldCodecContext context) throws IOException {
         Object bean = constructor.newInstance();
         for (PropCodec prop : props) {
-            Object value = prop.codec.decode(input, record, prop.length, prop.charset, context);
+            Object value = prop.codec.decode(input, record, prop.length, context);
             prop.setter.setProperty(bean, prop.name, value, DisabledEvalScope.INSTANCE);
         }
         return bean;
     }
 
     @Override
-    public void encode(IBinaryDataWriter output, Object bean, int length, Charset charset,
+    public void encode(IBinaryDataWriter output, Object bean, int length,
                        IFieldCodecContext context,
                        IFieldBinaryEncoder bodyEncoder) throws IOException{
         for (PropCodec prop : props) {
             Object value = prop.getter.getProperty(bean, prop.name, DisabledEvalScope.INSTANCE);
-            prop.codec.encode(output, value, prop.length, prop.charset, context, null);
+            prop.codec.encode(output, value, prop.length, context, null);
         }
     }
 }

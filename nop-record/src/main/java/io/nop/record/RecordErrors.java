@@ -87,4 +87,7 @@ public interface RecordErrors {
 
     ErrorCode ERR_RECORD_UNKNOWN_OBJ_TYPE = define("nop.err.record.unknown-obj-type",
             "未知的对象类型:{typeName}", ARG_TYPE_NAME);
+
+    ErrorCode ERR_RECORD_UNKNOWN_FIELD_TYPE = define("nop.err.record.unknown-field-type",
+            "未知的字段类型:{typeName}", ARG_TYPE_NAME);
 }

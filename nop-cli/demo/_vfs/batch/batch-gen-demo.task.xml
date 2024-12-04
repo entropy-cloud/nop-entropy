@@ -1,9 +1,13 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
       x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-base.task.xml"
-      xmlns:task="task" x:dump="true" defaultUseParentScope="true" xmlns:xpl="xpl">
+      xmlns:task="task" x:dump="true" defaultUseParentScope="true" xmlns:xpl="xpl" xmlns:c="c">
 
     <input name="totalCount" type="int"/>
     <input name="taskKey" type="String"/>
+
+    <x:config>
+        <c:import from="/nop/batch/xlib/batch.xlib"/>
+    </x:config>
 
     <steps>
         <custom name="createCard" customType="batch:Execute"
@@ -18,12 +22,44 @@
                 <processor name="callCreateCardTask">
                     <source>
                         <task:Execute taskName="demo/create-card" inputs="${{request:item,consume}}"
-                            xpl:lib="/nop/task/xlib/task.xlib"/>
+                                      xpl:lib="/nop/task/xlib/task.xlib" xpl:return="outputs"/>
+
+                        <batch:Consume item="${outputs.card}"/>
                     </source>
                 </processor>
 
                 <!-- processor中调用ORM保存实体，这里不需要额外配置consumer -->
 
+            </batch:task>
+        </custom>
+
+        <custom name="generateTransaction" customType="batch:Execute" xmlns:batch="/nop/batch/xlib/batch.xlib">
+            <batch:task taskName="demo.generateTransaction" batchSize="100">
+                <loader>
+                    <orm-reader entityName="DemoCard">
+                        <query>
+                            <filter>
+                                <endsWith name="cardNumber" value="${1}"/>
+                            </filter>
+
+                            <orderBy>
+                                <field name="id" desc="false"/>
+                            </orderBy>
+                        </query>
+                    </orm-reader>
+                </loader>
+
+                <processor name="generate">
+                    <source><![CDATA[
+                        for(let i=0;i<10;i++){
+                           consume({cardNumber: item.cardNumber, txnType: 'T', txnAmount: i, txnTime: currentDateTime()});
+                        }
+                    ]]></source>
+                </processor>
+
+                <consumer name="export">
+                    <file-writer filePath="dev:/target/txn-${taskKey}.dat" fileModelPath="txn.record-file.xlsx"/>
+                </consumer>
             </batch:task>
         </custom>
     </steps>

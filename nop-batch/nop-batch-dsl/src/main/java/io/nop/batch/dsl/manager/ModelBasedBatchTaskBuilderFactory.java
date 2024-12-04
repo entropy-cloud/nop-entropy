@@ -25,7 +25,6 @@ import io.nop.batch.dsl.model.BatchConsumerModel;
 import io.nop.batch.dsl.model.BatchGeneratorModel;
 import io.nop.batch.dsl.model.BatchListenersModel;
 import io.nop.batch.dsl.model.BatchLoaderModel;
-import io.nop.batch.dsl.model.BatchOrmWriterModel;
 import io.nop.batch.dsl.model.BatchProcessorModel;
 import io.nop.batch.dsl.model.BatchTaggerModel;
 import io.nop.batch.dsl.model.BatchTaskModel;
@@ -63,6 +62,7 @@ import static io.nop.batch.dsl.manager.FileBatchSupport.newFileWriter;
 import static io.nop.batch.dsl.manager.JdbcBatchSupport.newJdbcReader;
 import static io.nop.batch.dsl.manager.JdbcBatchSupport.newJdbcWriter;
 import static io.nop.batch.dsl.manager.OrmBatchSupport.newOrmReader;
+import static io.nop.batch.dsl.manager.OrmBatchSupport.newOrmWriter;
 
 public class ModelBasedBatchTaskBuilderFactory {
     private final String batchTaskName;
@@ -107,7 +107,7 @@ public class ModelBasedBatchTaskBuilderFactory {
         }
         if (batchTaskModel.getSingleSession() != null) {
             builder.singleSession(batchTaskModel.getSingleSession());
-        }else{
+        } else {
             builder.singleSession(true);
         }
 
@@ -405,7 +405,7 @@ public class ModelBasedBatchTaskBuilderFactory {
             writer.setMetaProvider(metaProvider);
             ret = writer;
         } else if (consumerModel.getOrmWriter() != null) {
-            ret = newOrmWriter(consumerModel.getOrmWriter(), beanContainer);
+            ret = newOrmWriter(consumerModel.getOrmWriter(), daoProvider, ormTemplate);
         } else if (consumerModel.getJdbcWriter() != null) {
             ret = newJdbcWriter(consumerModel.getJdbcWriter(), jdbcTemplate);
         } else {
@@ -429,10 +429,5 @@ public class ModelBasedBatchTaskBuilderFactory {
         if (beanName == null)
             return null;
         return (IBatchMetaProvider) beanContainer.getBean(beanName);
-    }
-
-
-    private IBatchConsumerProvider<Object> newOrmWriter(BatchOrmWriterModel consumerModel, IBeanProvider beanContainer) {
-        return null;
     }
 }

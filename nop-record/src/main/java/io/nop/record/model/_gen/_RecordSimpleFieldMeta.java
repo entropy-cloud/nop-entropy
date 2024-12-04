@@ -88,6 +88,13 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: format
+     * 
+     */
+    private java.lang.String _format ;
+    
+    /**
+     *  
      * xml name: includeTerminator
      * 解析结果是否包含terminator
      */
@@ -99,6 +106,13 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
      * 是否延迟解析。如果延迟解析，则只是记录当前offset和length
      */
     private boolean _lazy  = false;
+    
+    /**
+     *  
+     * xml name: leftPad
+     * 
+     */
+    private boolean _leftPad  = false;
     
     /**
      *  
@@ -440,6 +454,25 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      * 
+     * xml name: format
+     *  
+     */
+    
+    public java.lang.String getFormat(){
+      return _format;
+    }
+
+    
+    public void setFormat(java.lang.String value){
+        checkAllowChange();
+        
+        this._format = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: includeTerminator
      *  解析结果是否包含terminator
      */
@@ -472,6 +505,25 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._lazy = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: leftPad
+     *  
+     */
+    
+    public boolean isLeftPad(){
+      return _leftPad;
+    }
+
+    
+    public void setLeftPad(boolean value){
+        checkAllowChange();
+        
+        this._leftPad = value;
            
     }
 
@@ -903,8 +955,10 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         out.putNotNull("enum",this.getEnum());
         out.putNotNull("eosError",this.isEosError());
         out.putNotNull("exportExpr",this.getExportExpr());
+        out.putNotNull("format",this.getFormat());
         out.putNotNull("includeTerminator",this.isIncludeTerminator());
         out.putNotNull("lazy",this.isLazy());
+        out.putNotNull("leftPad",this.isLeftPad());
         out.putNotNull("length",this.getLength());
         out.putNotNull("lengthExpr",this.getLengthExpr());
         out.putNotNull("mandatory",this.isMandatory());
@@ -947,8 +1001,10 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         instance.setEnum(this.getEnum());
         instance.setEosError(this.isEosError());
         instance.setExportExpr(this.getExportExpr());
+        instance.setFormat(this.getFormat());
         instance.setIncludeTerminator(this.isIncludeTerminator());
         instance.setLazy(this.isLazy());
+        instance.setLeftPad(this.isLeftPad());
         instance.setLength(this.getLength());
         instance.setLengthExpr(this.getLengthExpr());
         instance.setMandatory(this.isMandatory());

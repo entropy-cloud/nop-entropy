@@ -747,6 +747,18 @@ public class StringHelper extends ApiStringHelper {
         return str;
     }
 
+    public static String forceLeftPad(String str, int len, char padChar) {
+        if (str.length() >= len)
+            return str.substring(0, len);
+        return leftPad(str, len, padChar);
+    }
+
+    public static String forceRightPad(String str, int len, char padChar) {
+        if (str.length() >= len)
+            return str.substring(0, len);
+        return rightPad(str, len, padChar);
+    }
+
     @Deterministic
     public static String rightPad(String str, int len, char padChar) {
         Guard.checkArgument(len < Lazy.s_maxPadLen, "pad len is too large", len);

@@ -22,10 +22,55 @@ import io.nop.commons.bytes.Bytes;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Locale;
 
 public class ByteHelper extends Bytes {
     public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+
+    public static byte[] forceLeftPad(byte[] bytes, int length, byte pad) {
+        if (bytes != null && bytes.length > length)
+            return Arrays.copyOf(bytes, length);
+        return leftPad(bytes, length, pad);
+    }
+
+    public static byte[] forceRightPad(byte[] bytes, int length, byte pad) {
+        if (bytes != null && bytes.length > length)
+            return Arrays.copyOf(bytes, length);
+        return rightPad(bytes, length, pad);
+    }
+
+    public static byte[] leftPad(byte[] bytes, int length, byte pad) {
+        if (bytes == null) {
+            bytes = EMPTY_BYTE_ARRAY;
+        }
+        int diff = length - bytes.length;
+        if (diff <= 0) {
+            return bytes;
+        }
+        byte[] paddedBytes = new byte[length];
+        for (int i = 0; i < diff; i++) {
+            paddedBytes[i] = pad;
+        }
+        System.arraycopy(bytes, 0, paddedBytes, diff, bytes.length);
+        return paddedBytes;
+    }
+
+    public static byte[] rightPad(byte[] bytes, int length, byte pad) {
+        if (bytes == null)
+            bytes = EMPTY_BYTE_ARRAY;
+
+        if (bytes.length >= length) {
+            return bytes;
+        }
+
+        byte[] paddedBytes = new byte[length];
+        System.arraycopy(bytes, 0, paddedBytes, 0, bytes.length);
+        for (int i = bytes.length; i < length; i++) {
+            paddedBytes[i] = pad;
+        }
+        return paddedBytes;
+    }
 
     public static void writeByte(byte num, byte[] bytes, int offset, int size) {
         for (int i = offset + size - 1; i >= offset; i--) {

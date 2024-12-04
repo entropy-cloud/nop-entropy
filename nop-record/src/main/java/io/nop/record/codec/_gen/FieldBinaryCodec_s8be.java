@@ -1,24 +1,25 @@
 
 package io.nop.record.codec._gen;
 
-import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldBinaryEncoder;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.reader.IBinaryDataReader;
 import io.nop.record.writer.IBinaryDataWriter;
+import io.nop.record.codec.impl.StaticFieldBinaryCodecFactory;
 
-import java.nio.charset.Charset;
 import java.io.IOException;
 
-public class FieldBinaryCodec_s8be implements IFieldBinaryCodec{
+public class FieldBinaryCodec_s8be extends StaticFieldBinaryCodecFactory{
     public static final FieldBinaryCodec_s8be INSTANCE = new FieldBinaryCodec_s8be();
 
-    public Object decode(IBinaryDataReader input, Object record, int length, Charset charset,
+    @Override
+    public Object decode(IBinaryDataReader input, Object record, int length,
                         IFieldCodecContext context) throws IOException{
         return input.readS8be();
     }
 
-    public void encode(IBinaryDataWriter output, Object value, int length, Charset charset,
+    @Override
+    public void encode(IBinaryDataWriter output, Object value, int length,
         IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder) throws IOException{
         if(value == null){
             output.writeS8be(0L);

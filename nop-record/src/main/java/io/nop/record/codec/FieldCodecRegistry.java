@@ -11,8 +11,7 @@ import io.nop.api.core.annotations.core.GlobalInstance;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.record.codec._gen.FieldBinaryCodecRegistrar;
 import io.nop.record.codec.impl.BitmapTagBinaryCodec;
-import io.nop.record.codec.impl.FixedLengthAsciiIntCodec;
-import io.nop.record.codec.impl.FixedLengthStringCodec;
+import io.nop.record.codec.impl.FixedLengthStringCodecFactory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,37 +26,22 @@ public class FieldCodecRegistry {
 
     static {
         FieldBinaryCodecRegistrar.registerWordType(DEFAULT);
-        DEFAULT.registerTextCodec("FLAI", FixedLengthAsciiIntCodec.INSTANCE);
-        DEFAULT.registerBinaryCodec("FLAI", FixedLengthAsciiIntCodec.INSTANCE);
         DEFAULT.registerTagBinaryCodec("bitmap128", BitmapTagBinaryCodec.INSTANCE);
-        DEFAULT.registerBinaryCodec("FLS-LP", FixedLengthStringCodec.LEFT_PAD);
-        DEFAULT.registerBinaryCodec("FLS-RP", FixedLengthStringCodec.RIGHT_PAD);
-        DEFAULT.registerTextCodec("FLS-LP", FixedLengthStringCodec.LEFT_PAD);
-        DEFAULT.registerTextCodec("FLS-RP", FixedLengthStringCodec.RIGHT_PAD);
+        DEFAULT.registerCodec("FLS", FixedLengthStringCodecFactory.INSTANCE);
     }
 
-    private final Map<String, IFieldTextCodec> textEncoders = new ConcurrentHashMap<>();
-
-    private final Map<String, IFieldBinaryCodec> binaryEncoders = new ConcurrentHashMap<>();
+    private final Map<String, IFieldCodecFactory> codecFactories = new ConcurrentHashMap<>();
 
     private final Map<String, IFieldTagBinaryCodec> tagBinaryEncoders = new ConcurrentHashMap<>();
 
     private final Map<String, IFieldTagTextCodec> tagTextEncoders = new ConcurrentHashMap<>();
 
-    public void registerTextCodec(String name, IFieldTextCodec encoder) {
-        textEncoders.put(name, encoder);
+    public void registerCodec(String name, IFieldCodecFactory codec) {
+        codecFactories.put(name, codec);
     }
 
-    public void unregisterTextCodec(String name, IFieldTextCodec encoder) {
-        textEncoders.remove(name, encoder);
-    }
-
-    public void registerBinaryCodec(String name, IFieldBinaryCodec encoder) {
-        binaryEncoders.put(name, encoder);
-    }
-
-    public void unregisterBinaryCodec(String name, IFieldBinaryCodec encoder) {
-        binaryEncoders.remove(name, encoder);
+    public void unregisterCodec(String name, IFieldCodecFactory codec) {
+        codecFactories.remove(name, codec);
     }
 
     public void registerTagTextCodec(String name, IFieldTagTextCodec encoder) {
@@ -84,19 +68,21 @@ public class FieldCodecRegistry {
         return tagBinaryEncoders.get(name);
     }
 
-    public IFieldTextCodec getTextCodec(String name) {
-        return textEncoders.get(name);
+    public IFieldTextCodec getTextCodec(String name, IFieldConfig config) {
+        IFieldCodecFactory factory = codecFactories.get(name);
+        return factory == null ? null : factory.newTextCodec(config);
     }
 
-    public IFieldBinaryCodec getBinaryCodec(String name) {
-        return binaryEncoders.get(name);
+    public IFieldBinaryCodec getBinaryCodec(String name, IFieldConfig config) {
+        IFieldCodecFactory factory = codecFactories.get(name);
+        return factory == null ? null : factory.newBinaryCodec(config);
     }
 
-    public IFieldBinaryCodec requireBinaryCodec(String fieldName, String name) {
-        IFieldBinaryCodec codec = getBinaryCodec(name);
+    public IFieldBinaryCodec requireBinaryCodec(String name, IFieldConfig config) {
+        IFieldBinaryCodec codec = getBinaryCodec(name, config);
         if (codec == null)
             throw new NopException(ERR_RECORD_UNKNOWN_FIELD_CODEC)
-                    .param(ARG_FIELD_NAME, fieldName)
+                    .param(ARG_FIELD_NAME, config.getName())
                     .param(ARG_CODEC, name);
         return codec;
     }

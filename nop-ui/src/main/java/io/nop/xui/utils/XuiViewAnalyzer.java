@@ -88,7 +88,7 @@ public class XuiViewAnalyzer {
                             .param(ARG_PROP_NAME, name);
                 });
 
-                addPropDepends(colModel, propMeta, objMeta, selection, gridModel.getEditMode());
+                addPropDepends(colModel, propMeta, objMeta, selection, getEditMode(colModel, gridModel.getEditMode()));
                 addFileStatus(colModel, propMeta, selection);
             }
 
@@ -205,7 +205,7 @@ public class XuiViewAnalyzer {
                             .param(ARG_PROP_NAME, name);
                 });
 
-                addPropDepends(cellModel, propMeta, objMeta, selection, formModel.getEditMode());
+                addPropDepends(cellModel, propMeta, objMeta, selection, getEditMode(cellModel, formModel.getEditMode()));
                 addFileStatus(cellModel, propMeta, selection);
             }
 
@@ -222,6 +222,13 @@ public class XuiViewAnalyzer {
 
             addDispSelection(selection, lc.getId(), cellModel, propMeta);
         });
+    }
+
+    private String getEditMode(IUiDisplayMeta dispMeta, String defaultEditMode) {
+        String editMode = dispMeta.getEditMode();
+        if (editMode == null)
+            editMode = defaultEditMode;
+        return editMode;
     }
 
     private void addDispSelection(FieldSelectionBean selection, String fieldName, IUiDisplayMeta dispMeta, IObjPropMeta propMeta) {
@@ -373,7 +380,7 @@ public class XuiViewAnalyzer {
     boolean addLabelProp(IObjPropMeta propMeta, FieldSelectionBean selection) {
         String labelProp = getLabelProp(propMeta);
         if (!StringHelper.isEmpty(labelProp)) {
-            selection.addCompositeField(labelProp,false);
+            selection.addCompositeField(labelProp, false);
             return true;
         }
         return false;

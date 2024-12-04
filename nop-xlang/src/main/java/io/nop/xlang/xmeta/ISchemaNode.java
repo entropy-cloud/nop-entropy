@@ -15,6 +15,7 @@ import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.validator.ValidatorModel;
 import io.nop.core.type.IGenericType;
+import io.nop.xlang.xdef.IStdDomainOptions;
 import io.nop.xlang.xdef.SchemaKind;
 import io.nop.xlang.xdef.impl.XDefHelper;
 
@@ -73,6 +74,8 @@ public interface ISchemaNode extends ISourceLocationGetter, IFreezable {
      * 在{@link io.nop.xlang.xdef.domain.StdDomainRegistry}中注册的系统内置类型域。解析数据时会按照指定规则进行类型转换
      */
     String getStdDomain();
+
+    IStdDomainOptions getStdDomainOptionsObj();
 
     /**
      * 扩展验证条件，xml格式

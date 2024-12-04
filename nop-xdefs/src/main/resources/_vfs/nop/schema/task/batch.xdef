@@ -74,13 +74,14 @@
             <headers xdef:value="csv-set"/>
         </file-reader>
 
-        <orm-reader xdef:name="BatchOrmReaderModel" batchLoadProps="csv-list" entityName="class-name">
+        <orm-reader xdef:name="BatchOrmReaderModel" batchLoadProps="csv-list" partitionIndexField="var-name"
+                    entityName="class-name">
             <eql xdef:value="xpl-sql"/>
             <query xdef:value="xpl-node"/>
         </orm-reader>
 
         <jdbc-reader querySpace="string" fetchSize="int" sqlName="string" maxRows="long" maxFieldSize="int"
-                     queryTimeout="int"
+                     queryTimeout="int" partitionIndexField="var-name"
                      rowMapper="bean-name" streaming="!boolean=false" xdef:name="BatchJdbcReaderModel">
             <sql xdef:value="xpl-sql"/>
             <query xdef:value="xpl-node"/>

@@ -22,6 +22,7 @@
                    node.setAttrIfAbsent('x:schema','/nop/schema/task/batch.xdef');
                    node.setAttr('xmlns:x','/nop/schema/xdsl.xdef');
                    node.tagName = 'batch';
+                   node.makeChild('x:config').appendBodyXml(`<c:import from="/nop/batch/xlib/batch.xlib" />`);
 
                    const batchTaskManager = inject('nopBatchTaskManager')
                    const batchTaskBuilder = batchTaskManager.newBatchTaskBuilderFromModel(node,$beanProvider,$scope);
@@ -44,5 +45,13 @@
 
             </source>
         </Execute>
+
+        <Consume>
+            <attr name="item" mandatory="true"/>
+            <attr name="consume" implicit="true" />
+            <source>
+                consume(item);
+            </source>
+        </Consume>
     </tags>
 </lib>

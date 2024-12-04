@@ -10,7 +10,7 @@ import io.nop.commons.type.BinaryWordType;
 public class FieldBinaryCodecRegistrar{
     public static void registerWordType(FieldCodecRegistry registry){
 	    <c:for var="wordType" items="${BinaryWordType.values()}">
-		registry.registerBinaryCodec("${wordType.name()}",FieldBinaryCodec_${wordType.name()}.INSTANCE);
+		registry.registerCodec("${wordType.name()}",FieldBinaryCodec_${wordType.name()}.INSTANCE);
 		</c:for>
 	}
 }

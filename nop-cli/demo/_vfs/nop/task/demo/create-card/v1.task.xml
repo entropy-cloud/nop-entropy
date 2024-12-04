@@ -3,7 +3,6 @@
       xmlns:c="c" xmlns:dao="dao">
 
     <input name="request" type="Map"/>
-    <input name="consume" />
 
     <x:config>
         <c:import from="/nop/orm/xlib/dao.xlib"/>
@@ -54,12 +53,7 @@
                     partitionIndex: customer.partitionIndex
                 }}">
         </custom>
-
-        <xpl name="returnResponse">
-            <source>
-                consume(card);
-            </source>
-        </xpl>
     </steps>
 
+    <output name="card" />
 </task>

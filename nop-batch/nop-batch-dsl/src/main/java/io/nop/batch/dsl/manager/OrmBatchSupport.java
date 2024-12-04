@@ -25,6 +25,9 @@ public class OrmBatchSupport {
         OrmQueryBatchLoaderProvider<IOrmEntity> loader = new OrmQueryBatchLoaderProvider<>();
         loader.setBatchLoadProps(batchLoadProps);
         loader.setDaoProvider(daoProvider);
+        loader.setPartitionIndexField(loaderModel.getPartitionIndexField());
+        loader.setEntityName(loaderModel.getEntityName());
+
         if (query != null)
             loader.setQueryBuilder(newQueryBuilder(query));
         //loader.setSqlGenerator(loaderModel.getEql());
@@ -32,7 +35,7 @@ public class OrmBatchSupport {
         return (IBatchLoaderProvider) loader;
     }
 
-    private static IQueryBuilder newQueryBuilder(IXNodeGenerator generator) {
+    public static IQueryBuilder newQueryBuilder(IXNodeGenerator generator) {
         return context -> {
             XNode node = generator.generateNode(context);
             return BeanTool.buildBeanFromTreeBean(node, QueryBean.class);

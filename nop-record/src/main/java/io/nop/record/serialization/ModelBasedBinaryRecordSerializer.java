@@ -32,7 +32,7 @@ public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSe
         if (encoder != null) {
             context.enterField(field.getName());
             try {
-                encoder.encode(out, value, field.getLength(), field.getCharsetObj(), context, null);
+                encoder.encode(out, value, field.getLength(), context, null);
             } finally {
                 context.leaveField(field.getName());
             }
@@ -53,8 +53,8 @@ public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSe
     @Override
     protected void writeObjectWithCodec(IBinaryDataWriter out, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
         IFieldBinaryCodec encoder = resolveBinaryCodec(field, registry);
-        encoder.encode(out, record, field.getLength(), field.getCharsetObj(), context,
-                (output, value, length, charset, ctx, bodyEncoder) -> {
+        encoder.encode(out, record, field.getLength(),  context,
+                (output, value, length, ctx, bodyEncoder) -> {
                     try {
                         writeSwitch(output, field, value, context);
                     } catch (Exception e) {

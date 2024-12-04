@@ -8,7 +8,6 @@ import io.nop.record.reader.IBinaryDataReader;
 import io.nop.record.writer.IBinaryDataWriter;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.function.Function;
 
 import static io.nop.record.RecordErrors.ARG_LENGTH;
@@ -28,9 +27,9 @@ public class LVFieldBinaryCodec implements IFieldBinaryCodec {
     }
 
     @Override
-    public Object decode(IBinaryDataReader input, Object record, int length, Charset charset,
-                         IFieldCodecContext context) throws IOException{
-        int len = (Integer) lengthCodec.decode(input, record, length, charset, context);
+    public Object decode(IBinaryDataReader input, Object record, int length,
+                         IFieldCodecContext context) throws IOException {
+        int len = (Integer) lengthCodec.decode(input, record, length, context);
         if (len <= 0) {
             return null;
         }
@@ -39,15 +38,15 @@ public class LVFieldBinaryCodec implements IFieldBinaryCodec {
             throw new NopException(ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG)
                     .param(ARG_LENGTH, len).param(ARG_MAX_LENGTH, length);
         }
-        return valueCodec.decode(input, record, len, charset, context);
+        return valueCodec.decode(input, record, len, context);
     }
 
     @Override
-    public void encode(IBinaryDataWriter output, Object value, int length, Charset charset,
+    public void encode(IBinaryDataWriter output, Object value, int length,
                        IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder) throws IOException {
         int len = lengthGetter.apply(value);
-        lengthCodec.encode(output, len, length, charset, context, null);
+        lengthCodec.encode(output, len, length, context, null);
         if (len > 0)
-            valueCodec.encode(output, value, len, charset, context, bodyEncoder);
+            valueCodec.encode(output, value, len, context, bodyEncoder);
     }
 }

@@ -292,6 +292,8 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
             return decodeBase64(str.substring(CommonConstants.BASE_64_PREFIX.length()));
         if (str.startsWith(CommonConstants.HEX_PREFIX))
             return decodeHex(str.substring(CommonConstants.HEX_PREFIX.length()));
+        if(str.startsWith(CommonConstants.HEX_BYTES_PREFIX))
+            return decodeHex(str.substring(CommonConstants.HEX_BYTES_PREFIX.length()));
         if (str.startsWith(CommonConstants.UTF8_PREFIX))
             return new ByteString(str.substring(CommonConstants.UTF8_PREFIX.length()));
         return new ByteString(str.getBytes(StandardCharsets.UTF_8));

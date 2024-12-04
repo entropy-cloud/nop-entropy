@@ -39,6 +39,13 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: partitionIndexField
+     * 
+     */
+    private java.lang.String _partitionIndexField ;
+    
+    /**
+     *  
      * xml name: query
      * 
      */
@@ -146,6 +153,25 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
         checkAllowChange();
         
         this._maxRows = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: partitionIndexField
+     *  
+     */
+    
+    public java.lang.String getPartitionIndexField(){
+      return _partitionIndexField;
+    }
+
+    
+    public void setPartitionIndexField(java.lang.String value){
+        checkAllowChange();
+        
+        this._partitionIndexField = value;
            
     }
 
@@ -320,6 +346,7 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
         out.putNotNull("fetchSize",this.getFetchSize());
         out.putNotNull("maxFieldSize",this.getMaxFieldSize());
         out.putNotNull("maxRows",this.getMaxRows());
+        out.putNotNull("partitionIndexField",this.getPartitionIndexField());
         out.putNotNull("query",this.getQuery());
         out.putNotNull("querySpace",this.getQuerySpace());
         out.putNotNull("queryTimeout",this.getQueryTimeout());
@@ -342,6 +369,7 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
         instance.setFetchSize(this.getFetchSize());
         instance.setMaxFieldSize(this.getMaxFieldSize());
         instance.setMaxRows(this.getMaxRows());
+        instance.setPartitionIndexField(this.getPartitionIndexField());
         instance.setQuery(this.getQuery());
         instance.setQuerySpace(this.getQuerySpace());
         instance.setQueryTimeout(this.getQueryTimeout());

@@ -22,5 +22,10 @@
             <artifactId>nop-dao</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-orm</artifactId>
+        </dependency>
+
     </dependencies>
 </project>

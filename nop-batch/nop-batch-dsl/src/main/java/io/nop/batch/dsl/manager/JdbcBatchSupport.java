@@ -14,6 +14,8 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dataset.IRowMapper;
 import io.nop.dataset.rowmapper.ColumnMapRowMapper;
 
+import static io.nop.batch.dsl.manager.OrmBatchSupport.newQueryBuilder;
+
 public class JdbcBatchSupport {
 
     public static IBatchLoaderProvider<Object> newJdbcReader(BatchJdbcReaderModel loaderModel,
@@ -30,6 +32,8 @@ public class JdbcBatchSupport {
         if (loaderModel.getQueryTimeout() != null) {
             loader.setQueryTimeout(loaderModel.getQueryTimeout());
         }
+
+        loader.setPartitionIndexField(loaderModel.getPartitionIndexField());
 
         if (loaderModel.isStreaming())
             loader.setStreaming(true);
@@ -52,6 +56,10 @@ public class JdbcBatchSupport {
             loader.setTransformer((item, chunkCtx) -> transformer.call2(null, item, chunkCtx, chunkCtx.getEvalScope()));
         }
 
+        if (loaderModel.getQuery() != null) {
+            loader.setQueryBuilder(newQueryBuilder(loaderModel.getQuery()));
+        }
+
         if (loaderModel.getSqlName() != null) {
             loader.setSqlName(loaderModel.getSqlName());
             loader.setNamedSqlBuilder(sqlLibManager);
@@ -59,6 +67,7 @@ public class JdbcBatchSupport {
 
         if (loaderModel.getSql() != null)
             loader.setSqlGenerator(loaderModel.getSql());
+
         return loader;
     }
 

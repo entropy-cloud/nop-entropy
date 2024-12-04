@@ -232,6 +232,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     }
 
     void _assignParent(XNode parent) {
+        checkNotReadOnly();
         this.parent = parent;
     }
 

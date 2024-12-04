@@ -81,6 +81,13 @@ public abstract class _SchemaNodeImpl extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: stdDomainOptions
+     * 
+     */
+    private java.lang.String _stdDomainOptions ;
+    
+    /**
+     *  
      * xml name: type
      * 
      */
@@ -266,6 +273,25 @@ public abstract class _SchemaNodeImpl extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: stdDomainOptions
+     *  
+     */
+    
+    public java.lang.String getStdDomainOptions(){
+      return _stdDomainOptions;
+    }
+
+    
+    public void setStdDomainOptions(java.lang.String value){
+        checkAllowChange();
+        
+        this._stdDomainOptions = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: type
      *  
      */
@@ -326,6 +352,7 @@ public abstract class _SchemaNodeImpl extends io.nop.core.resource.component.Abs
         out.putNotNull("ref",this.getRef());
         out.putNotNull("refResolved",this.getRefResolved());
         out.putNotNull("stdDomain",this.getStdDomain());
+        out.putNotNull("stdDomainOptions",this.getStdDomainOptions());
         out.putNotNull("type",this.getType());
         out.putNotNull("validator",this.getValidator());
     }
@@ -348,6 +375,7 @@ public abstract class _SchemaNodeImpl extends io.nop.core.resource.component.Abs
         instance.setRef(this.getRef());
         instance.setRefResolved(this.getRefResolved());
         instance.setStdDomain(this.getStdDomain());
+        instance.setStdDomainOptions(this.getStdDomainOptions());
         instance.setType(this.getType());
         instance.setValidator(this.getValidator());
     }

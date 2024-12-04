@@ -39,6 +39,13 @@ public abstract class _BatchOrmReaderModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: partitionIndexField
+     * 
+     */
+    private java.lang.String _partitionIndexField ;
+    
+    /**
+     *  
      * xml name: query
      * 
      */
@@ -103,6 +110,25 @@ public abstract class _BatchOrmReaderModel extends io.nop.core.resource.componen
     
     /**
      * 
+     * xml name: partitionIndexField
+     *  
+     */
+    
+    public java.lang.String getPartitionIndexField(){
+      return _partitionIndexField;
+    }
+
+    
+    public void setPartitionIndexField(java.lang.String value){
+        checkAllowChange();
+        
+        this._partitionIndexField = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: query
      *  
      */
@@ -138,6 +164,7 @@ public abstract class _BatchOrmReaderModel extends io.nop.core.resource.componen
         out.putNotNull("batchLoadProps",this.getBatchLoadProps());
         out.putNotNull("entityName",this.getEntityName());
         out.putNotNull("eql",this.getEql());
+        out.putNotNull("partitionIndexField",this.getPartitionIndexField());
         out.putNotNull("query",this.getQuery());
     }
 
@@ -153,6 +180,7 @@ public abstract class _BatchOrmReaderModel extends io.nop.core.resource.componen
         instance.setBatchLoadProps(this.getBatchLoadProps());
         instance.setEntityName(this.getEntityName());
         instance.setEql(this.getEql());
+        instance.setPartitionIndexField(this.getPartitionIndexField());
         instance.setQuery(this.getQuery());
     }
 

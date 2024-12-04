@@ -140,6 +140,8 @@ Nop平台中服务函数的返回值并不会被直接序列化为JSON返回到�
 * 对于启用逻辑删除的实体，缺省情况下所有查询都会自动追加逻辑删除过滤条件。如果希望改变这一行为，可以在prop上标记 `graphql:disableLogicalDelete=true`
 ，这样关联查询时会跳过逻辑删除过滤条件。
 
+例如，如果希望返回子表的条目数，可以采用`graphql:queryMethod="findCount"`的配置，或者使用`graphql:queryMethod="findPage"`，调用的时候使用`xxx{total}`，从返回的PageBean中获取total属性
+
 如果存在ORM层面的关联属性，则上面的配置可以简化
 
 ```xml

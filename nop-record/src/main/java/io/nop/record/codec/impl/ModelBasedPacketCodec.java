@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.codec.IPacketCodec;
 import io.nop.commons.bytes.EndianKind;
+import io.nop.commons.type.StdDataType;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.ReflectionManager;
@@ -72,12 +73,17 @@ public class ModelBasedPacketCodec implements IPacketCodec<Object> {
             endian = codecModel.getDefaultEndian();
         this.byteOrder = endian == EndianKind.little ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
         if (codecModel.getLengthFieldCodec() != null) {
-            this.lengthCodec = registry.requireBinaryCodec(PACKET_LENGTH, codecModel.getLengthFieldCodec());
+            this.lengthCodec = registry.requireBinaryCodec(codecModel.getLengthFieldCodec(),
+                    new DefaultFieldConfig(PACKET_LENGTH, StdDataType.INT, lengthFieldLength));
         } else {
             this.lengthCodec = null;
         }
         this.deserializer = new ModelBasedBinaryRecordDeserializer(registry);
         this.serializer = new ModelBasedBinaryRecordSerializer(registry);
+    }
+
+    public FieldCodecRegistry getFieldCodecRegistry() {
+        return registry;
     }
 
     @Override
@@ -224,7 +230,7 @@ public class ModelBasedPacketCodec implements IPacketCodec<Object> {
             int readerIndex = buf.readerIndex();
             buf.skipBytes(offset);
             try {
-                int len = (Integer) lengthCodec.decode(new ByteBufBinaryDataReader(buf), null, length, null, null);
+                int len = (Integer) lengthCodec.decode(new ByteBufBinaryDataReader(buf), null, length, null);
                 return len;
             } catch (Exception e) {
                 throw NopException.adapt(e);
@@ -260,7 +266,7 @@ public class ModelBasedPacketCodec implements IPacketCodec<Object> {
     protected void writeUnadjustedFrameLength(ByteBuf buf, int length, int frameLength) {
         if (lengthCodec != null) {
             try {
-                lengthCodec.encode(new ByteBufBinaryDataWriter(buf), frameLength, length, null, null, null);
+                lengthCodec.encode(new ByteBufBinaryDataWriter(buf), frameLength, length, null, null);
             } catch (Exception e) {
                 throw NopException.adapt(e);
             }

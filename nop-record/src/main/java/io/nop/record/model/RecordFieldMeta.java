@@ -18,7 +18,6 @@ import io.nop.record.model._gen._RecordFieldMeta;
 import io.nop.xlang.xmeta.ISchema;
 
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 
 public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMeta {
     private IFieldTextCodec resolvedTextCodec;
@@ -29,29 +28,24 @@ public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMe
 
     private SimpleTextTemplate normalizedTemplate;
 
-    private Charset charsetObj;
-
     public RecordFieldMeta() {
 
     }
 
     public void init(RecordDefinitions defs) {
-        if (getTemplate() != null) {
-            this.normalizedTemplate = SimpleTextTemplate.of(StringHelper.normalizeTemplate(getTemplate()));
+        if (getEndian() == null && defs.getDefaultEndian() != null) {
+            setEndian(defs.getDefaultEndian());
         }
 
-        String charset = getCharset();
-        if (charset == null) {
-            charsetObj = StandardCharsets.UTF_8;
-        } else {
-            charsetObj = Charset.forName(charset);
+        if (getTemplate() != null) {
+            this.normalizedTemplate = SimpleTextTemplate.of(StringHelper.normalizeTemplate(getTemplate()));
         }
 
         for (RecordFieldMeta field : getFields()) {
             field.init(defs);
         }
 
-        if(getSwitch() != null){
+        if (getSwitch() != null) {
             getSwitch().init(defs);
         }
 
@@ -71,10 +65,6 @@ public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMe
 
     public SimpleTextTemplate getNormalizedTemplate() {
         return this.normalizedTemplate;
-    }
-
-    public Charset getCharsetObj() {
-        return charsetObj;
     }
 
     public String getPropOrFieldName() {

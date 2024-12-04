@@ -29,6 +29,10 @@
                     <schema stdDomain="string"/>
                 </field>
 
+                <field name="defaultEndian" displayName="缺省大小端">
+                    <schema stdDomain="string"/>
+                </field>
+
                 <field name="binary" displayName="是否二进制文件">
                     <schema stdDomain="boolean"/>
                 </field>
@@ -141,8 +145,12 @@
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="template" displayName="模板" >
+                <field name="template" displayName="模板">
                     <schema stdDomain="string"/>
+                </field>
+
+                <field name="div" displayName="包装对象">
+                    <schema stdDomain="boolean"/>
                 </field>
 
                 <field name="fields" displayName="字段列表" list="true" keyProp="name">
@@ -187,6 +195,14 @@
                             <schema stdDomain="generic-type"/>
                         </field>
 
+                        <field name="typeRef" displayName="记录类型">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="virtual" displayName="虚拟">
+                            <schema stdDomain="boolean"/>
+                        </field>
+
                         <field name="codec" displayName="编码器">
                             <schema stdDomain="string"/>
                         </field>
@@ -196,6 +212,14 @@
                         </field>
 
                         <field name="padding" displayName="填充字符">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="leftPad" displayName="是否左填充">
+                            <schema stdDomain="boolean"/>
+                        </field>
+
+                        <field name="format" displayName="格式">
                             <schema stdDomain="string"/>
                         </field>
 
@@ -215,7 +239,7 @@
                             <schema stdDomain="std-domain"/>
                         </field>
 
-                        <field name="schema.domain" displayName="数据域" >
+                        <field name="schema.domain" displayName="数据域">
                             <schema stdDomain="string"/>
                         </field>
 
@@ -223,6 +247,33 @@
                             <schema stdDomain="string"/>
                         </field>
 
+                        <field name="schema.pattern" displayName="正则模式">
+                            <schema stdDomain="regex"/>
+                        </field>
+
+                        <field name="schema.min" displayName="最小值">
+                            <schema stdDomain="double"/>
+                        </field>
+
+                        <field name="schema.max" displayName="最大值">
+                            <schema stdDomain="double"/>
+                        </field>
+
+                        <field name="schema.precision" displayName="精度">
+                            <schema stdDomain="int"/>
+                        </field>
+
+                        <field name="schema.scale" displayName="小数位数">
+                            <schema stdDomain="int"/>
+                        </field>
+
+                        <field name="lengthExpr" displayName="长度表达式">
+                            <schema stdDomain="xpl"/>
+                        </field>
+
+                        <field name="content" displayName="固定内容">
+                            <schema stdDomain="encoded-bytes"/>
+                        </field>
                     </fields>
                 </field>
             </fields>

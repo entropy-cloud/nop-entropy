@@ -7,6 +7,9 @@
  */
 package io.nop.batch.jdbc.loader;
 
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.IntRangeBean;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchLoaderProvider;
@@ -15,6 +18,7 @@ import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.sql.ISqlGenerator;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.INamedSqlBuilder;
+import io.nop.dao.api.IQueryBuilder;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.dataset.JdbcDataSet;
@@ -24,6 +28,7 @@ import io.nop.dataset.IRowMapper;
 import io.nop.dataset.impl.DefaultFieldMapper;
 import io.nop.dataset.record.impl.RecordInputImpls;
 import io.nop.dataset.rowmapper.ColumnMapRowMapper;
+import io.nop.orm.dao.DaoQueryHelper;
 import jakarta.inject.Inject;
 
 import java.sql.Connection;
@@ -38,6 +43,9 @@ public class JdbcBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
     private String querySpace;
 
     private ISqlGenerator sqlGenerator;
+
+    private IQueryBuilder queryBuilder;
+    private String partitionIndexField;
 
     private INamedSqlBuilder namedSqlBuilder;
 
@@ -58,6 +66,22 @@ public class JdbcBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
 
     private int queryTimeout;
 
+    public IQueryBuilder getQueryBuilder() {
+        return queryBuilder;
+    }
+
+    public void setQueryBuilder(IQueryBuilder queryBuilder) {
+        this.queryBuilder = queryBuilder;
+    }
+
+    public String getPartitionIndexField() {
+        return partitionIndexField;
+    }
+
+    public void setPartitionIndexField(String partitionIndexField) {
+        this.partitionIndexField = partitionIndexField;
+    }
+
     public String getQuerySpace() {
         return querySpace;
     }
@@ -66,7 +90,7 @@ public class JdbcBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
         this.querySpace = querySpace;
     }
 
-    public void setTransformer(BiFunction<T,IBatchChunkContext,T> transformer){
+    public void setTransformer(BiFunction<T, IBatchChunkContext, T> transformer) {
         this.transformer = transformer;
     }
 
@@ -159,9 +183,29 @@ public class JdbcBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
     LoaderState newState(IBatchTaskContext context) {
         ISqlGenerator sqlGenerator = this.sqlGenerator;
         if (sqlGenerator == null) {
-            if (sqlName != null)
+            if (sqlName != null && namedSqlBuilder != null)
                 sqlGenerator = ctx -> namedSqlBuilder.buildSql(sqlName, ctx);
         }
+
+        if (sqlGenerator == null && queryBuilder != null) {
+            QueryBean query = queryBuilder.buildQuery(context);
+            if (query == null)
+                query = new QueryBean();
+
+            IntRangeBean range = context.getPartition();
+
+            // 自动增加分区条件
+            if (partitionIndexField != null && range != null) {
+                query.addFilter(FilterBeans.between(partitionIndexField, range.getOffset(), range.getLast()));
+            }
+
+            QueryBean fixedQuery = query;
+            sqlGenerator = ctx -> {
+                SQL.SqlBuilder sb = DaoQueryHelper.queryToSelectFieldsSql(fixedQuery, null);
+                return sb.end();
+            };
+        }
+
         Guard.notNull(sqlGenerator, "sqlGenerator");
 
 
