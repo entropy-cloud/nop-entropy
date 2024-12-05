@@ -8,6 +8,7 @@
 package io.nop.batch.core;
 
 import io.nop.api.core.beans.IntRangeBean;
+import io.nop.commons.cache.ICache;
 import io.nop.core.context.IExecutionContext;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.utils.IVarSet;
@@ -22,6 +23,8 @@ import java.util.function.Consumer;
  */
 public interface IBatchTaskContext extends IExecutionContext {
     IServiceContext getServiceContext();
+
+    ICache<Object,Object> getCache();
 
     String getTaskName();
 

@@ -15,6 +15,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.CoreConstants;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.reflect.ReflectionManager;
@@ -43,7 +44,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
-import static io.nop.core.type.PredefinedGenericTypes.X_NODE_TYPE;
 import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
 import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
 import static io.nop.xlang.XLangErrors.ARG_TAG_NAME;
@@ -280,6 +280,25 @@ public class XplStdDomainHandlers {
         @Override
         protected Object doCompileContent(IStdDomainOptions options, XLangCompileTool cp, XNode node) {
             return doCompileBody(options, cp, node);
+        }
+
+        @Override
+        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+                                XLangCompileTool cp) {
+            if (value instanceof IEvalFunction)
+                return value;
+            if (value instanceof XNode)
+                return parseXplBody(options, (XNode) value, cp);
+
+            String text = value.toString().trim();
+            if (text.startsWith("<") || text.endsWith(">")) {
+                XNode node = XNodeParser.instance().forFragments(true).parseFromText(loc, text);
+                return parseXplBody(options, node, cp);
+            }
+            XNode node = XNode.make(CoreConstants.DUMMY_TAG_NAME);
+            node.setLocation(loc);
+            node.content(loc, text);
+            return parseXplBody(options, node, cp);
         }
     }
 

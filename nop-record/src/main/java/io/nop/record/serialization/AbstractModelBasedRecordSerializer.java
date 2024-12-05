@@ -39,11 +39,14 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
         if (!runIfExpr(recordMeta.getWriteWhen(), record, name, context))
             return false;
 
+        if (recordMeta.getBeforeWrite() != null)
+            recordMeta.getBeforeWrite().call3(null, out, record, context, context.getEvalScope());
+
         IBitSet tags = writeTags(out, null, recordMeta, record, context);
         writeTemplateOrFields(out, tags, recordMeta, null, record, context);
 
         if (recordMeta.getAfterWrite() != null)
-            recordMeta.getAfterWrite().call1(null, record, context.getEvalScope());
+            recordMeta.getAfterWrite().call3(null, out, record, context, context.getEvalScope());
         return true;
     }
 
@@ -117,7 +120,7 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
             IBitSet tags = writeTags(out, field, typeMeta, value, context);
             writeTemplateOrFields(out, tags, typeMeta, field.getCharsetObj(), value, context);
             if (typeMeta.getAfterWrite() != null)
-                typeMeta.getAfterWrite().call1(null, record, context.getEvalScope());
+                typeMeta.getAfterWrite().call3(null, out, record, context, context.getEvalScope());
             return;
         }
 
@@ -140,7 +143,7 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
             writeField0(out, field, record, context);
         }
         if (field.getAfterWrite() != null)
-            field.getAfterWrite().call1(null, record, context.getEvalScope());
+            field.getAfterWrite().call3(null, out, record, context, context.getEvalScope());
     }
 
     protected void writeTemplateOrFields(Output out, IBitSet tags,

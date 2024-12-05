@@ -46,6 +46,20 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: beforeRead
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _beforeRead ;
+    
+    /**
+     *  
+     * xml name: beforeWrite
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _beforeWrite ;
+    
+    /**
+     *  
      * xml name: doc
      * 
      */
@@ -165,6 +179,44 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._beanClass = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: beforeRead
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getBeforeRead(){
+      return _beforeRead;
+    }
+
+    
+    public void setBeforeRead(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._beforeRead = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: beforeWrite
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getBeforeWrite(){
+      return _beforeWrite;
+    }
+
+    
+    public void setBeforeWrite(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._beforeWrite = value;
            
     }
 
@@ -377,6 +429,8 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         out.putNotNull("afterWrite",this.getAfterWrite());
         out.putNotNull("baseType",this.getBaseType());
         out.putNotNull("beanClass",this.getBeanClass());
+        out.putNotNull("beforeRead",this.getBeforeRead());
+        out.putNotNull("beforeWrite",this.getBeforeWrite());
         out.putNotNull("doc",this.getDoc());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("params",this.getParams());
@@ -399,6 +453,8 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         instance.setAfterWrite(this.getAfterWrite());
         instance.setBaseType(this.getBaseType());
         instance.setBeanClass(this.getBeanClass());
+        instance.setBeforeRead(this.getBeforeRead());
+        instance.setBeforeWrite(this.getBeforeWrite());
         instance.setDoc(this.getDoc());
         instance.setFields(this.getFields());
         instance.setParams(this.getParams());

@@ -19,7 +19,7 @@ import java.util.Map;
  */
 public interface IRecordOutput<T> extends Closeable, Flushable {
 
-    default void beginWrite(Map<String, Object> headerMeta) {
+    default void beginWrite(Map<String, Object> headerMeta) throws IOException {
 
     }
 
@@ -27,15 +27,15 @@ public interface IRecordOutput<T> extends Closeable, Flushable {
 
     }
 
-    default void endWrite(Map<String, Object> trailerMeta) {
+    default void endWrite(Map<String, Object> trailerMeta) throws IOException {
 
     }
 
     long getWriteCount();
 
-    void write(T record);
+    void write(T record) throws IOException;
 
-    default void writeBatch(Collection<? extends T> records) {
+    default void writeBatch(Collection<? extends T> records) throws IOException {
         if (records != null) {
             for (T record : records) {
                 write(record);

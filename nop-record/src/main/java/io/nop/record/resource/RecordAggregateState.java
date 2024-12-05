@@ -23,6 +23,7 @@ public class RecordAggregateState {
     private AggregateState pageAggregateState;
     private int indexInPage;
     private int pageSize;
+    private long writeCount;
 
     public RecordAggregateState(RecordFileMeta fileMeta,
                                 IAggregatorProvider aggregatorProvider, IFieldCodecContext context) {
@@ -52,16 +53,24 @@ public class RecordAggregateState {
         return state;
     }
 
+    public long getWriteCount() {
+        return writeCount;
+    }
+
     public int getIndexInPage() {
         return indexInPage;
     }
 
     public void onWriteRecord(Object record) {
-        if (aggregateState != null) {
-            aggregate(aggregateState, fileMeta.getAggregates(), record);
-        } else if (pageAggregateState != null) {
+        writeCount++;
+        if (pageAggregateState != null) {
             aggregate(pageAggregateState, paginationMeta.getAggregates(), record);
         }
+
+        if (aggregateState != null) {
+            aggregate(aggregateState, fileMeta.getAggregates(), record);
+        }
+
         indexInPage++;
     }
 
@@ -92,6 +101,12 @@ public class RecordAggregateState {
             return Collections.emptyMap();
 
         return pageAggregateState.getResults();
+    }
+
+    public Map<String, Object> getResults() {
+        if (aggregateState == null)
+            return Collections.emptyMap();
+        return aggregateState.getResults();
     }
 
     public boolean isPageBegin() {

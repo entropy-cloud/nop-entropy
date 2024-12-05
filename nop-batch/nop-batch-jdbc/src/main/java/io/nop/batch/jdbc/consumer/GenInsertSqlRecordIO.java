@@ -7,7 +7,6 @@
  */
 package io.nop.batch.jdbc.consumer;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.record.IResourceRecordIO;
@@ -68,13 +67,10 @@ public class GenInsertSqlRecordIO implements IResourceRecordIO<Map<String, Objec
         }
 
         @Override
-        public void write(Map<String, Object> record) {
+        public void write(Map<String, Object> record) throws IOException {
             count++;
-            try {
-                out.write(buildInsertSql(record));
-            } catch (Exception e) {
-                throw NopException.adapt(e);
-            }
+
+            out.write(buildInsertSql(record));
         }
 
         String buildInsertSql(Map<String, Object> record) {
@@ -133,12 +129,8 @@ public class GenInsertSqlRecordIO implements IResourceRecordIO<Map<String, Objec
         }
 
         @Override
-        public void flush() {
-            try {
-                out.flush();
-            } catch (IOException e) {
-                throw NopException.adapt(e);
-            }
+        public void flush() throws IOException {
+            out.flush();
         }
 
         @Override

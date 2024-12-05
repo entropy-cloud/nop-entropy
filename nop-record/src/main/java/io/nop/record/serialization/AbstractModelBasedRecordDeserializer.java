@@ -30,11 +30,14 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
 
     @Override
     public boolean readObject(Input in, RecordObjectMeta recordMeta, String name, Object record, IFieldCodecContext context) throws IOException {
+        if (recordMeta.getBeforeRead() != null)
+            recordMeta.getBeforeRead().call3(null, in, record, context, context.getEvalScope());
+
         IBitSet tags = readTags(in, null, recordMeta, context);
         readTemplateOrFields(in, tags, recordMeta, null, record, context);
 
         if (recordMeta.getAfterRead() != null)
-            recordMeta.getAfterRead().call1(null, record, context.getEvalScope());
+            recordMeta.getAfterRead().call3(null, in, record, context, context.getEvalScope());
         return true;
     }
 
@@ -98,7 +101,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             IBitSet tags = readTags(in, field, typeMeta, context);
             readTemplateOrFields(in, tags, typeMeta, field.getCharsetObj(), value, context);
             if (typeMeta.getAfterRead() != null)
-                typeMeta.getAfterRead().call2(null, in, record, context.getEvalScope());
+                typeMeta.getAfterRead().call3(null, in, record, context, context.getEvalScope());
             return;
         }
 
@@ -121,7 +124,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             readField0(in, field, record, context);
         }
         if (field.getAfterRead() != null)
-            field.getAfterRead().call2(null, in, record, context.getEvalScope());
+            field.getAfterRead().call3(null, in, record, context, context.getEvalScope());
     }
 
     protected void readTemplateOrFields(Input in, IBitSet tags,

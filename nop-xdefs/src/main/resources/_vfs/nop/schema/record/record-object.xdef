@@ -21,7 +21,11 @@
 
     <readWhen xdef:value="xpl-fn:(in,record,ctx)=>boolean"/>
 
+    <beforeWrite xdef:value="xpl-fn:(out,record,ctx)=>any"/>
+
     <afterWrite xdef:value="xpl-fn:(out,record,ctx)=>any"/>
+
+    <beforeRead xdef:value="xpl-fn:(in,record,ctx)=>any"/>
 
     <!-- 在所有子字段都读取到之后执行 -->
     <afterRead xdef:value="xpl-fn:(in,record,ctx)=>any"/>

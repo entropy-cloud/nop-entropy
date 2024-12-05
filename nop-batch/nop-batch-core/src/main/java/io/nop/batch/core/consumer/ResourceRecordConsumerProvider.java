@@ -8,6 +8,7 @@
 package io.nop.batch.core.consumer;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.batch.core.BatchConstants;
 import io.nop.batch.core.IBatchAggregator;
 import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchMetaProvider;
@@ -19,6 +20,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.record.IResourceRecordOutputProvider;
 import io.nop.dataset.record.IRecordOutput;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -96,7 +98,14 @@ public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHand
         if (metaProvider != null) {
             // 写入header
             header = metaProvider.getMeta(context);
+        } else {
+            header = new HashMap<>();
+            header.put(BatchConstants.VAR_BATCH_TASK_CTX, context);
+        }
+        try {
             state.output.beginWrite(header);
+        } catch (Exception e) {
+            throw NopException.adapt(e);
         }
 
         // 用于汇总计算trailer
@@ -105,18 +114,28 @@ public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHand
 
             context.onBeforeComplete(() -> {
                 Map<String, Object> trailer = aggregator.complete(null, state.combinedValue);
-                state.output.endWrite(trailer);
                 try {
+                    state.output.endWrite(trailer);
                     state.output.flush();
                 } catch (Exception e) {
                     throw NopException.adapt(e);
                 }
             });
-
-            context.onAfterComplete(err -> {
-                IoHelper.safeCloseObject(state.output);
+        } else {
+            Map<String, Object> finalHeader = header;
+            context.onBeforeComplete(() -> {
+                try {
+                    state.output.endWrite(finalHeader);
+                    state.output.flush();
+                } catch (Exception e) {
+                    throw NopException.adapt(e);
+                }
             });
         }
+
+        context.onAfterComplete(err -> {
+            IoHelper.safeCloseObject(state.output);
+        });
         return state;
     }
 

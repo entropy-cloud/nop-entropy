@@ -18,6 +18,7 @@ import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.xlsx.model.WorkbookPart;
 import io.nop.ooxml.xlsx.model.XSSFSheetRef;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -87,7 +88,11 @@ public class XlsxToRecordOutput extends AbstractXlsxParser {
 
         @Override
         public void endRow(int rowNum) {
-            output.write(row);
+            try {
+                output.write(row);
+            } catch (IOException e) {
+                throw NopException.adapt(e);
+            }
         }
 
         @Override

@@ -12,6 +12,8 @@ import io.nop.batch.core.BatchConstants;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.IBatchTaskMetrics;
+import io.nop.commons.cache.ICache;
+import io.nop.commons.cache.MapCache;
 import io.nop.core.CoreConstants;
 import io.nop.core.context.ExecutionContextImpl;
 import io.nop.core.context.IServiceContext;
@@ -33,6 +35,7 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     static final Logger LOG = LoggerFactory.getLogger(BatchTaskContextImpl.class);
 
     private final IServiceContext serviceContext;
+    private ICache<Object, Object> cache;
 
     private String taskName;
     private Long taskVersion;
@@ -82,6 +85,18 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     @Override
     public IServiceContext getServiceContext() {
         return serviceContext;
+    }
+
+    @Override
+    public synchronized ICache<Object, Object> getCache() {
+        ICache<Object, Object> cache = this.cache;
+        if (cache == null) {
+            cache = serviceContext == null ? null : serviceContext.getCache();
+            if (cache == null)
+                cache = new MapCache<>("batch-task-cache", true);
+            this.cache = cache;
+        }
+        return cache;
     }
 
     @Override

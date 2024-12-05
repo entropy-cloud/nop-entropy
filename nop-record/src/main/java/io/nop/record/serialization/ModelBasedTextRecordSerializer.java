@@ -28,19 +28,35 @@ public class ModelBasedTextRecordSerializer extends AbstractModelBasedRecordSeri
 
     @Override
     protected void writeField0(ITextDataWriter out, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        Object value = getFieldValue(field, record, context);
+
         IFieldTextCodec encoder = resolveTextCodec(field, registry);
         if (encoder != null) {
             context.enterField(field.getName());
+            Object value = getFieldValue(field, record, context);
             try {
                 encoder.encode(out, value, field.getLength(), context, null);
             } finally {
                 context.leaveField(field.getName());
             }
         } else {
-            if (value != null)
-                out.append(value.toString());
+            ByteString content = field.getContent();
+            if (content != null) {
+                String str = content.toString(field.getCharset());
+                out.append(RecordMetaHelper.padText(str, field));
+            } else {
+                Object value = getProp(field, record, context);
+                String str = StringHelper.toString(value, "");
+                str = RecordMetaHelper.padText(str, field);
+                out.append(str);
+            }
         }
+    }
+
+    Object getFieldValue(RecordFieldMeta field, Object record, IFieldCodecContext context) {
+        if (field.getContent() != null) {
+            return field.getStdDataType().convert(field.getContent().toString(field.getCharset()));
+        }
+        return getProp(field, record, context);
     }
 
     @Override
@@ -74,20 +90,5 @@ public class ModelBasedTextRecordSerializer extends AbstractModelBasedRecordSeri
     @Override
     protected void writeString(ITextDataWriter out, String str, Charset charset, IFieldCodecContext context) throws IOException {
         out.append(str);
-    }
-
-    private Object getFieldValue(RecordFieldMeta field, Object record, IFieldCodecContext context) {
-        ByteString bs = field.getContent();
-        if (bs != null) {
-            String str = bs.toString(field.getCharset());
-            return RecordMetaHelper.padText(str, field);
-        } else {
-            Object value = getProp(field, record, context);
-            if (field.getPadding() != null) {
-                String str = StringHelper.toString(value, "");
-                return RecordMetaHelper.padText(str, field);
-            }
-            return value;
-        }
     }
 }

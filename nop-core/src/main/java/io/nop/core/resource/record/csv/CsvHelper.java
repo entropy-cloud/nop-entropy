@@ -7,6 +7,7 @@
  */
 package io.nop.core.resource.record.csv;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.resource.IResource;
@@ -20,7 +21,7 @@ import java.util.Map;
 
 public class CsvHelper {
 
-    public static <T> List<T> readCsv(IResource resource, Type type, CSVFormat format){
+    public static <T> List<T> readCsv(IResource resource, Type type, CSVFormat format) {
         return readCsv(resource, type, format, null);
     }
 
@@ -51,6 +52,9 @@ public class CsvHelper {
         CsvRecordOutput<T> output = new CsvRecordOutput<>(resource, null, format, headers, true);
         try {
             output.writeBatch(data);
+            output.flush();
+        } catch (IOException e) {
+            throw NopException.adapt(e);
         } finally {
             IoHelper.safeCloseObject(output);
         }

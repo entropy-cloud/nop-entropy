@@ -19,9 +19,6 @@ public interface RecordConstants {
 
     String PAGE_HEADER_NAME = "pageHeader";
 
-    String VAR_WRITE_COUNT = "$writeCount";
-
-    String VAR_INDEX_IN_PAGE = "$indexInPage";
 
     String VAR_AGG_STATE = "aggState";
 

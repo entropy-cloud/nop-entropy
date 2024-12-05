@@ -51,7 +51,7 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
     }
 
     @Override
-    public void writeBatch(Collection<? extends T> records) {
+    public void writeBatch(Collection<? extends T> records) throws IOException {
         if (records == null || records.isEmpty()) {
             if (!headersWritten) {
                 if (!CollectionHelper.isEmpty(headers)) {
@@ -66,45 +66,37 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
             return;
         }
 
-        try {
-            if (!headersWritten) {
-                writeHeaders(CollectionHelper.first(records));
-                headersWritten = true;
-            }
+        if (!headersWritten) {
+            writeHeaders(CollectionHelper.first(records));
+            headersWritten = true;
+        }
 
-            for (T record : records) {
-                write(record);
-            }
-        } catch (IOException e) {
-            throw NopException.adapt(e);
+        for (T record : records) {
+            write(record);
         }
     }
 
     @Override
-    public void write(T record) {
-        try {
-            if (!headersWritten) {
-                writeHeaders(record);
-                headersWritten = true;
-            }
-
-            if (headers == null) {
-                writer.printRecord((Iterable<?>) record);
-                writeCount++;
-                return;
-            }
-
-            Object[] row = new String[headers.size()];
-            int index = 0;
-            for (String header : headers) {
-                Object value = BeanTool.getComplexProperty(record, header);
-                row[index++] = toString(value);
-            }
-            writer.printRecord(row);
-            writeCount++;
-        } catch (IOException e) {
-            throw NopException.adapt(e);
+    public void write(T record) throws IOException {
+        if (!headersWritten) {
+            writeHeaders(record);
+            headersWritten = true;
         }
+
+        if (headers == null) {
+            writer.printRecord((Iterable<?>) record);
+            writeCount++;
+            return;
+        }
+
+        Object[] row = new String[headers.size()];
+        int index = 0;
+        for (String header : headers) {
+            Object value = BeanTool.getComplexProperty(record, header);
+            row[index++] = toString(value);
+        }
+        writer.printRecord(row);
+        writeCount++;
     }
 
     private String toString(Object value) {
@@ -124,12 +116,8 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
     }
 
     @Override
-    public void flush() {
-        try {
-            writer.flush();
-        } catch (IOException e) {
-            throw NopException.adapt(e);
-        }
+    public void flush() throws IOException {
+        writer.flush();
     }
 
     @Override

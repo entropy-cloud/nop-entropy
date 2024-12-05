@@ -1,8 +1,6 @@
 package io.nop.record.resource;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.aggregator.IAggregatorProvider;
-import io.nop.core.lang.eval.IBeanVariableScope;
 import io.nop.dataset.record.IRecordOutput;
 import io.nop.record.RecordConstants;
 import io.nop.record.codec.IFieldCodecContext;
@@ -11,17 +9,14 @@ import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordPaginationMeta;
 import io.nop.record.serialization.IModelBasedRecordSerializer;
 import io.nop.record.writer.IDataWriterBase;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
 
 public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterBase, T> implements IRecordOutput<T> {
-    static final Logger LOG = LoggerFactory.getLogger(AbstractModelBasedRecordOutput.class);
+    //static final Logger LOG = LoggerFactory.getLogger(AbstractModelBasedRecordOutput.class);
 
     private final Output baseOut;
-    private long writeCount;
     private final RecordFileMeta fileMeta;
 
     protected final IModelBasedRecordSerializer<Output> serializer;
@@ -54,56 +49,35 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
 
     @Override
     public long getWriteCount() {
-        return writeCount;
+        return aggregateState.getWriteCount();
     }
 
     @Override
-    public void beginWrite(Map<String, Object> attributes) {
+    public void beginWrite(Map<String, Object> attributes) throws IOException {
+        if (attributes != null)
+            context.getEvalScope().setLocalValues(attributes);
+
         if (fileMeta.getResolvedHeaderType() != null) {
-            IBeanVariableScope scope = name -> getScopeValue(attributes, name);
-            try {
-                writeObject(baseOut, fileMeta.getResolvedHeaderType(), scope, RecordConstants.HEADER_NAME);
-            } catch (Exception e) {
-                throw NopException.adapt(e);
-            }
+            writeObject(baseOut, fileMeta.getResolvedHeaderType(), context, RecordConstants.HEADER_NAME);
         }
-    }
-
-    private Object getScopeValue(Map<String, Object> vars, String name) {
-        if (name.equals(RecordConstants.VAR_WRITE_COUNT))
-            return writeCount;
-        if (name.equals(RecordConstants.VAR_INDEX_IN_PAGE))
-            return aggregateState.getIndexInPage();
-        if (vars != null) {
-            Object value = vars.get(name);
-            if (value != null)
-                return value;
-        }
-        return context.getEvalScope().getValue(name);
     }
 
     @Override
-    public void endWrite(Map<String, Object> trailerMeta) {
+    public void endWrite(Map<String, Object> trailerMeta) throws IOException {
+        if (trailerMeta != null)
+            context.getEvalScope().setLocalValues(trailerMeta);
+
         if (fileMeta.getResolvedTrailerType() != null) {
-            IBeanVariableScope scope = name -> getScopeValue(trailerMeta, name);
-            try {
-                writeObject(baseOut, fileMeta.getResolvedTrailerType(), scope, RecordConstants.TRAILER_NAME);
-            } catch (Exception e) {
-                throw NopException.adapt(e);
-            }
+            context.getEvalScope().setLocalValues(aggregateState.getResults());
+            writeObject(baseOut, fileMeta.getResolvedTrailerType(), context, RecordConstants.TRAILER_NAME);
         }
     }
 
     @Override
-    public void write(T record) {
-        writeCount++;
-        try {
-            beforeWriteRecord(record);
-            writeObject(baseOut, fileMeta.getResolvedBodyType(), record, RecordConstants.BODY_NAME);
-            afterWriteRecord(record);
-        } catch (Exception e) {
-            throw NopException.adapt(e);
-        }
+    public void write(T record) throws IOException {
+        beforeWriteRecord(record);
+        writeObject(baseOut, fileMeta.getResolvedBodyType(), record, RecordConstants.BODY_NAME);
+        afterWriteRecord(record);
     }
 
     protected void beforeWriteRecord(T record) throws IOException {
@@ -113,8 +87,7 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
             if (aggregateState.isPageBegin()) {
                 RecordPaginationMeta pagination = fileMeta.getPagination();
                 if (pagination.getPageHeader() != null) {
-                    IBeanVariableScope scope = name -> getScopeValue(null, name);
-                    writeObject(baseOut, pagination.getPageHeader(), scope, RecordConstants.PAGE_FOOTER_NAME);
+                    writeObject(baseOut, pagination.getPageHeader(), context, RecordConstants.PAGE_HEADER_NAME);
                 }
             }
         }
@@ -125,8 +98,8 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
             if (aggregateState.isPageEnd()) {
                 RecordPaginationMeta pagination = fileMeta.getPagination();
                 if (pagination.getPageFooter() != null) {
-                    IBeanVariableScope scope = name -> getScopeValue(aggregateState.getPageResults(), name);
-                    writeObject(baseOut, pagination.getPageFooter(), scope, RecordConstants.PAGE_FOOTER_NAME);
+                    context.getEvalScope().setLocalValues(aggregateState.getPageResults());
+                    writeObject(baseOut, pagination.getPageFooter(), context, RecordConstants.PAGE_FOOTER_NAME);
                 }
                 aggregateState.resetPage();
             }

@@ -17,7 +17,7 @@
                     <schema stdDomain="var-name"/>
                 </field>
 
-                <field name="footer.typeRef" displayName="文件尾">
+                <field name="trailer.typeRef" displayName="文件尾">
                     <schema stdDomain="var-name"/>
                 </field>
 
@@ -110,7 +110,7 @@
                         </field>
 
                         <field name="valueExpr" displayName="计算表达式">
-                            <schema stdDomain="xpl"/>
+                            <schema stdDomain="xpl-fn" stdDomainOptions="(record,ctx)=>any"/>
                         </field>
                     </fields>
                 </field>
@@ -151,6 +151,22 @@
 
                 <field name="div" displayName="包装对象">
                     <schema stdDomain="boolean"/>
+                </field>
+
+                <field name="beforeRead" displayName="读取前">
+                    <schema stdDomain="xpl-fn" stdDomainOptions="(in,record,ctx)=>any"/>
+                </field>
+
+                <field name="afterRead" displayName="读取后">
+                    <schema stdDomain="xpl-fn" stdDomainOptions="(in,record,ctx)=>any"/>
+                </field>
+
+                <field name="beforeWrite" displayName="写入前">
+                    <schema stdDomain="xpl-fn" stdDomainOptions="(out,record,ctx)=>any"/>
+                </field>
+
+                <field name="afterWrite" displayName="写入后">
+                    <schema stdDomain="xpl-fn" stdDomainOptions="(out,record,ctx)=>any"/>
                 </field>
 
                 <field name="fields" displayName="字段列表" list="true" keyProp="name">
@@ -228,11 +244,11 @@
                         </field>
 
                         <field name="exportExpr" displayName="导出表达式">
-                            <schema stdDomain="xpl"/>
+                            <schema stdDomain="xpl-fn" stdDomainOptions="(record,ctx)=>any"/>
                         </field>
 
                         <field name="parseExpr" displayName="解析表达式">
-                            <schema stdDomain="xpl"/>
+                            <schema stdDomain="xpl-fn" stdDomainOptions="(in,record,ctx)=>any"/>
                         </field>
 
                         <field name="schema.stdDomain" displayName="标准域">
@@ -268,7 +284,7 @@
                         </field>
 
                         <field name="lengthExpr" displayName="长度表达式">
-                            <schema stdDomain="xpl"/>
+                            <schema stdDomain="xpl-fn" stdDomainOptions="(in,record,ctx)=>int"/>
                         </field>
 
                         <field name="content" displayName="固定内容">

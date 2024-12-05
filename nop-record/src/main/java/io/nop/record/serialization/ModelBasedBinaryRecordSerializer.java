@@ -9,12 +9,12 @@ import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.IFieldTagBinaryCodec;
 import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
-import io.nop.record.util.RecordMetaHelper;
 import io.nop.record.writer.IBinaryDataWriter;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 
+import static io.nop.record.util.RecordMetaHelper.padBinary;
 import static io.nop.record.util.RecordMetaHelper.resolveBinaryCodec;
 import static io.nop.record.util.RecordMetaHelper.resolveTagBinaryCodec;
 
@@ -27,19 +27,30 @@ public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSe
 
     @Override
     protected void writeField0(IBinaryDataWriter out, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        Object value = getFieldValue(field, record, context);
         IFieldBinaryCodec encoder = resolveBinaryCodec(field, registry);
         if (encoder != null) {
             context.enterField(field.getName());
             try {
+                Object value = getFieldValue(field, record, context);
                 encoder.encode(out, value, field.getLength(), context, null);
             } finally {
                 context.leaveField(field.getName());
             }
         } else {
-            if (value != null)
-                out.writeByteString(toBytes(value, field.getCharsetObj()));
+            if (field.getContent() != null) {
+                out.writeByteString(padBinary(field.getContent(), field));
+            } else {
+                Object value = getProp(field, record, context);
+                out.writeByteString(padBinary(toBytes(value, field.getCharsetObj()), field));
+            }
         }
+    }
+
+    Object getFieldValue(RecordFieldMeta field, Object record, IFieldCodecContext context) {
+        if (field.getContent() != null) {
+            return field.getStdDataType().convert(field.getContent().toString(field.getCharset()));
+        }
+        return getProp(field, record, context);
     }
 
     @Override
@@ -53,7 +64,7 @@ public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSe
     @Override
     protected void writeObjectWithCodec(IBinaryDataWriter out, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
         IFieldBinaryCodec encoder = resolveBinaryCodec(field, registry);
-        encoder.encode(out, record, field.getLength(),  context,
+        encoder.encode(out, record, field.getLength(), context,
                 (output, value, length, ctx, bodyEncoder) -> {
                     try {
                         writeSwitch(output, field, value, context);
@@ -73,20 +84,6 @@ public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSe
     @Override
     protected void writeString(IBinaryDataWriter out, String str, Charset charset, IFieldCodecContext context) throws IOException {
         out.writeBytes(str.getBytes(charset));
-    }
-
-    private Object getFieldValue(RecordFieldMeta field, Object record, IFieldCodecContext context) {
-        ByteString bs = field.getContent();
-        if (bs != null) {
-            return RecordMetaHelper.padBinary(bs, field);
-        } else {
-            Object value = getProp(field, record, context);
-            if (field.getPadding() != null) {
-                bs = toBytes(value, field.getCharsetObj());
-                return RecordMetaHelper.padBinary(bs, field);
-            }
-            return value;
-        }
     }
 
     ByteString toBytes(Object value, Charset charset) {
