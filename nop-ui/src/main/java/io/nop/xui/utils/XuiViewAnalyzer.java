@@ -225,6 +225,9 @@ public class XuiViewAnalyzer {
     }
 
     private String getEditMode(IUiDisplayMeta dispMeta, String defaultEditMode) {
+        if(dispMeta == null)
+            return defaultEditMode;
+
         String editMode = dispMeta.getEditMode();
         if (editMode == null)
             editMode = defaultEditMode;
