@@ -283,8 +283,11 @@ public class DaoQueryHelper {
         sb.append("select o from ").append(entityModel.getName()).as("o");
         boolean hasCond = appendWhere(sb, "o", filter);
         if (lastEntity != null) {
-            if (hasCond)
+            if (hasCond) {
                 sb.and();
+            }else{
+                sb.where();
+            }
             appendGtLastEntity(sb, entityModel, lastEntity);
         }
 

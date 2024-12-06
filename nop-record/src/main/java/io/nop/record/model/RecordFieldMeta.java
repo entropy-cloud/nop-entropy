@@ -17,7 +17,7 @@ import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.model._gen._RecordFieldMeta;
 import io.nop.xlang.xmeta.ISchema;
 
-import java.nio.charset.Charset;
+import java.util.Map;
 
 public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMeta {
     private IFieldTextCodec resolvedTextCodec;
@@ -44,12 +44,16 @@ public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMe
         for (RecordFieldMeta field : getFields()) {
             field.init(defs);
         }
+    }
 
-        if (getSwitch() != null) {
-            getSwitch().init(defs);
-        }
-
-
+    public String getTypeByCaseValue(String caseValue) {
+        Map<String, String> typeMap = getSwitchTypeMap();
+        if (typeMap == null)
+            return null;
+        String type = typeMap.get(caseValue);
+        if (type == null)
+            type = typeMap.get("*");
+        return type;
     }
 
     public boolean isMatchTag(IBitSet tags) {

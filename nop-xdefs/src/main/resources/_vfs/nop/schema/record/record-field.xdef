@@ -16,7 +16,7 @@
        repeatKind="enum:io.nop.record.model.FieldRepeatKind"
        tagsCodec="string" tagIndex="!int=0" div="!boolean=false" asMap="!boolean=false"
 >
-    <sizeField xdef:ref="record-simple-field.xdef"/>
+<!--    <sizeField xdef:ref="record-simple-field.xdef"/>-->
 
     <!--
     返回字段的循环次数
@@ -30,25 +30,21 @@
 
     <!--
     动态确定字段类型
-    @onField 如果指定了onField，则输出时根据从record[onField]上获取到case类型，然后再映射到type类型，从根对象的types集合中再获取具体定义
+    如果指定了switchOnField，则输出时根据从record[switchOnField]上获取到case类型，然后再映射到type类型，从根对象的types集合中再获取具体定义
     -->
-    <switch xdef:name="RecordFieldSwitch" onField="string">
-        <!--
-        类型判断表达式
-        -->
-        <on xdef:value="xpl-fn:(record,ctx)=>string"/>
+    <switchOnField xdef:value="prop-name"/>
 
-        <!--
-        @when 与on表达式的返回值比较，如果相等，则实际类型为type指定的值
-        -->
-        <case when="!string" type="!string" xdef:name="RecordFieldSwitchCase" xdef:unique-attr="when"/>
-
-        <default xdef:value="string"/>
-    </switch>
+    <!-- 根据record[switchOnField]获取到类型，key为*表示缺省映射 -->
+    <switchTypeMap xdef:value="string-map"/>
 
     <fields xdef:body-type="list" xdef:key-attr="name">
         <field name="!prop-name" xdef:ref="RecordFieldMeta"/>
     </fields>
+
+
+    <beforeWrite xdef:value="xpl-fn:(out,record,ctx)=>any"/>
+
+    <beforeRead xdef:value="xpl-fn:(in,record,ctx)=>any"/>
 
     <afterWrite xdef:value="xpl-fn:(out,record,ctx)=>any"/>
 

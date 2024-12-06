@@ -5,6 +5,7 @@
         <JdbcDataSet>
             <attr name="queryTimeout" type="Integer" optional="true"/>
             <attr name="fetchSize" type="Integer" optional="true"/>
+            <attr name="streaming" type="Boolean" optional="true" />
             <attr name="querySpace" type="String" optional="true"/>
             <attr name="xptRt" type="io.nop.report.core.engine.IXptRuntime" implicit="true"/>
 
@@ -13,12 +14,14 @@
             <source>
                 <c:script><![CDATA[
                     import io.nop.dao.jdbc.impl.JdbcDataSetHelper;
-
-                    const sql = slot_source().extend().timeout(queryTimeout)
-                          .fetchSize(fetchSize).end();
+                    import io.nop.dao.dialect.DialectManager;
 
                     const dataSource = JdbcDataSetHelper.getDataSource(querySpace);
                     const connection = dataSource.connection;
+                    const dialect = DialectManager.instance().getDialectForConnection(connection);
+                    const sql = slot_source().extend().timeout(queryTimeout)
+                          .fetchSize(fetchSize || streaming ? dialect.streamingFetchSize : null).end();
+
                     xptRt.addWorkbookCleanup(()=> connection.close());
                     const ds = JdbcDataSetHelper.newDataSet(connection, sql);
                     xptRt.addWorkbookCleanup(()=> ds.close());

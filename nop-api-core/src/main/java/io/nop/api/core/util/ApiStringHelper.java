@@ -306,6 +306,14 @@ public class ApiStringHelper {
     }
 
     @Deterministic
+    public static Map<String, String> parseStringMap(String str) {
+        if (str == null)
+            return null;
+        str = str.replace('\n', ',');
+        return parseStringMap(str, '=', ',');
+    }
+
+    @Deterministic
     public static Map<String, String> parseStringMap(String str, char keySepChar, char itemSepChar) {
         if (isEmpty(str))
             return Collections.emptyMap();
@@ -390,6 +398,7 @@ public class ApiStringHelper {
 
         return sb.toString();
     }
+
     public static String toString(Object v, String defaultValue) {
         if (v == null)
             return defaultValue;

@@ -78,7 +78,7 @@ public class SimpleTextTemplate {
     static List<Object> parseTemplate(String message, String placeholderStart, String placeholderEnd) {
         List<Object> list = new ArrayList<>();
 
-        if (message == null)
+        if (StringHelper.isEmpty(message))
             return list;
 
         int pos = message.indexOf(placeholderStart);
@@ -97,7 +97,7 @@ public class SimpleTextTemplate {
         int pos1 = 0;
         do {
             if (pos1 != pos)
-                list.add(message.substring(pos1, pos - placeholderStart.length()));
+                addToList(list, message.substring(pos1, pos - placeholderStart.length()));
 
             String name = message.substring(pos, pos2).trim();
             list.add(Symbol.of(name));
@@ -107,18 +107,23 @@ public class SimpleTextTemplate {
 
             pos = message.indexOf(placeholderStart, pos2);
             if (pos < 0) {
-                list.add(message.substring(pos2));
+                addToList(list, message.substring(pos2));
                 break;
             }
 
             pos += placeholderStart.length();
             pos2 = message.indexOf(placeholderEnd, pos);
             if (pos2 < 0) {
-                list.add(message.substring(pos));
+                addToList(list, message.substring(pos));
                 break;
             }
 
         } while (true);
         return list;
+    }
+
+    static void addToList(List<Object> list, String str) {
+        if (!str.isEmpty())
+            list.add(str);
     }
 }

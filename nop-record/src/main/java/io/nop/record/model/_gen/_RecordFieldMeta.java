@@ -39,6 +39,20 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      *  
+     * xml name: beforeRead
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _beforeRead ;
+    
+    /**
+     *  
+     * xml name: beforeWrite
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _beforeWrite ;
+    
+    /**
+     *  
      * xml name: div
      * 表示是否仅仅是作为分组使用，并不对应于一个真实的对象
      */
@@ -54,6 +68,7 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     /**
      *  
      * xml name: readRepeatExpr
+     * <sizeField xdef:ref="record-simple-field.xdef"/>
      * 返回字段的循环次数
      */
     private io.nop.core.lang.eval.IEvalFunction _readRepeatExpr ;
@@ -74,17 +89,18 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      *  
-     * xml name: sizeField
-     * 定长记录的定义
+     * xml name: switchOnField
+     * 动态确定字段类型
+     * 如果指定了switchOnField，则输出时根据从record[switchOnField]上获取到case类型，然后再映射到type类型，从根对象的types集合中再获取具体定义
      */
-    private io.nop.record.model.RecordSimpleFieldMeta _sizeField ;
+    private java.lang.String _switchOnField ;
     
     /**
      *  
-     * xml name: switch
-     * 动态确定字段类型
+     * xml name: switchTypeMap
+     * 根据record[switchOnField]获取到类型，key为*表示缺省映射
      */
-    private io.nop.record.model.RecordFieldSwitch _switch ;
+    private java.util.Map<java.lang.String,java.lang.String> _switchTypeMap ;
     
     /**
      *  
@@ -166,6 +182,44 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      * 
+     * xml name: beforeRead
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getBeforeRead(){
+      return _beforeRead;
+    }
+
+    
+    public void setBeforeRead(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._beforeRead = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: beforeWrite
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getBeforeWrite(){
+      return _beforeWrite;
+    }
+
+    
+    public void setBeforeWrite(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._beforeWrite = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: div
      *  表示是否仅仅是作为分组使用，并不对应于一个真实的对象
      */
@@ -231,7 +285,8 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     /**
      * 
      * xml name: readRepeatExpr
-     *  返回字段的循环次数
+     *  <sizeField xdef:ref="record-simple-field.xdef"/>
+     * 返回字段的循环次数
      */
     
     public io.nop.core.lang.eval.IEvalFunction getReadRepeatExpr(){
@@ -287,41 +342,46 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      * 
-     * xml name: sizeField
-     *  定长记录的定义
+     * xml name: switchOnField
+     *  动态确定字段类型
+     * 如果指定了switchOnField，则输出时根据从record[switchOnField]上获取到case类型，然后再映射到type类型，从根对象的types集合中再获取具体定义
      */
     
-    public io.nop.record.model.RecordSimpleFieldMeta getSizeField(){
-      return _sizeField;
+    public java.lang.String getSwitchOnField(){
+      return _switchOnField;
     }
 
     
-    public void setSizeField(io.nop.record.model.RecordSimpleFieldMeta value){
+    public void setSwitchOnField(java.lang.String value){
         checkAllowChange();
         
-        this._sizeField = value;
+        this._switchOnField = value;
            
     }
 
     
     /**
      * 
-     * xml name: switch
-     *  动态确定字段类型
+     * xml name: switchTypeMap
+     *  根据record[switchOnField]获取到类型，key为*表示缺省映射
      */
     
-    public io.nop.record.model.RecordFieldSwitch getSwitch(){
-      return _switch;
+    public java.util.Map<java.lang.String,java.lang.String> getSwitchTypeMap(){
+      return _switchTypeMap;
     }
 
     
-    public void setSwitch(io.nop.record.model.RecordFieldSwitch value){
+    public void setSwitchTypeMap(java.util.Map<java.lang.String,java.lang.String> value){
         checkAllowChange();
         
-        this._switch = value;
+        this._switchTypeMap = value;
            
     }
 
+    
+    public boolean hasSwitchTypeMap(){
+        return this._switchTypeMap != null && !this._switchTypeMap.isEmpty();
+    }
     
     /**
      * 
@@ -390,10 +450,6 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         
            this._fields = io.nop.api.core.util.FreezeHelper.deepFreeze(this._fields);
             
-           this._sizeField = io.nop.api.core.util.FreezeHelper.deepFreeze(this._sizeField);
-            
-           this._switch = io.nop.api.core.util.FreezeHelper.deepFreeze(this._switch);
-            
         }
     }
 
@@ -404,13 +460,15 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         out.putNotNull("afterRead",this.getAfterRead());
         out.putNotNull("afterWrite",this.getAfterWrite());
         out.putNotNull("asMap",this.isAsMap());
+        out.putNotNull("beforeRead",this.getBeforeRead());
+        out.putNotNull("beforeWrite",this.getBeforeWrite());
         out.putNotNull("div",this.isDiv());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("readRepeatExpr",this.getReadRepeatExpr());
         out.putNotNull("readRepeatUntil",this.getReadRepeatUntil());
         out.putNotNull("repeatKind",this.getRepeatKind());
-        out.putNotNull("sizeField",this.getSizeField());
-        out.putNotNull("switch",this.getSwitch());
+        out.putNotNull("switchOnField",this.getSwitchOnField());
+        out.putNotNull("switchTypeMap",this.getSwitchTypeMap());
         out.putNotNull("tagIndex",this.getTagIndex());
         out.putNotNull("tagsCodec",this.getTagsCodec());
         out.putNotNull("template",this.getTemplate());
@@ -428,13 +486,15 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         instance.setAfterRead(this.getAfterRead());
         instance.setAfterWrite(this.getAfterWrite());
         instance.setAsMap(this.isAsMap());
+        instance.setBeforeRead(this.getBeforeRead());
+        instance.setBeforeWrite(this.getBeforeWrite());
         instance.setDiv(this.isDiv());
         instance.setFields(this.getFields());
         instance.setReadRepeatExpr(this.getReadRepeatExpr());
         instance.setReadRepeatUntil(this.getReadRepeatUntil());
         instance.setRepeatKind(this.getRepeatKind());
-        instance.setSizeField(this.getSizeField());
-        instance.setSwitch(this.getSwitch());
+        instance.setSwitchOnField(this.getSwitchOnField());
+        instance.setSwitchTypeMap(this.getSwitchTypeMap());
         instance.setTagIndex(this.getTagIndex());
         instance.setTagsCodec(this.getTagsCodec());
         instance.setTemplate(this.getTemplate());

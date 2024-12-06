@@ -10,7 +10,6 @@ import io.nop.core.reflect.bean.BeanTool;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.model.IRecordFieldsMeta;
 import io.nop.record.model.RecordFieldMeta;
-import io.nop.record.model.RecordFieldSwitch;
 import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordTypeMeta;
 import io.nop.record.reader.IDataReaderBase;
@@ -50,6 +49,9 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             readOffset(in, field.getOffset(), context);
         }
 
+        if (field.getBeforeRead() != null)
+            field.getBeforeRead().call3(null, in, record, context, context.getEvalScope());
+
         if (field.getCodec() != null && isUseBodyEncoder(field)) {
             readObjectWithCodec(in, field, record, context);
         } else {
@@ -63,26 +65,21 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             }
         }
 
+        if (field.getAfterRead() != null)
+            field.getAfterRead().call3(null, in, record, context, context.getEvalScope());
         return true;
     }
 
     protected void readSwitch(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        if (field.getSwitch() != null) {
-            RecordFieldSwitch switchMeta = field.getSwitch();
-            String onField = switchMeta.getOnField();
-            String onValue = null;
-            if (onField != null) {
-                onValue = ConvertHelper.toString(getPropByName(record, onField));
-            } else if (switchMeta.getOn() != null) {
-                onValue = ConvertHelper.toString(switchMeta.getOn().call1(null, record, context.getEvalScope()));
-            }
+        if (field.getSwitchOnField() != null) {
+            String onValue = ConvertHelper.toString(getPropByName(record, field.getSwitchOnField()));
 
             if (onValue == null)
                 throw new NopException(ERR_RECORD_NO_SWITCH_ON_FIELD)
                         .source(field)
                         .param(ARG_FIELD_NAME, field.getName());
 
-            String caseType = switchMeta.getTypeByCaseValue(onValue);
+            String caseType = field.getTypeByCaseValue(onValue);
             if (caseType == null)
                 throw new NopException(ERR_RECORD_NO_MATCH_FOR_CASE_VALUE)
                         .source(field)
@@ -98,10 +95,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
                         .param(ARG_TYPE_NAME, caseType);
 
             Object value = makeObjectProp(in, field, record, context);
-            IBitSet tags = readTags(in, field, typeMeta, context);
-            readTemplateOrFields(in, tags, typeMeta, field.getCharsetObj(), value, context);
-            if (typeMeta.getAfterRead() != null)
-                typeMeta.getAfterRead().call3(null, in, record, context, context.getEvalScope());
+            readObject(in, typeMeta, field.getName(), value, context);
             return;
         }
 
@@ -123,8 +117,6 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
         } else {
             readField0(in, field, record, context);
         }
-        if (field.getAfterRead() != null)
-            field.getAfterRead().call3(null, in, record, context, context.getEvalScope());
     }
 
     protected void readTemplateOrFields(Input in, IBitSet tags,
@@ -154,15 +146,14 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     }
 
     protected Object makeObjectProp(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) {
-        Object value = null;
         if (field.getParseExpr() != null)
-            value = field.getParseExpr().call2(null, in, record, context.getEvalScope());
+            return field.getParseExpr().call2(null, in, record, context.getEvalScope());
+
+        if (field.isDiv())
+            return record;
 
         String propName = field.getPropOrFieldName();
-        if (value == null) {
-            value = BeanTool.instance().makeProperty(record, propName);
-        }
-        return value;
+        return BeanTool.instance().makeProperty(record, propName);
     }
 
     protected Object getPropByName(Object record, String propName) {
@@ -177,7 +168,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     }
 
     protected boolean isUseBodyEncoder(RecordFieldMeta field) {
-        return field.getSwitch() != null || field.hasFields();
+        return field.getSwitchOnField() != null || field.hasFields();
     }
 
     abstract protected IBitSet readTags(Input input, RecordFieldMeta field, RecordObjectMeta typeMeta, IFieldCodecContext context) throws IOException;

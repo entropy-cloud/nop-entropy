@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -508,5 +509,16 @@ public class TestStringHelper {
         assertEquals(3, StringHelper.limitUtf8Len(str, 7).length());
         assertEquals(3, StringHelper.limitUtf8Len(str, 8).length());
         assertEquals(4, StringHelper.limitUtf8Len(str, 9).length());
+    }
+
+    @Test
+    public void testStringMap() {
+        String str = "a=b\r\n c = d, f=g\n\r\n,";
+
+        Map<String, String> map = StringHelper.parseStringMap(str);
+        assertEquals(3, map.size());
+        assertEquals("b", map.get("a"));
+        assertEquals("d", map.get("c"));
+        assertEquals("g", map.get("f"));
     }
 }

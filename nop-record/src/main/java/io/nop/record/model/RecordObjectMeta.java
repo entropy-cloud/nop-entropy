@@ -14,6 +14,7 @@ import io.nop.core.reflect.bean.IBeanConstructor;
 import io.nop.core.reflect.bean.MethodBeanConstructor;
 import io.nop.record.model._gen._RecordObjectMeta;
 
+import java.nio.charset.Charset;
 import java.util.LinkedHashMap;
 
 import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
@@ -24,8 +25,14 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
 
     private IBeanConstructor constructor;
 
+    private Charset charsetObj;
+
     public RecordObjectMeta() {
 
+    }
+
+    public Charset getCharsetObj() {
+        return charsetObj;
     }
 
     public void init(RecordDefinitions defs) {
@@ -36,6 +43,8 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
         for (RecordFieldMeta field : getFields()) {
             field.init(defs);
         }
+
+        this.charsetObj = defs.getDefaultCharsetObj();
 
         if (getBeanClass() != null) {
             constructor = new MethodBeanConstructor(ReflectionManager.instance().loadClassModel(getBeanClass()).getConstructor(0));

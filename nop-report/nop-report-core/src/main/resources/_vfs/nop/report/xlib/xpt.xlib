@@ -14,7 +14,7 @@
 
                     const reportEngine = inject('nopReportEngine');
                     const fileType = StringHelper.fileExt(outputFile);
-                    const renderer = reportEngine.getRenderer(template, fileType);
+                    const renderer = reportEngine.getRenderer(template, fileType || 'xlsx');
                     renderer.generateToFile(new File(outputFile), newChildScope(args));
                 ]]></c:script>
             </source>

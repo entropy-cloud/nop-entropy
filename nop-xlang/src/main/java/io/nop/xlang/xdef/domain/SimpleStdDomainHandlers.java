@@ -1295,7 +1295,8 @@ public class SimpleStdDomainHandlers {
         @Override
         public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
-            return StringHelper.parseStringMap(text.toString(), '=', ',');
+            String str = text.toString();
+            return StringHelper.parseStringMap(str);
         }
     }
 

@@ -8,6 +8,7 @@
 package io.nop.cli;
 
 import io.nop.api.core.config.AppConfig;
+import io.nop.commons.util.FileHelper;
 import io.nop.core.CoreConfigs;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
@@ -20,6 +21,7 @@ import java.io.File;
 
 import static io.nop.codegen.CodeGenConfigs.CFG_CODEGEN_TRACE_ENABLED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 public class TestNopCli extends BaseTestCase {
@@ -71,7 +73,7 @@ public class TestNopCli extends BaseTestCase {
     }
 
     @Test
-    public void testRunTask(){
+    public void testRunTask() {
         CoreInitialization.destroy();
         String[] args = new String[]{"run-task", "src/test/resources/task/test.task.xml",
                 "-if", "src/test/resources/data/data.json5"};
@@ -82,15 +84,19 @@ public class TestNopCli extends BaseTestCase {
     }
 
     @Test
-    public void testRunBatchGenDemo(){
+    public void testRunBatchGenDemo() {
         CoreInitialization.destroy();
-        File file = new File(getModuleDir(),"../nop-cli/demo/_vfs");
+        File file = new File(getModuleDir(), "../nop-cli/demo/_vfs");
         System.setProperty(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName(), file.getAbsolutePath());
-        String[] args = new String[]{"run-task", "v:/batch/batch-gen-demo.task.xml","-i","{totalCount:250,taskKey:'abc'}"};
+        String[] args = new String[]{"run-task", "v:/batch/batch-gen-demo.task.xml", "-i", "{totalCount:200,taskKey:'abc'}"};
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);
         int ret = app.run(args);
         assertEquals(0, ret);
         System.getProperties().remove(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName());
+
+        // 200 * (0.3 * (1/3 + 1/3 + 2/3) + 0.7) = 220
+        String text = FileHelper.readText(getTargetFile("txn-abc.dat"), null);
+        assertTrue(text.contains("totalCount=2200 "));
     }
 }

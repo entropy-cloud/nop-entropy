@@ -13,6 +13,7 @@ import io.nop.record.writer.IBinaryDataWriter;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import static io.nop.record.util.RecordMetaHelper.padBinary;
 import static io.nop.record.util.RecordMetaHelper.resolveBinaryCodec;
@@ -83,6 +84,8 @@ public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSe
 
     @Override
     protected void writeString(IBinaryDataWriter out, String str, Charset charset, IFieldCodecContext context) throws IOException {
+        if (charset == null)
+            charset = StandardCharsets.UTF_8;
         out.writeBytes(str.getBytes(charset));
     }
 

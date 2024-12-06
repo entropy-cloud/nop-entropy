@@ -11,7 +11,6 @@ import io.nop.core.reflect.bean.BeanTool;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.model.IRecordFieldsMeta;
 import io.nop.record.model.RecordFieldMeta;
-import io.nop.record.model.RecordFieldSwitch;
 import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordTypeMeta;
 import io.nop.record.writer.IDataWriterBase;
@@ -43,7 +42,7 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
             recordMeta.getBeforeWrite().call3(null, out, record, context, context.getEvalScope());
 
         IBitSet tags = writeTags(out, null, recordMeta, record, context);
-        writeTemplateOrFields(out, tags, recordMeta, null, record, context);
+        writeTemplateOrFields(out, tags, recordMeta, recordMeta.getCharsetObj(), record, context);
 
         if (recordMeta.getAfterWrite() != null)
             recordMeta.getAfterWrite().call3(null, out, record, context, context.getEvalScope());
@@ -65,6 +64,9 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
             writeOffset(out, field.getOffset(), context);
         }
 
+        if (field.getBeforeWrite() != null)
+            field.getBeforeWrite().call3(null, out, record, context, context.getEvalScope());
+
         if (field.getCodec() != null && isUseBodyEncoder(field)) {
             writeObjectWithCodec(out, field, record, context);
         } else {
@@ -78,30 +80,25 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
             }
         }
 
+        if (field.getAfterWrite() != null)
+            field.getAfterWrite().call3(null, out, record, context, context.getEvalScope());
+
         return true;
     }
 
     protected boolean isUseBodyEncoder(RecordFieldMeta field) {
-        return field.getSwitch() != null || field.hasFields();
+        return field.getSwitchOnField() != null || field.hasFields();
     }
 
     protected void writeSwitch(Output out, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        if (field.getSwitch() != null) {
-            RecordFieldSwitch switchMeta = field.getSwitch();
-            String onField = switchMeta.getOnField();
-            String onValue = null;
-            if (onField != null) {
-                onValue = ConvertHelper.toString(getPropByName(record, onField));
-            } else if (switchMeta.getOn() != null) {
-                onValue = ConvertHelper.toString(switchMeta.getOn().call1(null, record, context.getEvalScope()));
-            }
-
+        if (field.getSwitchOnField() != null) {
+            String onValue = ConvertHelper.toString(getPropByName(record, field.getSwitchOnField()));
             if (onValue == null)
                 throw new NopException(ERR_RECORD_NO_SWITCH_ON_FIELD)
                         .source(field)
                         .param(ARG_FIELD_NAME, field.getName());
 
-            String caseType = switchMeta.getTypeByCaseValue(onValue);
+            String caseType = field.getTypeByCaseValue(onValue);
             if (caseType == null)
                 throw new NopException(ERR_RECORD_NO_MATCH_FOR_CASE_VALUE)
                         .source(field)
@@ -117,10 +114,7 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
                         .param(ARG_TYPE_NAME, caseType);
 
             Object value = getProp(field, record, context);
-            IBitSet tags = writeTags(out, field, typeMeta, value, context);
-            writeTemplateOrFields(out, tags, typeMeta, field.getCharsetObj(), value, context);
-            if (typeMeta.getAfterWrite() != null)
-                typeMeta.getAfterWrite().call3(null, out, record, context, context.getEvalScope());
+            writeObject(out, typeMeta, field.getName(), value, context);
             return;
         }
 
@@ -142,8 +136,6 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
         } else {
             writeField0(out, field, record, context);
         }
-        if (field.getAfterWrite() != null)
-            field.getAfterWrite().call3(null, out, record, context, context.getEvalScope());
     }
 
     protected void writeTemplateOrFields(Output out, IBitSet tags,
@@ -186,6 +178,9 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
     protected Object getProp(RecordFieldMeta field, Object record, IFieldCodecContext context) {
         if (field.getExportExpr() != null)
             return field.getExportExpr().call1(null, record, context.getEvalScope());
+
+        if (field.isDiv())
+            return record;
 
         if (record == null)
             return null;
