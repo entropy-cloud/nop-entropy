@@ -1,8 +1,8 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-      x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-base.task.xml"
+      x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml"
       x:dump="true" defaultUseParentScope="true">
 
-    <input name="bizDate" type="LocalDate"/>
+    <input name="bizDate" type="LocalDate" />
 
     <steps>
         <custom name="importIntoDb" customType="batch:Execute"

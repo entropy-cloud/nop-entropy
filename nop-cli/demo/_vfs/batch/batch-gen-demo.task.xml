@@ -1,5 +1,5 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-      x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-base.task.xml"
+      x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml"
       xmlns:task="task" x:dump="true" defaultUseParentScope="true" xmlns:xpl="xpl" xmlns:c="c">
 
     <input name="totalCount" type="int"/>
@@ -38,12 +38,12 @@
                 <loader>
                     <orm-reader entityName="DemoCard">
                         <query>
-                            <filter>
-                                <endsWith name="cardNumber" value="${1}"/>
-                            </filter>
+                            <!--                            <filter>-->
+                            <!--                                <endsWith name="cardNumber" value="${1}"/>-->
+                            <!--                            </filter>-->
 
                             <orderBy>
-                                <field name="id" desc="false"/>
+                                <field name="cardId" desc="false"/>
                             </orderBy>
                         </query>
                     </orm-reader>
@@ -62,5 +62,12 @@
                 </consumer>
             </batch:task>
         </custom>
+
+        <custom name="generateReport" customType="xpt:GenReport" xmlns:xpt="/nop/report/xlib/xpt.xlib"
+                xpt:template="demo-card.xpt.xlsx" xpt:outputFile="target/test-report.result.xlsx"
+                xpt:args="${{
+                    title: 'TEST REPORT'
+                }}"
+        />
     </steps>
 </task>

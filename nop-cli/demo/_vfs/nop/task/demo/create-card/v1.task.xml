@@ -1,5 +1,5 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-      x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-base.task.xml"
+      x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml"
       xmlns:c="c" xmlns:dao="dao">
 
     <input name="request" type="Map"/>
