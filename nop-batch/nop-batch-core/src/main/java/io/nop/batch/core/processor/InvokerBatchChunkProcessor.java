@@ -9,14 +9,14 @@ package io.nop.batch.core.processor;
 
 import io.nop.api.core.util.ProcessResult;
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchChunkProcessor;
+import io.nop.batch.core.IBatchChunkProcessorProvider;
 import io.nop.commons.functional.IFunctionInvoker;
 
-public class InvokerBatchChunkProcessor implements IBatchChunkProcessor {
+public class InvokerBatchChunkProcessor<S> implements IBatchChunkProcessorProvider.IBatchChunkProcessor<S> {
     private final IFunctionInvoker invoker;
-    private final IBatchChunkProcessor processor;
+    private final IBatchChunkProcessorProvider.IBatchChunkProcessor<S> processor;
 
-    public InvokerBatchChunkProcessor(IFunctionInvoker invoker, IBatchChunkProcessor processor) {
+    public InvokerBatchChunkProcessor(IFunctionInvoker invoker, IBatchChunkProcessorProvider.IBatchChunkProcessor<S> processor) {
         this.invoker = invoker;
         this.processor = processor;
     }

@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 public interface IBatchTaskContext extends IExecutionContext {
     IServiceContext getServiceContext();
 
-    ICache<Object,Object> getCache();
+    ICache<Object, Object> getCache();
 
     String getTaskName();
 
@@ -146,6 +146,14 @@ public interface IBatchTaskContext extends IExecutionContext {
     void onChunkEnd(BiConsumer<IBatchChunkContext, Throwable> action);
 
     void onChunkRetry(BiConsumer<IBatchChunkContext, List<?>> action);
+
+    void onLoadBegin(BiConsumer<Integer, IBatchChunkContext> action);
+
+    void onLoadEnd(BiConsumer<IBatchChunkContext, Throwable> action);
+
+    void fireLoadBegin(int batchSize, IBatchChunkContext chunkContext);
+
+    void fireLoadEnd(IBatchChunkContext chunkContext, Throwable err);
 
     void fireTaskBegin();
 

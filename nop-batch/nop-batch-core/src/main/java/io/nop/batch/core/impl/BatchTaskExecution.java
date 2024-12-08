@@ -13,7 +13,8 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ProcessResult;
 import io.nop.batch.core.BatchTaskGlobals;
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchChunkProcessor;
+import io.nop.batch.core.IBatchChunkProcessorProvider;
+import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchStateStore;
 import io.nop.batch.core.IBatchTask;
 import io.nop.batch.core.IBatchTaskContext;
@@ -31,14 +32,15 @@ import java.util.function.Consumer;
 
 import static io.nop.batch.core.BatchErrors.ERR_BATCH_CANCEL_PROCESS;
 
-public class BatchTaskExecution implements IBatchTask {
+public class BatchTaskExecution<S> implements IBatchTask {
     static final Logger LOG = LoggerFactory.getLogger(BatchTaskExecution.class);
 
     private final String taskName;
     private final long taskVersion;
     private final IEvalFunction taskKeyExpr;
     private final Executor executor;
-    private final IBatchChunkProcessor chunkProcessor;
+    private final IBatchLoaderProvider<S> loaderProvider;
+    private final IBatchChunkProcessorProvider<S> chunkProcessorProvider;
     private final IBatchStateStore stateStore;
     private final List<Consumer<IBatchTaskContext>> initializers;
     private final int concurrency;
@@ -46,13 +48,15 @@ public class BatchTaskExecution implements IBatchTask {
     public BatchTaskExecution(String taskName, long taskVersion,
                               IEvalFunction taskKeyExpr, Executor executor, int concurrency,
                               List<Consumer<IBatchTaskContext>> initializers,
-                              IBatchChunkProcessor chunkProcessor, IBatchStateStore stateStore) {
+                              IBatchLoaderProvider<S> loaderProvider,
+                              IBatchChunkProcessorProvider<S> chunkProcessorProvider, IBatchStateStore stateStore) {
         this.taskName = taskName;
         this.taskVersion = taskVersion;
         this.taskKeyExpr = taskKeyExpr;
         this.executor = executor;
         this.initializers = initializers;
-        this.chunkProcessor = chunkProcessor;
+        this.loaderProvider = loaderProvider;
+        this.chunkProcessorProvider = chunkProcessorProvider;
         this.stateStore = stateStore;
         this.concurrency = concurrency;
     }
@@ -78,11 +82,16 @@ public class BatchTaskExecution implements IBatchTask {
 
             CompletableFuture<Void> future = new CompletableFuture<>();
 
+            IBatchLoaderProvider.IBatchLoader<S> loader;
+            IBatchChunkProcessorProvider.IBatchChunkProcessor<S> chunkProcessor;
             try {
                 if (initializers != null)
                     initializers.forEach(initializer -> {
                         initializer.accept(context);
                     });
+
+                loader = loaderProvider.setup(context);
+                chunkProcessor = chunkProcessorProvider.setup(loader, context);
 
                 context.fireTaskBegin();
             } catch (Exception e) {
@@ -94,7 +103,7 @@ public class BatchTaskExecution implements IBatchTask {
             // 多个线程可以并发执行。loader/processor/consumer都需要是线程安全的
             CompletableFuture<?>[] futures = new CompletableFuture[concurrency];
             for (int i = 0; i < concurrency; i++) {
-                futures[i] = executeChunkLoop(context, i);
+                futures[i] = executeChunkLoop(context, i, chunkProcessor);
             }
 
             CompletableFuture.allOf(futures).whenComplete((ret, err) -> {
@@ -154,7 +163,8 @@ public class BatchTaskExecution implements IBatchTask {
         }
     }
 
-    CompletableFuture<Void> executeChunkLoop(IBatchTaskContext context, int threadIndex) {
+    CompletableFuture<Void> executeChunkLoop(IBatchTaskContext context, int threadIndex,
+                                             IBatchChunkProcessorProvider.IBatchChunkProcessor<S> chunkProcessor) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         executor.execute(() -> {
@@ -164,7 +174,7 @@ public class BatchTaskExecution implements IBatchTask {
                     if (context.isCancelled())
                         throw new BatchCancelException(ERR_BATCH_CANCEL_PROCESS);
 
-                    if (processChunk(context, threadIndex) != ProcessResult.CONTINUE)
+                    if (processChunk(context, threadIndex, chunkProcessor) != ProcessResult.CONTINUE)
                         break;
 
                 } while (true);
@@ -182,7 +192,8 @@ public class BatchTaskExecution implements IBatchTask {
     /**
      * 读取并处理一个chunk, 返回STOP表示已经读取完毕
      */
-    protected ProcessResult processChunk(IBatchTaskContext context, int threadIndex) {
+    protected ProcessResult processChunk(IBatchTaskContext context, int threadIndex,
+                                         IBatchChunkProcessorProvider.IBatchChunkProcessor<S> chunkProcessor) {
         IBatchChunkContext chunkContext = context.newChunkContext();
         chunkContext.setConcurrency(concurrency);
         chunkContext.setThreadIndex(threadIndex);

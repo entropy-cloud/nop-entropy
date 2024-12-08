@@ -1,22 +1,24 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
       x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml"
-      x:dump="true" defaultUseParentScope="true">
+      x:dump="true" defaultUseParentScope="true" xmlns:c="c">
 
-    <input name="bizDate" type="LocalDate" />
+    <input name="bizDate" type="LocalDate"/>
 
     <steps>
         <custom name="importIntoDb" customType="batch:Execute"
                 xmlns:batch="/nop/batch/xlib/batch.xlib">
-            <batch:task taskName="demo.loadData" batchSize="100" saveState="true">
+            <batch:task taskName="demo.loadData" batchSize="100" saveState="true" concurrency="10">
 
                 <taskKeyExpr>bizDate</taskKeyExpr>
 
                 <loader>
-                    <file-reader filePath="dev:/target/input/${bizDate}.dat" fileModelPath="simple.record-file.xlsx"/>
+                    <file-reader filePath="dev:/target/input/txn-${bizDate}.dat" fileModelPath="txn.record-file.xlsx"/>
                 </loader>
 
                 <consumer name="all">
-                    <orm-writer entityName="">
+                    <!-- 从文件读取数据之后插入到数据库中，插入时判断是否已经存在，如果存在则会忽略这条记录-->
+                    <orm-writer entityName="DemoIncomingTxn" allowInsert="true" allowUpdate="false">
+                        <keyFields>cardNumber,txnAmount,txnTime</keyFields>
                     </orm-writer>
                 </consumer>
 
@@ -27,7 +29,48 @@
             <batch:task taskName="demo.processData" batchSize="100" saveState="true" concurrency="4">
                 <taskKeyExpr>bizDate</taskKeyExpr>
 
-                
+                <loader>
+                    <orm-reader entityName="DemoIncomingTxn">
+                        <!-- 从loader读取到数据之后调用回调函数，批量加载关联属性。如果放到processor中处理，则只能逐条加载 -->
+                        <onLoadBegin>
+                            <c:script><![CDATA[
+                                const items = batchChunkCtx.items;
+                                if(items?.size() > 0){
+                                    const daoProvider = inject('daoProvider');
+                                    const txnDao = daoProvider.getDao('DemoIncomingTxn');
+                                    const cardDao = daoProvider.getDao('DemoCard');
+
+                                    const cardNumbers = _.pluck(items, 'cardNumber');
+                                    // 批量加载实体
+                                    const map = txnDao.batchGetEntityMapByProp('cardNumber', cardNumbers);
+
+                                    const cards = [];
+                                    for(const item of items) {
+                                        const card = map.get(item.cardNumber);
+                                        cards.push(card);
+
+                                        // 实体内置了_t属性用于保存扩展属性
+                                        item._t.card = card;
+                                    }
+
+                                    // 批量加载关联属性
+                                    cardDao.batchLoadProps(cards, ['customer']);
+                                }
+                            ]]></c:script>
+                        </onLoadBegin>
+                    </orm-reader>
+                </loader>
+
+                <processor name="process">
+                    <source>
+                        <c:script><![CDATA[
+                            const data = {
+
+                            }
+                        ]]></c:script>
+                    </source>
+                </processor>
+
             </batch:task>
         </custom>
     </steps>

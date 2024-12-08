@@ -1,9 +1,10 @@
 package io.nop.web.page.graph_designer.model._gen;
 
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
 import io.nop.web.page.graph_designer.model.GraphDesignerEdgeModel;
 import io.nop.commons.util.ClassHelper;
-import io.nop.xui.vue.VueNode;
+
 
 
 // tell cpd to start ignoring code - CPD-OFF
@@ -139,7 +140,7 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
      * xml name: template
      * 
      */
-    private VueNode _template ;
+    private io.nop.xui.vue.VueNode _template ;
     
     /**
      *  
@@ -484,12 +485,12 @@ public abstract class _GraphDesignerEdgeModel extends io.nop.core.resource.compo
      *  
      */
     
-    public VueNode getTemplate(){
+    public io.nop.xui.vue.VueNode getTemplate(){
       return _template;
     }
 
     
-    public void setTemplate(VueNode value){
+    public void setTemplate(io.nop.xui.vue.VueNode value){
         checkAllowChange();
         
         this._template = value;

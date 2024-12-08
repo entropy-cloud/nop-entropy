@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 /**
  * 利用底层的loader读取数据，然后按照partition切分成多个顺序队列。确保一个partition的数据不会同时有两个线程在处理。
@@ -35,10 +35,10 @@ public class PartitionDispatchLoaderProvider<S>
     private final Executor executor;
     private final int fetchThreadCount;
     private final int loadBatchSize;
-    private final Function<S, Integer> partitionFn;
+    private final BiFunction<S, IBatchTaskContext, Integer> partitionFn;
 
     public PartitionDispatchLoaderProvider(IBatchLoaderProvider<S> loader, Executor executor, int fetchThreadCount,
-                                           int loadBatchSize, Function<S, Integer> partitionFn) {
+                                           int loadBatchSize, BiFunction<S, IBatchTaskContext, Integer> partitionFn) {
         this.loader = loader;
         this.executor = executor;
         this.fetchThreadCount = fetchThreadCount;
@@ -50,7 +50,7 @@ public class PartitionDispatchLoaderProvider<S>
     public IBatchLoader<S> setup(IBatchTaskContext context) {
         IBatchLoader<S> loader = this.loader.setup(context);
 
-        PartitionDispatchQueue<S> queue = new PartitionDispatchQueue<>(loadBatchSize * 20, partitionFn, fetchThreadCount);
+        PartitionDispatchQueue<S> queue = new PartitionDispatchQueue<>(loadBatchSize * 20, item -> partitionFn.apply(item, context), fetchThreadCount);
         AtomicReference<Exception> exception = new AtomicReference<>();
 
         context.onAfterComplete(err -> {

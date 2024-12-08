@@ -66,6 +66,8 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private final List<Consumer<IBatchChunkContext>> onBeforeChunkEnds = new CopyOnWriteArrayList<>();
     private final List<BiConsumer<IBatchChunkContext, Throwable>> onChunkEnds = new CopyOnWriteArrayList<>();
     private final List<BiConsumer<IBatchChunkContext, List<?>>> onChunkRetrys = new CopyOnWriteArrayList<>();
+    private final List<BiConsumer<Integer, IBatchChunkContext>> onLoadBegins = new CopyOnWriteArrayList<>();
+    private final List<BiConsumer<IBatchChunkContext, Throwable>> onLoadEnds = new CopyOnWriteArrayList<>();
 
     public BatchTaskContextImpl(IServiceContext svcCtx, IEvalScope scope) {
         super(scope);
@@ -351,6 +353,48 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
                 throw new IllegalStateException("nop.err.execution-already-completed");
             }
             onChunkRetrys.add(action);
+        }
+    }
+
+    @Override
+    public void onLoadBegin(BiConsumer<Integer, IBatchChunkContext> action) {
+        synchronized (this) {
+            if (isDone()) {
+                throw new IllegalStateException("nop.err.execution-already-completed");
+            }
+            onLoadBegins.add(action);
+        }
+    }
+
+    @Override
+    public void onLoadEnd(BiConsumer<IBatchChunkContext, Throwable> action) {
+        synchronized (this) {
+            if (isDone()) {
+                throw new IllegalStateException("nop.err.execution-already-completed");
+            }
+            onLoadEnds.add(action);
+        }
+    }
+
+    @Override
+    public void fireLoadBegin(int batchSize, IBatchChunkContext chunkContext) {
+        List<BiConsumer<Integer, IBatchChunkContext>> callbacks = this.onLoadBegins;
+
+        if (callbacks != null) {
+            for (BiConsumer<Integer, IBatchChunkContext> callback : callbacks) {
+                callback.accept(batchSize, chunkContext);
+            }
+        }
+    }
+
+    @Override
+    public void fireLoadEnd(IBatchChunkContext chunkContext, Throwable err) {
+        List<BiConsumer<IBatchChunkContext, Throwable>> callbacks = this.onLoadEnds;
+
+        if (callbacks != null) {
+            for (BiConsumer<IBatchChunkContext, Throwable> callback : callbacks) {
+                callback.accept(chunkContext, err);
+            }
         }
     }
 

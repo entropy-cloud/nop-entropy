@@ -8,6 +8,7 @@
 package io.nop.orm.dao;
 
 import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
@@ -19,6 +20,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.commons.collections.ListFunctions;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -43,7 +45,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static io.nop.orm.OrmErrors.ARG_DAO_ENTITY_NAME;
 import static io.nop.orm.OrmErrors.ARG_ENTITY;
@@ -297,21 +298,30 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
     @Override
     public List<T> batchRequireEntitiesByIds(Collection<?> ids) {
         List<T> ret = batchGetEntitiesByIds(ids);
+        checkAllEntityValid(ret);
+        return ret;
+    }
+
+    private void checkAllEntityValid(List<T> ret) {
         if (ret.isEmpty())
-            return ret;
+            return;
         for (T entity : ret) {
             if (entity.orm_state() == OrmEntityState.MISSING)
                 throw new UnknownEntityException(entity.orm_entityName(), entity.get_id());
         }
-        return ret;
     }
 
     @Override
     public List<T> tryBatchGetEntitiesByIds(Collection<?> ids) {
         List<T> ret = batchGetEntitiesByIds(ids);
+        removeMissing(ret);
+        return ret;
+    }
+
+    void removeMissing(List<T> ret) {
         if (ret.isEmpty())
-            return ret;
-        return ret.stream().filter(entity -> !entity.orm_state().isMissing()).collect(Collectors.toList());
+            return;
+        ret.removeIf(entity -> entity.orm_state().isMissing());
     }
 
     @Override
@@ -325,6 +335,44 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
             if (entity.orm_state() == OrmEntityState.MISSING)
                 continue;
             map.put(entity.get_id(), entity);
+        }
+        return map;
+    }
+
+    @Override
+    public List<T> batchGetEntitiesByProp(String propName, Collection<?> propValues) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.in(propName, propValues));
+        return this.findAllByQuery(query);
+    }
+
+    @Override
+    public List<T> batchRequireEntitiesByProp(String propName, Collection<?> propValues) {
+        List<T> ret = batchGetEntitiesByProp(propName, propValues);
+        checkAllEntityValid(ret);
+        return ret;
+    }
+
+    @Override
+    public List<T> tryBatchGetEntitiesByProp(String propName, Collection<?> propValues) {
+        List<T> ret = batchGetEntitiesByProp(propName, propValues);
+        removeMissing(ret);
+        return ret;
+    }
+
+    @Override
+    public Map<Object, T> batchGetEntityMapByProp(String propName, Collection<?> propValues) {
+        List<T> ret = batchGetEntitiesByProp(propName, propValues);
+        if (ret.isEmpty())
+            return Collections.emptyMap();
+
+        Map<Object, T> map = new HashMap<>();
+
+        for (T entity : ret) {
+            if (entity.orm_state() == OrmEntityState.MISSING)
+                continue;
+            Object propValue = BeanTool.getComplexProperty(entity, propName);
+            map.put(propValue, entity);
         }
         return map;
     }

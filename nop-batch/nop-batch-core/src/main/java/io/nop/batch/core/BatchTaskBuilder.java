@@ -21,6 +21,8 @@ import io.nop.batch.core.consumer.SkipBatchConsumer;
 import io.nop.batch.core.consumer.WithHistoryBatchConsumer;
 import io.nop.batch.core.impl.BatchTaskExecution;
 import io.nop.batch.core.loader.ChunkSortBatchLoader;
+import io.nop.batch.core.loader.InvokerBatchLoader;
+import io.nop.batch.core.loader.PartitionDispatchLoaderProvider;
 import io.nop.batch.core.loader.RetryBatchLoader;
 import io.nop.batch.core.processor.BatchChunkProcessor;
 import io.nop.batch.core.processor.BatchSequentialProcessor;
@@ -64,8 +66,6 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
 
     private BatchSkipPolicy skipPolicy;
 
-    private IBatchChunkProcessorBuilder<S> chunkProcessorBuilder;
-
     private boolean singleSession;
     private BatchTransactionScope batchTransactionScope = BatchTransactionScope.consume;
     private Executor executor = ExecutorHelper.syncExecutor();
@@ -107,6 +107,8 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
 
     private IEvalFunction taskKeyExpr;
 
+    private BatchDispatchConfig<S> dispatchConfig;
+
     public static <S, R> BatchTaskBuilder<S, R> create() {
         return new BatchTaskBuilder<>();
     }
@@ -120,6 +122,12 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
     @PropertySetter
     public BatchTaskBuilder<S, R> allowStartIfComplete(Boolean allowStartIfComplete) {
         this.allowStartIfComplete = allowStartIfComplete;
+        return this;
+    }
+
+    @PropertySetter
+    public BatchTaskBuilder<S, R> dispatchConfig(BatchDispatchConfig<S> dispatchConfig) {
+        this.dispatchConfig = dispatchConfig;
         return this;
     }
 
@@ -268,13 +276,6 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
     }
 
     @PropertySetter
-    public BatchTaskBuilder<S, R> chunkProcessorBuilder(IBatchChunkProcessorBuilder<S> chunkProcessorBuilder) {
-        Guard.checkState(this.chunkProcessorBuilder == null, "chunkProcessorBuilder is already set");
-        this.chunkProcessorBuilder = chunkProcessorBuilder;
-        return this;
-    }
-
-    @PropertySetter
     public BatchTaskBuilder<S, R> transactionalInvoker(IFunctionInvoker invoker) {
         this.transactionalInvoker = invoker;
         return this;
@@ -308,21 +309,47 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
         if (context.getStartLimit() <= 0)
             context.setStartLimit(startLimit);
 
-        IBatchChunkProcessor chunkProcessor = buildChunkProcessor(context);
-
-        return new BatchTaskExecution(taskName, taskVersion == null ? 0 : taskVersion, taskKeyExpr,
-                executor, concurrency, taskInitializers, chunkProcessor, stateStore);
+        return new BatchTaskExecution<S>(taskName, taskVersion == null ? 0 : taskVersion, taskKeyExpr,
+                executor, concurrency, taskInitializers, this::buildLoader, this::buildChunkProcessor, stateStore);
     }
 
-    @SuppressWarnings("rawtypes")
-    protected IBatchChunkProcessor buildChunkProcessor(IBatchTaskContext context) {
-        IBatchLoader<S> loader = this.loader.setup(context);
-        if (loadRetryPolicy != null)
-            loader = new RetryBatchLoader<>(loader, loadRetryPolicy);
+    protected IBatchLoader<S> buildLoader(IBatchTaskContext context) {
+        IBatchLoader<S> loader;
+        if (dispatchConfig != null) {
+            Executor executor = dispatchConfig.getExecutor();
+            if (executor == null)
+                executor = this.executor;
+
+            int fetchThreadCount = dispatchConfig.getFetchThreadCount();
+            int loadBatchSize = dispatchConfig.getLoadBatchSize();
+
+            loader = new PartitionDispatchLoaderProvider<>(this::buildLoader1, executor, fetchThreadCount, loadBatchSize,
+                    dispatchConfig.getPartitionFn()).setup(context);
+        } else {
+            loader = buildLoader0(context);
+        }
 
         if (inputComparator != null)
             loader = new ChunkSortBatchLoader<>(inputComparator, loader);
+        return loader;
+    }
 
+    private IBatchLoader<S> buildLoader1(IBatchTaskContext context) {
+        IBatchLoader<S> loader = this.loader.setup(context);
+        if (singleSession && singleSessionInvoker != null)
+            loader = new InvokerBatchLoader<>(singleSessionInvoker, loader);
+        return loader;
+    }
+
+    protected IBatchLoader<S> buildLoader0(IBatchTaskContext context) {
+        IBatchLoader<S> loader = this.loader.setup(context);
+        if (loadRetryPolicy != null)
+            loader = new RetryBatchLoader<>(loader, loadRetryPolicy);
+        return loader;
+    }
+
+    @SuppressWarnings("rawtypes")
+    protected IBatchChunkProcessorProvider.IBatchChunkProcessor<S> buildChunkProcessor(IBatchLoader<S> loader, IBatchTaskContext context) {
         IBatchConsumer<S> consumer = this.consumer == null ? null : (IBatchConsumer) this.consumer.setup(context);
         if (consumer == null)
             consumer = EmptyBatchConsumer.instance();
@@ -364,24 +391,18 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
             consumer = new SkipBatchConsumer<>(consumer, skipPolicy);
         }
 
-        IBatchChunkProcessor chunkProcessor;
-        // 一般只会使用缺省的BatchChunkProcessor，它负责核心的load/process/consume过程
-        IBatchChunkProcessorBuilder<S> chunkProcessorBuilder = this.chunkProcessorBuilder;
-        if (chunkProcessorBuilder == null) {
-            chunkProcessor = new BatchChunkProcessor<>(loader, batchSize, jitterRatio, consumer);
-        } else {
-            chunkProcessor = chunkProcessorBuilder.buildChunkProcessor(loader, batchSize, jitterRatio, consumer);
-        }
+        IBatchChunkProcessorProvider.IBatchChunkProcessor chunkProcessor;
+        chunkProcessor = new BatchChunkProcessor<>(loader, batchSize, jitterRatio, consumer);
 
         if (batchTransactionScope == BatchTransactionScope.chunk && transactionalInvoker != null) {
             // chunk处理的整个过程（包括load/process/consume）都打开事务
-            chunkProcessor = new InvokerBatchChunkProcessor(transactionalInvoker, chunkProcessor);
+            chunkProcessor = new InvokerBatchChunkProcessor<>(transactionalInvoker, chunkProcessor);
         }
 
         // 整个chunk处理过程共享一个ORM session，因此需要注意抛出异常时可能会导致数据相互影响的问题。
         // 缺省情况下异常导致事务回滚时会自动调用session.clear()
         if (singleSession && singleSessionInvoker != null) {
-            chunkProcessor = new InvokerBatchChunkProcessor(singleSessionInvoker, chunkProcessor);
+            chunkProcessor = new InvokerBatchChunkProcessor<>(singleSessionInvoker, chunkProcessor);
         }
 
         return chunkProcessor;

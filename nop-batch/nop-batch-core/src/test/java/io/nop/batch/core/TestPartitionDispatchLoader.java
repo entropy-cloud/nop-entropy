@@ -28,7 +28,7 @@ public class TestPartitionDispatchLoader {
         DebugBatchLoader baseLoader = new DebugBatchLoader(n);
         int fetchThreadCount = 1;
         PartitionDispatchLoaderProvider<String> loaderProvider = new PartitionDispatchLoaderProvider<>(taskContext -> baseLoader,
-                GlobalExecutors.cachedThreadPool(), fetchThreadCount, 20, k -> k.hashCode() % 3);
+                GlobalExecutors.cachedThreadPool(), fetchThreadCount, 20, (k, ctx) -> k.hashCode() % 3);
 
         IBatchTaskContext context = new BatchTaskContextImpl();
         IBatchLoader<String> loader = loaderProvider.setup(context);

@@ -32,13 +32,6 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
-     * xml name: chunk-processor-builder
-     * 
-     */
-    private io.nop.batch.dsl.model.BatchChunkProcessorBuilderModel _chunkProcessorBuilder ;
-    
-    /**
-     *  
      * xml name: concurrency
      * 同时启动多少个线程去并行处理。设置了concurrency的情况下，还需要设置executor才会真正并行执行，否则会使用SyncExecutor在当前线程上串行执行
      */
@@ -226,25 +219,6 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._batchSize = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: chunk-processor-builder
-     *  
-     */
-    
-    public io.nop.batch.dsl.model.BatchChunkProcessorBuilderModel getChunkProcessorBuilder(){
-      return _chunkProcessorBuilder;
-    }
-
-    
-    public void setChunkProcessorBuilder(io.nop.batch.dsl.model.BatchChunkProcessorBuilderModel value){
-        checkAllowChange();
-        
-        this._chunkProcessorBuilder = value;
            
     }
 
@@ -754,8 +728,6 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._chunkProcessorBuilder = io.nop.api.core.util.FreezeHelper.deepFreeze(this._chunkProcessorBuilder);
-            
            this._consumers = io.nop.api.core.util.FreezeHelper.deepFreeze(this._consumers);
             
            this._inputSorter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._inputSorter);
@@ -781,7 +753,6 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         
         out.putNotNull("allowStartIfComplete",this.getAllowStartIfComplete());
         out.putNotNull("batchSize",this.getBatchSize());
-        out.putNotNull("chunkProcessorBuilder",this.getChunkProcessorBuilder());
         out.putNotNull("concurrency",this.getConcurrency());
         out.putNotNull("consumers",this.getConsumers());
         out.putNotNull("executor",this.getExecutor());
@@ -817,7 +788,6 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         
         instance.setAllowStartIfComplete(this.getAllowStartIfComplete());
         instance.setBatchSize(this.getBatchSize());
-        instance.setChunkProcessorBuilder(this.getChunkProcessorBuilder());
         instance.setConcurrency(this.getConcurrency());
         instance.setConsumers(this.getConsumers());
         instance.setExecutor(this.getExecutor());

@@ -1,11 +1,12 @@
 package io.nop.batch.dsl.manager;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanProvider;
+import io.nop.batch.core.BatchDispatchConfig;
 import io.nop.batch.core.BatchTaskBuilder;
 import io.nop.batch.core.IBatchAggregator;
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchChunkProcessorBuilder;
 import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchMetaProvider;
@@ -20,17 +21,19 @@ import io.nop.batch.core.consumer.SplitBatchConsumer;
 import io.nop.batch.core.filter.EvalBatchRecordFilter;
 import io.nop.batch.core.processor.FilterBatchProcessor;
 import io.nop.batch.core.processor.MultiBatchProcessorProvider;
-import io.nop.batch.dsl.model.BatchChunkProcessorBuilderModel;
 import io.nop.batch.dsl.model.BatchConsumerModel;
 import io.nop.batch.dsl.model.BatchGeneratorModel;
 import io.nop.batch.dsl.model.BatchListenersModel;
+import io.nop.batch.dsl.model.BatchLoaderDispatcherModel;
 import io.nop.batch.dsl.model.BatchLoaderModel;
 import io.nop.batch.dsl.model.BatchProcessorModel;
 import io.nop.batch.dsl.model.BatchTaggerModel;
 import io.nop.batch.dsl.model.BatchTaskModel;
 import io.nop.batch.gen.loader.BatchGenLoaderProvider;
 import io.nop.commons.collections.OrderByComparator;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalFunction;
@@ -121,7 +124,7 @@ public class ModelBasedBatchTaskBuilderFactory {
         if (batchTaskModel.getConcurrency() > 0)
             builder.concurrency(batchTaskModel.getConcurrency());
         if (batchTaskModel.getExecutor() != null) {
-            builder.executor((Executor) beanContainer.getBean(batchTaskModel.getExecutor()));
+            builder.executor(getExecutor(batchTaskModel.getExecutor(), beanContainer));
         }
 
         if (batchTaskModel.getRetryPolicy() != null) {
@@ -156,6 +159,15 @@ public class ModelBasedBatchTaskBuilderFactory {
         return builder;
     }
 
+    private Executor getExecutor(String executorName, IBeanProvider beanContainer) {
+        if (executorName == null)
+            return null;
+        Executor executor = GlobalExecutors.getExecutor(executorName);
+        if (executor == null)
+            executor = (Executor) beanContainer.getBean(executorName);
+        return executor;
+    }
+
     private void buildTask(BatchTaskBuilder<Object, Object> builder, IBeanProvider beanContainer) {
         IBatchLoaderProvider<Object> loader = buildLoader(builder, beanContainer);
         if (loader == null)
@@ -163,6 +175,10 @@ public class ModelBasedBatchTaskBuilderFactory {
                     .source(batchTaskModel)
                     .param(ARG_BATCH_TASK_NAME, batchTaskName);
         builder.loader(loader);
+
+        if (batchTaskModel.getLoader().getDispatcher() != null) {
+            builder.dispatchConfig(buildDispatchConfig(batchTaskModel.getLoader().getDispatcher(), beanContainer));
+        }
 
         if (batchTaskModel.getProcessors() != null) {
             List<IBatchProcessorProvider<?, ?>> list = new ArrayList<>(batchTaskModel.getProcessors().size());
@@ -176,10 +192,6 @@ public class ModelBasedBatchTaskBuilderFactory {
             }
             builder.processor(MultiBatchProcessorProvider.fromList(list));
         }
-
-        IBatchChunkProcessorBuilder<Object> chunkProcessor = buildChunkProcessorBuilder(builder, beanContainer);
-        if (chunkProcessor != null)
-            builder.chunkProcessorBuilder(chunkProcessor);
 
         IRecordTagger<Object, IBatchChunkContext> tagger = getTagger(beanContainer);
         IRecordSplitter<Object, Object, IBatchChunkContext> splitter = tagger == null ? null : new RecordTagSplitter<>(tagger);
@@ -221,6 +233,35 @@ public class ModelBasedBatchTaskBuilderFactory {
         }
     }
 
+    private BatchDispatchConfig<Object> buildDispatchConfig(BatchLoaderDispatcherModel dispatcherModel, IBeanProvider beanProvider) {
+        Executor executor = getExecutor(dispatcherModel.getExecutor(), beanProvider);
+        int fetchThreadCount = dispatcherModel.getFetchThreadCount();
+        int loadBatchSize = dispatcherModel.getLoadBatchSize();
+
+        BatchDispatchConfig<Object> config = new BatchDispatchConfig<>();
+        config.setExecutor(executor);
+        config.setLoadBatchSize(loadBatchSize);
+        config.setFetchThreadCount(fetchThreadCount);
+
+        if (dispatcherModel.getPartitionIndexField() != null) {
+            config.setPartitionFn((item, ctx) -> {
+                Object value = BeanTool.getProperty(item, dispatcherModel.getPartitionIndexField());
+                return ConvertHelper.toPrimitiveInt(value, NopException::new);
+            });
+        } else if (dispatcherModel.getPartitionFn() != null) {
+            config.setPartitionFn((item, ctx) -> {
+                Object value = dispatcherModel.getPartitionFn().call2(null, item, ctx, ctx.getEvalScope());
+                return ConvertHelper.toPrimitiveInt(value, NopException::new);
+            });
+        } else {
+            config.setPartitionFn((item, ctx) -> MathHelper.random().nextInt(0, Short.MAX_VALUE));
+        }
+
+        if (dispatcherModel.getBeforeDispatch() != null)
+            config.setBeforeDispatch((items, ctx) -> dispatcherModel.getBeforeDispatch().call2(null, items, ctx, ctx.getEvalScope()));
+        return config;
+    }
+
     private IBatchProcessorProvider<Object, Object> newFilterProcessor(IEvalFunction func) {
         return new FilterBatchProcessor<>(new EvalBatchRecordFilter<>(func));
     }
@@ -239,7 +280,10 @@ public class ModelBasedBatchTaskBuilderFactory {
 
     private IBatchLoaderProvider<Object> buildLoader(BatchLoaderModel loaderModel, IBeanProvider beanProvider) {
         IBatchLoaderProvider<Object> provider = buildLoader0(loaderModel, beanProvider);
-        if (loaderModel.getAdapter() == null || provider == null)
+        if (provider == null)
+            return null;
+
+        if (loaderModel.getAdapter() == null)
             return provider;
 
         return context -> {
@@ -321,19 +365,6 @@ public class ModelBasedBatchTaskBuilderFactory {
         }
     }
 
-    private IBatchChunkProcessorBuilder<Object> buildChunkProcessorBuilder(BatchTaskBuilder<Object, Object> builder, IBeanProvider beanContainer) {
-        if (batchTaskModel.getChunkProcessorBuilder() == null)
-            return null;
-
-        addListeners(builder, batchTaskModel.getChunkProcessorBuilder());
-
-        BatchChunkProcessorBuilderModel processorModel = batchTaskModel.getChunkProcessorBuilder();
-        if (processorModel.getBean() != null)
-            return (IBatchChunkProcessorBuilder<Object>) beanContainer.getBean(processorModel.getBean());
-
-        return null;
-    }
-
     private void addListeners(BatchTaskBuilder<Object, Object> builder, BatchListenersModel listenersModel) {
         if (listenersModel.getOnTaskBegin() != null)
             builder.addTaskInitializer(context -> {
@@ -361,6 +392,22 @@ public class ModelBasedBatchTaskBuilderFactory {
             builder.addTaskInitializer(context -> {
                 context.onChunkEnd((ctx, err) -> {
                     listenersModel.getOnChunkEnd().call2(null, ctx, err, ctx.getEvalScope());
+                });
+            });
+        }
+
+        if (listenersModel.getOnLoadBegin() != null) {
+            builder.addTaskInitializer(context -> {
+                context.onLoadBegin((batchSize, ctx) -> {
+                    listenersModel.getOnLoadBegin().call2(null, batchSize, ctx, ctx.getEvalScope());
+                });
+            });
+        }
+
+        if (listenersModel.getOnLoadEnd() != null) {
+            builder.addTaskInitializer(context -> {
+                context.onLoadEnd((ctx, err) -> {
+                    listenersModel.getOnTaskEnd().call2(null, ctx, err, ctx.getEvalScope());
                 });
             });
         }

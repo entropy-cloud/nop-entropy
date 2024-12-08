@@ -152,6 +152,7 @@ public interface IEntityDao<T extends IDaoEntity> {
 
     /**
      * 批量获取数据，并自动过滤所有未找到的记录，只返回状态不是Missing的实体
+     *
      * @param ids 实体的id列表，有可能id对应的记录不存在，此时从数据库加载实体时会得到状态为missing的实体
      * @return 过滤掉所有状态为Missing的实体
      */
@@ -164,6 +165,14 @@ public interface IEntityDao<T extends IDaoEntity> {
      * @return 如果主键对应的实体不存在，则集合中没有对应元素
      */
     Map<Object, T> batchGetEntityMapByIds(Collection<?> ids);
+
+    List<T> batchGetEntitiesByProp(String propName, Collection<?> propValues);
+
+    List<T> batchRequireEntitiesByProp(String propName, Collection<?> propValues);
+
+    List<T> tryBatchGetEntitiesByProp(String propName, Collection<?> propValues);
+
+    Map<Object, T> batchGetEntityMapByProp(String propName, Collection<?> propValues);
 
     /**
      * 将detached的实体重新与session关联

@@ -2,7 +2,7 @@
       x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml"
       xmlns:task="task" x:dump="true" defaultUseParentScope="true" xmlns:xpl="xpl">
 
-    <input name="totalCount" type="int"/>
+    <input name="totalCount" type="int" mandatory="true"/>
     <input name="taskKey" type="String"/>
 
     <steps>

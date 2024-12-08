@@ -51,6 +51,14 @@
     <loader bean="bean-name" xdef:name="BatchLoaderModel" aggregator="bean-name" saveState="boolean"
             xdef:ref="BatchListenersModel" xdef:mandatory="true">
 
+        <dispatcher xdef:name="BatchLoaderDispatcherModel"
+                    fetchThreadCount="!int=1" loadBatchSize="!int" executor="bean-name" partitionIndexField="prop-name">
+            <!-- 如果没有指定partitionIndexField，可以执行代码动态计算得到partitionIndex -->
+            <partitionFn xdef:value="xpl-fn:(item,batchTaskCtx)=>int"/>
+
+            <beforeDispatch xdef:value="xpl-fn:(items, batchLoadCtx)=>void"/>
+        </dispatcher>
+
         <!--
         当resourceIO/newRecordInputProvider/fileModelPath都没有指定的时候，会使用CsvResourceIO
 
@@ -105,10 +113,6 @@
         <adapter xdef:value="xpl-fn:(processor)=>any"/>
     </processor>
 
-    <chunk-processor-builder bean="bean-name" xdef:name="BatchChunkProcessorBuilderModel"
-                             xdef:ref="BatchListenersModel">
-    </chunk-processor-builder>
-
     <tagger bean="bean-name" xdef:name="BatchTaggerModel">
         <source xdef:value="xpl-fn:(item,batchChunkCtx)=>Collection"/>
     </tagger>
@@ -124,7 +128,7 @@
             <headers xdef:value="csv-set"/>
         </file-writer>
 
-        <orm-writer entityName="!string" xdef:name="BatchOrmWriterModel" allowUpdate="!boolean=false"
+        <orm-writer entityName="!class-name" xdef:name="BatchOrmWriterModel" allowUpdate="!boolean=false"
                     allowInsert="!boolean=true">
             <keyFields xdef:value="csv-set"/>
         </orm-writer>

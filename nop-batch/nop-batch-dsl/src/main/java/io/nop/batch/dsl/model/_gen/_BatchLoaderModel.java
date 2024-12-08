@@ -39,6 +39,13 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      *  
+     * xml name: dispatcher
+     * 
+     */
+    private io.nop.batch.dsl.model.BatchLoaderDispatcherModel _dispatcher ;
+    
+    /**
+     *  
      * xml name: file-reader
      * 当resourceIO/newRecordInputProvider/fileModelPath都没有指定的时候，会使用CsvResourceIO
      */
@@ -132,6 +139,25 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         checkAllowChange();
         
         this._bean = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: dispatcher
+     *  
+     */
+    
+    public io.nop.batch.dsl.model.BatchLoaderDispatcherModel getDispatcher(){
+      return _dispatcher;
+    }
+
+    
+    public void setDispatcher(io.nop.batch.dsl.model.BatchLoaderDispatcherModel value){
+        checkAllowChange();
+        
+        this._dispatcher = value;
            
     }
 
@@ -258,6 +284,8 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._dispatcher = io.nop.api.core.util.FreezeHelper.deepFreeze(this._dispatcher);
+            
            this._fileReader = io.nop.api.core.util.FreezeHelper.deepFreeze(this._fileReader);
             
            this._generator = io.nop.api.core.util.FreezeHelper.deepFreeze(this._generator);
@@ -276,6 +304,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         out.putNotNull("adapter",this.getAdapter());
         out.putNotNull("aggregator",this.getAggregator());
         out.putNotNull("bean",this.getBean());
+        out.putNotNull("dispatcher",this.getDispatcher());
         out.putNotNull("fileReader",this.getFileReader());
         out.putNotNull("generator",this.getGenerator());
         out.putNotNull("jdbcReader",this.getJdbcReader());
@@ -296,6 +325,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         instance.setAdapter(this.getAdapter());
         instance.setAggregator(this.getAggregator());
         instance.setBean(this.getBean());
+        instance.setDispatcher(this.getDispatcher());
         instance.setFileReader(this.getFileReader());
         instance.setGenerator(this.getGenerator());
         instance.setJdbcReader(this.getJdbcReader());

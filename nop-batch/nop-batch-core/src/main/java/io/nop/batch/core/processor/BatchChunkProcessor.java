@@ -9,7 +9,7 @@ package io.nop.batch.core.processor;
 
 import io.nop.api.core.util.ProcessResult;
 import io.nop.batch.core.IBatchChunkContext;
-import io.nop.batch.core.IBatchChunkProcessor;
+import io.nop.batch.core.IBatchChunkProcessorProvider;
 import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 import io.nop.batch.core.IBatchLoaderProvider.IBatchLoader;
 import io.nop.batch.core.IBatchProcessorProvider.IBatchProcessor;
@@ -25,7 +25,7 @@ import java.util.List;
  *
  * @param <S> 输入数据类型
  */
-public class BatchChunkProcessor<S> implements IBatchChunkProcessor {
+public class BatchChunkProcessor<S> implements IBatchChunkProcessorProvider.IBatchChunkProcessor<S> {
     private final IBatchLoader<S> loader;
     private final int batchSize;
     private final double jitterRatio;
@@ -53,8 +53,6 @@ public class BatchChunkProcessor<S> implements IBatchChunkProcessor {
             return ProcessResult.STOP;
         }
 
-        chunkContext.setChunkItems(items);
-
         consumer.consume(items, chunkContext);
 
         return ProcessResult.CONTINUE;
@@ -66,9 +64,16 @@ public class BatchChunkProcessor<S> implements IBatchChunkProcessor {
 
         boolean success = false;
         try {
+            chunkContext.getTaskContext().fireLoadBegin(batchSize, chunkContext);
             List<S> items = loader.load(batchSize, chunkContext);
+            chunkContext.setChunkItems(items);
+
+            chunkContext.getTaskContext().fireLoadEnd(chunkContext, null);
             success = true;
             return items;
+        } catch (Exception e) {
+            chunkContext.getTaskContext().fireLoadEnd(chunkContext, e);
+            throw e;
         } finally {
             if (metrics != null)
                 metrics.endLoad(meter, chunkContext.getChunkItems().size(), success);
