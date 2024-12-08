@@ -6,7 +6,7 @@
 
     <entityName>io.nop.batch.dao.entity.NopBatchTaskVar</entityName>
 
-    <primaryKey>taskId,fieldName</primaryKey>
+    <primaryKey>batchTaskId,fieldName</primaryKey>
 
     <x:gen-extends>
         <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
@@ -19,8 +19,8 @@
     <keys/>
 
     <props>
-        <prop name="taskId" displayName="主键" propId="1" i18n-en:displayName="TASK_ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false" ext:relation="task">
+        <prop name="batchTaskId" displayName="主键" propId="1" i18n-en:displayName="Batch Task Id" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" ext:relation="task">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="fieldName" displayName="变量名" propId="2" i18n-en:displayName="Field Name" mandatory="true"
@@ -72,7 +72,7 @@
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
         <prop name="task" displayName="批处理任务" i18n-en:displayName="Batch Task" tagSet="pub,ref-pub,ref-cascade-delete"
-              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="taskId" ext:joinRightProp="sid"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="batchTaskId" ext:joinRightProp="sid"
               insertable="false" updatable="false" mandatory="true" lazy="true">
             <schema bizObjName="NopBatchTask"/>
         </prop>

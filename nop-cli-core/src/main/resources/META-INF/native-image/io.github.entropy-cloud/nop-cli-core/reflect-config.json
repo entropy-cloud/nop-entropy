@@ -838,6 +838,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.auth.ISecurityContext"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "attrs",
@@ -1344,6 +1354,36 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.beans.query.OrderFieldBean"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.beans.query.QueryBean"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.json.IJsonString"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getInputStream",
@@ -1668,6 +1708,36 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.api.core.util.Guard"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.util.ICancelToken"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.util.ICancellable"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.api.core.util.ICloneable"
   },
   {
@@ -1679,6 +1749,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.api.core.util.IComponentModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.util.IDeepCloneable"
   },
   {
     "allDeclaredConstructors": true,
@@ -1742,6 +1822,536 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.api.core.util.IWithIdentifier"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "buildChunkProcessor",
+        "parameterTypes": [
+          "io.nop.batch.core.IBatchTaskContext"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.core.BatchTaskBuilder"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.core.impl.BatchTaskContextImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "processChunk",
+        "parameterTypes": [
+          "io.nop.batch.core.IBatchTaskContext",
+          "int"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.core.impl.BatchTaskExecution"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.dao.entity.NopBatchFile"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.dao.entity.NopBatchRecordResult"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.dao.entity.NopBatchTask"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.dao.entity.NopBatchTaskVar"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.batch.dao.entity._gen._NopBatchFile"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.batch.dao.entity._gen._NopBatchRecordResult"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.batch.dao.entity._gen._NopBatchTask"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.batch.dao.entity._gen._NopBatchTaskVar"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "loadExistingTask",
+        "parameterTypes": [
+          "io.nop.dao.api.IEntityDao",
+          "io.nop.batch.core.IBatchTaskContext"
+        ]
+      },
+      {
+        "name": "newTask",
+        "parameterTypes": [
+          "io.nop.dao.api.IEntityDao"
+        ]
+      },
+      {
+        "name": "saveTask",
+        "parameterTypes": [
+          "io.nop.dao.api.IEntityDao",
+          "io.nop.batch.dao.entity.NopBatchTask"
+        ]
+      },
+      {
+        "name": "taskDao",
+        "parameterTypes": []
+      },
+      {
+        "name": "updateTask",
+        "parameterTypes": [
+          "io.nop.dao.api.IEntityDao",
+          "io.nop.batch.dao.entity.NopBatchTask"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.dao.store.DaoBatchStateStore"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.dsl.manager.BatchTaskManagerImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.dsl.model.BatchConsumerModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.dsl.model.BatchFileWriterModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.dsl.model.BatchGeneratorModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.dsl.model.BatchListenersModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.dsl.model.BatchLoaderModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.dsl.model.BatchOrmReaderModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.dsl.model.BatchProcessorModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.dsl.model.BatchTaskModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.batch.dsl.model.BatchConsumerModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.dsl.model._gen._BatchConsumerModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.batch.dsl.model.BatchFileWriterModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.dsl.model._gen._BatchFileWriterModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.batch.dsl.model.BatchGeneratorModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.dsl.model._gen._BatchGeneratorModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.batch.dsl.model.BatchListenersModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.dsl.model._gen._BatchListenersModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.batch.dsl.model.BatchLoaderModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.dsl.model._gen._BatchLoaderModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.batch.dsl.model.BatchOrmReaderModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.dsl.model._gen._BatchOrmReaderModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.batch.dsl.model.BatchProcessorModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.dsl.model._gen._BatchProcessorModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.batch.dsl.model.BatchTaskModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.dsl.model._gen._BatchTaskModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.gen.model.BatchGenCaseModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.gen.model.BatchGenModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "doParseResource",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.gen.model.BatchGenModelParser"
   },
   {
     "allDeclaredConstructors": true,
@@ -2135,6 +2745,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.codegen.initialize.CodeGenCoreInitializer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.bytes.ByteString"
   },
   {
     "allDeclaredConstructors": true,
@@ -2697,6 +3317,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.lang.IAttributeSet"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getTagSet",
@@ -2704,6 +3334,16 @@
       }
     ],
     "name": "io.nop.commons.lang.ITagSetSupport"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.lang.impl.Cancellable"
   },
   {
     "allDeclaredConstructors": true,
@@ -5584,7 +6224,37 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.core.context.ExecutionContextImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.core.context.IEvalContext"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.context.IExecutionContext"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.context.IServiceContext"
   },
   {
     "allDeclaredConstructors": true,
@@ -5640,8 +6310,114 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "checkAllowChange",
+        "parameterTypes": []
+      },
+      {
+        "name": "checkMandatory",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "checkMaxItems",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.Collection",
+          "int"
+        ]
+      },
+      {
+        "name": "checkMinItems",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.util.Collection",
+          "int"
+        ]
+      },
+      {
+        "name": "copyExtFieldsTo",
+        "parameterTypes": [
+          "io.nop.core.lang.ast.ASTNode"
+        ]
+      },
+      {
+        "name": "isListEquivalent",
+        "parameterTypes": [
+          "java.util.List",
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "isNodeEquivalent",
+        "parameterTypes": [
+          "io.nop.core.lang.ast.ASTNode",
+          "io.nop.core.lang.ast.ASTNode"
+        ]
+      },
+      {
+        "name": "isValueEquivalent",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "removeInList",
+        "parameterTypes": [
+          "java.util.List",
+          "int"
+        ]
+      },
+      {
+        "name": "replaceInList",
+        "parameterTypes": [
+          "java.util.List",
+          "int",
+          "io.nop.core.lang.ast.ASTNode"
+        ]
+      },
+      {
+        "name": "serializeFields",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.core.lang.ast.ASTNode"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.lang.ast.IASTNode"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.core.lang.eval.IEvalAction"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.lang.eval.IEvalFunction"
   },
   {
     "allDeclaredConstructors": true,
@@ -9534,6 +10310,23 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "findModelTypeFromPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.core.resource.component.ResourceComponentManager"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "name": "LOG"
@@ -9982,6 +10775,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.core.resource.tpl.IBinaryTemplateOutput"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.core.resource.tpl.ITemplateOutput"
   },
   {
@@ -10281,6 +11084,71 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.type.IGenericType"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.type.impl.AbstractGenericType"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.type.impl.GenericRawTypeReferenceImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "writeReplace",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.core.type.impl.PredefinedGenericType"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.type.impl.PredefinedPrimitiveType"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.type.impl.PredefinedRawType"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowWrite": true,
@@ -10303,6 +11171,16 @@
       }
     ],
     "name": "io.nop.dao.api.AbstractSqlExecutor"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.dao.api.IDaoComponent"
   },
   {
     "allDeclaredConstructors": true,
@@ -16118,6 +16996,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.ioc.model.BeanImportModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "addName",
@@ -16810,6 +17698,33 @@
       }
     ],
     "name": "io.nop.ioc.model._gen._BeanIfPropertyCondition"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.ioc.model.BeanImportModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.ioc.model._gen._BeanImportModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -18023,6 +18938,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.ooxml.common.output.AbstractOfficeTemplate"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getImportModel",
@@ -18104,6 +19029,26 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.ooxml.xlsx.output.ExcelTemplate"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.IOrmComponent"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.orm.IOrmEntity"
   },
   {
@@ -18135,6 +19080,72 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.orm.IOrmObject"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getBean",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getBeanProvider",
+        "parameterTypes": []
+      },
+      {
+        "name": "getColPropId",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "internalGetPropValue",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "internalSetPropValue",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "markDirty",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm_propDirty",
+        "parameterTypes": [
+          "int"
+        ]
+      },
+      {
+        "name": "tryGetBean",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.component.AbstractOrmComponent"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.component.JsonOrmComponent"
   },
   {
     "allDeclaredConstructors": true,
@@ -19045,6 +20056,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.orm.initialize.DataBaseSchemaInitializer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.orm.initialize.OrmCoreInitializer"
   },
   {
@@ -19765,6 +20786,36 @@
       }
     ],
     "name": "io.nop.orm.model.OrmColumnModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.model.OrmComponentModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.model.OrmComponentPropModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.model.OrmCompositePKModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -20736,6 +21787,60 @@
       }
     ],
     "name": "io.nop.orm.model._gen._OrmColumnModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.orm.model.OrmComponentModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.model._gen._OrmComponentModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.orm.model.OrmComponentPropModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.orm.model._gen._OrmComponentPropModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -23689,6 +24794,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.orm.utils.OrmDaoHelper"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "invoke",
@@ -23712,6 +24827,332 @@
       }
     ],
     "name": "io.nop.orm.utils.SingleSessionFunctionInvoker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record.model.RecordAggregateFieldMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record.model.RecordDefinitions"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record.model.RecordFieldMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record.model.RecordFileBodyMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record.model.RecordFileMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record.model.RecordObjectMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record.model.RecordSimpleFieldMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record.model.RecordTypeMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.record.model.RecordAggregateFieldMeta"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.record.model._gen._RecordAggregateFieldMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.record.model.RecordDefinitions"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.record.model._gen._RecordDefinitions"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.record.model.RecordFieldMeta"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.record.model._gen._RecordFieldMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.record.model.RecordFileBodyMeta"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.record.model._gen._RecordFileBodyMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.record.model.RecordFileMeta"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.record.model._gen._RecordFileMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.record.model.RecordObjectMeta"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.record.model._gen._RecordObjectMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.record.model.RecordSimpleFieldMeta"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.record.model._gen._RecordSimpleFieldMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.record.model.RecordTypeMeta"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.record.model._gen._RecordTypeMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record.resource.RecordAggregateState"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record.template.RecordTemplateManager"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record.util.RecordModelParseHelper"
   },
   {
     "allDeclaredConstructors": true,
@@ -24869,6 +26310,26 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.task.TaskStepReturn"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.task.builder.TransformCustomStepHelper"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getRateLimiter",
@@ -24975,6 +26436,36 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.task.impl.TaskImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.task.impl.TaskRuntimeImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.task.impl.TaskStepRuntimeImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getType",
@@ -25054,6 +26545,16 @@
       }
     ],
     "name": "io.nop.task.model.TaskInputModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.task.model.TaskOutputModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -25727,6 +27228,33 @@
     "fields": [],
     "methods": [
       {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.task.model.TaskOutputModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.task.model._gen._TaskOutputModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "cloneInstance",
         "parameterTypes": []
       },
@@ -26062,6 +27590,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.task.utils.TaskGenHelper"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "doInvoke",
@@ -26098,6 +27636,46 @@
       }
     ],
     "name": "io.nop.xlang.api.ExprEvalAction"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.ast.Expression"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.ast.IXLangASTNode"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.ast.Program"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.ast.XLangASTNode"
   },
   {
     "allDeclaredConstructors": true,
@@ -26177,7 +27755,53 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.xlang.ast._gen._Expression"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "body"
+      },
+      {
+        "allowWrite": true,
+        "name": "sourceType"
+      }
+    ],
+    "methods": [
+      {
+        "name": "serializeFields",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.ast._gen._Program"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.xlang.debugger.initialize.XLangDebuggerInitializer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.exec.MakeScopeEvalFunction"
   },
   {
     "allDeclaredConstructors": true,
@@ -27865,6 +29489,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.xpl.XplSlotType"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "loadObjectFromPath",
@@ -29022,6 +30656,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "java.io.File"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "java.io.Serializable"
   },
   {
@@ -29242,6 +30886,16 @@
       }
     ],
     "name": "java.lang.Iterable"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.lang.Long"
   },
   {
     "allDeclaredConstructors": true,
@@ -29827,6 +31481,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "java.lang.reflect.Type"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "java.sql.Connection"
   },
   {
@@ -29838,6 +31502,16 @@
     "fields": [],
     "methods": [],
     "name": "java.sql.Wrapper"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.time.LocalDate"
   },
   {
     "allDeclaredConstructors": true,

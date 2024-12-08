@@ -13,9 +13,8 @@ prop:
       fileLength: File Length
       fileCategory: File Category
       fileSource: File Source
-      currentTaskId: Current Task
+      batchTaskId: Batch Task ID
       processState: Process State
-      processState_label: null
       acceptDate: Accept Date
       version: Version
       createdBy: Created By
@@ -24,7 +23,7 @@ prop:
       updateTime: Update Time
       remark: Remark
     NopBatchRecordResult:
-      taskId: Task ID
+      batchTaskId: Batch Task ID
       recordKey: Record Key
       resultStatus: Result Status
       resultCode: Result Code
@@ -49,6 +48,7 @@ prop:
       workerId: Worker ID
       inputFileId: Input File
       flowStepId: Flow Step ID
+      flowId: Flow ID
       restartTime: Restart Time
       resultStatus: Result Status
       resultCode: Result Code
@@ -72,7 +72,7 @@ prop:
       taskVars: Task State Vars
       taskParamsComponent: null
     NopBatchTaskVar:
-      taskId: TASK_ID
+      batchTaskId: Batch Task Id
       fieldName: Field Name
       fieldType: Field Type
       stringValue: String Value

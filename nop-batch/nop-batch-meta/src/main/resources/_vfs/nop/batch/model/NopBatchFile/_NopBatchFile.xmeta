@@ -42,13 +42,13 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="10"/>
         </prop>
-        <prop name="currentTaskId" displayName="当前处理任务" propId="7" i18n-en:displayName="Current Task" mandatory="true"
+        <prop name="batchTaskId" displayName="批处理任务" propId="7" i18n-en:displayName="Batch Task ID" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="processState" displayName="处理状态" propId="8" i18n-en:displayName="Process State" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.Integer" dict="batch/process-state"/>
+            <schema type="java.lang.String" precision="10"/>
         </prop>
         <prop name="acceptDate" displayName="文件接收时间" propId="9" i18n-en:displayName="Accept Date" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
