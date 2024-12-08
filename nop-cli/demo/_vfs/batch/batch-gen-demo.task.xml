@@ -1,13 +1,9 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
       x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml"
-      xmlns:task="task" x:dump="true" defaultUseParentScope="true" xmlns:xpl="xpl" xmlns:c="c">
+      xmlns:task="task" x:dump="true" defaultUseParentScope="true" xmlns:xpl="xpl">
 
     <input name="totalCount" type="int"/>
     <input name="taskKey" type="String"/>
-
-    <x:config>
-        <c:import from="/nop/batch/xlib/batch.xlib"/>
-    </x:config>
 
     <steps>
         <custom name="createCard" customType="batch:Execute"

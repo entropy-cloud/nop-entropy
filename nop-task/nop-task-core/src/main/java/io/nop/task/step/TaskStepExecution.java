@@ -5,6 +5,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
@@ -27,7 +28,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static io.nop.task.TaskErrors.ARG_INPUT_NAME;
+import static io.nop.task.TaskErrors.ARG_STEP_PATH;
 import static io.nop.task.TaskErrors.ERR_TASK_CANCELLED;
+import static io.nop.task.TaskErrors.ERR_TASK_MANDATORY_INPUT_NOT_ALLOW_EMPTY;
 
 public class TaskStepExecution implements ITaskStepExecution {
     static final Logger LOG = LoggerFactory.getLogger(TaskStepExecution.class);
@@ -37,13 +41,19 @@ public class TaskStepExecution implements ITaskStepExecution {
         private final String name;
         private final IEvalAction expr;
         private final boolean fromTaskScope;
+        private final boolean mandatory;
 
         public InputConfig(SourceLocation loc, String name, IEvalAction expr,
-                           boolean fromTaskScope) {
+                           boolean fromTaskScope, boolean mandatory) {
             this.location = loc;
             this.name = name;
             this.expr = expr;
             this.fromTaskScope = fromTaskScope;
+            this.mandatory = mandatory;
+        }
+
+        public boolean isMandatory() {
+            return mandatory;
         }
 
         public SourceLocation getLocation() {
@@ -289,6 +299,10 @@ public class TaskStepExecution implements ITaskStepExecution {
             IEvalScope scope = inputConfig.isFromTaskScope() ? taskRt.getEvalScope() : parentScope;
             IEvalAction expr = inputConfig.getExpr();
             Object value = expr == null ? parentScope.getValue(name) : expr.invoke(scope);
+            if (inputConfig.isMandatory() && !StringHelper.isEmptyObject(value))
+                throw new NopException(ERR_TASK_MANDATORY_INPUT_NOT_ALLOW_EMPTY)
+                        .param(ARG_STEP_PATH, stepRt.getStepPath())
+                        .param(ARG_INPUT_NAME, name);
             stepRt.setValue(name, value);
         });
     }

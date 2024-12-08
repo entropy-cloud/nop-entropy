@@ -65,7 +65,7 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         List<TaskStepExecution.InputConfig> inputs = new ArrayList<>(stepModel.getInputs().size());
         for (TaskInputModel inputModel : stepModel.getInputs()) {
             inputs.add(new TaskStepExecution.InputConfig(inputModel.getLocation(), inputModel.getName(),
-                    inputModel.getSource(), inputModel.isFromTaskScope()));
+                    inputModel.getSource(), inputModel.isFromTaskScope(), inputModel.isMandatory()));
         }
 
         List<TaskStepExecution.OutputConfig> outputs = new ArrayList<>(stepModel.getOutputs().size() + 1);

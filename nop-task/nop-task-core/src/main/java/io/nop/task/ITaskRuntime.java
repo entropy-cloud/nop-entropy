@@ -124,6 +124,10 @@ public interface ITaskRuntime extends IEvalContext {
 
     Set<String> getAttributeKeys();
 
+    default Object getInput(String name) {
+        return getEvalScope().getValue(name);
+    }
+
     default void setInput(String name, Object value) {
         getEvalScope().setLocalValue(name, value);
     }
