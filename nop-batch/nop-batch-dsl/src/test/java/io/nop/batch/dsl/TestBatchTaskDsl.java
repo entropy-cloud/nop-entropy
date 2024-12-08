@@ -33,7 +33,7 @@ public class TestBatchTaskDsl extends JunitAutoTestCase {
     public void testBatchTask() {
         forceStackTrace();
         IResource resource = VirtualFileSystem.instance().getResource("/test/batch/test-batch.task.xml");
-        ITask task = taskFlowManager.loadTask(resource);
+        ITask task = taskFlowManager.parseTask(resource);
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, new ServiceContextImpl());
         LocalDate bizDate = LocalDate.of(2024, 1, 1);
         makeInputFile(bizDate);

@@ -42,9 +42,12 @@ public class RecordFileMeta extends _RecordFileMeta {
             if (getHeader().getTypeRef() != null) {
                 resolvedHeaderType = resolveType(getHeader().getTypeRef());
             } else {
-                resolvedBodyType = getHeader();
+                resolvedHeaderType = getHeader();
                 getHeader().init(this);
             }
+
+            if (!resolvedHeaderType.hasFieldsOrTemplate())
+                resolvedHeaderType = null;
         }
 
         if (getBody() != null) {
@@ -60,9 +63,12 @@ public class RecordFileMeta extends _RecordFileMeta {
             if (getTrailer().getTypeRef() != null) {
                 resolvedTrailerType = resolveType(getTrailer().getTypeRef());
             } else {
-                resolvedBodyType = getTrailer();
+                resolvedTrailerType = getTrailer();
                 getTrailer().init(this);
             }
+
+            if (!resolvedTrailerType.hasFieldsOrTemplate())
+                resolvedTrailerType = null;
         }
 
         if (getPagination() != null)

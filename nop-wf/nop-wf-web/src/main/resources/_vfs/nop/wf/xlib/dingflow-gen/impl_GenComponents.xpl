@@ -20,7 +20,7 @@
             function Node_${normalizeName(nodeModel.name)}(props){
                 const {node, material, parent, index,t,editable} = props;
                 <c:script>
-                    import io.nop.web.page.vue.VueTemplateHelper;
+                    import io.nop.xui.vue.VueTemplateHelper;
 
                     const tplNode = nodeModel.template;
                 </c:script>

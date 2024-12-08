@@ -22,7 +22,7 @@ public class SubTextDataReader implements ITextDataReader {
     private final int maxLength;
 
     public SubTextDataReader(ITextDataReader input, int maxLength) {
-        this(input, input.pos(), maxLength);
+        this(input, (int)input.pos(), maxLength);
     }
 
     public SubTextDataReader(ITextDataReader input, int startOffset, int maxLength) {
@@ -33,7 +33,7 @@ public class SubTextDataReader implements ITextDataReader {
 
     @Override
     public boolean isEof() throws IOException {
-        int offset = pos();
+        long offset = pos();
         if (offset >= maxLength)
             return true;
         return input.isEof();
@@ -45,12 +45,12 @@ public class SubTextDataReader implements ITextDataReader {
     }
 
     @Override
-    public int available() throws IOException {
-        int offset = pos();
+    public long available() throws IOException {
+        long offset = pos();
         if (offset >= maxLength)
             return 0;
 
-        int n = input.available();
+        long n = input.available();
         if (n <= 0) {
             return n;
         }
@@ -60,7 +60,7 @@ public class SubTextDataReader implements ITextDataReader {
 
     @Override
     public void skip(int n) throws IOException {
-        int avail = maxLength - pos();
+        long avail = maxLength - pos();
         if (avail < n)
             throw new NopException(ERR_RECORD_NO_ENOUGH_DATA);
         input.skip(n);
@@ -68,7 +68,7 @@ public class SubTextDataReader implements ITextDataReader {
 
     @Override
     public String read(int len) throws IOException {
-        int avail = maxLength - pos();
+        long avail = maxLength - pos();
         if (avail < len)
             throw new NopException(ERR_RECORD_NO_ENOUGH_DATA);
         return input.read(len);
@@ -83,13 +83,13 @@ public class SubTextDataReader implements ITextDataReader {
 
     @Override
     public String readLine(int maxLength) throws IOException {
-        int avail = this.maxLength - pos();
-        maxLength = Math.min(maxLength, avail);
+        long avail = this.maxLength - pos();
+        maxLength = (int)Math.min(maxLength, avail);
         return input.readLine(maxLength);
     }
 
     @Override
-    public int pos() {
+    public long pos() {
         return input.pos() - startOffset;
     }
 

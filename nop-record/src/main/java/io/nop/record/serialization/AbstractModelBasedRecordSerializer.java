@@ -23,9 +23,12 @@ import java.util.Collection;
 
 import static io.nop.record.RecordErrors.ARG_CASE_VALUE;
 import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
+import static io.nop.record.RecordErrors.ARG_FIELD_PATH;
 import static io.nop.record.RecordErrors.ARG_TYPE_NAME;
+import static io.nop.record.RecordErrors.ERR_RECORD_FIELD_IS_MANDATORY;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_MATCH_FOR_CASE_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_SWITCH_ON_FIELD;
+import static io.nop.record.RecordErrors.ERR_RECORD_TYPE_NO_FIELDS;
 import static io.nop.record.serialization.RecordSerializeHelper.runIfExpr;
 
 public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWriterBase>
@@ -154,12 +157,14 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
                     writeString(out, part.toString(), charset, context);
                 }
             }
-        } else {
+        } else if (!fields.getFields().isEmpty()) {
             for (RecordFieldMeta field : fields.getFields()) {
                 if (!field.isMatchTag(tags))
                     continue;
                 writeField(out, field, record, context);
             }
+        } else {
+            throw new NopException(ERR_RECORD_TYPE_NO_FIELDS).source(fields).param(ARG_TYPE_NAME, fields.getName());
         }
     }
 
@@ -176,17 +181,21 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
     abstract protected void writeField0(Output out, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException;
 
     protected Object getProp(RecordFieldMeta field, Object record, IFieldCodecContext context) {
-        if (field.getExportExpr() != null)
-            return field.getExportExpr().call1(null, record, context.getEvalScope());
+        Object value;
+        if (field.getExportExpr() != null) {
+            value = field.getExportExpr().call1(null, record, context.getEvalScope());
+        } else {
+            if (field.isDiv())
+                return record;
 
-        if (field.isDiv())
-            return record;
+            if (record == null)
+                return null;
 
-        if (record == null)
-            return null;
-
-        String propName = field.getPropOrFieldName();
-        return getPropByName(record, propName);
+            String propName = field.getPropOrFieldName();
+            value = getPropByName(record, propName);
+        }
+        validate(value, field, context);
+        return value;
     }
 
     protected Object getPropByName(Object record, String propName) {
@@ -194,5 +203,13 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
             return ((IVariableScope) record).getValueByPropPath(propName);
 
         return BeanTool.getComplexProperty(record, propName);
+    }
+
+    protected void validate(Object value, RecordFieldMeta field, IFieldCodecContext context) {
+        if (field.isMandatory() && StringHelper.isEmptyObject(value)) {
+            throw new NopException(ERR_RECORD_FIELD_IS_MANDATORY)
+                    .param(ARG_FIELD_NAME, field.getName())
+                    .param(ARG_FIELD_PATH, context.getFieldPath());
+        }
     }
 }

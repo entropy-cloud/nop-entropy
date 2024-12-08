@@ -10,26 +10,26 @@ package io.nop.record.reader;
 import java.io.IOException;
 
 public interface ITextDataReader extends IDataReaderBase {
-    int available() throws IOException;
+    long available() throws IOException;
 
     void skip(int n) throws IOException;
 
     String read(int len) throws IOException;
 
     default String readAvailableText() throws IOException {
-        int len = available();
+        long len = available();
         if (len < 0)
             return null;
         if (len == 0)
             return "";
-        return read(len);
+        return read((int)len);
     }
 
     int readChar() throws IOException;
 
     String readLine(int maxLength) throws IOException;
 
-    int pos();
+    long pos();
 
     /**
      * 重置offset为0

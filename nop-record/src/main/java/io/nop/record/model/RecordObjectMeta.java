@@ -21,6 +21,7 @@ import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
 import static io.nop.record.RecordErrors.ERR_RECORD_UNKNOWN_FIELD;
 
 public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFieldsMeta {
+    private String name;
     private SimpleTextTemplate normalizedTemplate;
 
     private IBeanConstructor constructor;
@@ -29,6 +30,18 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
 
     public RecordObjectMeta() {
 
+    }
+
+    public boolean hasFieldsOrTemplate() {
+        return !getFields().isEmpty() || normalizedTemplate != null;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public Charset getCharsetObj() {

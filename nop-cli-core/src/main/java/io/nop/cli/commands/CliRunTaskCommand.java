@@ -37,7 +37,7 @@ public class CliRunTaskCommand implements Callable<Integer> {
         IResource resource = ResourceHelper.resolveRelativePathResource(file);
 
         ITaskFlowManager taskFlowManager = BeanContainer.getBeanByType(ITaskFlowManager.class);
-        ITask task = taskFlowManager.loadTask(resource);
+        ITask task = taskFlowManager.parseTask(resource);
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, new ServiceContextImpl());
         if (input != null) {
             Map<String, Object> map = (Map<String, Object>) JsonTool.parseNonStrict(null, input);

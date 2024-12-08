@@ -4,7 +4,7 @@ import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.web.page.DynamicJsLoader;
-import io.nop.web.page.vue.VueErrors;
+import io.nop.xui.vue.VueErrors;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 

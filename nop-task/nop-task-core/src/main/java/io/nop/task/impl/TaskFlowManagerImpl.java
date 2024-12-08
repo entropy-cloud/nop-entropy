@@ -30,7 +30,6 @@ import io.nop.xlang.xdsl.DslModelParser;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
-import static io.nop.task.TaskConstants.EXECUTOR_BEAN_PREFIX;
 import static io.nop.task.TaskErrors.ARG_TASK_INSTANCE_ID;
 import static io.nop.task.TaskErrors.ERR_TASK_NO_PERSIST_STATE_STORE;
 import static io.nop.task.TaskErrors.ERR_TASK_UNKNOWN_TASK_INSTANCE;
@@ -73,7 +72,7 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     @Override
     public ITaskRuntime newTaskRuntime(ITask task, boolean saveState, IServiceContext svcCtx, IEvalScope scope) {
         ITaskStateStore stateStore = saveState ? requirePersistStateState() : nonPersistStateStore;
-        TaskRuntimeImpl taskRt = new TaskRuntimeImpl(this, stateStore, svcCtx, scope,false);
+        TaskRuntimeImpl taskRt = new TaskRuntimeImpl(this, stateStore, svcCtx, scope, false);
 
         ITaskState taskState = stateStore.newTaskState(task.getTaskName(), task.getTaskVersion(), taskRt);
         taskRt.setTaskState(taskState);
@@ -120,8 +119,14 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     }
 
     @Override
-    public ITask loadTask(IResource resource) {
+    public ITask parseTask(IResource resource) {
         TaskFlowModel taskFlowModel = (TaskFlowModel) new DslModelParser().parseFromResource(resource);
+        return taskFlowModel.getTask(newTaskFlowBuilder());
+    }
+
+    @Override
+    public ITask loadTaskFromPath(String path) {
+        TaskFlowModel taskFlowModel = (TaskFlowModel) ResourceComponentManager.instance().loadComponentModel(path);
         return taskFlowModel.getTask(newTaskFlowBuilder());
     }
 

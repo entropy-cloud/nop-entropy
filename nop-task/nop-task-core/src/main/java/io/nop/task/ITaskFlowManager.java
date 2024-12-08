@@ -11,7 +11,6 @@ package io.nop.task;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.VirtualFileSystem;
 import io.nop.task.model.TaskFlowModel;
 
 public interface ITaskFlowManager {
@@ -30,12 +29,9 @@ public interface ITaskFlowManager {
 
     ITask getTask(String taskName, long taskVersion);
 
-    ITask loadTask(IResource resource);
+    ITask parseTask(IResource resource);
 
-    default ITask loadTaskFromPath(String path) {
-        IResource resource = VirtualFileSystem.instance().getResource(path);
-        return loadTask(resource);
-    }
+    ITask loadTaskFromPath(String path);
 
     ITaskStepLib getTaskStepLib(String libName, long libVersion);
 

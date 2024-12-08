@@ -90,4 +90,7 @@ public interface RecordErrors {
 
     ErrorCode ERR_RECORD_UNKNOWN_FIELD_TYPE = define("nop.err.record.unknown-field-type",
             "未知的字段类型:{typeName}", ARG_TYPE_NAME);
+
+    ErrorCode ERR_RECORD_TYPE_NO_FIELDS = define("nop.err.record.type-no-fields",
+            "结构体没有定义字段");
 }

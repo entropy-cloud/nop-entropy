@@ -72,6 +72,7 @@ public abstract class AbstractFixedLengthAsciiCodec implements IFieldCodec {
 
     protected Object decodeBytes(byte[] bytes, Charset charset, Function<ErrorCode, NopException> errorFactory) {
         String text = new String(bytes, charset);
+        text = trimString(text);
         return decodeString(text, errorFactory);
     }
 

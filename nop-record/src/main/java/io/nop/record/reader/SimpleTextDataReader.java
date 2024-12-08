@@ -22,7 +22,7 @@ public class SimpleTextDataReader implements ITextDataReader {
     }
 
     @Override
-    public int available() {
+    public long available() {
         return text.length() - offset;
     }
 
@@ -58,11 +58,11 @@ public class SimpleTextDataReader implements ITextDataReader {
 
     @Override
     public String readLine(int maxLength) {
-        int avail = available();
+        long avail = available();
         if (avail <= 0)
             return "";
 
-        int n = Math.min(maxLength, avail);
+        int n = (int)Math.min(maxLength, avail);
         for (int i = 0; i < n; i++) {
             char c = text.charAt(offset + i);
             if (c == '\r') {
@@ -84,7 +84,7 @@ public class SimpleTextDataReader implements ITextDataReader {
     }
 
     @Override
-    public int pos() {
+    public long pos() {
         return offset;
     }
 

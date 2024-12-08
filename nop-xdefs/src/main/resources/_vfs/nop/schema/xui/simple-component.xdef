@@ -2,9 +2,20 @@
            name="!var-name"
            xdef:bean-package="io.nop.xui.model"
            xdef:name="UiSimpleComponentModel" xmlns:xdef="/nop/schema/xdef.xdef">
+
+    <imports xdef:body-type="list" xdef:key-attr="as">
+        <import as="!var-name=@attr:name" xdef:ref="../xui/import.xdef"/>
+    </imports>
+
+    <components xdef:body-type="list" xdef:key-attr="name">
+        <component name="!var-name" xdef:ref="UiSimpleComponentModel"/>
+    </components>
+
     <prop name="!var-name" type="string" xdef:unique-attr="name" xdef:name="UiSimplePropModel"/>
     <state name="!var-name" type="string" xdef:unique-attr="name" xdef:name="UiSimpleStateModel"/>
     <context name="!var-name" type="string" xdef:unique-attr="name" xdef:name="UiSimpleContextModel"/>
+
     <slot name="!var-name" xdef:unique-attr="name" xdef:name="UiSimpleSlotModel"/>
-    <template xdef:value="xml"/>
+
+    <template xdef:value="vue-node"/>
 </component>

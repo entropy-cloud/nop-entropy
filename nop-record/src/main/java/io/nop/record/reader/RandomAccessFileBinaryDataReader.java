@@ -50,10 +50,13 @@ public class RandomAccessFileBinaryDataReader implements IBinaryDataReader {
     protected final RandomAccessFile raf;
     private long bits;
     private int bitsLeft;
+    private long pos = 0;
+    private long size;
 
     public RandomAccessFileBinaryDataReader(File file) {
         try {
             raf = new RandomAccessFile(file, "r");
+            size = raf.length();
         } catch (Exception e) {
             throw NopException.adapt(e);
         }
@@ -90,30 +93,27 @@ public class RandomAccessFileBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public boolean isEof() throws IOException {
-        return !(raf.getFilePointer() < raf.length() || bitsLeft > 0);
+        return !(pos < size() || bitsLeft > 0);
     }
 
     @Override
     public void seek(long newPos) throws IOException {
         raf.seek(newPos);
+        this.pos = raf.getFilePointer();
     }
 
     @Override
     public boolean hasRemainingBytes() throws IOException {
-        return (raf.getFilePointer() < raf.length());
+        return (pos < size());
     }
 
     @Override
     public long pos() {
-        try {
-            return raf.getFilePointer();
-        } catch (IOException e) {
-            throw wrapErr(e);
-        }
+        return pos;
     }
 
     public long size() throws IOException {
-        return raf.length();
+        return size;
     }
 
     public long available() throws IOException {
@@ -122,17 +122,26 @@ public class RandomAccessFileBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public int read(byte[] data, int offset, int len) throws IOException {
-        return raf.read(data, offset, len);
+        int n = raf.read(data, offset, len);
+        if (n > 0)
+            pos += n;
+        return n;
     }
 
     @Override
     public int read(byte[] data) throws IOException {
-        return raf.read(data);
+        int n = raf.read(data);
+        if (n > 0)
+            pos += n;
+        return n;
     }
 
     @Override
     public int read() throws IOException {
-        return raf.read();
+        int c = raf.read();
+        if (c >= 0)
+            pos++;
+        return c;
     }
 
     @Override

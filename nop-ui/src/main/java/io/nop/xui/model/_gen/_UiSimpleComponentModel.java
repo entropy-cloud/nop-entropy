@@ -18,10 +18,24 @@ public abstract class _UiSimpleComponentModel extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: components
+     * 
+     */
+    private KeyedList<io.nop.xui.model.UiSimpleComponentModel> _components = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: context
      * 
      */
     private KeyedList<io.nop.xui.model.UiSimpleContextModel> _contexts = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: imports
+     * 
+     */
+    private KeyedList<io.nop.xui.model.UiImportModel> _imports = KeyedList.emptyList();
     
     /**
      *  
@@ -56,7 +70,52 @@ public abstract class _UiSimpleComponentModel extends io.nop.core.resource.compo
      * xml name: template
      * 
      */
-    private io.nop.core.lang.xml.XNode _template ;
+    private io.nop.xui.vue.VueNode _template ;
+    
+    /**
+     * 
+     * xml name: components
+     *  
+     */
+    
+    public java.util.List<io.nop.xui.model.UiSimpleComponentModel> getComponents(){
+      return _components;
+    }
+
+    
+    public void setComponents(java.util.List<io.nop.xui.model.UiSimpleComponentModel> value){
+        checkAllowChange();
+        
+        this._components = KeyedList.fromList(value, io.nop.xui.model.UiSimpleComponentModel::getName);
+           
+    }
+
+    
+    public io.nop.xui.model.UiSimpleComponentModel getComponent(String name){
+        return this._components.getByKey(name);
+    }
+
+    public boolean hasComponent(String name){
+        return this._components.containsKey(name);
+    }
+
+    public void addComponent(io.nop.xui.model.UiSimpleComponentModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.xui.model.UiSimpleComponentModel> list = this.getComponents();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.xui.model.UiSimpleComponentModel::getName);
+            setComponents(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_components(){
+        return this._components.keySet();
+    }
+
+    public boolean hasComponents(){
+        return !this._components.isEmpty();
+    }
     
     /**
      * 
@@ -101,6 +160,51 @@ public abstract class _UiSimpleComponentModel extends io.nop.core.resource.compo
 
     public boolean hasContexts(){
         return !this._contexts.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: imports
+     *  
+     */
+    
+    public java.util.List<io.nop.xui.model.UiImportModel> getImports(){
+      return _imports;
+    }
+
+    
+    public void setImports(java.util.List<io.nop.xui.model.UiImportModel> value){
+        checkAllowChange();
+        
+        this._imports = KeyedList.fromList(value, io.nop.xui.model.UiImportModel::getAs);
+           
+    }
+
+    
+    public io.nop.xui.model.UiImportModel getImport(String name){
+        return this._imports.getByKey(name);
+    }
+
+    public boolean hasImport(String name){
+        return this._imports.containsKey(name);
+    }
+
+    public void addImport(io.nop.xui.model.UiImportModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.xui.model.UiImportModel> list = this.getImports();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.xui.model.UiImportModel::getAs);
+            setImports(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_imports(){
+        return this._imports.keySet();
+    }
+
+    public boolean hasImports(){
+        return !this._imports.isEmpty();
     }
     
     /**
@@ -263,12 +367,12 @@ public abstract class _UiSimpleComponentModel extends io.nop.core.resource.compo
      *  
      */
     
-    public io.nop.core.lang.xml.XNode getTemplate(){
+    public io.nop.xui.vue.VueNode getTemplate(){
       return _template;
     }
 
     
-    public void setTemplate(io.nop.core.lang.xml.XNode value){
+    public void setTemplate(io.nop.xui.vue.VueNode value){
         checkAllowChange();
         
         this._template = value;
@@ -284,7 +388,11 @@ public abstract class _UiSimpleComponentModel extends io.nop.core.resource.compo
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._components = io.nop.api.core.util.FreezeHelper.deepFreeze(this._components);
+            
            this._contexts = io.nop.api.core.util.FreezeHelper.deepFreeze(this._contexts);
+            
+           this._imports = io.nop.api.core.util.FreezeHelper.deepFreeze(this._imports);
             
            this._props = io.nop.api.core.util.FreezeHelper.deepFreeze(this._props);
             
@@ -299,7 +407,9 @@ public abstract class _UiSimpleComponentModel extends io.nop.core.resource.compo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("components",this.getComponents());
         out.putNotNull("contexts",this.getContexts());
+        out.putNotNull("imports",this.getImports());
         out.putNotNull("name",this.getName());
         out.putNotNull("props",this.getProps());
         out.putNotNull("slots",this.getSlots());
@@ -316,7 +426,9 @@ public abstract class _UiSimpleComponentModel extends io.nop.core.resource.compo
     protected void copyTo(UiSimpleComponentModel instance){
         super.copyTo(instance);
         
+        instance.setComponents(this.getComponents());
         instance.setContexts(this.getContexts());
+        instance.setImports(this.getImports());
         instance.setName(this.getName());
         instance.setProps(this.getProps());
         instance.setSlots(this.getSlots());

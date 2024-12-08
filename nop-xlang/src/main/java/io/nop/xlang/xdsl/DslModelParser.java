@@ -90,7 +90,7 @@ public class DslModelParser extends AbstractDslParser<IComponentModel> {
             return model;
 
         String path = getResourcePath();
-        if (StringHelper.isEmpty(path))
+        if (StringHelper.isEmpty(path) || !path.startsWith(resolveInDir))
             return model;
 
         VersionedName versionedName = ResourceVersionHelper.parseVersionedName(path, resolveInDir, true);

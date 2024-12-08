@@ -67,4 +67,21 @@ public class TestLayoutModelParser extends BaseTestCase {
             assertEquals(CommonErrors.ERR_SCAN_INVALID_XML_NAME.getErrorCode(), e.getErrorCode());
         }
     }
+
+    @Test
+    public void testLayoutGroup() {
+        String text = "====#sub1[sub1]====\n" +
+                "===##sub_1[sub1 1]===\n" +
+                "deptName[名称] parentId[父ID]\n" +
+                "orderNum[排序] deptType[类型]\n" +
+                "managerId[部门负责人] email[邮件]\n" +
+                "phone[电话] createdBy[创建人]\n" +
+                "====##sub1_2[sub1 2]===\n" +
+                "createTime[创建时间] updatedBy[修改人]\n" +
+                "updateTime[修改时间] remark[备注]";
+
+        LayoutModel model = parse(text);
+        model.getGroups().forEach(group -> group.getId());
+        model.getFirstTable().forEachLayoutCell(cell -> cell.getId());
+    }
 }

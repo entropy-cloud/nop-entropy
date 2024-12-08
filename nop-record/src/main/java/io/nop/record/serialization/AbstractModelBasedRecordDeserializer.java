@@ -23,12 +23,14 @@ import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
 import static io.nop.record.RecordErrors.ARG_TYPE_NAME;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_MATCH_FOR_CASE_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_SWITCH_ON_FIELD;
+import static io.nop.record.RecordErrors.ERR_RECORD_TYPE_NO_FIELDS;
 
 public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataReaderBase>
         implements IModelBasedRecordDeserializer<Input> {
 
     @Override
     public boolean readObject(Input in, RecordObjectMeta recordMeta, String name, Object record, IFieldCodecContext context) throws IOException {
+        long pos = in.pos();
         if (recordMeta.getBeforeRead() != null)
             recordMeta.getBeforeRead().call3(null, in, record, context, context.getEvalScope());
 
@@ -37,7 +39,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
 
         if (recordMeta.getAfterRead() != null)
             recordMeta.getAfterRead().call3(null, in, record, context, context.getEvalScope());
-        return true;
+        return pos != in.pos();
     }
 
     @Override
@@ -136,12 +138,14 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
                     readString(in, part.toString(), charset, context);
                 }
             }
-        } else {
+        } else if (!fields.getFields().isEmpty()) {
             for (RecordFieldMeta field : fields.getFields()) {
                 if (!field.isMatchTag(tags))
                     continue;
                 readField(in, field, record, context);
             }
+        } else {
+            throw new NopException(ERR_RECORD_TYPE_NO_FIELDS).source(fields).param(ARG_TYPE_NAME, fields.getName());
         }
     }
 

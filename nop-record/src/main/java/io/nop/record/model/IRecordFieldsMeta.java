@@ -11,8 +11,11 @@ import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
 import static io.nop.record.RecordErrors.ERR_RECORD_UNKNOWN_FIELD;
 
 public interface IRecordFieldsMeta extends ISourceLocationGetter {
+    String getName();
 
     List<RecordFieldMeta> getFields();
+
+    boolean hasFields();
 
     IEvalFunction getAfterRead();
 
