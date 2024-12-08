@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.web.page.vue;
+package io.nop.xui.vue;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.text.tokenizer.TextScanner;
@@ -20,12 +20,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.nop.web.page.vue.VueErrors.ARG_SLOT_NAME;
-import static io.nop.web.page.vue.VueErrors.ARG_TAG_NAME;
-import static io.nop.web.page.vue.VueErrors.ERR_VUE_SLOT_NOT_ALLOW_SLOT_CHILD;
-import static io.nop.web.page.vue.VueErrors.ERR_VUE_TEMPLATE_NO_SLOT_NAME;
-import static io.nop.web.page.vue.VueErrors.ERR_VUE_V_CHILD_NOT_ALLOW_ATTR;
-import static io.nop.web.page.vue.VueErrors.ERR_VUE_V_CHILD_NOT_ALLOW_SLOT;
+import static io.nop.xui.vue.VueErrors.ARG_SLOT_NAME;
+import static io.nop.xui.vue.VueErrors.ARG_TAG_NAME;
+import static io.nop.xui.vue.VueErrors.ERR_VUE_SLOT_NOT_ALLOW_SLOT_CHILD;
+import static io.nop.xui.vue.VueErrors.ERR_VUE_TEMPLATE_NO_SLOT_NAME;
+import static io.nop.xui.vue.VueErrors.ERR_VUE_V_CHILD_NOT_ALLOW_ATTR;
+import static io.nop.xui.vue.VueErrors.ERR_VUE_V_CHILD_NOT_ALLOW_SLOT;
 
 /**
  * 解析简化的Vue模板

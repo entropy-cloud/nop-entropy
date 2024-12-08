@@ -1,11 +1,11 @@
-package io.nop.web.page.initialize;
+package io.nop.xui.initialize;
 
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.ICoreInitializer;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 
-public class WebPageCoreInitializer implements ICoreInitializer {
+public class XuiCoreInitializer implements ICoreInitializer {
     private Cancellable cancellable = new Cancellable();
 
     @Override

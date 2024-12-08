@@ -1,4 +1,4 @@
-package io.nop.web.page.vue;
+package io.nop.xui.vue;
 
 import io.nop.api.core.exceptions.NopException;
 
@@ -6,8 +6,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import static io.nop.web.page.vue.VueErrors.ARG_TYPE;
-import static io.nop.web.page.vue.VueErrors.ERR_VUE_INVALID_NODE_TYPE;
+import static io.nop.xui.vue.VueErrors.ARG_TYPE;
+import static io.nop.xui.vue.VueErrors.ERR_VUE_INVALID_NODE_TYPE;
 
 public class VueNodeChecker {
     private Set<String> importTypes = new HashSet<>();

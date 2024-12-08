@@ -7,7 +7,7 @@
  */
 package io.nop.web.page;
 
-import io.nop.web.page.vue.VueErrors;
+import io.nop.xui.vue.VueErrors;
 
 public interface WebPageErrors extends VueErrors {
 

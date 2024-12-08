@@ -4,7 +4,7 @@ import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed Unused
 import io.nop.core.lang.json.IJsonHandler;
 import io.nop.web.page.graph_designer.model.GraphDesignerNodeModel;
 import io.nop.commons.util.ClassHelper;
-
+import io.nop.xui.vue.VueNode;
 
 
 // tell cpd to start ignoring code - CPD-OFF
@@ -210,7 +210,7 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      * xml name: template
      * 
      */
-    private io.nop.web.page.vue.VueNode _template ;
+    private VueNode _template ;
     
     /**
      *  
@@ -778,12 +778,12 @@ public abstract class _GraphDesignerNodeModel extends io.nop.core.resource.compo
      *  
      */
     
-    public io.nop.web.page.vue.VueNode getTemplate(){
+    public VueNode getTemplate(){
       return _template;
     }
 
     
-    public void setTemplate(io.nop.web.page.vue.VueNode value){
+    public void setTemplate(VueNode value){
         checkAllowChange();
         
         this._template = value;

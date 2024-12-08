@@ -1,5 +1,5 @@
 <c:unit xmlns:c="c" xmlns:xpl="xpl">
-    <c:import class="io.nop.web.page.vue.VueTemplateHelper" />
+    <c:import class="io.nop.xui.vue.VueTemplateHelper" />
 import { createElement as h} from 'react'
 import { NodeContext, registerFlowModel } from '@nop-chaos/nop-sdk'
 

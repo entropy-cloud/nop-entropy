@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.web.page.vue;
+package io.nop.xui.vue;
 
 import io.nop.api.core.exceptions.ErrorCode;
 

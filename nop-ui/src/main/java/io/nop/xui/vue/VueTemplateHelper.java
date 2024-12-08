@@ -5,11 +5,11 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.web.page.vue;
+package io.nop.xui.vue;
 
 import io.nop.commons.text.IndentPrinter;
 import io.nop.core.lang.xml.XNode;
-import io.nop.web.page.vue.react.VueNodeToReact;
+import io.nop.xui.vue.react.VueNodeToReact;
 
 public class VueTemplateHelper {
     public static String vueTemplateToReact(XNode template) {

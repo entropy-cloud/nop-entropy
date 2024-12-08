@@ -3,10 +3,10 @@ package io.nop.web.page.graph_designer.model;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.INeedInit;
 import io.nop.web.page.graph_designer.model._gen._GraphDesignerModel;
-import io.nop.web.page.vue.VueNodeChecker;
+import io.nop.xui.vue.VueNodeChecker;
 
-import static io.nop.web.page.vue.VueErrors.ARG_COMPONENT_NAME;
-import static io.nop.web.page.vue.VueErrors.ERR_VUE_DUPLICATE_COMPONENT_NAME;
+import static io.nop.xui.vue.VueErrors.ARG_COMPONENT_NAME;
+import static io.nop.xui.vue.VueErrors.ERR_VUE_DUPLICATE_COMPONENT_NAME;
 
 public class GraphDesignerModel extends _GraphDesignerModel implements INeedInit {
     public GraphDesignerModel() {

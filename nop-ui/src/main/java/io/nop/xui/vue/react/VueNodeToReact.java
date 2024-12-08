@@ -5,12 +5,12 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.web.page.vue.react;
+package io.nop.xui.vue.react;
 
 import io.nop.commons.text.IndentPrinter;
 import io.nop.commons.util.StringHelper;
-import io.nop.web.page.vue.VueNode;
-import io.nop.web.page.vue.VueSlot;
+import io.nop.xui.vue.VueNode;
+import io.nop.xui.vue.VueSlot;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.TemplateExpression;
 
