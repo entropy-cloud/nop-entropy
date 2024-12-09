@@ -257,13 +257,10 @@ SpringBatch强制限定了一个Chunk的Read-Process-Write在一个事务中执�
 
 if (this.processor != null) {
     // 如果设置了processor,则先执行processor再调用consumer，否则直接调用consumer
-    IBatchProcessor processor = this.processor;
-    if (!this.processListeners.isEmpty()) {
-        IBatchProcessListener processListener = new MultiBatchProcessListener(new ArrayList<>(this.processListeners));
-        processor = new BatchProcessorWithListener<>(processor, processListener);
-    }
-    consumer = new BatchProcessorConsumer(processor, this.consumer);
+    IBatchProcessor<S, R> processor = this.processor.setup(context);
+    consumer = new BatchProcessorConsumer<>(processor, (IBatchConsumer<R>) consumer);
 }
+
 // 在process和consume阶段打开事务
 if (batchTransactionScope == BatchTransactionScope.process && transactionalInvoker != null) {
     consumer = new InvokerBatchConsumer(transactionalInvoker, consumer);

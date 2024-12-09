@@ -92,6 +92,12 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
 
     private Runnable cleanup;
 
+    private boolean autoRegisterGlobalCache = true;
+
+    public void setAutoRegisterGlobalCache(boolean autoRegisterGlobalCache) {
+        this.autoRegisterGlobalCache = autoRegisterGlobalCache;
+    }
+
     public void setBizModelBeans(List<Object> bizModelBeans) {
         this.bizModelBeans = bizModelBeans;
     }
@@ -134,10 +140,12 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
 
         cancellable = new Cancellable();
 
-        GlobalCacheRegistry.instance().register(bizObjCache);
-        cancellable.appendOnCancelTask(() -> {
-            GlobalCacheRegistry.instance().unregister(bizObjCache);
-        });
+        if (autoRegisterGlobalCache) {
+            GlobalCacheRegistry.instance().register(bizObjCache);
+            cancellable.appendOnCancelTask(() -> {
+                GlobalCacheRegistry.instance().unregister(bizObjCache);
+            });
+        }
 
         if (schemaInitializers != null) {
             for (IGraphQLSchemaInitializer initializer : schemaInitializers) {
