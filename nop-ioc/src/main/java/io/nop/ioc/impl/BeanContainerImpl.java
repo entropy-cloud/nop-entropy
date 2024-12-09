@@ -20,8 +20,8 @@ import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.lang.IClassLoader;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.ClassHelper;
+import io.nop.core.execution.TaskExecutionGraph;
 import io.nop.core.lang.xml.XNode;
-import io.nop.core.model.graph.TaskExecutionGraph;
 import io.nop.ioc.api.BeanScopeContext;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.api.IBeanDefinition;
@@ -491,12 +491,12 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
                         runDelayMethod();
                         started = true;
                     }
-                    LOG.info("nop.ioc.async-start-finished:{}",getId());
+                    LOG.info("nop.ioc.async-start-finished:{}", getId());
                 });
             } else {
                 runDelayMethod();
                 started = true;
-                LOG.info("nop.ioc.start-finished:{}",getId());
+                LOG.info("nop.ioc.start-finished:{}", getId());
             }
         } catch (Exception e) {
             // dumpCreations();
@@ -563,19 +563,20 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     }*/
 
     CompletableFuture<Void> asyncStartBeans(List<BeanDefinition> startBeans) {
-        TaskExecutionGraph graph = new TaskExecutionGraph("ioc-container-start");
+        TaskExecutionGraph graph = new TaskExecutionGraph(GlobalExecutors.globalWorker(), "ioc-container-start");
         for (BeanDefinition bean : startBeans) {
             graph.addTaskWithDepends(bean.getId(),
-                    () -> {
+                    cancelToken -> {
                         // beanCreations.add(new BeanCreation(Thread.currentThread().getName(), bean.getId(), graph.getDepends(bean.getId()), false));
                         getBean0(bean, true, false);
                         // beanCreations.add(new BeanCreation(Thread.currentThread().getName(), bean.getId(), graph.getDepends(bean.getId()), true));
+                        return null;
                     },
                     bean.getDependBeanIds());
         }
         graph.analyze();
         this.cancellable = new Cancellable();
-        return graph.runOnExecutor(GlobalExecutors.globalWorker(), this.cancellable);
+        return graph.executeAsync(this.cancellable);
     }
 
     void startBean(List<BeanDefinition> startBeans, BeanDefinition bean) {

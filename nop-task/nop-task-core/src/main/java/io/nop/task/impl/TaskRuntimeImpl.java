@@ -28,9 +28,10 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class TaskRuntimeImpl implements ITaskRuntime {
+public class TaskRuntimeImpl extends Cancellable implements ITaskRuntime {
     private final Map<String, Object> attrs = new ConcurrentHashMap<>();
 
     private final ITaskFlowManagerImplementor taskManager;
@@ -53,6 +54,8 @@ public class TaskRuntimeImpl implements ITaskRuntime {
 
     private final Cancellable cleanups = new Cancellable();
 
+    private final Consumer<String> onCancel = this::cancel;
+
     public TaskRuntimeImpl(ITaskFlowManagerImplementor taskManager,
                            ITaskStateStore stateStore,
                            IServiceContext svcCtx, IEvalScope scope, boolean recoverMode) {
@@ -71,6 +74,17 @@ public class TaskRuntimeImpl implements ITaskRuntime {
         this.scope.setLocalValue(CoreConstants.VAR_SVC_CTX, svcCtx);
         this.scope.setLocalValue(TaskConstants.VAR_TASK_RT, this);
         this.context = svcCtx == null ? ContextProvider.getOrCreateContext() : svcCtx.getContext();
+
+        if (svcCtx != null) {
+            svcCtx.appendOnCancel(onCancel);
+        }
+    }
+
+    @Override
+    public void cancel(String reason) {
+        super.cancel(reason);
+        if (svcCtx != null)
+            svcCtx.cancel(reason);
     }
 
     public boolean isRecoverMode() {
@@ -133,7 +147,11 @@ public class TaskRuntimeImpl implements ITaskRuntime {
 
     @Override
     public ITaskRuntime newChildRuntime(ITask task, boolean saveState) {
-        return taskManager.newTaskRuntime(task, saveState, getSvcCtx());
+        ITaskRuntime taskRt = taskManager.newTaskRuntime(task, saveState, getSvcCtx());
+        Consumer<String> onCancel = this::cancel;
+        this.appendOnCancel(onCancel);
+        taskRt.addTaskCleanup(() -> removeOnCancel(onCancel));
+        return taskRt;
     }
 
     @Override
@@ -198,6 +216,8 @@ public class TaskRuntimeImpl implements ITaskRuntime {
 
     @Override
     public void runCleanup() {
+        if (svcCtx != null)
+            svcCtx.removeOnCancel(onCancel);
         cleanups.cancel(TaskConstants.REASON_TASK_COMPLETE);
     }
 }

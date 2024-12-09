@@ -9,6 +9,7 @@ package io.nop.task;
 
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
+import io.nop.api.core.util.ICancellable;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
@@ -19,7 +20,6 @@ import jakarta.annotation.Nonnull;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -31,7 +31,7 @@ import java.util.function.Function;
  * <p>
  * 5. attributes保存不需要持久化的临时变量，taskVars保存需要持久化的Task级别的状态变量。
  */
-public interface ITaskRuntime extends IEvalContext {
+public interface ITaskRuntime extends IEvalContext, ICancellable {
     IServiceContext getSvcCtx();
 
     IContext getContext();
@@ -42,26 +42,6 @@ public interface ITaskRuntime extends IEvalContext {
             return ctx.getContext().getLocale();
         }
         return ContextProvider.currentLocale();
-    }
-
-    default boolean isCancelled() {
-        if (getSvcCtx() == null)
-            return false;
-
-        return getSvcCtx().isCancelled();
-    }
-
-    default void appendOnCancel(Consumer<String> task) {
-        if (getSvcCtx() == null)
-            return;
-
-        getSvcCtx().appendOnCancel(task);
-    }
-
-    default void removeOnCancel(Consumer<String> task) {
-        if (getSvcCtx() == null)
-            return;
-        getSvcCtx().removeOnCancel(task);
     }
 
     ITaskState getTaskState();

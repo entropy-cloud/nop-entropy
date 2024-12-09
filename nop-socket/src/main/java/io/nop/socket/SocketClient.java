@@ -201,7 +201,7 @@ public class SocketClient implements ICommandClient {
 
             if (!closed) {
                 if (config.isAutoReconnect() && config.getReconnectPolicy() != null) {
-                    RetryHelper.retryExecute(config.getReconnectPolicy(), timer, () -> {
+                    RetryHelper.retryExecute(() -> {
                         if (closed)
                             return null;
 
@@ -210,7 +210,7 @@ public class SocketClient implements ICommandClient {
                             reconnect();
                             return null;
                         });
-                    }, null).thenRun(() -> {
+                    }, config.getReconnectPolicy(), timer, null).thenRun(() -> {
                         recv(executor, handler);
                     });
                 }

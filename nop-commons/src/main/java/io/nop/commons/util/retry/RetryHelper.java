@@ -16,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class RetryHelper {
-    public static <T, C> T retryCall(IRetryPolicy<C> retryPolicy, Callable<T> task, C context) {
+    public static <T, C> T retryCall(Callable<T> task, IRetryPolicy<C> retryPolicy, C context) {
         int retryTimes = 0;
         do {
             try {
@@ -39,21 +39,21 @@ public class RetryHelper {
         } while (true);
     }
 
-    public static <T, C> CompletableFuture<T> retryExecute(IRetryPolicy<C> retryPolicy, IScheduledExecutor executor,
-                                                           Callable<?> task, C context) {
+    public static <T, C> CompletableFuture<T> retryExecute(Callable<?> task, IRetryPolicy<C> retryPolicy, IScheduledExecutor executor,
+                                                           C context) {
         CompletableFuture<T> promise = new CompletableFuture<>();
-        _retryExecute(promise, retryPolicy, executor, task, 0, 0, context);
+        _retryExecute(promise, task, retryPolicy, executor, 0, 0, context);
         return promise;
     }
 
-    static <T, C> void _retryExecute(CompletableFuture<T> promise, IRetryPolicy<C> retryPolicy, IScheduledExecutor executor,
-                                     Callable<?> task, long delay, int retryTimes, C context) {
+    static <T, C> void _retryExecute(CompletableFuture<T> promise, Callable<?> task, IRetryPolicy<C> retryPolicy, IScheduledExecutor executor,
+                                     long delay, int retryTimes, C context) {
         executor.schedule(() -> {
             FutureHelper.futureCall(task).whenComplete((ret, ex) -> {
                 if (ex != null) {
                     long nextDelay = retryPolicy.getRetryDelay(ex, retryTimes, context);
                     if (nextDelay >= 0) {
-                        _retryExecute(promise, retryPolicy, executor, task, nextDelay, retryTimes + 1, context);
+                        _retryExecute(promise, task, retryPolicy, executor, nextDelay, retryTimes + 1, context);
                         return;
                     }
                     promise.completeExceptionally(ex);

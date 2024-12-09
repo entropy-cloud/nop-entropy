@@ -1,6 +1,7 @@
-package io.nop.core.model.graph;
+package io.nop.core.execution;
 
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.model.graph.dag.Dag;
@@ -16,20 +17,32 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
-public class TaskExecutionGraph {
+public class TaskExecutionGraph implements IExecution<Void> {
     static final Logger LOG = LoggerFactory.getLogger(TaskExecutionGraph.class);
     private final String taskGraphName;
 
-    private final Map<String, Runnable> tasks = new LinkedHashMap<>();
+    private final Map<String, IExecution<?>> tasks = new LinkedHashMap<>();
     private final Dag dag = new Dag(Dag.DEFAULT_ROOT_NAME);
 
-    public TaskExecutionGraph(String taskGraphName) {
+    private final Executor executor;
+
+    private boolean analyzed;
+
+    public TaskExecutionGraph(Executor executor, String taskGraphName) {
         this.taskGraphName = taskGraphName;
+        this.executor = executor;
     }
 
-    public TaskExecutionGraph addTask(String taskName, Runnable task) {
+    void checkAllowChange() {
+        if (analyzed)
+            throw new IllegalStateException("nop.task.graph.not-allow-change");
+    }
+
+    public TaskExecutionGraph addTask(String taskName, IExecution<?> task) {
+        checkAllowChange();
         Guard.checkArgument(!tasks.containsKey(taskName), "duplicate task name");
         this.tasks.put(taskName, task);
         this.dag.addNextNode(Dag.DEFAULT_ROOT_NAME, taskName);
@@ -44,11 +57,12 @@ public class TaskExecutionGraph {
         return tasks.containsKey(taskName);
     }
 
-    public TaskExecutionGraph addTaskWithDepends(String taskName, Runnable task, Collection<String> depends) {
+    public TaskExecutionGraph addTaskWithDepends(String taskName, IExecution<?> task, Collection<String> depends) {
         return addTask(taskName, task).addDepends(taskName, depends);
     }
 
     public TaskExecutionGraph addDepends(String taskName, Collection<String> depends) {
+        checkAllowChange();
         if (depends == null || depends.isEmpty())
             return this;
 
@@ -64,6 +78,7 @@ public class TaskExecutionGraph {
     }
 
     public TaskExecutionGraph addDepend(String taskName, String depend) {
+        checkAllowChange();
         Guard.notEmpty(taskName, "taskName");
         Guard.notEmpty(depend, "depend");
 
@@ -71,12 +86,18 @@ public class TaskExecutionGraph {
         return this;
     }
 
-    public TaskExecutionGraph analyze() {
-        dag.analyze();
+    public synchronized TaskExecutionGraph analyze() {
+        if (!analyzed) {
+            dag.analyze();
+            analyzed = true;
+        }
         return this;
     }
 
-    public CompletableFuture<Void> runOnExecutor(Executor executor, ICancelToken cancelToken) {
+    @Override
+    public CompletableFuture<Void> executeAsync(ICancelToken cancelToken) {
+        analyze();
+
         long beginTime = CoreMetrics.currentTimeMillis();
 
         Map<String, CompletableFuture<Void>> futures = new HashMap<>();
@@ -152,18 +173,29 @@ public class TaskExecutionGraph {
             if (cancelToken != null) {
                 if (cancelToken.isCancelled()) {
                     LOG.info("nop.task.skip-cancelled:taskName={}", taskName);
-                    future.complete(null);
+                    future.cancel(false);
                     return;
                 }
             }
             LOG.info("nop.task.run.start:taskName={}", taskName);
             long beginTime = CoreMetrics.currentTimeMillis();
             try {
-                tasks.get(taskName).run();
-                LOG.info("nop.task.run.finish:taskName={},usedTime={}", taskName, CoreMetrics.currentTimeMillis() - beginTime);
-                if (LOG.isDebugEnabled())
-                    LOG.debug("nop.task.unfinished-count:{}", getUnfinishedCount(futures));
-                future.complete(null);
+                CompletionStage<?> promise = tasks.get(taskName).executeAsync(cancelToken);
+                if (promise == null)
+                    promise = FutureHelper.success(null);
+
+                promise.whenComplete((ret, err) -> {
+                    if (err != null) {
+                        LOG.error("nop.task.run.error:taskName={}", taskName, err);
+                        future.completeExceptionally(err);
+                    } else {
+                        LOG.info("nop.task.run.finish:taskName={},usedTime={}", taskName, CoreMetrics.currentTimeMillis() - beginTime);
+                        if (LOG.isDebugEnabled())
+                            LOG.debug("nop.task.unfinished-count:{}", getUnfinishedCount(futures));
+                        future.complete(null);
+                    }
+                });
+
             } catch (Exception e) {
                 LOG.error("nop.task.run.error:taskName={}", taskName, e);
                 future.completeExceptionally(e);
