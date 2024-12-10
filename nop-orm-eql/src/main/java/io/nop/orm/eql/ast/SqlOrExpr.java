@@ -14,6 +14,9 @@ public class SqlOrExpr extends _SqlOrExpr {
     @Override
     public boolean requireParentheses(int lp, int rp) {
         int local = SqlOperator.OR.getPriority();
+        if (local == lp && lp == rp)
+            return false;
+
         if (lp < local && local >= rp) {
             return false;
         }

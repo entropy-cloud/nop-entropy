@@ -279,7 +279,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlTableName(SqlTableName node) {
-        sb.markTable(normalizeTableName(node.getFullName()), null, null,false);
+        sb.markTable(normalizeTableName(node.getFullName()), null, null, false);
     }
 
     @Override
