@@ -41,10 +41,13 @@
         <onBeforeChunkEnd xdef:value="xpl-fn:(batchChunkCtx)=>void"/>
         <onChunkEnd xdef:value="xpl-fn:(batchChunkCtx,err)=>void"/>
 
+        <onChunkTryBegin xdef:value="xpl-fn:(items, batchChunkCtx)=>void"/>
+        <onChunkTryEnd xdef:value="xpl-fn:(batchChunkCtx, err)=>void"/>
+
         <onLoadBegin xdef:value="xpl-fn:(batchSize,batchChunkCtx)=>void"/>
         <onLoadEnd xdef:value="xpl-fn:(batchChunkCtx, err)=>void"/>
 
-        <onConsumeBegin xdef:value="xpl-fn:(batchChunkCtx)=>void"/>
+        <onConsumeBegin xdef:value="xpl-fn:(items, batchChunkCtx)=>void"/>
         <onConsumeEnd xdef:value="xpl-fn:(batchChunkCtx, err)=>void"/>
     </xdef:define>
 
@@ -52,11 +55,9 @@
             xdef:ref="BatchListenersModel" xdef:mandatory="true">
 
         <dispatcher xdef:name="BatchLoaderDispatcherModel"
-                    fetchThreadCount="!int=1" loadBatchSize="!int" executor="bean-name" partitionIndexField="prop-name">
+                    fetchThreadCount="!int=1" loadBatchSize="!int" executor="bean-name" partitionIndexField="prop-path">
             <!-- 如果没有指定partitionIndexField，可以执行代码动态计算得到partitionIndex -->
             <partitionFn xdef:value="xpl-fn:(item,batchTaskCtx)=>int"/>
-
-            <beforeDispatch xdef:value="xpl-fn:(items, batchLoadCtx)=>void"/>
         </dispatcher>
 
         <!--
@@ -82,23 +83,22 @@
             <headers xdef:value="csv-set"/>
         </file-reader>
 
-        <orm-reader xdef:name="BatchOrmReaderModel" batchLoadProps="csv-list" partitionIndexField="var-name"
+        <orm-reader xdef:name="BatchOrmReaderModel" batchLoadProps="csv-list" partitionIndexField="prop-path"
                     entityName="class-name">
             <eql xdef:value="xpl-sql"/>
             <query xdef:value="xpl-node"/>
         </orm-reader>
 
         <jdbc-reader querySpace="string" fetchSize="int" sqlName="string" maxRows="long" maxFieldSize="int"
-                     queryTimeout="int" partitionIndexField="var-name"
+                     queryTimeout="int" partitionIndexField="prop-path"
                      rowMapper="bean-name" streaming="!boolean=false" xdef:name="BatchJdbcReaderModel">
             <sql xdef:value="xpl-sql"/>
             <query xdef:value="xpl-node"/>
-
-            <transformer xdef:value="xpl-fn:(item,batchChunkCtx)=>any"/>
         </jdbc-reader>
 
         <generator genModelPath="v-path" xdef:name="BatchGeneratorModel" totalCountExpr="!expr"/>
 
+        <afterLoad xdef:value="xpl-fn:(items, batchLoadCtx)=>void"/>
 
         <source xdef:value="xpl-fn:(batchSize,batchChunkCtx)=>List"/>
 

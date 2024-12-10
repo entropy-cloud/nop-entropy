@@ -250,4 +250,11 @@ public class TestEqlCompiler extends AbstractOrmTestCase {
         }
         return sb.toString();
     }
+
+    @Test
+    public void testAndOrSql(){
+        String sql = "select o from SimsClass o where (o.collegeId = 1 and o.classId = 2) or (o.collegeId = 3 and o.classId = 4) or (o.collegeId = 5 and o.classId = 6)";
+        SQL sqlObj = compile(sql);
+        sqlObj.dump();
+    }
 }

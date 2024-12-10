@@ -48,8 +48,8 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
     }
 
     protected IResource getBeansResource() {
-        ArtifactCoordinates pluginId = getPluginId();
-        String path = "classpath:_vfs/plugins/" + pluginId.getGroupId() + "/" + pluginId.getArtifactId() + "/" + getPluginVersion() + "/plugin.beans.xml";
+        ArtifactCoordinates pluginId = null; //getPluginId();
+        String path = "classpath:_vfs/plugins/" + getPluginGroupId() + "/" + getPluginArtifactId() + "/" + getPluginVersion() + "/plugin.beans.xml";
         IResource resource = new ClassPathResource(path);
         // "plugin:abc/bb/3.3.0/data;
         return null;

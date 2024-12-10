@@ -210,6 +210,16 @@ public class TaskRuntimeImpl extends Cancellable implements ITaskRuntime {
     }
 
     @Override
+    public String getTaskDescription() {
+        return getTaskState().getDescription();
+    }
+
+    @Override
+    public void setTaskDescription(String description) {
+        getTaskState().setDescription(description);
+    }
+
+    @Override
     public void addTaskCleanup(Runnable cleanup) {
         cleanups.appendOnCancelTask(cleanup);
     }

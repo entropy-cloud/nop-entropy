@@ -25,6 +25,13 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      *  
+     * xml name: afterLoad
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _afterLoad ;
+    
+    /**
+     *  
      * xml name: aggregator
      * 
      */
@@ -101,6 +108,25 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         checkAllowChange();
         
         this._adapter = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: afterLoad
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getAfterLoad(){
+      return _afterLoad;
+    }
+
+    
+    public void setAfterLoad(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._afterLoad = value;
            
     }
 
@@ -302,6 +328,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         super.outputJson(out);
         
         out.putNotNull("adapter",this.getAdapter());
+        out.putNotNull("afterLoad",this.getAfterLoad());
         out.putNotNull("aggregator",this.getAggregator());
         out.putNotNull("bean",this.getBean());
         out.putNotNull("dispatcher",this.getDispatcher());
@@ -323,6 +350,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         super.copyTo(instance);
         
         instance.setAdapter(this.getAdapter());
+        instance.setAfterLoad(this.getAfterLoad());
         instance.setAggregator(this.getAggregator());
         instance.setBean(this.getBean());
         instance.setDispatcher(this.getDispatcher());

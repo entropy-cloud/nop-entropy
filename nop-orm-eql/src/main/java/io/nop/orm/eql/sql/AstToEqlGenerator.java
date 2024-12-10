@@ -669,7 +669,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
 
     @Override
     public void visitSqlOrExpr(SqlOrExpr node) {
-        if (node.getASTParent().getASTKind() == EqlASTKind.SqlBinaryExpr) {
+        if (node.getASTParent().getASTKind() == EqlASTKind.SqlOrExpr) {
             printBinaryExpr(node.getLeft(), SqlOperator.OR, node.getRight());
         } else {
             print('(');

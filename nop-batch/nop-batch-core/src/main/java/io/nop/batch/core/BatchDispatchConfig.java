@@ -2,9 +2,7 @@ package io.nop.batch.core;
 
 import io.nop.api.core.annotations.data.DataBean;
 
-import java.util.List;
 import java.util.concurrent.Executor;
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 @DataBean
@@ -13,7 +11,6 @@ public class BatchDispatchConfig<S> {
     private int fetchThreadCount;
     private BiFunction<S, IBatchTaskContext, Integer> partitionFn;
     private Executor executor;
-    private BiConsumer<List<S>, IBatchChunkContext> beforeDispatch;
 
     public int getLoadBatchSize() {
         return loadBatchSize;
@@ -47,11 +44,4 @@ public class BatchDispatchConfig<S> {
         this.executor = executor;
     }
 
-    public BiConsumer<List<S>, IBatchChunkContext> getBeforeDispatch() {
-        return beforeDispatch;
-    }
-
-    public void setBeforeDispatch(BiConsumer<List<S>, IBatchChunkContext> beforeDispatch) {
-        this.beforeDispatch = beforeDispatch;
-    }
 }

@@ -99,4 +99,19 @@ public class TestNopCli extends BaseTestCase {
         String text = FileHelper.readText(getTargetFile("txn-abc.dat"), null);
         assertTrue(text.contains("totalCount=2200 "));
     }
+
+    @Test
+    public void testRunBatchDemo() {
+        CoreInitialization.destroy();
+        File file = new File(getModuleDir(), "../nop-cli/demo/_vfs");
+        File devDir = new File(getModuleDir(),"../nop-cli/demo/");
+        System.setProperty(CoreConfigs.CFG_DEV_ROOT_PATH.getName(), devDir.getAbsolutePath());
+        System.setProperty(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName(), file.getAbsolutePath());
+        String[] args = new String[]{"run-task", "v:/batch/batch-demo.task.xml", "-i", "{bizDate:'2024-12-08'}"};
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        int ret = app.run(args);
+        assertEquals(0, ret);
+        System.getProperties().remove(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName());
+    }
 }

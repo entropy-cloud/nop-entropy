@@ -10,6 +10,7 @@ package io.nop.orm.impl;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.app.SimsClass;
 import io.nop.app.SimsCollege;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.orm.AbstractOrmTestCase;
@@ -17,6 +18,9 @@ import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.eql.ICompiledSql;
+import io.nop.xlang.api.ExprEvalAction;
+import io.nop.xlang.api.XLang;
+import io.nop.xlang.api.XLangCompileTool;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -193,5 +197,17 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
             assertEquals("2", entity.orm_propValueByName("shardId"));
             assertEquals("abc", BeanTool.getComplexProperty(entity, "shardTable2.strValue"));
         });
+    }
+
+    @Test
+    public void setEntityExtField() {
+        IOrmEntity entity = orm().newEntity("test.entity.TestOrmTable");
+        String expr = "entity.make_t().cardId=3";
+        XLangCompileTool tool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
+        ExprEvalAction action = tool.compileFullExpr(null, expr);
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue("entity", entity);
+        action.invoke(scope);
+        assertEquals(3, BeanTool.getComplexProperty(entity, "_t.cardId"));
     }
 }

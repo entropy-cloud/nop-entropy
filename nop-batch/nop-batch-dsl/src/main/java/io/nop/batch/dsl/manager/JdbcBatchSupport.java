@@ -8,7 +8,6 @@ import io.nop.batch.dsl.model.BatchJdbcReaderModel;
 import io.nop.batch.dsl.model.BatchJdbcWriterModel;
 import io.nop.batch.jdbc.consumer.JdbcBatchConsumerProvider;
 import io.nop.batch.jdbc.loader.JdbcBatchLoaderProvider;
-import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.dao.api.INamedSqlBuilder;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dataset.IRowMapper;
@@ -49,11 +48,6 @@ public class JdbcBatchSupport {
                 String beanName = BatchDslConstants.ROW_MAPPER_BEAN_PREFIX + loaderModel.getRowMapper();
                 loader.setRowMapper((IRowMapper<Object>) beanProvider.getBean(beanName));
             }
-        }
-
-        if (loaderModel.getTransformer() != null) {
-            IEvalFunction transformer = loaderModel.getTransformer();
-            loader.setTransformer((item, chunkCtx) -> transformer.call2(null, item, chunkCtx, chunkCtx.getEvalScope()));
         }
 
         if (loaderModel.getQuery() != null) {

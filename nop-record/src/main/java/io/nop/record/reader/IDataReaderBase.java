@@ -6,6 +6,6 @@ import java.io.IOException;
 public interface IDataReaderBase extends Closeable {
     boolean isEof() throws IOException;
 
-    long pos();
+    long pos() throws IOException;
 
 }

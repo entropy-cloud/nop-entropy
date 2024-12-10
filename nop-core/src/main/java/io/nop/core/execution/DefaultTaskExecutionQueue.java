@@ -4,6 +4,7 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.progress.IProgressListener;
 import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.ThreadPoolConfig;
 import io.nop.commons.lang.impl.Cancellable;
@@ -27,6 +28,7 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
 
     private ThreadPoolConfig threadPoolConfig;
     private IThreadPoolExecutor executor;
+    private boolean ownExecutor;
 
     static class State extends Cancellable implements ITaskExecutionState, IProgressListener {
         private final String taskName;
@@ -110,14 +112,30 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
         this.threadPoolConfig = config;
     }
 
+    public void setExecutor(IThreadPoolExecutor executor) {
+        this.executor = executor;
+    }
+
     @Override
     protected void doStart() {
-        this.executor = DefaultThreadPoolExecutor.newExecutor(threadPoolConfig);
+        ownExecutor = false;
+
+        if (executor == null) {
+            if (threadPoolConfig == null) {
+                this.executor = GlobalExecutors.globalWorker();
+            } else {
+                ownExecutor = true;
+                this.executor = DefaultThreadPoolExecutor.newExecutor(threadPoolConfig);
+            }
+        }
     }
 
     @Override
     protected void doStop() {
-        this.executor.destroy();
+        if (ownExecutor) {
+            this.executor.destroy();
+            this.executor = null;
+        }
     }
 
     @Override

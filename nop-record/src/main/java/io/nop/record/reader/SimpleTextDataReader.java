@@ -62,7 +62,7 @@ public class SimpleTextDataReader implements ITextDataReader {
         if (avail <= 0)
             return "";
 
-        int n = (int)Math.min(maxLength, avail);
+        int n = (int) Math.min(maxLength, avail);
         for (int i = 0; i < n; i++) {
             char c = text.charAt(offset + i);
             if (c == '\r') {
@@ -86,6 +86,10 @@ public class SimpleTextDataReader implements ITextDataReader {
     @Override
     public long pos() {
         return offset;
+    }
+
+    public void seek(long pos) {
+        this.offset = (int) pos;
     }
 
     @Override

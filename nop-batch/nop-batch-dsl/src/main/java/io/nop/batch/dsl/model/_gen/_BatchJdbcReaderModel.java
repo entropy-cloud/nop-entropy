@@ -94,13 +94,6 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
     private boolean _streaming  = false;
     
     /**
-     *  
-     * xml name: transformer
-     * 
-     */
-    private io.nop.core.lang.eval.IEvalFunction _transformer ;
-    
-    /**
      * 
      * xml name: fetchSize
      *  
@@ -309,25 +302,6 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
     }
 
     
-    /**
-     * 
-     * xml name: transformer
-     *  
-     */
-    
-    public io.nop.core.lang.eval.IEvalFunction getTransformer(){
-      return _transformer;
-    }
-
-    
-    public void setTransformer(io.nop.core.lang.eval.IEvalFunction value){
-        checkAllowChange();
-        
-        this._transformer = value;
-           
-    }
-
-    
 
     @Override
     public void freeze(boolean cascade){
@@ -354,7 +328,6 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
         out.putNotNull("sql",this.getSql());
         out.putNotNull("sqlName",this.getSqlName());
         out.putNotNull("streaming",this.isStreaming());
-        out.putNotNull("transformer",this.getTransformer());
     }
 
     public BatchJdbcReaderModel cloneInstance(){
@@ -377,7 +350,6 @@ public abstract class _BatchJdbcReaderModel extends io.nop.core.resource.compone
         instance.setSql(this.getSql());
         instance.setSqlName(this.getSqlName());
         instance.setStreaming(this.isStreaming());
-        instance.setTransformer(this.getTransformer());
     }
 
     protected BatchJdbcReaderModel newInstance(){

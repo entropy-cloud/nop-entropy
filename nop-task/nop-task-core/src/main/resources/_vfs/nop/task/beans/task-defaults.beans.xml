@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-       xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans
-        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
 
     <bean id="nopTaskFlowManager" class="io.nop.task.impl.TaskFlowManagerImpl">
+    </bean>
+
+    <bean id="nopTaskExecutionQueue" class="io.nop.core.execution.DefaultTaskExecutionQueue">
+        <property name="threadPoolConfig">
+            <bean class="io.nop.commons.concurrent.executor.ThreadPoolConfig"
+                  ioc:config-prefix="nop.task.execution-queue.executor">
+                <property name="name" value="nop-task-execution-queue"/>
+            </bean>
+        </property>
     </bean>
 
 </beans>

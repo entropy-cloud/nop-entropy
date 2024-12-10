@@ -16,7 +16,6 @@ public interface ITaskStateStore {
 
     ITaskStepState loadStepState(ITaskStepState parentState, String stepName, String stepType, ITaskRuntime taskRt);
 
-
     void saveStepState(ITaskStepRuntime stepRt);
 
     ITaskState newTaskState(String taskName, long taskVersion, ITaskRuntime taskRt);

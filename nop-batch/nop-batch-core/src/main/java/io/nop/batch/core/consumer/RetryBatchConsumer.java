@@ -71,6 +71,9 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
                 items.removeAll(context.getCompletedItems());
             }
 
+            if (snapshot != null)
+                snapshot.onError(e);
+
             retryConsume(e, items, snapshot, context);
         }
     }
@@ -126,6 +129,8 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
             } catch (Throwable e) {
                 exception = e;
                 LOG.error("nop.err.batch.retry-consume-fail:retryCount={}", retryCount, e);
+                if (snapshot != null)
+                    snapshot.onError(e);
             }
 
             retryCount++;
@@ -158,13 +163,17 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
         if (retryOneByOne) {
             return retryConsumeOneByOne(retryCount, items, context);
         } else {
-            context.getTaskContext().fireChunkRetry(context, items);
+            context.getTaskContext().fireChunkTryBegin(items, context);
 
             try {
                 consumer.consume(items, context);
+
+                context.getTaskContext().fireChunkTryEnd(context, null);
             } catch (BatchCancelException e) {
+                context.getTaskContext().fireChunkTryEnd(context, e);
                 throw e;
             } catch (Exception e) {
+                context.getTaskContext().fireChunkTryEnd(context, e);
                 throw NopException.adapt(e);
             }
             return null;
@@ -181,15 +190,19 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
 
         for (R item : items) {
             List<R> single = Collections.singletonList(item);
-            context.getTaskContext().fireChunkRetry(context, single);
+            context.getTaskContext().fireChunkTryBegin(single, context);
 
             try {
                 consumer.consume(single, context);
                 context.addCompletedItem(item);
+
+                context.getTaskContext().fireChunkTryEnd(context, null);
             } catch (BatchCancelException e) {
+                context.getTaskContext().fireChunkTryEnd(context, e);
                 throw e;
             } catch (Exception e) {
                 LOG.error("nop.err.batch.retry-consume-one-fail:item={},retryCount={}", item, retryCount, e);
+                context.getTaskContext().fireChunkTryEnd(context, e);
 
                 if (retryPolicy.getRetryDelay(e, retryCount + 1, context) >= 0) {
                     // 如果item可重试

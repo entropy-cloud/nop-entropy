@@ -1,6 +1,7 @@
 package io.nop.plugin.core;
 
 import io.nop.api.core.beans.ArtifactCoordinates;
+import io.nop.plugin.api.IPlugin;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;

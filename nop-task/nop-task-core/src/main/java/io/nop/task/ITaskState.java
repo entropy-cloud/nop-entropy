@@ -33,6 +33,11 @@ public interface ITaskState extends ITaskStateCommon {
 
     void setTaskVersion(Long taskVersion);
 
+
+    String getDescription();
+
+    void setDescription(String description);
+
     /**
      * Task的每次执行对应一个TaskInstance
      *

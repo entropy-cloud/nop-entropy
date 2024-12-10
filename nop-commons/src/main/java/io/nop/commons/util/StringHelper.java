@@ -4474,6 +4474,6 @@ public class StringHelper extends ApiStringHelper {
         if (str == null)
             str = "";
         int hash = HashHelper.murmur3_32(str);
-        return (short) (hash % Short.MAX_VALUE);
+        return MathHelper.toShortHash(hash);
     }
 }

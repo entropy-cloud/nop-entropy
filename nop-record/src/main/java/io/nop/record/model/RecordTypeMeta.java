@@ -9,8 +9,8 @@ package io.nop.record.model;
 
 import io.nop.record.model._gen._RecordTypeMeta;
 
-public class RecordTypeMeta extends _RecordTypeMeta{
-    public RecordTypeMeta(){
+public class RecordTypeMeta extends _RecordTypeMeta {
+    public RecordTypeMeta() {
 
     }
 }

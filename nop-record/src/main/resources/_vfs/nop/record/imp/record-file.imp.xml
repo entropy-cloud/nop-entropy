@@ -17,6 +17,10 @@
                     <schema stdDomain="var-name"/>
                 </field>
 
+                <field name="body.readRepeatUntil" displayName="判断文件体结束">
+                    <schema stdDomain="xpl-fn" stdDomainOptions="(in,record,ctx)=>any"/>
+                </field>
+
                 <field name="trailer.typeRef" displayName="文件尾">
                     <schema stdDomain="var-name"/>
                 </field>

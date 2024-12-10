@@ -257,6 +257,11 @@ public class MathHelper {
         return ret;
     }
 
+    public static short toShortHash(int value) {
+        int hash = Math.abs(value);
+        return (short) (hash % Short.MAX_VALUE);
+    }
+
     /**
      * Fast method of finding the next power of 2 greater than or equal to the supplied value.
      * <p>

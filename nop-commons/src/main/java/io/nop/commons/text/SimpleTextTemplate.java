@@ -1,8 +1,10 @@
 package io.nop.commons.text;
 
 import io.nop.api.core.util.Symbol;
+import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.StringHelper;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -45,6 +47,15 @@ public class SimpleTextTemplate {
             if (part instanceof Symbol)
                 action.accept(((Symbol) part).getText());
         }
+    }
+
+    public ByteString getPrefix() {
+        if (parts.isEmpty())
+            return null;
+        Object first = parts.get(0);
+        if (first instanceof String)
+            return ByteString.of(((String) first).getBytes(StandardCharsets.UTF_8));
+        return null;
     }
 
     public String render(Function<String, ?> fn) {

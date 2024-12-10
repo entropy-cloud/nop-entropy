@@ -46,6 +46,20 @@ public abstract class _BatchListenersModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: onChunkTryBegin
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _onChunkTryBegin ;
+    
+    /**
+     *  
+     * xml name: onChunkTryEnd
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _onChunkTryEnd ;
+    
+    /**
+     *  
      * xml name: onConsumeBegin
      * 
      */
@@ -158,6 +172,44 @@ public abstract class _BatchListenersModel extends io.nop.core.resource.componen
         checkAllowChange();
         
         this._onChunkEnd = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: onChunkTryBegin
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getOnChunkTryBegin(){
+      return _onChunkTryBegin;
+    }
+
+    
+    public void setOnChunkTryBegin(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._onChunkTryBegin = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: onChunkTryEnd
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getOnChunkTryEnd(){
+      return _onChunkTryEnd;
+    }
+
+    
+    public void setOnChunkTryEnd(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._onChunkTryEnd = value;
            
     }
 
@@ -295,6 +347,8 @@ public abstract class _BatchListenersModel extends io.nop.core.resource.componen
         out.putNotNull("onBeforeTaskEnd",this.getOnBeforeTaskEnd());
         out.putNotNull("onChunkBegin",this.getOnChunkBegin());
         out.putNotNull("onChunkEnd",this.getOnChunkEnd());
+        out.putNotNull("onChunkTryBegin",this.getOnChunkTryBegin());
+        out.putNotNull("onChunkTryEnd",this.getOnChunkTryEnd());
         out.putNotNull("onConsumeBegin",this.getOnConsumeBegin());
         out.putNotNull("onConsumeEnd",this.getOnConsumeEnd());
         out.putNotNull("onLoadBegin",this.getOnLoadBegin());
@@ -316,6 +370,8 @@ public abstract class _BatchListenersModel extends io.nop.core.resource.componen
         instance.setOnBeforeTaskEnd(this.getOnBeforeTaskEnd());
         instance.setOnChunkBegin(this.getOnChunkBegin());
         instance.setOnChunkEnd(this.getOnChunkEnd());
+        instance.setOnChunkTryBegin(this.getOnChunkTryBegin());
+        instance.setOnChunkTryEnd(this.getOnChunkTryEnd());
         instance.setOnConsumeBegin(this.getOnConsumeBegin());
         instance.setOnConsumeEnd(this.getOnConsumeEnd());
         instance.setOnLoadBegin(this.getOnLoadBegin());

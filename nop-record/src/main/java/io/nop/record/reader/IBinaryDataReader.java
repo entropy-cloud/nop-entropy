@@ -23,6 +23,7 @@
 package io.nop.record.reader;
 
 import io.nop.commons.bytes.ByteString;
+import io.nop.commons.util.ByteHelper;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
@@ -534,6 +535,17 @@ public interface IBinaryDataReader extends IDataReaderBase, DataInput {
 
     default ByteBuffer readBufferBe(int count) throws IOException {
         return ByteBuffer.wrap(readBytes(count)).order(ByteOrder.BIG_ENDIAN);
+    }
+
+    default boolean startsWithBytes(byte[] bytes) throws IOException {
+        long pos = pos();
+        byte[] data = readBytes(bytes.length);
+        seek(pos);
+        return ByteHelper.equals(data, bytes);
+    }
+
+    default boolean startsWith(String str) throws IOException {
+        return startsWithBytes(str.getBytes(StandardCharsets.UTF_8));
     }
 
     /**

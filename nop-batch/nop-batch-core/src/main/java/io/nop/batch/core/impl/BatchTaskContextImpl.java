@@ -65,9 +65,14 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private final List<Consumer<IBatchChunkContext>> onChunkBegins = new CopyOnWriteArrayList<>();
     private final List<Consumer<IBatchChunkContext>> onBeforeChunkEnds = new CopyOnWriteArrayList<>();
     private final List<BiConsumer<IBatchChunkContext, Throwable>> onChunkEnds = new CopyOnWriteArrayList<>();
-    private final List<BiConsumer<IBatchChunkContext, List<?>>> onChunkRetrys = new CopyOnWriteArrayList<>();
+    private final List<BiConsumer<List<?>, IBatchChunkContext>> onChunkTryBegin = new CopyOnWriteArrayList<>();
+    private final List<BiConsumer<IBatchChunkContext, Throwable>> onChunkTryEnd = new CopyOnWriteArrayList<>();
+
     private final List<BiConsumer<Integer, IBatchChunkContext>> onLoadBegins = new CopyOnWriteArrayList<>();
     private final List<BiConsumer<IBatchChunkContext, Throwable>> onLoadEnds = new CopyOnWriteArrayList<>();
+
+    private final List<BiConsumer<List<?>, IBatchChunkContext>> onConsumeBegin = new CopyOnWriteArrayList<>();
+    private final List<BiConsumer<IBatchChunkContext, Throwable>> onConsumeEnd = new CopyOnWriteArrayList<>();
 
     public BatchTaskContextImpl(IServiceContext svcCtx, IEvalScope scope) {
         super(scope);
@@ -347,12 +352,42 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     }
 
     @Override
-    public void onChunkRetry(BiConsumer<IBatchChunkContext, List<?>> action) {
+    public void onChunkTryBegin(BiConsumer<List<?>, IBatchChunkContext> action) {
         synchronized (this) {
             if (isDone()) {
                 throw new IllegalStateException("nop.err.execution-already-completed");
             }
-            onChunkRetrys.add(action);
+            onChunkTryBegin.add(action);
+        }
+    }
+
+    @Override
+    public void onChunkTryEnd(BiConsumer<IBatchChunkContext, Throwable> action) {
+        synchronized (this) {
+            if (isDone()) {
+                throw new IllegalStateException("nop.err.execution-already-completed");
+            }
+            onChunkTryEnd.add(action);
+        }
+    }
+
+    @Override
+    public void onConsumeBegin(BiConsumer<List<?>, IBatchChunkContext> action) {
+        synchronized (this) {
+            if (isDone()) {
+                throw new IllegalStateException("nop.err.execution-already-completed");
+            }
+            onConsumeBegin.add(action);
+        }
+    }
+
+    @Override
+    public void onConsumeEnd(BiConsumer<IBatchChunkContext, Throwable> action) {
+        synchronized (this) {
+            if (isDone()) {
+                throw new IllegalStateException("nop.err.execution-already-completed");
+            }
+            onChunkTryEnd.add(action);
         }
     }
 
@@ -450,11 +485,42 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     }
 
     @Override
-    public void fireChunkRetry(IBatchChunkContext chunkContext, List<?> items) {
-        List<BiConsumer<IBatchChunkContext, List<?>>> callbacks = this.onChunkRetrys;
+    public void fireChunkTryBegin(List<?> items, IBatchChunkContext chunkContext) {
+        List<BiConsumer<List<?>, IBatchChunkContext>> callbacks = this.onChunkTryBegin;
         if (callbacks != null) {
-            for (BiConsumer<IBatchChunkContext, List<?>> callback : callbacks) {
-                callback.accept(chunkContext, items);
+            for (BiConsumer<List<?>, IBatchChunkContext> callback : callbacks) {
+                callback.accept(items, chunkContext);
+            }
+        }
+    }
+
+    @Override
+    public void fireChunkTryEnd(IBatchChunkContext chunkContext, Throwable err) {
+        List<BiConsumer<IBatchChunkContext, Throwable>> callbacks = this.onChunkTryEnd;
+        if (callbacks != null) {
+            for (BiConsumer<IBatchChunkContext, Throwable> callback : callbacks) {
+                callback.accept(chunkContext, err);
+            }
+        }
+    }
+
+
+    @Override
+    public void fireConsumeBegin(List<?> items, IBatchChunkContext chunkContext) {
+        List<BiConsumer<List<?>, IBatchChunkContext>> callbacks = this.onConsumeBegin;
+        if (callbacks != null) {
+            for (BiConsumer<List<?>, IBatchChunkContext> callback : callbacks) {
+                callback.accept(items, chunkContext);
+            }
+        }
+    }
+
+    @Override
+    public void fireConsumeEnd(IBatchChunkContext chunkContext, Throwable err) {
+        List<BiConsumer<IBatchChunkContext, Throwable>> callbacks = this.onConsumeEnd;
+        if (callbacks != null) {
+            for (BiConsumer<IBatchChunkContext, Throwable> callback : callbacks) {
+                callback.accept(chunkContext, err);
             }
         }
     }

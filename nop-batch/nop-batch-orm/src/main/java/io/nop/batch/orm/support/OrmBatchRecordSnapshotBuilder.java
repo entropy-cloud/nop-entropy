@@ -28,15 +28,23 @@ public class OrmBatchRecordSnapshotBuilder<T extends IOrmEntity>
         for (IDaoEntity item : items) {
             map.put(item, item.orm_initedValues());
         }
-        return (list, chunkContext) -> {
-            IOrmSession session = ormTemplate.currentSession();
-            List<T> ret = new ArrayList<>(list.size());
-            for (T item : list) {
-                Map<String, Object> values = map.get(item);
-                item.orm_restoreValues(values);
-                session.attach(item, cascadeAttach);
+        return new ISnapshot<T>() {
+            @Override
+            public List<T> restore(List<T> list, IBatchChunkContext chunkContext) {
+                IOrmSession session = ormTemplate.currentSession();
+                List<T> ret = new ArrayList<>(list.size());
+                for (T item : list) {
+                    Map<String, Object> values = map.get(item);
+                    item.orm_restoreValues(values);
+                    session.attach(item, cascadeAttach);
+                }
+                return ret;
             }
-            return ret;
+
+            @Override
+            public void onError(Throwable e) {
+                ormTemplate.clearSession();
+            }
         };
     }
 }

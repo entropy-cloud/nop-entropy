@@ -7,7 +7,13 @@
  */
 package io.nop.record.model;
 
+import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.bytes.ByteString;
 import io.nop.record.model._gen._RecordFileMeta;
+import io.nop.record.reader.IBinaryDataReader;
+import io.nop.record.reader.ITextDataReader;
+
+import java.io.IOException;
 
 public class RecordFileMeta extends _RecordFileMeta {
     private RecordObjectMeta resolvedHeaderType;
@@ -73,5 +79,45 @@ public class RecordFileMeta extends _RecordFileMeta {
 
         if (getPagination() != null)
             getPagination().init(this);
+
+        if (getBody() != null)
+            fixBody(getBody());
+    }
+
+    void fixBody(RecordFileBodyMeta body) {
+        if (resolvedTrailerType != null) {
+            ByteString prefix = resolvedTrailerType.getPrefix();
+            if (prefix != null && !prefix.isEmpty()) {
+                if (body.getReadRepeatExpr() == null && body.getReadRepeatUntil() == null) {
+                    if (isBinary()) {
+                        body.setReadRepeatUntil((thisObj, args, scope) -> {
+                            return binaryMatchTrailer((IBinaryDataReader) args[0], prefix.toByteArray());
+                        });
+                    } else {
+                        String str = prefix.buildString(resolvedTrailerType.getCharsetObj());
+                        body.setReadRepeatUntil((thisObj, args, scope) -> {
+                            return textMatchTrailer((ITextDataReader) args[0], str);
+                        });
+                    }
+                    body.setRepeatKind(FieldRepeatKind.until);
+                }
+            }
+        }
+    }
+
+    boolean textMatchTrailer(ITextDataReader in, String data) {
+        try {
+            return in.startsWith(data);
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    boolean binaryMatchTrailer(IBinaryDataReader in, byte[] data) {
+        try {
+            return in.startsWithBytes(data);
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
     }
 }

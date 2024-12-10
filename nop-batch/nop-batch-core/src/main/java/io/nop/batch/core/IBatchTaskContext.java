@@ -145,11 +145,18 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void onChunkEnd(BiConsumer<IBatchChunkContext, Throwable> action);
 
-    void onChunkRetry(BiConsumer<IBatchChunkContext, List<?>> action);
+    void onChunkTryBegin(BiConsumer<List<?>, IBatchChunkContext> action);
+
+    void onChunkTryEnd(BiConsumer<IBatchChunkContext, Throwable> action);
 
     void onLoadBegin(BiConsumer<Integer, IBatchChunkContext> action);
 
     void onLoadEnd(BiConsumer<IBatchChunkContext, Throwable> action);
+
+    void onConsumeBegin(BiConsumer<List<?>, IBatchChunkContext> action);
+
+    void onConsumeEnd(BiConsumer<IBatchChunkContext, Throwable> action);
+
 
     void fireLoadBegin(int batchSize, IBatchChunkContext chunkContext);
 
@@ -163,5 +170,11 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void fireChunkEnd(IBatchChunkContext chunkContext, Throwable err);
 
-    void fireChunkRetry(IBatchChunkContext chunkContext, List<?> items);
+    void fireChunkTryBegin(List<?> items, IBatchChunkContext chunkContext);
+
+    void fireChunkTryEnd(IBatchChunkContext chunkContext, Throwable err);
+
+    void fireConsumeBegin(List<?> items, IBatchChunkContext chunkContext);
+
+    void fireConsumeEnd(IBatchChunkContext chunkContext, Throwable err);
 }

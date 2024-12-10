@@ -19,6 +19,7 @@ import io.nop.batch.core.consumer.MultiBatchConsumerProvider;
 import io.nop.batch.core.consumer.ResourceRecordConsumerProvider;
 import io.nop.batch.core.consumer.SplitBatchConsumer;
 import io.nop.batch.core.filter.EvalBatchRecordFilter;
+import io.nop.batch.core.loader.PostProcessBatchLoaderProvider;
 import io.nop.batch.core.processor.FilterBatchProcessor;
 import io.nop.batch.core.processor.MultiBatchProcessorProvider;
 import io.nop.batch.dsl.model.BatchConsumerModel;
@@ -245,7 +246,7 @@ public class ModelBasedBatchTaskBuilderFactory {
 
         if (dispatcherModel.getPartitionIndexField() != null) {
             config.setPartitionFn((item, ctx) -> {
-                Object value = BeanTool.getProperty(item, dispatcherModel.getPartitionIndexField());
+                Object value = BeanTool.getComplexProperty(item, dispatcherModel.getPartitionIndexField());
                 return ConvertHelper.toPrimitiveInt(value, NopException::new);
             });
         } else if (dispatcherModel.getPartitionFn() != null) {
@@ -257,8 +258,6 @@ public class ModelBasedBatchTaskBuilderFactory {
             config.setPartitionFn((item, ctx) -> MathHelper.random().nextInt(0, Short.MAX_VALUE));
         }
 
-        if (dispatcherModel.getBeforeDispatch() != null)
-            config.setBeforeDispatch((items, ctx) -> dispatcherModel.getBeforeDispatch().call2(null, items, ctx, ctx.getEvalScope()));
         return config;
     }
 
@@ -275,7 +274,11 @@ public class ModelBasedBatchTaskBuilderFactory {
         addListeners(builder, batchTaskModel.getLoader());
 
         BatchLoaderModel reader = batchTaskModel.getLoader();
-        return buildLoader(reader, beanContainer);
+        IBatchLoaderProvider<Object> loader = buildLoader(reader, beanContainer);
+        if (batchTaskModel.getLoader().getAfterLoad() != null) {
+            loader = new PostProcessBatchLoaderProvider<>(loader, batchTaskModel.getLoader().getAfterLoad());
+        }
+        return loader;
     }
 
     private IBatchLoaderProvider<Object> buildLoader(BatchLoaderModel loaderModel, IBeanProvider beanProvider) {
@@ -408,6 +411,38 @@ public class ModelBasedBatchTaskBuilderFactory {
             builder.addTaskInitializer(context -> {
                 context.onLoadEnd((ctx, err) -> {
                     listenersModel.getOnTaskEnd().call2(null, ctx, err, ctx.getEvalScope());
+                });
+            });
+        }
+
+        if (listenersModel.getOnChunkTryBegin() != null) {
+            builder.addTaskInitializer(context -> {
+                context.onChunkTryBegin((items, ctx) -> {
+                    listenersModel.getOnChunkTryBegin().call2(null, items, ctx, ctx.getEvalScope());
+                });
+            });
+        }
+
+        if (listenersModel.getOnChunkTryEnd() != null) {
+            builder.addTaskInitializer(context -> {
+                context.onChunkTryEnd((ctx, err) -> {
+                    listenersModel.getOnChunkTryEnd().call2(null, ctx, err, ctx.getEvalScope());
+                });
+            });
+        }
+
+        if (listenersModel.getOnConsumeBegin() != null) {
+            builder.addTaskInitializer(context -> {
+                context.onConsumeBegin((items, ctx) -> {
+                    listenersModel.getOnConsumeBegin().call2(null, items, ctx, ctx.getEvalScope());
+                });
+            });
+        }
+
+        if (listenersModel.getOnConsumeEnd() != null) {
+            builder.addTaskInitializer(context -> {
+                context.onConsumeEnd((ctx, err) -> {
+                    listenersModel.getOnConsumeEnd().call2(null, ctx, err, ctx.getEvalScope());
                 });
             });
         }

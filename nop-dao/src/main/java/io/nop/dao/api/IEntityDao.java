@@ -191,6 +191,11 @@ public interface IEntityDao<T extends IDaoEntity> {
 
     long deleteByExample(T example);
 
+    default void deleteAllByIds(Collection<?> ids) {
+        Collection<T> entities = batchGetEntitiesByIds(ids);
+        batchDeleteEntities(entities);
+    }
+
     /**
      * 判断表中是否存在记录
      */

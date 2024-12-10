@@ -22,14 +22,23 @@ public interface ITextDataReader extends IDataReaderBase {
             return null;
         if (len == 0)
             return "";
-        return read((int)len);
+        return read((int) len);
     }
 
     int readChar() throws IOException;
 
     String readLine(int maxLength) throws IOException;
 
-    long pos();
+    long pos() throws IOException;
+
+    void seek(long pos) throws IOException;
+
+    default boolean startsWith(String text) throws IOException {
+        long pos = pos();
+        String data = read(text.length());
+        seek(pos);
+        return data.equals(text);
+    }
 
     /**
      * 重置offset为0

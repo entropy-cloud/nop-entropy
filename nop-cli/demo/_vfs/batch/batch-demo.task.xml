@@ -12,7 +12,7 @@
                 <taskKeyExpr>bizDate</taskKeyExpr>
 
                 <loader>
-                    <file-reader filePath="dev:/target/input/txn-${bizDate}.dat" fileModelPath="txn.record-file.xlsx"/>
+                    <file-reader filePath="dev:/input/txn-${bizDate}.dat" fileModelPath="txn.record-file.xlsx"/>
                 </loader>
 
                 <consumer name="all">
@@ -31,46 +31,84 @@
 
                 <loader>
                     <orm-reader entityName="DemoIncomingTxn">
-                        <!-- 从loader读取到数据之后调用回调函数，批量加载关联属性。如果放到processor中处理，则只能逐条加载 -->
-                        <onLoadBegin>
-                            <c:script><![CDATA[
-                                const items = batchChunkCtx.items;
-                                if(items?.size() > 0){
-                                    const daoProvider = inject('daoProvider');
-                                    const txnDao = daoProvider.getDao('DemoIncomingTxn');
-                                    const cardDao = daoProvider.getDao('DemoCard');
 
-                                    const cardNumbers = _.pluck(items, 'cardNumber');
-                                    // 批量加载实体
-                                    const map = txnDao.batchGetEntityMapByProp('cardNumber', cardNumbers);
-
-                                    const cards = [];
-                                    for(const item of items) {
-                                        const card = map.get(item.cardNumber);
-                                        cards.push(card);
-
-                                        // 实体内置了_t属性用于保存扩展属性
-                                        item._t.card = card;
-                                    }
-
-                                    // 批量加载关联属性
-                                    cardDao.batchLoadProps(cards, ['customer']);
-                                }
-                            ]]></c:script>
-                        </onLoadBegin>
                     </orm-reader>
+
+                    <dispatcher loadBatchSize="100" partitionIndexField="_t.partitionIndex">
+                    </dispatcher>
+
+                    <afterLoad>
+                        <c:script><![CDATA[
+                            if(items?.size() > 0){
+                                const daoProvider = inject('nopDaoProvider');
+                                const txnDao = daoProvider.dao('DemoIncomingTxn');
+                                const cardDao = daoProvider.dao('DemoCard');
+
+                                const cardNumbers = _.pluck(items, 'cardNumber');
+                                // 批量加载实体
+                                const map = cardDao.batchGetEntityMapByProp('cardNumber', cardNumbers);
+
+                                const cards = [];
+                                for(let item of items) {
+                                    const card = map.get(item.cardNumber);
+                                    if(card == null)
+                                       continue;
+
+                                    cards.push(card);
+
+                                    // 实体内置了_t属性用于保存扩展属性
+                                    item.make_t();
+
+                                    item._t.cardId = card.id;
+                                    item._t.accountId = card.accountId;
+                                    item._t.partitionIndex = card.partitionIndex;
+                                }
+                            }
+                            ]]></c:script>
+                    </afterLoad>
                 </loader>
 
                 <processor name="process">
                     <source>
                         <c:script><![CDATA[
+                            // 根据incomingTxn构建DemoTransaction所需要的数据
                             const data = {
+                                accountId: item._t?.accountId || 'U'+$String.randomString(19),
+                                cardId: item._t?.cardId || 'V'+$String.randomString(19),
+                                cardNumber: item.cardNumber,
+                                txnType: item.txnType,
+                                txnAmount: item.txnAmount,
+                                txnTime: item.txnTime,
+                                partitionIndex: item._t?.partitionIndex || 0,
+                            };
 
-                            }
+                            // txnId会传入deleteInput这个consumer中进行处理
+                            consume(item.txnId);
+                            consume(data);
                         ]]></c:script>
                     </source>
                 </processor>
 
+                <consumer name="deleteInput">
+                    <filter>
+                        return item instanceof String;
+                    </filter>
+                    <source>
+                        <c:script><![CDATA[
+                            const daoProvider = inject('nopDaoProvider');
+                            daoProvider.dao('DemoIncomingTxn').deleteAllByIds(items);
+                        ]]></c:script>
+                    </source>
+                </consumer>
+
+                <consumer name="saveToDb">
+                    <filter>
+                        return !(item instanceof String);
+                    </filter>
+
+                    <orm-writer entityName="DemoTransaction">
+                    </orm-writer>
+                </consumer>
             </batch:task>
         </custom>
     </steps>

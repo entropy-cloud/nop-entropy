@@ -69,6 +69,14 @@ public interface ITaskRuntime extends IEvalContext, ICancellable {
         return getTaskState().getJobInstanceId();
     }
 
+    default String getTaskNameAndVersion() {
+        return getTaskName() + '/' + getTaskVersion();
+    }
+
+    String getTaskDescription();
+
+    void setTaskDescription(String description);
+
     ITaskRuntime newChildRuntime(ITask task, boolean saveState);
 
     ITaskFlowManager getTaskManager();

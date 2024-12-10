@@ -8,6 +8,7 @@
 package io.nop.record.model;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.bytes.ByteString;
 import io.nop.commons.text.SimpleTextTemplate;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanConstructor;
@@ -16,6 +17,7 @@ import io.nop.record.model._gen._RecordObjectMeta;
 
 import java.nio.charset.Charset;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
 import static io.nop.record.RecordErrors.ERR_RECORD_UNKNOWN_FIELD;
@@ -73,6 +75,18 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
     @Override
     public SimpleTextTemplate getNormalizedTemplate() {
         return this.normalizedTemplate;
+    }
+
+
+    public ByteString getPrefix() {
+        if (getNormalizedTemplate() != null)
+            return getNormalizedTemplate().getPrefix();
+
+        List<RecordFieldMeta> fields = getFields();
+        if (fields.isEmpty())
+            return null;
+        RecordFieldMeta field = fields.get(0);
+        return field.getContent();
     }
 
     @Override

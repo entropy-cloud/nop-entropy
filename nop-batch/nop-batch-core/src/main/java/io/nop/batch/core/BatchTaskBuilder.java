@@ -28,6 +28,7 @@ import io.nop.batch.core.processor.BatchChunkProcessor;
 import io.nop.batch.core.processor.BatchSequentialProcessor;
 import io.nop.batch.core.processor.InvokerBatchChunkProcessor;
 import io.nop.commons.concurrent.executor.ExecutorHelper;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.functional.IFunctionInvoker;
 import io.nop.commons.util.retry.IRetryPolicy;
@@ -318,7 +319,7 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
         if (dispatchConfig != null) {
             Executor executor = dispatchConfig.getExecutor();
             if (executor == null)
-                executor = this.executor;
+                executor = GlobalExecutors.cachedThreadPool();
 
             int fetchThreadCount = dispatchConfig.getFetchThreadCount();
             int loadBatchSize = dispatchConfig.getLoadBatchSize();

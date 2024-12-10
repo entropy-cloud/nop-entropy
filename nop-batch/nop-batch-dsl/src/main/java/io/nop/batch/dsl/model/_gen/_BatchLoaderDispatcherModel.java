@@ -18,13 +18,6 @@ public abstract class _BatchLoaderDispatcherModel extends io.nop.core.resource.c
     
     /**
      *  
-     * xml name: beforeDispatch
-     * 
-     */
-    private io.nop.core.lang.eval.IEvalFunction _beforeDispatch ;
-    
-    /**
-     *  
      * xml name: executor
      * 
      */
@@ -57,25 +50,6 @@ public abstract class _BatchLoaderDispatcherModel extends io.nop.core.resource.c
      * 
      */
     private java.lang.String _partitionIndexField ;
-    
-    /**
-     * 
-     * xml name: beforeDispatch
-     *  
-     */
-    
-    public io.nop.core.lang.eval.IEvalFunction getBeforeDispatch(){
-      return _beforeDispatch;
-    }
-
-    
-    public void setBeforeDispatch(io.nop.core.lang.eval.IEvalFunction value){
-        checkAllowChange();
-        
-        this._beforeDispatch = value;
-           
-    }
-
     
     /**
      * 
@@ -187,7 +161,6 @@ public abstract class _BatchLoaderDispatcherModel extends io.nop.core.resource.c
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("beforeDispatch",this.getBeforeDispatch());
         out.putNotNull("executor",this.getExecutor());
         out.putNotNull("fetchThreadCount",this.getFetchThreadCount());
         out.putNotNull("loadBatchSize",this.getLoadBatchSize());
@@ -204,7 +177,6 @@ public abstract class _BatchLoaderDispatcherModel extends io.nop.core.resource.c
     protected void copyTo(BatchLoaderDispatcherModel instance){
         super.copyTo(instance);
         
-        instance.setBeforeDispatch(this.getBeforeDispatch());
         instance.setExecutor(this.getExecutor());
         instance.setFetchThreadCount(this.getFetchThreadCount());
         instance.setLoadBatchSize(this.getLoadBatchSize());

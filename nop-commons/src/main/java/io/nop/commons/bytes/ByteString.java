@@ -34,6 +34,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.function.Function;
@@ -192,6 +193,12 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
         }
     }
 
+    public String buildString(Charset charset) {
+        if (charset == null || charset == StandardCharsets.UTF_8)
+            return utf8();
+        return new String(bytes, charset);
+    }
+
     public String base64() {
         return StringHelper.encodeBase64(bytes);
     }
@@ -292,7 +299,7 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
             return decodeBase64(str.substring(CommonConstants.BASE_64_PREFIX.length()));
         if (str.startsWith(CommonConstants.HEX_PREFIX))
             return decodeHex(str.substring(CommonConstants.HEX_PREFIX.length()));
-        if(str.startsWith(CommonConstants.HEX_BYTES_PREFIX))
+        if (str.startsWith(CommonConstants.HEX_BYTES_PREFIX))
             return decodeHex(str.substring(CommonConstants.HEX_BYTES_PREFIX.length()));
         if (str.startsWith(CommonConstants.UTF8_PREFIX))
             return new ByteString(str.substring(CommonConstants.UTF8_PREFIX.length()));

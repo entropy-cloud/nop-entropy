@@ -22,7 +22,15 @@ public class SubTextDataReader implements ITextDataReader {
     private final int maxLength;
 
     public SubTextDataReader(ITextDataReader input, int maxLength) {
-        this(input, (int)input.pos(), maxLength);
+        this(input, pos(input), maxLength);
+    }
+
+    static int pos(ITextDataReader input) {
+        try {
+            return (int) input.pos();
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
     }
 
     public SubTextDataReader(ITextDataReader input, int startOffset, int maxLength) {
@@ -84,13 +92,18 @@ public class SubTextDataReader implements ITextDataReader {
     @Override
     public String readLine(int maxLength) throws IOException {
         long avail = this.maxLength - pos();
-        maxLength = (int)Math.min(maxLength, avail);
+        maxLength = (int) Math.min(maxLength, avail);
         return input.readLine(maxLength);
     }
 
     @Override
-    public long pos() {
+    public long pos() throws IOException {
         return input.pos() - startOffset;
+    }
+
+    @Override
+    public void seek(long pos) throws IOException {
+        input.seek(pos + startOffset);
     }
 
     @Override

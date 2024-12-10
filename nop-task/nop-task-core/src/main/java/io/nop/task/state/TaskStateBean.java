@@ -12,6 +12,7 @@ public class TaskStateBean extends AbstractTaskStateCommon implements ITaskState
     private Long taskVersion;
     private String taskInstanceId;
     private Integer taskStatus;
+    private String description;
 
     private Map<String, Object> requestHeaders;
     private Object request;
@@ -22,6 +23,16 @@ public class TaskStateBean extends AbstractTaskStateCommon implements ITaskState
     private Map<String, Object> taskVars;
 
     private int nextRunId;
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
+
+    @Override
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
     @Override
     public String getJobInstanceId() {
