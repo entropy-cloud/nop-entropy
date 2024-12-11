@@ -133,7 +133,7 @@ class JdbcPagingItemReader<T> implements ItemReader<T> {
 }
 ```
 
-如果Reader读取的不是简单的平面结构记录，而是一个复杂的业务对象。那么如果要实现属性的批量加载，就必须修改Reader的实现代码，导致了代码的耦合性增加。
+这种设计不仅使得Reader必须持有临时状态变量，而且也使得批量优化难以在外部进行。如果Reader读取的不是简单的平面结构记录，而是一个复杂的业务对象，那么如果要实现属性的批量加载，就必须修改Reader的实现代码，导致了代码的耦合性增加。
 
 NopBatch中使用IBatchLoader接口来实现批量加载，可以更好的支持批量读取优化。
 
@@ -157,17 +157,38 @@ public interface IBatchLoader<S> {
 
 ```javascript
 List<T> data = loader.load(batchSize, context);
-batchLoadRelatedData(data, context); // 批量加载其他相关数据
+
+// 批量加载其他相关数据，加载的数据可以放到context中，也可以作为data中元素的扩展字段
+batchLoadRelatedData(data, context); 
 ```
 
 当处理数据需要获取互斥锁的时候，SpringBatch的设计也显得非常不友好。因为SpringBatch的ItemReader是逐条读取的，导致获取锁的时候无法进行批量优化，并且获取锁的顺序也难以控制，存在死锁风险。
 而NopBatch的设计可以先按照某种规则对记录进行排序（不要求reader读取时整体排序），然后一次性获取所有需要的锁，这样就可以避免死锁风险。
 
+总而言之，SpringBatch的设计体现出Item Oriented的遗迹，导致Chunk级别的处理很不自然。
+
+> Chunk的概念是在Spring2.0中引入的，最早的时候SpringBatch只有Item的概念。
+
+SpringBatch 1.0中的ItemWriter接口定义如下:
+
+```java
+public interface ItemWriter {
+
+	public void write(Object item) throws Exception;
+	
+	public void flush() throws FlushFailedException;
+
+	public void clear() throws ClearFailedException;
+}
+```
+
 ### 2.2 Processor的每次调用不应该只返回一条记录
 
-SpringBatch的处理逻辑类似于函数式编程中的map函数，`data.map(a->b)`，对每一条输入记录进行处理，返回一个输出记录。  这里很自然的就会产生一个疑问，为什么一次处理最多只会产生一个输出？不能一次处理产生多个输出吗？
+SpringBatch中Processor的处理逻辑类似于函数式编程中的map函数，`data.map(a->b)`，对每一条输入记录进行处理，返回一个输出记录。  这里很自然的就会产生一个疑问，为什么一次处理最多只会产生一个输出？不能一次处理产生多个输出吗？
 
-现代的流处理框架的语义更接近于函数式编程中的flatMap函数, `data.flatMap(a->[b])`。也就是说，一次处理，可以有三种结果：A. 没有输出 B. 产生一个输出 C. 产生多个输出。如果一次处理可以产生多个输出，那么能不能每产生一个输出就交给下游进行处理，不用等待当前所有输出都产生之后再传递到下游？
+现代的流处理框架的语义更接近于函数式编程中的flatMap函数, `data.flatMap(a->[b])`。也就是说，一次处理，可以有三种结果：A. 没有输出 B. 产生一个输出 C. 产生多个输出。
+
+流式处理模式：如果一次处理可以产生多个输出，那么能不能每产生一个输出就交给下游进行处理，不用等待当前所有输出都产生之后再传递到下游？
 
 NopBatch仿照流处理框架，定义了如下处理接口
 
@@ -199,9 +220,9 @@ public interface IBatchProcessor<S, R> {
 
 * IBatchProcessor接口还提供了一个then函数，可以将两个IBatchProcessor组合为一个整体的Processor，形成一种链式调用。这其实是类似函数式编程中Monad概念的一种应用。
 
-### 2.3 Writer命名不合适
+### 2.3 Writer接收Collection类型数据即可
 
-SpringBatch中的ItemWriter从命名上看是用于消费Processor产生的结果数据，这样就导致在概念层面上固化了Read-Process-Write的处理流程。但有很多情况下我们并不需要写出结果，只需要消费输入的数据而已。
+首先SpringBatch中ItemWriter的命名不太合适。ItemWriter从命名上看是用于消费Processor产生的结果数据，这样就导致在概念层面上固化了Read-Process-Write的处理流程。但有很多情况下我们并不需要写出结果，只需要消费输入的数据而已。
 
 NopBatch引入了通用的BatchConsumer概念，使得BatchConsumer和BatchLoader构成一对对偶的接口，BatchLoader加载的数据直接传递给BatchConsumer进行消费。
 
@@ -211,16 +232,16 @@ public interface IBatchConsumer<R> {
      * @param items   待处理的对象集合
      * @param context 上下文对象
      */
-    void consume(List<R> items, IBatchChunkContext context);
+    void consume(Collection<R> items, IBatchChunkContext context);
 }
 ```
 
 Chunk的处理流程变得非常简单
 
-```
+```javascript
 List<T> items = loader.load(batchSize,context);
 if(items == null || items.isEmpty())
-   return STOP;
+   return ProcessingResult.STOP;
 consumer.consume(items,context);
 ```
 
@@ -230,15 +251,40 @@ Processor可以看作是一种可选的Consumer实现方案
 public class BatchProcessorConsumer<S, R>
    implements IBatchConsumer<S> {
     @Override
-    public void consume(List<S> items, IBatchChunkContext context) {
-        List<R> collector = new ArrayList<>();
+    public void consume(Collection<S> items, IBatchChunkContext context) {
+        List<R> outputs = new ArrayList<>();
         for(S item: items){
-            processor.process(item, collector::add, context);
+            processor.process(item, outputs::add, context);
         }
-        consumer.consume(collector, context);
+        consumer.consume(outputs, context);
     }
 }
 ```
+
+SpringBatch中的Chunk结构定义如下:
+
+```java
+class Chunk<W> implements Iterable<W>, Serializable {
+
+	private List<W> items = new ArrayList<>();
+
+	private List<SkipWrapper<W>> skips = new ArrayList<>();
+
+	private final List<Exception> errors = new ArrayList<>();
+
+	private Object userData;
+
+	private boolean end;
+
+	private boolean busy;
+}    
+```
+
+Chunk结构中包含多种信息，但是在Processor和Reader中却不能直接访问Chunk结构，造成不必要的复杂性。
+
+在NopBatch的架构中，Loader/Processor/Consumer接口都接受同样的IBatchChunkContext参数，通过它可以实现相互协调。同时在IBatchConsumer接口中，items以Collection类型传递即可，没有必要强制要求使用List类型。
+
+> 当异步执行Processor的情况下，items中会使用ConcurrentLinkedQueue来保存。
 
 ### 2.4 事务处理机制不灵活
 
@@ -420,7 +466,7 @@ class MyComponent extends Vue {
 
 核心的设计思想都是在组件上实现生命周期监听函数，框架在创建这些组件的时候注册对应的事件监听器，然后利用组件对象的成员变量来实现多个回调函数之间的信息传递和组织。
 
-前端领域后来出现了一个革命性的进展，就是引入了所谓的Hooks机制，抛弃了Class Based的组件方案。参见[从React Hooks看React的本质](https://mp.weixin.qq.com/s/-n5On67e3_46zH6ppPlkTA)
+前端领域后来出现了一个革命性的进展，就是引入了所谓的Hooks机制，抛弃了Class Based的组件方案。参见我的公众号文章[从React Hooks看React的本质](https://mp.weixin.qq.com/s/-n5On67e3_46zH6ppPlkTA)
 
 在Hooks方案下，前端组件退化为一个响应式的render函数，考虑到一次性的初始化过程，Vue选择将组件抽象为render函数的构造器。
 
@@ -453,6 +499,8 @@ Hooks方案相比于传统的类组件方案有如下优点：
 1. 事件监听函数可以独立于类结构被定义，可以很容易的实现二次封装。比如将上面的onMounted+onUpdated调用封装为一个可复用的useXXX的函数。
 
 2. 多个事件监听函数之间可以通过闭包传递信息，而不需要再通过this指针迂回。
+
+3. 可以根据传入的参数动态决定是否注册事件监听器。
 
 这里的关键性的架构变化是提供了一种全局的、动态事件注册机制，而不是将事件监听函数与某个对象指针绑定，必须是某个对象的成员函数。
 
@@ -641,7 +689,7 @@ SpringBatch的关键特性描述中强调了可重用性和可扩展性，但是
 
 SpringBatch的job配置可以看作是一种非常简易且不通用的逻辑流编排机制，它只能编排批处理任务，不能作为一个通用的逻辑流编排引擎来使用。在NopBatch框架中我们明确将逻辑流编排从批处理引擎中剥离出来，使用通用的NopTaskFlow来编排逻辑，而NopBatch只负责一个流程步骤中的Chunk处理。这使得NopTaskFlow和NopBatch的设计都变得非常简单直接，它们的实现代码远比SpringBatch要简单（只有几千行代码），且具有非常强大的扩展能力。在NopTaskFlow和NopBatch中做的工作都可以应用到更加通用的场景中。
 
-NopTaskFlow是根据可逆计算原理从零开始构建的下一代逻辑流编排框架，它的核心抽象是支持Decorator和状态持久化的RichFunction。它的性能很高并且非常轻量级，可以用在所有需要进行函数配置化分解的地方。详细介绍参见[从零开始编写的下一代逻辑编排引擎 NopTaskFlow](https://mp.weixin.qq.com/s/2mFC0nQon_l2M82tOlJVhg)
+NopTaskFlow是根据可逆计算原理从零开始构建的下一代逻辑流编排框架，它的核心抽象是支持Decorator和状态持久化的RichFunction。它的性能很高并且非常轻量级（核心只有3000行左右代码），可以用在所有需要进行函数配置化分解的地方。详细介绍参见[从零开始编写的下一代逻辑编排引擎 NopTaskFlow](https://mp.weixin.qq.com/s/2mFC0nQon_l2M82tOlJVhg)
 
 在NopTaskFlow中实现与上面SpringBatch Job等价的配置
 
@@ -780,7 +828,7 @@ const {RESULT} = step1(x+1,y+2)
 
 ### 3.3 支持工作共享的分区并行处理
 
-SpringBatch提供将数据拆分成多个分区，并分配给多个从属步骤（slave steps）来实现并行处理的机制。以下是分区并行处理的主要步骤和组件：
+SpringBatch提供了将数据拆分成多个分区，并分配给多个从属步骤（slave steps）来实现并行处理的机制。以下是分区并行处理的主要步骤和组件：
 
 1. **定义分区器（Partitioner）**：
 
@@ -803,7 +851,8 @@ SpringBatch提供将数据拆分成多个分区，并分配给多个从属步骤
 ```xml
 <batch:job id="partitionedJob">
    <batch:step id="masterStep">
-      <batch:partition step="slaveStep" partitioner="rangePartitioner">                      <batch:handler grid-size="4" task-executor="taskExecutor"/>
+      <batch:partition step="slaveStep" partitioner="rangePartitioner">
+         <batch:handler grid-size="4" task-executor="taskExecutor"/>
       </batch:partition>
    </batch:step>
 </batch:job>
@@ -885,6 +934,31 @@ NopBatch内置了一个PartitionDispatchLoaderProvider，它提供了一种灵�
 
 每个处理线程去加载chunk数据的时候，可以从PartitionDispatchQueue中的微队列中获取数据，每次获取到数据后就标记对应的微队列已经被使用，阻止其他线程去处理同样的微队列。当chunk处理完毕之后，会在onChunkEnd回调函数中释放对应的微队列。
 
+```xml
+<batch>
+    <loader>
+        <orm-reader entityName="DemoIncomingTxn">
+
+        </orm-reader>
+
+        <dispatcher loadBatchSize="100" partitionIndexField="_t.partitionIndex">
+        </dispatcher>
+
+        <!-- reader读取到items集合之后会调用afterLoad回调函数对结果进行加工 -->
+        <afterLoad>
+            for(let item of items){
+                item.make_t().partitionIndex = ...; // 动态计算得到partitionIndex
+            }      
+        </afterLoad>
+    </loader>    
+</batch>
+```
+
+> Nop平台中的所有实体都提供了make_t()函数，它返回一个Map，可以用于保存自定义临时属性。这一设计也符合可逆计算每个局部都具有扩展能力的设计理念。
+
+上面是NopBatch DSL的一个配置片段，它采用OrmReader读取DemoIncomingTxn表中的数据，然后按照实体上`_t.partitionIndex`的配置投递到不同的队列。
+
+
 在SpringBatch中每个线程对应一个分区，分区的个数等于线程的个数。而在NopBatch中实际分区的个数最大为32768，它远大于批处理任务的并行线程数，同时又远小于实际业务实体数，可以保证分区比较均衡同时又不需要在内存中维护太多的队列。
 
 如果确实需要类似SpringBatch的步骤级别的并行处理能力，可以直接使用NopTaskFlow中的fork或者fork-n步骤配置。
@@ -908,13 +982,39 @@ NopBatch内置了一个PartitionDispatchLoaderProvider，它提供了一种灵�
 
 fork步骤的producer可以动态计算得到一个列表，然后针对其中的每个元素会启动一个单独的步骤实例。
 
+NopBatch DSL中的OrmReader和JdbcReader都支持partitionIndexField配置，如果指定了这个分区字段，且传入partitionRange参数，则会自动生成分区过滤条件。
+
+```xml
+<batch>
+    <loader>
+        <orm-reader entityName="MyEntity" partitionIndexField="partitionIndex">
+           <filter>
+              <eq name="status" value="1" />
+           </filter>
+        </orm-reader>
+    </loader>
+</batch>
+```
+
+```javascript
+batchTaskContext.setPartitionRange(IntRangeBean.of(1000,100));
+```
+
+上面的配置在执行时会生成如下SQL语句
+
+```sql
+select o from MyEntity o
+where o.status = '1'
+and o.partitionIndex between 1000 and (1000 + 100 - 1)
+```
+
 ## 三. DSL森林: NopTaskFlow + NopBatch + NopRecord + NopORM
 
 SpringBatch虽然号称是声明式开发，但是它的声明式是利用Spring IoC有限的Bean组装描述，大量的业务相关内容仍然是需要写在Java代码中，并没有建立一个完整的能够实现细粒度的声明式开发的批处理模型。另外一方面，如果SpringBatch真的提出一个专用于批处理的领域特定模型，似乎又难以保证它的可扩展性，有可能会限制它的应用范围。
 
 NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方案，也就是所谓的DSL森林：通过复用一组无缝嵌套在一起的、适用于不同局部领域的DSL来解决问题，而不是依靠一个单一的、大而全的、专门针对批处理设计的DSL。针对批处理，我们只建立一个最小化的NopBatch批处理模型，它负责抽象Batch领域特定的Chunk处理逻辑，并提供一系列的辅助实现类，比如PartitionDispatcherQueue。在更宏观的任务编排层面上，我们复用已有的NopTaskFlow来实现。NopTaskFlow完全不具备批处理相关的知识，也不需要为了与NopBatch集成在一起在引擎内部做任何适应性改造，而是通过元编程抹平两者之间融合所产生的一切沟沟坎坎。
 
-在文件解析层面，SpringBatch提供了一个FlatFileItemReader，通过它可以进行一系列的配置来实现对简单结构的数据文件实现解析。
+举例来说，在文件解析层面，SpringBatch提供了一个FlatFileItemReader，通过它可以进行一系列的配置来实现对简单结构的数据文件实现解析。
 
 ```xml
 <bean id="flatFileItemReader" class="org.springframework.batch.item.file.FlatFileItemReader">
@@ -960,11 +1060,157 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
 
 在Nop平台中，我们定义了一种专用于数据消息格式解析和生成的Record模型，但它并不是为批处理文件解析专门设计，而是可以用于所有需要消息解析和生成的地方，是一种通用的声明式开发机制，而且能力远比SpringBatch中的FlatFile配置强大。
 
-在数据库存取方面，NopORM提供了完整的ORM模型支持，内置多租户、逻辑删除、字段加解密、柔性事务处理、数据关联查询、批量加载和批量保存优化等完善的数据访问层能力。
-
-结合NopTaskFlow、NopBatch、NopRecord和NopORM等多个领域模型，Nop平台就可以做到在一般业务开发时完全通过声明式的方式实现批处理任务，而不需要编写Java代码。
-
 ```xml
-<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml"
+      xmlns:record="record" xmlns:task="task" x:dump="true">
+
+    <input name="bizDate" type="LocalDate" />
+
+    <record:file-model name="SimpleFile" binary="true">
+        <body>
+            <fields>
+                <field name="name" type="String" length="10" codec="FLS"/>
+                <field name="product" type="String" length="5" codec="FLS"/>
+                <field name="price" type="double" codec="f8be"/>
+                <field name="quantity" type="int" codec="s4be"/>
+            </fields>
+        </body>
+    </record:file-model>
+
+    <steps>
+        <custom name="test" customType="batch:Execute" useParentScope="true"
+                xmlns:batch="/nop/batch/xlib/batch.xlib">
+            <batch:task taskName="test.loadData" batchSize="100" saveState="true">
+
+                <taskKeyExpr>bizDate</taskKeyExpr>
+
+                <loader>
+                    <file-reader filePath="dev:/target/input/${bizDate}.dat"
+                        fileModelPath="simple.record-file.xlsx" />
+                </loader>
+
+                <!-- 可以定义多个processor，它们按顺序执行 -->
+                <processor name="processor1">
+                    <source>
+                        consume(item);
+                    </source>
+                </processor>
+
+                <processor name="processor2" task:taskModelPath="process-item.task.xml">
+                </processor>
+
+                <consumer name="all">
+                    <file-writer filePath="dev:/target/output/${bizDate}-all.dat" 
+                      record:file-model="SimpleFile"/>
+                </consumer>
+
+                <!-- 可以定义多个consumer，然后通过filter段来控制只消费一部分输出数据 -->
+                <consumer name="selected">
+                    <filter>
+                        return item.quantity > 500;
+                    </filter>
+
+                    <file-writer filePath="dev:/target/output/${bizDate}-selected.dat" 
+                       fileModelPath="simple.record-file.xml"/>
+                </consumer>
+
+            </batch:task>
+        </custom>
+    </steps>
 </task>
 ```
+
+在上面的示例中，演示了在NopTaskFlow中如何无缝嵌入Batch批处理模型和Record消息格式定义。
+
+1. NopTaskFlow逻辑编排引擎在设计的时候并没有任何关于批处理任务的知识，也没有内置Record模型。
+2. 扩展NopTaskFlow并不需要实现某个NopTaskFlow引擎内部的扩展接口，也不需要使用NopTaskFlow内部的某种注册机制注册扩展步骤。
+3. 只需要查看`task.xdef`元模型，了解NopTaskFlow逻辑编排模型的节点结构，就可以使用XLang语言内置的元编程机制实现扩展。
+4. `x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml"`引入了基础模型支持，这些基础模型通过`x:post-extends`等元编程机制在XNode结构层对当前模型进行结构变换。
+5. `<custom name="test" customType="batch:Execute" xmlns:batch="xxx.xlib">` 扩展节点的customType会被自动识别为Xpl 标签函数，并将custom节点变换为对`<batch:Execute>`标签函数的调用。
+
+```xml
+<custom customType="ns:TagName" xmlns:ns="libPath" ns:argName="argValue">
+  <ns:slotName>...</ns:slotName>
+</custom>
+会被自动变换为
+
+<xpl>
+    <source>
+        <ns:TagName xpl:lib="libPath" argName="argValue">
+            <slotName>...</ns:slotName>
+        </ns:TagName>
+    </source>
+</xpl>
+```
+
+也就是说，customType是具有名字空间的标签函数名。所有具有相同名字空间的属性和子节点都会作为该标签的属性和子节点。
+
+7. `<batch:Execute>`标签会在编译期解析自己的task节点，构造出IBatchTaskBuilder，在运行期可以直接获取到编译期变量，不用再重复解析。
+8. 所有的XDSL都自动支持扩展属性和扩展节点，缺省情况下带名字空间的属性和节点不会参与XDef元模型检查。所以在task节点下可以引入自定义的`<record:file-model>`模型定义，它会被`batch-common.task.xml`引入的元编程处理器自动解析为RecordFileMeta模型对象，并保存为编译期的一个变量。
+9. `file-reader`和 `file-writer`节点上的`record:file-model`属性会被识别，并自动转换。
+
+```xml
+<file-writer record:file-model="SimpleFile">
+</file-writer>
+被变换为
+
+<file-writer>
+    <newRecordOutputProvider>
+      <!-- Xpl模板语言中#{xx}表示访问编译期定义的变量 -->
+       <batch-record:BuildRecordOutputProviderFromFileModel fileModel="#{SimpleFile}"
+                xpl:lib="/nop/batch/xlib/batch-record.xlib"/>
+    </newRecordOutputProvider>
+</file-writer>
+```
+
+10. NopTaskFlow在某个步骤中调用BatchTask，在BatchTask的Processor中我们可以使用同样的方式来调用NopTaskFlow来实现针对单条记录的处理逻辑。
+
+```xml
+<processor name="processor2" task:taskModelPath="process-item.task.xml">
+</processor>
+
+会被变换为
+<processor name="processor2">
+    <source>
+        <task:Execute taskModelPath="process-item.task.xml"
+                 inputs="${{item,consume,batchChunkCtx}}"
+                 xpl:lib="/nop/task/xlib/task.xlib"/>
+    </source>
+</processor>
+```
+
+11. 在数据库存取方面，NopORM提供了完整的ORM模型支持，内置多租户、逻辑删除、字段加解密、柔性事务处理、数据关联查询、批量加载和批量保存优化等完善的数据访问层能力。通过orm-reader和orm-writer可以实现数据库读写。
+
+```xml
+<batch>
+    <loader>
+        <orm-reader entityName="DemoIncomingTxn">
+        </orm-reader>
+    </loader>
+
+    <processor>
+        <source>
+          const data = {
+            txnTime: item.txnTime,
+            txnAmount: item.txnAmount,
+            txnType: item.txnType,
+            cardNumber: item.cardNumber
+          }
+          consume(data)
+        </source>
+    </processor>
+
+    <consumer name="saveToDb">
+        <orm-writer entityName="DemoTransaction">
+        </orm-writer>
+    </consumer>    
+</batch>
+```
+
+
+**结合NopTaskFlow、NopBatch、NopRecord和NopORM等多个领域模型，Nop平台就可以做到在一般业务开发时完全通过声明式的方式实现批处理任务，而不需要编写Java代码**。
+
+
+## 四. DSL的多重表象
+

@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -43,7 +44,7 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private String taskKey;
     private Map<String, Object> params;
     private IVarSet persistVars = new MapVarSet();
-    private IntRangeBean partition;
+    private IntRangeBean partitionRange;
     private boolean recoverMode;
     private IBatchTaskMetrics metrics;
     private Boolean allowStartIfComplete;
@@ -65,13 +66,13 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private final List<Consumer<IBatchChunkContext>> onChunkBegins = new CopyOnWriteArrayList<>();
     private final List<Consumer<IBatchChunkContext>> onBeforeChunkEnds = new CopyOnWriteArrayList<>();
     private final List<BiConsumer<IBatchChunkContext, Throwable>> onChunkEnds = new CopyOnWriteArrayList<>();
-    private final List<BiConsumer<List<?>, IBatchChunkContext>> onChunkTryBegin = new CopyOnWriteArrayList<>();
+    private final List<BiConsumer<Collection<?>, IBatchChunkContext>> onChunkTryBegin = new CopyOnWriteArrayList<>();
     private final List<BiConsumer<IBatchChunkContext, Throwable>> onChunkTryEnd = new CopyOnWriteArrayList<>();
 
     private final List<BiConsumer<Integer, IBatchChunkContext>> onLoadBegins = new CopyOnWriteArrayList<>();
     private final List<BiConsumer<IBatchChunkContext, Throwable>> onLoadEnds = new CopyOnWriteArrayList<>();
 
-    private final List<BiConsumer<List<?>, IBatchChunkContext>> onConsumeBegin = new CopyOnWriteArrayList<>();
+    private final List<BiConsumer<Collection<?>, IBatchChunkContext>> onConsumeBegin = new CopyOnWriteArrayList<>();
     private final List<BiConsumer<IBatchChunkContext, Throwable>> onConsumeEnd = new CopyOnWriteArrayList<>();
 
     public BatchTaskContextImpl(IServiceContext svcCtx, IEvalScope scope) {
@@ -183,13 +184,13 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     }
 
     @Override
-    public IntRangeBean getPartition() {
-        return partition;
+    public IntRangeBean getPartitionRange() {
+        return partitionRange;
     }
 
     @Override
-    public void setPartition(IntRangeBean partition) {
-        this.partition = partition;
+    public void setPartitionRange(IntRangeBean partitionRange) {
+        this.partitionRange = partitionRange;
     }
 
     @Override
@@ -352,7 +353,7 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     }
 
     @Override
-    public void onChunkTryBegin(BiConsumer<List<?>, IBatchChunkContext> action) {
+    public void onChunkTryBegin(BiConsumer<Collection<?>, IBatchChunkContext> action) {
         synchronized (this) {
             if (isDone()) {
                 throw new IllegalStateException("nop.err.execution-already-completed");
@@ -372,7 +373,7 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     }
 
     @Override
-    public void onConsumeBegin(BiConsumer<List<?>, IBatchChunkContext> action) {
+    public void onConsumeBegin(BiConsumer<Collection<?>, IBatchChunkContext> action) {
         synchronized (this) {
             if (isDone()) {
                 throw new IllegalStateException("nop.err.execution-already-completed");
@@ -485,10 +486,10 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     }
 
     @Override
-    public void fireChunkTryBegin(List<?> items, IBatchChunkContext chunkContext) {
-        List<BiConsumer<List<?>, IBatchChunkContext>> callbacks = this.onChunkTryBegin;
+    public void fireChunkTryBegin(Collection<?> items, IBatchChunkContext chunkContext) {
+        List<BiConsumer<Collection<?>, IBatchChunkContext>> callbacks = this.onChunkTryBegin;
         if (callbacks != null) {
-            for (BiConsumer<List<?>, IBatchChunkContext> callback : callbacks) {
+            for (BiConsumer<Collection<?>, IBatchChunkContext> callback : callbacks) {
                 callback.accept(items, chunkContext);
             }
         }
@@ -506,10 +507,10 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
 
 
     @Override
-    public void fireConsumeBegin(List<?> items, IBatchChunkContext chunkContext) {
-        List<BiConsumer<List<?>, IBatchChunkContext>> callbacks = this.onConsumeBegin;
+    public void fireConsumeBegin(Collection<?> items, IBatchChunkContext chunkContext) {
+        List<BiConsumer<Collection<?>, IBatchChunkContext>> callbacks = this.onConsumeBegin;
         if (callbacks != null) {
-            for (BiConsumer<List<?>, IBatchChunkContext> callback : callbacks) {
+            for (BiConsumer<Collection<?>, IBatchChunkContext> callback : callbacks) {
                 callback.accept(items, chunkContext);
             }
         }

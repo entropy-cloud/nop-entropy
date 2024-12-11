@@ -11,9 +11,9 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 import io.nop.batch.core.IBatchRecordHistoryStore;
-import io.nop.commons.util.CollectionHelper;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class WithHistoryBatchConsumer<R> implements IBatchConsumer<R> {
@@ -30,8 +30,8 @@ public class WithHistoryBatchConsumer<R> implements IBatchConsumer<R> {
     }
 
     @Override
-    public void consume(List<R> items, IBatchChunkContext context) {
-        List<R> filtered = historyStore.filterProcessed(items, context);
+    public void consume(Collection<R> items, IBatchChunkContext context) {
+        Collection<R> filtered = historyStore.filterProcessed(items, context);
         if (!filtered.isEmpty()) {
             if (filtered.size() != items.size()) {
                 if (historyConsumer != null) {

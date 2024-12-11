@@ -8,6 +8,7 @@ import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,14 +24,14 @@ public class OrmBatchRecordSnapshotBuilder<T extends IOrmEntity>
     }
 
     @Override
-    public ISnapshot<T> buildSnapshot(List<T> items, IBatchChunkContext ctx) {
+    public ISnapshot<T> buildSnapshot(Collection<T> items, IBatchChunkContext ctx) {
         Map<IDaoEntity, Map<String, Object>> map = new HashMap<>();
         for (IDaoEntity item : items) {
             map.put(item, item.orm_initedValues());
         }
         return new ISnapshot<T>() {
             @Override
-            public List<T> restore(List<T> list, IBatchChunkContext chunkContext) {
+            public Collection<T> restore(Collection<T> list, IBatchChunkContext chunkContext) {
                 IOrmSession session = ormTemplate.currentSession();
                 List<T> ret = new ArrayList<>(list.size());
                 for (T item : list) {

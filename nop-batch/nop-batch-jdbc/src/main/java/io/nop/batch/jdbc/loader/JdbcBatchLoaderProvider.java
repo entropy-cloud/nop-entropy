@@ -192,7 +192,7 @@ public class JdbcBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
             if (query == null)
                 query = new QueryBean();
 
-            IntRangeBean range = context.getPartition();
+            IntRangeBean range = context.getPartitionRange();
 
             // 自动增加分区条件
             if (partitionIndexField != null && range != null) {

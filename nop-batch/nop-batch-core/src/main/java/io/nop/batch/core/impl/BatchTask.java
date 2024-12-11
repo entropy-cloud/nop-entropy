@@ -32,8 +32,8 @@ import java.util.function.Consumer;
 
 import static io.nop.batch.core.BatchErrors.ERR_BATCH_CANCEL_PROCESS;
 
-public class BatchTaskExecution<S> implements IBatchTask {
-    static final Logger LOG = LoggerFactory.getLogger(BatchTaskExecution.class);
+public class BatchTask<S> implements IBatchTask {
+    static final Logger LOG = LoggerFactory.getLogger(BatchTask.class);
 
     private final String taskName;
     private final long taskVersion;
@@ -45,11 +45,11 @@ public class BatchTaskExecution<S> implements IBatchTask {
     private final List<Consumer<IBatchTaskContext>> initializers;
     private final int concurrency;
 
-    public BatchTaskExecution(String taskName, long taskVersion,
-                              IEvalFunction taskKeyExpr, Executor executor, int concurrency,
-                              List<Consumer<IBatchTaskContext>> initializers,
-                              IBatchLoaderProvider<S> loaderProvider,
-                              IBatchChunkProcessorProvider<S> chunkProcessorProvider, IBatchStateStore stateStore) {
+    public BatchTask(String taskName, long taskVersion,
+                     IEvalFunction taskKeyExpr, Executor executor, int concurrency,
+                     List<Consumer<IBatchTaskContext>> initializers,
+                     IBatchLoaderProvider<S> loaderProvider,
+                     IBatchChunkProcessorProvider<S> chunkProcessorProvider, IBatchStateStore stateStore) {
         this.taskName = taskName;
         this.taskVersion = taskVersion;
         this.taskKeyExpr = taskKeyExpr;

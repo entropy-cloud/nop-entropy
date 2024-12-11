@@ -13,7 +13,7 @@ import io.nop.batch.core.IBatchTaskContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import java.util.Collection;
 
 public class EmptyBatchConsumer<R> implements IBatchConsumerProvider.IBatchConsumer<R>, IBatchConsumerProvider<R> {
     static final Logger LOG = LoggerFactory.getLogger(EmptyBatchConsumer.class);
@@ -30,7 +30,7 @@ public class EmptyBatchConsumer<R> implements IBatchConsumerProvider.IBatchConsu
     }
 
     @Override
-    public void consume(List<R> items, IBatchChunkContext context) {
+    public void consume(Collection<R> items, IBatchChunkContext context) {
         LOG.debug("batch.consumer.ignore:items={}", items);
     }
 }

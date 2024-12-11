@@ -18,7 +18,7 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.JdbcBatcher;
 import io.nop.dataset.binder.IDataParameterBinder;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 
 public class JdbcInsertBatchConsumer<S> implements IBatchConsumerProvider<S>, IBatchConsumer<S> {
@@ -42,7 +42,7 @@ public class JdbcInsertBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
     }
 
     @Override
-    public void consume(List<S> items, IBatchChunkContext context) {
+    public void consume(Collection<S> items, IBatchChunkContext context) {
         SQL sql = SQL.begin().name("batch-insert").insertInto(tableName).end();
 
         jdbcTemplate.runWithConnection(sql, conn -> {

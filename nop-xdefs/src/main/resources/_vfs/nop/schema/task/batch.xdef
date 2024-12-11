@@ -12,6 +12,7 @@
        rateLimit="double" jitterRatio="double" allowStartIfComplete="boolean" startLimit="!int=0"
        useBatchRequestGenerator="!boolean=false"
        executor="bean-name" xdef:name="BatchTaskModel" xdef:bean-package="io.nop.batch.dsl.model"
+       asyncProcessor="boolean" asyncProcessTimeout="duration" snapshotBuilder="bean-name"
        x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xdef:model-name-prop="taskName" xdef:model-version-prop="taskVersion"
        xmlns:xdef="/nop/schema/xdef.xdef"
@@ -54,6 +55,7 @@
     <loader bean="bean-name" xdef:name="BatchLoaderModel" aggregator="bean-name" saveState="boolean"
             xdef:ref="BatchListenersModel" xdef:mandatory="true">
 
+        <!-- 提供分区自动拆分能力 -->
         <dispatcher xdef:name="BatchLoaderDispatcherModel"
                     fetchThreadCount="!int=1" loadBatchSize="!int" executor="bean-name" partitionIndexField="prop-path">
             <!-- 如果没有指定partitionIndexField，可以执行代码动态计算得到partitionIndex -->
@@ -83,6 +85,9 @@
             <headers xdef:value="csv-set"/>
         </file-reader>
 
+        <!--
+        @partitionIndexField 实体上的分区标识。如果设置了这个字段，且IBatchTaskContext传入了partitionRange参数，则会自动追加分区过滤条件
+        -->
         <orm-reader xdef:name="BatchOrmReaderModel" batchLoadProps="csv-list" partitionIndexField="prop-path"
                     entityName="class-name">
             <eql xdef:value="xpl-sql"/>
@@ -98,6 +103,7 @@
 
         <generator genModelPath="v-path" xdef:name="BatchGeneratorModel" totalCountExpr="!expr"/>
 
+        <!-- reader读取到items集合之后会调用afterLoad回调函数对结果进行加工 -->
         <afterLoad xdef:value="xpl-fn:(items, batchLoadCtx)=>void"/>
 
         <source xdef:value="xpl-fn:(batchSize,batchChunkCtx)=>List"/>

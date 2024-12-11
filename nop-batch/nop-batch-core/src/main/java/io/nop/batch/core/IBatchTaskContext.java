@@ -13,7 +13,7 @@ import io.nop.core.context.IExecutionContext;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.utils.IVarSet;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -84,9 +84,9 @@ public interface IBatchTaskContext extends IExecutionContext {
     /**
      * 本次任务处理所涉及到的数据分区
      */
-    IntRangeBean getPartition();
+    IntRangeBean getPartitionRange();
 
-    void setPartition(IntRangeBean partition);
+    void setPartitionRange(IntRangeBean partitionRange);
 
     boolean isRecoverMode();
 
@@ -145,7 +145,7 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void onChunkEnd(BiConsumer<IBatchChunkContext, Throwable> action);
 
-    void onChunkTryBegin(BiConsumer<List<?>, IBatchChunkContext> action);
+    void onChunkTryBegin(BiConsumer<Collection<?>, IBatchChunkContext> action);
 
     void onChunkTryEnd(BiConsumer<IBatchChunkContext, Throwable> action);
 
@@ -153,7 +153,7 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void onLoadEnd(BiConsumer<IBatchChunkContext, Throwable> action);
 
-    void onConsumeBegin(BiConsumer<List<?>, IBatchChunkContext> action);
+    void onConsumeBegin(BiConsumer<Collection<?>, IBatchChunkContext> action);
 
     void onConsumeEnd(BiConsumer<IBatchChunkContext, Throwable> action);
 
@@ -170,11 +170,11 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void fireChunkEnd(IBatchChunkContext chunkContext, Throwable err);
 
-    void fireChunkTryBegin(List<?> items, IBatchChunkContext chunkContext);
+    void fireChunkTryBegin(Collection<?> items, IBatchChunkContext chunkContext);
 
     void fireChunkTryEnd(IBatchChunkContext chunkContext, Throwable err);
 
-    void fireConsumeBegin(List<?> items, IBatchChunkContext chunkContext);
+    void fireConsumeBegin(Collection<?> items, IBatchChunkContext chunkContext);
 
     void fireConsumeEnd(IBatchChunkContext chunkContext, Throwable err);
 }

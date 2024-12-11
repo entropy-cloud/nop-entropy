@@ -84,6 +84,10 @@ public class GlobalExecutors {
         });
     }
 
+    public static IThreadPoolExecutor syncExecutor() {
+        return SyncThreadPoolExecutor.INSTANCE;
+    }
+
     public static void register(IThreadPoolExecutor executor) {
         IThreadPoolExecutor old = g_executors.put(executor.getName(), executor);
         if (old != null) {

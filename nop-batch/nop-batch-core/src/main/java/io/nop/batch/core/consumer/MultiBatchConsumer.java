@@ -10,6 +10,7 @@ package io.nop.batch.core.consumer;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 
+import java.util.Collection;
 import java.util.List;
 
 public final class MultiBatchConsumer<R> implements IBatchConsumer<R> {
@@ -36,7 +37,7 @@ public final class MultiBatchConsumer<R> implements IBatchConsumer<R> {
     }
 
     @Override
-    public void consume(List<R> items, IBatchChunkContext context) {
+    public void consume(Collection<R> items, IBatchChunkContext context) {
         for (IBatchConsumer<R> consumer : list) {
             consumer.consume(items, context);
         }

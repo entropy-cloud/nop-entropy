@@ -1,13 +1,13 @@
 package io.nop.batch.core;
 
-import java.util.List;
+import java.util.Collection;
 
 public interface IBatchRecordSnapshotBuilder<S> {
     interface ISnapshot<S> {
-        List<S> restore(List<S> items, IBatchChunkContext chunkContext);
+        Collection<S> restore(Collection<S> items, IBatchChunkContext chunkContext);
 
         void onError(Throwable e);
     }
 
-    ISnapshot<S> buildSnapshot(List<S> items, IBatchChunkContext chunkContext);
+    ISnapshot<S> buildSnapshot(Collection<S> items, IBatchChunkContext chunkContext);
 }

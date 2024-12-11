@@ -15,6 +15,7 @@ import io.nop.dataset.record.IRecordSplitter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,7 +49,7 @@ public class SplitBatchConsumer<R, T> implements IBatchConsumerProvider<R> {
         return (items, ctx) -> consume(items, ctx, activeConsumers);
     }
 
-    void consume(List<R> items, IBatchChunkContext context, Map<String, IBatchConsumer<T>> activeConsumers) {
+    void consume(Collection<R> items, IBatchChunkContext context, Map<String, IBatchConsumer<T>> activeConsumers) {
         MultiMapCollector<String, T> collector = new MultiMapCollector<>();
         splitter.splitMulti(items, collector, context);
         Map<String, List<T>> map = collector.getResultMap();

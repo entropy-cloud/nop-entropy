@@ -3,6 +3,7 @@ package io.nop.batch.dsl.manager;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanProvider;
+import io.nop.batch.core.BatchConstants;
 import io.nop.batch.core.BatchDispatchConfig;
 import io.nop.batch.core.BatchTaskBuilder;
 import io.nop.batch.core.IBatchAggregator;
@@ -12,6 +13,7 @@ import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchMetaProvider;
 import io.nop.batch.core.IBatchProcessorProvider;
 import io.nop.batch.core.IBatchRecordFilter;
+import io.nop.batch.core.IBatchRecordSnapshotBuilder;
 import io.nop.batch.core.IBatchStateStore;
 import io.nop.batch.core.IBatchTaskBuilder;
 import io.nop.batch.core.consumer.EmptyBatchConsumer;
@@ -31,6 +33,7 @@ import io.nop.batch.dsl.model.BatchProcessorModel;
 import io.nop.batch.dsl.model.BatchTaggerModel;
 import io.nop.batch.dsl.model.BatchTaskModel;
 import io.nop.batch.gen.loader.BatchGenLoaderProvider;
+import io.nop.batch.orm.support.OrmBatchRecordSnapshotBuilder;
 import io.nop.commons.collections.OrderByComparator;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.util.CollectionHelper;
@@ -102,6 +105,13 @@ public class ModelBasedBatchTaskBuilderFactory {
         builder.allowStartIfComplete(batchTaskModel.getAllowStartIfComplete());
         builder.startLimit(batchTaskModel.getStartLimit());
         builder.useBatchRequestGenerator(batchTaskModel.isUseBatchRequestGenerator());
+
+        if (batchTaskModel.getAsyncProcessor() != null)
+            builder.asyncProcessor(batchTaskModel.getAsyncProcessor());
+
+        if (batchTaskModel.getAsyncProcessTimeout() != null) {
+            builder.asyncProcessTimeout(batchTaskModel.getAsyncProcessTimeout().toMillis());
+        }
 
         builder.batchSize(batchTaskModel.getBatchSize());
         if (batchTaskModel.getJitterRatio() != null)
@@ -181,6 +191,10 @@ public class ModelBasedBatchTaskBuilderFactory {
             builder.dispatchConfig(buildDispatchConfig(batchTaskModel.getLoader().getDispatcher(), beanContainer));
         }
 
+        if (batchTaskModel.getSnapshotBuilder() != null) {
+            builder.batchRecordSnapshotBuilder(getSnapshotBuilder(batchTaskModel.getSnapshotBuilder(), beanContainer));
+        }
+
         if (batchTaskModel.getProcessors() != null) {
             List<IBatchProcessorProvider<?, ?>> list = new ArrayList<>(batchTaskModel.getProcessors().size());
 
@@ -232,6 +246,12 @@ public class ModelBasedBatchTaskBuilderFactory {
                 builder.consumer(MultiBatchConsumerProvider.fromList(writers));
             }
         }
+    }
+
+    private IBatchRecordSnapshotBuilder<Object> getSnapshotBuilder(String beanName, IBeanProvider beanContainer) {
+        if (beanName.equals(BatchConstants.SNAPSHOT_BUILDER_ORM_ENTITY))
+            return new OrmBatchRecordSnapshotBuilder(ormTemplate, false);
+        return (IBatchRecordSnapshotBuilder<Object>) beanContainer.getBean(beanName);
     }
 
     private BatchDispatchConfig<Object> buildDispatchConfig(BatchLoaderDispatcherModel dispatcherModel, IBeanProvider beanProvider) {

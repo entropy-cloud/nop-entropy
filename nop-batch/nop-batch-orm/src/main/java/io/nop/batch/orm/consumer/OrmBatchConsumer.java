@@ -56,7 +56,7 @@ public class OrmBatchConsumer<S extends IOrmEntity, R> implements IBatchConsumer
     }
 
     @Override
-    public void consume(List<R> items, IBatchChunkContext context) {
+    public void consume(Collection<R> items, IBatchChunkContext context) {
         Map<Object, R> keyMap = new HashMap<>(items.size());
         for (R item : items) {
             keyMap.put(getKey(item), item);

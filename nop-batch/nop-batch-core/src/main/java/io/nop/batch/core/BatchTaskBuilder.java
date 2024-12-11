@@ -19,7 +19,7 @@ import io.nop.batch.core.consumer.RateLimitConsumer;
 import io.nop.batch.core.consumer.RetryBatchConsumer;
 import io.nop.batch.core.consumer.SkipBatchConsumer;
 import io.nop.batch.core.consumer.WithHistoryBatchConsumer;
-import io.nop.batch.core.impl.BatchTaskExecution;
+import io.nop.batch.core.impl.BatchTask;
 import io.nop.batch.core.loader.ChunkSortBatchLoader;
 import io.nop.batch.core.loader.InvokerBatchLoader;
 import io.nop.batch.core.loader.PartitionDispatchLoaderProvider;
@@ -27,7 +27,6 @@ import io.nop.batch.core.loader.RetryBatchLoader;
 import io.nop.batch.core.processor.BatchChunkProcessor;
 import io.nop.batch.core.processor.BatchSequentialProcessor;
 import io.nop.batch.core.processor.InvokerBatchChunkProcessor;
-import io.nop.commons.concurrent.executor.ExecutorHelper;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.functional.IFunctionInvoker;
@@ -50,6 +49,8 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
     private IBatchConsumerProvider<R> consumer;
     private boolean useBatchRequestGenerator;
     private IBatchProcessorProvider<S, R> processor;
+    private boolean asyncProcessor;
+    private long asyncProcessTimeout;
     private int batchSize = 100;
 
     /**
@@ -69,7 +70,7 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
 
     private boolean singleSession;
     private BatchTransactionScope batchTransactionScope = BatchTransactionScope.consume;
-    private Executor executor = ExecutorHelper.syncExecutor();
+    private Executor executor;
 
     private IBatchStateStore stateStore;
     private Boolean allowStartIfComplete;
@@ -153,6 +154,18 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
     @PropertySetter
     public BatchTaskBuilder<S, R> taskKeyExpr(IEvalFunction expr) {
         this.taskKeyExpr = expr;
+        return this;
+    }
+
+    @PropertySetter
+    public BatchTaskBuilder<S, R> asyncProcessor(boolean asyncProcessor) {
+        this.asyncProcessor = asyncProcessor;
+        return this;
+    }
+
+    @PropertySetter
+    public BatchTaskBuilder<S, R> asyncProcessTimeout(long asyncProcessTimeout) {
+        this.asyncProcessTimeout = asyncProcessTimeout;
         return this;
     }
 
@@ -310,7 +323,16 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
         if (context.getStartLimit() <= 0)
             context.setStartLimit(startLimit);
 
-        return new BatchTaskExecution<S>(taskName, taskVersion == null ? 0 : taskVersion, taskKeyExpr,
+        Executor executor = this.executor;
+        if (executor == null) {
+            if (concurrency > 0) {
+                executor = GlobalExecutors.cachedThreadPool();
+            } else {
+                executor = GlobalExecutors.syncExecutor();
+            }
+        }
+
+        return new BatchTask<S>(taskName, taskVersion == null ? 0 : taskVersion, taskKeyExpr,
                 executor, concurrency, taskInitializers, this::buildLoader, this::buildChunkProcessor, stateStore);
     }
 
@@ -367,7 +389,7 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
             if (useBatchRequestGenerator) {
                 processor = new BatchSequentialProcessor(processor);
             }
-            consumer = new BatchProcessorConsumer<>(processor, (IBatchConsumer<R>) consumer);
+            consumer = new BatchProcessorConsumer<>(processor, (IBatchConsumer<R>) consumer, asyncProcessor, asyncProcessTimeout);
         }
 
         // 保存处理历史，避免重复处理

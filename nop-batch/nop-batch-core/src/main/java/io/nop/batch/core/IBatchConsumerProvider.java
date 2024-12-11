@@ -2,7 +2,7 @@ package io.nop.batch.core;
 
 import io.nop.batch.core.consumer.FilteredBatchConsumer;
 
-import java.util.List;
+import java.util.Collection;
 
 public interface IBatchConsumerProvider<R> {
 
@@ -25,6 +25,6 @@ public interface IBatchConsumerProvider<R> {
          * @param items   待处理的对象集合
          * @param context 上下文对象
          */
-        void consume(List<R> items, IBatchChunkContext context);
+        void consume(Collection<R> items, IBatchChunkContext context);
     }
 }

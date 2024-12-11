@@ -6,7 +6,7 @@ import io.nop.batch.core.IBatchTaskContext;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmTemplate;
 
-import java.util.List;
+import java.util.Collection;
 
 public class OrmInsertBatchConsumer<R extends IOrmEntity> implements IBatchConsumerProvider.IBatchConsumer<R>, IBatchConsumerProvider<R> {
     private final IOrmTemplate ormTemplate;
@@ -21,7 +21,7 @@ public class OrmInsertBatchConsumer<R extends IOrmEntity> implements IBatchConsu
     }
 
     @Override
-    public void consume(List<R> items, IBatchChunkContext context) {
+    public void consume(Collection<R> items, IBatchChunkContext context) {
         ormTemplate.batchSaveOrUpdate(items);
     }
 }

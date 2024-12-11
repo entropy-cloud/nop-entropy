@@ -16,6 +16,7 @@ import io.nop.commons.util.retry.RetryPolicy;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -110,7 +111,7 @@ public class TestBatchTask {
         }
 
         @Override
-        public void consume(List<String> items, IBatchChunkContext context) {
+        public void consume(Collection<String> items, IBatchChunkContext context) {
             count.addAndGet(items.size());
             this.items.addAll(items);
         }

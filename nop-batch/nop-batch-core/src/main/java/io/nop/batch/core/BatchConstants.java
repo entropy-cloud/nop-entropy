@@ -16,6 +16,8 @@ public interface BatchConstants {
 
     String DEFAULT_METER_PREFIX = "nop.";
 
+    String SNAPSHOT_BUILDER_ORM_ENTITY = "orm-entity";
+
     String METER_TASK = "batch.task";
     String METER_CHUNK = "batch.chunk";
     String METER_LOAD = "batch.load";

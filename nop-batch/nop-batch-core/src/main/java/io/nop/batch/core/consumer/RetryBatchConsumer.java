@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -46,7 +47,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
     }
 
     @Override
-    public void consume(List<R> items, IBatchChunkContext context) {
+    public void consume(Collection<R> items, IBatchChunkContext context) {
         IBatchRecordSnapshotBuilder.ISnapshot<R> snapshot =
                 snapshotBuilder == null ? null : snapshotBuilder.buildSnapshot(items, context);
         try {
@@ -78,7 +79,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
         }
     }
 
-    void consumeSingle(List<R> items, IBatchChunkContext context) {
+    void consumeSingle(Collection<R> items, IBatchChunkContext context) {
         context.setSingleMode(true);
 
         for (R item : items) {
@@ -88,7 +89,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
         }
     }
 
-    void retryConsume(Throwable exception, List<R> items, IBatchRecordSnapshotBuilder.ISnapshot<R> snapshot,
+    void retryConsume(Throwable exception, Collection<R> items, IBatchRecordSnapshotBuilder.ISnapshot<R> snapshot,
                       IBatchChunkContext context) {
         int retryCount = 0;
         Throwable fatalError = null;
@@ -106,7 +107,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
             }
 
             try {
-                List<R> restoredItems = restoreItems(snapshot, items, context);
+                Collection<R> restoredItems = restoreItems(snapshot, items, context);
 
                 RetryOnceResult result = retryConsumeOnce(retryCount, restoredItems, context);
                 if (result == null) {
@@ -140,7 +141,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
             throw NopException.adapt(fatalError);
     }
 
-    List<R> restoreItems(IBatchRecordSnapshotBuilder.ISnapshot<R> snapshot, List<R> items, IBatchChunkContext chunkContext) {
+    Collection<R> restoreItems(IBatchRecordSnapshotBuilder.ISnapshot<R> snapshot, Collection<R> items, IBatchChunkContext chunkContext) {
         if (snapshot == null)
             return items;
         return snapshot.restore(items, chunkContext);
@@ -153,7 +154,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
         List<R> retryItems;
     }
 
-    RetryOnceResult retryConsumeOnce(int retryCount, List<R> items, IBatchChunkContext context) {
+    RetryOnceResult retryConsumeOnce(int retryCount, Collection<R> items, IBatchChunkContext context) {
         IBatchTaskMetrics metrics = context.getTaskContext().getMetrics();
         if (metrics != null)
             metrics.retry(items.size());
@@ -180,7 +181,7 @@ public class RetryBatchConsumer<R> implements IBatchConsumer<R> {
         }
     }
 
-    RetryOnceResult retryConsumeOneByOne(int retryCount, List<R> items, IBatchChunkContext context) {
+    RetryOnceResult retryConsumeOneByOne(int retryCount, Collection<R> items, IBatchChunkContext context) {
         context.setSingleMode(true);
         List<R> retryItems = new ArrayList<>();
 

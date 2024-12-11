@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 
 public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatchChunkContext {
     private final IBatchTaskContext context;
@@ -27,6 +28,8 @@ public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatc
     private int threadIndex;
     private int concurrency;
     private int processCount;
+
+    private CountDownLatch latch;
 
     public BatchChunkContextImpl(IBatchTaskContext context) {
         super(context.getEvalScope());
@@ -125,5 +128,19 @@ public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatc
 
     public void setSingleMode(boolean singleMode) {
         this.singleMode = singleMode;
+    }
+
+    @Override
+    public void initChunkLatch(CountDownLatch latch) {
+        this.latch = latch;
+    }
+
+    public CountDownLatch getChunkLatch() {
+        return latch;
+    }
+
+    @Override
+    public void countDown() {
+        latch.countDown();
     }
 }

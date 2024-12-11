@@ -20,6 +20,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.record.IResourceRecordOutputProvider;
 import io.nop.dataset.record.IRecordOutput;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -139,7 +140,7 @@ public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHand
         return state;
     }
 
-    void consume(List<R> items, ConsumerState<R> state) {
+    void consume(Collection<R> items, ConsumerState<R> state) {
         if (items.isEmpty())
             return;
 

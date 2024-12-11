@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +41,7 @@ public class JdbcKeyDuplicateFilter<S> implements IBatchRecordHistoryStore<S> {
     }
 
     @Override
-    public List<S> filterProcessed(List<S> records, IBatchChunkContext context) {
+    public Collection<S> filterProcessed(Collection<S> records, IBatchChunkContext context) {
         if (keyBinders.size() == 1) {
             String keyCol = CollectionHelper.first(keyBinders.keySet());
             IDataParameterBinder binder = keyBinders.get(keyCol);
@@ -74,7 +75,7 @@ public class JdbcKeyDuplicateFilter<S> implements IBatchRecordHistoryStore<S> {
         }
     }
 
-    private SQL buildSelectByKeySql(List<S> records, String keyCol, IDataParameterBinder binder) {
+    private SQL buildSelectByKeySql(Collection<S> records, String keyCol, IDataParameterBinder binder) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.select().append(keyCol);
         sb.from().sql(tableName);
@@ -100,7 +101,7 @@ public class JdbcKeyDuplicateFilter<S> implements IBatchRecordHistoryStore<S> {
         return ret;
     }
 
-    private SQL buildSelectByCompositeKeySql(List<S> records) {
+    private SQL buildSelectByCompositeKeySql(Collection<S> records) {
         SQL.SqlBuilder sb = SQL.begin();
         sb.select().fields(null, keyBinders.keySet());
         sb.from().sql(tableName);
@@ -124,7 +125,7 @@ public class JdbcKeyDuplicateFilter<S> implements IBatchRecordHistoryStore<S> {
     }
 
     @Override
-    public void saveProcessed(List<S> filtered, Throwable exception, IBatchChunkContext context) {
+    public void saveProcessed(Collection<S> filtered, Throwable exception, IBatchChunkContext context) {
 
     }
 }

@@ -12,6 +12,7 @@ import io.nop.core.context.IExecutionContext;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * 批处理的一个执行单元。例如100条记录组成一个chunk，一个chunk全部执行完毕之后才提交一次，而不是每处理一条记录就提交一次事务。
@@ -86,4 +87,10 @@ public interface IBatchChunkContext extends IExecutionContext {
     boolean isSingleMode();
 
     void setSingleMode(boolean singleMode);
+
+    void initChunkLatch(CountDownLatch latch);
+
+    CountDownLatch getChunkLatch();
+
+    void countDown();
 }

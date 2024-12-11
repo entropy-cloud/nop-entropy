@@ -16,7 +16,7 @@ import io.nop.batch.core.exceptions.BatchCancelException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import java.util.Collection;
 
 /**
  * 消费失败之后允许忽略skipCount条记录。
@@ -33,7 +33,7 @@ public class SkipBatchConsumer<R> implements IBatchConsumer<R> {
     }
 
     @Override
-    public void consume(List<R> items, IBatchChunkContext context) {
+    public void consume(Collection<R> items, IBatchChunkContext context) {
         IBatchTaskMetrics metrics = context.getTaskContext().getMetrics();
         try {
             consumer.consume(items, context);

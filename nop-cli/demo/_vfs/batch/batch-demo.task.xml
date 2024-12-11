@@ -37,6 +37,7 @@
                     <dispatcher loadBatchSize="100" partitionIndexField="_t.partitionIndex">
                     </dispatcher>
 
+                    <!-- reader读取到items集合之后会调用afterLoad回调函数对结果进行加工 -->
                     <afterLoad>
                         <c:script><![CDATA[
                             if(items?.size() > 0){
@@ -89,6 +90,7 @@
                     </source>
                 </processor>
 
+                <!-- 可以定义多个consumer，然后通过filter段来控制只消费一部分输出数据 -->
                 <consumer name="deleteInput">
                     <filter>
                         return item instanceof String;

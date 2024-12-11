@@ -39,7 +39,7 @@ public class TestBatchTaskDsl extends JunitAutoTestCase {
         makeInputFile(bizDate);
 
         taskRt.setInput("bizDate", bizDate);
-        Map<String, Object> outputs = task.execute(taskRt).get();
+        Map<String, Object> outputs = task.execute(taskRt).syncGetOutputs();
         System.out.println(outputs);
     }
 

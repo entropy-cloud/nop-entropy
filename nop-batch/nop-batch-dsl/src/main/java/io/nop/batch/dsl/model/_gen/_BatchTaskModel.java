@@ -25,6 +25,20 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: asyncProcessTimeout
+     * 
+     */
+    private java.time.Duration _asyncProcessTimeout ;
+    
+    /**
+     *  
+     * xml name: asyncProcessor
+     * 
+     */
+    private java.lang.Boolean _asyncProcessor ;
+    
+    /**
+     *  
      * xml name: batchSize
      * 
      */
@@ -138,6 +152,13 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: snapshotBuilder
+     * 
+     */
+    private java.lang.String _snapshotBuilder ;
+    
+    /**
+     *  
      * xml name: startLimit
      * 
      */
@@ -200,6 +221,44 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._allowStartIfComplete = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: asyncProcessTimeout
+     *  
+     */
+    
+    public java.time.Duration getAsyncProcessTimeout(){
+      return _asyncProcessTimeout;
+    }
+
+    
+    public void setAsyncProcessTimeout(java.time.Duration value){
+        checkAllowChange();
+        
+        this._asyncProcessTimeout = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: asyncProcessor
+     *  
+     */
+    
+    public java.lang.Boolean getAsyncProcessor(){
+      return _asyncProcessor;
+    }
+
+    
+    public void setAsyncProcessor(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._asyncProcessor = value;
            
     }
 
@@ -589,6 +648,25 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: snapshotBuilder
+     *  
+     */
+    
+    public java.lang.String getSnapshotBuilder(){
+      return _snapshotBuilder;
+    }
+
+    
+    public void setSnapshotBuilder(java.lang.String value){
+        checkAllowChange();
+        
+        this._snapshotBuilder = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: startLimit
      *  
      */
@@ -752,6 +830,8 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         super.outputJson(out);
         
         out.putNotNull("allowStartIfComplete",this.getAllowStartIfComplete());
+        out.putNotNull("asyncProcessTimeout",this.getAsyncProcessTimeout());
+        out.putNotNull("asyncProcessor",this.getAsyncProcessor());
         out.putNotNull("batchSize",this.getBatchSize());
         out.putNotNull("concurrency",this.getConcurrency());
         out.putNotNull("consumers",this.getConsumers());
@@ -768,6 +848,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         out.putNotNull("singleMode",this.getSingleMode());
         out.putNotNull("singleSession",this.getSingleSession());
         out.putNotNull("skipPolicy",this.getSkipPolicy());
+        out.putNotNull("snapshotBuilder",this.getSnapshotBuilder());
         out.putNotNull("startLimit",this.getStartLimit());
         out.putNotNull("tagger",this.getTagger());
         out.putNotNull("taskKeyExpr",this.getTaskKeyExpr());
@@ -787,6 +868,8 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         super.copyTo(instance);
         
         instance.setAllowStartIfComplete(this.getAllowStartIfComplete());
+        instance.setAsyncProcessTimeout(this.getAsyncProcessTimeout());
+        instance.setAsyncProcessor(this.getAsyncProcessor());
         instance.setBatchSize(this.getBatchSize());
         instance.setConcurrency(this.getConcurrency());
         instance.setConsumers(this.getConsumers());
@@ -803,6 +886,7 @@ public abstract class _BatchTaskModel extends io.nop.core.resource.component.Abs
         instance.setSingleMode(this.getSingleMode());
         instance.setSingleSession(this.getSingleSession());
         instance.setSkipPolicy(this.getSkipPolicy());
+        instance.setSnapshotBuilder(this.getSnapshotBuilder());
         instance.setStartLimit(this.getStartLimit());
         instance.setTagger(this.getTagger());
         instance.setTaskKeyExpr(this.getTaskKeyExpr());

@@ -102,7 +102,7 @@ public class OrmQueryBatchLoaderProvider<S extends IDaoEntity> implements IBatch
     LoaderState<S> newLoaderState(IBatchTaskContext context) {
         LoaderState<S> state = new LoaderState<>();
         state.query = queryBuilder == null ? new QueryBean() : queryBuilder.buildQuery(context);
-        IntRangeBean range = context.getPartition();
+        IntRangeBean range = context.getPartitionRange();
 
         // 自动增加分区条件
         if (partitionIndexField != null && range != null) {

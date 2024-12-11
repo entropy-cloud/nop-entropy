@@ -19,7 +19,6 @@ import io.nop.dao.jdbc.JdbcBatcher;
 import io.nop.dataset.binder.IDataParameterBinder;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 public class JdbcUpdateBatchConsumer<S> implements IBatchConsumerProvider<S>, IBatchConsumer<S> {
@@ -46,7 +45,7 @@ public class JdbcUpdateBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
     }
 
     @Override
-    public void consume(List<S> items, IBatchChunkContext context) {
+    public void consume(Collection<S> items, IBatchChunkContext context) {
         SQL sql = SQL.begin().name("batch-update").insertInto(tableName).end();
 
         jdbcTemplate.runWithConnection(sql, conn -> {

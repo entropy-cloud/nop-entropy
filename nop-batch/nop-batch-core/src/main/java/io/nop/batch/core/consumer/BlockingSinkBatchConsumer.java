@@ -14,7 +14,7 @@ import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.commons.concurrent.IBlockingSink;
 
-import java.util.List;
+import java.util.Collection;
 
 public class BlockingSinkBatchConsumer<R> implements IBatchConsumer<R>, IBatchConsumerProvider<R> {
     private IBlockingSink<R> sink;
@@ -33,7 +33,7 @@ public class BlockingSinkBatchConsumer<R> implements IBatchConsumer<R>, IBatchCo
     }
 
     @Override
-    public void consume(List<R> items, IBatchChunkContext context) {
+    public void consume(Collection<R> items, IBatchChunkContext context) {
         try {
             sink.sendMulti(items);
         } catch (InterruptedException e) {

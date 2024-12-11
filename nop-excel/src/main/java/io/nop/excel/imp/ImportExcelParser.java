@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
-import static io.nop.core.CoreErrors.ARG_PROP_NAME;
+import static io.nop.excel.ExcelErrors.ARG_KEY_PROP;
 import static io.nop.excel.ExcelErrors.ARG_NAME_PATTERN;
 import static io.nop.excel.ExcelErrors.ARG_SHEET_NAME;
 import static io.nop.excel.ExcelErrors.ERR_IMPORT_MISSING_MANDATORY_SHEET;
@@ -176,7 +176,7 @@ public class ImportExcelParser {
         if (list.size() != sheets.size())
             throw new NopException(ERR_IMPORT_SHEET_WITH_DUPLICATE_KEY_PROP)
                     .param(ARG_SHEET_NAME, sheetModel.getName())
-                    .param(ARG_PROP_NAME, sheetModel.getKeyProp());
+                    .param(ARG_KEY_PROP, sheetModel.getKeyProp());
 
         if (sheetModel.isMultipleAsMap()) {
             Map<String, Object> map = new LinkedHashMap<>();
