@@ -14,7 +14,7 @@ import io.nop.commons.util.ClassHelper;
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _BatchTaskModel extends io.nop.core.resource.component.AbstractComponentModel {
+public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListenersModel {
     
     /**
      *  

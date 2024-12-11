@@ -10,7 +10,7 @@
        singleMode="boolean=false" singleSession="boolean" saveState="boolean"
        transactionScope="enum:io.nop.batch.core.BatchTransactionScope"
        rateLimit="double" jitterRatio="double" allowStartIfComplete="boolean" startLimit="!int=0"
-       useBatchRequestGenerator="!boolean=false"
+       useBatchRequestGenerator="!boolean=false" xdef:ref="BatchListenersModel"
        executor="bean-name" xdef:name="BatchTaskModel" xdef:bean-package="io.nop.batch.dsl.model"
        asyncProcessor="boolean" asyncProcessTimeout="duration" snapshotBuilder="bean-name"
        x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"

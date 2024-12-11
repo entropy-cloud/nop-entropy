@@ -40,7 +40,7 @@ public abstract class _BatchOrmReaderModel extends io.nop.core.resource.componen
     /**
      *  
      * xml name: partitionIndexField
-     * 
+     * 实体上的分区标识。如果设置了这个字段，且IBatchTaskContext传入了partitionRange参数，则会自动追加分区过滤条件
      */
     private java.lang.String _partitionIndexField ;
     
@@ -111,7 +111,7 @@ public abstract class _BatchOrmReaderModel extends io.nop.core.resource.componen
     /**
      * 
      * xml name: partitionIndexField
-     *  
+     *  实体上的分区标识。如果设置了这个字段，且IBatchTaskContext传入了partitionRange参数，则会自动追加分区过滤条件
      */
     
     public java.lang.String getPartitionIndexField(){

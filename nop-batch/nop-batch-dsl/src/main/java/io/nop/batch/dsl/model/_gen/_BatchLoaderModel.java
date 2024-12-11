@@ -26,7 +26,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
     /**
      *  
      * xml name: afterLoad
-     * 
+     * reader读取到items集合之后会调用afterLoad回调函数对结果进行加工
      */
     private io.nop.core.lang.eval.IEvalFunction _afterLoad ;
     
@@ -47,7 +47,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
     /**
      *  
      * xml name: dispatcher
-     * 
+     * 提供分区自动拆分能力
      */
     private io.nop.batch.dsl.model.BatchLoaderDispatcherModel _dispatcher ;
     
@@ -115,7 +115,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
     /**
      * 
      * xml name: afterLoad
-     *  
+     *  reader读取到items集合之后会调用afterLoad回调函数对结果进行加工
      */
     
     public io.nop.core.lang.eval.IEvalFunction getAfterLoad(){
@@ -172,7 +172,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
     /**
      * 
      * xml name: dispatcher
-     *  
+     *  提供分区自动拆分能力
      */
     
     public io.nop.batch.dsl.model.BatchLoaderDispatcherModel getDispatcher(){

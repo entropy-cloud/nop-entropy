@@ -165,6 +165,8 @@ public class ModelBasedBatchTaskBuilderFactory {
             builder.loadRetryPolicy((IRetryPolicy<IBatchChunkContext>) this.batchTaskModel.getLoadRetryPolicy().buildRetryPolicy());
         }
 
+        addListeners(builder, batchTaskModel);
+
         buildTask(builder, beanContainer);
 
         return builder;
