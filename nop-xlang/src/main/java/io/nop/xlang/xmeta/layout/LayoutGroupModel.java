@@ -80,6 +80,8 @@ public class LayoutGroupModel extends BaseCell implements ILayoutGroupModel, ILa
 
     @JsonIgnore
     public String getId() {
+        if(table == null)
+            return null;
         return table.getId();
     }
 

@@ -2852,6 +2852,26 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.commons.concurrent.executor.BaseThreadPoolConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.concurrent.executor.ThreadPoolConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.commons.lang.IAttributeSet"
   },
   {
@@ -3023,6 +3043,25 @@
       }
     ],
     "name": "io.nop.core.dict.DictModelParser"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "doStart",
+        "parameterTypes": []
+      },
+      {
+        "name": "doStop",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.core.execution.DefaultTaskExecutionQueue"
   },
   {
     "allDeclaredConstructors": true,
@@ -11927,6 +11966,23 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.xlang.xmeta.layout.LayoutGroupModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.xlang.xmeta.layout.LayoutModel"
   },
@@ -12319,6 +12375,16 @@
       }
     ],
     "name": "io.nop.xlang.xpl.xlib._gen._XplTagSlotArg"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xui.initialize.XuiCoreInitializer"
   },
   {
     "allDeclaredConstructors": true,
