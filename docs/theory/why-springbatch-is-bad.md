@@ -1189,18 +1189,6 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
         </orm-reader>
     </loader>
 
-    <processor>
-        <source>
-          const data = {
-            txnTime: item.txnTime,
-            txnAmount: item.txnAmount,
-            txnType: item.txnType,
-            cardNumber: item.cardNumber
-          }
-          consume(data)
-        </source>
-    </processor>
-
     <consumer name="saveToDb">
         <orm-writer entityName="DemoTransaction">
         </orm-writer>
@@ -1214,3 +1202,50 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
 
 ## 四. DSL的多重表象
 
+Nop平台与其他平台的一个本质性区别是Nop平台并不只是内置了一些常用的DSL，而是提供了一整套的面向语言编程（Language Oriented Programming）的基础技术设施，可以用于快速开发或者扩展已有的DSL。而且每一个DSL都不仅仅是具有唯一的表达形式，而是具有Excel、可视化编辑、JSON、XML等多种表达形式，在这几种形式之间自由转换。
+
+举例来说，在`record-file.register-model.xml`中定义了消息模型具有多种加载器
+
+```xml
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="record-file">
+
+    <loaders>
+        <xdsl-loader fileType="record-file.xml" schemaPath="/nop/schema/record/record-file.xdef"/>
+        <xlsx-loader fileType="record-file.xlsx" impPath="/nop/record/imp/record-file.imp.xml" />
+    </loaders>
+
+</model>
+```
+
+上面的配置表示 `xxx.record-file.xml`这种类型的文件可以被解析为RecordFileMeta对象，解析时按照`record-file.xdef`元模型进行解析。同时`xxx.record-file.xlsx`这种类型的文件需要使用XlsxObjectLoader来解析，解析时按照`record-file.imp.xml`中定义的结构规则。
+
+在`txn.record-file.xlsx`中定义了一个定长数据文件的格式，包含文件头、文件体和文件尾。
+
+![](batch/record-file.png)
+
+它等价于如下配置
+
+```xml
+<file x:schema="/nop/schema/record/record-file.xdef" xmlns:x="/nop/schema/xdsl.xdef" binary="true">
+    <header typeRef="HeaderOObject"/>
+    <body typeRef="BodyObject" />
+    <trailer typeRef="TrailerObject" />
+    <aggregates>
+        <!-- 汇总每条记录的txnAmount属性得到totoalAmount变量，在trailer中使用-->
+        <aggregate name="totalAmount" aggFunc="sum" prop="txnAmount" />
+    </aggregates>
+
+    <types>
+        <type name="HeaderObject">
+           <fields>...</fields>
+        </type>
+        <type name="BodyObject">
+           <fields>...</fields>
+        </type>
+        <type name="TrailerObject">
+            <fields>...</fields>
+        </type>
+    </types>
+</file>
+```
