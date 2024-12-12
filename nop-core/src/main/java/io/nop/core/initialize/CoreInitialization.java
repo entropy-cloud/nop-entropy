@@ -271,6 +271,8 @@ public class CoreInitialization {
         bootstrapConfig = Collections.emptyMap();
         IResource resource = getBootstrapResource();
         if (resource.exists()) {
+            LOG.info("nop.config.use-bootstrap-resource:location={}", resource);
+
             Map<String, Object> map = JsonTool.parseBeanFromResource(resource, Map.class);
             if (map != null) {
                 bootstrapConfig = CollectionHelper.flattenMap(map);

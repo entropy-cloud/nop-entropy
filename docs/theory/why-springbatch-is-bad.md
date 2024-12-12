@@ -35,6 +35,8 @@ Spring Batch 是一个用于批量处理的轻量级、全面的框架。它旨�
 - **ItemProcessor**：负责处理读取到的数据。
 - **ItemWriter**：负责将处理后的数据写入到目的地。
 
+![](batch/spring-batch.png)
+
 Spring Batch 的使用场景非常广泛，包括但不限于：
 
 - 数据同步
@@ -67,11 +69,12 @@ interface ItemWriter<T> {
 比如以下的配置表示每100条数据作为一个chunk来处理，每个chunk都对应一个read-process-write的过程，
 
 ```xml
+
 <batch:job id="firstBatchJob">
   <batch:step id="step1">
     <batch:tasklet>
-      <batch:chunk reader="itemReader" writer="itemWriter"
-                   processor="itemProcessor" commit-interval="100">
+      <batch:chunk reader="itemReader" processor="itemProcessor"
+                   writer="itemWriter" commit-interval="100">
       </batch:chunk>
     </batch:tasklet>
   </batch:step>
@@ -159,7 +162,7 @@ public interface IBatchLoader<S> {
 List<T> data = loader.load(batchSize, context);
 
 // 批量加载其他相关数据，加载的数据可以放到context中，也可以作为data中元素的扩展字段
-batchLoadRelatedData(data, context); 
+batchLoadRelatedData(data, context);
 ```
 
 当处理数据需要获取互斥锁的时候，SpringBatch的设计也显得非常不友好。因为SpringBatch的ItemReader是逐条读取的，导致获取锁的时候无法进行批量优化，并且获取锁的顺序也难以控制，存在死锁风险。
@@ -175,7 +178,7 @@ SpringBatch 1.0中的ItemWriter接口定义如下:
 public interface ItemWriter {
 
 	public void write(Object item) throws Exception;
-	
+
 	public void flush() throws FlushFailedException;
 
 	public void clear() throws ClearFailedException;
@@ -277,7 +280,7 @@ class Chunk<W> implements Iterable<W>, Serializable {
 	private boolean end;
 
 	private boolean busy;
-}    
+}
 ```
 
 Chunk结构中包含多种信息，但是在Processor和Reader中却不能直接访问Chunk结构，造成不必要的复杂性。
@@ -516,6 +519,9 @@ public interface IBatchLoaderProvider<S> {
 }
 ```
 
+> 这里的setup函数返回Loader类似于Vue组件的setup函数返回renderer。Vue组件调用一次setup返回的renderer函数，然后renderer函数会被调用多次。
+> 同样的，IBatchLoaderProvider的setup函数被调用一次返回IBatchLoader，然后loader会被调用多次。
+
 上下文对象context提供了onTaskBegin/onTaskEnd等回调函数注册方法。
 
 ```java
@@ -558,7 +564,6 @@ class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandler
 ```java
 public class BatchTaskGlobals {
     static final ThreadLocal<IBatchTaskContext> s_taskContext = new NamedThreadLocal<>("batch-task-context");
-    static final ThreadLocal<IBatchChunkContext> s_chunkContext = new NamedThreadLocal<>("batch-chunk-context");
 
     public static IBatchTaskContext useTaskContext() {
         return s_taskContext.get();
@@ -606,6 +611,8 @@ Provider现在成为单例对象，可以使用IoC容器进行配置，不需要
 ### 3.2 使用通用的TaskFlow来组织逻辑流
 
 SpringBatch提供了一种简易的逻辑流模型，在XML中可以配置多个步骤以及步骤之间的转移关系，还支持并行执行和条件跳转。
+
+比如下面这个由智谱清言AI生成的例子，它通过split启动两个并行执行的子流程，然后每个子流程内部再串行执行步骤。
 
 ```xml
 <job id="exampleJob" xmlns="http://www.springframework.org/schema/batch">
@@ -878,7 +885,7 @@ interface IBatchChunkContext{
   ...
 }
 
-class BatchTaskExecution{
+class BatchTask implements IBatchTask{
    public CompletableFuture<Void> executeAsync(IBatchTaskContext context){
       CompletableFuture<Void> future = new CompletableFuture<>();
 
@@ -937,20 +944,24 @@ NopBatch内置了一个PartitionDispatchLoaderProvider，它提供了一种灵�
 ```xml
 <batch>
     <loader>
+        <!-- 先用OrmReader读取数据, 然后调用dispatcher分发到分区任务队列中，每个partitionIndex一个队列 -->
         <orm-reader entityName="DemoIncomingTxn">
 
         </orm-reader>
-
-        <dispatcher loadBatchSize="100" partitionIndexField="_t.partitionIndex">
-        </dispatcher>
 
         <!-- reader读取到items集合之后会调用afterLoad回调函数对结果进行加工 -->
         <afterLoad>
             for(let item of items){
                 item.make_t().partitionIndex = ...; // 动态计算得到partitionIndex
-            }      
+            }
         </afterLoad>
-    </loader>    
+
+        <!-- partitionIndex是afterLoad中计算得到，在原始数据中不存在。
+          所以SpringBatch的grid配置处理不了这种情况
+         -->
+       <dispatcher loadBatchSize="100" partitionIndexField="_t.partitionIndex">
+       </dispatcher>
+    </loader>
 </batch>
 ```
 
@@ -996,11 +1007,12 @@ NopBatch DSL中的OrmReader和JdbcReader都支持partitionIndexField配置，如
 </batch>
 ```
 
+调用批处理任务时传入partitionRange配置
 ```javascript
 batchTaskContext.setPartitionRange(IntRangeBean.of(1000,100));
 ```
 
-上面的配置在执行时会生成如下SQL语句
+上面的配置会导致自动追加分区过滤条件，在执行时会生成如下SQL语句。
 
 ```sql
 select o from MyEntity o
@@ -1101,7 +1113,7 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
                 </processor>
 
                 <consumer name="all">
-                    <file-writer filePath="dev:/target/output/${bizDate}-all.dat" 
+                    <file-writer filePath="dev:/target/output/${bizDate}-all.dat"
                       record:file-model="SimpleFile"/>
                 </consumer>
 
@@ -1111,7 +1123,7 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
                         return item.quantity > 500;
                     </filter>
 
-                    <file-writer filePath="dev:/target/output/${bizDate}-selected.dat" 
+                    <file-writer filePath="dev:/target/output/${bizDate}-selected.dat"
                        fileModelPath="simple.record-file.xml"/>
                 </consumer>
 
@@ -1124,9 +1136,9 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
 在上面的示例中，演示了在NopTaskFlow中如何无缝嵌入Batch批处理模型和Record消息格式定义。
 
 1. NopTaskFlow逻辑编排引擎在设计的时候并没有任何关于批处理任务的知识，也没有内置Record模型。
-2. 扩展NopTaskFlow并不需要实现某个NopTaskFlow引擎内部的扩展接口，也不需要使用NopTaskFlow内部的某种注册机制注册扩展步骤。
+2. **扩展NopTaskFlow并不需要实现某个NopTaskFlow引擎内部的扩展接口，也不需要使用NopTaskFlow内部的某种注册机制注册扩展步骤**。这与一般的框架设计形成鲜明对比。
 3. 只需要查看`task.xdef`元模型，了解NopTaskFlow逻辑编排模型的节点结构，就可以使用XLang语言内置的元编程机制实现扩展。
-4. `x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml"`引入了基础模型支持，这些基础模型通过`x:post-extends`等元编程机制在XNode结构层对当前模型进行结构变换。
+4. `x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml"`引入了基础模型支持，这些基础模型通过`x:post-extends`等元编程机制在XNode结构层对当前模型进行结构变换。**我们可以按需引入编译期结构变换规则。**
 5. `<custom name="test" customType="batch:Execute" xmlns:batch="xxx.xlib">` 扩展节点的customType会被自动识别为Xpl 标签函数，并将custom节点变换为对`<batch:Execute>`标签函数的调用。
 
 ```xml
@@ -1144,9 +1156,9 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
 </xpl>
 ```
 
-也就是说，customType是具有名字空间的标签函数名。所有具有相同名字空间的属性和子节点都会作为该标签的属性和子节点。
+也就是说，customType是具有名字空间的标签函数名。所有具有相同名字空间的属性和子节点都会作为该标签的属性和子节点。虽然直接使用xpl步骤也不是很复杂，但是基于customType进行元编程变换可以进一步压缩信息表达量，确保只需要表达最少量的信息，所有能推导得到的表达都自动推导得到。
 
-7. `<batch:Execute>`标签会在编译期解析自己的task节点，构造出IBatchTaskBuilder，在运行期可以直接获取到编译期变量，不用再重复解析。
+7. `<batch:Execute>`标签会在编译期解析自己的task节点，构造出IBatchTask对象，在运行期可以直接获取到编译期变量，不用再重复解析。
 8. 所有的XDSL都自动支持扩展属性和扩展节点，缺省情况下带名字空间的属性和节点不会参与XDef元模型检查。所以在task节点下可以引入自定义的`<record:file-model>`模型定义，它会被`batch-common.task.xml`引入的元编程处理器自动解析为RecordFileMeta模型对象，并保存为编译期的一个变量。
 9. `file-reader`和 `file-writer`节点上的`record:file-model`属性会被识别，并自动转换。
 
@@ -1164,6 +1176,8 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
 </file-writer>
 ```
 
+* `#{}`是XLang语言中所定义的编译期表达式语法，通过它可以获取到编译期设置的变量。
+
 10. NopTaskFlow在某个步骤中调用BatchTask，在BatchTask的Processor中我们可以使用同样的方式来调用NopTaskFlow来实现针对单条记录的处理逻辑。
 
 ```xml
@@ -1179,6 +1193,7 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
     </source>
 </processor>
 ```
+* task模型通过`customType="batch:Execute"`可以嵌入batch模型，在batch模型的processor配置中可以通过`task:taskModelPath`嵌入另外一个task模型。
 
 11. 在数据库存取方面，NopORM提供了完整的ORM模型支持，内置多租户、逻辑删除、字段加解密、柔性事务处理、数据关联查询、批量加载和批量保存优化等完善的数据访问层能力。通过orm-reader和orm-writer可以实现数据库读写。
 
@@ -1186,19 +1201,40 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
 <batch>
     <loader>
         <orm-reader entityName="DemoIncomingTxn">
+          <query>...查询条件...</query>
         </orm-reader>
     </loader>
 
     <consumer name="saveToDb">
-        <orm-writer entityName="DemoTransaction">
+        <orm-writer entityName="DemoTransaction" allowUpdate="false">
+          <keyFields>唯一键字段</keyFields>
         </orm-writer>
-    </consumer>    
+    </consumer>
 </batch>
 ```
 
 
 **结合NopTaskFlow、NopBatch、NopRecord和NopORM等多个领域模型，Nop平台就可以做到在一般业务开发时完全通过声明式的方式实现批处理任务，而不需要编写Java代码**。
 
+可以停在这里仔细想一下，在一个DSL中同时包含task定义，batch task定义和record定义等多种领域模型定义，同时它们又无缝融合在一起，看起来是一个完整的单一DSL。
+1. 如果不使用Nop平台要怎么实现？
+2. 这种定义DSL并将多个DSL粘结在一起的能力能够被抽象出来成为一种通用能力吗？
+3. 这种抽象能力会影响运行时性能吗？
+4. 多个DSL混合在一起如何进行断点调试？报错时能准确定位到DSL的源码吗？
+5. 如何为这种混合的DSL快速开发可视化设计器？能用Excel来做DSL配置吗？
+
+### 命令行执行
+
+Nop平台所提供的nop-cli工具可以直接执行逻辑编排任务。
+
+1. 在_vfs目录下引入`app.orm.xml`, `batch-demo.task.xml`等DSL文件，nop-cli工具会自动加载工作目录下的虚拟文件系统中的所有模型文件。
+2. 通过 `java -Dnop.config.location=application.yaml -jar nop-cli.jar run-task v:/batch/batch-demo.task.xml -i="{bizDate:'2024-12-08'}"`执行逻辑编排任务。
+
+* run-task指定的第一个参数为逻辑编排模型文件的路径。`v:`表示是`_vfs`虚拟文件系统下的路径。也可以直接送操作系统中的文件路径。
+* `-i`参数指定了逻辑编排任务中的输入参数，采用json格式。也可以通过`-if=filePath`来指定输入数据文件，文件内为一个JSON数据。
+* 通过`-Dnop.config.location`来指定配置文件，在其中可以配置数据库连接密码等。
+
+TestNopCli单元测试用例中提供了testBatchGenDemo等单元测试函数，可以通过调试这些测试用例来熟悉NopBatch引擎。
 
 ## 四. DSL的多重表象
 
@@ -1249,3 +1285,33 @@ Nop平台与其他平台的一个本质性区别是Nop平台并不只是内置�
     </types>
 </file>
 ```
+
+### ORO模型
+在`/nop-cli/demo/_vfs/app/demo/orm`目录下提供了一个演示用的`app.orm.xml`模型文件，它演示了非常有趣的NopORM模型配置。
+
+```xml
+<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     orm:forceDynamicEntity="true" x:dump="true"
+     xmlns:orm-gen="orm-gen" xmlns:xpl="xpl" xmlns:orm="orm">
+    <x:gen-extends>
+        <!-- 根据orm.xlsx自动生成orm.xml，可以直接进行可视化编辑，并且立刻起效 -->
+        <orm-gen:GenModelFromExcel path="demo.orm.xlsx" xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+        <orm-gen:GenModelFromExcel path="demo-delta.orm.xlsx" xpl:lib="/nop/orm/xlib/orm-gen.xlib" />
+    </x:gen-extends>
+</orm>
+```
+
+![](batch/orm-model.png)
+![](batch/demo-orm-model.png)
+
+1. 首先这里设置了`orm:forceDynamicEntity=true`表示无需生成实体类代码，直接用动态实体来实现ORM映射。这样在batch模型中就可以直接使用ORM实体的关联查询，而无需事先生成代码。在XLang语言中，动态实体和普通Java类一样可以直接使用属性访问语法，完全和普通实体一样使用。
+2. 第二个有趣的地方是`x:gen-extends`段演示了元编程模型生成，以及差量模型合并的一种实现方式。这种方式是一种完全通用的做法，而且无需任何额外的努力，它本身就是Nop平台底层能力的一部分。
+   * `orm-gen:GenModelFromExcel`会读取Excel格式的`orm.xlsx`模型文件，根据`orm.imp.xml`导入配置自动将它解析为OrmModel对象，然后再利用`orm.xdef`元模型定义将OrmModel模型对象转换为XNode节点。
+   * `demo-delta.orm.xlsx`中定义了差量模型。当我们希望定制demo.orm.xlsx这个模型文件的时候，可以不修改原始模型文件，直接增加一个新的Delta模型文件，它的结构与原始模型文件完全一致（全量是差量的一个特例，无需为差量表达专门做设计）。
+   * 两个`orm-gen:GenModelFromExcel`标签调用会生成两个XNode节点，按照XLang语言规范，`x:gen-extends`段生成的多个节点会自动执行差量合并，从而合并成一个完整的XNode节点。`x:dump=true`会导致运行时在日志文件中打印出详细合并过程以及最后合并的结果。
+
+借助于以上配置，我们就可以在Excel中进行数据模型以及数据模型差量的定义，对Excel模型的修改会立刻应用到系统中。如果是在线运行的系统，修改Excel模型后直接刷新页面就会重新加载ORM模型。这是因为Nop平台底层实现了模型资源文件的依赖追踪，模型解析结果依赖于它在编译期所访问的所有资源文件，任何一个资源文件变化都会导致模型缓存失效。
+
+在这里也可以仔细思考一下，如果不使用Nop平台，要实现类似的可视化模型设计和差量化模型定义，需要怎么做？
+
+* 这里并不一定要使用Excel来做可视化设计器，比如我们可以使用[PDManer可视化设计工具](https://my.oschina.net/skymozn/blog/10858773)或者PowerDesigner设计工具来做ORM模型设计，只需要写一个标签函数实现模型转换即可。Nop平台内置了`pdman.xlib`和PdmModelParser实现这两种模型的适配。
