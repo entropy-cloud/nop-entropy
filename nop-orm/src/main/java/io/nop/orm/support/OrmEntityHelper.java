@@ -445,7 +445,7 @@ public class OrmEntityHelper {
         for (IOrmEntity entity : coll) {
             IOrmEntity refEntity = entity.orm_refEntity(propName);
             if (refEntity != null) {
-                if (sb.length() == 0)
+                if (sb.length() != 0)
                     sb.append(',');
                 sb.append(refEntity.orm_propValueByName(labelProp));
             }
