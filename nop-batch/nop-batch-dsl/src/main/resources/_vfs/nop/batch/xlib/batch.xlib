@@ -14,6 +14,7 @@
            <attr name="flowStepId" runtime="true" optional="true"/>
            <attr name="partitionRange" runtime="true" optional="true" />
            <attr name="params" runtime="true" optional="true" />
+            <attr name="asyncExec" runtime="true" type="Boolean" optional="true" />
 
             <!-- slotType=node表示保持XNode节点内容传入到source段中。如果不设置这个属性，则会编译后传入 -->
             <slot name="task" slotType="node"/>
@@ -31,7 +32,7 @@
                    node.makeChild('x:config').appendBodyXml(`<c:import from="/nop/batch/xlib/batch.xlib" />`);
 
                    const batchTaskManager = inject('nopBatchTaskManager')
-                   const batchTaskBuilder = batchTaskManager.newBatchTaskBuilderFromModel(node,$beanProvider,$scope);
+                   const batchTask = batchTaskManager.newBatchTaskFromModel(node,$beanProvider,$scope);
                     // 得到<c:script>对应的抽象语法树
                     let ast = xpl `
                          <c:ast>
@@ -43,12 +44,16 @@
                                batchTaskContext.setFlowStepId(taskStepRt?.stepInstanceId);
                                batchTaskContext.setPartitionRange(partitionRange);
                                batchTaskContext.setParams(params);
-                               return batchTaskBuilder.buildTask(batchTaskContext).executeAsync(batchTaskContext);
+                               if(asyncExec){
+                                  return batchTask.executeAsync(batchTaskContext);
+                               }else{
+                                  return batchTask.execute(batchTaskContext);
+                               }
                             </c:script>
                          </c:ast>
                      `
                     // 将抽象语法树中的标识名称替换为编译期解析得到的模型对象。这样在运行期就不需要动态加载模型并解析
-                    return ast.replaceIdentifier("batchTaskBuilder",batchTaskBuilder);
+                    return ast.replaceIdentifier("batchTask",batchTask);
                 ]]></c:script>
 
             </source>

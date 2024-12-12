@@ -66,21 +66,21 @@ Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessin
 | nop-tcc         | 分布式事务                         | 50%  |
 | nop-dyn         | 在线设计表单和数据模型、服务函数              | 75%  |
 | nop-workflow    | 下一代工作流引擎                      | 65%  |
-| nop-task        | 下一代逻辑流编排                      | 50%  |
+| nop-task        | 下一代逻辑流编排                      | 基本可用 |
 | nop-job         | 分布式任务调度                       | 40%  |
-| nop-batch       | 下一代批处理引擎                      | 70%  |
+| nop-batch       | 下一代批处理引擎                      | 基本可用 |
 | nop-message     | Kafka/Pulsar消息队列封装            | 10%  |
-| nop-dbtool      | 数据库导入导出、数据结构比较、同步工具           | 40%  |
+| nop-dbtool      | 数据库导入导出、数据结构比较、同步工具           | 初步实现 |
 | nop-nosql       | Redis封装                       | 0%   |
 | nop-stream      | 简化的流处理，可以集成Flink              | 0%   |
-| nop-netty       | TCP/IP服务处理框架                  | 0%   |
+| nop-netty       | TCP/IP服务处理框架                  | 10%  |
 | nop-datav       | BI数据分析                        | 0%   |
 | nop-ai          | 与AI大模型集成，实现AIGC               | 2%   |
 | nop-js          | GraalVM Js引擎封装，在Java中运行JS     | 50%  |
 | nop-integration | 邮件、短信、文件服务等外部服务封装             | 30%  |
 | nop-auth        | 用户权限管理                        | 已完成  |
 | nop-sys         | 系统配置管理                        | 已完成  |
-| nop-ofbiz       | 将Ofbiz的模型文件转换为Nop平台的模型定义      | 0% |
+| nop-ofbiz       | 将Ofbiz的模型文件转换为Nop平台的模型定义      | 0%   |
 
 ## 源码地址
 

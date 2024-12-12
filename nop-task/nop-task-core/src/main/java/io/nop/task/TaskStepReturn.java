@@ -12,7 +12,10 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ResolvedPromise;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Map;
@@ -30,6 +33,7 @@ public final class TaskStepReturn {
     public static final TaskStepReturn SUSPEND = new TaskStepReturn(STEP_NAME_SUSPEND, null);
 
     public static TaskStepReturn RETURN_RESULT_END(Object result) {
+        Guard.checkArgument(!(result instanceof CompletionStage), "not allow async result");
         return new TaskStepReturn(STEP_NAME_END, Collections.singletonMap(TaskConstants.VAR_RESULT, result));
     }
 
@@ -46,6 +50,7 @@ public final class TaskStepReturn {
     public static TaskStepReturn RETURN_RESULT(Object value) {
         if (value == null)
             return CONTINUE;
+        Guard.checkArgument(!(value instanceof CompletionStage), "not allow async result");
         return new TaskStepReturn(null, Collections.singletonMap(TaskConstants.VAR_RESULT, value));
     }
 
@@ -56,9 +61,14 @@ public final class TaskStepReturn {
     }
 
     public static TaskStepReturn ASYNC(String nextStepName, CompletionStage<?> future) {
-        if (FutureHelper.isFutureDone(future))
+        if (FutureHelper.isFutureDone(future)) {
             return TaskStepReturn.of(nextStepName, FutureHelper.syncGet(future));
-        return new TaskStepReturn(future.thenApply(data -> TaskStepReturn.of(nextStepName, data)));
+        }
+        return new TaskStepReturn(future.thenApply(data -> {
+            TaskStepReturn ret = TaskStepReturn.of(nextStepName, data);
+            Guard.checkArgument(!ret.isAsync(), "not allow async return async result");
+            return ret;
+        }));
     }
 
     private final String nextStepName;
@@ -68,7 +78,19 @@ public final class TaskStepReturn {
     private TaskStepReturn(String nextStepName, Map<String, Object> outputs, CompletionStage<TaskStepReturn> future) {
         this.nextStepName = nextStepName;
         this.outputs = outputs;
-        this.future = future;
+        this.future = hookFuture(future);
+    }
+
+    private CompletionStage<TaskStepReturn> hookFuture(CompletionStage<TaskStepReturn> future) {
+        if (future == null)
+            return null;
+        return future.thenCompose(ret -> {
+            // 确保Promise返回的时候必然得到一个非异步的结果
+            if (ret.isAsync()) {
+                return ret.getReturnPromise();
+            }
+            return FutureHelper.success(ret);
+        });
     }
 
     private TaskStepReturn(CompletionStage<TaskStepReturn> future) {
@@ -94,7 +116,11 @@ public final class TaskStepReturn {
             return new TaskStepReturn(nextStepName, (Map<String, Object>) returnValue);
 
         if (returnValue instanceof CompletionStage)
-            return new TaskStepReturn(((CompletionStage<?>) returnValue).thenApply(v -> of(nextStepName, v)));
+            return new TaskStepReturn(((CompletionStage<?>) returnValue).thenApply(v -> {
+                TaskStepReturn ret = of(nextStepName, v);
+                Guard.checkArgument(!ret.isAsync());
+                return ret;
+            }));
 
         Map<String, Object> ret = Collections.singletonMap(TaskConstants.VAR_RESULT, returnValue);
 

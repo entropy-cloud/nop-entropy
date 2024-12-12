@@ -43,7 +43,7 @@
             <attr name="taskVersion" type="Long" optional="true"/>
             <attr name="inputs" type="Map" optional="true" />
             <attr name="outputNames" optional="true"/>
-            <attr name="asyncOutputs" type="Boolean" optional="true"/>
+            <attr name="asyncExec" type="Boolean" optional="true"/>
 
             <attr name="svcCtx" type="io.nop.core.context.IServiceContext" implicit="true" optional="true"/>
 
@@ -56,7 +56,7 @@
                 if(inputs != null){
                     taskRt.setInputs(inputs);
                 }
-                if(asyncOutputs){
+                if(asyncExec){
                     return task.execute(taskRt, outputNames).asyncOutputs();
                 }else{
                     return task.execute(taskRt, outputNames).syncGetOutputs();

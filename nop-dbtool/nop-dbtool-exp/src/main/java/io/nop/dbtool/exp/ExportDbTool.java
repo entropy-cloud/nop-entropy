@@ -202,7 +202,7 @@ public class ExportDbTool {
         IBatchTaskContext context = new BatchTaskContextImpl();
         if (args != null)
             context.getEvalScope().setLocalValues(args);
-        IBatchTask task = builder.buildTask(context);
+        IBatchTask task = builder.buildTask();
         task.execute(context);
     }
 

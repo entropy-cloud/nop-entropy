@@ -20,6 +20,7 @@ import io.nop.batch.core.IBatchTask;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.IBatchTaskMetrics;
 import io.nop.batch.core.exceptions.BatchCancelException;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalFunction;
 import org.slf4j.Logger;
@@ -45,24 +46,47 @@ public class BatchTask<S> implements IBatchTask {
     private final List<Consumer<IBatchTaskContext>> initializers;
     private final int concurrency;
 
+    private final Boolean allowStartIfComplete;
+    private final int startLimit;
+
     public BatchTask(String taskName, long taskVersion,
                      IEvalFunction taskKeyExpr, Executor executor, int concurrency,
                      List<Consumer<IBatchTaskContext>> initializers,
                      IBatchLoaderProvider<S> loaderProvider,
-                     IBatchChunkProcessorProvider<S> chunkProcessorProvider, IBatchStateStore stateStore) {
+                     IBatchChunkProcessorProvider<S> chunkProcessorProvider, IBatchStateStore stateStore,
+                     Boolean allowStartIfComplete, int startLimit) {
         this.taskName = taskName;
         this.taskVersion = taskVersion;
         this.taskKeyExpr = taskKeyExpr;
-        this.executor = executor;
         this.initializers = initializers;
         this.loaderProvider = loaderProvider;
         this.chunkProcessorProvider = chunkProcessorProvider;
         this.stateStore = stateStore;
         this.concurrency = concurrency;
+        this.allowStartIfComplete = allowStartIfComplete;
+        this.startLimit = startLimit;
+        this.executor = getExecutor(executor, concurrency);
+    }
+
+    static Executor getExecutor(Executor executor, int concurrency) {
+        if (executor != null)
+            return executor;
+        if (concurrency > 0) {
+            return GlobalExecutors.cachedThreadPool();
+        } else {
+            return GlobalExecutors.syncExecutor();
+        }
     }
 
     @Override
     public CompletableFuture<Void> executeAsync(IBatchTaskContext context) {
+        // 如果context上尚未设置限制，则设置，否则以外部设置的为准
+        if (context.getAllowStartIfComplete() == null && allowStartIfComplete != null)
+            context.setAllowStartIfComplete(allowStartIfComplete);
+
+        if (context.getStartLimit() <= 0)
+            context.setStartLimit(startLimit);
+
         IBatchTaskMetrics metrics = context.getMetrics();
         Object meter = metrics == null ? null : metrics.beginTask();
 

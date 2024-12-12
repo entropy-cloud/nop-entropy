@@ -47,7 +47,7 @@ public class TestBatchTask {
         builder.skipPolicy(new BatchSkipPolicy().maxSkipCount(10000));
         builder.retryOneByOne(true).retryPolicy(RetryPolicy.retryNTimes(3));
 
-        IBatchTask task = builder.buildTask(context);
+        IBatchTask task = builder.buildTask();
         task.executeAsync(context);
 
         FutureHelper.syncGet(future);

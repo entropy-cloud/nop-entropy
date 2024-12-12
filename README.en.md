@@ -39,43 +39,43 @@ Follow-up planning includes workflow engine (Workflow Engine), business intellig
 
 Development Progress:
 
-| Module | Description | Progress |
-| ----------------- | -------------------------- | ------ |
-| nop-api-support | Support classes for API interface | Completed |
-| nop-codegen | Data-Driven Code Generator | Completed |
-| nop-antlr | Model-driven retrofit of Antlr | Completed |
-| nop-core | Virtual File System, Reflection Mechanism, XML/JSON Parsing | Completed |
-| nop-ioc | Declarative IoC Container | Completed |
-| nop-config | Dynamic Configuration Center | Completed |
-| nop-xlang | XLang Scripting and Template Languages | Completed |
-| nop-dao | JDBC Access, Transaction, Database Dialects | Done |
-| nop-orm | Next Generation ORM Engine | Completed |
-| nop-graphql | GraphQL Engine | Completed |
-| nop-rpc | Distributed RPC call | Completed |
-| nop-ooxml | Parsing and generation of Office files, replacing POI. Word Report Template | Completed |
-| nop-report | Chinese Reporting Engine | Completed |
-| nop-rule | Rules Engine | Completed |
-| nop-autotest | Model-Driven Test Automation Framework | Completed |
+| Module | Description | Progress            |
+| ----------------- | -------------------------- |---------------------|
+| nop-api-support | Support classes for API interface | Completed           |
+| nop-codegen | Data-Driven Code Generator | Completed           |
+| nop-antlr | Model-driven retrofit of Antlr | Completed           |
+| nop-core | Virtual File System, Reflection Mechanism, XML/JSON Parsing | Completed           |
+| nop-ioc | Declarative IoC Container | Completed           |
+| nop-config | Dynamic Configuration Center | Completed           |
+| nop-xlang | XLang Scripting and Template Languages | Completed           |
+| nop-dao | JDBC Access, Transaction, Database Dialects | Completed           |
+| nop-orm | Next Generation ORM Engine | Completed           |
+| nop-graphql | GraphQL Engine | Completed           |
+| nop-rpc | Distributed RPC call | Completed           |
+| nop-ooxml | Parsing and generation of Office files, replacing POI. Word Report Template | Completed           |
+| nop-report | Chinese Reporting Engine | Completed           |
+| nop-rule | Rules Engine | Completed           |
+| nop-autotest | Model-Driven Test Automation Framework | Completed           |
 | nop-idea-plugin | IDEA development plug-in, supporting syntax prompt, file jump, breakpoint debugging | Basically available |
-| nop-cli | Encapsulates code generators, file listening, and more as command-line tools | Basic |
-| nop-cluster | Distributed cluster support | 50% |
-| nop-tcc | Distributed Transactions | 50% |
-| nop-dyn | Design forms, data models, and service functions online | Basic |
-| nop-workflow | Workflow Engine | 65% |
-| nop-task | Logical Flow Orchestration | 50% |
-| nop-job | Distributed Task Scheduling | 40% |
-| nop-batch | Batch Engine | 70% |
-| nop-message | Kafka/Pulsar Message Queue Encapsulation | 10% |
-| nop-dbtool | Database Import and Export, Data Structure Comparison, Synchronization Tool | 30% |
-| nop-nosql | Redis Package | 0% |
-| nop-stream | Simplified stream processing, which can be integrated with Flink | 0% |
-| nop-netty | TCP/IP Service Processing Framework | 0% |
-| nop-datav | BI Data Analysis | 0% |
-| nop-gpt | Integration with AI Big Model for AIGC | 2% |
-| nop-js | GraalVM Js engine encapsulation to run JS in Java | 50% |
-| nop-integration | External service packages such as mail, SMS, and file services | 30% |
-| nop-auth | User Rights Management | Completed |
-| nop-sys | System Configuration Management | Completed |
+| nop-cli | Encapsulates code generators, file listening, and more as command-line tools | Basically available |
+| nop-cluster | Distributed cluster support | 50%                 |
+| nop-tcc | Distributed Transactions | 50%                 |
+| nop-dyn | Design forms, data models, and service functions online | Basically available |
+| nop-workflow | Workflow Engine | 65%                 |
+| nop-task | Logical Flow Orchestration | Basically available |
+| nop-job | Distributed Task Scheduling | 40%                 |
+| nop-batch | Batch Engine | Basically available |
+| nop-message | Kafka/Pulsar Message Queue Encapsulation | 10%                 |
+| nop-dbtool | Database Import and Export, Data Structure Comparison, Synchronization Tool | 30%                 |
+| nop-nosql | Redis Package | 0%                  |
+| nop-stream | Simplified stream processing, which can be integrated with Flink | 0%                  |
+| nop-netty | TCP/IP Service Processing Framework | 10%                 |
+| nop-datav | BI Data Analysis | 0%                  |
+| nop-gpt | Integration with AI Big Model for AIGC | 2%                  |
+| nop-js | GraalVM Js engine encapsulation to run JS in Java | 50%                 |
+| nop-integration | External service packages such as mail, SMS, and file services | 30%                 |
+| nop-auth | User Rights Management | Completed           |
+| nop-sys | System Configuration Management | Completed           |
 
 ## Source code address
 

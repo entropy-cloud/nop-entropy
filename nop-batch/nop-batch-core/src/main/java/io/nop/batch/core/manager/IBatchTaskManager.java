@@ -4,6 +4,7 @@ import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.batch.core.IBatchTask;
 import io.nop.batch.core.IBatchTaskBuilder;
 import io.nop.batch.core.IBatchTaskContext;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
@@ -21,12 +22,7 @@ public interface IBatchTaskManager {
         return newBatchTaskContext(svcCtx, svcCtx == null ? null : svcCtx.getEvalScope());
     }
 
-    default IBatchTask newBatchTask(String batchTaskName, Long batchTaskVersion, IBatchTaskContext taskContext) {
-        return newBatchTaskBuilder(batchTaskName, batchTaskVersion, taskContext.getEvalScope().getBeanProvider())
-                .buildTask(taskContext);
-    }
+    IBatchTask newBatchTask(String batchTaskName, Long batchTaskVersion, IBeanProvider beanProvider);
 
-    IBatchTaskBuilder newBatchTaskBuilder(String batchTaskName, Long batchTaskVersion, IBeanProvider beanProvider);
-
-    IBatchTaskBuilder newBatchTaskBuilderFromModel(XNode node, IBeanProvider beanProvider, IXLangCompileScope scope);
+    IBatchTask newBatchTaskFromModel(XNode node, IBeanProvider beanProvider, IXLangCompileScope scope);
 }

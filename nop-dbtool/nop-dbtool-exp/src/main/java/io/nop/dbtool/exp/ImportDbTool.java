@@ -221,7 +221,7 @@ public class ImportDbTool {
         if (args != null)
             context.getEvalScope().setLocalValues(args);
 
-        IBatchTask task = builder.buildTask(context);
+        IBatchTask task = builder.buildTask();
         task.execute(context);
     }
 

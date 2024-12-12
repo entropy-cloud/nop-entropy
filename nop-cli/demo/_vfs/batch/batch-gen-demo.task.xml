@@ -6,7 +6,7 @@
     <input name="taskKey" type="String"/>
 
     <steps>
-        <custom name="createCard" customType="batch:Execute"
+        <custom name="createCard" customType="batch:Execute" batch:asyncExec="true"
                 xmlns:batch="/nop/batch/xlib/batch.xlib">
             <batch:task taskName="demo.createCard" batchSize="100" saveState="true" useBatchRequestGenerator="true">
                 <taskKeyExpr>taskKey</taskKeyExpr>
@@ -29,7 +29,8 @@
             </batch:task>
         </custom>
 
-        <custom name="generateTransaction" customType="batch:Execute" xmlns:batch="/nop/batch/xlib/batch.xlib">
+        <custom name="generateTransaction" customType="batch:Execute" batch:asyncExec="true"
+                xmlns:batch="/nop/batch/xlib/batch.xlib">
             <batch:task taskName="demo.generateTransaction" batchSize="100">
                 <loader>
                     <orm-reader entityName="DemoCard">

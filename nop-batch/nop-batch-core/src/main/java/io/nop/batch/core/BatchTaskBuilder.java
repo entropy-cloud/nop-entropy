@@ -315,25 +315,10 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
     }
 
     @Override
-    public IBatchTask buildTask(IBatchTaskContext context) {
-        // 如果context上尚未设置限制，则设置，否则以外部设置的为准
-        if (context.getAllowStartIfComplete() == null && allowStartIfComplete != null)
-            context.setAllowStartIfComplete(allowStartIfComplete);
-
-        if (context.getStartLimit() <= 0)
-            context.setStartLimit(startLimit);
-
-        Executor executor = this.executor;
-        if (executor == null) {
-            if (concurrency > 0) {
-                executor = GlobalExecutors.cachedThreadPool();
-            } else {
-                executor = GlobalExecutors.syncExecutor();
-            }
-        }
-
+    public IBatchTask buildTask() {
         return new BatchTask<S>(taskName, taskVersion == null ? 0 : taskVersion, taskKeyExpr,
-                executor, concurrency, taskInitializers, this::buildLoader, this::buildChunkProcessor, stateStore);
+                executor, concurrency, taskInitializers, this::buildLoader, this::buildChunkProcessor, stateStore,
+                allowStartIfComplete, startLimit);
     }
 
     protected IBatchLoader<S> buildLoader(IBatchTaskContext context) {
