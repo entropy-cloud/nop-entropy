@@ -383,7 +383,7 @@
             </source>
         </NotAutoTenant>
 
-        <GenModelFromExcel>
+        <GenModelFromExcel outputMode="node">
             <attr name="path" stdDomain="v-path" />
 
             <source>
@@ -403,6 +403,7 @@
                     ormNode.setAttr('xmlns:ui','ui');
                     ormNode.prependBodyXml(`<x:post-extends x:override="replace"><orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib" /></x:post-extends>`);
 
+                    $out.appendChild(ormNode);
                 ]]></c:script>
             </source>
         </GenModelFromExcel>
