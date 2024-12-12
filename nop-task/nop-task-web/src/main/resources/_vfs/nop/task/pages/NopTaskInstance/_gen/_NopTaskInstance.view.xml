@@ -88,7 +88,7 @@
                 <col id="signalText" sortable="true"/>
 
                 <!--Job ID-->
-                <col id="jobId" sortable="true"/>
+                <col id="jobInstanceId" sortable="true"/>
 
                 <!--错误码-->
                 <col id="errCode" sortable="true"/>
@@ -132,7 +132,7 @@
  starterName[启动人] starterDeptId[启动人单位ID]
  managerType[管理者类型] managerDeptId[管理者单位ID]
  managerName[管理者] managerId[管理者ID]
- signalText[信号集合] jobId[Job ID]
+ signalText[信号集合] jobInstanceId[Job ID]
  errCode[错误码] errMsg[错误消息]
  workerId[Worker ID] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
@@ -154,7 +154,7 @@
  starterName[启动人] starterDeptId[启动人单位ID]
  managerType[管理者类型] managerDeptId[管理者单位ID]
  managerName[管理者] managerId[管理者ID]
- signalText[信号集合] jobId[Job ID]
+ signalText[信号集合] jobInstanceId[Job ID]
  errCode[错误码] errMsg[错误消息]
  workerId[Worker ID] 
                 remark[备注]

@@ -1847,6 +1847,25 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "processChunk",
+        "parameterTypes": [
+          "io.nop.batch.core.IBatchTaskContext",
+          "int",
+          "io.nop.batch.core.IBatchChunkProcessorProvider$IBatchChunkProcessor"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.core.impl.BatchTask"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.batch.core.impl.BatchTaskContextImpl"
   },
@@ -2038,6 +2057,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.batch.dsl.model.BatchFileReaderModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.batch.dsl.model.BatchFileWriterModel"
   },
   {
@@ -2068,6 +2097,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.batch.dsl.model.BatchLoaderDispatcherModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.batch.dsl.model.BatchLoaderModel"
   },
   {
@@ -2079,6 +2118,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.batch.dsl.model.BatchOrmReaderModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.batch.dsl.model.BatchOrmWriterModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -2126,6 +2175,33 @@
       }
     ],
     "name": "io.nop.batch.dsl.model._gen._BatchConsumerModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.batch.dsl.model.BatchFileReaderModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.dsl.model._gen._BatchFileReaderModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -2219,6 +2295,33 @@
       {
         "name": "copyTo",
         "parameterTypes": [
+          "io.nop.batch.dsl.model.BatchLoaderDispatcherModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.dsl.model._gen._BatchLoaderDispatcherModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
           "io.nop.batch.dsl.model.BatchLoaderModel"
         ]
       },
@@ -2261,6 +2364,33 @@
       }
     ],
     "name": "io.nop.batch.dsl.model._gen._BatchOrmReaderModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.batch.dsl.model.BatchOrmWriterModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.batch.dsl.model._gen._BatchOrmWriterModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -3318,6 +3448,26 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.commons.concurrent.executor.BaseThreadPoolConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.concurrent.executor.ThreadPoolConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.commons.lang.IAttributeSet"
   },
   {
@@ -3377,6 +3527,39 @@
       }
     ],
     "name": "io.nop.commons.metrics.GlobalMeterRegistry"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.commons.service.ILifeCycle"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "checkIsActive",
+        "parameterTypes": []
+      },
+      {
+        "name": "doStart",
+        "parameterTypes": []
+      },
+      {
+        "name": "doStop",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.commons.service.LifeCycleSupport"
   },
   {
     "allDeclaredConstructors": true,
@@ -6280,6 +6463,25 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "doStart",
+        "parameterTypes": []
+      },
+      {
+        "name": "doStop",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.core.execution.DefaultTaskExecutionQueue"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.core.initialize.impl.CoreInitializer"
   },
@@ -8669,6 +8871,66 @@
       }
     ],
     "name": "io.nop.core.lang.xml.XNode"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.core.lang.xml.handler.CollectXNodeHandler"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "getAttr",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getAttrBoolean",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "getAttrDouble",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.lang.String",
+          "java.lang.Double"
+        ]
+      },
+      {
+        "name": "getAttrFloat",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.lang.String",
+          "java.lang.Float"
+        ]
+      },
+      {
+        "name": "getAttrInt",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.lang.String",
+          "int"
+        ]
+      }
+    ],
+    "name": "io.nop.core.lang.xml.handler.XNodeHandlerAdapter"
   },
   {
     "allDeclaredConstructors": true,
@@ -19193,6 +19455,21 @@
       }
     ],
     "name": "io.nop.orm.dao.OrmDaoProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "orm",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.orm.dao.OrmEntityDao"
   },
   {
     "allDeclaredConstructors": true,

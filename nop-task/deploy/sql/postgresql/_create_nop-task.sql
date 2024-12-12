@@ -17,7 +17,7 @@ CREATE TABLE nop_task_definition(
 );
 
 CREATE TABLE nop_task_instance(
-  TASK_ID VARCHAR(32) NOT NULL ,
+  TASK_INSTANCE_ID VARCHAR(32) NOT NULL ,
   TASK_NAME VARCHAR(500) NOT NULL ,
   TASK_VERSION INT8 NOT NULL ,
   TASK_INPUTS VARCHAR(4000)  ,
@@ -43,17 +43,17 @@ CREATE TABLE nop_task_instance(
   PRIORITY INT4 NOT NULL ,
   SIGNAL_TEXT VARCHAR(1000)  ,
   TAG_TEXT VARCHAR(200)  ,
-  JOB_ID VARCHAR(32)  ,
+  JOB_INSTANCE_ID VARCHAR(32)  ,
   ERR_CODE VARCHAR(200)  ,
   ERR_MSG VARCHAR(500)  ,
-  Worker_ID VARCHAR(50)  ,
+  WORKER_ID VARCHAR(50)  ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
   UPDATED_BY VARCHAR(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR(200)  ,
-  constraint PK_nop_task_instance primary key (TASK_ID)
+  constraint PK_nop_task_instance primary key (TASK_INSTANCE_ID)
 );
 
 CREATE TABLE nop_task_definition_auth(
@@ -76,12 +76,12 @@ CREATE TABLE nop_task_definition_auth(
 );
 
 CREATE TABLE nop_task_step_instance(
-  STEP_ID VARCHAR(32) NOT NULL ,
-  TASK_ID VARCHAR(32) NOT NULL ,
+  STEP_INSTANCE_ID VARCHAR(32) NOT NULL ,
+  TASK_INSTANCE_ID VARCHAR(32) NOT NULL ,
   STEP_TYPE VARCHAR(20) NOT NULL ,
   STEP_NAME VARCHAR(200) NOT NULL ,
   DISPLAY_NAME VARCHAR(200) NOT NULL ,
-  STATUS INT4 NOT NULL ,
+  STEP_STATUS INT4 NOT NULL ,
   SUB_TASK_ID VARCHAR(32)  ,
   SUB_TASK_NAME VARCHAR(200)  ,
   SUB_TASK_VERSION INT8  ,
@@ -90,18 +90,24 @@ CREATE TABLE nop_task_step_instance(
   DUE_TIME TIMESTAMP  ,
   NEXT_RETRY_TIME TIMESTAMP  ,
   RETRY_COUNT INT4  ,
+  INTERNAL BOOLEAN  ,
   ERR_CODE VARCHAR(200)  ,
   ERR_MSG VARCHAR(4000)  ,
   PRIORITY INT4 NOT NULL ,
   TAG_TEXT VARCHAR(200)  ,
   PARENT_STEP_ID VARCHAR(32)  ,
+  WORKER_ID VARCHAR(50)  ,
+  STEP_PATH VARCHAR(2000)  ,
+  RUN_ID INT4 NOT NULL ,
+  BODY_STEP_INDEX INT4 NOT NULL ,
+  STATE_BEAN_DATA VARCHAR(4000)  ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
   UPDATED_BY VARCHAR(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR(200)  ,
-  constraint PK_nop_task_step_instance primary key (STEP_ID)
+  constraint PK_nop_task_step_instance primary key (STEP_INSTANCE_ID)
 );
 
 
@@ -135,7 +141,7 @@ CREATE TABLE nop_task_step_instance(
                     
       COMMENT ON TABLE nop_task_instance IS '逻辑流实例';
                 
-      COMMENT ON COLUMN nop_task_instance.TASK_ID IS '主键';
+      COMMENT ON COLUMN nop_task_instance.TASK_INSTANCE_ID IS '主键';
                     
       COMMENT ON COLUMN nop_task_instance.TASK_NAME IS '逻辑流名称';
                     
@@ -187,13 +193,13 @@ CREATE TABLE nop_task_step_instance(
                     
       COMMENT ON COLUMN nop_task_instance.TAG_TEXT IS '标签';
                     
-      COMMENT ON COLUMN nop_task_instance.JOB_ID IS 'Job ID';
+      COMMENT ON COLUMN nop_task_instance.JOB_INSTANCE_ID IS 'Job ID';
                     
       COMMENT ON COLUMN nop_task_instance.ERR_CODE IS '错误码';
                     
       COMMENT ON COLUMN nop_task_instance.ERR_MSG IS '错误消息';
                     
-      COMMENT ON COLUMN nop_task_instance.Worker_ID IS 'Worker ID';
+      COMMENT ON COLUMN nop_task_instance.WORKER_ID IS 'Worker ID';
                     
       COMMENT ON COLUMN nop_task_instance.VERSION IS '数据版本';
                     
@@ -241,9 +247,9 @@ CREATE TABLE nop_task_step_instance(
                     
       COMMENT ON TABLE nop_task_step_instance IS '逻辑流步骤实例';
                 
-      COMMENT ON COLUMN nop_task_step_instance.STEP_ID IS '步骤ID';
+      COMMENT ON COLUMN nop_task_step_instance.STEP_INSTANCE_ID IS '步骤ID';
                     
-      COMMENT ON COLUMN nop_task_step_instance.TASK_ID IS '逻辑流实例ID';
+      COMMENT ON COLUMN nop_task_step_instance.TASK_INSTANCE_ID IS '逻辑流实例ID';
                     
       COMMENT ON COLUMN nop_task_step_instance.STEP_TYPE IS '步骤类型';
                     
@@ -251,7 +257,7 @@ CREATE TABLE nop_task_step_instance(
                     
       COMMENT ON COLUMN nop_task_step_instance.DISPLAY_NAME IS '步骤显示名称';
                     
-      COMMENT ON COLUMN nop_task_step_instance.STATUS IS '状态';
+      COMMENT ON COLUMN nop_task_step_instance.STEP_STATUS IS '状态';
                     
       COMMENT ON COLUMN nop_task_step_instance.SUB_TASK_ID IS '子流程ID';
                     
@@ -269,6 +275,8 @@ CREATE TABLE nop_task_step_instance(
                     
       COMMENT ON COLUMN nop_task_step_instance.RETRY_COUNT IS '已重试次数';
                     
+      COMMENT ON COLUMN nop_task_step_instance.INTERNAL IS '是否内部';
+                    
       COMMENT ON COLUMN nop_task_step_instance.ERR_CODE IS '错误码';
                     
       COMMENT ON COLUMN nop_task_step_instance.ERR_MSG IS '错误消息';
@@ -278,6 +286,16 @@ CREATE TABLE nop_task_step_instance(
       COMMENT ON COLUMN nop_task_step_instance.TAG_TEXT IS '标签';
                     
       COMMENT ON COLUMN nop_task_step_instance.PARENT_STEP_ID IS '父步骤ID';
+                    
+      COMMENT ON COLUMN nop_task_step_instance.WORKER_ID IS '工作者ID';
+                    
+      COMMENT ON COLUMN nop_task_step_instance.STEP_PATH IS '步骤路径';
+                    
+      COMMENT ON COLUMN nop_task_step_instance.RUN_ID IS '运行ID';
+                    
+      COMMENT ON COLUMN nop_task_step_instance.BODY_STEP_INDEX IS '步骤下标';
+                    
+      COMMENT ON COLUMN nop_task_step_instance.STATE_BEAN_DATA IS '状态数据';
                     
       COMMENT ON COLUMN nop_task_step_instance.VERSION IS '数据版本';
                     

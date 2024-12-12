@@ -5,7 +5,7 @@
 
     <entityName>io.nop.task.dao.entity.NopTaskStepInstance</entityName>
 
-    <primaryKey>stepId</primaryKey>
+    <primaryKey>stepInstanceId</primaryKey>
 
     <x:gen-extends>
         <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
@@ -18,11 +18,12 @@
     <keys/>
 
     <props>
-        <prop name="stepId" displayName="步骤ID" propId="1" i18n-en:displayName="Step ID" tagSet="seq" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+        <prop name="stepInstanceId" displayName="步骤ID" propId="1" i18n-en:displayName="Step ID" tagSet="seq"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false" internal="true"
+              ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="taskId" displayName="逻辑流实例ID" propId="2" i18n-en:displayName="TaskFlow ID" mandatory="true"
+        <prop name="taskInstanceId" displayName="逻辑流实例ID" propId="2" i18n-en:displayName="TaskFlow ID" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="taskInstance">
             <schema type="java.lang.String" precision="32"/>
         </prop>
@@ -38,8 +39,8 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="status" displayName="状态" propId="6" i18n-en:displayName="Status" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="stepStatus" displayName="状态" propId="6" i18n-en:displayName="Status" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer" dict="task/task-step-status"/>
         </prop>
         <prop name="subTaskId" displayName="子流程ID" propId="8" i18n-en:displayName="Sub Flow ID" queryable="true"
@@ -75,69 +76,93 @@
               sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.Integer"/>
         </prop>
-        <prop name="errCode" displayName="错误码" propId="37" i18n-en:displayName="Error Code" queryable="true"
+        <prop name="internal" displayName="是否内部" propId="37" i18n-en:displayName="Internal" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="errCode" displayName="错误码" propId="38" i18n-en:displayName="Error Code" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="errMsg" displayName="错误消息" propId="38" i18n-en:displayName="Error Message" queryable="true"
+        <prop name="errMsg" displayName="错误消息" propId="39" i18n-en:displayName="Error Message" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="4000"/>
         </prop>
-        <prop name="priority" displayName="优先级" propId="39" i18n-en:displayName="Priority" mandatory="true"
+        <prop name="priority" displayName="优先级" propId="40" i18n-en:displayName="Priority" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.Integer"/>
         </prop>
-        <prop name="tagText" displayName="标签" propId="43" i18n-en:displayName="Tags" queryable="true" sortable="true"
+        <prop name="tagText" displayName="标签" propId="41" i18n-en:displayName="Tags" queryable="true" sortable="true"
               insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="parentStepId" displayName="父步骤ID" propId="44" i18n-en:displayName="Parent Step ID" queryable="true"
+        <prop name="parentStepId" displayName="父步骤ID" propId="42" i18n-en:displayName="Parent Step ID" queryable="true"
               sortable="true" insertable="true" updatable="true" internal="true" ui:show="X"
               ext:relation="parentStepInstance">
             <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="version" displayName="数据版本" propId="46" i18n-en:displayName="Version" mandatory="true"
+        <prop name="workerId" displayName="工作者ID" propId="43" i18n-en:displayName="Worker ID" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="stepPath" displayName="步骤路径" propId="44" i18n-en:displayName="Step Path" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="2000"/>
+        </prop>
+        <prop name="runId" displayName="运行ID" propId="45" i18n-en:displayName="Run Id" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="bodyStepIndex" displayName="步骤下标" propId="46" i18n-en:displayName="Body Step Index" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="stateBeanData" displayName="状态数据" propId="47" i18n-en:displayName="State Bean Data" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="48" i18n-en:displayName="Version" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="version" type="java.lang.Integer"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" propId="47" i18n-en:displayName="Created By" mandatory="true"
+        <prop name="createdBy" displayName="创建人" propId="49" i18n-en:displayName="Created By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" ui:show="L">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" propId="48" i18n-en:displayName="Create Time" mandatory="true"
+        <prop name="createTime" displayName="创建时间" propId="50" i18n-en:displayName="Create Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" ui:show="L">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="updatedBy" displayName="修改人" propId="49" i18n-en:displayName="Updated By" mandatory="true"
+        <prop name="updatedBy" displayName="修改人" propId="51" i18n-en:displayName="Updated By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" ui:show="L">
             <schema domain="updatedBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="updateTime" displayName="修改时间" propId="50" i18n-en:displayName="Update Time" mandatory="true"
+        <prop name="updateTime" displayName="修改时间" propId="52" i18n-en:displayName="Update Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" ui:show="L">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="remark" displayName="备注" propId="51" i18n-en:displayName="Remark" queryable="true" sortable="true"
+        <prop name="remark" displayName="备注" propId="53" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="SL">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
         <prop name="taskInstance" displayName="逻辑流实例" i18n-en:displayName="TaskFlow Instance"
               tagSet="pub,ref-pub,ref-cascade-delete" ext:kind="to-one" internal="true" queryable="true"
-              ext:joinLeftProp="taskId" ext:joinRightProp="taskId" insertable="false" updatable="false" mandatory="true"
-              lazy="true">
+              ext:joinLeftProp="taskInstanceId" ext:joinRightProp="taskInstanceId" insertable="false" updatable="false"
+              mandatory="true" lazy="true">
             <schema bizObjName="NopTaskInstance"/>
         </prop>
         <prop name="subTaskInstance" displayName="子流程实例" i18n-en:displayName="Sub TaskFlow Instance"
               tagSet="pub,ref-pub" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="subTaskId"
-              ext:joinRightProp="taskId" insertable="false" updatable="false" lazy="true">
+              ext:joinRightProp="taskInstanceId" insertable="false" updatable="false" lazy="true">
             <schema bizObjName="NopTaskInstance"/>
         </prop>
         <prop name="parentStepInstance" displayName="父步骤实例" i18n-en:displayName="Parent  Step" tagSet="pub,ref-pub"
               ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="parentStepId"
-              ext:joinRightProp="stepId" insertable="false" updatable="false" lazy="true">
+              ext:joinRightProp="stepInstanceId" insertable="false" updatable="false" lazy="true">
             <schema bizObjName="NopTaskStepInstance"/>
         </prop>
         <prop name="childSteps" displayName="子步骤集合" i18n-en:displayName="Child Steps" tagSet="pub" ext:kind="to-many"
-              internal="true" ext:joinLeftProp="stepId" ext:joinRightProp="parentStepId" insertable="false"
+              internal="true" ext:joinLeftProp="stepInstanceId" ext:joinRightProp="parentStepId" insertable="false"
               updatable="false" lazy="true">
             <schema>
                 <item bizObjName="NopTaskStepInstance"/>

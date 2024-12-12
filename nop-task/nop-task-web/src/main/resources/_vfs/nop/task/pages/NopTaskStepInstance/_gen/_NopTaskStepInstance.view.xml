@@ -19,7 +19,7 @@
             <cols>
 
                 <!--逻辑流实例ID-->
-                <col id="taskId" mandatory="true" sortable="true"/>
+                <col id="taskInstanceId" mandatory="true" sortable="true"/>
 
                 <!--步骤类型-->
                 <col id="stepType" mandatory="true" sortable="true"/>
@@ -31,7 +31,7 @@
                 <col id="displayName" mandatory="true" sortable="true"/>
 
                 <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="stepStatus" mandatory="true" sortable="true"/>
 
                 <!--子流程名称-->
                 <col id="subTaskName" sortable="true"/>
@@ -48,11 +48,29 @@
                 <!--到期时间-->
                 <col id="dueTime" sortable="true"/>
 
+                <!--是否内部-->
+                <col id="internal" sortable="true"/>
+
                 <!--错误码-->
                 <col id="errCode" sortable="true"/>
 
                 <!--错误消息-->
                 <col id="errMsg" sortable="true"/>
+
+                <!--工作者ID-->
+                <col id="workerId" sortable="true"/>
+
+                <!--步骤路径-->
+                <col id="stepPath" sortable="true"/>
+
+                <!--运行ID-->
+                <col id="runId" mandatory="true" sortable="true"/>
+
+                <!--步骤下标-->
+                <col id="bodyStepIndex" mandatory="true" sortable="true"/>
+
+                <!--状态数据-->
+                <col id="stateBeanData" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true" x:abstract="true"/>
@@ -76,12 +94,15 @@
     <forms>
         <form id="view" editMode="view" title="查看-逻辑流步骤实例" i18n-en:title="View TaskFlow Step Instance">
             <layout>
- taskId[逻辑流实例ID] stepType[步骤类型]
+ taskInstanceId[逻辑流实例ID] stepType[步骤类型]
  stepName[步骤名称] displayName[步骤显示名称]
- status[状态] subTaskName[子流程名称]
+ stepStatus[状态] subTaskName[子流程名称]
  subTaskVersion[子流程版本] startTime[开始时间]
  finishTime[结束时间] dueTime[到期时间]
- errCode[错误码] errMsg[错误消息]
+ internal[是否内部] errCode[错误码]
+ errMsg[错误消息] workerId[工作者ID]
+ stepPath[步骤路径] runId[运行ID]
+ bodyStepIndex[步骤下标] stateBeanData[状态数据]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
  remark[备注] 
@@ -90,12 +111,15 @@
         <form id="add" editMode="add" title="新增-逻辑流步骤实例" i18n-en:title="Add TaskFlow Step Instance" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-逻辑流步骤实例" i18n-en:title="Edit TaskFlow Step Instance">
             <layout>
- taskId[逻辑流实例ID] stepType[步骤类型]
+ taskInstanceId[逻辑流实例ID] stepType[步骤类型]
  stepName[步骤名称] displayName[步骤显示名称]
- status[状态] subTaskName[子流程名称]
+ stepStatus[状态] subTaskName[子流程名称]
  subTaskVersion[子流程版本] startTime[开始时间]
  finishTime[结束时间] dueTime[到期时间]
- errCode[错误码] errMsg[错误消息]
+ internal[是否内部] errCode[错误码]
+ errMsg[错误消息] workerId[工作者ID]
+ stepPath[步骤路径] runId[运行ID]
+ bodyStepIndex[步骤下标] stateBeanData[状态数据]
  remark[备注] 
 </layout>
         </form>

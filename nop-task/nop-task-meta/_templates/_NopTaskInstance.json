@@ -1,5 +1,5 @@
 {
-  "taskId": "",
+  "taskInstanceId": "",
   "taskName": "",
   "taskVersion": 0,
   "taskInputs": "",
@@ -26,7 +26,7 @@
   "priority": 0,
   "signalText": "",
   "tagText": "",
-  "jobId": "",
+  "jobInstanceId": "",
   "errCode": "",
   "errMsg": "",
   "workerId": "",

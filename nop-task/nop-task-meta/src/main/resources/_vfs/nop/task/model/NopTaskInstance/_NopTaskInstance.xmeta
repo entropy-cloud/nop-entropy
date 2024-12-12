@@ -5,7 +5,7 @@
 
     <entityName>io.nop.task.dao.entity.NopTaskInstance</entityName>
 
-    <primaryKey>taskId</primaryKey>
+    <primaryKey>taskInstanceId</primaryKey>
 
     <x:gen-extends>
         <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
@@ -18,8 +18,9 @@
     <keys/>
 
     <props>
-        <prop name="taskId" displayName="主键" propId="1" i18n-en:displayName="TaskFlow ID" tagSet="seq" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+        <prop name="taskInstanceId" displayName="主键" propId="1" i18n-en:displayName="TaskFlow ID" tagSet="seq"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false" internal="true"
+              ui:show="X">
             <schema type="java.lang.String" precision="32"/>
         </prop>
         <prop name="taskName" displayName="逻辑流名称" propId="2" i18n-en:displayName="TaskFlow Name" mandatory="true"
@@ -122,7 +123,7 @@
               insertable="true" updatable="true" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="jobId" displayName="Job ID" propId="27" i18n-en:displayName="Job Id" queryable="true"
+        <prop name="jobInstanceId" displayName="Job ID" propId="27" i18n-en:displayName="Job Id" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="32"/>
         </prop>
@@ -164,11 +165,12 @@
         </prop>
         <prop name="parentTaskInstance" displayName="父流程" i18n-en:displayName="Parent TaskFlow" tagSet="pub,ref-pub"
               ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="parentTaskId"
-              ext:joinRightProp="taskId" insertable="false" updatable="false" lazy="true">
+              ext:joinRightProp="taskInstanceId" insertable="false" updatable="false" lazy="true">
             <schema bizObjName="NopTaskInstance"/>
         </prop>
-        <prop name="steps" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true" ext:joinLeftProp="taskId"
-              ext:joinRightProp="taskId" insertable="false" updatable="false" lazy="true">
+        <prop name="steps" tagSet="pub,cascade-delete" ext:kind="to-many" internal="true"
+              ext:joinLeftProp="taskInstanceId" ext:joinRightProp="taskInstanceId" insertable="false" updatable="false"
+              lazy="true">
             <schema>
                 <item bizObjName="NopTaskStepInstance"/>
             </schema>

@@ -41,7 +41,7 @@ prop:
       taskDefinition: TaskFlow Definition
       taskDefinition.displayName: TaskFlow Definition
     NopTaskInstance:
-      taskId: TaskFlow ID
+      taskInstanceId: TaskFlow ID
       taskName: TaskFlow Name
       taskVersion: TaskFlow Version
       taskInputs: Task Inputs
@@ -68,7 +68,7 @@ prop:
       priority: Priority
       signalText: Signal Set
       tagText: Tags
-      jobId: Job Id
+      jobInstanceId: Job Id
       errCode: Error Code
       errMsg: Error Message
       workerId: Worker Id
@@ -81,13 +81,13 @@ prop:
       parentTaskInstance: Parent TaskFlow
       steps: null
     NopTaskStepInstance:
-      stepId: Step ID
-      taskId: TaskFlow ID
+      stepInstanceId: Step ID
+      taskInstanceId: TaskFlow ID
       stepType: Step Type
       stepName: Step Name
       displayName: Display Name
-      status: Status
-      status_label: null
+      stepStatus: Status
+      stepStatus_label: null
       subTaskId: Sub Flow ID
       subTaskName: Sub Flow Name
       subTaskVersion: Sub Flow Version
@@ -96,11 +96,17 @@ prop:
       dueTime: Due Time
       nextRetryTime: Next Retry Time
       retryCount: Retry Count
+      internal: Internal
       errCode: Error Code
       errMsg: Error Message
       priority: Priority
       tagText: Tags
       parentStepId: Parent Step ID
+      workerId: Worker ID
+      stepPath: Step Path
+      runId: Run Id
+      bodyStepIndex: Body Step Index
+      stateBeanData: State Bean Data
       version: Version
       createdBy: Created By
       createTime: Create Time

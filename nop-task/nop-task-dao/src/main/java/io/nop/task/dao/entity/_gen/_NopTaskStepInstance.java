@@ -20,13 +20,13 @@ import io.nop.task.dao.entity.NopTaskStepInstance;
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopTaskStepInstance extends DynamicOrmEntity{
     
-    /* 步骤ID: STEP_ID VARCHAR */
-    public static final String PROP_NAME_stepId = "stepId";
-    public static final int PROP_ID_stepId = 1;
+    /* 步骤ID: STEP_INSTANCE_ID VARCHAR */
+    public static final String PROP_NAME_stepInstanceId = "stepInstanceId";
+    public static final int PROP_ID_stepInstanceId = 1;
     
-    /* 逻辑流实例ID: TASK_ID VARCHAR */
-    public static final String PROP_NAME_taskId = "taskId";
-    public static final int PROP_ID_taskId = 2;
+    /* 逻辑流实例ID: TASK_INSTANCE_ID VARCHAR */
+    public static final String PROP_NAME_taskInstanceId = "taskInstanceId";
+    public static final int PROP_ID_taskInstanceId = 2;
     
     /* 步骤类型: STEP_TYPE VARCHAR */
     public static final String PROP_NAME_stepType = "stepType";
@@ -40,9 +40,9 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_displayName = "displayName";
     public static final int PROP_ID_displayName = 5;
     
-    /* 状态: STATUS INTEGER */
-    public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 6;
+    /* 状态: STEP_STATUS INTEGER */
+    public static final String PROP_NAME_stepStatus = "stepStatus";
+    public static final int PROP_ID_stepStatus = 6;
     
     /* 子流程ID: SUB_TASK_ID VARCHAR */
     public static final String PROP_NAME_subTaskId = "subTaskId";
@@ -76,52 +76,76 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_retryCount = "retryCount";
     public static final int PROP_ID_retryCount = 36;
     
+    /* 是否内部: INTERNAL BOOLEAN */
+    public static final String PROP_NAME_internal = "internal";
+    public static final int PROP_ID_internal = 37;
+    
     /* 错误码: ERR_CODE VARCHAR */
     public static final String PROP_NAME_errCode = "errCode";
-    public static final int PROP_ID_errCode = 37;
+    public static final int PROP_ID_errCode = 38;
     
     /* 错误消息: ERR_MSG VARCHAR */
     public static final String PROP_NAME_errMsg = "errMsg";
-    public static final int PROP_ID_errMsg = 38;
+    public static final int PROP_ID_errMsg = 39;
     
     /* 优先级: PRIORITY INTEGER */
     public static final String PROP_NAME_priority = "priority";
-    public static final int PROP_ID_priority = 39;
+    public static final int PROP_ID_priority = 40;
     
     /* 标签: TAG_TEXT VARCHAR */
     public static final String PROP_NAME_tagText = "tagText";
-    public static final int PROP_ID_tagText = 43;
+    public static final int PROP_ID_tagText = 41;
     
     /* 父步骤ID: PARENT_STEP_ID VARCHAR */
     public static final String PROP_NAME_parentStepId = "parentStepId";
-    public static final int PROP_ID_parentStepId = 44;
+    public static final int PROP_ID_parentStepId = 42;
+    
+    /* 工作者ID: WORKER_ID VARCHAR */
+    public static final String PROP_NAME_workerId = "workerId";
+    public static final int PROP_ID_workerId = 43;
+    
+    /* 步骤路径: STEP_PATH VARCHAR */
+    public static final String PROP_NAME_stepPath = "stepPath";
+    public static final int PROP_ID_stepPath = 44;
+    
+    /* 运行ID: RUN_ID INTEGER */
+    public static final String PROP_NAME_runId = "runId";
+    public static final int PROP_ID_runId = 45;
+    
+    /* 步骤下标: BODY_STEP_INDEX INTEGER */
+    public static final String PROP_NAME_bodyStepIndex = "bodyStepIndex";
+    public static final int PROP_ID_bodyStepIndex = 46;
+    
+    /* 状态数据: STATE_BEAN_DATA VARCHAR */
+    public static final String PROP_NAME_stateBeanData = "stateBeanData";
+    public static final int PROP_ID_stateBeanData = 47;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 46;
+    public static final int PROP_ID_version = 48;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 47;
+    public static final int PROP_ID_createdBy = 49;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 48;
+    public static final int PROP_ID_createTime = 50;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 49;
+    public static final int PROP_ID_updatedBy = 51;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 50;
+    public static final int PROP_ID_updateTime = 52;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 51;
+    public static final int PROP_ID_remark = 53;
     
 
-    private static int _PROP_ID_BOUND = 52;
+    private static int _PROP_ID_BOUND = 54;
 
     
     /* relation: 逻辑流实例 */
@@ -137,18 +161,18 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_childSteps = "childSteps";
     
 
-    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_stepId);
-    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_stepId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_stepInstanceId);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_stepInstanceId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[52];
+    private static final String[] PROP_ID_TO_NAME = new String[54];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
-          PROP_ID_TO_NAME[PROP_ID_stepId] = PROP_NAME_stepId;
-          PROP_NAME_TO_ID.put(PROP_NAME_stepId, PROP_ID_stepId);
+          PROP_ID_TO_NAME[PROP_ID_stepInstanceId] = PROP_NAME_stepInstanceId;
+          PROP_NAME_TO_ID.put(PROP_NAME_stepInstanceId, PROP_ID_stepInstanceId);
       
-          PROP_ID_TO_NAME[PROP_ID_taskId] = PROP_NAME_taskId;
-          PROP_NAME_TO_ID.put(PROP_NAME_taskId, PROP_ID_taskId);
+          PROP_ID_TO_NAME[PROP_ID_taskInstanceId] = PROP_NAME_taskInstanceId;
+          PROP_NAME_TO_ID.put(PROP_NAME_taskInstanceId, PROP_ID_taskInstanceId);
       
           PROP_ID_TO_NAME[PROP_ID_stepType] = PROP_NAME_stepType;
           PROP_NAME_TO_ID.put(PROP_NAME_stepType, PROP_ID_stepType);
@@ -159,8 +183,8 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_displayName] = PROP_NAME_displayName;
           PROP_NAME_TO_ID.put(PROP_NAME_displayName, PROP_ID_displayName);
       
-          PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
-          PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
+          PROP_ID_TO_NAME[PROP_ID_stepStatus] = PROP_NAME_stepStatus;
+          PROP_NAME_TO_ID.put(PROP_NAME_stepStatus, PROP_ID_stepStatus);
       
           PROP_ID_TO_NAME[PROP_ID_subTaskId] = PROP_NAME_subTaskId;
           PROP_NAME_TO_ID.put(PROP_NAME_subTaskId, PROP_ID_subTaskId);
@@ -186,6 +210,9 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_retryCount] = PROP_NAME_retryCount;
           PROP_NAME_TO_ID.put(PROP_NAME_retryCount, PROP_ID_retryCount);
       
+          PROP_ID_TO_NAME[PROP_ID_internal] = PROP_NAME_internal;
+          PROP_NAME_TO_ID.put(PROP_NAME_internal, PROP_ID_internal);
+      
           PROP_ID_TO_NAME[PROP_ID_errCode] = PROP_NAME_errCode;
           PROP_NAME_TO_ID.put(PROP_NAME_errCode, PROP_ID_errCode);
       
@@ -200,6 +227,21 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_parentStepId] = PROP_NAME_parentStepId;
           PROP_NAME_TO_ID.put(PROP_NAME_parentStepId, PROP_ID_parentStepId);
+      
+          PROP_ID_TO_NAME[PROP_ID_workerId] = PROP_NAME_workerId;
+          PROP_NAME_TO_ID.put(PROP_NAME_workerId, PROP_ID_workerId);
+      
+          PROP_ID_TO_NAME[PROP_ID_stepPath] = PROP_NAME_stepPath;
+          PROP_NAME_TO_ID.put(PROP_NAME_stepPath, PROP_ID_stepPath);
+      
+          PROP_ID_TO_NAME[PROP_ID_runId] = PROP_NAME_runId;
+          PROP_NAME_TO_ID.put(PROP_NAME_runId, PROP_ID_runId);
+      
+          PROP_ID_TO_NAME[PROP_ID_bodyStepIndex] = PROP_NAME_bodyStepIndex;
+          PROP_NAME_TO_ID.put(PROP_NAME_bodyStepIndex, PROP_ID_bodyStepIndex);
+      
+          PROP_ID_TO_NAME[PROP_ID_stateBeanData] = PROP_NAME_stateBeanData;
+          PROP_NAME_TO_ID.put(PROP_NAME_stateBeanData, PROP_ID_stateBeanData);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -222,11 +264,11 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     }
 
     
-    /* 步骤ID: STEP_ID */
-    private java.lang.String _stepId;
+    /* 步骤ID: STEP_INSTANCE_ID */
+    private java.lang.String _stepInstanceId;
     
-    /* 逻辑流实例ID: TASK_ID */
-    private java.lang.String _taskId;
+    /* 逻辑流实例ID: TASK_INSTANCE_ID */
+    private java.lang.String _taskInstanceId;
     
     /* 步骤类型: STEP_TYPE */
     private java.lang.String _stepType;
@@ -237,8 +279,8 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     /* 步骤显示名称: DISPLAY_NAME */
     private java.lang.String _displayName;
     
-    /* 状态: STATUS */
-    private java.lang.Integer _status;
+    /* 状态: STEP_STATUS */
+    private java.lang.Integer _stepStatus;
     
     /* 子流程ID: SUB_TASK_ID */
     private java.lang.String _subTaskId;
@@ -264,6 +306,9 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     /* 已重试次数: RETRY_COUNT */
     private java.lang.Integer _retryCount;
     
+    /* 是否内部: INTERNAL */
+    private java.lang.Boolean _internal;
+    
     /* 错误码: ERR_CODE */
     private java.lang.String _errCode;
     
@@ -278,6 +323,21 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     
     /* 父步骤ID: PARENT_STEP_ID */
     private java.lang.String _parentStepId;
+    
+    /* 工作者ID: WORKER_ID */
+    private java.lang.String _workerId;
+    
+    /* 步骤路径: STEP_PATH */
+    private java.lang.String _stepPath;
+    
+    /* 运行ID: RUN_ID */
+    private java.lang.Integer _runId;
+    
+    /* 步骤下标: BODY_STEP_INDEX */
+    private java.lang.Integer _bodyStepIndex;
+    
+    /* 状态数据: STATE_BEAN_DATA */
+    private java.lang.String _stateBeanData;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -338,14 +398,14 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     @Override
     public Object orm_id() {
     
-        return buildSimpleId(PROP_ID_stepId);
+        return buildSimpleId(PROP_ID_stepInstanceId);
      
     }
 
     @Override
     public boolean orm_isPrimary(int propId) {
         
-            return propId == PROP_ID_stepId;
+            return propId == PROP_ID_stepInstanceId;
           
     }
 
@@ -371,11 +431,11 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     public Object orm_propValue(int propId) {
         switch(propId){
         
-            case PROP_ID_stepId:
-               return getStepId();
+            case PROP_ID_stepInstanceId:
+               return getStepInstanceId();
         
-            case PROP_ID_taskId:
-               return getTaskId();
+            case PROP_ID_taskInstanceId:
+               return getTaskInstanceId();
         
             case PROP_ID_stepType:
                return getStepType();
@@ -386,8 +446,8 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
             case PROP_ID_displayName:
                return getDisplayName();
         
-            case PROP_ID_status:
-               return getStatus();
+            case PROP_ID_stepStatus:
+               return getStepStatus();
         
             case PROP_ID_subTaskId:
                return getSubTaskId();
@@ -413,6 +473,9 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
             case PROP_ID_retryCount:
                return getRetryCount();
         
+            case PROP_ID_internal:
+               return getInternal();
+        
             case PROP_ID_errCode:
                return getErrCode();
         
@@ -427,6 +490,21 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
         
             case PROP_ID_parentStepId:
                return getParentStepId();
+        
+            case PROP_ID_workerId:
+               return getWorkerId();
+        
+            case PROP_ID_stepPath:
+               return getStepPath();
+        
+            case PROP_ID_runId:
+               return getRunId();
+        
+            case PROP_ID_bodyStepIndex:
+               return getBodyStepIndex();
+        
+            case PROP_ID_stateBeanData:
+               return getStateBeanData();
         
             case PROP_ID_version:
                return getVersion();
@@ -457,23 +535,23 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     public void orm_propValue(int propId, Object value){
         switch(propId){
         
-            case PROP_ID_stepId:{
+            case PROP_ID_stepInstanceId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_stepId));
+                       err-> newTypeConversionError(PROP_NAME_stepInstanceId));
                }
-               setStepId(typedValue);
+               setStepInstanceId(typedValue);
                break;
             }
         
-            case PROP_ID_taskId:{
+            case PROP_ID_taskInstanceId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_taskId));
+                       err-> newTypeConversionError(PROP_NAME_taskInstanceId));
                }
-               setTaskId(typedValue);
+               setTaskInstanceId(typedValue);
                break;
             }
         
@@ -507,13 +585,13 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_status:{
+            case PROP_ID_stepStatus:{
                java.lang.Integer typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_status));
+                       err-> newTypeConversionError(PROP_NAME_stepStatus));
                }
-               setStatus(typedValue);
+               setStepStatus(typedValue);
                break;
             }
         
@@ -597,6 +675,16 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_internal:{
+               java.lang.Boolean typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_internal));
+               }
+               setInternal(typedValue);
+               break;
+            }
+        
             case PROP_ID_errCode:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -644,6 +732,56 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_parentStepId));
                }
                setParentStepId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_workerId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_workerId));
+               }
+               setWorkerId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_stepPath:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_stepPath));
+               }
+               setStepPath(typedValue);
+               break;
+            }
+        
+            case PROP_ID_runId:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_runId));
+               }
+               setRunId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_bodyStepIndex:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_bodyStepIndex));
+               }
+               setBodyStepIndex(typedValue);
+               break;
+            }
+        
+            case PROP_ID_stateBeanData:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_stateBeanData));
+               }
+               setStateBeanData(typedValue);
                break;
             }
         
@@ -716,16 +854,16 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     public void orm_internalSet(int propId, Object value) {
         switch(propId){
         
-            case PROP_ID_stepId:{
+            case PROP_ID_stepInstanceId:{
                onInitProp(propId);
-               this._stepId = (java.lang.String)value;
+               this._stepInstanceId = (java.lang.String)value;
                orm_id(); // 如果是设置主键字段，则触发watcher
                break;
             }
         
-            case PROP_ID_taskId:{
+            case PROP_ID_taskInstanceId:{
                onInitProp(propId);
-               this._taskId = (java.lang.String)value;
+               this._taskInstanceId = (java.lang.String)value;
                
                break;
             }
@@ -751,9 +889,9 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_status:{
+            case PROP_ID_stepStatus:{
                onInitProp(propId);
-               this._status = (java.lang.Integer)value;
+               this._stepStatus = (java.lang.Integer)value;
                
                break;
             }
@@ -814,6 +952,13 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_internal:{
+               onInitProp(propId);
+               this._internal = (java.lang.Boolean)value;
+               
+               break;
+            }
+        
             case PROP_ID_errCode:{
                onInitProp(propId);
                this._errCode = (java.lang.String)value;
@@ -845,6 +990,41 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
             case PROP_ID_parentStepId:{
                onInitProp(propId);
                this._parentStepId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_workerId:{
+               onInitProp(propId);
+               this._workerId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_stepPath:{
+               onInitProp(propId);
+               this._stepPath = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_runId:{
+               onInitProp(propId);
+               this._runId = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_bodyStepIndex:{
+               onInitProp(propId);
+               this._bodyStepIndex = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_stateBeanData:{
+               onInitProp(propId);
+               this._stateBeanData = (java.lang.String)value;
                
                break;
             }
@@ -898,39 +1078,39 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
 
     
     /**
-     * 步骤ID: STEP_ID
+     * 步骤ID: STEP_INSTANCE_ID
      */
-    public java.lang.String getStepId(){
-         onPropGet(PROP_ID_stepId);
-         return _stepId;
+    public java.lang.String getStepInstanceId(){
+         onPropGet(PROP_ID_stepInstanceId);
+         return _stepInstanceId;
     }
 
     /**
-     * 步骤ID: STEP_ID
+     * 步骤ID: STEP_INSTANCE_ID
      */
-    public void setStepId(java.lang.String value){
-        if(onPropSet(PROP_ID_stepId,value)){
-            this._stepId = value;
-            internalClearRefs(PROP_ID_stepId);
+    public void setStepInstanceId(java.lang.String value){
+        if(onPropSet(PROP_ID_stepInstanceId,value)){
+            this._stepInstanceId = value;
+            internalClearRefs(PROP_ID_stepInstanceId);
             orm_id();
         }
     }
     
     /**
-     * 逻辑流实例ID: TASK_ID
+     * 逻辑流实例ID: TASK_INSTANCE_ID
      */
-    public java.lang.String getTaskId(){
-         onPropGet(PROP_ID_taskId);
-         return _taskId;
+    public java.lang.String getTaskInstanceId(){
+         onPropGet(PROP_ID_taskInstanceId);
+         return _taskInstanceId;
     }
 
     /**
-     * 逻辑流实例ID: TASK_ID
+     * 逻辑流实例ID: TASK_INSTANCE_ID
      */
-    public void setTaskId(java.lang.String value){
-        if(onPropSet(PROP_ID_taskId,value)){
-            this._taskId = value;
-            internalClearRefs(PROP_ID_taskId);
+    public void setTaskInstanceId(java.lang.String value){
+        if(onPropSet(PROP_ID_taskInstanceId,value)){
+            this._taskInstanceId = value;
+            internalClearRefs(PROP_ID_taskInstanceId);
             
         }
     }
@@ -993,20 +1173,20 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     }
     
     /**
-     * 状态: STATUS
+     * 状态: STEP_STATUS
      */
-    public java.lang.Integer getStatus(){
-         onPropGet(PROP_ID_status);
-         return _status;
+    public java.lang.Integer getStepStatus(){
+         onPropGet(PROP_ID_stepStatus);
+         return _stepStatus;
     }
 
     /**
-     * 状态: STATUS
+     * 状态: STEP_STATUS
      */
-    public void setStatus(java.lang.Integer value){
-        if(onPropSet(PROP_ID_status,value)){
-            this._status = value;
-            internalClearRefs(PROP_ID_status);
+    public void setStepStatus(java.lang.Integer value){
+        if(onPropSet(PROP_ID_stepStatus,value)){
+            this._stepStatus = value;
+            internalClearRefs(PROP_ID_stepStatus);
             
         }
     }
@@ -1164,6 +1344,25 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
     }
     
     /**
+     * 是否内部: INTERNAL
+     */
+    public java.lang.Boolean getInternal(){
+         onPropGet(PROP_ID_internal);
+         return _internal;
+    }
+
+    /**
+     * 是否内部: INTERNAL
+     */
+    public void setInternal(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_internal,value)){
+            this._internal = value;
+            internalClearRefs(PROP_ID_internal);
+            
+        }
+    }
+    
+    /**
      * 错误码: ERR_CODE
      */
     public java.lang.String getErrCode(){
@@ -1254,6 +1453,101 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_parentStepId,value)){
             this._parentStepId = value;
             internalClearRefs(PROP_ID_parentStepId);
+            
+        }
+    }
+    
+    /**
+     * 工作者ID: WORKER_ID
+     */
+    public java.lang.String getWorkerId(){
+         onPropGet(PROP_ID_workerId);
+         return _workerId;
+    }
+
+    /**
+     * 工作者ID: WORKER_ID
+     */
+    public void setWorkerId(java.lang.String value){
+        if(onPropSet(PROP_ID_workerId,value)){
+            this._workerId = value;
+            internalClearRefs(PROP_ID_workerId);
+            
+        }
+    }
+    
+    /**
+     * 步骤路径: STEP_PATH
+     */
+    public java.lang.String getStepPath(){
+         onPropGet(PROP_ID_stepPath);
+         return _stepPath;
+    }
+
+    /**
+     * 步骤路径: STEP_PATH
+     */
+    public void setStepPath(java.lang.String value){
+        if(onPropSet(PROP_ID_stepPath,value)){
+            this._stepPath = value;
+            internalClearRefs(PROP_ID_stepPath);
+            
+        }
+    }
+    
+    /**
+     * 运行ID: RUN_ID
+     */
+    public java.lang.Integer getRunId(){
+         onPropGet(PROP_ID_runId);
+         return _runId;
+    }
+
+    /**
+     * 运行ID: RUN_ID
+     */
+    public void setRunId(java.lang.Integer value){
+        if(onPropSet(PROP_ID_runId,value)){
+            this._runId = value;
+            internalClearRefs(PROP_ID_runId);
+            
+        }
+    }
+    
+    /**
+     * 步骤下标: BODY_STEP_INDEX
+     */
+    public java.lang.Integer getBodyStepIndex(){
+         onPropGet(PROP_ID_bodyStepIndex);
+         return _bodyStepIndex;
+    }
+
+    /**
+     * 步骤下标: BODY_STEP_INDEX
+     */
+    public void setBodyStepIndex(java.lang.Integer value){
+        if(onPropSet(PROP_ID_bodyStepIndex,value)){
+            this._bodyStepIndex = value;
+            internalClearRefs(PROP_ID_bodyStepIndex);
+            
+        }
+    }
+    
+    /**
+     * 状态数据: STATE_BEAN_DATA
+     */
+    public java.lang.String getStateBeanData(){
+         onPropGet(PROP_ID_stateBeanData);
+         return _stateBeanData;
+    }
+
+    /**
+     * 状态数据: STATE_BEAN_DATA
+     */
+    public void setStateBeanData(java.lang.String value){
+        if(onPropSet(PROP_ID_stateBeanData,value)){
+            this._stateBeanData = value;
+            internalClearRefs(PROP_ID_stateBeanData);
             
         }
     }
@@ -1383,12 +1677,12 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
    
            if(refEntity == null){
            
-                   this.setTaskId(null);
+                   this.setTaskInstanceId(null);
                
            }else{
            internalSetRefEntity(PROP_NAME_taskInstance, refEntity,()->{
            
-                           this.setTaskId(refEntity.getTaskId());
+                           this.setTaskInstanceId(refEntity.getTaskInstanceId());
                        
            });
            }
@@ -1411,7 +1705,7 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
            }else{
            internalSetRefEntity(PROP_NAME_subTaskInstance, refEntity,()->{
            
-                           this.setSubTaskId(refEntity.getTaskId());
+                           this.setSubTaskId(refEntity.getTaskInstanceId());
                        
            });
            }
@@ -1434,7 +1728,7 @@ public class _NopTaskStepInstance extends DynamicOrmEntity{
            }else{
            internalSetRefEntity(PROP_NAME_parentStepInstance, refEntity,()->{
            
-                           this.setParentStepId(refEntity.getStepId());
+                           this.setParentStepId(refEntity.getStepInstanceId());
                        
            });
            }

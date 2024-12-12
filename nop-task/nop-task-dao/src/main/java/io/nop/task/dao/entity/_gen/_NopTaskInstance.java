@@ -20,9 +20,9 @@ import io.nop.task.dao.entity.NopTaskInstance;
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopTaskInstance extends DynamicOrmEntity{
     
-    /* 主键: TASK_ID VARCHAR */
-    public static final String PROP_NAME_taskId = "taskId";
-    public static final int PROP_ID_taskId = 1;
+    /* 主键: TASK_INSTANCE_ID VARCHAR */
+    public static final String PROP_NAME_taskInstanceId = "taskInstanceId";
+    public static final int PROP_ID_taskInstanceId = 1;
     
     /* 逻辑流名称: TASK_NAME VARCHAR */
     public static final String PROP_NAME_taskName = "taskName";
@@ -124,9 +124,9 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_tagText = "tagText";
     public static final int PROP_ID_tagText = 26;
     
-    /* Job ID: JOB_ID VARCHAR */
-    public static final String PROP_NAME_jobId = "jobId";
-    public static final int PROP_ID_jobId = 27;
+    /* Job ID: JOB_INSTANCE_ID VARCHAR */
+    public static final String PROP_NAME_jobInstanceId = "jobInstanceId";
+    public static final int PROP_ID_jobInstanceId = 27;
     
     /* 错误码: ERR_CODE VARCHAR */
     public static final String PROP_NAME_errCode = "errCode";
@@ -136,7 +136,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_errMsg = "errMsg";
     public static final int PROP_ID_errMsg = 29;
     
-    /* Worker ID: Worker_ID VARCHAR */
+    /* Worker ID: WORKER_ID VARCHAR */
     public static final String PROP_NAME_workerId = "workerId";
     public static final int PROP_ID_workerId = 30;
     
@@ -175,15 +175,15 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_steps = "steps";
     
 
-    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_taskId);
-    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_taskId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_taskInstanceId);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_taskInstanceId};
 
     private static final String[] PROP_ID_TO_NAME = new String[38];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
-          PROP_ID_TO_NAME[PROP_ID_taskId] = PROP_NAME_taskId;
-          PROP_NAME_TO_ID.put(PROP_NAME_taskId, PROP_ID_taskId);
+          PROP_ID_TO_NAME[PROP_ID_taskInstanceId] = PROP_NAME_taskInstanceId;
+          PROP_NAME_TO_ID.put(PROP_NAME_taskInstanceId, PROP_ID_taskInstanceId);
       
           PROP_ID_TO_NAME[PROP_ID_taskName] = PROP_NAME_taskName;
           PROP_NAME_TO_ID.put(PROP_NAME_taskName, PROP_ID_taskName);
@@ -260,8 +260,8 @@ public class _NopTaskInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_tagText] = PROP_NAME_tagText;
           PROP_NAME_TO_ID.put(PROP_NAME_tagText, PROP_ID_tagText);
       
-          PROP_ID_TO_NAME[PROP_ID_jobId] = PROP_NAME_jobId;
-          PROP_NAME_TO_ID.put(PROP_NAME_jobId, PROP_ID_jobId);
+          PROP_ID_TO_NAME[PROP_ID_jobInstanceId] = PROP_NAME_jobInstanceId;
+          PROP_NAME_TO_ID.put(PROP_NAME_jobInstanceId, PROP_ID_jobInstanceId);
       
           PROP_ID_TO_NAME[PROP_ID_errCode] = PROP_NAME_errCode;
           PROP_NAME_TO_ID.put(PROP_NAME_errCode, PROP_ID_errCode);
@@ -293,8 +293,8 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     }
 
     
-    /* 主键: TASK_ID */
-    private java.lang.String _taskId;
+    /* 主键: TASK_INSTANCE_ID */
+    private java.lang.String _taskInstanceId;
     
     /* 逻辑流名称: TASK_NAME */
     private java.lang.String _taskName;
@@ -371,8 +371,8 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /* 标签: TAG_TEXT */
     private java.lang.String _tagText;
     
-    /* Job ID: JOB_ID */
-    private java.lang.String _jobId;
+    /* Job ID: JOB_INSTANCE_ID */
+    private java.lang.String _jobInstanceId;
     
     /* 错误码: ERR_CODE */
     private java.lang.String _errCode;
@@ -380,7 +380,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /* 错误消息: ERR_MSG */
     private java.lang.String _errMsg;
     
-    /* Worker ID: Worker_ID */
+    /* Worker ID: WORKER_ID */
     private java.lang.String _workerId;
     
     /* 数据版本: VERSION */
@@ -442,14 +442,14 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     @Override
     public Object orm_id() {
     
-        return buildSimpleId(PROP_ID_taskId);
+        return buildSimpleId(PROP_ID_taskInstanceId);
      
     }
 
     @Override
     public boolean orm_isPrimary(int propId) {
         
-            return propId == PROP_ID_taskId;
+            return propId == PROP_ID_taskInstanceId;
           
     }
 
@@ -475,8 +475,8 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     public Object orm_propValue(int propId) {
         switch(propId){
         
-            case PROP_ID_taskId:
-               return getTaskId();
+            case PROP_ID_taskInstanceId:
+               return getTaskInstanceId();
         
             case PROP_ID_taskName:
                return getTaskName();
@@ -553,8 +553,8 @@ public class _NopTaskInstance extends DynamicOrmEntity{
             case PROP_ID_tagText:
                return getTagText();
         
-            case PROP_ID_jobId:
-               return getJobId();
+            case PROP_ID_jobInstanceId:
+               return getJobInstanceId();
         
             case PROP_ID_errCode:
                return getErrCode();
@@ -594,13 +594,13 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     public void orm_propValue(int propId, Object value){
         switch(propId){
         
-            case PROP_ID_taskId:{
+            case PROP_ID_taskInstanceId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_taskId));
+                       err-> newTypeConversionError(PROP_NAME_taskInstanceId));
                }
-               setTaskId(typedValue);
+               setTaskInstanceId(typedValue);
                break;
             }
         
@@ -854,13 +854,13 @@ public class _NopTaskInstance extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_jobId:{
+            case PROP_ID_jobInstanceId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_jobId));
+                       err-> newTypeConversionError(PROP_NAME_jobInstanceId));
                }
-               setJobId(typedValue);
+               setJobInstanceId(typedValue);
                break;
             }
         
@@ -963,9 +963,9 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     public void orm_internalSet(int propId, Object value) {
         switch(propId){
         
-            case PROP_ID_taskId:{
+            case PROP_ID_taskInstanceId:{
                onInitProp(propId);
-               this._taskId = (java.lang.String)value;
+               this._taskInstanceId = (java.lang.String)value;
                orm_id(); // 如果是设置主键字段，则触发watcher
                break;
             }
@@ -1145,9 +1145,9 @@ public class _NopTaskInstance extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_jobId:{
+            case PROP_ID_jobInstanceId:{
                onInitProp(propId);
-               this._jobId = (java.lang.String)value;
+               this._jobInstanceId = (java.lang.String)value;
                
                break;
             }
@@ -1222,20 +1222,20 @@ public class _NopTaskInstance extends DynamicOrmEntity{
 
     
     /**
-     * 主键: TASK_ID
+     * 主键: TASK_INSTANCE_ID
      */
-    public java.lang.String getTaskId(){
-         onPropGet(PROP_ID_taskId);
-         return _taskId;
+    public java.lang.String getTaskInstanceId(){
+         onPropGet(PROP_ID_taskInstanceId);
+         return _taskInstanceId;
     }
 
     /**
-     * 主键: TASK_ID
+     * 主键: TASK_INSTANCE_ID
      */
-    public void setTaskId(java.lang.String value){
-        if(onPropSet(PROP_ID_taskId,value)){
-            this._taskId = value;
-            internalClearRefs(PROP_ID_taskId);
+    public void setTaskInstanceId(java.lang.String value){
+        if(onPropSet(PROP_ID_taskInstanceId,value)){
+            this._taskInstanceId = value;
+            internalClearRefs(PROP_ID_taskInstanceId);
             orm_id();
         }
     }
@@ -1716,20 +1716,20 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     }
     
     /**
-     * Job ID: JOB_ID
+     * Job ID: JOB_INSTANCE_ID
      */
-    public java.lang.String getJobId(){
-         onPropGet(PROP_ID_jobId);
-         return _jobId;
+    public java.lang.String getJobInstanceId(){
+         onPropGet(PROP_ID_jobInstanceId);
+         return _jobInstanceId;
     }
 
     /**
-     * Job ID: JOB_ID
+     * Job ID: JOB_INSTANCE_ID
      */
-    public void setJobId(java.lang.String value){
-        if(onPropSet(PROP_ID_jobId,value)){
-            this._jobId = value;
-            internalClearRefs(PROP_ID_jobId);
+    public void setJobInstanceId(java.lang.String value){
+        if(onPropSet(PROP_ID_jobInstanceId,value)){
+            this._jobInstanceId = value;
+            internalClearRefs(PROP_ID_jobInstanceId);
             
         }
     }
@@ -1773,7 +1773,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     }
     
     /**
-     * Worker ID: Worker_ID
+     * Worker ID: WORKER_ID
      */
     public java.lang.String getWorkerId(){
          onPropGet(PROP_ID_workerId);
@@ -1781,7 +1781,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     }
 
     /**
-     * Worker ID: Worker_ID
+     * Worker ID: WORKER_ID
      */
     public void setWorkerId(java.lang.String value){
         if(onPropSet(PROP_ID_workerId,value)){
@@ -1921,7 +1921,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
            }else{
            internalSetRefEntity(PROP_NAME_parentTaskInstance, refEntity,()->{
            
-                           this.setParentTaskId(refEntity.getTaskId());
+                           this.setParentTaskId(refEntity.getTaskInstanceId());
                        
            });
            }

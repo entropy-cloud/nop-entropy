@@ -50,7 +50,7 @@ prop:
       endTime: 结束时间
       errCode: 错误码
       errMsg: 错误消息
-      jobId: Job ID
+      jobInstanceId: Job ID
       managerDeptId: 管理者单位ID
       managerId: 管理者ID
       managerName: 管理者
@@ -72,8 +72,8 @@ prop:
       steps: null
       tagText: 标签
       taskGroup: 逻辑流分组
-      taskId: 主键
       taskInputs: 逻辑流参数
+      taskInstanceId: 主键
       taskName: 逻辑流名称
       taskVersion: 逻辑流版本
       updateTime: 修改时间
@@ -81,6 +81,7 @@ prop:
       version: 数据版本
       workerId: Worker ID
     NopTaskStepInstance:
+      bodyStepIndex: 步骤下标
       childSteps: 子步骤集合
       createTime: 创建时间
       createdBy: 创建人
@@ -89,25 +90,30 @@ prop:
       errCode: 错误码
       errMsg: 错误消息
       finishTime: 结束时间
+      internal: 是否内部
       nextRetryTime: 下次重试时间
       parentStepId: 父步骤ID
       parentStepInstance: 父步骤实例
       priority: 优先级
       remark: 备注
       retryCount: 已重试次数
+      runId: 运行ID
       startTime: 开始时间
-      status: 状态
-      status_label: 状态
-      stepId: 步骤ID
+      stateBeanData: 状态数据
+      stepInstanceId: 步骤ID
       stepName: 步骤名称
+      stepPath: 步骤路径
+      stepStatus: 状态
+      stepStatus_label: 状态
       stepType: 步骤类型
       subTaskId: 子流程ID
       subTaskInstance: 子流程实例
       subTaskName: 子流程名称
       subTaskVersion: 子流程版本
       tagText: 标签
-      taskId: 逻辑流实例ID
       taskInstance: 逻辑流实例
+      taskInstanceId: 逻辑流实例ID
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+      workerId: 工作者ID
