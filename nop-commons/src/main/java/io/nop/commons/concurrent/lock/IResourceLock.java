@@ -28,6 +28,10 @@ public interface IResourceLock extends Lock {
 
     boolean isHoldingLock();
 
+    String getLockReason();
+
+    void setLockReason(String lockReason);
+
     /**
      * 尝试获取锁
      *

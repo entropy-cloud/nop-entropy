@@ -65,6 +65,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
+import static io.nop.orm.OrmConfigs.CFG_ORM_SESSION_CHECK_CONTEXT;
 import static io.nop.orm.OrmErrors.ARG_COLLECTION_NAME;
 import static io.nop.orm.OrmErrors.ARG_ENTITY_ID;
 import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
@@ -123,7 +124,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     private long sessionRevVersion = -1L;
 
     // 这里总使用当前的context，不需要自己创建
-    private final IContext context = ContextProvider.currentContext();
+    private final IContext context = CFG_ORM_SESSION_CHECK_CONTEXT.get() ? ContextProvider.currentContext() : null;
 
     private List<Runnable> onClose;
 
@@ -1277,7 +1278,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         checkContext();
         checkValid();
         cache.forEachCurrent(entity -> {
-            if(entity.orm_state().isGone() || entity.orm_state().isSaving()){
+            if (entity.orm_state().isGone() || entity.orm_state().isSaving()) {
                 cache.remove(entity);
                 return;
             }

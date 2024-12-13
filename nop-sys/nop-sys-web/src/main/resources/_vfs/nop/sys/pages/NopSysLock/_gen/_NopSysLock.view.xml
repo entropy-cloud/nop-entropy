@@ -18,11 +18,11 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--分组-->
-                <col id="lockGroup" mandatory="true" sortable="true"/>
-
                 <!--锁名称-->
                 <col id="lockName" mandatory="true" sortable="true"/>
+
+                <!--分组-->
+                <col id="lockGroup" mandatory="true" sortable="true"/>
 
                 <!--锁定时间-->
                 <col id="lockTime" mandatory="true" sortable="true"/>
@@ -41,6 +41,18 @@
 
                 <!--应用ID-->
                 <col id="appId" mandatory="true" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -49,21 +61,19 @@
     <forms>
         <form id="view" editMode="view" title="查看-资源锁" i18n-en:title="View Lock">
             <layout>
- lockGroup[分组]
- lockName[锁名称]
- lockTime[锁定时间]
- expireAt[过期时间]
- lockReason[锁定原因]
- holderId[锁的持有者]
- holderAdder[持有者地址]
- appId[应用ID]
+ lockName[锁名称] lockGroup[分组]
+ lockTime[锁定时间] expireAt[过期时间]
+ lockReason[锁定原因] holderId[锁的持有者]
+ holderAdder[持有者地址] appId[应用ID]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-资源锁" i18n-en:title="Add Lock" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-资源锁" i18n-en:title="Edit Lock">
             <layout>
- lockGroup[分组]
  lockName[锁名称]
+ lockGroup[分组]
  lockTime[锁定时间]
  expireAt[过期时间]
  lockReason[锁定原因]

@@ -18,6 +18,8 @@ public class ResourceLockState implements IResourceLockState {
     private long createTime;
     private long lockTime;
     private long expireTime;
+    private String lockReason;
+    private int version;
 
     public ResourceLockState cloneInstance() {
         ResourceLockState state = new ResourceLockState();
@@ -26,7 +28,26 @@ public class ResourceLockState implements IResourceLockState {
         state.setCreateTime(createTime);
         state.setLockTime(lockTime);
         state.setExpireTime(expireTime);
+        state.setLockReason(lockReason);
         return state;
+    }
+
+    @Override
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
+    @Override
+    public String getLockReason() {
+        return lockReason;
+    }
+
+    public void setLockReason(String lockReason) {
+        this.lockReason = lockReason;
     }
 
     @Override

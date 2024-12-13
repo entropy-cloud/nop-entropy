@@ -423,19 +423,21 @@
                         stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
             </columns>
         </entity>
-        <entity className="io.nop.sys.dao.entity.NopSysLock" displayName="资源锁" name="io.nop.sys.dao.entity.NopSysLock"
-                registerShortName="true" tableName="nop_sys_lock" i18n-en:displayName="Lock">
+        <entity className="io.nop.sys.dao.entity.NopSysLock" createTimeProp="createTime" createrProp="createdBy"
+                displayName="资源锁" name="io.nop.sys.dao.entity.NopSysLock" registerShortName="true"
+                tableName="nop_sys_lock" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
+                i18n-en:displayName="Lock">
             <columns>
-                <column code="LOCK_GROUP" displayName="分组" mandatory="true" name="lockGroup" precision="200"
-                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
-                        i18n-en:displayName="Lock Group"/>
                 <column code="LOCK_NAME" displayName="锁名称" mandatory="true" name="lockName" precision="200"
-                        primary="true" propId="2" stdDataType="string" stdSqlType="VARCHAR"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Lock Name"/>
+                <column code="LOCK_GROUP" displayName="分组" mandatory="true" name="lockGroup" precision="200"
+                        primary="true" propId="2" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Lock Group"/>
                 <column code="LOCK_TIME" displayName="锁定时间" mandatory="true" name="lockTime" propId="3"
-                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Lock Time"/>
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Lock Time"/>
                 <column code="EXPIRE_AT" displayName="过期时间" mandatory="true" name="expireAt" propId="4"
-                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Expire At"/>
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Expire At"/>
                 <column code="LOCK_REASON" displayName="锁定原因" name="lockReason" precision="200" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Lock Reason"/>
                 <column code="HOLDER_ID" displayName="锁的持有者" mandatory="true" name="holderId" precision="100" propId="6"
@@ -444,6 +446,18 @@
                         propId="7" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Holder Addr"/>
                 <column code="APP_ID" displayName="应用ID" mandatory="true" name="appId" precision="100" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="App ID"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
             </columns>
         </entity>
         <entity className="io.nop.sys.dao.entity.NopSysClusterLeader" displayName="集群选举"

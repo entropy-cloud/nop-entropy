@@ -22,7 +22,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public class LocalResourceLockManager implements IResourceLockManager, IResourceLockManagerImplementor {
     static final Logger LOG = LoggerFactory.getLogger(LocalResourceLockManager.class);
@@ -135,10 +139,11 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
     }
 
     @Override
-    public IResourceLockState tryLockWithLease(String resourceId, String lockerId, long waitTime, long leaseTime) {
+    public IResourceLockState tryLockWithLease(String resourceId, String lockerId, long waitTime, long leaseTime, String lockReason) {
         long startTime = CoreMetrics.currentTimeMillis();
 
         LocalResourceLockState lock = this.newLock(resourceId, lockerId);
+        lock.setLockReason(lockReason);
 
         do {
             long current = CoreMetrics.currentTimeMillis();

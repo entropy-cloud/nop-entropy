@@ -81,4 +81,8 @@ public interface OrmConfigs {
     @Description("缺省的系统用户名，当上下文没有用户信息，且需要记录创建者时使用")
     IConfigReference<String> CFG_ORM_SYS_USER_NAME = varRef(s_loc, "nop.orm.sys-user-name", String.class, OrmConstants.USER_NAME_SYS);
 
+    @Description("检查Session绑定的上下文对象。一个OrmSession只允许在一个上下文中执行")
+    IConfigReference<Boolean> CFG_ORM_SESSION_CHECK_CONTEXT = varRef(s_loc, "nop.orm.session-check-context",
+            Boolean.class, true);
+
 }

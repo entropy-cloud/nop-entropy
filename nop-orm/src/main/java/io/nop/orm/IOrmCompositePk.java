@@ -18,7 +18,7 @@ public interface IOrmCompositePk {
 
     Object get(int index);
 
-    Object get(String propName);
+    Object getByPropName(String propName);
 
     List<String> propNames();
 

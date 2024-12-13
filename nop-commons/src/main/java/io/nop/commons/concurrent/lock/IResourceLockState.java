@@ -20,4 +20,8 @@ public interface IResourceLockState {
     long getExpireTime();
 
     long getCreateTime();
+
+    String getLockReason();
+
+    int getVersion();
 }

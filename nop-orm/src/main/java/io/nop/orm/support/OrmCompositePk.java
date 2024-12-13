@@ -52,7 +52,7 @@ public final class OrmCompositePk implements IOrmCompositePk, Serializable, IJso
 
     @Override
     public Object prop_get(String propName) {
-        return get(propName);
+        return getByPropName(propName);
     }
 
     @Override
@@ -61,7 +61,7 @@ public final class OrmCompositePk implements IOrmCompositePk, Serializable, IJso
     }
 
     @Override
-    public Object get(String propName) {
+    public Object getByPropName(String propName) {
         for (int i = 0, n = propNames.size(); i < n; i++) {
             if (propNames.get(i).equals(propName))
                 return propValues[i];

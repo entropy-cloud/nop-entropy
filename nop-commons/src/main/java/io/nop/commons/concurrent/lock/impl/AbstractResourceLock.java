@@ -16,6 +16,7 @@ import java.util.concurrent.locks.Condition;
 
 import static io.nop.commons.CommonErrors.ARG_HOLDER_ID;
 import static io.nop.commons.CommonErrors.ARG_LEASE_TIME;
+import static io.nop.commons.CommonErrors.ARG_RESOURCE_ID;
 import static io.nop.commons.CommonErrors.ARG_RESOURCE_IDS;
 import static io.nop.commons.CommonErrors.ARG_WAIT_TIME;
 import static io.nop.commons.CommonErrors.ERR_LOCK_ACQUIRE_FAIL;
@@ -48,7 +49,7 @@ public abstract class AbstractResourceLock implements IResourceLock {
     @Override
     public void lock() {
         if (!tryLockWithLease(defaultWaitTime, defaultLeaseTime))
-            throw new NopException(ERR_LOCK_ACQUIRE_FAIL).param(ARG_RESOURCE_IDS, getResourceIds()).param(ARG_HOLDER_ID,
+            throw new NopException(ERR_LOCK_ACQUIRE_FAIL).param(ARG_RESOURCE_ID, getResourceIds()).param(ARG_HOLDER_ID,
                     getHolderId());
     }
 

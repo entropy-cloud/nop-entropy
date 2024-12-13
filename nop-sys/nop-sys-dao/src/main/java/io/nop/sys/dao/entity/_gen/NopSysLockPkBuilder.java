@@ -11,12 +11,12 @@ public class NopSysLockPkBuilder{
     private Object[] values = new Object[2];
 
    
-    public NopSysLockPkBuilder setLockGroup(java.lang.String value){
+    public NopSysLockPkBuilder setLockName(java.lang.String value){
         this.values[0] = value;
         return this;
     }
    
-    public NopSysLockPkBuilder setLockName(java.lang.String value){
+    public NopSysLockPkBuilder setLockGroup(java.lang.String value){
         this.values[1] = value;
         return this;
     }

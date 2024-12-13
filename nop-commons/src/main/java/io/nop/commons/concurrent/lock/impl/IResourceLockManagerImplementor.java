@@ -11,7 +11,7 @@ import io.nop.commons.concurrent.lock.IResourceLockState;
 
 public interface IResourceLockManagerImplementor {
 
-    IResourceLockState tryLockWithLease(String resourceId, String lockerId, long waitTime, long leaseTime);
+    IResourceLockState tryLockWithLease(String resourceId, String lockerId, long waitTime, long leaseTime, String lockReason);
 
     boolean tryResetLease(IResourceLockState lock, long leaseTime);
 

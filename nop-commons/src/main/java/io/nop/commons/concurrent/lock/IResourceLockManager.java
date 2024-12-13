@@ -7,12 +7,12 @@
  */
 package io.nop.commons.concurrent.lock;
 
-import io.nop.api.core.context.ContextProvider;
 import io.nop.commons.concurrent.lock.impl.ResourceMultiLock;
 import jakarta.annotation.Nonnull;
 
 import java.util.Set;
-import java.util.function.Supplier;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * 分布式锁, 不可重入
@@ -37,21 +37,24 @@ public interface IResourceLockManager {
 
     boolean forceUnlock(String resourceId);
 
-    default <T> T callWithLock(String resourceId, Supplier<T> task) {
-        IResourceLock lock = getLock(resourceId, ContextProvider.currentUserId());
+    default <T> T callWithLock(String resourceId, String holderId, String lockReason, Function<IResourceLock, T> task) {
+        IResourceLock lock = getLock(resourceId, holderId);
+        lock.setLockReason(lockReason);
         try {
             lock.lock();
-            return task.get();
+            return task.apply(lock);
         } finally {
             lock.unlock();
         }
     }
 
-    default void runWithLock(String resourceId, Runnable task) {
-        IResourceLock lock = getLock(resourceId, ContextProvider.currentUserId());
+    default void runWithLock(String resourceId, String holderId, String lockReason, Consumer<IResourceLock> task) {
+        IResourceLock lock = getLock(resourceId, holderId);
+        lock.setLockReason(lockReason);
+
         try {
             lock.lock();
-            task.run();
+            task.accept(lock);
         } finally {
             lock.unlock();
         }

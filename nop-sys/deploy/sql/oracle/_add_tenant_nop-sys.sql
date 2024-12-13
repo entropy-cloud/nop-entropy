@@ -45,7 +45,7 @@ alter table nop_sys_i18n drop constraint PK_nop_sys_i18n;
 alter table nop_sys_i18n add constraint PK_nop_sys_i18n primary key (NOP_TENANT_ID, I18N_KEY,I18N_LOCALE);
 
 alter table nop_sys_lock drop constraint PK_nop_sys_lock;
-alter table nop_sys_lock add constraint PK_nop_sys_lock primary key (NOP_TENANT_ID, LOCK_GROUP,LOCK_NAME);
+alter table nop_sys_lock add constraint PK_nop_sys_lock primary key (NOP_TENANT_ID, LOCK_NAME,LOCK_GROUP);
 
 alter table nop_sys_notice_template drop constraint PK_nop_sys_notice_template;
 alter table nop_sys_notice_template add constraint PK_nop_sys_notice_template primary key (NOP_TENANT_ID, SID);

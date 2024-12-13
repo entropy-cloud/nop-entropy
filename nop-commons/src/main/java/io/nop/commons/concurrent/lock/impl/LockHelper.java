@@ -20,7 +20,7 @@ public class LockHelper {
     static final Logger LOG = LoggerFactory.getLogger(LockHelper.class);
 
     public static String[] sortResourceIds(Collection<String> resourceIds) {
-        if (resourceIds == null)
+        if (resourceIds == null || resourceIds.isEmpty())
             return StringHelper.EMPTY_STRINGS;
         String[] ret = resourceIds.toArray(StringHelper.EMPTY_STRINGS);
         Arrays.sort(ret);

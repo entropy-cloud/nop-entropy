@@ -118,6 +118,8 @@ prop:
       version: 数据版本
     NopSysLock:
       appId: 应用ID
+      createTime: 创建时间
+      createdBy: 创建人
       expireAt: 过期时间
       holderAdder: 持有者地址
       holderId: 锁的持有者
@@ -125,6 +127,9 @@ prop:
       lockName: 锁名称
       lockReason: 锁定原因
       lockTime: 锁定时间
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopSysNoticeTemplate:
       content: 模板内容
       createTime: 创建时间

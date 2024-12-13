@@ -16,6 +16,7 @@ public class ResourceLock extends AbstractResourceLock {
     private final IResourceLockManagerImplementor lockManager;
     private final String resourceId;
     private final String holderId;
+    private String lockReason;
 
     private IResourceLockState lock;
 
@@ -25,6 +26,16 @@ public class ResourceLock extends AbstractResourceLock {
         this.lockManager = lockManager;
         this.resourceId = resourceId;
         this.holderId = holderId;
+    }
+
+    @Override
+    public String getLockReason() {
+        return lockReason;
+    }
+
+    @Override
+    public void setLockReason(String lockReason) {
+        this.lockReason = lockReason;
     }
 
     @Override
@@ -51,7 +62,7 @@ public class ResourceLock extends AbstractResourceLock {
 
     @Override
     public boolean tryLockWithLease(long waitTime, long leaseTime) {
-        this.lock = lockManager.tryLockWithLease(resourceId, holderId, waitTime, leaseTime);
+        this.lock = lockManager.tryLockWithLease(resourceId, holderId, waitTime, leaseTime, lockReason);
         return this.lock != null;
     }
 

@@ -26,13 +26,24 @@ public class ResourceMultiLock extends AbstractResourceLock {
     private final String holderId;
 
     private List<IResourceLock> locks;
+    private String lockReason;
 
     public ResourceMultiLock(IResourceLockManager lockManager, Set<String> resourceIds, String holderId,
                              long defaultWaitTime, long defaultLeaseTime) {
         super(defaultWaitTime, defaultLeaseTime);
         this.lockManager = lockManager;
-        this.resourceIds = resourceIds;
+        this.resourceIds = Set.of(LockHelper.sortResourceIds(resourceIds));
         this.holderId = holderId;
+    }
+
+    @Override
+    public String getLockReason() {
+        return lockReason;
+    }
+
+    @Override
+    public void setLockReason(String lockReason) {
+        this.lockReason = lockReason;
     }
 
     public String getHolderId() {
@@ -83,8 +94,7 @@ public class ResourceMultiLock extends AbstractResourceLock {
         if (locks != null && !locks.isEmpty())
             throw new NopException(ERR_LOCK_NOT_ALLOW_REENTRANT).param(ARG_RESOURCE_IDS, resourceIds);
 
-        String[] sortedIds = LockHelper.sortResourceIds(resourceIds);
-        this.locks = new ArrayList<>(sortedIds.length);
+        this.locks = new ArrayList<>(resourceIds.size());
 
         long startTime = CoreMetrics.currentTimeMillis();
 
@@ -92,7 +102,7 @@ public class ResourceMultiLock extends AbstractResourceLock {
 
         boolean success = false;
         try {
-            for (String resourceId : sortedIds) {
+            for (String resourceId : resourceIds) {
                 IResourceLock lock = lockManager.getLock(resourceId, holderId);
 
                 // 为了避免等待时间过程中锁失效，需要增加leaseTime

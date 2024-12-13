@@ -28,6 +28,7 @@ import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.IOrmTemplate;
+import io.nop.orm.OrmConstants;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.mdx.MdxQueryExecutor;
 import io.nop.orm.model.IEntityModel;
@@ -320,6 +321,24 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
             session.deleteDirectly(entity);
             return null;
         });
+    }
+
+    @Override
+    public boolean tryDelete(IOrmEntity entity) {
+        return runInSession(session -> {
+            SQL sql = buildDeleteEntitySql(entity);
+            return session.executeUpdate(sql) > 0;
+        });
+    }
+
+    SQL buildDeleteEntitySql(IOrmEntity entity) {
+        SQL.SqlBuilder sb = SQL.begin();
+        sb.deleteFrom().sql(entity.orm_entityName())
+                .where().eq(OrmConstants.PROP_ID, entity.orm_id());
+        IEntityModel entityModel = entity.orm_entityModel();
+        if (entityModel.getVersionPropModel() != null)
+            sb.and().eq(entityModel.getVersionPropModel().getName(), entity.orm_propValue(entityModel.getVersionPropId()));
+        return sb.end();
     }
 
     @Override

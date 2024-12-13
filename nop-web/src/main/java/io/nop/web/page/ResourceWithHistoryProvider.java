@@ -7,6 +7,7 @@
  */
 package io.nop.web.page;
 
+import io.nop.api.core.context.ContextProvider;
 import io.nop.commons.concurrent.lock.IResourceLockManager;
 import io.nop.commons.concurrent.lock.impl.LocalResourceLockManager;
 import io.nop.core.resource.IResource;
@@ -32,14 +33,14 @@ public abstract class ResourceWithHistoryProvider {
     }
 
     public void rollback(String path, Timestamp timestamp) {
-        resourceLockManager.runWithLock(path, () -> {
+        resourceLockManager.runWithLock(path, ContextProvider.currentTenantId(), "history", lock -> {
             IResource resource = VirtualFileSystem.instance().getResource(path);
             resourceHistory.rollback(resource, null);
         });
     }
 
-    protected void withHistorySupport(IResource resource, Function<IResource,Boolean> task) {
-        resourceLockManager.runWithLock(resource.getStdPath(), () -> {
+    protected void withHistorySupport(IResource resource, Function<IResource, Boolean> task) {
+        resourceLockManager.runWithLock(resource.getStdPath(), ContextProvider.currentTenantId(), "history", lock -> {
             resourceHistory.changeResource(resource, task);
         });
     }

@@ -45,7 +45,7 @@ alter table nop_sys_i18n drop primary key;
 alter table nop_sys_i18n add primary key (NOP_TENANT_ID, I18N_KEY,I18N_LOCALE);
 
 alter table nop_sys_lock drop primary key;
-alter table nop_sys_lock add primary key (NOP_TENANT_ID, LOCK_GROUP,LOCK_NAME);
+alter table nop_sys_lock add primary key (NOP_TENANT_ID, LOCK_NAME,LOCK_GROUP);
 
 alter table nop_sys_notice_template drop primary key;
 alter table nop_sys_notice_template add primary key (NOP_TENANT_ID, SID);

@@ -126,6 +126,8 @@ public interface IOrmTemplate extends ISqlExecutor {
 
     void deleteDirectly(IOrmEntity entity);
 
+    boolean tryDelete(IOrmEntity entity);
+
     /**
      * 如果session已存在，则更新，否则新建
      *

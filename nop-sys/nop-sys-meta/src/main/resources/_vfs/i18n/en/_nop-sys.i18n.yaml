@@ -117,14 +117,19 @@ prop:
       updateTime: Update Time
       remark: Remark
     NopSysLock:
-      lockGroup: Lock Group
       lockName: Lock Name
+      lockGroup: Lock Group
       lockTime: Lock Time
       expireAt: Expire At
       lockReason: Lock Reason
       holderId: Holder ID
       holderAdder: Holder Addr
       appId: App ID
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
     NopSysNoticeTemplate:
       sid: SID
       name: Name
