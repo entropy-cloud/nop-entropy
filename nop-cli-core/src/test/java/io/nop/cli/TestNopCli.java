@@ -88,16 +88,16 @@ public class TestNopCli extends BaseTestCase {
         CoreInitialization.destroy();
         File file = new File(getModuleDir(), "../nop-cli/demo/_vfs");
         System.setProperty(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName(), file.getAbsolutePath());
-        String[] args = new String[]{"run-task", "v:/batch/batch-gen-demo.task.xml", "-i", "{totalCount:200,taskKey:'abc'}"};
+        String[] args = new String[]{"run-task", "v:/batch/batch-gen-demo.task.xml", "-i", "{totalCount:2000,taskKey:'abc'}"};
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);
         int ret = app.run(args);
         assertEquals(0, ret);
         System.getProperties().remove(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName());
 
-        // 200 * (0.3 * (1/3 + 1/3 + 2/3) + 0.7) = 220
+        // 2000 * (0.3 * (1/3 + 1/3 + 2/3) + 0.7) * 10 = 2200 * 10
         String text = FileHelper.readText(getTargetFile("txn-abc.dat"), null);
-        assertTrue(text.contains("totalCount=2200 "));
+        assertTrue(text.contains("totalCount=22000 "));
     }
 
     @Test

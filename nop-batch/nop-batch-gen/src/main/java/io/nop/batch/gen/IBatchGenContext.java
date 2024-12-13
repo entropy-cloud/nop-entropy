@@ -12,4 +12,6 @@ import io.nop.core.context.IEvalContext;
 
 public interface IBatchGenContext extends IEvalContext {
     IBatchTemplateBasedProducer getProducer();
+
+    IBatchGenContext newSubContext();
 }

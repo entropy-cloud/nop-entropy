@@ -141,6 +141,18 @@ public class ContextProvider {
         }
     }
 
+    public static <T> T runWithContext(Supplier<T> task) {
+        IContext oldContext = _instance.currentContext();
+        IContext context = _instance.getOrCreateContext();
+        try {
+            return task.get();
+        } finally {
+            if (oldContext == null) {
+                context.close();
+            }
+        }
+    }
+
     /**
      * 确保回调函数在当前context上执行。但是返回的promise需要立刻被使用，如果传递到其他线程上使用，则不确保这一点
      */

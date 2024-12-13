@@ -70,24 +70,25 @@ Nop平台的代码生成器会自动根据ORM模型为每个实体生成一个�
 
 prop节点支持如下属性配置：
 
-| 名称               | 缺省值           | 说明                                                                             |
-|------------------|---------------|--------------------------------------------------------------------------------|
-| tagSet           |               | 逗号分隔的扩展标签，在代码生成时会使用                                                            |
-| published        | true          | 是否发布为GraphQL属性，可以通过服务访问                                                        |
-| insertable       | true          | 是否允许save操作的参数中包含此属性                                                            |
-| updatable        | true          | 是否允许通过update操作修改此属性                                                            |
-| queryable        | false         | 是否允许在查询条件中包含此属性                                                                |
-| sortable         | false         | 是否允许按照此属性进行排序                                                                  |
-| lazy             | false         | 利用REST协议访问实体对象时是否缺省不返回此属性                                                      |
-| allowFilterOp    |               | 允许针对此字段执行哪些查询运算，例如gt,ge,contains,like等，缺省只允许in,eq                              |
-| ui:filterOp      | eq            | 生成前台查询表单时缺省按照什么查询运算生成查询条件                                                      |
-| ui:control       |               | 可以直接指定缺省使用哪种控件来展现此属性，在control.xlib中会根据这里的配置查找实际对应的控件                           |
-| ui:labelProp     |               | 如果指定了labelProp，则生成表单和表格时查看模式下实际显示的是label字段, GraphQL每次请求也会多返回label字段用于前台显示      |
-| ui:maskPattern   |               | 如果指定了掩码模式，则GraphQL返回前台的数据会自动调用StringHelper.maskPattern函数进行掩码操作                 |
-| biz:codeRule     |               | 如果指定了编码规则，则新建实体的时候如果前台没有提交编码值，则会根据编码规则名称查找编码规则配置自动生成一个编码                       |
-| ui:maxUploadSize |               | 文件上传时最大允许的文件大小，可以是20M这种写法                                                      |
-| ui:editGrid      | sub-grid-edit | 对于子表集合属性，如果tagSet中包含grid标签，则表示在新建和修改时使用嵌入表格来编辑子表，主子表同时提交。通过此参数指定使用子表的哪个表格配置来编辑 |
-| ui:viewGrid      | sub-grid-view | 对于子表集合属性，指定使用子表的哪个表格配置来展现数据                                                    |
+| 名称               | 缺省值           | 说明                                                                                                       |
+|------------------|---------------|----------------------------------------------------------------------------------------------------------|
+| tagSet           |               | 逗号分隔的扩展标签，在代码生成时会使用                                                                                      |
+| published        | true          | 是否发布为GraphQL属性，可以通过服务访问                                                                                  |
+| insertable       | true          | 是否允许save操作的参数中包含此属性                                                                                      |
+| updatable        | true          | 是否允许通过update操作修改此属性                                                                                      |
+| queryable        | false         | 是否允许在查询条件中包含此属性                                                                                          |
+| sortable         | false         | 是否允许按照此属性进行排序                                                                                            |
+| lazy             | false         | 利用REST协议访问实体对象时是否缺省不返回此属性                                                                                |
+| allowFilterOp    |               | 允许针对此字段执行哪些查询运算，例如gt,ge,contains,like等，缺省只允许in,eq                                                        |
+| ui:filterOp      | eq            | 生成前台查询表单时缺省按照什么查询运算生成查询条件                                                                                |
+| ui:control       |               | 可以直接指定缺省使用哪种控件来展现此属性，在control.xlib中会根据这里的配置查找实际对应的控件                                                     |
+| ui:labelProp     |               | 如果指定了labelProp，则生成表单和表格时查看模式下实际显示的是label字段, GraphQL每次请求也会多返回label字段用于前台显示                                |
+| ui:maskPattern   |               | 如果指定了掩码模式，则GraphQL返回前台的数据会自动调用StringHelper.maskPattern函数进行掩码操作                                           |
+| biz:codeRule     |               | 如果指定了编码规则，则新建实体的时候如果前台没有提交编码值，则会根据编码规则名称查找编码规则配置自动生成一个编码                                                 |
+| ui:maxUploadSize |               | 文件上传时最大允许的文件大小，可以是20M这种写法                                                                                |
+| ui:editGrid      | sub-grid-edit | 对于子表集合属性，如果tagSet中包含grid标签，则表示在新建和修改时使用嵌入表格来编辑子表，主子表同时提交。通过此参数指定使用子表的哪个表格配置来编辑                           |
+| ui:viewGrid      | sub-grid-view | 对于子表集合属性，指定使用子表的哪个表格配置来展现数据                                                                              |
+| depends          |               | 如果指定了depends，则GraphQL请求数据的时候会自动加载这些关联属性，view.xml生成ajax调用的时候也会将这些属性返回到前台（如果depends的属性前有~，则只在后台加载，不返回到前台）。 |
 
 prop还具有如下节点配置：
 
@@ -136,6 +137,39 @@ prop还具有如下节点配置：
 * getter和setter相当于替代实体上的setXX和getXX方法，上下文中存在entity, value等参数
 
 ui:filterOp实际对应前端生成的控件的name格式为 `filter_{name}__{filterOp}`，例如`filter_userStatus__in`
+
+## 依赖数据加载
+
+```xml
+
+<prop name="myProp" depends="~a.bMappings,otherProp">
+  <getter>
+    return entity.a.bMappings.size() + entity.otherProp;
+  </getter>
+</prop>
+```
+
+上面的示例中myProp是一个计算属性，它会根据实体上的关联属性动态计算得到，计算表达式在getter段中定义。
+
+假设otherProp是一个lazy属性（prop上标记了lazy=true）, `a.bMappings`是一个关联表的关联集合，如果直接执行
+`entity.a.bMappings.size()+entity.otherProp`会导致三次延迟加载调用，
+在列表中返回这个属性时会出现大量数据库访问。通过在depends属性中指明用到的关联属性，后台ORM引擎会自动对这些属性进行批量加载，加载完毕后再调用getter计算表达式。
+
+* `~a.bMappings`具有特殊前缀字符`~`，它表示这个关联属性仅用于在后台读取，不会返回到前台。
+* `otherProp`是一个普通属性，它会在后台加载，并在`view.xml`翻译ajax调用的时候作为GraphQL selection的一部分。
+
+Nop平台中困扰JPA框架的N+1问题得到了彻底的解决，具体的解决方案就是提供一个独立的数据批量加载通道，不影响直接数据获取。不需要为了优化获取性能写很多特殊的代码。
+
+```javascript
+Set<MyEntity> entities = ...;
+// 插入一条额外的批量加载调用语句
+dao.batchLoadProps(entities, Arrays.asList("prop2", "prop3.prop4"));
+
+for(MyEntity entity: entities){
+   // 这时数据已经全部加载到内存中，再访问实体的关联属性就不会触发延迟加载调用，不会访问数据库
+   entity.getProp3().getProp4();
+}
+```
 
 ## 对象元数据
 

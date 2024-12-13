@@ -11,7 +11,6 @@ import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchRequestGenerator;
 import io.nop.batch.gen.BatchGenConstants;
 import io.nop.batch.gen.IBatchGenContext;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.model.query.FilterBeanEvaluator;
 import io.nop.core.type.PredefinedGenericTypes;
 
@@ -20,20 +19,18 @@ import java.util.Map;
 
 public class SequentialBatchRequestGenerator<S, R> implements IBatchRequestGenerator<S, R> {
     private final List<BatchGenState> subCases;
-    private final IBatchGenContext genContext;
 
     private int subIndex;
-    private IEvalScope scope;
+    private IBatchGenContext subContext;
 
     public SequentialBatchRequestGenerator(List<BatchGenState> subCases, IBatchGenContext genContext) {
         this.subCases = subCases;
-        this.genContext = genContext;
-        this.scope = genContext.getEvalScope().newChildScope();
+        this.subContext = genContext.newSubContext();
     }
 
     @Override
     public S nextRequest(IBatchChunkContext context) {
-        scope.setLocalValue(null, BatchGenConstants.VAR_BATCH_CHUNK_CONTEXT, context);
+        subContext.getEvalScope().setLocalValue(null, BatchGenConstants.VAR_BATCH_CHUNK_CONTEXT, context);
         do {
             if (subIndex >= subCases.size()) {
                 return null;
@@ -45,11 +42,11 @@ public class SequentialBatchRequestGenerator<S, R> implements IBatchRequestGener
 
             subIndex++;
 
-            if (!shouldAccept(subCase, genContext)) {
+            if (!shouldAccept(subCase, subContext)) {
                 // 过滤条件返回false，则跳过本条记录
-                subCase.next(genContext, false);
+                subCase.next(subContext, false);
             } else {
-                return (S) subCase.next(genContext, true);
+                return (S) subCase.next(subContext, true);
             }
         } while (true);
     }
@@ -68,11 +65,11 @@ public class SequentialBatchRequestGenerator<S, R> implements IBatchRequestGener
         BatchGenState subCase = subCases.get(lastIndex);
         Map<String, Object> outputVars = subCase.getOutputVars();
         if (outputVars != null) {
-            scope.setLocalValue(BatchGenConstants.VAR_CHUNK_RESPONSE, response);
+            subContext.getEvalScope().setLocalValue(BatchGenConstants.VAR_CHUNK_RESPONSE, response);
             // 根据响应数据生成输出变量，更新上下文环境
-            Map<String, Object> vars = (Map<String, Object>) genContext.getProducer().produce(outputVars,
-                    PredefinedGenericTypes.MAP_STRING_ANY_TYPE, scope);
-            genContext.getEvalScope().setLocalValues(null, vars);
+            Map<String, Object> vars = (Map<String, Object>) subContext.getProducer().produce(outputVars,
+                    PredefinedGenericTypes.MAP_STRING_ANY_TYPE, subContext);
+            subContext.getEvalScope().setLocalValues(null, vars);
         }
     }
 }

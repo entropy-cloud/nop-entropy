@@ -1,4 +1,5 @@
 nop:
+  debug: true
   orm:
     init-database-schema: true
 
@@ -12,3 +13,15 @@ nop:
     username: nop
     password: nop-test
     metrics-enabled: true
+    max-size: 20
+
+
+quarkus:
+  log:
+    level: INFO
+
+    category:
+      "io.nop.core":
+        level: INFO
+      "io.nop.dao.jdbc":
+        level: ERROR

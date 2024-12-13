@@ -132,3 +132,16 @@ java -jar nop-cli.jar run-task my.task.xml -if=inputs.json
 
 读取`inputs.json`文件作为task的输入参数，运行`my.task.xml`逻辑编排模型。
 
+## 常见问题
+
+1. 如何调整日志输出级别
+
+```
+java -Dquarkus.config.locations=application.yaml -jar nop-cli.jar gen-file my.orm.json -t=/nop/orm/imp/orm.imp.xml
+```
+
+缺省配置了`quarkus.log.level=INFO`，以及`quarkus.log.category."io.nop".level=ERROR`，可以通过外部的application.yaml来覆盖缺省的quarkus配置。
+
+2. 如何使用外部的application.yaml配置文件
+
+通过`-Dnop.config.location=application.yaml`参数指定外部配置文件

@@ -296,6 +296,7 @@ public class JdbcBatcher {
     }
 
     void dump(BatchCommand params, String title) {
-        params.sql.dump(title);
+        if (LOG.isInfoEnabled())
+            params.sql.dump(title);
     }
 }

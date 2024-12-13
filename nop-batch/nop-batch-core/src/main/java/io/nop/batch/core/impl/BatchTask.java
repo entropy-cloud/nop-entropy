@@ -7,7 +7,9 @@
  */
 package io.nop.batch.core.impl;
 
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ProcessResult;
@@ -192,23 +194,29 @@ public class BatchTask<S> implements IBatchTask {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         executor.execute(() -> {
-            BatchTaskGlobals.provideTaskContext(context);
-            try {
-                do {
-                    if (context.isCancelled())
-                        throw new BatchCancelException(ERR_BATCH_CANCEL_PROCESS);
+            LOG.info("nop.batch.run-chunk-loop:threadIndex={},threadName={}", threadIndex, Thread.currentThread().getName());
+            ContextProvider.runWithContext(() -> {
+                BatchTaskGlobals.provideTaskContext(context);
+                try {
+                    do {
+                        if (context.isCancelled())
+                            throw new BatchCancelException(ERR_BATCH_CANCEL_PROCESS);
 
-                    if (processChunk(context, threadIndex, chunkProcessor) != ProcessResult.CONTINUE)
-                        break;
+                        if (processChunk(context, threadIndex, chunkProcessor) != ProcessResult.CONTINUE)
+                            break;
 
-                } while (true);
+                    } while (true);
 
-                future.complete(null);
-            } catch (Exception e) {
-                future.completeExceptionally(e);
-            } finally {
-                BatchTaskGlobals.removeTaskContext();
-            }
+                    future.complete(null);
+                } catch (Exception e) {
+                    NopException.logIfNotTraced(LOG, "nop.batch.execute-chunk-loop-fail", e);
+                    future.completeExceptionally(e);
+                } finally {
+                    BatchTaskGlobals.removeTaskContext();
+                }
+                return null;
+            });
+
         });
         return future;
     }

@@ -22,6 +22,15 @@ public class BatchGenContextImpl implements IBatchGenContext {
         producer = new BatchTemplateBasedProducer(registry);
     }
 
+    public BatchGenContextImpl(IEvalScope scope, IBatchTemplateBasedProducer producer) {
+        this.scope = scope;
+        this.producer = producer;
+    }
+
+    public IBatchGenContext newSubContext() {
+        return new BatchGenContextImpl(scope.newChildScope(), producer);
+    }
+
     @Override
     public IBatchTemplateBasedProducer getProducer() {
         return producer;

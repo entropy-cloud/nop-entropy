@@ -48,8 +48,15 @@ public class BaseContext implements IContext {
 
     protected volatile boolean closed;
 
+    private final String threadName;
+
     public BaseContext() {
         LOG.trace("nop.context-new:seq={}", seq);
+        this.threadName = Thread.currentThread().getName();
+    }
+
+    public String getCreateThreadName() {
+        return threadName;
     }
 
     public long getSeq() {
@@ -212,10 +219,10 @@ public class BaseContext implements IContext {
             IContext oldCtx = BaseContextProvider.contextHolder().get();
             try {
                 BaseContextProvider.contextHolder().set(this);
-                LOG.trace("nop.run-on-context-enter:seq={}", seq);
+                LOG.trace("nop.run-on-context-enter:seq={},createThread={}", seq, threadName);
                 taskQueue.flush();
             } finally {
-                LOG.trace("nop.run-on-context-leave:seq={}", seq);
+                LOG.trace("nop.run-on-context-leave:seq={},createThread={}", seq, threadName);
                 if (oldCtx != null) {
                     BaseContextProvider.contextHolder().set(oldCtx);
                 } else {
@@ -237,11 +244,11 @@ public class BaseContext implements IContext {
         }
 
         try {
-            LOG.trace("nop.context-enter:seq={}", seq);
+            LOG.trace("nop.context-enter:seq={},createThread={}", seq, threadName);
             BaseContextProvider.contextHolder().set(this);
             return task.call();
         } finally {
-            LOG.trace("nop.context-leave:seq={}", seq);
+            LOG.trace("nop.context-leave:seq={},createThread={}", seq, threadName);
             if (oldCtx != null) {
                 BaseContextProvider.contextHolder().set(oldCtx);
             } else {
@@ -292,7 +299,7 @@ public class BaseContext implements IContext {
         if (this.closed)
             return;
 
-        LOG.trace("nop.context-close:seq={}", seq);
+        LOG.trace("nop.context-close:seq={},createThread={}", seq, threadName);
 
         IContext context = BaseContextProvider.contextHolder().get();
         if (context == this) {
