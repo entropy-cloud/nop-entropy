@@ -36,7 +36,6 @@ import io.nop.batch.gen.loader.BatchGenLoaderProvider;
 import io.nop.batch.orm.support.OrmBatchRecordSnapshotBuilder;
 import io.nop.commons.collections.OrderByComparator;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
-import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.core.lang.eval.IEvalAction;
@@ -213,14 +212,18 @@ public class ModelBasedBatchTaskBuilderFactory {
         IRecordTagger<Object, IBatchChunkContext> tagger = getTagger(beanContainer);
         IRecordSplitter<Object, Object, IBatchChunkContext> splitter = tagger == null ? null : new RecordTagSplitter<>(tagger);
 
-        if (batchTaskModel.getConsumers().size() == 1) {
+        List<BatchConsumerModel> consumers = new ArrayList<>(batchTaskModel.getConsumers());
+        consumers.sort(BatchConsumerModel::compareTo);
+
+        if (consumers.size() == 1 && splitter == null) {
             IBatchConsumerProvider<Object> writer = getWriter(batchTaskModel.getConsumers().get(0), beanContainer);
             builder.consumer(writer);
         } else {
             Map<String, List<IBatchConsumerProvider<Object>>> map = new HashMap<>();
-            for (BatchConsumerModel consumerModel : batchTaskModel.getConsumers()) {
+            for (BatchConsumerModel consumerModel : consumers) {
                 IBatchConsumerProvider<Object> writer = getWriter(consumerModel, beanContainer);
-                map.computeIfAbsent(consumerModel.getForTag(), k -> new ArrayList<>()).add(writer);
+                String tag = consumerModel.getForTag();
+                map.computeIfAbsent(tag, k -> new ArrayList<>()).add(writer);
             }
 
             List<IBatchConsumerProvider<Object>> list = map.remove(null);
@@ -233,8 +236,8 @@ public class ModelBasedBatchTaskBuilderFactory {
 
                 if (splitter != null) {
                     Map<String, IBatchConsumerProvider<Object>> consumerMap = new HashMap<>();
-                    map.forEach((name, consumers) -> {
-                        IBatchConsumerProvider<Object> writer = MultiBatchConsumerProvider.fromList(consumers);
+                    map.forEach((name, consumerList) -> {
+                        IBatchConsumerProvider<Object> writer = MultiBatchConsumerProvider.fromList(consumerList);
                         consumerMap.put(name, writer);
                     });
 
@@ -480,8 +483,8 @@ public class ModelBasedBatchTaskBuilderFactory {
 
         if (taggerModel.getSource() != null)
             return (record, ctx) ->
-                    CollectionHelper.toCollection(taggerModel.getSource().call2(null,
-                            record, ctx, ctx.getEvalScope()), true);
+                    ConvertHelper.toCsvSet(taggerModel.getSource().call2(null,
+                            record, ctx, ctx.getEvalScope()), NopException::new);
         return null;
     }
 

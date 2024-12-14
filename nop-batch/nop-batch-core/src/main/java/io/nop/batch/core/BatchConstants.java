@@ -8,7 +8,7 @@
 package io.nop.batch.core;
 
 public interface BatchConstants {
-    String VAR_RECORD = "record";
+    String VAR_ITEM = "item";
 
     String VAR_BATCH_TASK_CTX = "batchTaskCtx";
 

@@ -119,10 +119,14 @@
         <adapter xdef:value="xpl-fn:(processor)=>any"/>
     </processor>
 
+    <!-- 选择每一个item所对应的consumer，返回tag列表。 -->
     <tagger bean="bean-name" xdef:name="BatchTaggerModel">
         <source xdef:value="xpl-fn:(item,batchChunkCtx)=>Collection"/>
     </tagger>
 
+    <!--
+    @forTag 用于匹配tagger所返回的标签。如果没有设置，则表示不受tagger匹配影响，总是消费item
+    -->
     <consumer bean="bean-name" name="!var-name" order="!int=0" forTag="string"
               xdef:unique-attr="name" xdef:name="BatchConsumerModel" xdef:ref="BatchListenersModel"
               aggregator="bean-name" metaProvider="bean-name">
