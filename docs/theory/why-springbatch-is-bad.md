@@ -519,8 +519,8 @@ public interface IBatchLoaderProvider<S> {
 }
 ```
 
-> 这里的setup函数返回Loader类似于Vue组件的setup函数返回renderer。Vue组件调用一次setup返回的renderer函数，然后renderer函数会被调用多次。
-> 同样的，IBatchLoaderProvider的setup函数被调用一次返回IBatchLoader，然后loader会被调用多次。
+这里的setup函数返回Loader类似于Vue组件的setup函数返回renderer。Vue组件调用一次setup返回的renderer函数，然后renderer函数会被调用多次。
+同样的，IBatchLoaderProvider的setup函数被调用一次返回IBatchLoader，然后loader会被调用多次。
 
 上下文对象context提供了onTaskBegin/onTaskEnd等回调函数注册方法。
 
@@ -607,6 +607,9 @@ void init(){
 类似的，IBatchProcessor和IBatchConsumer等对象都变更为IBatchProcessorProvider和IBatchConsumerProvider的setup函数的返回结果。
 
 Provider现在成为单例对象，可以使用IoC容器进行配置，不需要动态Scope支持。同时，无论封装多少层，都可以直接访问到上下文对象IBatchTaskContext，通过它动态注册各类事件监听函数。
+
+> 有趣的是，虽然Hooks是React的发明，但是Vue选择将逻辑分解为setup和render两个阶段是一种更加自然的实现。否则就必然需要在每个细节调用处都区分是否是第一次调用需要执行初始化动作。
+> 这对于性能优化而言是非常不利的，在概念层面上上也很容易引入混淆。
 
 ### 3.2 使用通用的TaskFlow来组织逻辑流
 
@@ -701,26 +704,24 @@ NopTaskFlow是根据可逆计算原理从零开始构建的下一代逻辑流编
 在NopTaskFlow中实现与上面SpringBatch Job等价的配置
 
 ```xml
+
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
-    <steps>
-      <parallel nextOnError="step4" >
-        <steps>
-           <sequential timeout="3000">
-             <retry maxRetryCount="5" />
-             <decorator name="transaction" />
+  <steps>
+    <parallel nextOnError="step4">
+      <steps>
+        <sequential timeout="3000">
+          <steps>
+            <simple name="step1" bean="tasklet1"/>
+            <simple name="step2" bean="tasklet2"/>
+          </steps>
+        </sequential>
 
-             <steps>
-               <simple name="step1" bean="tasklet1" />
-               <simple name="step2" bean="tasklet2" />
-             </steps>
-           </sequential>
+        <simple name="step3" bean="tasklet3"/>
+      </steps>
+    </parallel>
 
-           <simple name="step3" bean="tasklet3" />
-        </steps>
-      </parallel>
-
-      <simple name="step4" bean="tasklet4" />
-    </steps>
+    <simple name="step4" bean="tasklet4"/>
+  </steps>
 </task>
 ```
 
@@ -806,19 +807,20 @@ public interface ITaskStep extends ISourceLocationGetter {
 }
 ```
 
-ITaskStep提供了远比SpringBatch的Tasklet更加完善的抽象支持。比如说ITaskStep内置了cancel能力，可以随时调用`taskRuntime.cancel`来暂停当前逻辑流。每个step的inputs配置描述了输入参数的名称和类型，而output配置描述了产生的输出结果参数的名称和类型，这使得TaskStep可以直接映射到一般程序语言中的函数声明。
+ITaskStep提供了远比SpringBatch的Tasklet更加完善的抽象支持。比如说ITaskStep内置了cancel能力，可以随时调用`taskRuntime.cancel`或者`stepRt.cancel`来取消当前逻辑流的执行。每个step的inputs配置描述了输入参数的名称和类型，而output配置描述了产生的输出结果参数的名称和类型，这使得TaskStep可以直接映射到一般程序语言中的函数声明。
 
 ```xml
+
 <xpl name="step1">
-   <input name="a" type="int">
-     <source> x + 1</source>
-   </input>
-  <input name="b" type="int" >
-    <source> y + 2</source>
+  <input name="a" type="int">
+    <source>x + 1</source>
   </input>
-   <output name="RESULT" name="int" />
+  <input name="b" type="int">
+    <source>y + 2</source>
+  </input>
+  <output name="RESULT" type="int"/>
   <source>
-     return a + b
+    return a + b
   </source>
 </xpl>
 ```
