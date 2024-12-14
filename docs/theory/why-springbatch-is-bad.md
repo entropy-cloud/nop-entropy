@@ -1,5 +1,7 @@
 # 为什么SpringBatch是一个糟糕的设计？
 
+讲解视频：[https://www.bilibili.com/video/BV1TgBEYYETK/](https://www.bilibili.com/video/BV1TgBEYYETK/)
+
 SpringBatch是目前Java生态中最常用的批处理框架，银行业务中经常使用SpringBatch来实现日终结算和报表输出等功能。SpringBatch的起源是2006年埃森哲（Accenture）将自己的私有批处理框架开源，与SpringSource（Spring Framework 的背后公司）合作发布了Spring Batch 1.0。
 后续SpringBatch的设计也经过多次重构，但是在今天看来已经存在严重的设计问题，对于性能优化、代码复用都极为不友好。本文将分析SpringBatch的设计问题，并结合NopBatch这一新的批处理框架的实现方案来介绍下一代批处理框架的设计思想。
 
@@ -69,7 +71,6 @@ interface ItemWriter<T> {
 比如以下的配置表示每100条数据作为一个chunk来处理，每个chunk都对应一个read-process-write的过程，
 
 ```xml
-
 <batch:job id="firstBatchJob">
   <batch:step id="step1">
     <batch:tasklet>
@@ -118,15 +119,15 @@ SpringBatch的设计中ItemReader的read调用每次只返回一条记录，这�
 ```java
 class JdbcPagingItemReader<T> implements ItemReader<T> {
     public T read() {
-        if (results == null || current >= pageSize) {
-            results = doReadPage();
+        if (this.results == null || current >= pageSize) {
+            this.results = doReadPage();
             page++;
             if (current >= pageSize) {
                 current = 0;
             }
         }
 
-        int next = current++;
+        int next = this.current++;
         if (next < results.size()) {
             return results.get(next);
         } else {
@@ -177,11 +178,11 @@ SpringBatch 1.0中的ItemWriter接口定义如下:
 ```java
 public interface ItemWriter {
 
-	public void write(Object item) throws Exception;
+    public void write(Object item) throws Exception;
 
-	public void flush() throws FlushFailedException;
+    public void flush() throws FlushFailedException;
 
-	public void clear() throws ClearFailedException;
+    public void clear() throws ClearFailedException;
 }
 ```
 
@@ -239,7 +240,7 @@ public interface IBatchConsumer<R> {
 }
 ```
 
-Chunk的处理流程变得非常简单
+基于Consumer接口，Chunk的处理流程变得非常简单
 
 ```javascript
 List<T> items = loader.load(batchSize,context);
@@ -255,7 +256,7 @@ public class BatchProcessorConsumer<S, R>
    implements IBatchConsumer<S> {
     @Override
     public void consume(Collection<S> items, IBatchChunkContext context) {
-        List<R> outputs = new ArrayList<>();
+        Collection<R> outputs = new ArrayList<>();
         for(S item: items){
             processor.process(item, outputs::add, context);
         }
@@ -264,22 +265,24 @@ public class BatchProcessorConsumer<S, R>
 }
 ```
 
-SpringBatch中的Chunk结构定义如下:
+> 当异步执行Processor的情况下，会使用ConcurrentLinkedQueue来保存outputs。
+
+与NopBatch中Consumer直接接收Collection类型数据不同，SpringBatch中的Witer接收Chunk类型的数据，它的结构定义如下:
 
 ```java
 class Chunk<W> implements Iterable<W>, Serializable {
 
-	private List<W> items = new ArrayList<>();
+    private List<W> items = new ArrayList<>();
 
-	private List<SkipWrapper<W>> skips = new ArrayList<>();
+    private List<SkipWrapper<W>> skips = new ArrayList<>();
 
-	private final List<Exception> errors = new ArrayList<>();
+    private final List<Exception> errors = new ArrayList<>();
 
-	private Object userData;
+    private Object userData;
 
-	private boolean end;
+    private boolean end;
 
-	private boolean busy;
+    private boolean busy;
 }
 ```
 
@@ -287,7 +290,26 @@ Chunk结构中包含多种信息，但是在Processor和Reader中却不能直接
 
 在NopBatch的架构中，Loader/Processor/Consumer接口都接受同样的IBatchChunkContext参数，通过它可以实现相互协调。同时在IBatchConsumer接口中，items以Collection类型传递即可，没有必要强制要求使用List类型。
 
-> 当异步执行Processor的情况下，items中会使用ConcurrentLinkedQueue来保存。
+对比一下NopBatch中的核心接口
+
+```java
+interface IBatchLoader<S>{
+    List<S> load(int batchSize, IBatchChunkContext chunkCtx);
+}
+
+interface IBatchProcessor<S,R>{
+    void process(S item, Consumer<R> consumer,
+          IBatchChunkContext chunkCtx);
+}
+
+interface IBatchConsumer<R>{
+     void consume(Collection<R> items, IBatchChunkContext chunkCtx);
+}
+```
+
+显然，NopBatch的三个核心接口更加直观，loader取出的类型可以直接匹配consumer的入参类型，而且三者共享IBatchChunkContext上下文环境，可以利用它实现协调。
+
+**一个良好的架构设计应该可以通过它的函数签名（类型定义）看出它的内在组织方式**。
 
 ### 2.4 事务处理机制不灵活
 
@@ -408,7 +430,7 @@ class MyProcessor implements ItemProcessor, StepExecutionListener{
 
 这种做法造成两个问题
 
-1. 如果使用Spring容器来管理这些bean，则考虑到并发执行的情况，这些bean需要设置`scope=scope`而不能是全局Singleton单例。SpringBatch的StepScope实现非常tricky，导致要求开启全局开关`spring.main.allow-bean-definition-overriding `。而另一方面Spring在缺省情况下已经禁止Bean重定义，并且强烈建议关闭这个开关。参见[@StepScope not working when XML namespace activated](https://github.com/spring-projects/spring-batch/issues/3936)。
+1. 如果使用Spring容器来管理这些bean，则考虑到并发执行的情况，这些bean需要设置`scope=step`而不能是全局Singleton单例。SpringBatch的StepScope实现非常tricky，导致要求开启全局开关`spring.main.allow-bean-definition-overriding `。而另一方面Spring在缺省情况下已经禁止Bean重定义，并且强烈建议关闭这个开关。参见[@StepScope not working when XML namespace activated](https://github.com/spring-projects/spring-batch/issues/3936)。
 
 2. 如果我们对Reader/Processor/Writer进行了包装，则会导致这些Listener无法自动被SpringBatch框架所发现。我们必须额外注册listener才可以。理想情况下，应该是注册Writer的时候就自动注册它所需要的Listener，而不需要在配置文件中额外配置Listener。
 
@@ -704,7 +726,6 @@ NopTaskFlow是根据可逆计算原理从零开始构建的下一代逻辑流编
 在NopTaskFlow中实现与上面SpringBatch Job等价的配置
 
 ```xml
-
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
   <steps>
     <parallel nextOnError="step4">
@@ -810,7 +831,6 @@ public interface ITaskStep extends ISourceLocationGetter {
 ITaskStep提供了远比SpringBatch的Tasklet更加完善的抽象支持。比如说ITaskStep内置了cancel能力，可以随时调用`taskRuntime.cancel`或者`stepRt.cancel`来取消当前逻辑流的执行。每个step的inputs配置描述了输入参数的名称和类型，而output配置描述了产生的输出结果参数的名称和类型，这使得TaskStep可以直接映射到一般程序语言中的函数声明。
 
 ```xml
-
 <xpl name="step1">
   <input name="a" type="int">
     <source>x + 1</source>
@@ -971,7 +991,6 @@ NopBatch内置了一个PartitionDispatchLoaderProvider，它提供了一种灵�
 
 上面是NopBatch DSL的一个配置片段，它采用OrmReader读取DemoIncomingTxn表中的数据，然后按照实体上`_t.partitionIndex`的配置投递到不同的队列。
 
-
 在SpringBatch中每个线程对应一个分区，分区的个数等于线程的个数。而在NopBatch中实际分区的个数最大为32768，它远大于批处理任务的并行线程数，同时又远小于实际业务实体数，可以保证分区比较均衡同时又不需要在内存中维护太多的队列。
 
 如果确实需要类似SpringBatch的步骤级别的并行处理能力，可以直接使用NopTaskFlow中的fork或者fork-n步骤配置。
@@ -1010,6 +1029,7 @@ NopBatch DSL中的OrmReader和JdbcReader都支持partitionIndexField配置，如
 ```
 
 调用批处理任务时传入partitionRange配置
+
 ```javascript
 batchTaskContext.setPartitionRange(IntRangeBean.of(1000,100));
 ```
@@ -1172,14 +1192,14 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
 <file-writer>
     <newRecordOutputProvider>
       <!-- Xpl模板语言中#{xx}表示访问编译期定义的变量 -->
-       <batch-record:BuildRecordOutputProviderFromFileModel fileModel="#{SimpleFile}"
+       <batch-record:BuildRecordOutputProviderFromFileModel
+              fileModel="#{SimpleFile}"
                 xpl:lib="/nop/batch/xlib/batch-record.xlib"/>
     </newRecordOutputProvider>
 </file-writer>
 ```
 
 * `#{}`是XLang语言中所定义的编译期表达式语法，通过它可以获取到编译期设置的变量。
-
 10. NopTaskFlow在某个步骤中调用BatchTask，在BatchTask的Processor中我们可以使用同样的方式来调用NopTaskFlow来实现针对单条记录的处理逻辑。
 
 ```xml
@@ -1195,8 +1215,8 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
     </source>
 </processor>
 ```
-* task模型通过`customType="batch:Execute"`可以嵌入batch模型，在batch模型的processor配置中可以通过`task:taskModelPath`嵌入另外一个task模型。
 
+* task模型通过`customType="batch:Execute"`可以嵌入batch模型，在batch模型的processor配置中可以通过`task:taskModelPath`嵌入另外一个task模型。
 11. 在数据库存取方面，NopORM提供了完整的ORM模型支持，内置多租户、逻辑删除、字段加解密、柔性事务处理、数据关联查询、批量加载和批量保存优化等完善的数据访问层能力。通过orm-reader和orm-writer可以实现数据库读写。
 
 ```xml
@@ -1215,10 +1235,10 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
 </batch>
 ```
 
-
 **结合NopTaskFlow、NopBatch、NopRecord和NopORM等多个领域模型，Nop平台就可以做到在一般业务开发时完全通过声明式的方式实现批处理任务，而不需要编写Java代码**。
 
 可以停在这里仔细想一下，在一个DSL中同时包含task定义，batch task定义和record定义等多种领域模型定义，同时它们又无缝融合在一起，看起来是一个完整的单一DSL。
+
 1. 如果不使用Nop平台要怎么实现？
 2. 这种定义DSL并将多个DSL粘结在一起的能力能够被抽象出来成为一种通用能力吗？
 3. 这种抽象能力会影响运行时性能吗？
@@ -1231,7 +1251,6 @@ Nop平台所提供的nop-cli工具可以直接执行逻辑编排任务。
 
 1. 在_vfs目录下引入`app.orm.xml`, `batch-demo.task.xml`等DSL文件，nop-cli工具会自动加载工作目录下的虚拟文件系统中的所有模型文件。
 2. 通过 `java -Dnop.config.location=application.yaml -jar nop-cli.jar run-task v:/batch/batch-demo.task.xml -i="{bizDate:'2024-12-08'}"`执行逻辑编排任务。
-
 * run-task指定的第一个参数为逻辑编排模型文件的路径。`v:`表示是`_vfs`虚拟文件系统下的路径。也可以直接送操作系统中的文件路径。
 * `-i`参数指定了逻辑编排任务中的输入参数，采用json格式。也可以通过`-if=filePath`来指定输入数据文件，文件内为一个JSON数据。
 * 通过`-Dnop.config.location`来指定配置文件，在其中可以配置数据库连接密码等。
@@ -1288,7 +1307,8 @@ Nop平台与其他平台的一个本质性区别是Nop平台并不只是内置�
 </file>
 ```
 
-### ORO模型
+### ORM模型
+
 在`/nop-cli/demo/_vfs/app/demo/orm`目录下提供了一个演示用的`app.orm.xml`模型文件，它演示了非常有趣的NopORM模型配置。
 
 ```xml
