@@ -7,6 +7,7 @@
  */
 package io.nop.commons.util;
 
+import com.google.common.collect.Range;
 import io.nop.commons.env.PlatformEnv;
 import org.junit.jupiter.api.Test;
 
@@ -19,11 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestFileHelper {
 
     @Test
-    public void testCurrentPath(){
-        File file = new File("","precompile");
+    public void testCurrentPath() {
+        File file = new File("", "precompile");
         System.out.println(file.getAbsolutePath());
 
-        File file2 = new File(".","precompile");
+        File file2 = new File(".", "precompile");
         System.out.println(file2.getAbsolutePath());
     }
 
@@ -71,5 +72,12 @@ public class TestFileHelper {
 
         assertTrue(target.exists());
         assertEquals("test.txt", file.getName());
+    }
+
+    @Test
+    public void testGetJarFile() {
+        File file = FileHelper.getJarFile(Range.class);
+        System.out.println(file.getAbsolutePath());
+        assertTrue(file.exists());
     }
 }

@@ -24,7 +24,8 @@ import picocli.CommandLine;
                 CliExtractCommand.class,
                 CliExportDbCommand.class,
                 CliImportDbCommand.class,
-                CliGenFileCommand.class
+                CliGenFileCommand.class,
+                CliRepackageCommand.class
         })
 public class MainCommand {
 }

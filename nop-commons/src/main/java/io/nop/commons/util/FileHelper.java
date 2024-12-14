@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.io.Writer;
+import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -397,6 +398,23 @@ public class FileHelper {
             return null;
         File file = new File(s);
         return file;
+    }
+
+    public static File getJarFile(Class<?> clazz) {
+        String path = clazz.getName().replace('.', '/') + ".class";
+        URL url = FileHelper.class.getClassLoader().getResource(path);
+        String strUrl = url.toString();
+        if (!strUrl.startsWith("jar:file:")) {
+            return null;
+        }
+
+        int pos = strUrl.indexOf(".jar!");
+        if (pos < 0) {
+            return null;
+        }
+
+        URI uri = URI.create(strUrl.substring(4, pos + 4));
+        return new File(uri);
     }
 
     public static void removeChildWithPrefix(File dir, String prefix) {
