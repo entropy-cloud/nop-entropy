@@ -1,6 +1,6 @@
 package io.nop.cli.commands;
 
-import io.nop.commons.util.MavenDirHelper;
+import io.nop.commons.util.FileHelper;
 import io.nop.core.resource.IFile;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.FileResource;
@@ -18,14 +18,14 @@ import java.util.concurrent.Callable;
 public class CliRepackageCommand implements Callable<Integer> {
 
     @CommandLine.Option(names = {"-i", "--input"}, description = "输入目录")
-    String inputDir;
+    File inputDir;
 
     @CommandLine.Option(names = {"-o", "--output"}, description = "输出文件")
     File outputFile;
 
     @Override
     public Integer call() throws Exception {
-        File jarFile = MavenDirHelper.getClassesDir(CliRepackageCommand.class);
+        File jarFile = FileHelper.getJarFile(CliRepackageCommand.class);
 
         IFile tempDir = (IFile) ResourceHelper.getTempResource("cli");
         try {
@@ -43,6 +43,11 @@ public class CliRepackageCommand implements Callable<Integer> {
             File classesDir = new File(inputDir, "classes");
             if (classesDir.exists()) {
                 ResourceHelper.copyDir(new FileResource(classesDir), tempDir);
+            }
+
+            File vfsDir = new File(inputDir, "_vfs");
+            if (vfsDir.exists()) {
+                ResourceHelper.copyDir(new FileResource(vfsDir), tempDir.getResource("_vfs"));
             }
 
             ZipOptions options = new ZipOptions();

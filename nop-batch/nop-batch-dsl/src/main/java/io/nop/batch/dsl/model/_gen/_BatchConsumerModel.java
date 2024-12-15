@@ -54,7 +54,7 @@ public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchLi
     /**
      *  
      * xml name: forTag
-     * 
+     * 用于匹配tagger所返回的标签。如果没有设置，则表示不受tagger匹配影响，总是消费item
      */
     private java.lang.String _forTag ;
     
@@ -198,7 +198,7 @@ public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchLi
     /**
      * 
      * xml name: forTag
-     *  
+     *  用于匹配tagger所返回的标签。如果没有设置，则表示不受tagger匹配影响，总是消费item
      */
     
     public java.lang.String getForTag(){

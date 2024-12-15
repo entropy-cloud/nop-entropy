@@ -1,0 +1,1 @@
+java "-Dquarkus.config.locations=./application.yaml" -jar ../target/nop-cli-2.0.0-BETA.1.jar repackage -i=. -o=target/my-tool.jar

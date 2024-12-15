@@ -132,6 +132,13 @@ java -jar nop-cli.jar run-task my.task.xml -if=inputs.json
 
 读取`inputs.json`文件作为task的输入参数，运行`my.task.xml`逻辑编排模型。
 
+## 重打包操作
+```
+java -jar nop-cli.jar repackage -i=app -o=my-tool.jar
+```
+
+repackage指令将根据输入目录下的`_vfs`目录以及`application.yaml`、`bootstrap.yaml`文件，把它们打包到当前`nop-cli.jar`包中，输出一个新的可执行的jar包。
+
 ## 常见问题
 
 1. 如何调整日志输出级别

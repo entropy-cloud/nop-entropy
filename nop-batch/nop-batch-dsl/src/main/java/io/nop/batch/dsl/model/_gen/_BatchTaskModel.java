@@ -167,7 +167,7 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
     /**
      *  
      * xml name: tagger
-     * 
+     * 选择每一个item所对应的consumer，返回tag列表。
      */
     private io.nop.batch.dsl.model.BatchTaggerModel _tagger ;
     
@@ -687,7 +687,7 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
     /**
      * 
      * xml name: tagger
-     *  
+     *  选择每一个item所对应的consumer，返回tag列表。
      */
     
     public io.nop.batch.dsl.model.BatchTaggerModel getTagger(){
