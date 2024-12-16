@@ -15,6 +15,8 @@ import io.nop.api.core.util.Guard;
 import io.nop.commons.collections.IKeyedList;
 import io.nop.commons.collections.KeyedList;
 import io.nop.commons.collections.SafeOrderedComparator;
+import io.nop.commons.collections.SetFunctions;
+import io.nop.commons.functional.Functionals;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
@@ -250,6 +252,12 @@ public class Underscore {
         }
         return sb.toString();
     }
+
+
+    public static <T> List<T> flatten(Collection<?> list) {
+        return SetFunctions.flatMap(list, Functionals.identity());
+    }
+
 
     @Deterministic
     public static <T> List<List<T>> chunk(Collection<T> c, int chunkSize) {
