@@ -32,6 +32,7 @@ import jakarta.annotation.Nullable;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Base class for a pattern definition.
@@ -110,12 +111,12 @@ public class Pattern<T, F extends T> {
         return name;
     }
 
-    public Duration getWindowTime() {
-        return windowTimes.get(WithinType.FIRST_AND_LAST);
+    public Optional<Duration> getWindowSize() {
+        return getWindowSize(WithinType.FIRST_AND_LAST);
     }
 
-    public Duration getWindowTime(WithinType withinType) {
-        return windowTimes.get(withinType);
+    public Optional<Duration> getWindowSize(WithinType withinType) {
+        return Optional.ofNullable(windowTimes.get(withinType));
     }
 
     public Quantifier getQuantifier() {

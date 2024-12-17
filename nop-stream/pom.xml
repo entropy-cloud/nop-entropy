@@ -19,6 +19,7 @@
         <module>nop-stream-flink</module>
         <module>nop-stream-flow</module>
         <module>nop-stream-cep</module>
+        <module>nop-stream-runtime</module>
     </modules>
 
 </project>

@@ -61,9 +61,9 @@ public class NFACompiler {
      * Compiles the given pattern into a {@link NFAFactory}. The NFA factory can be used to create
      * multiple NFAs.
      *
-     * @param pattern         Definition of sequence pattern
+     * @param pattern Definition of sequence pattern
      * @param timeoutHandling True if the NFA shall return timed out event patterns
-     * @param <T>             Type of the input events
+     * @param <T> Type of the input events
      * @return Factory for NFAs corresponding to the given pattern
      */
     @SuppressWarnings("unchecked")
@@ -182,9 +182,9 @@ public class NFACompiler {
             checkPatternWindowTimes();
 
             if (lastPattern.getQuantifier().getConsumingStrategy()
-                    == Quantifier.ConsumingStrategy.NOT_FOLLOW
+                            == Quantifier.ConsumingStrategy.NOT_FOLLOW
                     && (!windowTimes.containsKey(lastPattern.getName())
-                    || windowTimes.get(lastPattern.getName()) <= 0)
+                            || windowTimes.get(lastPattern.getName()) <= 0)
                     && getWindowTime() == 0) {
                 throw new MalformedPatternException(
                         "NotFollowedBy is not supported without windowTime as a last part of a Pattern!");
@@ -207,9 +207,7 @@ public class NFACompiler {
             return windowTimes;
         }
 
-        /**
-         * Check pattern window times between events.
-         */
+        /** Check pattern window times between events. */
         private void checkPatternWindowTimes() {
             windowTime.ifPresent(
                     windowTime -> {
@@ -220,13 +218,10 @@ public class NFACompiler {
                     });
         }
 
-        /**
-         * Check pattern after match skip strategy.
-         */
+        /** Check pattern after match skip strategy. */
         private void checkPatternSkipStrategy() {
-            Optional<String> name = afterMatchSkipStrategy.getPatternName();
-            if (name.isPresent()) {
-                String patternName = name.get();
+            if (afterMatchSkipStrategy.getPatternName().isPresent()) {
+                String patternName = afterMatchSkipStrategy.getPatternName().get();
                 Pattern<T, ?> pattern = currentPattern;
                 while (pattern.getPrevious() != null && !pattern.getName().equals(patternName)) {
                     pattern = pattern.getPrevious();
@@ -297,11 +292,11 @@ public class NFACompiler {
             Pattern<T, ? extends T> previousPattern = currentPattern;
             while (previousPattern.getPrevious() != null
                     && (previousPattern
-                    .getPrevious()
-                    .getQuantifier()
-                    .hasProperty(Quantifier.QuantifierProperty.OPTIONAL)
-                    || previousPattern.getPrevious().getQuantifier().getConsumingStrategy()
-                    == Quantifier.ConsumingStrategy.NOT_FOLLOW)) {
+                                    .getPrevious()
+                                    .getQuantifier()
+                                    .hasProperty(Quantifier.QuantifierProperty.OPTIONAL)
+                            || previousPattern.getPrevious().getQuantifier().getConsumingStrategy()
+                                    == Quantifier.ConsumingStrategy.NOT_FOLLOW)) {
 
                 previousPattern = previousPattern.getPrevious();
 
@@ -321,8 +316,7 @@ public class NFACompiler {
          */
         private State<T> createEndingState() {
             State<T> endState = createState(ENDING_STATE_NAME, State.StateType.Final);
-            windowTime =
-                    Optional.ofNullable(currentPattern.getWindowTime()).map(Duration::toMillis);
+            windowTime = currentPattern.getWindowSize().map(Duration::toMillis);
             return endState;
         }
 
@@ -339,8 +333,8 @@ public class NFACompiler {
                 if (currentPattern.getQuantifier().getConsumingStrategy()
                         == Quantifier.ConsumingStrategy.NOT_FOLLOW) {
                     // skip notFollow patterns, they are converted into edge conditions
-                    if ((currentPattern.getWindowTime(WithinType.PREVIOUS_AND_CURRENT) != null
-                            || getWindowTime() > 0)
+                    if ((currentPattern.getWindowSize(WithinType.PREVIOUS_AND_CURRENT).isPresent()
+                                    || getWindowTime() > 0)
                             && lastSink.isFinal()) {
                         final State<T> notFollow = createState(State.StateType.Pending, true);
                         final IterativeCondition<T> notCondition = getTakeCondition(currentPattern);
@@ -373,12 +367,15 @@ public class NFACompiler {
                 followingPattern = currentPattern;
                 currentPattern = currentPattern.getPrevious();
 
-                final Duration currentWindowTime = currentPattern.getWindowTime();
-                if (currentWindowTime != null
-                        && currentWindowTime.toMillis() < windowTime.orElse(Long.MAX_VALUE)) {
-                    // the window time is the global minimum of all window times of each state
-                    windowTime = Optional.of(currentWindowTime.toMillis());
-                }
+                // the window time is the global minimum of all window times of each state
+                currentPattern
+                        .getWindowSize()
+                        .map(Duration::toMillis)
+                        .filter(
+                                windowSizeInMillis ->
+                                        windowSizeInMillis < windowTime.orElse(Long.MAX_VALUE))
+                        .ifPresent(
+                                windowSizeInMillis -> windowTime = Optional.of(windowSizeInMillis));
             }
             return lastSink;
         }
@@ -387,7 +384,7 @@ public class NFACompiler {
          * Creates the Start {@link State} of the resulting NFA graph.
          *
          * @param sinkState the state that Start state should point to (always first state of middle
-         *                  states)
+         *     states)
          * @return created state
          */
         @SuppressWarnings("unchecked")
@@ -425,13 +422,20 @@ public class NFACompiler {
             State<T> state = createState(currentPattern.getName(), stateType);
             if (isTake) {
                 Quantifier.Times times = currentPattern.getTimes();
-                Duration windowTime = currentPattern.getWindowTime(WithinType.PREVIOUS_AND_CURRENT);
-                if (times == null && windowTime != null) {
-                    windowTimes.put(state.getName(), windowTime.toMillis());
-                } else if (times != null
-                        && times.getWindowTime() != null
-                        && state.getName().contains(NFAStateNameHandler.STATE_NAME_DELIM)) {
-                    windowTimes.put(state.getName(), times.getWindowTime().toMillis());
+                Optional<Duration> windowSize =
+                        currentPattern.getWindowSize(WithinType.PREVIOUS_AND_CURRENT);
+                if (times == null) {
+                    windowSize
+                            .map(Duration::toMillis)
+                            .ifPresent(
+                                    windowSizeInMillis ->
+                                            windowTimes.put(state.getName(), windowSizeInMillis));
+                } else if (state.getName().contains(NFAStateNameHandler.STATE_NAME_DELIM)) {
+                    times.getWindowSize()
+                            .map(Duration::toMillis)
+                            .ifPresent(
+                                    windowSizeInMillis ->
+                                            windowTimes.put(state.getName(), windowSizeInMillis));
                 }
             }
             return state;
@@ -441,7 +445,7 @@ public class NFACompiler {
          * Creates a state with {@link State.StateType#Normal} and adds it to the collection of
          * created states. Should be used instead of instantiating with new operator.
          *
-         * @param name      the name of the state
+         * @param name the name of the state
          * @param stateType the type of the state
          * @return the created state
          */
@@ -485,8 +489,8 @@ public class NFACompiler {
 
             if (currentNotCondition.isEmpty()
                     || !currentPattern
-                    .getQuantifier()
-                    .hasProperty(Quantifier.QuantifierProperty.OPTIONAL)) {
+                            .getQuantifier()
+                            .hasProperty(Quantifier.QuantifierProperty.OPTIONAL)) {
                 // we do not create an alternative path if we are NOT in an OPTIONAL state or there
                 // is no NOTs prior to
                 // the optional state
@@ -521,8 +525,8 @@ public class NFACompiler {
                     copyOfSink.addStateTransition(
                             tStateTransition.getAction(),
                             tStateTransition
-                                    .getTargetState()
-                                    .equals(tStateTransition.getSourceState())
+                                            .getTargetState()
+                                            .equals(tStateTransition.getSourceState())
                                     ? copyOfSink
                                     : tStateTransition.getTargetState(),
                             tStateTransition.getCondition());
@@ -557,7 +561,7 @@ public class NFACompiler {
         private void addStopStateToLooping(final State<T> loopingState) {
             if (followingPattern != null
                     && followingPattern.getQuantifier().getConsumingStrategy()
-                    == Quantifier.ConsumingStrategy.NOT_FOLLOW) {
+                            == Quantifier.ConsumingStrategy.NOT_FOLLOW) {
                 final IterativeCondition<T> notCondition = getTakeCondition(followingPattern);
                 final State<T> stopState =
                         createStopState(notCondition, followingPattern.getName());
@@ -569,9 +573,9 @@ public class NFACompiler {
          * Creates a "complex" state consisting of given number of states with same {@link
          * IterativeCondition}.
          *
-         * @param sinkState    the state that the created state should point to
+         * @param sinkState the state that the created state should point to
          * @param proceedState state that the state being converted should proceed to
-         * @param times        number of times the state should be copied
+         * @param times number of times the state should be copied
          * @return the first state of the "complex" state, next state should point to it
          */
         @SuppressWarnings("unchecked")
@@ -623,7 +627,7 @@ public class NFACompiler {
          * Marks the current group pattern as the head of the TIMES quantifier or not.
          *
          * @param isFirstOfLoop whether the current group pattern is the head of the TIMES
-         *                      quantifier
+         *     quantifier
          */
         @SuppressWarnings("unchecked")
         private void setCurrentGroupPatternFirstOfLoop(boolean isFirstOfLoop) {
@@ -649,7 +653,7 @@ public class NFACompiler {
          *
          * @param pattern the pattern to be checked
          * @return {@code true} iff the given pattern is in a group pattern and it is the head
-         * pattern of the group pattern, {@code false} otherwise
+         *     pattern of the group pattern, {@code false} otherwise
          */
         private boolean headOfGroup(Pattern<T, ?> pattern) {
             return currentGroupPattern != null && pattern.getPrevious() == null;
@@ -669,8 +673,8 @@ public class NFACompiler {
             }
             return isCurrentGroupPatternFirstOfLoop()
                     && currentGroupPattern
-                    .getQuantifier()
-                    .hasProperty(Quantifier.QuantifierProperty.OPTIONAL);
+                            .getQuantifier()
+                            .hasProperty(Quantifier.QuantifierProperty.OPTIONAL);
         }
 
         /**
@@ -697,9 +701,9 @@ public class NFACompiler {
          * state graph can be created only once.
          *
          * @param ignoreCondition condition that should be applied to IGNORE transition
-         * @param sinkState       state that the state being converted should point to
-         * @param proceedState    state that the state being converted should proceed to
-         * @param isOptional      whether the state being converted is optional
+         * @param sinkState state that the state being converted should point to
+         * @param proceedState state that the state being converted should proceed to
+         * @param isOptional whether the state being converted is optional
          * @return the created state
          */
         @SuppressWarnings("unchecked")
@@ -738,8 +742,8 @@ public class NFACompiler {
                             proceedState,
                             untilCondition != null
                                     ? new RichAndCondition<>(
-                                    proceedCondition,
-                                    new RichNotCondition<>(untilCondition))
+                                            proceedCondition,
+                                            new RichNotCondition<>(untilCondition))
                                     : proceedCondition);
                 } else {
                     singletonState.addProceed(proceedState, proceedCondition);
@@ -765,9 +769,9 @@ public class NFACompiler {
          * Create all the states for the group pattern.
          *
          * @param groupPattern the group pattern to create the states for
-         * @param sinkState    the state that the group pattern being converted should point to
+         * @param sinkState the state that the group pattern being converted should point to
          * @param proceedState the state that the group pattern being converted should proceed to
-         * @param isOptional   whether the group pattern being converted is optional
+         * @param isOptional whether the group pattern being converted is optional
          * @return the first state of the states of the group pattern
          */
         private State<T> createGroupPatternState(
@@ -801,7 +805,7 @@ public class NFACompiler {
          * Create the states for the group pattern as a looping one.
          *
          * @param groupPattern the group pattern to create the states for
-         * @param sinkState    the state that the group pattern being converted should point to
+         * @param sinkState the state that the group pattern being converted should point to
          * @return the first state of the states of the group pattern
          */
         private State<T> createLoopingGroupPatternState(
@@ -865,7 +869,7 @@ public class NFACompiler {
                         sinkState,
                         untilCondition != null
                                 ? new RichAndCondition<>(
-                                proceedCondition, new RichNotCondition<>(untilCondition))
+                                        proceedCondition, new RichNotCondition<>(untilCondition))
                                 : proceedCondition);
                 updateWithGreedyCondition(sinkState, getTakeCondition(currentPattern));
             } else {
@@ -890,8 +894,8 @@ public class NFACompiler {
          * This method extends the given condition with stop(until) condition if necessary. The
          * until condition needs to be applied only if both of the given conditions are not null.
          *
-         * @param condition       the condition to extend
-         * @param untilCondition  the until condition to join with the given condition
+         * @param condition the condition to extend
+         * @param untilCondition the until condition to join with the given condition
          * @param isTakeCondition whether the {@code condition} is for {@code TAKE} edge
          * @return condition with AND applied or the original condition
          */
@@ -910,9 +914,9 @@ public class NFACompiler {
 
         /**
          * @return The {@link IterativeCondition condition} for the {@code IGNORE} edge that
-         * corresponds to the specified {@link Pattern} and extended with stop(until) condition
-         * if necessary. It is applicable only for inner states of a complex state like looping
-         * or times.
+         *     corresponds to the specified {@link Pattern} and extended with stop(until) condition
+         *     if necessary. It is applicable only for inner states of a complex state like looping
+         *     or times.
          */
         @SuppressWarnings("unchecked")
         private IterativeCondition<T> getInnerIgnoreCondition(Pattern<T, ?> pattern) {
@@ -950,8 +954,8 @@ public class NFACompiler {
 
         /**
          * @return The {@link IterativeCondition condition} for the {@code IGNORE} edge that
-         * corresponds to the specified {@link Pattern} and extended with stop(until) condition
-         * if necessary. For more on strategy see {@link Quantifier}
+         *     corresponds to the specified {@link Pattern} and extended with stop(until) condition
+         *     if necessary. For more on strategy see {@link Quantifier}
          */
         @SuppressWarnings("unchecked")
         private IterativeCondition<T> getIgnoreCondition(Pattern<T, ?> pattern) {
@@ -997,8 +1001,8 @@ public class NFACompiler {
 
         /**
          * @return the {@link IterativeCondition condition} for the {@code TAKE} edge that
-         * corresponds to the specified {@link Pattern} and extended with stop(until) condition
-         * if necessary.
+         *     corresponds to the specified {@link Pattern} and extended with stop(until) condition
+         *     if necessary.
          */
         @SuppressWarnings("unchecked")
         private IterativeCondition<T> getTakeCondition(Pattern<T, ?> pattern) {

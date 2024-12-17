@@ -24,6 +24,7 @@ import jakarta.annotation.Nullable;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * A quantifier describing the Pattern. There are three main groups of {@link Quantifier}.
@@ -210,8 +211,8 @@ public class Quantifier {
             return to;
         }
 
-        public Duration getWindowTime() {
-            return windowTime;
+        public Optional<Duration> getWindowSize() {
+            return Optional.ofNullable(windowTime);
         }
 
         public static Times of(int from, int to, @Nullable Duration windowTime) {
