@@ -127,6 +127,10 @@ public interface CoreConfigs {
     IConfigReference<String> CFG_RESOURCE_TEMP_ROOT_DIR = varRef(s_loc, "nop.core.resource.store.temp-root-dir", String.class,
             "");
 
+    @Description("data名字空间所对应的文件所在的目录。如果没有指定，则为./task")
+    IConfigReference<String> CFG_RESOURCE_DATA_ROOT_DIR = varRef(s_loc, "nop.core.resource.store.data-root-dir", String.class,
+            "./data");
+
     @Description("为避免通过file名字空间可以访问本机所有文件，可以通过此参数来限制file名字空间中允许的的文件路径模式，*表示在本级目录中匹配任意单词，而**表示匹配多层目录，"
             + "例如/a/*.txt表示匹配a目录下的所有文本文件，而/a/**表示匹配a目录下的所有文件以及子目录下的所有文件")
     IConfigReference<String> CFG_RESOURCE_ALLOWED_FILE_PATH_PATTERN = varRef(s_loc,

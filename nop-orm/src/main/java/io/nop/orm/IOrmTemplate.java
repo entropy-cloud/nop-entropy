@@ -12,6 +12,7 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.time.IEstimatedClock;
 import io.nop.commons.cache.ICache;
+import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.ISqlExecutor;
 import io.nop.dataset.IRowMapper;
 import io.nop.dataset.rowmapper.ColumnMapRowMapper;
@@ -196,6 +197,13 @@ public interface IOrmTemplate extends ISqlExecutor {
 
     default Map<String, Object> findFirstByQuery(QueryBean query) {
         return findFirstByQuery(query, ColumnMapRowMapper.INSTANCE);
+    }
+
+    default int deleteById(String entityName, Object id) {
+        Object pk = castId(entityName, id);
+        SQL sql = SQL.begin().deleteFrom().append(entityName)
+                .where().eq(OrmConstants.PROP_ID, pk).end();
+        return (int) executeUpdate(sql);
     }
 
     /**

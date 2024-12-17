@@ -14,9 +14,8 @@ import io.nop.batch.dao.NopBatchDaoConstants;
 import io.nop.batch.dao.entity.NopBatchTask;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
-import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
-import jakarta.inject.Inject;
+import io.nop.orm.dao.AbstractDaoHandler;
 
 import static io.nop.batch.dao.NopBatchDaoErrors.ARG_TASK_ID;
 import static io.nop.batch.dao.NopBatchDaoErrors.ARG_TASK_KEY;
@@ -29,20 +28,20 @@ import static io.nop.batch.dao.NopBatchDaoErrors.ERR_BATCH_TASK_NOT_ALLOW_START_
 import static io.nop.batch.dao.entity._gen._NopBatchTask.PROP_NAME_taskKey;
 import static io.nop.batch.dao.entity._gen._NopBatchTask.PROP_NAME_taskName;
 
-public class DaoBatchStateStore implements IBatchStateStore {
-    private IDaoProvider daoProvider;
-
-    @Inject
-    public void setDaoProvider(IDaoProvider daoProvider) {
-        this.daoProvider = daoProvider;
-    }
-
+public class DaoBatchStateStore extends AbstractDaoHandler implements IBatchStateStore {
     protected IEntityDao<NopBatchTask> taskDao() {
-        return daoProvider.daoFor(NopBatchTask.class);
+        return daoFor(NopBatchTask.class);
     }
 
     @Override
     public void loadTaskState(IBatchTaskContext context) {
+        runLocal(session -> {
+            loadTaskState0(context);
+            return null;
+        });
+    }
+
+    private void loadTaskState0(IBatchTaskContext context) {
         IEntityDao<NopBatchTask> taskDao = taskDao();
         NopBatchTask task = loadExistingTask(taskDao, context);
         if (task == null) {
@@ -146,7 +145,7 @@ public class DaoBatchStateStore implements IBatchStateStore {
     }
 
     protected void saveTask(IEntityDao<NopBatchTask> dao, NopBatchTask task) {
-        dao.saveEntity(task);
+        dao.saveEntityDirectly(task);
     }
 
     protected void updateTask(IEntityDao<NopBatchTask> dao, NopBatchTask task) {

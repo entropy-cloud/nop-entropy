@@ -179,7 +179,7 @@ public interface OrmErrors {
             "更新实体时上下文环境必须存在已经打开的OrmSession", ARG_ENTITY_NAME, ARG_ENTITY_ID);
 
     ErrorCode ERR_ORM_UPDATE_ENTITY_NOT_MANAGED = define("nop.err.orm.dao.update-entity-not-managed",
-            "只有从数据库中成功加载的对象才能调用更新操作", ARG_ENTITY_NAME, ARG_ENTITY_ID);
+            "只有从数据库中成功加载的对象才能调用更新操作。新建的实体只能调用save或者saveOrUpdate，不能调用update。", ARG_ENTITY_NAME, ARG_ENTITY_ID);
 
     ErrorCode ERR_ORM_NOT_ALLOW_LOCK_DIRTY_ENTITY = define("nop.err.orm.lock-entity-must-not-be-dirty",
             "必须先锁定对象然后才能修改，不允许锁定已经被修改的对象", ARG_ENTITY_NAME, ARG_ENTITY_ID);

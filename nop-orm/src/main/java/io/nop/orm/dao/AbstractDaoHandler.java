@@ -15,10 +15,12 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.txn.ITransactionTemplate;
+import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.sql_lib.ISqlLibManager;
-
 import jakarta.inject.Inject;
+
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -93,8 +95,12 @@ public class AbstractDaoHandler {
                 session -> txn().runInTransaction(null, TransactionPropagation.REQUIRED, txn -> task.get()));
     }
 
-    protected <T> T runInNewSessionAndTransaction(final Supplier<T> task) {
+    protected <T> T runInNewSession(Function<IOrmSession, T> task) {
+        return orm().runInNewSession(task);
+    }
+
+    protected <T> T runLocal(final Function<IOrmSession, T> task) {
         return orm().runInNewSession(
-                session -> txn().runInTransaction(null, TransactionPropagation.REQUIRES_NEW, txn -> task.get()));
+                session -> txn().runInTransaction(null, TransactionPropagation.REQUIRES_NEW, txn -> task.apply(session)));
     }
 }
