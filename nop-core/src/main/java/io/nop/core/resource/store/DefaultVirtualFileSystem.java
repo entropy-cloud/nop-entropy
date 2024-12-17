@@ -50,6 +50,7 @@ public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshabl
         registerNamespaceHandler(DynamicNamespaceHandler.INSTANCE);
         registerNamespaceHandler(VirtualNamespaceHandler.INSTANCE);
         registerNamespaceHandler(DevResourceNamespaceHandler.INSTANCE);
+        registerNamespaceHandler(DataNamespaceHandler.INSTANCE);
 
         this.buildResourceStore();
     }

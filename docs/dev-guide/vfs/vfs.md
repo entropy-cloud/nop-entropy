@@ -45,6 +45,10 @@ module。
 
 * ModuleManager负责查找所有模块。
 
+## Data名字空间
+data名字空间下的路径根据`nop.core.resource.store.data-root-dir`配置路径来解析，根路径缺省为`/data`。
+比如说`data:/a/b.txt`实际对应的文件路径为`./data/a/b.txt`。
+
 ## 相关配置项
 
 |名称|缺省值|说明|

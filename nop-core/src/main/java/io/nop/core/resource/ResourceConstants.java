@@ -35,6 +35,9 @@ public interface ResourceConstants {
 
     // 临时文件系统
     String RESOURCE_NS_TEMP = "temp";
+
+    String RESOURCE_NS_DATA = "data";
+
     // 调试目录
     String RESOURCE_NS_DUMP = "dump";
 
