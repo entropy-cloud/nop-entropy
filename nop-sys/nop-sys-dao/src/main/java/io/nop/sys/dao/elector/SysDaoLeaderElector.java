@@ -8,18 +8,25 @@
 package io.nop.sys.dao.elector;
 
 import io.nop.api.core.time.IEstimatedClock;
-import io.nop.cluster.elector.AbstractLeaderElector;
+import io.nop.cluster.elector.AbstractPollingLeaderElector;
 import io.nop.cluster.elector.LeaderEpoch;
 import io.nop.commons.util.MathHelper;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.orm.IOrmTemplate;
 import io.nop.sys.dao.entity.NopSysClusterLeader;
-
 import jakarta.inject.Inject;
+
 import java.util.concurrent.TimeUnit;
 
-public class SysDaoLeaderElector extends AbstractLeaderElector {
+public class SysDaoLeaderElector extends AbstractPollingLeaderElector {
+    private IOrmTemplate ormTemplate;
     private IDaoProvider daoProvider;
+
+    @Inject
+    public void setOrmTemplate(IOrmTemplate ormTemplate) {
+        this.ormTemplate = ormTemplate;
+    }
 
     @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {

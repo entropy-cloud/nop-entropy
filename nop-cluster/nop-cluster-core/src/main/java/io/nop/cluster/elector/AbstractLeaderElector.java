@@ -9,22 +9,21 @@ package io.nop.cluster.elector;
 
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.config.AppConfig;
-import io.nop.commons.concurrent.executor.GlobalExecutors;
-import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.io.net.IServerAddrFinder;
+import io.nop.commons.service.LifeCycleSupport;
 import io.nop.commons.util.NetHelper;
 import io.nop.commons.util.StringHelper;
 import jakarta.annotation.Nullable;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
 
-public abstract class AbstractLeaderElector implements ILeaderElector {
+public abstract class AbstractLeaderElector extends LifeCycleSupport implements ILeaderElector {
+    static final Logger LOG = LoggerFactory.getLogger(AbstractLeaderElector.class);
 
     private String addr;
     private int port;
@@ -33,18 +32,15 @@ public abstract class AbstractLeaderElector implements ILeaderElector {
     private volatile LeaderEpoch leaderEpoch; //NOSONAR
     protected volatile CompletableFuture<LeaderEpoch> electionPromise = new CompletableFuture<>(); // NOSONAR
 
-    protected IScheduledExecutor scheduledExecutor;
 
     private String clusterId;
 
-    private int leaseMs = 10000;
+    private int leaseMs = 30000;
     private int checkIntervalMs = 2000;
 
     private final CopyOnWriteArrayList<ILeaderElectionListener> listeners = new CopyOnWriteArrayList<>();
 
-    private volatile boolean active;
-
-    @InjectValue("@cfg:nop.leader.lease-time-ms|10000")
+    @InjectValue("@cfg:nop.leader.lease-time-ms|30000")
     public void setLeaseMs(int leaseMs) {
         this.leaseMs = leaseMs;
     }
@@ -98,13 +94,8 @@ public abstract class AbstractLeaderElector implements ILeaderElector {
         this.serverAddrFinder = serverAddrFinder;
     }
 
-    public void setScheduledExecutor(IScheduledExecutor scheduledExecutor) {
-        this.scheduledExecutor = scheduledExecutor;
-    }
-
-    @PostConstruct
-    public void init() {
-        active = true;
+    @Override
+    protected void doStart() {
         if (StringHelper.isEmpty(addr)) {
             if (serverAddrFinder != null) {
                 addr = serverAddrFinder.findAddr();
@@ -112,22 +103,13 @@ public abstract class AbstractLeaderElector implements ILeaderElector {
                 addr = NetHelper.findLocalIp();
             }
         }
-
-        if (scheduledExecutor == null) {
-            scheduledExecutor = GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
-        }
-
-        scheduledExecutor.schedule(this::checkLeader, 0, TimeUnit.MILLISECONDS);
     }
 
-    public boolean isActive() {
-        return active;
-    }
-
-    @PreDestroy
-    public void destroy() {
-        active = false;
+    @Override
+    protected void doStop() {
         electionPromise.cancel(false);
+        onStop();
+        listeners.clear();
     }
 
     protected String getLeaderAddr() {
@@ -155,12 +137,6 @@ public abstract class AbstractLeaderElector implements ILeaderElector {
     }
 
     @Override
-    public boolean isLeader() {
-        LeaderEpoch leaderEpoch = this.leaderEpoch;
-        return leaderEpoch == null ? false : leaderEpoch.getLeaderId().equals(getHostId());
-    }
-
-    @Override
     public CompletionStage<LeaderEpoch> whenElectionCompleted() {
         return electionPromise;
     }
@@ -174,8 +150,52 @@ public abstract class AbstractLeaderElector implements ILeaderElector {
         if (current == null || current.getEpoch() < leader.getEpoch()) {
             this.leaderEpoch = leader;
             this.electionPromise.complete(leader);
+
+            if (current.getLeaderId().equals(getHostId())) {
+                onBecomeLeader(leader);
+            }
+        } else {
+            onBecomeFollower(leader);
         }
     }
 
-    protected abstract Void checkLeader();
+    protected void onBecomeLeader(LeaderEpoch epoch) {
+        for (ILeaderElectionListener listener : listeners) {
+            try {
+                listener.becomeLeader(epoch);
+            } catch (Exception e) {
+                LOG.error("nop.cluster.invoke-become-leader-listener-error", e);
+            }
+        }
+    }
+
+    protected void onBecomeFollower(LeaderEpoch epoch) {
+        for (ILeaderElectionListener listener : listeners) {
+            try {
+                listener.becomeFollower(epoch);
+            } catch (Exception e) {
+                LOG.error("nop.cluster.invoke-become-follower-listener-error", e);
+            }
+        }
+    }
+
+    protected void onException(Throwable err) {
+        for (ILeaderElectionListener listener : listeners) {
+            try {
+                listener.onException(err);
+            } catch (Exception e) {
+                LOG.error("nop.cluster.invoke-exception-listener-error", e);
+            }
+        }
+    }
+
+    protected void onStop() {
+        for (ILeaderElectionListener listener : listeners) {
+            try {
+                listener.onStop();
+            } catch (Exception e) {
+                LOG.error("nop.cluster.invoke-stop-listener-error", e);
+            }
+        }
+    }
 }

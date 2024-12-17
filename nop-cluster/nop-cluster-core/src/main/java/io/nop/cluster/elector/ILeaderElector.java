@@ -30,7 +30,9 @@ public interface ILeaderElector {
     /**
      * 判断当前节点是否被选举为leader
      */
-    boolean isLeader();
+    default boolean isLeader() {
+        return getHostId().equals(getLeaderId());
+    }
 
     /**
      * 发起选举过程

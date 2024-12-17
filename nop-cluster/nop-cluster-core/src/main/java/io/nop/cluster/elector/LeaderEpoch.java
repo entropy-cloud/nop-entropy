@@ -9,6 +9,8 @@ package io.nop.cluster.elector;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.util.Guard;
+import jakarta.annotation.Nonnull;
 
 /**
  * 每一次leader发生切换都产生一个新的epoch
@@ -19,11 +21,11 @@ public class LeaderEpoch {
     private final long epoch;
 
     public LeaderEpoch(@JsonProperty("leaderId") String leaderId, @JsonProperty("epoch") long epoch) {
-        this.leaderId = leaderId;
+        this.leaderId = Guard.notEmpty(leaderId, "leaderId");
         this.epoch = epoch;
     }
 
-    public String getLeaderId() {
+    public @Nonnull String getLeaderId() {
         return leaderId;
     }
 
