@@ -3,8 +3,11 @@ package io.nop.report.core.record;
 import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
-public class ExcelOutputConfig {
+public class ExcelIOConfig {
     private String templatePath;
+    private String dataSheetName;
+    private String headerSheetName;
+    private String trailerSheetName;
     private boolean useSeqCol;
     private int maxCountPerSheet = 20_0000;
 
@@ -30,5 +33,29 @@ public class ExcelOutputConfig {
 
     public void setTemplatePath(String templatePath) {
         this.templatePath = templatePath;
+    }
+
+    public String getDataSheetName() {
+        return dataSheetName;
+    }
+
+    public void setDataSheetName(String dataSheetName) {
+        this.dataSheetName = dataSheetName;
+    }
+
+    public String getHeaderSheetName() {
+        return headerSheetName;
+    }
+
+    public void setHeaderSheetName(String headerSheetName) {
+        this.headerSheetName = headerSheetName;
+    }
+
+    public String getTrailerSheetName() {
+        return trailerSheetName;
+    }
+
+    public void setTrailerSheetName(String trailerSheetName) {
+        this.trailerSheetName = trailerSheetName;
     }
 }
