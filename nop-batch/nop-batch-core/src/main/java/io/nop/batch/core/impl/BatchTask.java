@@ -8,6 +8,7 @@
 package io.nop.batch.core.impl;
 
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
@@ -24,6 +25,7 @@ import io.nop.batch.core.IBatchTaskMetrics;
 import io.nop.batch.core.exceptions.BatchCancelException;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,7 +66,7 @@ public class BatchTask<S> implements IBatchTask {
         this.loaderProvider = loaderProvider;
         this.chunkProcessorProvider = chunkProcessorProvider;
         this.stateStore = stateStore;
-        this.concurrency = concurrency;
+        this.concurrency = concurrency <= 0 ? 1 : concurrency;
         this.allowStartIfComplete = allowStartIfComplete;
         this.startLimit = startLimit;
         this.executor = getExecutor(executor, concurrency);
@@ -195,7 +197,9 @@ public class BatchTask<S> implements IBatchTask {
 
         executor.execute(() -> {
             LOG.info("nop.batch.run-chunk-loop:threadIndex={},threadName={}", threadIndex, Thread.currentThread().getName());
-            ContextProvider.runWithContext(() -> {
+            ContextProvider.runWithContext(ctx -> {
+                propagateContext(ctx, context);
+
                 BatchTaskGlobals.provideTaskContext(context);
                 try {
                     do {
@@ -219,6 +223,28 @@ public class BatchTask<S> implements IBatchTask {
 
         });
         return future;
+    }
+
+    protected void propagateContext(IContext ctx, IBatchTaskContext taskCtx) {
+        IServiceContext svcCtx = taskCtx.getServiceContext();
+        if (svcCtx == null || svcCtx.getContext() == null || svcCtx.getContext().isClosed()) {
+            ctx.setTenantId(null);
+            ctx.setLocale(null);
+            ctx.setUserName(null);
+            ctx.setUserRefNo(null);
+            ctx.setUserId(null);
+            ctx.setCallIp(null);
+            ctx.setTimezone(null);
+            ctx.setTraceId(null);
+            ctx.setPropagateRpcHeaders(null);
+            return;
+        }
+
+        IContext baseCtx = svcCtx.getContext();
+        if (baseCtx == ctx)
+            return;
+
+        ContextProvider.propagateContext(ctx, baseCtx, true);
     }
 
     /**

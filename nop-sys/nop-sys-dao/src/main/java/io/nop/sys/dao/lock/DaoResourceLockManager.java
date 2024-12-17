@@ -7,7 +7,6 @@
  */
 package io.nop.sys.dao.lock;
 
-import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
@@ -22,10 +21,8 @@ import io.nop.commons.io.net.IServerAddrFinder;
 import io.nop.commons.util.NetHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
-import io.nop.dao.txn.ITransactionTemplate;
-import io.nop.orm.IOrmSession;
-import io.nop.orm.IOrmTemplate;
 import io.nop.orm.OrmConstants;
+import io.nop.orm.dao.AbstractDaoHandler;
 import io.nop.orm.support.OrmCompositePk;
 import io.nop.sys.dao.entity.NopSysLock;
 import io.nop.sys.dao.entity._gen.NopSysLockPkBuilder;
@@ -36,18 +33,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.util.function.Function;
 
 import static io.nop.sys.dao.NopSysDaoConstants.RESOURCE_GROUP_DEFAULT;
 
-public class DaoResourceLockManager implements IResourceLockManager, IResourceLockManagerImplementor {
+public class DaoResourceLockManager extends AbstractDaoHandler implements IResourceLockManager, IResourceLockManagerImplementor {
     static final Logger LOG = LoggerFactory.getLogger(DaoResourceLockManager.class);
 
     private long defaultWaitTime = 1000; // 1s
     private long defaultLeaseTime = 10000; // 10s
-
-    private ITransactionTemplate transactionTemplate;
-    private IOrmTemplate ormTemplate;
     private IServerAddrFinder addrFinder;
 
     public void setDefaultWaitTime(long defaultWaitTime) {
@@ -61,32 +54,6 @@ public class DaoResourceLockManager implements IResourceLockManager, IResourceLo
     @Inject
     public void setAddrFinder(@Nullable IServerAddrFinder addrFinder) {
         this.addrFinder = addrFinder;
-    }
-
-    public ITransactionTemplate getTransactionTemplate() {
-        return transactionTemplate;
-    }
-
-    @Inject
-    public void setTransactionTemplate(ITransactionTemplate transactionTemplate) {
-        this.transactionTemplate = transactionTemplate;
-    }
-
-    public IOrmTemplate getOrmTemplate() {
-        return ormTemplate;
-    }
-
-    @Inject
-    public void setOrmTemplate(IOrmTemplate ormTemplate) {
-        this.ormTemplate = ormTemplate;
-    }
-
-    protected <T> T runLocal(Function<IOrmSession, T> task) {
-        return ormTemplate.runInNewSession(session -> {
-            return transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRES_NEW, txn -> {
-                return task.apply(session);
-            });
-        });
     }
 
     @Override
@@ -126,7 +93,7 @@ public class DaoResourceLockManager implements IResourceLockManager, IResourceLo
     @Override
     public IResourceLockState getLockState(@Nonnull String resourceId) {
         OrmCompositePk pk = castId(resourceId);
-        NopSysLock lock = ormTemplate.runInNewSession(session -> {
+        NopSysLock lock = runInNewSession(session -> {
             return (NopSysLock) session.get(NopSysLock.class.getName(), pk);
         });
 
@@ -139,15 +106,13 @@ public class DaoResourceLockManager implements IResourceLockManager, IResourceLo
     public boolean forceUnlock(String resourceId) {
         OrmCompositePk pk = castId(resourceId);
 
-        SQL sql = SQL.begin().deleteFrom().append(NopSysLock.class.getName())
-                .where().eq(OrmConstants.PROP_ID, pk).end();
-        return ormTemplate.executeUpdate(sql) > 0;
+        return orm().deleteById(NopSysLock.class.getName(), pk) > 0;
     }
 
     @Override
     public IResourceLockState tryLockWithLease(String resourceId, String lockerId,
                                                long waitTime, long leaseTime, String lockReason) {
-        IEstimatedClock clock = ormTemplate.getDbEstimatedClock(null);
+        IEstimatedClock clock = orm().getDbEstimatedClock(null);
 
         OrmCompositePk pk = castId(resourceId);
 
@@ -175,12 +140,12 @@ public class DaoResourceLockManager implements IResourceLockManager, IResourceLo
                 LOG.trace("nop.lock.sys.save-lock-failed:resourceId={}", resourceId, e);
             }
 
-            NopSysLock entity = ormTemplate.runInNewSession(session -> {
+            NopSysLock entity = runInNewSession(session -> {
                 NopSysLock existing = (NopSysLock) session.get(NopSysLock.class.getName(), pk);
                 if (existing != null) {
                     // 如果已过期，则尝试删除
                     if (isExpired(existing, clock)) {
-                        if (ormTemplate.tryDelete(existing))
+                        if (orm().tryDelete(existing))
                             return null;
                     }
                 }
@@ -238,7 +203,7 @@ public class DaoResourceLockManager implements IResourceLockManager, IResourceLo
         NopSysLock entity = ((EntityResourceLockState) lock).getEntity();
 
         return runLocal(session -> {
-            IEstimatedClock clock = ormTemplate.getDbEstimatedClock(null);
+            IEstimatedClock clock = orm().getDbEstimatedClock(null);
             SQL sql = SQL.begin().update(NopSysLock.class.getName())
                     .set()
                     .eq(NopSysLock.PROP_NAME_version, entity.getVersion() + 1)

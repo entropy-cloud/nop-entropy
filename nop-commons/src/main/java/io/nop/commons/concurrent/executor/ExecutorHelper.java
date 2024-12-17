@@ -9,6 +9,7 @@ package io.nop.commons.concurrent.executor;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.concurrent.thread.NamedThreadFactory;
 import io.nop.commons.metrics.GlobalMeterRegistry;
@@ -136,6 +137,9 @@ public class ExecutorHelper {
                     LOG.error("nop.executor.execute-fail", e);
                     future.completeExceptionally(e);
                     throw e;
+                } finally {
+                    // 确保ThreadLocal上的IContext被清除
+                    ContextProvider.instance().detachContext();
                 }
             }
         });
@@ -157,6 +161,9 @@ public class ExecutorHelper {
                     LOG.error("nop.executor.execute-fail", e);
                     future.completeExceptionally(e);
                     throw e;
+                } finally {
+                    // 确保ThreadLocal上的IContext被清除
+                    ContextProvider.instance().detachContext();
                 }
             }
         });
@@ -179,6 +186,9 @@ public class ExecutorHelper {
                     LOG.error("nop.executor.execute-fail", e);
                     future.completeExceptionally(e);
                     throw e;
+                } finally {
+                    // 确保ThreadLocal上的IContext被清除
+                    ContextProvider.instance().detachContext();
                 }
             }
         }, delay, timeUnit);

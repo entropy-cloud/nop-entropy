@@ -689,6 +689,22 @@ public class Underscore {
     }
 
     @Deterministic
+    public static Map<String, Object> mapFields(Object item, Map<String, String> mapping) {
+        if (item instanceof Map)
+            return rename((Map<String, Object>) item, mapping);
+
+        if (item == null)
+            return null;
+
+        Map<String, Object> ret = new LinkedHashMap<>();
+        mapping.forEach((name, toName) -> {
+            Object value = BeanTool.getComplexProperty(item, name);
+            ret.put(toName, value);
+        });
+        return ret;
+    }
+
+    @Deterministic
     public static <T> List<T> removeWhere(Collection<T> c, String key, Object value) {
         List<T> ret = where(c, key, value);
         c.removeAll(ret);

@@ -61,6 +61,10 @@ public interface ApiConfigs {
     IConfigReference<String> CFG_DEFAULT_LOCALE =
             varRef(s_loc, "nop.default-locale", String.class, "zh-CN");
 
+    @Description("缺省的租户id")
+    IConfigReference<String> CFG_DEFAULT_TENANT_ID =
+            varRef(s_loc, "nop.default-tenant-id", String.class, "");
+
     @Description("应用程序的缺省时区，所有LocalDate, LocateDateTime等都对应这个时区设置，因此存储到数据库中也对应这个时区")
     IConfigReference<String> CFG_APPLICATION_TIMEZONE =
             varRef(s_loc, "nop.application.timezone", String.class, null);

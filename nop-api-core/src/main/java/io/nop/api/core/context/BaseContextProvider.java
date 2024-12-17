@@ -7,6 +7,10 @@
  */
 package io.nop.api.core.context;
 
+import io.nop.api.core.util.ApiStringHelper;
+
+import static io.nop.api.core.ApiConfigs.CFG_DEFAULT_TENANT_ID;
+
 public class BaseContextProvider implements IContextProvider {
     private final static ThreadLocal<IContext> t_context = new ThreadLocal<>();
 
@@ -24,19 +28,28 @@ public class BaseContextProvider implements IContextProvider {
     }
 
     @Override
+    public void detachContext() {
+        t_context.remove();
+    }
+
+    @Override
     public IContext getOrCreateContext() {
         IContext context = t_context.get();
         if (context == null || context.isClosed()) {
-            context = new BaseContext();
-            t_context.set(context);
+            return newContext(true);
         }
         return context;
     }
 
     @Override
-    public IContext newContext() {
+    public IContext newContext(boolean attach) {
         IContext context = new BaseContext();
-        t_context.set(context);
+        String defaultTenantId = CFG_DEFAULT_TENANT_ID.get();
+        if (!ApiStringHelper.isEmpty(defaultTenantId)) {
+            context.setTenantId(defaultTenantId);
+        }
+        if (attach)
+            t_context.set(context);
         return context;
     }
 

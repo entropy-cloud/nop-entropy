@@ -16,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static io.nop.api.core.ApiErrors.ERR_CONTEXT_PROVIDER_ALREADY_INITIALIZED;
@@ -65,7 +66,11 @@ public class ContextProvider {
     }
 
     public static IContext newContext() {
-        return _instance.newContext();
+        return newContext(true);
+    }
+
+    public static IContext newContext(boolean attach) {
+        return _instance.newContext(attach);
     }
 
     public static boolean isCallExpired() {
@@ -141,11 +146,11 @@ public class ContextProvider {
         }
     }
 
-    public static <T> T runWithContext(Supplier<T> task) {
+    public static <T> T runWithContext(Function<IContext, T> task) {
         IContext oldContext = _instance.currentContext();
         IContext context = _instance.getOrCreateContext();
         try {
-            return task.get();
+            return task.apply(context);
         } finally {
             if (oldContext == null) {
                 context.close();
@@ -237,5 +242,18 @@ public class ContextProvider {
 
         IContext proxy = new CallExpireTimeProxyContext(context);
         return runWithProxyContext(proxy, context, task);
+    }
+
+    public static void propagateContext(IContext ctx, IContext baseCtx, boolean copyRcpHeaders) {
+        ctx.setTenantId(baseCtx.getTenantId());
+        ctx.setLocale(baseCtx.getLocale());
+        ctx.setCallIp(baseCtx.getCallIp());
+        ctx.setTraceId(baseCtx.getTraceId());
+        ctx.setTimezone(baseCtx.getTimezone());
+        ctx.setUserId(baseCtx.getUserId());
+        ctx.setUserName(baseCtx.getUserName());
+        ctx.setUserRefNo(baseCtx.getUserRefNo());
+        if (copyRcpHeaders)
+            ctx.setPropagateRpcHeaders(baseCtx.getPropagateRpcHeaders());
     }
 }

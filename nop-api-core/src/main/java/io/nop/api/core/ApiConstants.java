@@ -73,6 +73,11 @@ public interface ApiConstants extends FilterBeanConstants {
     String HEADER_ID = "nop-id";
 
     /**
+     * 控制nop-id一样时是否检查重复提交，以及发现重复提交时如何处理
+     */
+    String HEADER_IDEMPOTENT = "nop-idempotent";
+
+    /**
      * 响应消息中携带的请求消息id, 用于消息匹配
      */
     String HEADER_REL_ID = "nop-rel-id";

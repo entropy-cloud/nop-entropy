@@ -13,6 +13,8 @@ import io.nop.api.core.util.ICancellable;
 import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -20,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 public class CancelTokenManager {
+    static final Logger LOG = LoggerFactory.getLogger(CancelTokenManager.class);
     private final Map<String, ICancellable> cancelTokens = new ConcurrentHashMap<>();
 
     public void register(String reqId, ICancellable cancelToken) {
@@ -40,6 +43,8 @@ public class CancelTokenManager {
         String reqId = ApiHeaders.getIdFromHeaders(ctx.getRequestHeaders());
         if (StringHelper.isEmpty(reqId))
             return invoker;
+
+        String idempotent = ApiHeaders.getIdempotentFromHeaders(ctx.getRequestHeaders());
         register(reqId, ctx);
 
         IAsyncFunctionInvoker wrapped = new IAsyncFunctionInvoker() {

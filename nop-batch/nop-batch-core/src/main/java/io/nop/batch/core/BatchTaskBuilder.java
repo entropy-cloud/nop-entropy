@@ -56,7 +56,7 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
     /**
      * 同时启动多少个线程去并行处理
      */
-    private int concurrency = 1;
+    private int concurrency = 0;
     private boolean retryOneByOne;
 
     /**

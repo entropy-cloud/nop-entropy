@@ -47377,6 +47377,30 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "isExpired",
+        "parameterTypes": [
+          "io.nop.sys.dao.entity.NopSysLock",
+          "io.nop.api.core.time.IEstimatedClock"
+        ]
+      },
+      {
+        "name": "runLocal",
+        "parameterTypes": [
+          "java.util.function.Function"
+        ]
+      }
+    ],
+    "name": "io.nop.sys.dao.lock.DaoResourceLockManager"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "name": "LOG"

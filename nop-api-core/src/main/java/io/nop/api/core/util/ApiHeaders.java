@@ -171,6 +171,18 @@ public class ApiHeaders {
         message.setHeader(ApiConstants.HEADER_ID, value);
     }
 
+    public static String getIdempotentFromHeaders(Map<String, Object> headers) {
+        return getStringHeader(headers, ApiConstants.HEADER_IDEMPOTENT);
+    }
+
+    public static String getIdempotent(ApiMessage message) {
+        return getStringHeader(message.getHeaders(), ApiConstants.HEADER_IDEMPOTENT);
+    }
+
+    public static void setIdempotent(ApiMessage message, String value) {
+        message.setHeader(ApiConstants.HEADER_IDEMPOTENT, value);
+    }
+
     public static String getRelId(ApiMessage message) {
         return getStringHeader(message.getHeaders(), ApiConstants.HEADER_REL_ID);
     }
