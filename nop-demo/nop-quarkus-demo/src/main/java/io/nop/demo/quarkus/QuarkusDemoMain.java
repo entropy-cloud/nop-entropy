@@ -10,12 +10,10 @@ package io.nop.demo.quarkus;
 import io.nop.boot.NopApplication;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.quarkus.core.QuarkusIntegration;
-import io.quarkus.runtime.IOThreadDetector;
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.runtime.annotations.QuarkusMain;
-import io.vertx.core.Context;
 import jakarta.enterprise.event.Observes;
 
 @QuarkusMain
@@ -33,13 +31,6 @@ public class QuarkusDemoMain {
     }
 
     public static void main(String... args) {
-        new IOThreadDetector() {
-            @Override
-            public boolean isInIOThread() {
-                return Context.isOnEventLoopThread();
-            }
-        };
-
         globalArgs = args;
         Quarkus.run(args);
     }

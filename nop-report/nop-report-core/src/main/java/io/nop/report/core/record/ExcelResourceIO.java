@@ -7,10 +7,10 @@ import io.nop.dataset.record.IRecordOutput;
 
 public class ExcelResourceIO<T> implements IResourceRecordIO<T> {
 
-    private ExcelOutputConfig outputConfig;
+    private ExcelIOConfig ioConfig;
 
-    public void setOutputConfig(ExcelOutputConfig outputConfig) {
-        this.outputConfig = outputConfig;
+    public void setIOConfig(ExcelIOConfig outputConfig) {
+        this.ioConfig = outputConfig;
     }
 
     @Override
@@ -20,6 +20,6 @@ public class ExcelResourceIO<T> implements IResourceRecordIO<T> {
 
     @Override
     public IRecordOutput<T> openOutput(IResource resource, String encoding) {
-        return new ExcelRecordOutput<>(resource, null, outputConfig);
+        return new ExcelRecordOutput<>(resource, null, ioConfig);
     }
 }

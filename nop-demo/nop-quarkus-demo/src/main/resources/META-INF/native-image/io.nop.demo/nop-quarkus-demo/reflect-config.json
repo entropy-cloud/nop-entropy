@@ -7481,6 +7481,74 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "dao",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "daoFor",
+        "parameterTypes": [
+          "java.lang.Class"
+        ]
+      },
+      {
+        "name": "executeSql",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.api.core.beans.LongRangeBean",
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "executeSql",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.context.IEvalContext"
+        ]
+      },
+      {
+        "name": "jdbc",
+        "parameterTypes": []
+      },
+      {
+        "name": "orm",
+        "parameterTypes": []
+      },
+      {
+        "name": "runInNewSession",
+        "parameterTypes": [
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "runInTransaction",
+        "parameterTypes": [
+          "java.util.function.Supplier"
+        ]
+      },
+      {
+        "name": "runLocal",
+        "parameterTypes": [
+          "java.util.function.Function"
+        ]
+      },
+      {
+        "name": "txn",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.orm.dao.AbstractDaoHandler"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [],
     "name": "io.nop.orm.dao.OrmDaoProvider"
   },

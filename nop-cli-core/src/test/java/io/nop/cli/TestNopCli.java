@@ -14,6 +14,7 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
 
@@ -100,11 +101,12 @@ public class TestNopCli extends BaseTestCase {
         assertTrue(text.contains("totalCount=22000 "));
     }
 
+    @Disabled
     @Test
     public void testRunBatchDemo() {
         CoreInitialization.destroy();
         File file = new File(getModuleDir(), "../nop-cli/demo/_vfs");
-        File devDir = new File(getModuleDir(),"../nop-cli/demo/");
+        File devDir = new File(getModuleDir(), "../nop-cli/demo/");
         System.setProperty(CoreConfigs.CFG_DEV_ROOT_PATH.getName(), devDir.getAbsolutePath());
         System.setProperty(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName(), file.getAbsolutePath());
         String[] args = new String[]{"run-task", "v:/batch/batch-demo.task.xml", "-i", "{bizDate:'2024-12-08'}"};

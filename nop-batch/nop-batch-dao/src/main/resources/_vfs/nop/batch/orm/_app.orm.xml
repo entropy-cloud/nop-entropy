@@ -154,8 +154,7 @@
                 <column code="DATE_VALUE" displayName="日期值" name="dateValue" propId="7" stdDataType="date"
                         stdSqlType="DATE" i18n-en:displayName="Date Value"/>
                 <column code="TIMESTAMP_VALUE" displayName="时间点值" name="timestampValue" propId="8"
-                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Timestamp Value"
-                        ext:dict="batch/process-state"/>
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Timestamp Value"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="9"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"

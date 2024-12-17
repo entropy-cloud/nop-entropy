@@ -20,7 +20,7 @@ import java.util.Map;
 
 public class ExcelRecordOutput<T> implements IRecordOutput<T> {
     private final IResource resource;
-    private final ExcelOutputConfig config;
+    private final ExcelIOConfig config;
     private ExcelWorkbook template;
     private long writeCount;
     private File tempDir;
@@ -33,14 +33,13 @@ public class ExcelRecordOutput<T> implements IRecordOutput<T> {
     private GenState genState;
 
     public ExcelRecordOutput(IResource resource, List<String> headers,
-                             ExcelOutputConfig config) {
+                             ExcelIOConfig config) {
         this.resource = resource;
         try {
             this.config = config;
             this.headers = headers;
             this.tempDir = ResourceHelper.getTempResource("xlsx").toFile();
             this.tempDir.mkdirs();
-
         } catch (Exception e) {
             clearDir();
             throw NopException.adapt(e);
