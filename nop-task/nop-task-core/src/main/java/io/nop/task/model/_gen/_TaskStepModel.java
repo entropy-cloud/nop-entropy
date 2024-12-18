@@ -110,7 +110,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     /**
      *  
      * xml name: sync
-     * 
+     * 步骤执行时同步调用TaskStepReturn.sync()同步等待本步骤执行完毕，然后再继续执行下一步骤。缺省情况下会使用Promise异步等待。
      */
     private boolean _sync  = false;
     
@@ -392,7 +392,7 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     /**
      * 
      * xml name: sync
-     *  
+     *  步骤执行时同步调用TaskStepReturn.sync()同步等待本步骤执行完毕，然后再继续执行下一步骤。缺省情况下会使用Promise异步等待。
      */
     
     public boolean isSync(){

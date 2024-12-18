@@ -128,5 +128,59 @@
 * allowUpdate：如果发现数据已经存在，是否允许更新数据，缺省为false。
 
 
+## 参数传递
+
+1. IBatchTaskContext和IBatchChunkContext都提供了setAttribute/getAttribute方法，可以用于在整个批处理任务环境以及单个Chunk执行环境中共享数据。
+
+```
+<processor>
+  <source>
+     const myVar = batchChunkCtx.taskContext.getAttribute('myVar’);
+  </source>
+</processor>
+```
+
+2. 在启用BatchTask的saveState属性的情况下，可以通过`IBatchTaskContext.getPersistVar/setPersistVar`来持久化保存变量信息。
 
 
+## 常见问题
+
+### 1. 数据文件中有两列数据，属性名分别为 a, b。 现在我要将这个文件导入数据库的 T1, T2 表， 属性 a 对应 T1表的字段 c1，属性 b 对应 T2表的字段 c1。 这种场景的映射关系怎么处理？
+
+如果使用ORM来保存，则在processor中直接调用`dao.xlib`中的`SaveEntity`标签，会自动延迟提交数据库操作，只是调用`ormSession.save`.
+
+```xml
+<processor name="saveCustomer">
+  <source>
+    <dao:SaveEntity entityName="DemoCustomer" data="${{
+        firstName: item.customer.firstName,
+        lastName: item.customer.familyName,
+        gender: item.customer.gender,
+        customerNumber: item.customerNumber,
+        idCard: item.customer.idCard,
+        partitionIndex: item.customerNumber.$shortHash()
+        }}" xpl:lib="/nop/orm/xlib/dao.xlib"/>
+  </source>
+</processor>
+
+```
+
+另外可以processor中调用多次consume来输出多个结果。 然后在writer中配置filter，过滤接收即可。
+
+```xml
+<processor name="process">
+  <source>
+    ...
+    consume(result1);
+    consume(result2);
+  </source>
+</processor>
+
+<consumer name="saveResult1">
+  <filter>
+    return item.name == 'result1';
+  </filter>
+
+  <file-writer filePath="result.csv"/>
+</consumer>
+```

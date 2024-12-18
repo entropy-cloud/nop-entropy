@@ -101,6 +101,13 @@ public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchLi
     private io.nop.core.lang.eval.IEvalFunction _source ;
     
     /**
+     *  
+     * xml name: transformer
+     * 实际写入之前执行transformer进行结构转换。实际保存的是返回的结果对象。如果transformer的返回值是null，则忽略这个条目
+     */
+    private io.nop.core.lang.eval.IEvalFunction _transformer ;
+    
+    /**
      * 
      * xml name: adapter
      *  
@@ -328,6 +335,25 @@ public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchLi
     }
 
     
+    /**
+     * 
+     * xml name: transformer
+     *  实际写入之前执行transformer进行结构转换。实际保存的是返回的结果对象。如果transformer的返回值是null，则忽略这个条目
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getTransformer(){
+      return _transformer;
+    }
+
+    
+    public void setTransformer(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._transformer = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -361,6 +387,7 @@ public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchLi
         out.putNotNull("order",this.getOrder());
         out.putNotNull("ormWriter",this.getOrmWriter());
         out.putNotNull("source",this.getSource());
+        out.putNotNull("transformer",this.getTransformer());
     }
 
     public BatchConsumerModel cloneInstance(){
@@ -384,6 +411,7 @@ public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchLi
         instance.setOrder(this.getOrder());
         instance.setOrmWriter(this.getOrmWriter());
         instance.setSource(this.getSource());
+        instance.setTransformer(this.getTransformer());
     }
 
     protected BatchConsumerModel newInstance(){

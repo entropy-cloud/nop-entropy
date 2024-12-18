@@ -153,6 +153,9 @@
             </fields>
         </jdbc-writer>
 
+        <!-- 实际写入之前执行transformer进行结构转换。实际保存的是返回的结果对象。如果transformer的返回值是null，则忽略这个条目 -->
+        <transformer xdef:value="xpl-fn:(item,batchChunkCtx)=>any"/>
+
         <source xdef:value="xpl-fn:(items,batchChunkCtx)=>void"/>
 
         <adapter xdef:value="xpl-fn:(consumer)=>any"/>

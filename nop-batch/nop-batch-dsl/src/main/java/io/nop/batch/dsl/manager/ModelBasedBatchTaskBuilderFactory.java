@@ -17,9 +17,11 @@ import io.nop.batch.core.IBatchRecordSnapshotBuilder;
 import io.nop.batch.core.IBatchStateStore;
 import io.nop.batch.core.IBatchTaskBuilder;
 import io.nop.batch.core.consumer.EmptyBatchConsumer;
+import io.nop.batch.core.consumer.EvalBatchConsumer;
 import io.nop.batch.core.consumer.MultiBatchConsumerProvider;
 import io.nop.batch.core.consumer.ResourceRecordConsumerProvider;
 import io.nop.batch.core.consumer.SplitBatchConsumer;
+import io.nop.batch.core.consumer.TransformedBatchConsumerProvider;
 import io.nop.batch.core.filter.EvalBatchRecordFilter;
 import io.nop.batch.core.loader.PostProcessBatchLoaderProvider;
 import io.nop.batch.core.processor.FilterBatchProcessor;
@@ -515,10 +517,20 @@ public class ModelBasedBatchTaskBuilderFactory {
             ret = newOrmWriter(consumerModel.getOrmWriter(), daoProvider, ormTemplate);
         } else if (consumerModel.getJdbcWriter() != null) {
             ret = newJdbcWriter(consumerModel.getJdbcWriter(), jdbcTemplate);
+        } else if (consumerModel.getSource() != null) {
+            ret = newXplWriter(consumerModel.getSource());
         } else {
             ret = null;
         }
+
+        if (ret != null && consumerModel.getTransformer() != null)
+            ret = new TransformedBatchConsumerProvider<>(ret,
+                    (item, chunkCtx) -> consumerModel.getTransformer().call2(null, item, chunkCtx, chunkCtx.getEvalScope()));
         return addFilterForWriter(consumerModel, ret);
+    }
+
+    private IBatchConsumerProvider<Object> newXplWriter(IEvalFunction source) {
+        return new EvalBatchConsumer<>(source);
     }
 
     private IBatchConsumerProvider<Object> addFilterForWriter(BatchConsumerModel consumerModel, IBatchConsumerProvider<Object> consumer) {

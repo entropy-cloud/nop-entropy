@@ -82,6 +82,9 @@ public class OrmBatchConsumer<S extends IOrmEntity, R> implements IBatchConsumer
                 if (!allowUpdate)
                     return;
 
+                if (entity == item)
+                    return;
+
                 OrmBatchHelper.assignEntity(entity, item);
                 dao.updateEntity(entity);
             } else {
