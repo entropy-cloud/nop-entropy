@@ -8,5 +8,7 @@
 package io.nop.ooxml.xlsx;
 
 public interface XlsxConstants {
+    String EMPTY_TEMPLATE_PATH = "/nop/ooxml/templates/empty.xlsx";
 
+    String SIMPLE_DATA_TEMPLATE_PATH = "/nop/ooxml/templates/simple-data.xpt.xlsx";
 }

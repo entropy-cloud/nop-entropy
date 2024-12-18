@@ -23,10 +23,6 @@ public interface IRecordOutput<T> extends Closeable, Flushable {
 
     }
 
-    default void setHeaders(List<String> headers) {
-
-    }
-
     default void endWrite(Map<String, Object> trailerMeta) throws IOException {
 
     }

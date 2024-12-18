@@ -18,12 +18,13 @@ import io.nop.dataset.record.IRecordOutput;
 import org.apache.commons.csv.CSVFormat;
 
 import java.lang.reflect.Type;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class CsvResourceRecordIO<T> implements IResourceRecordIO<T> {
     private List<String> headers;
+    private List<String> headerLabels;
     private boolean supportZip = true;
     private boolean trimValue = true;
     private Type recordType = Map.class;
@@ -78,6 +79,14 @@ public class CsvResourceRecordIO<T> implements IResourceRecordIO<T> {
         this.recordType = recordType;
     }
 
+    public List<String> getHeaderLabels() {
+        return headerLabels;
+    }
+
+    public void setHeaderLabels(List<String> headerLabels) {
+        this.headerLabels = headerLabels;
+    }
+
     @Override
     public IRecordInput<T> openInput(IResource resource, String encoding) {
         if (encoding == null)
@@ -95,10 +104,13 @@ public class CsvResourceRecordIO<T> implements IResourceRecordIO<T> {
     public IRecordOutput<T> openOutput(IResource resource, String encoding) {
         if (encoding == null)
             encoding = this.encoding;
-        Collection<String> headers = this.headers;
+        List<String> headers = this.headers;
         if (headers == null && recordType != List.class)
-            headers = BeanTool.getReadableComplexPropNames(getTypeInfo(resource));
+            headers = new ArrayList<>(BeanTool.getReadableComplexPropNames(getTypeInfo(resource)));
 
-        return new CsvRecordOutput<>(resource, encoding, format, headers, supportZip);
+        CsvRecordOutput<T> output = new CsvRecordOutput<>(resource, encoding, format, supportZip);
+        output.setHeaders(headers);
+        output.setHeaderLabels(headerLabels);
+        return output;
     }
 }

@@ -7,10 +7,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GenState {
-    public ExcelOfficePackage pkg;
+    public final ExcelOfficePackage pkg;
     public int nextSheetIndex;
     public Map<ByteString, String> images = new HashMap<>();
     public int nextImageIndex;
 
     public int nextDrawingIndex;
+
+    public GenState(ExcelOfficePackage pkg) {
+        this.pkg = pkg;
+    }
+
+    public int genSheetIndex() {
+        return nextSheetIndex++;
+    }
 }

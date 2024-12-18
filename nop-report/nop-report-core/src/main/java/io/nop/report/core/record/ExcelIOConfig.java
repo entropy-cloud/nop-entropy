@@ -4,6 +4,8 @@ import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
 public class ExcelIOConfig {
+    static final ExcelIOConfig DEFAULT = new ExcelIOConfig();
+
     private String templatePath;
     private String dataSheetName;
     private String headerSheetName;

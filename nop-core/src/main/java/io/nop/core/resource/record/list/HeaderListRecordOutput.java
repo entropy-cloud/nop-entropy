@@ -31,12 +31,6 @@ public class HeaderListRecordOutput<R> implements IRecordOutput<List<Object>> {
         return records;
     }
 
-    @Override
-    public void setHeaders(List<String> headers) {
-        if (headers != null)
-            this.headers = headers;
-    }
-
     public long getWriteCount() {
         return writeCount;
     }

@@ -39,6 +39,13 @@ public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchLi
     
     /**
      *  
+     * xml name: excel-writer
+     * 
+     */
+    private io.nop.batch.dsl.model.BatchExcelWriterModel _excelWriter ;
+    
+    /**
+     *  
      * xml name: file-writer
      * 
      */
@@ -160,6 +167,25 @@ public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchLi
         checkAllowChange();
         
         this._bean = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: excel-writer
+     *  
+     */
+    
+    public io.nop.batch.dsl.model.BatchExcelWriterModel getExcelWriter(){
+      return _excelWriter;
+    }
+
+    
+    public void setExcelWriter(io.nop.batch.dsl.model.BatchExcelWriterModel value){
+        checkAllowChange();
+        
+        this._excelWriter = value;
            
     }
 
@@ -362,6 +388,8 @@ public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchLi
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._excelWriter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._excelWriter);
+            
            this._fileWriter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._fileWriter);
             
            this._jdbcWriter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._jdbcWriter);
@@ -378,6 +406,7 @@ public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchLi
         out.putNotNull("adapter",this.getAdapter());
         out.putNotNull("aggregator",this.getAggregator());
         out.putNotNull("bean",this.getBean());
+        out.putNotNull("excelWriter",this.getExcelWriter());
         out.putNotNull("fileWriter",this.getFileWriter());
         out.putNotNull("filter",this.getFilter());
         out.putNotNull("forTag",this.getForTag());
@@ -402,6 +431,7 @@ public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchLi
         instance.setAdapter(this.getAdapter());
         instance.setAggregator(this.getAggregator());
         instance.setBean(this.getBean());
+        instance.setExcelWriter(this.getExcelWriter());
         instance.setFileWriter(this.getFileWriter());
         instance.setFilter(this.getFilter());
         instance.setForTag(this.getForTag());

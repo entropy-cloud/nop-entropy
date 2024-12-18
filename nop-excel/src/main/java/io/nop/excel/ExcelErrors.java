@@ -83,4 +83,7 @@ public interface ExcelErrors {
     ErrorCode ERR_IMPORT_SHEET_WITH_DUPLICATE_KEY_PROP =
             define("nop.err.excel.import-sheet-with-duplicate-key-prop",
                     "导入表格[{sheetName}]时[{keyProp}]的属性重复", ARG_SHEET_NAME, ARG_KEY_PROP);
+
+    ErrorCode ERR_EXCEL_UNKNOWN_SHEET =
+            define("nop.err.excel.unknown-sheet", "Excel文件中没有找到表格:[{sheetName}]", ARG_SHEET_NAME);
 }

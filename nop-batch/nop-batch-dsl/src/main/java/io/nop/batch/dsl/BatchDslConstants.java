@@ -9,4 +9,8 @@ public interface BatchDslConstants {
     String ROW_MAPPER_CAMEL_CASE = "camelCase";
 
     String ROW_MAPPER_BEAN_PREFIX = "nopRowMapper_";
+
+    String VAR_READER_MODEL = "readerModel";
+
+    String VAR_WRITER_MODEL = "writerModel";
 }

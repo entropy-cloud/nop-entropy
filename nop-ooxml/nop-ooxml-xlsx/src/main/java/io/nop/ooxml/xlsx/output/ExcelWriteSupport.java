@@ -10,6 +10,7 @@ import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.ICellView;
 import io.nop.core.model.table.IColumnConfig;
 import io.nop.core.model.table.IRowView;
+import io.nop.core.model.table.ITableView;
 import io.nop.excel.ExcelConstants;
 import io.nop.excel.format.ExcelDateHelper;
 import io.nop.excel.model.ExcelPageMargins;
@@ -72,13 +73,13 @@ public class ExcelWriteSupport {
         genCols(out, sheet.getTable().getCols(), sheet.getDefaultColumnWidth());
 
         genRows(out, sheet);
-        genMergeCells(out, sheet);
+        genMergeCells(out, sheet.getTable());
 
         genLinks(out, sheet, context);
 
-        genPageMargins(out, sheet);
+        genPageMargins(out, sheet.getPageMargins());
 
-        genPageSetup(out, sheet);
+        genPageSetup(out, sheet.getPageSetup());
 
         if (sheet.getImages() != null && !sheet.getImages().isEmpty()) {
             genDrawing(out);
@@ -291,21 +292,29 @@ public class ExcelWriteSupport {
         return "{" + uuid + "}";
     }
 
-    public void genRows(IXNodeHandler out, IExcelSheet sheet) {
+    public void beginRows(IXNodeHandler out) {
         out.beginNode(null, "sheetData", Collections.emptyMap());
+    }
+
+    public void endRows(IXNodeHandler out) {
+        out.endNode("sheetData");
+    }
+
+    public void genRows(IXNodeHandler out, IExcelSheet sheet) {
+        beginRows(out);
         List<? extends IRowView> rows = sheet.getTable().getRows();
         int colCount = sheet.getTable().getColCount();
         for (int i = 0, n = rows.size(); i < n; i++) {
             IRowView row = rows.get(i);
             genRow(out, i, colCount, row);
         }
-        out.endNode("sheetData");
+        endRows(out);
     }
 
-    public void genMergeCells(IXNodeHandler out, IExcelSheet sheet) {
+    public void genMergeCells(IXNodeHandler out, ITableView table) {
         // <mergeCells count="1"><mergeCell ref="A6:B7"/></mergeCells>
         List<String> cells = new ArrayList<>();
-        sheet.getTable().forEachRealCell((cell, rowIndex, colIndex) -> {
+        table.forEachRealCell((cell, rowIndex, colIndex) -> {
             if (cell.getMergeAcross() > 0 || cell.getMergeDown() > 0) {
                 cells.add(CellPosition.toABString(rowIndex, colIndex) + ":" +
                         CellPosition.toABString(rowIndex + cell.getMergeDown(), colIndex + cell.getMergeAcross()));
@@ -322,8 +331,7 @@ public class ExcelWriteSupport {
         }
     }
 
-    public void genPageMargins(IXNodeHandler out, IExcelSheet sheet) {
-        ExcelPageMargins margins = sheet.getPageMargins();
+    public void genPageMargins(IXNodeHandler out, ExcelPageMargins margins) {
         if (margins != null) {
             out.simpleNode(null, "pageMargins", attrs("left", margins.getLeftInches(), "right", margins.getRightInches(),
                     "top", margins.getTopInches(), "bottom", margins.getBottomInches(), "header", margins.getHeaderInches(),
@@ -331,8 +339,7 @@ public class ExcelWriteSupport {
         }
     }
 
-    public void genPageSetup(IXNodeHandler out, IExcelSheet sheet) {
-        ExcelPageSetup pageSetup = sheet.getPageSetup();
+    public void genPageSetup(IXNodeHandler out, ExcelPageSetup pageSetup) {
         if (pageSetup != null) {
             out.simpleNode(null, "pageSetup", attrs("paperSize", pageSetup.getPaperSize(),
                     "orientation", pageSetup.getOrientation(), "verticalDpi", "0", "horizontalDpi", "0"));
@@ -373,17 +380,21 @@ public class ExcelWriteSupport {
         });
 
         if (!links.isEmpty()) {
-            out.beginNode("hyperlinks");
-            links.forEach(link -> {
-                Map<String, ValueWithLocation> attrs = new LinkedHashMap<>();
-                attrs.put("ref", ValueWithLocation.of(null, CellPosition.toABString(link.rowIndex, link.colIndex)));
-                attrs.put("location", ValueWithLocation.of(null, normalizeLocation(link.location,
-                        (Map<String, String>) context.getEvalScope().getValue(ExcelConstants.VAR_SHEET_NAME_MAPPING))));
-                attrs.put("display", ValueWithLocation.of(null, link.text));
-                attrs.put("xr:id", ValueWithLocation.of(null, intToUUID(link.index)));
-                out.simpleNode(null, "hyperlink", attrs);
-            });
-            out.endNode("hyperlinks");
+            genLinks(out, links, (Map<String, String>) context.getEvalScope().getValue(ExcelConstants.VAR_SHEET_NAME_MAPPING));
         }
+    }
+
+    public void genLinks(IXNodeHandler out, List<ExcelLink> links, Map<String, String> sheetNameMapping) {
+        out.beginNode("hyperlinks");
+        links.forEach(link -> {
+            Map<String, ValueWithLocation> attrs = new LinkedHashMap<>();
+            attrs.put("ref", ValueWithLocation.of(null, CellPosition.toABString(link.rowIndex, link.colIndex)));
+            attrs.put("location", ValueWithLocation.of(null, normalizeLocation(link.location,
+                    sheetNameMapping)));
+            attrs.put("display", ValueWithLocation.of(null, link.text));
+            attrs.put("xr:id", ValueWithLocation.of(null, intToUUID(link.index)));
+            out.simpleNode(null, "hyperlink", attrs);
+        });
+        out.endNode("hyperlinks");
     }
 }

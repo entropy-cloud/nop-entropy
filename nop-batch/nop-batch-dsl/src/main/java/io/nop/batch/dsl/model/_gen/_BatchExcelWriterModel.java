@@ -2,7 +2,7 @@ package io.nop.batch.dsl.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.batch.dsl.model.BatchFileWriterModel;
+import io.nop.batch.dsl.model.BatchExcelWriterModel;
 import io.nop.commons.util.ClassHelper;
 
 
@@ -14,21 +14,14 @@ import io.nop.commons.util.ClassHelper;
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _BatchFileWriterModel extends io.nop.core.resource.component.AbstractComponentModel {
+public abstract class _BatchExcelWriterModel extends io.nop.core.resource.component.AbstractComponentModel {
     
     /**
      *  
-     * xml name: encoding
+     * xml name: dataSheetName
      * 
      */
-    private java.lang.String _encoding ;
-    
-    /**
-     *  
-     * xml name: fileModelPath
-     * 
-     */
-    private java.lang.String _fileModelPath ;
+    private java.lang.String _dataSheetName ;
     
     /**
      *  
@@ -46,6 +39,13 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: headerSheetName
+     * 
+     */
+    private java.lang.String _headerSheetName ;
+    
+    /**
+     *  
      * xml name: headers
      * 
      */
@@ -53,59 +53,33 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     
     /**
      *  
-     * xml name: newRecordOutputProvider
+     * xml name: templatePath
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _newRecordOutputProvider ;
+    private java.lang.String _templatePath ;
     
     /**
      *  
-     * xml name: resourceIO
+     * xml name: trailerSheetName
      * 
      */
-    private java.lang.String _resourceIO ;
-    
-    /**
-     *  
-     * xml name: resourceLoader
-     * 
-     */
-    private java.lang.String _resourceLoader ;
+    private java.lang.String _trailerSheetName ;
     
     /**
      * 
-     * xml name: encoding
+     * xml name: dataSheetName
      *  
      */
     
-    public java.lang.String getEncoding(){
-      return _encoding;
+    public java.lang.String getDataSheetName(){
+      return _dataSheetName;
     }
 
     
-    public void setEncoding(java.lang.String value){
+    public void setDataSheetName(java.lang.String value){
         checkAllowChange();
         
-        this._encoding = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: fileModelPath
-     *  
-     */
-    
-    public java.lang.String getFileModelPath(){
-      return _fileModelPath;
-    }
-
-    
-    public void setFileModelPath(java.lang.String value){
-        checkAllowChange();
-        
-        this._fileModelPath = value;
+        this._dataSheetName = value;
            
     }
 
@@ -150,6 +124,25 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     
     /**
      * 
+     * xml name: headerSheetName
+     *  
+     */
+    
+    public java.lang.String getHeaderSheetName(){
+      return _headerSheetName;
+    }
+
+    
+    public void setHeaderSheetName(java.lang.String value){
+        checkAllowChange();
+        
+        this._headerSheetName = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: headers
      *  
      */
@@ -169,57 +162,38 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     
     /**
      * 
-     * xml name: newRecordOutputProvider
+     * xml name: templatePath
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getNewRecordOutputProvider(){
-      return _newRecordOutputProvider;
+    public java.lang.String getTemplatePath(){
+      return _templatePath;
     }
 
     
-    public void setNewRecordOutputProvider(io.nop.core.lang.eval.IEvalAction value){
+    public void setTemplatePath(java.lang.String value){
         checkAllowChange();
         
-        this._newRecordOutputProvider = value;
+        this._templatePath = value;
            
     }
 
     
     /**
      * 
-     * xml name: resourceIO
+     * xml name: trailerSheetName
      *  
      */
     
-    public java.lang.String getResourceIO(){
-      return _resourceIO;
+    public java.lang.String getTrailerSheetName(){
+      return _trailerSheetName;
     }
 
     
-    public void setResourceIO(java.lang.String value){
+    public void setTrailerSheetName(java.lang.String value){
         checkAllowChange();
         
-        this._resourceIO = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: resourceLoader
-     *  
-     */
-    
-    public java.lang.String getResourceLoader(){
-      return _resourceLoader;
-    }
-
-    
-    public void setResourceLoader(java.lang.String value){
-        checkAllowChange();
-        
-        this._resourceLoader = value;
+        this._trailerSheetName = value;
            
     }
 
@@ -239,37 +213,35 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("encoding",this.getEncoding());
-        out.putNotNull("fileModelPath",this.getFileModelPath());
+        out.putNotNull("dataSheetName",this.getDataSheetName());
         out.putNotNull("filePath",this.getFilePath());
         out.putNotNull("headerLabels",this.getHeaderLabels());
+        out.putNotNull("headerSheetName",this.getHeaderSheetName());
         out.putNotNull("headers",this.getHeaders());
-        out.putNotNull("newRecordOutputProvider",this.getNewRecordOutputProvider());
-        out.putNotNull("resourceIO",this.getResourceIO());
-        out.putNotNull("resourceLoader",this.getResourceLoader());
+        out.putNotNull("templatePath",this.getTemplatePath());
+        out.putNotNull("trailerSheetName",this.getTrailerSheetName());
     }
 
-    public BatchFileWriterModel cloneInstance(){
-        BatchFileWriterModel instance = newInstance();
+    public BatchExcelWriterModel cloneInstance(){
+        BatchExcelWriterModel instance = newInstance();
         this.copyTo(instance);
         return instance;
     }
 
-    protected void copyTo(BatchFileWriterModel instance){
+    protected void copyTo(BatchExcelWriterModel instance){
         super.copyTo(instance);
         
-        instance.setEncoding(this.getEncoding());
-        instance.setFileModelPath(this.getFileModelPath());
+        instance.setDataSheetName(this.getDataSheetName());
         instance.setFilePath(this.getFilePath());
         instance.setHeaderLabels(this.getHeaderLabels());
+        instance.setHeaderSheetName(this.getHeaderSheetName());
         instance.setHeaders(this.getHeaders());
-        instance.setNewRecordOutputProvider(this.getNewRecordOutputProvider());
-        instance.setResourceIO(this.getResourceIO());
-        instance.setResourceLoader(this.getResourceLoader());
+        instance.setTemplatePath(this.getTemplatePath());
+        instance.setTrailerSheetName(this.getTrailerSheetName());
     }
 
-    protected BatchFileWriterModel newInstance(){
-        return (BatchFileWriterModel) ClassHelper.newInstance(getClass());
+    protected BatchExcelWriterModel newInstance(){
+        return (BatchExcelWriterModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

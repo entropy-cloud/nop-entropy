@@ -10,7 +10,7 @@ package io.nop.ooxml.xlsx.model;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.impl.ClassPathResource;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.common.OfficePackage;
@@ -26,11 +26,12 @@ import static io.nop.ooxml.common.OfficeErrors.ARG_FILE_EXT;
 import static io.nop.ooxml.common.OfficeErrors.ARG_PATH;
 import static io.nop.ooxml.common.OfficeErrors.ERR_OOXML_UNSUPPORTED_CONTENT_TYPE;
 import static io.nop.ooxml.common.model.PackagingURIHelper.createPartName;
+import static io.nop.ooxml.xlsx.XlsxConstants.EMPTY_TEMPLATE_PATH;
 
 public class ExcelOfficePackage extends OfficePackage {
 
     public static ExcelOfficePackage loadEmpty() {
-        ClassPathResource resource = new ClassPathResource("classpath:nop/empty.xlsx");
+        IResource resource = VirtualFileSystem.instance().getResource(EMPTY_TEMPLATE_PATH);
         ExcelOfficePackage pkg = new ExcelOfficePackage();
         pkg.loadFromResource(resource);
         return pkg;
@@ -102,13 +103,19 @@ public class ExcelOfficePackage extends OfficePackage {
     }
 
     public String addSheet(int index, String sheetName) {
+        return addSheet(index, sheetName, true);
+    }
+
+    public String addSheet(int index, String sheetName, boolean addComment) {
         ContentTypesPart contentTypes = getContentTypes();
         int sheetId = index + 1;
         String sheetPath = "/xl/worksheets/sheet" + sheetId + ".xml";
         contentTypes.addContentType(createPartName(sheetPath), XSSFRelation.WORKSHEET.getType());
 
-        String commentPath = "/xl/comments" + sheetId + ".xml";
-        contentTypes.addContentType(createPartName(commentPath), XSSFRelation.SHEET_COMMENTS.getType());
+        if (addComment) {
+            String commentPath = "/xl/comments" + sheetId + ".xml";
+            contentTypes.addContentType(createPartName(commentPath), XSSFRelation.SHEET_COMMENTS.getType());
+        }
 
         WorkbookPart workbook = getWorkbook();
         OfficeRelsPart rels = makeRelsForPart(workbook);

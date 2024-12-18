@@ -53,6 +53,13 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      *  
+     * xml name: excel-reader
+     * 
+     */
+    private io.nop.batch.dsl.model.BatchExcelReaderModel _excelReader ;
+    
+    /**
+     *  
      * xml name: file-reader
      * 当resourceIO/newRecordInputProvider/fileModelPath都没有指定的时候，会使用CsvResourceIO
      */
@@ -190,6 +197,25 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      * 
+     * xml name: excel-reader
+     *  
+     */
+    
+    public io.nop.batch.dsl.model.BatchExcelReaderModel getExcelReader(){
+      return _excelReader;
+    }
+
+    
+    public void setExcelReader(io.nop.batch.dsl.model.BatchExcelReaderModel value){
+        checkAllowChange();
+        
+        this._excelReader = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: file-reader
      *  当resourceIO/newRecordInputProvider/fileModelPath都没有指定的时候，会使用CsvResourceIO
      */
@@ -312,6 +338,8 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         
            this._dispatcher = io.nop.api.core.util.FreezeHelper.deepFreeze(this._dispatcher);
             
+           this._excelReader = io.nop.api.core.util.FreezeHelper.deepFreeze(this._excelReader);
+            
            this._fileReader = io.nop.api.core.util.FreezeHelper.deepFreeze(this._fileReader);
             
            this._generator = io.nop.api.core.util.FreezeHelper.deepFreeze(this._generator);
@@ -332,6 +360,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         out.putNotNull("aggregator",this.getAggregator());
         out.putNotNull("bean",this.getBean());
         out.putNotNull("dispatcher",this.getDispatcher());
+        out.putNotNull("excelReader",this.getExcelReader());
         out.putNotNull("fileReader",this.getFileReader());
         out.putNotNull("generator",this.getGenerator());
         out.putNotNull("jdbcReader",this.getJdbcReader());
@@ -354,6 +383,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         instance.setAggregator(this.getAggregator());
         instance.setBean(this.getBean());
         instance.setDispatcher(this.getDispatcher());
+        instance.setExcelReader(this.getExcelReader());
         instance.setFileReader(this.getFileReader());
         instance.setGenerator(this.getGenerator());
         instance.setJdbcReader(this.getJdbcReader());

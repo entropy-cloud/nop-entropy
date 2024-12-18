@@ -67,18 +67,15 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
 
         pkg.getWorkbook().clearSheets();
 
-        GenState genState = new GenState();
-        genState.pkg = pkg;
+        GenState genState = new GenState(pkg);
 
         if (sheetGenerator != null) {
             sheetGenerator.generate(context, (sheet, ctx) -> {
-                int index = genState.nextSheetIndex++;
-                generateSheet(dir, index, sheet, ctx, genState);
+                generateSheet(dir, sheet, ctx, genState);
             });
         } else if (workbook != null) {
             for (ExcelSheet sheet : workbook.getSheets()) {
-                int index = genState.nextSheetIndex++;
-                generateSheet(dir, index, sheet, context, genState);
+                generateSheet(dir, sheet, context, genState);
             }
         }
 
@@ -88,9 +85,10 @@ public class ExcelTemplate extends AbstractOfficeTemplate {
         pkg.generateToDir(dir, context.getEvalScope());
     }
 
-    private void generateSheet(File dir, int index, IExcelSheet sheet,
-                               IEvalContext context, GenState genState) {
+    public void generateSheet(File dir, IExcelSheet sheet,
+                              IEvalContext context, GenState genState) {
 
+        int index = genState.genSheetIndex();
         ExcelOfficePackage pkg = genState.pkg;
         String sheetPath = pkg.addSheet(index, normalizeSheetName(sheet.getName(), index, context));
 

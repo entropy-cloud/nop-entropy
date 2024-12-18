@@ -65,6 +65,8 @@ import static io.nop.batch.dsl.BatchDslErrors.ARG_BATCH_TASK_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ARG_PROCESSOR_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_NO_LOADER;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_PROCESSOR_IS_NULL;
+import static io.nop.batch.dsl.manager.FileBatchSupport.newExcelReader;
+import static io.nop.batch.dsl.manager.FileBatchSupport.newExcelWriter;
 import static io.nop.batch.dsl.manager.FileBatchSupport.newFileReader;
 import static io.nop.batch.dsl.manager.FileBatchSupport.newFileWriter;
 import static io.nop.batch.dsl.manager.JdbcBatchSupport.newJdbcReader;
@@ -334,6 +336,8 @@ public class ModelBasedBatchTaskBuilderFactory {
 
         if (loaderModel.getFileReader() != null) {
             return newFileReader(loaderModel.getFileReader(), beanProvider, saveState, aggregator);
+        } else if (loaderModel.getExcelReader() != null) {
+            return newExcelReader(loaderModel.getExcelReader(), beanProvider, saveState, aggregator);
         } else if (loaderModel.getJdbcReader() != null) {
             return newJdbcReader(loaderModel.getJdbcReader(), beanProvider, jdbcTemplate, sqlLibManager);
         } else if (loaderModel.getOrmReader() != null) {
@@ -510,6 +514,11 @@ public class ModelBasedBatchTaskBuilderFactory {
         IBatchConsumerProvider<Object> ret;
         if (consumerModel.getFileWriter() != null) {
             ResourceRecordConsumerProvider<Object> writer = newFileWriter(consumerModel.getFileWriter(), beanContainer);
+            writer.setAggregator(aggregator);
+            writer.setMetaProvider(metaProvider);
+            ret = writer;
+        } else if (consumerModel.getExcelWriter() != null) {
+            ResourceRecordConsumerProvider<Object> writer = newExcelWriter(consumerModel.getExcelWriter(), beanContainer);
             writer.setAggregator(aggregator);
             writer.setMetaProvider(metaProvider);
             ret = writer;

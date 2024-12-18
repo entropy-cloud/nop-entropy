@@ -52,6 +52,9 @@
         <onConsumeEnd xdef:value="xpl-fn:(batchChunkCtx, err)=>void"/>
     </xdef:define>
 
+    <!--
+
+    -->
     <loader bean="bean-name" xdef:name="BatchLoaderModel" aggregator="bean-name" saveState="boolean"
             xdef:ref="BatchListenersModel" xdef:mandatory="true">
 
@@ -82,8 +85,17 @@
             <!--
             仅当使用缺省的CsvResourceIO时会使用这里的配置，它用于指定从数据文件中导入哪些列，如果不指定，则导入所有列。假定数据文件的第一行是列名
             -->
-            <headers xdef:value="csv-set"/>
+            <headers xdef:value="csv-list"/>
+            <headerLabels xdef:value="csv-list"/>
         </file-reader>
+
+        <excel-reader filePath="!t-expr" xdef:name="BatchExcelReaderModel" templatePath="v-path"
+                      dataSheetName="string" headerSheetName="string" trailerSheetName="string">
+            <filter xdef:value="xpl-fn:(item,batchTaskCtx)=>boolean"/>
+
+            <headers xdef:value="csv-list"/>
+            <headerLabels xdef:value="csv-list"/>
+        </excel-reader>
 
         <!--
         @partitionIndexField 实体上的分区标识。如果设置了这个字段，且IBatchTaskContext传入了partitionRange参数，则会自动追加分区过滤条件
@@ -135,8 +147,15 @@
         <file-writer filePath="!t-expr" xdef:name="BatchFileWriterModel" encoding="string"
                      resourceLoader="bean-name" resourceIO="bean-name" fileModelPath="v-path">
             <newRecordOutputProvider xdef:value="xpl"/>
-            <headers xdef:value="csv-set"/>
+            <headers xdef:value="csv-list"/>
+            <headerLabels xdef:value="csv-list"/>
         </file-writer>
+
+        <excel-writer filePath="!t-expr" xdef:name="BatchExcelWriterModel" templatePath="v-path"
+                      dataSheetName="string" headerSheetName="string" trailerSheetName="string">
+            <headers xdef:value="csv-list"/>
+            <headerLabels xdef:value="csv-list"/>
+        </excel-writer>
 
         <orm-writer entityName="!class-name" xdef:name="BatchOrmWriterModel" allowUpdate="!boolean=false"
                     allowInsert="!boolean=true">

@@ -46,10 +46,17 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: headerLabels
+     * 
+     */
+    private java.util.List<java.lang.String> _headerLabels ;
+    
+    /**
+     *  
      * xml name: headers
      * 仅当使用缺省的CsvResourceIO时会使用这里的配置，它用于指定从数据文件中导入哪些列，如果不指定，则导入所有列。假定数据文件的第一行是列名
      */
-    private java.util.Set<java.lang.String> _headers ;
+    private java.util.List<java.lang.String> _headers ;
     
     /**
      *  
@@ -157,16 +164,35 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      * 
+     * xml name: headerLabels
+     *  
+     */
+    
+    public java.util.List<java.lang.String> getHeaderLabels(){
+      return _headerLabels;
+    }
+
+    
+    public void setHeaderLabels(java.util.List<java.lang.String> value){
+        checkAllowChange();
+        
+        this._headerLabels = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: headers
      *  仅当使用缺省的CsvResourceIO时会使用这里的配置，它用于指定从数据文件中导入哪些列，如果不指定，则导入所有列。假定数据文件的第一行是列名
      */
     
-    public java.util.Set<java.lang.String> getHeaders(){
+    public java.util.List<java.lang.String> getHeaders(){
       return _headers;
     }
 
     
-    public void setHeaders(java.util.Set<java.lang.String> value){
+    public void setHeaders(java.util.List<java.lang.String> value){
         checkAllowChange();
         
         this._headers = value;
@@ -269,6 +295,7 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
         out.putNotNull("fileModelPath",this.getFileModelPath());
         out.putNotNull("filePath",this.getFilePath());
         out.putNotNull("filter",this.getFilter());
+        out.putNotNull("headerLabels",this.getHeaderLabels());
         out.putNotNull("headers",this.getHeaders());
         out.putNotNull("maxCountExpr",this.getMaxCountExpr());
         out.putNotNull("newRecordInputProvider",this.getNewRecordInputProvider());
@@ -289,6 +316,7 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
         instance.setFileModelPath(this.getFileModelPath());
         instance.setFilePath(this.getFilePath());
         instance.setFilter(this.getFilter());
+        instance.setHeaderLabels(this.getHeaderLabels());
         instance.setHeaders(this.getHeaders());
         instance.setMaxCountExpr(this.getMaxCountExpr());
         instance.setNewRecordInputProvider(this.getNewRecordInputProvider());

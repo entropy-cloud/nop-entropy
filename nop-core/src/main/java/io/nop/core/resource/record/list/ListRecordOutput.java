@@ -63,7 +63,6 @@ public class ListRecordOutput<T> implements IRecordOutput<T> {
         return headers;
     }
 
-    @Override
     public void setHeaders(List<String> headers) {
         this.headers = headers;
     }

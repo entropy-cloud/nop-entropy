@@ -19,19 +19,21 @@ import org.apache.commons.csv.CSVPrinter;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 public class CsvRecordOutput<T> implements IRecordOutput<T> {
-    private Collection<String> headers;
+    private List<String> headers;
+    private List<String> headerLabels;
+
     private final CSVPrinter writer;
     private boolean headersWritten;
     private long writeCount;
 
-    public CsvRecordOutput(IResource resource, String encoding, CSVFormat format, Collection<String> headers,
+    public CsvRecordOutput(IResource resource, String encoding, CSVFormat format,
                            boolean supportZip) {
-        this.headers = headers;
         Writer out = ResourceHelper.toWriter(resource, encoding, supportZip);
         try {
             this.writer = new CSVPrinter(out, format);
@@ -40,14 +42,25 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
         }
     }
 
-    @Override
-    public void setHeaders(List<String> headers) {
-        if (headers != null)
-            this.headers = headers;
-    }
 
     public long getWriteCount() {
         return writeCount;
+    }
+
+    public List<String> getHeaders() {
+        return headers;
+    }
+
+    public void setHeaders(List<String> headers) {
+        this.headers = headers;
+    }
+
+    public List<String> getHeaderLabels() {
+        return headerLabels;
+    }
+
+    public void setHeaderLabels(List<String> headerLabels) {
+        this.headerLabels = headerLabels;
     }
 
     @Override
@@ -108,11 +121,16 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
             if (record instanceof Map) {
                 headers = CollectionHelper.toStringList(((Map<?, ?>) record).keySet());
             } else if (record != null && !(record instanceof Collection)) {
-                headers = BeanTool.getReadableComplexPropNames(record.getClass());
+                headers = new ArrayList<>(BeanTool.getReadableComplexPropNames(record.getClass()));
             }
         }
-        if (headers != null)
-            writer.printRecord(headers.toArray());
+        if (headers != null) {
+            if (headerLabels != null) {
+                writer.printRecord(headerLabels.toArray());
+            } else {
+                writer.printRecord(headers.toArray());
+            }
+        }
     }
 
     @Override

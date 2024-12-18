@@ -49,7 +49,8 @@ public class CsvHelper {
     }
 
     public static <T> void writeCsv(IResource resource, CSVFormat format, List<String> headers, List<T> data) {
-        CsvRecordOutput<T> output = new CsvRecordOutput<>(resource, null, format, headers, true);
+        CsvRecordOutput<T> output = new CsvRecordOutput<>(resource, null, format, true);
+        output.setHeaders(headers);
         try {
             output.writeBatch(data);
             output.flush();

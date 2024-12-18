@@ -43,7 +43,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 public class ExpandedSheetGenerator implements IExcelSheetGenerator {
     public static final Logger LOG = LoggerFactory.getLogger(ExpandedSheetGenerator.class);
@@ -54,12 +53,17 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
         this.workbook = workbook;
     }
 
-    @Override
-    public void generate(IEvalContext ctx, BiConsumer<IExcelSheet, IEvalContext> consumer) {
+    public static XptRuntime newXptRuntime(IEvalContext ctx, ExcelWorkbook workbook) {
         XptRuntime xptRt = new XptRuntime(ctx.getEvalScope());
         xptRt.setWorkbook(workbook);
 
         xptRt.getEvalScope().setLocalValue(null, XptConstants.VAR_WORKBOOK_TPL, workbook);
+        return xptRt;
+    }
+
+    @Override
+    public void generate(IEvalContext ctx, BiConsumer<IExcelSheet, IEvalContext> consumer) {
+        XptRuntime xptRt = newXptRuntime(ctx, workbook);
 
         XptWorkbookModel workbookModel = workbook.getModel();
         runLoop(workbook.getModel(), XptConstants.WORKBOOK_LOOP_VAR, XptConstants.WORKBOOK_LOOP_INDEX,
@@ -80,7 +84,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
                 });
     }
 
-    void generateSheetLoop(ExcelSheet sheet, ExcelWorkbook workbook, IXptRuntime xptRt, BiConsumer<IExcelSheet,IEvalContext> consumer) {
+    void generateSheetLoop(ExcelSheet sheet, ExcelWorkbook workbook, IXptRuntime xptRt, BiConsumer<IExcelSheet, IEvalContext> consumer) {
         XptSheetModel sheetModel = sheet.getModel();
         xptRt.getEvalScope().setLocalValue(null, XptConstants.VAR_SHEET_TPL, sheet);
 
@@ -107,7 +111,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
                             if (sheetModel != null)
                                 runXpl(sheetModel.getAfterExpand(), xptRt);
 
-                            consumer.accept(expandedSheet,xptRt);
+                            consumer.accept(expandedSheet, xptRt);
                         } finally {
                             xptRt.runSheetCleanup();
                         }
@@ -117,8 +121,8 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
         }
     }
 
-    private ExpandedSheet generateSheet(ExcelSheet sheet, IXptRuntime xptRt,
-                                        Map<String, Integer> sheetNames) {
+    public ExpandedSheet generateSheet(ExcelSheet sheet, IXptRuntime xptRt,
+                                       Map<String, Integer> sheetNames) {
         XptSheetModel sheetModel = sheet.getModel();
         Guard.notNull(sheetModel, "sheetModel");
 
