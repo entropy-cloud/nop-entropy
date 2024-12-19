@@ -76,6 +76,7 @@
         @fileModelPath 文件模型路径。当没有指定resourceIO和newRecordInputProvider时，根据fileModelPath自动生成resourceIO
         -->
         <file-reader filePath="!t-expr" xdef:name="BatchFileReaderModel" encoding="string"
+                     csvFormat="string"
                      resourceLoader="bean-name" resourceIO="bean-name" maxCountExpr="expr" fileModelPath="v-path">
             <!-- 动态创建resourceIO -->
             <newRecordInputProvider xdef:value="xpl"/>
@@ -87,6 +88,7 @@
             -->
             <headers xdef:value="csv-list"/>
             <headerLabels xdef:value="csv-list"/>
+            <headersNormalizer xdef:value="xpl-fn:(headers)=>List"/>
         </file-reader>
 
         <excel-reader filePath="!t-expr" xdef:name="BatchExcelReaderModel" templatePath="v-path"
@@ -95,6 +97,7 @@
 
             <headers xdef:value="csv-list"/>
             <headerLabels xdef:value="csv-list"/>
+            <headersNormalizer xdef:value="xpl-fn:(headers)=>List"/>
         </excel-reader>
 
         <!--
@@ -145,6 +148,7 @@
         <filter xdef:value="xpl-fn:(item,batchChunkCtx)=>boolean"/>
 
         <file-writer filePath="!t-expr" xdef:name="BatchFileWriterModel" encoding="string"
+                     csvFormat="string"
                      resourceLoader="bean-name" resourceIO="bean-name" fileModelPath="v-path">
             <newRecordOutputProvider xdef:value="xpl"/>
             <headers xdef:value="csv-list"/>

@@ -92,7 +92,7 @@ public class TransformTableMigration extends MigrationOperation implements Table
         forTable(caseData, tableName, file -> {
             IResource resource = new FileResource(file);
             CsvRecordInput<Map<String, Object>> input = new CsvRecordInput<>(resource, null, CSVFormat.DEFAULT,
-                    PredefinedGenericTypes.MAP_STRING_ANY_TYPE, null, true, true);
+                    PredefinedGenericTypes.MAP_STRING_ANY_TYPE, true, true);
             List<String> headers;
             List<Map<String, Object>> rows;
             try {

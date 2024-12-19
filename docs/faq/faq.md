@@ -463,6 +463,17 @@ public class MyResponseBean{
 
 另外也可以返回`List<MyEntity>`这种结构。GraphQL识别对象类型和对象列表类型。
 
+### 39. NopGraphQL使用自定义的泛型类`MyPageBean<T>` 返回数据为什么会报错？
+对于自定义的数据类型，目前NopGraphQL不支持泛型，所以需要写一个派生类返回。NopGraphQL需要为每一个类型生成一个泛型类型，对于PageBean， ApiResponse等是有特殊处理。
+
+```
+public MyUserPageBean findAll(){
+ ...
+}
+
+class MyUserPageBean extends MyPageBean<User>{}
+```
+
 ## 部署问题
 
 ## 设计问题

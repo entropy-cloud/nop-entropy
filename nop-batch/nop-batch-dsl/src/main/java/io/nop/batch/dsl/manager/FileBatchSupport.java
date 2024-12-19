@@ -25,6 +25,7 @@ import io.nop.report.core.record.ExcelIOConfig;
 import io.nop.report.core.record.ExcelResourceIO;
 import io.nop.xlang.api.XLang;
 
+import java.util.List;
 import java.util.Map;
 
 public class FileBatchSupport {
@@ -75,6 +76,12 @@ public class FileBatchSupport {
         CsvResourceRecordIO<Object> io = new CsvResourceRecordIO<>();
         io.setHeaders(readerModel.getHeaders());
         io.setHeaders(readerModel.getHeaderLabels());
+        io.setHeaders(readerModel.getHeaders());
+        io.setHeaderLabels(readerModel.getHeaderLabels());
+        io.setFormat(readerModel.getCsvFormat());
+        if (readerModel.getHeadersNormalizer() != null) {
+            io.setHeadersNormalizer(headers -> (List<String>) readerModel.getHeadersNormalizer().call1(null, headers, XLang.newEvalScope()));
+        }
         return io;
     }
 
@@ -118,12 +125,15 @@ public class FileBatchSupport {
         CsvResourceRecordIO<Object> io = new CsvResourceRecordIO<>();
         io.setHeaders(writerModel.getHeaders());
         io.setHeaderLabels(writerModel.getHeaderLabels());
+        io.setFormat(writerModel.getCsvFormat());
+        io.setHeaders(writerModel.getHeaders());
+        io.setHeaderLabels(writerModel.getHeaderLabels());
         return io;
     }
 
     public static ResourceRecordLoaderProvider<Object> newExcelReader(BatchExcelReaderModel loaderModel,
-                                                              IBeanProvider beanContainer, boolean saveState,
-                                                              IBatchAggregator<Object, Object, Map<String, Object>> aggregator) {
+                                                                      IBeanProvider beanContainer, boolean saveState,
+                                                                      IBatchAggregator<Object, Object, Map<String, Object>> aggregator) {
         IResourceRecordInputProvider<Object> recordIO = newExcelIO(loaderModel);
 
         ResourceRecordLoaderProvider<Object> loader = new ResourceRecordLoaderProvider<>();

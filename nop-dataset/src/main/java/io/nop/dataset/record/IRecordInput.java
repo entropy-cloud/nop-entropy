@@ -29,6 +29,11 @@ import java.util.stream.StreamSupport;
  * @param <T> 记录对象的类型
  */
 public interface IRecordInput<T> extends Closeable, Iterator<T>, Iterable<T> {
+
+    default void beforeRead(Map<String, Object> map) {
+
+    }
+
     default @Nonnull Iterator<T> iterator() {
         return this;
     }

@@ -18,6 +18,13 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: csvFormat
+     * 
+     */
+    private java.lang.String _csvFormat ;
+    
+    /**
+     *  
      * xml name: encoding
      * 
      */
@@ -71,6 +78,25 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
      * 
      */
     private java.lang.String _resourceLoader ;
+    
+    /**
+     * 
+     * xml name: csvFormat
+     *  
+     */
+    
+    public java.lang.String getCsvFormat(){
+      return _csvFormat;
+    }
+
+    
+    public void setCsvFormat(java.lang.String value){
+        checkAllowChange();
+        
+        this._csvFormat = value;
+           
+    }
+
     
     /**
      * 
@@ -239,6 +265,7 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("csvFormat",this.getCsvFormat());
         out.putNotNull("encoding",this.getEncoding());
         out.putNotNull("fileModelPath",this.getFileModelPath());
         out.putNotNull("filePath",this.getFilePath());
@@ -258,6 +285,7 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     protected void copyTo(BatchFileWriterModel instance){
         super.copyTo(instance);
         
+        instance.setCsvFormat(this.getCsvFormat());
         instance.setEncoding(this.getEncoding());
         instance.setFileModelPath(this.getFileModelPath());
         instance.setFilePath(this.getFilePath());

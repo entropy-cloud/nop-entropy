@@ -18,6 +18,13 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: csvFormat
+     * 
+     */
+    private java.lang.String _csvFormat ;
+    
+    /**
+     *  
      * xml name: encoding
      * 文件编码，缺省值为UTF-8
      */
@@ -60,6 +67,13 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: headersNormalizer
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _headersNormalizer ;
+    
+    /**
+     *  
      * xml name: maxCountExpr
      * 
      */
@@ -85,6 +99,25 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
      * 用于定位filePath对应的数据文件。如果不指定，则使用VirtualFileSystem
      */
     private java.lang.String _resourceLoader ;
+    
+    /**
+     * 
+     * xml name: csvFormat
+     *  
+     */
+    
+    public java.lang.String getCsvFormat(){
+      return _csvFormat;
+    }
+
+    
+    public void setCsvFormat(java.lang.String value){
+        checkAllowChange();
+        
+        this._csvFormat = value;
+           
+    }
+
     
     /**
      * 
@@ -202,6 +235,25 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      * 
+     * xml name: headersNormalizer
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getHeadersNormalizer(){
+      return _headersNormalizer;
+    }
+
+    
+    public void setHeadersNormalizer(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._headersNormalizer = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: maxCountExpr
      *  
      */
@@ -291,12 +343,14 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("csvFormat",this.getCsvFormat());
         out.putNotNull("encoding",this.getEncoding());
         out.putNotNull("fileModelPath",this.getFileModelPath());
         out.putNotNull("filePath",this.getFilePath());
         out.putNotNull("filter",this.getFilter());
         out.putNotNull("headerLabels",this.getHeaderLabels());
         out.putNotNull("headers",this.getHeaders());
+        out.putNotNull("headersNormalizer",this.getHeadersNormalizer());
         out.putNotNull("maxCountExpr",this.getMaxCountExpr());
         out.putNotNull("newRecordInputProvider",this.getNewRecordInputProvider());
         out.putNotNull("resourceIO",this.getResourceIO());
@@ -312,12 +366,14 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     protected void copyTo(BatchFileReaderModel instance){
         super.copyTo(instance);
         
+        instance.setCsvFormat(this.getCsvFormat());
         instance.setEncoding(this.getEncoding());
         instance.setFileModelPath(this.getFileModelPath());
         instance.setFilePath(this.getFilePath());
         instance.setFilter(this.getFilter());
         instance.setHeaderLabels(this.getHeaderLabels());
         instance.setHeaders(this.getHeaders());
+        instance.setHeadersNormalizer(this.getHeadersNormalizer());
         instance.setMaxCountExpr(this.getMaxCountExpr());
         instance.setNewRecordInputProvider(this.getNewRecordInputProvider());
         instance.setResourceIO(this.getResourceIO());

@@ -21,10 +21,13 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class CsvResourceRecordIO<T> implements IResourceRecordIO<T> {
     private List<String> headers;
     private List<String> headerLabels;
+
+    private Function<List<String>, List<String>> headersNormalizer;
     private boolean supportZip = true;
     private boolean trimValue = true;
     private Type recordType = Map.class;
@@ -37,6 +40,14 @@ public class CsvResourceRecordIO<T> implements IResourceRecordIO<T> {
 
     public void setHeaders(List<String> headers) {
         this.headers = headers;
+    }
+
+    public Function<List<String>, List<String>> getHeadersNormalizer() {
+        return headersNormalizer;
+    }
+
+    public void setHeadersNormalizer(Function<List<String>, List<String>> headersNormalizer) {
+        this.headersNormalizer = headersNormalizer;
     }
 
     public void setFormat(String csvFormat) {
@@ -91,7 +102,10 @@ public class CsvResourceRecordIO<T> implements IResourceRecordIO<T> {
     public IRecordInput<T> openInput(IResource resource, String encoding) {
         if (encoding == null)
             encoding = this.encoding;
-        return new CsvRecordInput<>(resource, encoding, format, getTypeInfo(resource), headers, trimValue, supportZip);
+        CsvRecordInput<T> input = new CsvRecordInput<>(resource, encoding, format, getTypeInfo(resource), trimValue, supportZip);
+        input.setHeaders(headers);
+        input.setHeaderLabels(headerLabels);
+        return input;
     }
 
     protected IGenericType getTypeInfo(IResource resource) {

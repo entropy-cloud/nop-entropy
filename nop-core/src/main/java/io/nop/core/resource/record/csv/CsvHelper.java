@@ -28,7 +28,7 @@ public class CsvHelper {
     public static <T> List<T> readCsv(IResource resource, Type type, CSVFormat format, String encoding) {
         IGenericType rowType = type == null ? null : ReflectionManager.instance().buildGenericType(type);
         CsvRecordInput<T> input = new CsvRecordInput<>(resource, encoding,
-                format, rowType, null, true, true);
+                format, rowType, true, true);
         try {
             return input.readAll();
         } finally {
@@ -52,7 +52,9 @@ public class CsvHelper {
         CsvRecordOutput<T> output = new CsvRecordOutput<>(resource, null, format, true);
         output.setHeaders(headers);
         try {
+            output.beginWrite(null);
             output.writeBatch(data);
+            output.endWrite(null);
             output.flush();
         } catch (IOException e) {
             throw NopException.adapt(e);

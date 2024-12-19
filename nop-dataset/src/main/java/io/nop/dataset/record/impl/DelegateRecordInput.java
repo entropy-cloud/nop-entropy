@@ -10,10 +10,11 @@ package io.nop.dataset.record.impl;
 import io.nop.api.core.util.Guard;
 import io.nop.dataset.record.IRecordInput;
 import io.nop.dataset.record.IRecordResourceMeta;
-
 import jakarta.annotation.Nonnull;
+
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -26,6 +27,11 @@ public class DelegateRecordInput<T> implements IRecordInput<T> {
 
     public DelegateRecordInput(IRecordInput<T> input) {
         this.input = Guard.notNull(input, "input");
+    }
+
+    @Override
+    public void beforeRead(Map<String, Object> map) {
+        input.beforeRead(map);
     }
 
     @Override

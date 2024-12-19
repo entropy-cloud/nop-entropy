@@ -45,6 +45,14 @@
 * executor: 使用哪个线程池来执行任务，默认使用全局的nop-cached-thread-pool。executor的名称对应于GlobalWorkers中注册的线程池或者BeanContainer管理的某个Executor。
 * 每个批处理任务包含一个loader, 多个processor，以及多个consumer。processor和consumer都是可选配置。
 
+### CSV文件读写
+如果file-reader不配置fileModelPath，则缺省情况下会按照csv格式进行读写。
+
+* csvFormat 配置csv文件的格式，默认为DEFAULT。具体可用格式参见CSVFormat类。
+* headers 用于指定解析得到的字段名。缺省情况下使用文件第一行读取的Headers。如果指定，则会忽略第一行指定的Header，以这里指定的header为准。
+* headerLabels 如果指定了headerLabels，则只有匹配了headerLabels的列才会被保留，否则会被忽略。忽略列时会打印日志`nop.csv.ignore-header:header={}, allowed={}`。
+
+
 ## 分区处理
 
 如果配置了loader的dispatcher，则会使用PartitionDispatchLoaderProvider来实现分区加载。

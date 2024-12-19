@@ -148,6 +148,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         IResource resource = getResource(context);
         IRecordInput<S> input = recordIO.openInput(resource, encoding);
 
+        input.beforeRead(context.getAttributes());
 
         long skipCount = getSkipCount(context);
 

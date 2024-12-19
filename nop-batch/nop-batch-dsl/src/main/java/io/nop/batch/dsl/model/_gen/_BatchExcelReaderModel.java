@@ -60,6 +60,13 @@ public abstract class _BatchExcelReaderModel extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: headersNormalizer
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _headersNormalizer ;
+    
+    /**
+     *  
      * xml name: templatePath
      * 
      */
@@ -188,6 +195,25 @@ public abstract class _BatchExcelReaderModel extends io.nop.core.resource.compon
     
     /**
      * 
+     * xml name: headersNormalizer
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getHeadersNormalizer(){
+      return _headersNormalizer;
+    }
+
+    
+    public void setHeadersNormalizer(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._headersNormalizer = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: templatePath
      *  
      */
@@ -245,6 +271,7 @@ public abstract class _BatchExcelReaderModel extends io.nop.core.resource.compon
         out.putNotNull("headerLabels",this.getHeaderLabels());
         out.putNotNull("headerSheetName",this.getHeaderSheetName());
         out.putNotNull("headers",this.getHeaders());
+        out.putNotNull("headersNormalizer",this.getHeadersNormalizer());
         out.putNotNull("templatePath",this.getTemplatePath());
         out.putNotNull("trailerSheetName",this.getTrailerSheetName());
     }
@@ -264,6 +291,7 @@ public abstract class _BatchExcelReaderModel extends io.nop.core.resource.compon
         instance.setHeaderLabels(this.getHeaderLabels());
         instance.setHeaderSheetName(this.getHeaderSheetName());
         instance.setHeaders(this.getHeaders());
+        instance.setHeadersNormalizer(this.getHeadersNormalizer());
         instance.setTemplatePath(this.getTemplatePath());
         instance.setTrailerSheetName(this.getTrailerSheetName());
     }

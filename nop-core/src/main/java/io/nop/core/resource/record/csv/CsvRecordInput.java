@@ -21,6 +21,8 @@ import io.nop.dataset.record.RecordResourceMeta;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -30,6 +32,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static io.nop.core.CoreErrors.ARG_READ_COUNT;
 import static io.nop.core.CoreErrors.ARG_RESOURCE;
@@ -37,8 +40,10 @@ import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_READ_CSV_ROW_FAIL;
 
 public class CsvRecordInput<T> implements IRecordInput<T> {
+    static final Logger LOG = LoggerFactory.getLogger(CsvRecordInput.class);
     private final IResource resource;
-    private final List<String> headers;
+    private List<String> headers;
+    private List<String> headerLabels;
     private final IGenericType beanType;
     private final boolean trimValue;
     private Reader reader;
@@ -46,8 +51,12 @@ public class CsvRecordInput<T> implements IRecordInput<T> {
     private long readCount;
     private List<String> fileHeaders;
 
+    private List<String> normalizedHeaders;
+
+    private Function<List<String>, List<String>> headerNormalizer;
+
     public CsvRecordInput(IResource resource, String encoding, CSVFormat format, IGenericType beanType,
-                          List<String> headers, boolean trimValue, boolean supportZip) {
+                          boolean trimValue, boolean supportZip) {
         this.resource = resource;
         this.beanType = beanType;
         this.trimValue = trimValue;
@@ -59,23 +68,61 @@ public class CsvRecordInput<T> implements IRecordInput<T> {
         } catch (Exception e) {
             throw NopException.adapt(e);
         }
+        this.normalizedHeaders = fileHeaders;
+    }
+
+    public void setHeaderNormalizer(Function<List<String>, List<String>> headerNormalizer) {
+        this.headerNormalizer = headerNormalizer;
+    }
+
+    protected void normalizeFileHeaders() {
         if (!fileHeaders.isEmpty()) {
             fileHeaders = CollectionHelper.trimStringList(fileHeaders);
-            if (headers != null) {
-                // 仅保留指定的headers
-                this.headers = new ArrayList<>(fileHeaders);
-                this.headers.retainAll(fileHeaders);
+            if (headerNormalizer != null) {
+                this.normalizedHeaders = headerNormalizer.apply(fileHeaders);
             } else {
-                this.headers = fileHeaders;
+                // label不为空，则起到选择作用，从fileHeaders中选择对应的header
+                List<String> headers = this.headers;
+                if (headerLabels != null && !headerLabels.isEmpty()) {
+                    this.normalizedHeaders = new ArrayList<>(headerLabels.size());
+
+                    for (String label : headerLabels) {
+                        int index = fileHeaders.indexOf(label);
+                        if (index >= 0) {
+                            normalizedHeaders.add(CollectionHelper.get(headers, index));
+                        } else {
+                            LOG.info("nop.csv.ignore-header:header={}, allowed={}", label, headerLabels);
+                            normalizedHeaders.add(null);
+                        }
+                    }
+                } else if (headers != null && !headers.isEmpty()) {
+                    // 没有指定label，相当于是重命名Header
+                    this.normalizedHeaders = headers;
+                } else {
+                    normalizedHeaders = fileHeaders;
+                }
             }
         } else {
-            this.headers = headers == null ? Collections.emptyList() : headers;
+            this.normalizedHeaders = headers == null ? Collections.emptyList() : headers;
         }
+    }
+
+    public void setHeaders(List<String> headers) {
+        this.headers = headers;
+    }
+
+    public void setHeaderLabels(List<String> headerLabels) {
+        this.headerLabels = headerLabels;
+    }
+
+    @Override
+    public void beforeRead(Map<String, Object> map) {
+        this.normalizeFileHeaders();
     }
 
     @Override
     public IRecordResourceMeta getMeta() {
-        return new RecordResourceMeta(headers, null);
+        return new RecordResourceMeta(normalizedHeaders, null);
     }
 
     @Override
@@ -102,24 +149,19 @@ public class CsvRecordInput<T> implements IRecordInput<T> {
                 return (T) map;
             return (T) BeanTool.instance().buildBean(map, beanType, null);
         } catch (Exception e) {
-            throw new NopException(ERR_RESOURCE_READ_CSV_ROW_FAIL,e).param(ARG_RESOURCE, resource)
+            throw new NopException(ERR_RESOURCE_READ_CSV_ROW_FAIL, e).param(ARG_RESOURCE, resource)
                     .param(ARG_RESOURCE_PATH, resource.getPath()).param(ARG_READ_COUNT, readCount);
         }
     }
 
     Map<String, Object> buildMap(CSVRecord record) {
         Map<String, Object> bean = new LinkedHashMap<>();
-        for (int i = 0, n = fileHeaders.size(); i < n; i++) {
-            String header = fileHeaders.get(i);
+        for (int i = 0, n = normalizedHeaders.size(); i < n; i++) {
+            String header = normalizedHeaders.get(i);
             if (StringHelper.isEmpty(header)) {
                 continue;
             }
-            if (headers != fileHeaders) {
-                if (!headers.contains(header)) {
-                    continue;
-                }
-            }
-            if(record.size() <= i)
+            if (record.size() <= i)
                 continue;
             String value = record.get(i);
             if (trimValue) {
