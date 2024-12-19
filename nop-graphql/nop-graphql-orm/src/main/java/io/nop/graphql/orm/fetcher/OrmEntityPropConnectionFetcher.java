@@ -70,11 +70,11 @@ public class OrmEntityPropConnectionFetcher implements IDataFetcher {
 
         GraphQLConnectionInput input = BeanTool.castBeanToType(env.getArgs(), GraphQLConnectionInput.class);
         QueryBean query = input.getQuery();
-        if (query == null)
+        if (query == null){
             query = new QueryBean();
-
-        query.setOffset(input.getOffset());
-        query.setLimit(input.getLimit());
+            query.setOffset(input.getOffset());
+            query.setLimit(input.getLimit());
+        }
 
         if (disableLogicalDelete != null)
             query.setDisableLogicalDelete(disableLogicalDelete);
