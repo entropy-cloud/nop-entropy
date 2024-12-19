@@ -37,6 +37,11 @@ public class ExcelOfficePackage extends OfficePackage {
         return pkg;
     }
 
+    public ExcelOfficePackage clearSheets(){
+        getWorkbook().clearSheets();
+        return this;
+    }
+
     @Override
     public ExcelOfficePackage copy() {
         ExcelOfficePackage pkg = new ExcelOfficePackage();

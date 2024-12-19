@@ -19,6 +19,7 @@ import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelCell;
 import io.nop.excel.model.IExcelSheet;
+import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.common.OfficeConstants;
 import io.nop.ooxml.xlsx.XlsxConstants;
 import io.nop.ooxml.xlsx.model.ExcelOfficePackage;
@@ -67,7 +68,7 @@ public class ExcelRecordOutput<T> implements IRecordOutput<T> {
             this.tempDir.mkdirs();
             this.xptRt = ExpandedSheetGenerator.newXptRuntime(XLang.newEvalScope(), xptModel);
             this.scope = xptRt.getEvalScope();
-            this.genState = new GenState(ExcelOfficePackage.loadEmpty());
+            this.genState = new GenState(ExcelOfficePackage.loadEmpty().clearSheets());
         } catch (Exception e) {
             clearDir();
             throw NopException.adapt(e);
@@ -186,6 +187,7 @@ public class ExcelRecordOutput<T> implements IRecordOutput<T> {
         dataSheetModel = xptModel.requireSheet(sheetName);
 
         IResource file = new FileResource(new File(tempDir, sheetPath));
+        pkg.addFile(sheetPath, file);
         out = new ExcelSheetWriteSupport(xptModel, index, file);
 
         CellRange cellRange = dataSheetModel.getTable().getCellRange();

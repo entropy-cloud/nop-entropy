@@ -28,7 +28,7 @@ public class TestExcelResourceIO extends BaseTestCase {
     @Test
     public void testWrite() throws IOException {
         ExcelResourceIO<Object> io = new ExcelResourceIO<>();
-        io.setHeaders(Arrays.asList("a", "b", "c","e","f","g","h","i","j","k"));
+        io.setHeaders(Arrays.asList("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k"));
 
         IResource resource = getTargetResource("excel-output.xlsx");
 
@@ -39,9 +39,9 @@ public class TestExcelResourceIO extends BaseTestCase {
 
         for (int i = 0; i < 10; i++) {
             Map<String, Object> data = new HashMap<>();
-            data.put("a", i);
-            data.put("b", i * 100);
-            data.put("c", i * 1000);
+            data.put("a", i + 1);
+            data.put("b", i * 100 + 1);
+            data.put("c", i * 1000 + 1);
 
             output.write(data);
         }
