@@ -74,6 +74,13 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: headerRowCount
+     * 
+     */
+    private java.lang.Integer _headerRowCount ;
+    
+    /**
+     *  
      * xml name: ignoreWhenEmpty
      * 当数据为空的时候自动忽略该字段，不设置到record对象上
      */
@@ -360,6 +367,25 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._groupField = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: headerRowCount
+     *  
+     */
+    
+    public java.lang.Integer getHeaderRowCount(){
+      return _headerRowCount;
+    }
+
+    
+    public void setHeaderRowCount(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._headerRowCount = value;
            
     }
 
@@ -699,6 +725,7 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         out.putNotNull("fieldDecider",this.getFieldDecider());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("groupField",this.getGroupField());
+        out.putNotNull("headerRowCount",this.getHeaderRowCount());
         out.putNotNull("ignoreWhenEmpty",this.isIgnoreWhenEmpty());
         out.putNotNull("importDictLabel",this.isImportDictLabel());
         out.putNotNull("keyProp",this.getKeyProp());
@@ -734,6 +761,7 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         instance.setFieldDecider(this.getFieldDecider());
         instance.setFields(this.getFields());
         instance.setGroupField(this.getGroupField());
+        instance.setHeaderRowCount(this.getHeaderRowCount());
         instance.setIgnoreWhenEmpty(this.isIgnoreWhenEmpty());
         instance.setImportDictLabel(this.isImportDictLabel());
         instance.setKeyProp(this.getKeyProp());

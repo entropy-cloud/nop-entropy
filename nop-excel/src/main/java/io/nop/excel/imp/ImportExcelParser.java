@@ -54,6 +54,7 @@ public class ImportExcelParser {
     private final ICache<Object, Object> cache = LocalCache.newCache("dict-cache", newConfig(100));
 
     private boolean returnDynamicObject;
+    private final IEvalScope scope;
 
     public boolean isReturnDynamicObject() {
         return returnDynamicObject;
@@ -63,17 +64,22 @@ public class ImportExcelParser {
         this.returnDynamicObject = returnDynamicObject;
     }
 
-    public ImportExcelParser(ImportModel importModel, XLangCompileTool compileTool) {
+    public ImportExcelParser(ImportModel importModel, XLangCompileTool compileTool, IEvalScope scope) {
         this.importModel = importModel;
         this.compileTool = compileTool;
+        this.scope = scope;
+    }
+
+    public ImportExcelParser(ImportModel importModel, XLangCompileTool compileTool) {
+        this(importModel, compileTool, XLang.newEvalScope());
     }
 
     public ImportExcelParser(ImportModel importModel) {
-        this(importModel, XLang.newCompileTool().allowUnregisteredScopeVar(true));
+        this(importModel, XLang.newCompileTool().allowUnregisteredScopeVar(true), XLang.newEvalScope());
     }
 
     public ImportExcelParser() {
-        this(null, XLang.newCompileTool().allowUnregisteredScopeVar(true));
+        this(null, XLang.newCompileTool().allowUnregisteredScopeVar(true), XLang.newEvalScope());
     }
 
     public Object parseFromWorkbook(ExcelWorkbook workbook) {
@@ -81,8 +87,6 @@ public class ImportExcelParser {
         if (importModel.getXdef() != null) {
             obj.prop_set(XDslKeys.DEFAULT.SCHEMA, importModel.getXdef());
         }
-
-        IEvalScope scope = XLang.newEvalScope();
 
         scope.setLocalValue(null, ExcelConstants.VAR_ROOT_RECORD, obj);
         scope.setLocalValue(null, ExcelConstants.VAR_WORKBOOK, workbook);

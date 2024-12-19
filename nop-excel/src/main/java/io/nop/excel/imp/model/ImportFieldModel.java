@@ -54,7 +54,16 @@ public class ImportFieldModel extends _ImportFieldModel implements INeedInit, IF
         Map<String, ImportFieldModel> fields = getFieldNameMap();
         if (fields == null)
             return null;
-        return fields.get(name);
+        field = fields.get(name);
+        if (field == null)
+            field = fields.get(normalizeName(name));
+        return field;
+    }
+
+    private String normalizeName(String name) {
+        name = name.trim();
+        name = StringHelper.replace(name, "\n", "");
+        return name;
     }
 
     public IGenericType getResultType() {

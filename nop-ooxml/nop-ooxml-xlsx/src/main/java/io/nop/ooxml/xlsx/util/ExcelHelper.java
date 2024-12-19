@@ -10,6 +10,7 @@ package io.nop.ooxml.xlsx.util;
 import io.nop.commons.mutable.MutableInt;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.record.csv.CsvResourceRecordIO;
@@ -30,6 +31,7 @@ public class ExcelHelper {
     public static ExcelWorkbook parseExcel(IResource resource) {
         return new ExcelWorkbookParser().parseFromResource(resource);
     }
+
     public static void saveExcel(IResource resource, ExcelWorkbook workbook) {
         new ExcelTemplate(workbook, null).generateToResource(resource, XLang.newEvalScope());
     }
@@ -42,6 +44,10 @@ public class ExcelHelper {
      */
     public static Object loadXlsxObject(String impModelPath, IResource resource) {
         return new XlsxObjectLoader(impModelPath).parseFromResource(resource);
+    }
+
+    public static Object loadXlsxObject(String impModelPath, IResource resource, IEvalScope scope) {
+        return new XlsxObjectLoader(impModelPath).parseFromResource(resource, scope);
     }
 
     public static List<ExcelSheetData> readAllSheets(IResource xlsx) {

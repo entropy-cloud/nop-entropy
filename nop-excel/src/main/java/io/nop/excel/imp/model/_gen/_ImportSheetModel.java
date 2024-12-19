@@ -67,6 +67,13 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: headerRowCount
+     * 
+     */
+    private java.lang.Integer _headerRowCount ;
+    
+    /**
+     *  
      * xml name: ignore
      * 
      */
@@ -321,6 +328,25 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
     public boolean hasFields(){
         return !this._fields.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: headerRowCount
+     *  
+     */
+    
+    public java.lang.Integer getHeaderRowCount(){
+      return _headerRowCount;
+    }
+
+    
+    public void setHeaderRowCount(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._headerRowCount = value;
+           
+    }
+
     
     /**
      * 
@@ -614,6 +640,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         out.putNotNull("field",this.getField());
         out.putNotNull("fieldDecider",this.getFieldDecider());
         out.putNotNull("fields",this.getFields());
+        out.putNotNull("headerRowCount",this.getHeaderRowCount());
         out.putNotNull("ignore",this.isIgnore());
         out.putNotNull("keyProp",this.getKeyProp());
         out.putNotNull("list",this.isList());
@@ -646,6 +673,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         instance.setField(this.getField());
         instance.setFieldDecider(this.getFieldDecider());
         instance.setFields(this.getFields());
+        instance.setHeaderRowCount(this.getHeaderRowCount());
         instance.setIgnore(this.isIgnore());
         instance.setKeyProp(this.getKeyProp());
         instance.setList(this.isList());

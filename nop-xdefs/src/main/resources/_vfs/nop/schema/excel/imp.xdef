@@ -37,6 +37,7 @@
                field="string" sheetVarName="string" keyProp="string" multipleAsMap="!boolean=false"
                imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"
                xpt:defaultRowExtendForSibling="boolean" xpt:defaultColExtendForSibling="boolean"
+               headerRowCount="int"
         >
 
             <description xdef:value="string"/>
@@ -71,6 +72,7 @@
                        xpt:formatExpr="string" xpt:exportFormula="boolean"  xpt:exportFormattedValue="boolean"
                        xpt:rowExtendForSibling="boolean" xpt:colExtendForSibling="boolean"
                        imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"
+                       headerRowCount="int"
                 >
                     <when xdef:value="xpl-predicate"/>
 
