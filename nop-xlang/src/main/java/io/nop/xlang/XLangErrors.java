@@ -508,6 +508,9 @@ public interface XLangErrors {
     ErrorCode ERR_EXEC_CLASS_NO_CONSTRUCTOR = define("nop.err.xlang.exec.class-no-constructor",
             "类[{className}]上没有定义匹配的构造函数", ARG_CLASS_NAME, ARG_ARG_COUNT);
 
+    ErrorCode ERR_EXEC_ARRAY_NOT_SUPPORT_FUNCTION = define("nop.err.xlang.exec.array-not-allow-function",
+            "数组类型不支持函数:{funcName}", ARG_FUNC_NAME);
+
     ErrorCode ERR_EXEC_OBJ_UNKNOWN_METHOD = define("nop.err.xlang.exec.obj-unknown-method",
             "类[{className}]上没有找到对应的方法定义[{methodName}]或者参数个数不匹配", ARG_CLASS_NAME, ARG_METHOD_NAME);
 

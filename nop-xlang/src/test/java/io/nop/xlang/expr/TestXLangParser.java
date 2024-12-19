@@ -57,9 +57,9 @@ public class TestXLangParser {
     }
 
     @Test
-    public void testReturn(){
+    public void testReturn() {
         IEvalScope scope = XLang.newEvalScope();
-        XLang.newCompileTool().compileFullExpr(null,"\n return {\na:1,b:2}").invoke(scope);
+        XLang.newCompileTool().compileFullExpr(null, "\n return {\na:1,b:2}").invoke(scope);
 
         String source = "\n" +
                 "                 return {\n" +
@@ -72,6 +72,14 @@ public class TestXLangParser {
                 "                    value: editMode == 'add' ? dispMeta?.defaultValue ?? propMeta?.defaultValue : null\n" +
                 "                 }\n" +
                 "            ";
-        XLang.newCompileTool().allowUnregisteredScopeVar(true).compileFullExpr(null,source);
+        XLang.newCompileTool().allowUnregisteredScopeVar(true).compileFullExpr(null, source);
+    }
+
+    @Test
+    public void testArrayFunction() {
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue("arr", new int[]{1, 2, 3, 4, 5});
+
+        XLang.newCompileTool().allowUnregisteredScopeVar(true).compileFullExpr(null, "arr.map(f=>f+1)").invoke(scope);
     }
 }

@@ -13,15 +13,20 @@ import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExpressionExecutor;
+import io.nop.core.lang.eval.functions.ArrayAdapterFunction;
 import io.nop.core.reflect.IMethodModelCollection;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.hook.IMethodMissingHook;
 import io.nop.core.reflect.hook.MethodMissingHookFunction;
 
+import java.util.List;
+import java.util.Set;
+
 import static io.nop.xlang.XLangErrors.ARG_ARG_COUNT;
 import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
 import static io.nop.xlang.XLangErrors.ARG_FUNC_NAME;
 import static io.nop.xlang.XLangErrors.ARG_METHOD_NAME;
+import static io.nop.xlang.XLangErrors.ERR_EXEC_ARRAY_NOT_SUPPORT_FUNCTION;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_CLASS_NO_STATIC_METHOD;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_NO_OBJ_METHOD;
 
@@ -85,12 +90,27 @@ public class ObjFunctionExecutable extends AbstractObjFunctionExecutable {
         return fn;
     }
 
+    static final Set<String> ARRAY_FUNCTIONS = Set.of("map", "flatMap", "forEach", "filter",
+            "reduce", "reduceRight", "some", "every", "find", "findIndex", "indexOf", "lastIndexOf",
+            "includes", "join", "concat", "reverse", "toString", "toLocaleString");
+
     protected IEvalFunction getFunction(Class<?> clazz, Object... argValues) {
         IEvalFunction func;
         Pair<Class<?>, IEvalFunction> pair = _cacheFunc;
         if (pair.getLeft() == clazz) {
             func = pair.getRight();
         } else {
+            if (clazz.isArray() && ARRAY_FUNCTIONS.contains(funcName)) {
+                func = ReflectionManager.instance().getClassModel(List.class).getMethod(funcName, argValues.length);
+                if (func != null) {
+                    func = new ArrayAdapterFunction(func);
+                    _cacheFunc = Pair.of(clazz, func);
+                    return func;
+                } else {
+                    throw newError(ERR_EXEC_ARRAY_NOT_SUPPORT_FUNCTION).param(ARG_FUNC_NAME, funcName);
+                }
+            }
+
             IMethodModelCollection coll = ReflectionManager.instance().getClassModel(clazz).getMethodsByName(funcName);
             if (coll == null) {
                 if (IMethodMissingHook.class.isAssignableFrom(clazz)) {
@@ -167,7 +187,6 @@ public class ObjFunctionExecutable extends AbstractObjFunctionExecutable {
                 return null;
 
             Object arg = executor.execute(argExpr, rt);
-
             IEvalFunction func = getFunctionForObj(obj, arg);
             return doInvoke1(func, obj, arg, rt.getScope());
         }
