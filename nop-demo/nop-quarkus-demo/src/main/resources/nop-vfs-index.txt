@@ -434,7 +434,9 @@
 /nop/dyn/model/NopDynPage/_NopDynPage.xbiz
 /nop/dyn/model/NopDynPage/_NopDynPage.xmeta
 /nop/dyn/model/NopDynPatch/NopDynPatch.xbiz
+/nop/dyn/model/NopDynPatch/NopDynPatch.xmeta
 /nop/dyn/model/NopDynPatch/_NopDynPatch.xbiz
+/nop/dyn/model/NopDynPatch/_NopDynPatch.xmeta
 /nop/dyn/model/NopDynPatchFile/NopDynPatchFile.xbiz
 /nop/dyn/model/NopDynPatchFile/NopDynPatchFile.xmeta
 /nop/dyn/model/NopDynPatchFile/_NopDynPatchFile.xbiz
@@ -509,6 +511,11 @@
 /nop/dyn/pages/NopDynPage/main.page.yaml
 /nop/dyn/pages/NopDynPage/picker.page.yaml
 /nop/dyn/pages/NopDynPage/ref-module.page.yaml
+/nop/dyn/pages/NopDynPatch/NopDynPatch.lib.xjs
+/nop/dyn/pages/NopDynPatch/NopDynPatch.view.xml
+/nop/dyn/pages/NopDynPatch/_gen/_NopDynPatch.view.xml
+/nop/dyn/pages/NopDynPatch/main.page.yaml
+/nop/dyn/pages/NopDynPatch/picker.page.yaml
 /nop/dyn/pages/NopDynPatchFile/NopDynPatchFile.lib.xjs
 /nop/dyn/pages/NopDynPatchFile/NopDynPatchFile.view.xml
 /nop/dyn/pages/NopDynPatchFile/_gen/_NopDynPatchFile.view.xml
@@ -541,6 +548,8 @@
 /nop/http/beans/http-client-jdk.beans.xml
 /nop/integration/beans/zxing-defaults.beans.xml
 /nop/main/app.gateway.xml
+/nop/ooxml/templates/empty.xlsx
+/nop/ooxml/templates/simple-data.xpt.xlsx
 /nop/orm/beans/orm-defaults.beans.xml
 /nop/orm/defaults/default.orm.xml
 /nop/orm/defaults/dsl-default.orm.xml

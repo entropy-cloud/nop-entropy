@@ -12,7 +12,9 @@ import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.util.LogLevel;
+import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.core.context.IServiceContext;
+import io.nop.dao.api.DaoProvider;
 import io.nop.demo.annotations.SendEmail;
 import io.nop.demo.domain.Material;
 import io.nop.demo.domain.ProcessCard;
@@ -22,6 +24,7 @@ import io.nop.xlang.filter.BizValidatorHelper;
 import jakarta.annotation.PostConstruct;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @BizModel("Demo")
@@ -70,6 +73,15 @@ public class DemoBizModel {
         material.setMaterialId("2");
         vars.put("firstMaterial", material);
         return vars;
+    }
+
+    @BizQuery
+    public MyUserPageBean findUsers() {
+        List<NopAuthUser> users = DaoProvider.instance().daoFor(NopAuthUser.class).findAll();
+        MyUserPageBean ret = new MyUserPageBean();
+        ret.setData(users);
+        ret.setTotalCount(users.size());
+        return ret;
     }
 
     @BizQuery

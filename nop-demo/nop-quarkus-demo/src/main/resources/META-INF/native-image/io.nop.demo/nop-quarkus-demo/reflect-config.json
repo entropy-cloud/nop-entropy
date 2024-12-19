@@ -4681,7 +4681,27 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.demo.biz.MyPageBean"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.demo.biz.MyRequest"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.demo.biz.MyUserPageBean"
   },
   {
     "allDeclaredConstructors": true,
