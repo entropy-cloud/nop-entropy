@@ -632,3 +632,19 @@ CompletionStage<Object> future = graphQLEngine.fetchResult(list,
         "NopAuthUser", "...F_defaults,status_label,relatedRoleList", svcCtx);
 output("result.json5", FutureHelper.syncGet(future));
 ```
+
+## 将同一个实体模型发布为多个不同的GraphQL对象
+
+* NopGraphQL引擎识别的BizModel需要在`beans.xml`文件中注册。
+* 注册的时候可以指定bizObjName，如果没有指定，则尝试从Java类的`@BizObjName`注解获取。
+
+```xml
+<bean id="MyUserExtBizModel" class="io.nop.graphql.demo.model.MyUserBizModel">
+  <property name="bizObjName" value="MyUser_ext"/>
+</bean>
+```
+
+* bizObjName的格式为`{BaseName}_{extName}`，如果对应的Meta不存在，会自动查找BaseName对应的Meta。
+* 可以选择增加`MyUser_ext.xmeta`，然后使用`x:extends="MyUser.xmeta"`，让它从BaseMeta继承。
+
+

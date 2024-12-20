@@ -84,11 +84,11 @@ nop:
       password:
 
     web:
-      validate-page-model: false
+      validate-page-model: true
       auto-load-dynamic-file: false
 
     orm:
-      init-database-schema: false
+      init-database-schema: true
       db-differ:
         auto-upgrade-database: false
 
