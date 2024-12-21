@@ -887,6 +887,7 @@
                     name: "filter_"+name + "__dateBetween",
                     "type": "input-date-range",
                     "inputFormat": "YYYY-MM-DD",
+                    "valueFormat": "YYYY-MM-DD",
                     "shortcuts": shortcuts || "today,yesterday,1dayago,7daysago"
                 }
             ]]></source>
