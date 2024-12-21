@@ -240,6 +240,24 @@ public class CollectionHelper {
         return ret;
     }
 
+    public static <K, V> Map<K, V> toNonEmptyKeyMap(Collection<? extends K> keyList, Collection<? extends V> valueList) {
+        if (keyList == null || valueList == null)
+            return new LinkedHashMap<>(0);
+        Iterator<? extends K> kIt = keyList.iterator();
+        Iterator<? extends V> vIt = valueList.iterator();
+
+        Map<K, V> ret = newLinkedHashMap(Math.min(keyList.size(), valueList.size()));
+
+        while (kIt.hasNext() && vIt.hasNext()) {
+            K key = kIt.next();
+            if (StringHelper.isEmptyObject(key))
+                continue;
+            V value = vIt.next();
+            ret.put(key, value);
+        }
+        return ret;
+    }
+
     public static <T> List<T> reverseList(List<T> list) {
         if (list instanceof ReverseList) {
             return ((ReverseList<T>) list).getForwardList();

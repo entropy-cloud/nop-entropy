@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 
 import static io.nop.excel.ExcelErrors.ARG_SHEET_NAME;
 import static io.nop.excel.ExcelErrors.ERR_IMPORT_LIST_SHEET_MODEL_MUST_HAS_FIELD_ATTR;
+import static io.nop.excel.imp.util.ImportDataHelper.normalizeFieldLabel;
 
 public class ImportSheetModel extends _ImportSheetModel implements INeedInit, IFieldContainer {
     private Pattern compiledNamePattern;
@@ -71,6 +72,8 @@ public class ImportSheetModel extends _ImportSheetModel implements INeedInit, IF
             if (getFieldNameMap() == null)
                 return null;
             field = getFieldNameMap().get(name);
+            if (field == null)
+                field = getFieldNameMap().get(normalizeFieldLabel(name));
         }
         return field;
     }

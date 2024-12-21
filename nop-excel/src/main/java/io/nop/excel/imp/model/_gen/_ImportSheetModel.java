@@ -56,7 +56,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
      * xml name: fieldDecider
      * 动态确定Excel单元格所对应的field，返回field的name
      */
-    private io.nop.core.lang.eval.IEvalAction _fieldDecider ;
+    private io.nop.core.lang.eval.IEvalFunction _fieldDecider ;
     
     /**
      *  
@@ -70,7 +70,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
      * xml name: headerRowCount
      * 
      */
-    private java.lang.Integer _headerRowCount ;
+    private int _headerRowCount  = 0;
     
     /**
      *  
@@ -127,6 +127,13 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
      * 正则表达式模式。用于匹配需要解析的对应sheet。如果无法通过name匹配，则会尝试按照namePattern来匹配
      */
     private java.lang.String _namePattern ;
+    
+    /**
+     *  
+     * xml name: noSeqCol
+     * 当list=true时，是否第一列不是序号列。如果不是序号列，则header之后一直到非空行都是数据行。
+     */
+    private boolean _noSeqCol  = false;
     
     /**
      *  
@@ -271,12 +278,12 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
      *  动态确定Excel单元格所对应的field，返回field的name
      */
     
-    public io.nop.core.lang.eval.IEvalAction getFieldDecider(){
+    public io.nop.core.lang.eval.IEvalFunction getFieldDecider(){
       return _fieldDecider;
     }
 
     
-    public void setFieldDecider(io.nop.core.lang.eval.IEvalAction value){
+    public void setFieldDecider(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._fieldDecider = value;
@@ -335,12 +342,12 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
      *  
      */
     
-    public java.lang.Integer getHeaderRowCount(){
+    public int getHeaderRowCount(){
       return _headerRowCount;
     }
 
     
-    public void setHeaderRowCount(java.lang.Integer value){
+    public void setHeaderRowCount(int value){
         checkAllowChange();
         
         this._headerRowCount = value;
@@ -502,6 +509,25 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: noSeqCol
+     *  当list=true时，是否第一列不是序号列。如果不是序号列，则header之后一直到非空行都是数据行。
+     */
+    
+    public boolean isNoSeqCol(){
+      return _noSeqCol;
+    }
+
+    
+    public void setNoSeqCol(boolean value){
+        checkAllowChange();
+        
+        this._noSeqCol = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: normalizeFieldsExpr
      *  
      */
@@ -649,6 +675,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         out.putNotNull("multipleAsMap",this.isMultipleAsMap());
         out.putNotNull("name",this.getName());
         out.putNotNull("namePattern",this.getNamePattern());
+        out.putNotNull("noSeqCol",this.isNoSeqCol());
         out.putNotNull("normalizeFieldsExpr",this.getNormalizeFieldsExpr());
         out.putNotNull("resultType",this.getResultType());
         out.putNotNull("sheetNameProp",this.getSheetNameProp());
@@ -682,6 +709,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         instance.setMultipleAsMap(this.isMultipleAsMap());
         instance.setName(this.getName());
         instance.setNamePattern(this.getNamePattern());
+        instance.setNoSeqCol(this.isNoSeqCol());
         instance.setNormalizeFieldsExpr(this.getNormalizeFieldsExpr());
         instance.setResultType(this.getResultType());
         instance.setSheetNameProp(this.getSheetNameProp());

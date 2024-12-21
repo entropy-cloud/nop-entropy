@@ -16,6 +16,11 @@ import io.nop.core.resource.component.parse.IResourceParser;
 
 public interface IXNodeParser extends IResourceParser<XNode> {
 
+    enum ParseResult {
+        NODE, TEXT, OTHER, END_NODE
+    }
+
+
     IXNodeParser shouldTraceDepends(boolean b);
 
     IXNodeParser defaultEncoding(String defaultEncoding);
@@ -52,4 +57,6 @@ public interface IXNodeParser extends IResourceParser<XNode> {
     XNode parseFromText(SourceLocation loc, String text);
 
     XNode parseSingleNode(TextScanner sc);
+
+    ParseResult parseSingleNode(TextScanner sc, IXNodeHandler handler);
 }

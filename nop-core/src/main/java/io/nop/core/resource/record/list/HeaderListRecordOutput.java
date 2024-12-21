@@ -11,7 +11,6 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.dataset.record.IRecordOutput;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -22,8 +21,10 @@ public class HeaderListRecordOutput<R> implements IRecordOutput<List<Object>> {
     private final BiFunction<List<String>, List<Object>, R> rowBuilder;
     private boolean headersWritten;
     private long writeCount;
+    private int skipCount;
 
-    public HeaderListRecordOutput(BiFunction<List<String>, List<Object>, R> rowBuilder) {
+    public HeaderListRecordOutput(int skipCount, BiFunction<List<String>, List<Object>, R> rowBuilder) {
+        this.skipCount = skipCount;
         this.rowBuilder = rowBuilder;
     }
 
@@ -37,6 +38,10 @@ public class HeaderListRecordOutput<R> implements IRecordOutput<List<Object>> {
 
     @Override
     public void write(List<Object> record) {
+        if (skipCount < writeCount) {
+            writeCount++;
+            return;
+        }
 
         if (!headersWritten) {
             this.headers = CollectionHelper.toStringList(record);
@@ -55,7 +60,8 @@ public class HeaderListRecordOutput<R> implements IRecordOutput<List<Object>> {
 
     private void doWriteRecord(List<Object> record) {
         R row = rowBuilder.apply(headers, record);
-        records.add(row);
+        if (row != null)
+            records.add(row);
     }
 
     @Override
@@ -64,6 +70,6 @@ public class HeaderListRecordOutput<R> implements IRecordOutput<List<Object>> {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
     }
 }

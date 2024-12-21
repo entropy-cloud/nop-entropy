@@ -22,6 +22,12 @@ import static io.nop.api.core.ApiErrors.ARG_PROP_NAME;
 
 
 public class ImportDataHelper {
+    public static String normalizeFieldLabel(String label) {
+        label = label.trim();
+        label = StringHelper.replace(label, "\n", "");
+        return label;
+    }
+
     /**
      * 将列表数据整理成parent-children结构。例如
      * <pre>{@code
@@ -106,11 +112,11 @@ public class ImportDataHelper {
 
     public static <T> List<T> flattenTree(List<T> list, String childrenProp, boolean removeChildren) {
         List<T> ret = new ArrayList<>();
-        _flattenTree(list, childrenProp, removeChildren,ret);
+        _flattenTree(list, childrenProp, removeChildren, ret);
         return ret;
     }
 
-    private static <T> void _flattenTree(Collection<T> list, String childrenProp, boolean removeChildren,List<T> ret) {
+    private static <T> void _flattenTree(Collection<T> list, String childrenProp, boolean removeChildren, List<T> ret) {
         for (T item : list) {
             ret.add(item);
 
@@ -119,9 +125,9 @@ public class ImportDataHelper {
 
             Collection<T> c = (Collection<T>) BeanTool.getProperty(item, childrenProp);
             if (c != null) {
-                if(removeChildren)
-                    BeanTool.setComplexProperty(item, childrenProp,null);
-                _flattenTree(c, childrenProp, removeChildren,ret);
+                if (removeChildren)
+                    BeanTool.setComplexProperty(item, childrenProp, null);
+                _flattenTree(c, childrenProp, removeChildren, ret);
             }
         }
     }

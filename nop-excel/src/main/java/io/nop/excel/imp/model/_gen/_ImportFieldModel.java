@@ -56,7 +56,7 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
      * xml name: fieldDecider
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _fieldDecider ;
+    private io.nop.core.lang.eval.IEvalFunction _fieldDecider ;
     
     /**
      *  
@@ -77,7 +77,7 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
      * xml name: headerRowCount
      * 
      */
-    private java.lang.Integer _headerRowCount ;
+    private int _headerRowCount  = 0;
     
     /**
      *  
@@ -120,6 +120,13 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
      * 
      */
     private java.lang.String _name ;
+    
+    /**
+     *  
+     * xml name: noSeqCol
+     * 当list=true时，是否第一列不是序号列。如果不是序号列，则header之后一直到非空行都是数据行。
+     */
+    private boolean _noSeqCol  = false;
     
     /**
      *  
@@ -294,12 +301,12 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getFieldDecider(){
+    public io.nop.core.lang.eval.IEvalFunction getFieldDecider(){
       return _fieldDecider;
     }
 
     
-    public void setFieldDecider(io.nop.core.lang.eval.IEvalAction value){
+    public void setFieldDecider(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._fieldDecider = value;
@@ -377,12 +384,12 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
      *  
      */
     
-    public java.lang.Integer getHeaderRowCount(){
+    public int getHeaderRowCount(){
       return _headerRowCount;
     }
 
     
-    public void setHeaderRowCount(java.lang.Integer value){
+    public void setHeaderRowCount(int value){
         checkAllowChange();
         
         this._headerRowCount = value;
@@ -500,6 +507,25 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._name = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: noSeqCol
+     *  当list=true时，是否第一列不是序号列。如果不是序号列，则header之后一直到非空行都是数据行。
+     */
+    
+    public boolean isNoSeqCol(){
+      return _noSeqCol;
+    }
+
+    
+    public void setNoSeqCol(boolean value){
+        checkAllowChange();
+        
+        this._noSeqCol = value;
            
     }
 
@@ -732,6 +758,7 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         out.putNotNull("list",this.isList());
         out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("name",this.getName());
+        out.putNotNull("noSeqCol",this.isNoSeqCol());
         out.putNotNull("normalizeFieldsExpr",this.getNormalizeFieldsExpr());
         out.putNotNull("parentProp",this.getParentProp());
         out.putNotNull("prop",this.getProp());
@@ -768,6 +795,7 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         instance.setList(this.isList());
         instance.setMandatory(this.isMandatory());
         instance.setName(this.getName());
+        instance.setNoSeqCol(this.isNoSeqCol());
         instance.setNormalizeFieldsExpr(this.getNormalizeFieldsExpr());
         instance.setParentProp(this.getParentProp());
         instance.setProp(this.getProp());

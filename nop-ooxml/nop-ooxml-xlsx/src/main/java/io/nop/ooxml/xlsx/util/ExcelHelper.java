@@ -52,7 +52,7 @@ public class ExcelHelper {
 
     public static List<ExcelSheetData> readAllSheets(IResource xlsx) {
         List<ExcelSheetData> ret = new ArrayList<>();
-        new XlsxToRecordOutput(sheetName -> new HeaderListRecordOutput<>(CollectionHelper::toMap) {
+        new XlsxToRecordOutput(sheetName -> new HeaderListRecordOutput<>(0, CollectionHelper::toMap) {
             @Override
             public void close() {
                 ExcelSheetData data = new ExcelSheetData();
@@ -64,8 +64,8 @@ public class ExcelHelper {
         return ret;
     }
 
-    public static List<Map<String, Object>> readSheet(IResource xlsx, String selectedSheetName) {
-        HeaderListRecordOutput<Map<String, Object>> output = new HeaderListRecordOutput<>(CollectionHelper::toMap);
+    public static List<Map<String, Object>> readSheet(IResource xlsx, String selectedSheetName, int skipCount) {
+        HeaderListRecordOutput<Map<String, Object>> output = new HeaderListRecordOutput<>(skipCount, CollectionHelper::toNonEmptyKeyMap);
 
         MutableInt index = new MutableInt();
         new XlsxToRecordOutput(sheetName -> {

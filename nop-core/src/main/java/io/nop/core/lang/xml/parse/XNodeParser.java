@@ -103,10 +103,6 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
 
     private boolean hasNode;
 
-    enum ParseResult {
-        NODE, TEXT, OTHER, END_NODE
-    }
-
     @Override
     public IXNodeParser forHtml(boolean forHtml) {
         this.forHtml = forHtml;
@@ -675,5 +671,11 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
         if (node.hasChild())
             return node.child(0);
         return null;
+    }
+
+    public ParseResult parseSingleNode(TextScanner sc, IXNodeHandler handler) {
+        this.sc = sc;
+        this.handler = handler;
+        return parseNode();
     }
 }

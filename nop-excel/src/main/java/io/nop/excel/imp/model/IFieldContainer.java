@@ -8,6 +8,7 @@
 package io.nop.excel.imp.model;
 
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalFunction;
 
 import java.util.Map;
 
@@ -36,5 +37,9 @@ public interface IFieldContainer {
 
     ImportFieldModel getFieldModel(String name);
 
-    IEvalAction getFieldDecider();
+    IEvalFunction getFieldDecider();
+
+    int getHeaderRowCount();
+
+    boolean isNoSeqCol();
 }

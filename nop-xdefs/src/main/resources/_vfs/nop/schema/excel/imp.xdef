@@ -30,6 +30,7 @@
         @multiple 如果设置为true, 则有可能匹配到多个sheet, 否则只应该匹配到一个sheet。multiple和list不能同时为true
         @field 整个sheet的数据解析为一个字段。如果multiple=true，则field对应List类型，而sheet的数据解析为List中的一个条目。
         @list sheet中的数据是否为列表数据
+        @noSeqCol 当list=true时，是否第一列不是序号列。如果不是序号列，则header之后一直到非空行都是数据行。
         -->
         <sheet name="!string" namePattern="regex" sheetNameProp="string"
                xdef:name="ImportSheetModel" resultType="generic-type" ignore="!boolean=false"
@@ -37,7 +38,7 @@
                field="string" sheetVarName="string" keyProp="string" multipleAsMap="!boolean=false"
                imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"
                xpt:defaultRowExtendForSibling="boolean" xpt:defaultColExtendForSibling="boolean"
-               headerRowCount="int"
+               headerRowCount="!int=0" noSeqCol="!boolean=false"
         >
 
             <description xdef:value="string"/>
@@ -52,7 +53,7 @@
                 beforeExpand是作为报表导出时在报表执行交叉表展开之前需要执行的Xpl模板语言代码。
             -->
             <xpt:beforeExpand xdef:value="xml"/>
-            <xpt:afterExpand xdef:value="xml" />
+            <xpt:afterExpand xdef:value="xml"/>
 
             <fields xdef:body-type="list" xdef:key-attr="name">
                 <!--
@@ -63,16 +64,18 @@
                 @prop 实际设置到record上的属性名，如果为空，则prop与name相同
                 @ignoreWhenEmpty 当数据为空的时候自动忽略该字段，不设置到record对象上
                 @groupField 列表表头中多个字段可能归属于一个分组字段，采用多级表头形式显示
+                @noSeqCol 当list=true时，是否第一列不是序号列。如果不是序号列，则header之后一直到非空行都是数据行。
+                @xpt:colWidth 自动生成Excel模板的时候列宽是多少
                 -->
                 <field name="!xml-name" xdef:name="ImportFieldModel" parentProp="string" typeProp="prop-name"
                        displayName="string" stripText="boolean" mandatory="!boolean=false" displayMode="string"
                        list="!boolean=false" computed="!boolean=false" virtual="!boolean=false" groupField="xml-name"
                        keyProp="string" alias="csv-set" prop="string" ignoreWhenEmpty="!boolean=false"
                        importDictLabel="!boolean=false"
-                       xpt:formatExpr="string" xpt:exportFormula="boolean"  xpt:exportFormattedValue="boolean"
-                       xpt:rowExtendForSibling="boolean" xpt:colExtendForSibling="boolean"
+                       xpt:formatExpr="string" xpt:exportFormula="boolean" xpt:exportFormattedValue="boolean"
+                       xpt:rowExtendForSibling="boolean" xpt:colExtendForSibling="boolean" xpt:colWidth="double"
                        imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"
-                       headerRowCount="int"
+                       headerRowCount="!int=0" noSeqCol="!boolean=false"
                 >
                     <when xdef:value="xpl-predicate"/>
 
@@ -88,12 +91,12 @@
 
                     <xpt:labelValueExpr xdef:value="xml"/>
 
-                    <xpt:labelStyleIdExpr xdef:value="xml" />
+                    <xpt:labelStyleIdExpr xdef:value="xml"/>
 
                     <!-- 动态计算单元格对应的样式id。id需要在XptWorkbookModel这个sheet页中通过【命名样式】来定义 -->
-                    <xpt:styleIdExpr xdef:value="xml" />
+                    <xpt:styleIdExpr xdef:value="xml"/>
 
-                    <xpt:linkExpr xdef:value="xml" />
+                    <xpt:linkExpr xdef:value="xml"/>
 
                     <schema xdef:ref="/nop/schema/schema/schema.xdef"/>
 
@@ -107,7 +110,7 @@
                     -->
                     <normalizeFieldsExpr xdef:value="xpl"/>
 
-                    <fieldDecider xdef:value="xpl"/>
+                    <fieldDecider xdef:value="xpl-fn:(fieldLabel,labelCell)=>string"/>
 
                     <unknownField xdef:ref="ImportFieldModel"/>
 
@@ -119,7 +122,7 @@
             </fields>
 
             <!-- 动态确定Excel单元格所对应的field，返回field的name -->
-            <fieldDecider xdef:value="xpl"/>
+            <fieldDecider xdef:value="xpl-fn:(fieldLabel,labelCell)=>string"/>
 
             <unknownField xdef:ref="ImportFieldModel"/>
 

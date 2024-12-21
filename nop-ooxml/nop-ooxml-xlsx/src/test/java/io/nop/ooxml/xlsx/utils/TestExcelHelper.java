@@ -66,7 +66,7 @@ public class TestExcelHelper extends BaseTestCase {
         System.out.println("xlsxToCsv:" + (endTime - beginTime) + "ms");
 
         beginTime = CoreMetrics.currentTimeMillis();
-        ExcelHelper.readSheet(xlsx, null);
+        ExcelHelper.readSheet(xlsx, null,0);
         endTime = CoreMetrics.currentTimeMillis();
         // 1M => 16312ms
         System.out.println("readXlsx:" + (endTime - beginTime) + "ms");

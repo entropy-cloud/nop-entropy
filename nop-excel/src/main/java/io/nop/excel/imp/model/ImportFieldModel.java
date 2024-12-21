@@ -18,6 +18,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.excel.imp.util.ImportDataHelper.normalizeFieldLabel;
+
 public class ImportFieldModel extends _ImportFieldModel implements INeedInit, IFieldContainer {
     private Map<String, ImportFieldModel> fieldNameMap;
 
@@ -56,14 +58,8 @@ public class ImportFieldModel extends _ImportFieldModel implements INeedInit, IF
             return null;
         field = fields.get(name);
         if (field == null)
-            field = fields.get(normalizeName(name));
+            field = fields.get(normalizeFieldLabel(name));
         return field;
-    }
-
-    private String normalizeName(String name) {
-        name = name.trim();
-        name = StringHelper.replace(name, "\n", "");
-        return name;
     }
 
     public IGenericType getResultType() {
@@ -108,6 +104,7 @@ public class ImportFieldModel extends _ImportFieldModel implements INeedInit, IF
         return fieldNameMap;
     }
 
+    @Override
     public String getPropOrName() {
         String prop = getProp();
         if (!StringHelper.isEmpty(prop))

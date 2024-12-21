@@ -13,14 +13,13 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ProcessResult;
 import io.nop.commons.mutable.MutableBoolean;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.ICellView;
 import io.nop.core.model.table.IRowView;
 import io.nop.core.model.table.ITableView;
-import io.nop.excel.ExcelConstants;
 import io.nop.excel.imp.model.IFieldContainer;
 import io.nop.excel.imp.model.ImportFieldModel;
 import io.nop.excel.imp.model.ImportSheetModel;
@@ -73,14 +72,16 @@ public class TreeTableDataParser {
         int maxRowIndex = table.getRowCount() - 1;
         int maxColIndex = table.getColCount() - 1;
 
+        boolean multiHeader = sheetModel.getHeaderRowCount() > 1;
+
         ICellView cell = table.getCell(rowIndex, 0);
         // 如果名称占据多行，则字段值放置在右侧, 否则放在下方
-        boolean alignRight = cell.getMergeDown() > 0;
+        boolean alignRight = !multiHeader && cell.getMergeDown() > 0;
 
         String text = cell.getText();
         CellRange dataRange;
         // 如果headerCell的内容为数字，则表示它实际对应于编号。整个列表是采用card模式显示
-        if (StringHelper.isNumber(text)) {
+        if (!multiHeader && StringHelper.isNumber(text)) {
             dataRange = parseCardListData(sheetName, sheetModel, table, rowIndex, 0, maxRowIndex,
                     maxColIndex, listener);
         } else {
@@ -134,12 +135,17 @@ public class TreeTableDataParser {
         List<LabelData> colHeaders = new ArrayList<>();
 
         int labelRowIndex = rowIndex;
-        ICellView topHeaderCell = table.getCell(rowIndex, colIndex);
-        if (topHeaderCell != null) {
-            Guard.checkArgument(!topHeaderCell.isProxyCell(), "table header not allow proxy cell");
-            // 如果第一个单元格占据多行，则表示是多级表头，具体的label列在最下面一行
-            if (topHeaderCell.getMergeDown() > 0)
-                labelRowIndex += topHeaderCell.getMergeDown();
+        ICellView topHeaderCell;
+        if (field.getHeaderRowCount() > 1) {
+            labelRowIndex = rowIndex + field.getHeaderRowCount() - 1;
+        } else {
+            topHeaderCell = table.getCell(rowIndex, colIndex);
+            if (topHeaderCell != null) {
+                Guard.checkArgument(!topHeaderCell.isProxyCell(), "table header not allow proxy cell");
+                // 如果第一个单元格占据多行，则表示是多级表头，具体的label列在最下面一行
+                if (topHeaderCell.getMergeDown() > 0)
+                    labelRowIndex += topHeaderCell.getMergeDown();
+            }
         }
 
         for (int j = colIndex; j <= maxColIndex; j++) {
@@ -200,7 +206,7 @@ public class TreeTableDataParser {
 
         for (int i = labelRowIndex + 1; i <= maxRowIndex; i++) {
             // 发现编号列不为数字，则认为表格结束
-            if (!StringHelper.isNumber(table.getCellText(i, colIndex))) {
+            if (!isDataRow(table, i, colIndex, maxColIndex, field.isNoSeqCol())) {
                 maxRowIndex = i - 1;
                 break;
             }
@@ -230,14 +236,27 @@ public class TreeTableDataParser {
         return new CellRange(rowIndex, colIndex, maxRowIndex, maxColIndex);
     }
 
+    private boolean isDataRow(ITableView table, int rowIndex, int colIndex, int maxColIndex, boolean noSeqCol) {
+        if (noSeqCol) {
+            for (int j = colIndex; j <= maxColIndex; j++) {
+                String text = table.getCellText(rowIndex, j);
+                if (!StringHelper.isBlank(text))
+                    return true;
+            }
+            return false;
+        } else {
+            return StringHelper.isNumber(table.getCellText(rowIndex, colIndex));
+        }
+    }
+
     private ImportFieldModel getFieldModel(IFieldContainer fields, String text, ICellView cell) {
         ImportFieldModel field = fields.getFieldModel(text);
         if (field == null) {
-            IEvalAction decider = fields.getFieldDecider();
+            IEvalFunction decider = fields.getFieldDecider();
             if (decider != null) {
-                scope.setLocalValue(ExcelConstants.VAR_FIELD_LABEL, text);
-                scope.setLocalValue(ExcelConstants.VAR_LABEL_CELL, cell);
-                String fieldName = ConvertHelper.toString(decider.invoke(scope));
+                //scope.setLocalValue(ExcelConstants.VAR_FIELD_LABEL, text);
+                //scope.setLocalValue(ExcelConstants.VAR_LABEL_CELL, cell);
+                String fieldName = ConvertHelper.toString(decider.call2(null, text, cell, scope));
                 if (!StringHelper.isEmpty(fieldName))
                     return fields.getFieldModel(fieldName);
             }
@@ -345,21 +364,29 @@ public class TreeTableDataParser {
         ICellView cell = table.getCell(rowIndex, colIndex);
         // 如果名称占据多行，则字段值放置在右侧。如果设置了displayMode=table，则强制认为是
         boolean alignRight;
-        if (cell.getMergeDown() > 0) {
-            colIndex = colIndex + cell.getColSpan();
-            maxRowIndex = rowIndex + cell.getMergeDown();
-            alignRight = true;
-        } else {
-            // 字段值放置在下方
+        boolean multiHeader = field.getHeaderRowCount() > 1;
+        if (multiHeader) {
+            // 如果是多重表头，则字段值放在下方
             rowIndex = rowIndex + cell.getRowSpan();
             maxColIndex = colIndex + cell.getMergeAcross();
             alignRight = false;
+        } else {
+            if (cell.getMergeDown() > 0) {
+                colIndex = colIndex + cell.getColSpan();
+                maxRowIndex = rowIndex + cell.getMergeDown();
+                alignRight = true;
+            } else {
+                // 字段值放置在下方
+                rowIndex = rowIndex + cell.getRowSpan();
+                maxColIndex = colIndex + cell.getMergeAcross();
+                alignRight = false;
+            }
         }
 
         String text = table.getCellText(rowIndex, colIndex);
         CellRange dataRange;
         // 如果headerCell的内容为数字，则表示它实际对应于编号。整个列表是采用card模式显示
-        if (StringHelper.isNumber(text)) {
+        if (!multiHeader && StringHelper.isNumber(text)) {
             dataRange = parseCardListData(sheetName, field, table, rowIndex, colIndex,
                     maxRowIndex, maxColIndex, listener);
         } else {
