@@ -1,8 +1,11 @@
 package io.nop.report.core.record;
 
+import io.nop.api.core.json.JSON;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.core.unittest.BaseTestCase;
+import io.nop.dataset.record.IRecordInput;
 import io.nop.dataset.record.IRecordOutput;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -11,7 +14,10 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestExcelResourceIO extends BaseTestCase {
 
@@ -23,6 +29,19 @@ public class TestExcelResourceIO extends BaseTestCase {
     @AfterAll
     public static void destroy() {
         CoreInitialization.destroy();
+    }
+
+    @Test
+    public void testRead() throws IOException {
+        ExcelResourceIO<Map<String, Object>> io = new ExcelResourceIO<>();
+        IRecordInput<Map<String, Object>> input = io.openInput(new ClassPathResource("classpath:io/nop/report/core/excel-input.xlsx"), null);
+        input.beforeRead(new HashMap<>());
+
+        List<Map<String, Object>> list = input.readAll();
+        System.out.println(JSON.serialize(list,true));
+        assertEquals(1, list.get(0).get("a"));
+        assertEquals(9001, list.get(9).get("c"));
+        input.close();
     }
 
     @Test

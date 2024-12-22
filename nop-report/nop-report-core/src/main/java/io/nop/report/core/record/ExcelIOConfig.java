@@ -11,6 +11,7 @@ public class ExcelIOConfig {
     private String headerSheetName;
     private String trailerSheetName;
     private boolean useSeqCol;
+    private int skipRowCount;
     private int maxCountPerSheet = 20_0000;
 
     public boolean isUseSeqCol() {
@@ -35,6 +36,14 @@ public class ExcelIOConfig {
 
     public void setTemplatePath(String templatePath) {
         this.templatePath = templatePath;
+    }
+
+    public int getSkipRowCount() {
+        return skipRowCount;
+    }
+
+    public void setSkipRowCount(int skipRowCount) {
+        this.skipRowCount = skipRowCount;
     }
 
     public String getDataSheetName() {

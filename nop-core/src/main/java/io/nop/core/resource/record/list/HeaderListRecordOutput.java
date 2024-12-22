@@ -38,7 +38,7 @@ public class HeaderListRecordOutput<R> implements IRecordOutput<List<Object>> {
 
     @Override
     public void write(List<Object> record) {
-        if (skipCount < writeCount) {
+        if (skipCount > writeCount) {
             writeCount++;
             return;
         }

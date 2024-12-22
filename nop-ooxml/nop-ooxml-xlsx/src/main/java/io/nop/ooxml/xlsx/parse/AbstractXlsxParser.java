@@ -7,6 +7,7 @@
  */
 package io.nop.ooxml.xlsx.parse;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.resource.IResource;
@@ -20,43 +21,55 @@ import io.nop.ooxml.xlsx.model.SharedStringsPart;
 import io.nop.ooxml.xlsx.model.WorkbookPart;
 import io.nop.ooxml.xlsx.model.XSSFSheetRef;
 
-public abstract class AbstractXlsxParser extends AbstractResourceParser<ExcelWorkbook> {
+import java.io.Closeable;
+
+import static io.nop.ooxml.xlsx.XlsxErrors.ARG_SHEET_NAME;
+import static io.nop.ooxml.xlsx.XlsxErrors.ERR_XLSX_UNKNOWN_SHEET_NAME;
+
+public abstract class AbstractXlsxParser extends AbstractResourceParser<ExcelWorkbook> implements Closeable {
 
     protected ExcelOfficePackage pkg;
     protected SharedStringsPart sharedStringsTable;
     protected WorkbookPart workbookPart;
 
+    protected ExcelWorkbook wk;
+
     @Override
     protected ExcelWorkbook doParseResource(IResource resource) {
-        ExcelOfficePackage pkg = new ExcelOfficePackage();
+        ExcelOfficePackage pkg = loadFromResource(resource);
         try {
-            pkg.loadFromResource(resource);
-            pkg.setLocation(SourceLocation.fromPath(resource.getPath()));
-            return parseFromPkg(pkg);
+            for (XSSFSheetRef sheetRef : workbookPart.getSheets()) {
+                ExcelSheet sheet = parseSheet(wk, sheetRef, workbookPart);
+                if (sheet != null)
+                    wk.addSheet(sheet);
+            }
+            endParseWorkbook(wk);
+            return wk;
         } finally {
             IoHelper.safeClose(pkg);
         }
     }
 
-    private ExcelWorkbook parseFromPkg(ExcelOfficePackage pkg) {
+    public void close() {
+        pkg.close();
+    }
+
+    public ExcelOfficePackage loadFromResource(IResource resource) {
+        ExcelOfficePackage pkg = new ExcelOfficePackage();
+        pkg.loadFromResource(resource);
+        pkg.setLocation(SourceLocation.fromPath(resource.getPath()));
         this.pkg = pkg;
+
         IOfficePackagePart part = pkg.getPartByContentType(XSSFRelation.SHARED_STRINGS.getType());
         sharedStringsTable = part == null ? null : new SharedStringsTableParser(true).parseFromPart(part);
 
         workbookPart = pkg.getWorkbook();
 
-        ExcelWorkbook wk = new ExcelWorkbook();
+        this.wk = new ExcelWorkbook();
 
         wk.setLocation(pkg.getLocation());
         wk.setStyles(pkg.getStyles().getStyles());
-        for (XSSFSheetRef sheetRef : workbookPart.getSheets()) {
-            ExcelSheet sheet = parseSheet(wk, sheetRef, workbookPart);
-            if (sheet != null)
-                wk.addSheet(sheet);
-        }
-
-        endParseWorkbook(wk);
-        return wk;
+        return pkg;
     }
 
     protected void endParseWorkbook(ExcelWorkbook wk) {
@@ -65,4 +78,10 @@ public abstract class AbstractXlsxParser extends AbstractResourceParser<ExcelWor
 
     protected abstract ExcelSheet parseSheet(ExcelWorkbook workbook, XSSFSheetRef sheetRef, WorkbookPart workbookFile);
 
+    public ExcelSheet parseSheet(String sheetName) {
+        XSSFSheetRef sheetRef = sheetName == null ? workbookPart.getFirstSheet() : workbookPart.requireSheetByName(sheetName);
+        if (sheetRef == null)
+            throw new NopException(ERR_XLSX_UNKNOWN_SHEET_NAME).source(pkg).param(ARG_SHEET_NAME, sheetName);
+        return parseSheet(wk, sheetRef, workbookPart);
+    }
 }

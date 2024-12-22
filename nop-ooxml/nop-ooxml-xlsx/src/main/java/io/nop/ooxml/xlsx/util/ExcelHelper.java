@@ -9,6 +9,7 @@ package io.nop.ooxml.xlsx.util;
 
 import io.nop.commons.mutable.MutableInt;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.IResource;
@@ -26,6 +27,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 public class ExcelHelper {
     public static ExcelWorkbook parseExcel(IResource resource) {
@@ -52,7 +54,7 @@ public class ExcelHelper {
 
     public static List<ExcelSheetData> readAllSheets(IResource xlsx) {
         List<ExcelSheetData> ret = new ArrayList<>();
-        new XlsxToRecordOutput(sheetName -> new HeaderListRecordOutput<>(0, CollectionHelper::toMap) {
+        new XlsxToRecordOutput(sheetName -> new HeaderListRecordOutput<>(0, CollectionHelper::toNonEmptyKeyMap) {
             @Override
             public void close() {
                 ExcelSheetData data = new ExcelSheetData();
@@ -65,22 +67,24 @@ public class ExcelHelper {
     }
 
     public static List<Map<String, Object>> readSheet(IResource xlsx, String selectedSheetName, int skipCount) {
-        HeaderListRecordOutput<Map<String, Object>> output = new HeaderListRecordOutput<>(skipCount, CollectionHelper::toNonEmptyKeyMap);
+        return readSheet(xlsx, selectedSheetName, skipCount, CollectionHelper::toNonEmptyKeyMap);
+    }
 
-        MutableInt index = new MutableInt();
-        new XlsxToRecordOutput(sheetName -> {
-            if (selectedSheetName == null) {
-                if (index.get() > 0)
-                    return null;
-                index.incrementAndGet();
-                return output;
-            } else {
-                if (selectedSheetName.equals(sheetName)) {
-                    return output;
-                }
-                return null;
-            }
-        }).parseFromResource(xlsx);
+    public static List<Map<String, Object>> readSheet(IResource xlsx, String selectedSheetName, int skipCount,
+                                                      BiFunction<List<String>, List<Object>, Map<String, Object>> rowBuilder) {
+        HeaderListRecordOutput<Map<String, Object>> output = new HeaderListRecordOutput<>(skipCount, rowBuilder);
+
+        XlsxToRecordOutput parser = new XlsxToRecordOutput(sheetName -> {
+            return output;
+        });
+
+        try {
+            parser.loadFromResource(xlsx);
+
+            parser.parseSheet(selectedSheetName);
+        } finally {
+            IoHelper.safeCloseObject(parser);
+        }
 
         return output.getResult();
     }

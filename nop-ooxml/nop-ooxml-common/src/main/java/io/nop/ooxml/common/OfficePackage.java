@@ -8,6 +8,7 @@
 package io.nop.ooxml.common;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.mutable.MutableInt;
 import io.nop.commons.util.FileHelper;
@@ -44,7 +45,7 @@ import java.util.TreeMap;
 import static io.nop.ooxml.common.OfficeErrors.ARG_PATH;
 import static io.nop.ooxml.common.OfficeErrors.ERR_OOXML_FILE_PATH_MUST_HAS_EXT;
 
-public class OfficePackage implements Closeable {
+public class OfficePackage implements Closeable , ISourceLocationGetter {
     private SourceLocation location;
 
     private IResourceStore resourceStore;

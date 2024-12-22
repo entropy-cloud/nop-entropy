@@ -12,6 +12,16 @@ public class XSSFSheetRef {
     private String name;
     private String sheetId;
 
+    public XSSFSheetRef() {
+
+    }
+
+    public XSSFSheetRef(String relId, String name, String sheetId){
+        this.relId = relId;
+        this.name = name;
+        this.sheetId = sheetId;
+    }
+
     public String getRelId() {
         return relId;
     }
