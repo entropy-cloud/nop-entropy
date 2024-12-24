@@ -64,6 +64,67 @@ query.setLimit(10);
 这里假定主实体上存在名为`refField`的`to-one`关联，而`deptMappings`是一个`to-many`关联，`otherRefField`是`deptMappings`
 关联的另一个`to-one`关联。
 
+## 增加复杂子查询
+
+```sql
+select
+  t1.course_name as c1 ,
+  count(o.student_id) as c2
+from
+  course_selection as o
+   join course as t1 on o.course_id = t1.course_id
+
+where
+  o.student_id in (
+    select
+      t.student_id as c3
+    from
+      student_follow as t
+
+    where
+      t.follower_id =  1
+
+  )
+group by
+  t1.course_name
+```
+
+QueryBean中可以通过sql子节点来追加复杂过滤条件
+```javascript
+      QueryBean query = new QueryBean();
+      query.addField(QueryFieldBean.forField("course.courseName"));
+      query.addField(QueryFieldBean.forField("studentId").aggFunc("count").alias("cnt"));
+      SQL sql = SQL.begin().sql("o.studentId in (select t.studentId from StudentFollow t where followerId = 1)").end();
+      query.addFilter(FilterBeans.sql(sql));
+      query.setSourceName("CourseSelection");
+
+      orm().findListByQuery(query);
+```
+
+如果是`sql-lib`中的query节点，
+
+```xml
+<query name="testQueryBean" sqlMethod="findAll">
+    <source>
+        <sourceName>CourseSelection</sourceName>
+        <fields>
+            <field name="course.courseName"/>
+            <field name="studentId" aggFunc="count" alias="cnt"/>
+        </fields>
+
+        <filter>
+            <filter:sql xpl:lib="/nop/core/xlib/filter.xlib">
+                o.studentId in (select t.studentId from StudentFollow t where followerId = 1)
+            </filter:sql>
+        </filter>
+
+        <groupBy>
+            <field name="course.courseName"/>
+        </groupBy>
+    </source>
+</query>
+```
+
 ## 在类似MyBatis的sql-lib中管理动态构建的QueryBean
 
 ```xml

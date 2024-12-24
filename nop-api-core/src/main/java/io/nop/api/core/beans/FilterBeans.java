@@ -51,6 +51,7 @@ import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_BLANK;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_EMPTY;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_IN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_NULL;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_SQL;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_UTF8_LENGTH_BETWEEN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_TAG_NAME;
 
@@ -359,5 +360,12 @@ public class FilterBeans {
             return null;
 
         return ret;
+    }
+
+    public static TreeBean sql(Object value) {
+        TreeBean bean = new TreeBean();
+        bean.setTagName(FILTER_OP_SQL);
+        bean.setAttr(FILTER_ATTR_VALUE, value);
+        return bean;
     }
 }

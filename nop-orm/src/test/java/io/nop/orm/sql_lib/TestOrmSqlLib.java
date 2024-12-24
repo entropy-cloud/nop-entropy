@@ -8,7 +8,10 @@
 package io.nop.orm.sql_lib;
 
 import io.nop.api.core.beans.DictBean;
+import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.LongRangeBean;
+import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.beans.query.QueryFieldBean;
 import io.nop.app.SimsClass;
 import io.nop.core.dict.DictProvider;
 import io.nop.core.lang.eval.IEvalScope;
@@ -19,6 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -74,5 +78,22 @@ public class TestOrmSqlLib extends AbstractOrmTestCase {
         assertNotNull(dict);
         assertFalse(dict.getOptions().isEmpty());
         assertNotNull(dict.getOptions().get(0).getValue());
+    }
+
+    @Test
+    public void testQueryBean() {
+        orm().runInSession(() -> {
+            List<Map<String, Object>> ret = (List<Map<String, Object>>) sqlLibManager.invoke("test2.testQueryBean", null, XLang.newEvalScope());
+            assertEquals(0, ret.size());
+        });
+
+        QueryBean query = new QueryBean();
+        query.addField(QueryFieldBean.forField("course.courseName"));
+        query.addField(QueryFieldBean.forField("studentId").aggFunc("count").alias("cnt"));
+        SQL sql = SQL.begin().sql("o.studentId in (select t.studentId from StudentFollow t where followerId = 1)").end();
+        query.addFilter(FilterBeans.sql(sql));
+        query.setSourceName("CourseSelection");
+
+        orm().findListByQuery(query);
     }
 }

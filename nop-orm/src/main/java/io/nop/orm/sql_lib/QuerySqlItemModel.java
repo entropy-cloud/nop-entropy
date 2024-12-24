@@ -30,6 +30,7 @@ public class QuerySqlItemModel extends _QuerySqlItemModel {
 
     public QueryBean buildQueryBean(IEvalContext context) {
         XNode node = getSource().generateNode(context);
+        node.removeJsonPrefix();
         return BeanTool.buildBeanFromTreeBean(node, QueryBean.class);
     }
 

@@ -34,5 +34,25 @@
                 from sims_class o
             </source>
         </sql>
+
+        <query name="testQueryBean" sqlMethod="findAll">
+            <source>
+                <sourceName>CourseSelection</sourceName>
+                <fields>
+                    <field name="course.courseName"/>
+                    <field name="studentId" aggFunc="count" alias="cnt"/>
+                </fields>
+
+                <filter>
+                    <filter:sql xpl:lib="/nop/core/xlib/filter.xlib">
+                        o.studentId in (select t.studentId from StudentFollow t where followerId = 1)
+                    </filter:sql>
+                </filter>
+
+                <groupBy>
+                    <field name="course.courseName"/>
+                </groupBy>
+            </source>
+        </query>
     </sqls>
 </sql-lib>
