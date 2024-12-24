@@ -106,5 +106,9 @@ public interface XptConstants {
 
     String EXT_PROP_XPT_DEFAULT_COL_EXTEND_FOR_SIBLING = "xpt:defaultColExtendForSibling";
 
+    String EXT_PROP_XPT_SINGLE_ROW = "xpt:singleRow";
+    String EXT_PROP_XPT_LABEL_COL_SIZE = "xpt:labelColSize";
+    String EXT_PROP_XPT_VALUE_COL_SIZE = "xpt:valueColSize";
+
     String PROP_FORMULA_EXPR = "formulaExpr";
 }

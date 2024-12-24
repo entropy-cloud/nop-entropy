@@ -11,4 +11,11 @@ public interface XlsxConstants {
     String EMPTY_TEMPLATE_PATH = "/nop/ooxml/templates/empty.xlsx";
 
     String SIMPLE_DATA_TEMPLATE_PATH = "/nop/ooxml/templates/simple-data.xpt.xlsx";
+
+    String SHEET_DATA = "Data";
+
+    String EXT_PROP_XPT_SINGLE_ROW = "xpt:singleRow";
+    String EXT_PROP_XPT_LABEL_COL_SIZE = "xpt:labelColSize";
+    String EXT_PROP_XPT_VALUE_COL_SIZE = "xpt:valueColSize";
+
 }

@@ -11,7 +11,7 @@ import io.nop.xlang.api.XLang;
 
 public class PacketStateMachineHandler extends ChannelDuplexHandler {
     private final IStateMachine stateMachine;
-    private IEvalScope scope = XLang.newEvalScope();
+    private final IEvalScope scope = XLang.newEvalScope();
     private Object stateValue = null;
 
     public PacketStateMachineHandler(IStateMachine stateMachine) {

@@ -22,6 +22,10 @@ public class ExcelWorkbook extends _ExcelWorkbook implements INeedInit {
 
     }
 
+    public void clearSheets() {
+        getSheets().clear();
+    }
+
     public boolean isEnableDump() {
         XptWorkbookModel model = getModel();
         return model == null ? false : Boolean.TRUE.equals(model.getDump());

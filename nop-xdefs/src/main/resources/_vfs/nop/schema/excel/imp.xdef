@@ -73,7 +73,8 @@
                        keyProp="string" alias="csv-set" prop="string" ignoreWhenEmpty="!boolean=false"
                        importDictLabel="!boolean=false"
                        xpt:formatExpr="string" xpt:exportFormula="boolean" xpt:exportFormattedValue="boolean"
-                       xpt:rowExtendForSibling="boolean" xpt:colExtendForSibling="boolean" xpt:colWidth="double"
+                       xpt:rowExtendForSibling="boolean" xpt:colExtendForSibling="boolean"
+                       xpt:labelColSize="int" xpt:valueColSize="int" xpt:singleRow="boolean"
                        imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"
                        headerRowCount="!int=0" noSeqCol="!boolean=false"
                 >

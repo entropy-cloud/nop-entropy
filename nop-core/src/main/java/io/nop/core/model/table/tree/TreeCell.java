@@ -28,7 +28,7 @@ public class TreeCell extends AbstractFreezable implements ITreeStructure, ICell
     private Object model;
     private Object value;
     private String comment;
-    private final TreeCellChildPosition childPos;
+    private TreeCellChildPosition childPos;
 
     private TreeCell parent;
     private List<TreeCell> children;
@@ -58,6 +58,10 @@ public class TreeCell extends AbstractFreezable implements ITreeStructure, ICell
     public TreeCell(Object value, TreeCellChildPosition pos) {
         this.value = value;
         this.childPos = pos;
+    }
+
+    public TreeCell(Object value) {
+        this(value, null);
     }
 
     @Override
@@ -191,6 +195,10 @@ public class TreeCell extends AbstractFreezable implements ITreeStructure, ICell
 
     public TreeCellChildPosition getChildPos() {
         return childPos;
+    }
+
+    public void setChildPos(TreeCellChildPosition childPos) {
+        this.childPos = childPos;
     }
 
     public void setBboxWidth(int bboxWidth) {

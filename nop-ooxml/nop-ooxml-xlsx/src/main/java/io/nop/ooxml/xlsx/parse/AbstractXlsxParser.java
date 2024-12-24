@@ -46,7 +46,7 @@ public abstract class AbstractXlsxParser extends AbstractResourceParser<ExcelWor
             endParseWorkbook(wk);
             return wk;
         } finally {
-            IoHelper.safeClose(pkg);
+            IoHelper.safeCloseObject(pkg);
         }
     }
 

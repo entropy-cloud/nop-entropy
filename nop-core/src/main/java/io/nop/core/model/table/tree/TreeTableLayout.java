@@ -19,10 +19,14 @@ import static io.nop.core.CoreErrors.ERR_TREE_TABLE_UNSUPPORTED_CHILD_POS;
 
 /**
  * TreeTable布局
- *
- * @param <T>
  */
-public class TreeTableLayout<T> {
+public class TreeTableLayout {
+    static final TreeTableLayout _instance = new TreeTableLayout();
+
+    public static TreeTableLayout instance() {
+        return _instance;
+    }
+
     /**
      * 根据子单元格大小和位置计算父单元格的大小和位置。父单元格和子单元格构成一个TreeCellBox，子TreeCellBox完全嵌套在父TreeCellBox内部
      *
