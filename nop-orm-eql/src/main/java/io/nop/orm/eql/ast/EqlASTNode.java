@@ -28,6 +28,12 @@ public abstract class EqlASTNode extends ASTNode<EqlASTNode> implements ISqlExpr
         visitor.visit(this);
     }
 
+    public String toSqlString(){
+        SQL.SqlBuilder sb = SQL.begin();
+        appendTo(sb);
+        return sb.getText();
+    }
+
     public SQL toSQL() {
         SQL.SqlBuilder sb = SQL.begin();
         appendTo(sb);
