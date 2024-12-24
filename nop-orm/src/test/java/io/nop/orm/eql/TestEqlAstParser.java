@@ -3,6 +3,7 @@ package io.nop.orm.eql;
 import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlProgram;
 import io.nop.orm.eql.parse.EqlASTParser;
+import io.nop.orm.eql.parse.EqlExprASTParser;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -22,7 +23,7 @@ public class TestEqlAstParser {
     @Test
     public void parseSqlExpr() {
         String sql = "a=1 or b > 3";
-        SqlExpr expr = new EqlASTParser().parseSqlExpr(null, sql);
+        SqlExpr expr = new EqlExprASTParser().parseFromText(null, sql);
         String result = expr.toSqlString();
         assertEquals("((a =  1 ) or (b >  3 ))", result);
     }
