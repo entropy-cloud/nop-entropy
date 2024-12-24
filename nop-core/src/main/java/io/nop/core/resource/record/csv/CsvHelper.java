@@ -30,6 +30,7 @@ public class CsvHelper {
         CsvRecordInput<T> input = new CsvRecordInput<>(resource, encoding,
                 format, rowType, true, true);
         try {
+            input.beforeRead(null);
             return input.readAll();
         } finally {
             IoHelper.safeCloseObject(input);
