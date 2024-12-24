@@ -18,6 +18,12 @@ public void myMethod(){
 1. 延迟获取连接: 开启事务后并没有立刻获取JDBC连接，只有第一次访问到数据库时才真的获取连接。
 2. 主动释放连接: 如果执行了commit操作，则主动释放JDBC连接（此时事务并没有关闭）。因为事务已经提交，后面再访问数据库的时候可以获取新的连接。
 
+## TransactionPropagation
+这里的设置与Spring框架相同，本身TransactionPropagation类就是从Spring框架中拷贝来。一般常用的是两种
+
+1. REQUIRE_NEW: 要求新启动一个事务，当前事务挂起
+2. REQUIRED: 如果当前没有事务，则新启动一个事务，否则加入当前事务
+
 ## @Transactional注解
 
 在应用代码中可以通过 @Transactional注解来标记Java方法需要在事务环境中执行。限制条件是AOP增强由NopIoC引擎负责执行，因此只有在beans.xml文件中注册的bean才具有事务支持。
