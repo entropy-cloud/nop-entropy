@@ -7,6 +7,7 @@
  */
 package io.nop.batch.core.consumer;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.BatchConstants;
 import io.nop.batch.core.IBatchAggregator;
@@ -16,13 +17,13 @@ import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.common.AbstractBatchResourceHandler;
 import io.nop.batch.core.exceptions.BatchCancelException;
 import io.nop.commons.util.IoHelper;
+import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.record.IResourceRecordOutputProvider;
 import io.nop.dataset.record.IRecordOutput;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static io.nop.batch.core.BatchErrors.ARG_RESOURCE_PATH;
@@ -36,7 +37,7 @@ import static io.nop.batch.core.BatchErrors.ERR_BATCH_WRITE_FILE_FAIL;
 public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHandler
         implements IBatchConsumerProvider<R> {
     private IResourceRecordOutputProvider<R> recordIO;
-    private String encoding;
+    private IEvalAction encodingExpr;
 
     /**
      * 写入文件时如果发生异常，则抛出BatchCancelException，取消整个Batch任务处理
@@ -65,8 +66,8 @@ public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHand
         this.recordIO = recordIO;
     }
 
-    public void setEncoding(String encoding) {
-        this.encoding = encoding;
+    public void setEncodingExpr(IEvalAction encodingExpr) {
+        this.encodingExpr = encodingExpr;
     }
 
     public void setAggregator(IBatchAggregator<R, Object, Map<String, Object>> aggregator) {
@@ -94,6 +95,7 @@ public class ResourceRecordConsumerProvider<R> extends AbstractBatchResourceHand
     ConsumerState<R> newConsumerState(IBatchTaskContext context) {
         ConsumerState<R> state = new ConsumerState<>();
         IResource resource = getResource(context);
+        String encoding = this.encodingExpr == null ? null : ConvertHelper.toString(this.encodingExpr.invoke(context));
         state.output = recordIO.openOutput(resource, encoding);
         Map<String, Object> header = null;
         if (metaProvider != null) {

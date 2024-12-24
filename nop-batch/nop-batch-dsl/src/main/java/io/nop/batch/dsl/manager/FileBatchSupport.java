@@ -45,7 +45,7 @@ public class FileBatchSupport {
         if (loaderModel.getMaxCountExpr() != null)
             loader.setMaxCountExpr(loaderModel.getMaxCountExpr());
         loader.setPathExpr(loaderModel.getFilePath());
-        loader.setEncoding(loaderModel.getEncoding());
+        loader.setEncodingExpr(loaderModel.getEncoding());
         loader.setAggregator(aggregator);
         if (loaderModel.getFilter() != null) {
             IBatchRecordFilter<Object, IBatchTaskContext> filter = new EvalBatchRecordFilter<>(loaderModel.getFilter());
@@ -92,7 +92,7 @@ public class FileBatchSupport {
         IResourceLoader resourceLoader = loadResourceLoader(consumerModel.getResourceLoader(), beanContainer);
 
         ResourceRecordConsumerProvider<Object> writer = new ResourceRecordConsumerProvider<>();
-        writer.setEncoding(consumerModel.getEncoding());
+        writer.setEncodingExpr(consumerModel.getEncoding());
         writer.setPathExpr(consumerModel.getFilePath());
         writer.setRecordIO(recordIO);
         writer.setResourceLoader(resourceLoader);

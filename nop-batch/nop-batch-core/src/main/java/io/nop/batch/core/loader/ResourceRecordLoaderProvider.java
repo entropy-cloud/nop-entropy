@@ -42,7 +42,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         implements IBatchLoaderProvider<S> {
 
     private IResourceRecordInputProvider<S> recordIO;
-    private String encoding;
+    private IEvalAction encodingExpr;
 
     // 对读取的数据进行汇总处理，例如统计读入的总行数等，最后在complete时写入到数据库中
     private IBatchAggregator<S, Object, ?> aggregator;
@@ -85,8 +85,8 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         IBatchTaskContext context;
     }
 
-    public void setEncoding(String encoding) {
-        this.encoding = encoding;
+    public void setEncodingExpr(IEvalAction encodingExpr) {
+        this.encodingExpr = encodingExpr;
     }
 
     public void setAggregator(IBatchAggregator<S, Object, ?> aggregator) {
@@ -146,6 +146,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         LoaderState<S> state = new LoaderState<>();
         state.context = context;
         IResource resource = getResource(context);
+        String encoding = this.encodingExpr == null ? null : ConvertHelper.toString(this.encodingExpr.invoke(context));
         IRecordInput<S> input = recordIO.openInput(resource, encoding);
 
         input.beforeRead(context.getAttributes());

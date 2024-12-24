@@ -75,7 +75,7 @@
         @maxCount 读取的最大记录数，缺省值为-1，表示不限制
         @fileModelPath 文件模型路径。当没有指定resourceIO和newRecordInputProvider时，根据fileModelPath自动生成resourceIO
         -->
-        <file-reader filePath="!t-expr" xdef:name="BatchFileReaderModel" encoding="string"
+        <file-reader filePath="!t-expr" xdef:name="BatchFileReaderModel" encoding="t-expr"
                      csvFormat="string"
                      resourceLoader="bean-name" resourceIO="bean-name" maxCountExpr="expr" fileModelPath="v-path">
             <!-- 动态创建resourceIO -->
@@ -147,7 +147,7 @@
               aggregator="bean-name" metaProvider="bean-name">
         <filter xdef:value="xpl-fn:(item,batchChunkCtx)=>boolean"/>
 
-        <file-writer filePath="!t-expr" xdef:name="BatchFileWriterModel" encoding="string"
+        <file-writer filePath="!t-expr" xdef:name="BatchFileWriterModel" encoding="t-expr"
                      csvFormat="string"
                      resourceLoader="bean-name" resourceIO="bean-name" fileModelPath="v-path">
             <newRecordOutputProvider xdef:value="xpl"/>

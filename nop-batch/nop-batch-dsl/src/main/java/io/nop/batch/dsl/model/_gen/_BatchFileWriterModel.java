@@ -28,7 +28,7 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
      * xml name: encoding
      * 
      */
-    private java.lang.String _encoding ;
+    private io.nop.core.lang.eval.IEvalAction _encoding ;
     
     /**
      *  
@@ -104,12 +104,12 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
      *  
      */
     
-    public java.lang.String getEncoding(){
+    public io.nop.core.lang.eval.IEvalAction getEncoding(){
       return _encoding;
     }
 
     
-    public void setEncoding(java.lang.String value){
+    public void setEncoding(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
         this._encoding = value;
