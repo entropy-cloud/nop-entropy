@@ -217,6 +217,7 @@
             "clearValueOnHidden": false,
             "type": "input-date-range",
             "inputFormat": "YYYY-MM-DD",
+            "valueFormat": "YYYY-MM-DD",
             "shortcuts": "today,yesterday,1dayago,7daysago"
           }
         ]
