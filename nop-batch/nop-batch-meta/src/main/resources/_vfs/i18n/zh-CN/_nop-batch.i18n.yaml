@@ -83,7 +83,6 @@ prop:
       stringValue: 字符串值
       task: 批处理任务
       timestampValue: 时间点值
-      timestampValue_label: 时间点值
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

@@ -32,6 +32,13 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: dataValidations
+     * 
+     */
+    private KeyedList<io.nop.excel.model.ExcelDataValidation> _dataValidations = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: defaultColumnWidth
      * 
      */
@@ -188,6 +195,51 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
 
     public boolean hasConditionalStyles(){
         return !this._conditionalStyles.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: dataValidations
+     *  
+     */
+    
+    public java.util.List<io.nop.excel.model.ExcelDataValidation> getDataValidations(){
+      return _dataValidations;
+    }
+
+    
+    public void setDataValidations(java.util.List<io.nop.excel.model.ExcelDataValidation> value){
+        checkAllowChange();
+        
+        this._dataValidations = KeyedList.fromList(value, io.nop.excel.model.ExcelDataValidation::getId);
+           
+    }
+
+    
+    public io.nop.excel.model.ExcelDataValidation getDataValidation(String name){
+        return this._dataValidations.getByKey(name);
+    }
+
+    public boolean hasDataValidation(String name){
+        return this._dataValidations.containsKey(name);
+    }
+
+    public void addDataValidation(io.nop.excel.model.ExcelDataValidation item) {
+        checkAllowChange();
+        java.util.List<io.nop.excel.model.ExcelDataValidation> list = this.getDataValidations();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.excel.model.ExcelDataValidation::getId);
+            setDataValidations(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_dataValidations(){
+        return this._dataValidations.keySet();
+    }
+
+    public boolean hasDataValidations(){
+        return !this._dataValidations.isEmpty();
     }
     
     /**
@@ -418,6 +470,8 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
             
            this._conditionalStyles = io.nop.api.core.util.FreezeHelper.deepFreeze(this._conditionalStyles);
             
+           this._dataValidations = io.nop.api.core.util.FreezeHelper.deepFreeze(this._dataValidations);
+            
            this._images = io.nop.api.core.util.FreezeHelper.deepFreeze(this._images);
             
            this._model = io.nop.api.core.util.FreezeHelper.deepFreeze(this._model);
@@ -441,6 +495,7 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
         
         out.putNotNull("annotations",this.getAnnotations());
         out.putNotNull("conditionalStyles",this.getConditionalStyles());
+        out.putNotNull("dataValidations",this.getDataValidations());
         out.putNotNull("defaultColumnWidth",this.getDefaultColumnWidth());
         out.putNotNull("defaultRowHeight",this.getDefaultRowHeight());
         out.putNotNull("images",this.getImages());
@@ -464,6 +519,7 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
         
         instance.setAnnotations(this.getAnnotations());
         instance.setConditionalStyles(this.getConditionalStyles());
+        instance.setDataValidations(this.getDataValidations());
         instance.setDefaultColumnWidth(this.getDefaultColumnWidth());
         instance.setDefaultRowHeight(this.getDefaultRowHeight());
         instance.setImages(this.getImages());

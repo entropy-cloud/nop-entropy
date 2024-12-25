@@ -33,8 +33,6 @@ public class ImportModelToExportModel {
         ExcelSheet sheet = new ExcelSheet();
         sheet.setName(sheetModel.getName());
         sheet.setLocation(sheetModel.getLocation());
-
-
         return sheet;
     }
 

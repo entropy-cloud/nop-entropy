@@ -20,6 +20,7 @@ package io.nop.ooxml.xlsx.parse;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.CellRange;
 import io.nop.excel.model.ExcelColumnConfig;
+import io.nop.excel.model.ExcelDataValidation;
 import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.model.ExcelPageSetup;
 
@@ -69,6 +70,10 @@ public interface SheetContentsHandler {
     void drawing(String id);
 
     void link(String ref, String location, String rId);
+
+    default void dataValidation(ExcelDataValidation validation){
+
+    }
 
     /**
      * A header or footer has been encountered

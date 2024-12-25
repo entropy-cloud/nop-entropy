@@ -9,11 +9,15 @@ package io.nop.core.model.table;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.IJsonString;
 import io.nop.commons.util.StringHelper;
 
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static io.nop.core.CoreErrors.ARG_COL_INDEX;
 import static io.nop.core.CoreErrors.ARG_ROW_INDEX;
@@ -67,6 +71,32 @@ public class CellRange implements Serializable, Comparable<CellRange>, IJsonStri
         return new CellRange(first.getRowIndex(), first.getColIndex(), last.getRowIndex(), last.getColIndex());
     }
 
+    public static String toABStringList(List<CellRange> ranges) {
+        if (ranges.isEmpty())
+            return "";
+        if (ranges.size() == 1)
+            return ranges.get(0).toABString();
+
+        StringBuilder sb = new StringBuilder();
+        for (CellRange range : ranges) {
+            if (sb.length() > 0)
+                sb.append(',');
+            sb.append(range.toABString());
+        }
+        return sb.toString();
+    }
+
+    public static List<CellRange> parseRangeList(String str) {
+        if (StringHelper.isEmpty(str))
+            return Collections.emptyList();
+
+        if (str.indexOf(',') < 0)
+            return Collections.singletonList(fromABString(str));
+
+        List<String> parts = ConvertHelper.toCsvList(str, NopException::new);
+        return parts.stream().map(CellRange::fromABString).collect(Collectors.toList());
+    }
+
     public static CellRange fromABString(String str) {
         if (StringHelper.isEmpty(str))
             return null;
@@ -92,6 +122,22 @@ public class CellRange implements Serializable, Comparable<CellRange>, IJsonStri
 
         return CellPosition.toABString(firstRowIndex, firstColIndex, rowAbs, colAbs) + ':'
                 + CellPosition.toABString(lastRowIndex, lastColIndex, rowAbs, colAbs);
+    }
+
+    public String getFirstCellAbString() {
+        return CellPosition.toABString(firstRowIndex, firstColIndex);
+    }
+
+    public String getLastCellAbString() {
+        return CellPosition.toABString(lastRowIndex, lastColIndex);
+    }
+
+    public boolean isToMaxRows() {
+        return lastRowIndex >= CellPosition.MAX_ROWS - 1;
+    }
+
+    public boolean isToMaxCols() {
+        return lastColIndex >= CellPosition.MAX_COLS - 1;
     }
 
     public String toRCString() {

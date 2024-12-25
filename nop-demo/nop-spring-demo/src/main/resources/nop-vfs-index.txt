@@ -313,6 +313,8 @@
 /nop/graphql/introspection.graphql
 /nop/http/beans/http-client-jdk.beans.xml
 /nop/integration/beans/zxing-defaults.beans.xml
+/nop/ooxml/templates/empty.xlsx
+/nop/ooxml/templates/simple-data.xpt.xlsx
 /nop/orm/beans/orm-defaults.beans.xml
 /nop/orm/defaults/default.orm.xml
 /nop/orm/defaults/dsl-default.orm.xml

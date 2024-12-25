@@ -28,6 +28,7 @@ import io.nop.core.lang.xml.handler.XNodeHandlerAdapter;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.CellRange;
 import io.nop.excel.model.ExcelColumnConfig;
+import io.nop.excel.model.ExcelDataValidation;
 import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.model.ExcelPageSetup;
 import io.nop.excel.util.UnitsHelper;
@@ -84,6 +85,10 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
 //    private Queue<CellPosition> commentCellRefs;
 
     private List<ExcelColumnConfig> cols;
+
+    private ExcelDataValidation dataValidation;
+    private final StringBuilder validationFormula = new StringBuilder(64);
+    private boolean vfOpen = false;
 
     public SheetNodeHandler(SharedStringsPart sharedStringsTable, SheetContentsHandler output) {
         this.sharedStringsTable = sharedStringsTable;
@@ -281,6 +286,24 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             pageSetup.setPaperSize(paperSize);
             pageSetup.setOrientationHorizontal(horizontal);
             output.pageSetup(pageSetup);
+        } else if ("dataValidation".equals(localName)) {
+            String type = getAttr(attrs, "type");
+            String sqref = getAttr(attrs, "sqref");
+            boolean allowBlank = getAttrBoolean(attrs, "allowBlank", true);
+            boolean showInputMessage = getAttrBoolean(attrs, "showInputMessage", true);
+            boolean showErrorMessage = getAttrBoolean(attrs, "showErrorMessage", true);
+            String id = getAttr(attrs, "xr:uid");
+
+            dataValidation = new ExcelDataValidation();
+            dataValidation.setType(type);
+            dataValidation.setSqref(sqref);
+            dataValidation.setAllowBlank(allowBlank);
+            dataValidation.setShowInputMessage(showInputMessage);
+            dataValidation.setShowErrorMessage(showErrorMessage);
+            dataValidation.setId(id);
+        } else if ("formula".equals(localName)) {
+            validationFormula.setLength(0);
+            vfOpen = true;
         }
     }
 
@@ -313,6 +336,12 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             output.headerFooter(headerFooter.toString(), false, localName);
         } else if ("cols".equals(localName)) {
             output.cols(cols);
+        } else if ("dataValidation".equals(localName)) {
+            output.dataValidation(dataValidation);
+        } else if ("formula".equals(localName)) {
+            vfOpen = false;
+            dataValidation.setFormula(validationFormula.toString());
+            validationFormula.setLength(0);
         }
     }
 
@@ -329,6 +358,10 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
         }
         if (hfIsOpen) {
             headerFooter.append(text);
+        }
+
+        if (vfOpen) {
+            validationFormula.append(text);
         }
     }
 

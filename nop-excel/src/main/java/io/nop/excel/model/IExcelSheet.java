@@ -9,7 +9,6 @@ package io.nop.excel.model;
 
 import io.nop.core.model.table.IColumnConfig;
 import io.nop.core.model.table.IRowView;
-import io.nop.core.model.table.ITableView;
 import io.nop.excel.ExcelConstants;
 
 import java.util.List;
@@ -27,6 +26,8 @@ public interface IExcelSheet {
 
     ExcelPageBreaks getPageBreaks();
 
+    List<ExcelDataValidation> getDataValidations();
+
     Double getDefaultRowHeight();
 
     Double getDefaultColumnWidth();
@@ -39,7 +40,7 @@ public interface IExcelSheet {
         double sum = 0;
         for (int i = fromColIndex; i <= toColIndex; i++) {
             IColumnConfig col = getTable().getCol(i);
-            if(col != null && col.isHidden())
+            if (col != null && col.isHidden())
                 continue;
 
             Double d;
@@ -59,7 +60,7 @@ public interface IExcelSheet {
         double sum = 0;
         for (int i = fromRowIndex; i <= toRowIndex; i++) {
             IRowView row = getTable().getRow(i);
-            if(row != null && row.isHidden())
+            if (row != null && row.isHidden())
                 continue;
 
             Double d;

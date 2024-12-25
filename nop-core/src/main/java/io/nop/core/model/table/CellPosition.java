@@ -34,7 +34,7 @@ public class CellPosition implements Serializable, Comparable<CellPosition>, IJs
 
     private static final long serialVersionUID = 6640189410792108663L;
 
-    public final static int MAX_ROWS = 1024 * 1024;
+    public final static int MAX_ROWS = 1024 * 1024; // 1048576
     public final static int MAX_COLS = 65536;
 
     private final int rowIndex;
@@ -100,6 +100,14 @@ public class CellPosition implements Serializable, Comparable<CellPosition>, IJs
 
     public boolean isWholeCol() {
         return rowIndex < 0;
+    }
+
+    public boolean isToMaxRows() {
+        return rowIndex >= MAX_ROWS - 1;
+    }
+
+    public boolean isToMaxCols() {
+        return colIndex >= MAX_COLS - 1;
     }
 
     public String toString() {

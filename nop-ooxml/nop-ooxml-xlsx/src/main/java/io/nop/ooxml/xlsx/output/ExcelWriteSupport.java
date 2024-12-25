@@ -13,6 +13,7 @@ import io.nop.core.model.table.IRowView;
 import io.nop.core.model.table.ITableView;
 import io.nop.excel.ExcelConstants;
 import io.nop.excel.format.ExcelDateHelper;
+import io.nop.excel.model.ExcelDataValidation;
 import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.model.ExcelPageSetup;
 import io.nop.excel.model.ExcelStyle;
@@ -20,6 +21,7 @@ import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
 import io.nop.excel.util.UnitsHelper;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -75,6 +77,7 @@ public class ExcelWriteSupport {
         genRows(out, sheet);
         genMergeCells(out, sheet.getTable());
 
+        genDataValidations(out, sheet);
         genLinks(out, sheet, context);
 
         genPageMargins(out, sheet.getPageMargins());
@@ -274,6 +277,14 @@ public class ExcelWriteSupport {
         return location;
     }
 
+    public String hashToUUID(String name) {
+        if (name.startsWith("{") && name.endsWith("}") && name.length() == 38) {
+            return name;
+        }
+        UUID uuid = UUID.nameUUIDFromBytes(name.getBytes(StandardCharsets.UTF_8));
+        return "{" + uuid + "}";
+    }
+
     public static String intToUUID(int number) {
         // 第一步：获取整数的哈希码
         int hashCode = Integer.hashCode(number);
@@ -329,6 +340,30 @@ public class ExcelWriteSupport {
             }
             out.endNode("mergeCells");
         }
+    }
+
+    public void genDataValidations(IXNodeHandler out, IExcelSheet sheet) {
+        List<ExcelDataValidation> validations = sheet.getDataValidations();
+        if (validations == null || validations.isEmpty())
+            return;
+
+        out.beginNode(null, "dataValidations", attrs("count", validations.size()));
+        for (ExcelDataValidation validation : validations) {
+            int allowBlank = Boolean.TRUE.equals(validation.getAllowBlank()) ? 1 : 0;
+            int showInputMessage = Boolean.TRUE.equals(validation.getShowInputMessage()) ? 1 : 0;
+            int showErrorMessage = Boolean.TRUE.equals(validation.getShowErrorMessage()) ? 1 : 0;
+            out.beginNode(null, "dataValidation", attrs("type", validation.getType(),
+                    "allowBlank", allowBlank, "showInputMessage", showInputMessage, "showErrorMessage", showErrorMessage, "sqref", validation.getSqref()));
+            if (validation.getFormula() != null) {
+                out.beginNode("formula");
+                out.value(null, validation.getFormula());
+                out.endNode("formula");
+            }
+            out.endNode("dataValidation");
+
+        }
+        out.endNode("dataValidations");
+
     }
 
     public void genPageMargins(IXNodeHandler out, ExcelPageMargins margins) {

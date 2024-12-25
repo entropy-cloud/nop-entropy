@@ -24,6 +24,10 @@ class NopAuthUser {
 }
 ```
 
+## 避免循环依赖
+为了避免数据表之间出现循环依赖，可以在`to-one`关联上设置`ignoreDepends="true"`，对应于Excel模型中设置【忽略关联】属性为TRUE。
+比如nop-auth模块中`app.orm.xml`对于User表和Department表之间相互关系的设置。
+
 ## 支持关联查询
 
 定义了关联属性之后后台代码就可以直接使用关联查询了。但是为了暴露GraphQL服务还需要在meta文件中进行配置
@@ -72,6 +76,6 @@ meta中prop的sortable是后台服务是否支持排序，而grid的prop上的so
 
 sessionId是列表中已有的字段。session.loginAddr是新增的关联字段，它被插入到sessionId字段的后面。
 
-> 
+>
 
 Nop平台的Delta合并策略会尽量保持原有节点顺序，具体规则参见 [x-override.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/dev-guide/xlang/x-override.md)

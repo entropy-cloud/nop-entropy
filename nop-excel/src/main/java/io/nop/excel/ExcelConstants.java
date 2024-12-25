@@ -54,4 +54,6 @@ public interface ExcelConstants {
 
     String ORIENTATION_LANDSCAPE = "landscape";
     String ORIENTATION_PORTRAIT = "portrait";
+
+    String DATA_VALIDATION_TYPE_LIST = "list";
 }

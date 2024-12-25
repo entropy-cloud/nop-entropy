@@ -103,6 +103,8 @@
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql
 /nop/graphql/introspection.graphql
+/nop/ooxml/templates/empty.xlsx
+/nop/ooxml/templates/simple-data.xpt.xlsx
 /nop/ooxml/xlib/docx-gen.xlib
 /nop/orm/beans/orm-defaults.beans.xml
 /nop/orm/defaults/default.orm.xml

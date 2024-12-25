@@ -7,6 +7,7 @@
  */
 package io.nop.report.core.model;
 
+import io.nop.excel.model.ExcelDataValidation;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelPageBreaks;
 import io.nop.excel.model.ExcelPageMargins;
@@ -29,6 +30,7 @@ public class ExpandedSheet implements IExcelSheet {
     private Double defaultColumnWidth;
 
     private List<ExcelImage> images;
+    private List<ExcelDataValidation> dataValidations;
 
     public ExpandedSheet(XptSheetModel model, ExpandedTable table) {
         this.model = model;
@@ -44,6 +46,15 @@ public class ExpandedSheet implements IExcelSheet {
         setPageSetup(sheet.getPageSetup());
         setDefaultRowHeight(sheet.getDefaultRowHeight());
         setDefaultColumnWidth(sheet.getDefaultColumnWidth());
+    }
+
+    @Override
+    public List<ExcelDataValidation> getDataValidations() {
+        return dataValidations;
+    }
+
+    public void setDataValidations(List<ExcelDataValidation> dataValidations) {
+        this.dataValidations = dataValidations;
     }
 
     @Override

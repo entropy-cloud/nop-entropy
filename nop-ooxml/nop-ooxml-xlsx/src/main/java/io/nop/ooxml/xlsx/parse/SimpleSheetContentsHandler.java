@@ -9,6 +9,7 @@ import io.nop.excel.ExcelConstants;
 import io.nop.excel.format.ExcelDateHelper;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelColumnConfig;
+import io.nop.excel.model.ExcelDataValidation;
 import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.model.ExcelPageSetup;
 import io.nop.excel.model.ExcelRow;
@@ -132,5 +133,10 @@ public class SimpleSheetContentsHandler implements SheetContentsHandler {
         if (styleId == null)
             return null;
         return wk.getStyle(styleId);
+    }
+
+    @Override
+    public void dataValidation(ExcelDataValidation validation) {
+        sheet.addDataValidation(validation);
     }
 }

@@ -5,7 +5,7 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
 
 -->
 <workbook x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
-          xdef:bean-package="io.nop.excel.model" xmlns:qr="qr" xdef:check-ns="qr"
+          xdef:bean-package="io.nop.excel.model" xdef:check-ns="qr"
           xdef:name="ExcelWorkbook">
 
     <props xdef:body-type="list" xdef:key-attr="name">
@@ -23,7 +23,7 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
 
     <sheets xdef:body-type="list" xdef:key-attr="name">
         <sheet name="!string" xdef:name="ExcelSheet" defaultColumnWidth="double" defaultRowHeight="double">
-            <table xdef:ref="excel-table.xdef" />
+            <table xdef:ref="excel-table.xdef"/>
 
             <images xdef:body-type="list" xdef:key-attr="name">
                 <!--
@@ -63,6 +63,20 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
 
             <sheetOptions xdef:name="ExcelSheetOptions" splitHorizontal="int" splitVertical="int"
                           fitToPage="!boolean=false"/>
+
+            <dataValidations xdef:body-type="list" xdef:key-attr="id">
+                <!--
+                @allowBlank 是否允许为空
+                @showInputMessage 是否显示输入提示
+                @showErrorMessage 是否显示错误提示
+                @sqref 指定数据验证的单元格范围
+                -->
+                <dataValidation xdef:name="ExcelDataValidation" id="!string"
+                                type="!string" allowBlank="boolean" showInputMessage="boolean"
+                                showErrorMessage="boolean" sqref="!string">
+                    <formula xdef:value="string"/>
+                </dataValidation>
+            </dataValidations>
 
             <pageSetup xdef:ref="page-setup.xdef"/>
 

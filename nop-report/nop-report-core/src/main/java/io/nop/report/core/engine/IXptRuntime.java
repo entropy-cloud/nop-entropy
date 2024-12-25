@@ -13,6 +13,7 @@ import io.nop.commons.cache.ICache;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.dict.DictProvider;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.model.table.CellRange;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.report.core.XptConstants;
@@ -22,6 +23,9 @@ import io.nop.report.core.model.ExpandedCellSet;
 import io.nop.report.core.model.ExpandedRow;
 import io.nop.report.core.model.ExpandedSheet;
 import io.nop.report.core.model.ExpandedTable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public interface IXptRuntime extends IEvalContext {
     static IXptRuntime fromScope(IEvalScope scope) {
@@ -77,6 +81,23 @@ public interface IXptRuntime extends IEvalContext {
      * 解析层次坐标返回对应的单元格集合。这个函数仅作为示例使用，用于演示不使用支持层次坐标的表达式引擎时如何处理
      */
     ExpandedCellSet cells(String cellExpr);
+
+    default CellRange getExpandedCellRange(CellRange cellRange) {
+        ExpandedTable table = getTable();
+        if (table == null)
+            return null;
+        return table.getExpandedCellRange(cellRange);
+    }
+
+    default List<CellRange> getExpandedCellRanges(List<CellRange> cellRanges) {
+        List<CellRange> ret = new ArrayList<>(cellRanges.size());
+        for (CellRange cellRange : cellRanges) {
+            CellRange expanded = getExpandedCellRange(cellRange);
+            if (expanded != null)
+                ret.add(expanded);
+        }
+        return ret;
+    }
 
     /**
      * 递增计数器并返回递增前的值

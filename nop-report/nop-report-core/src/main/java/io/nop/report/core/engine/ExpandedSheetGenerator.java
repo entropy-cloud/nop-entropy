@@ -16,7 +16,9 @@ import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.model.table.CellRange;
 import io.nop.excel.model.ExcelClientAnchor;
+import io.nop.excel.model.ExcelDataValidation;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
@@ -39,8 +41,10 @@ import io.nop.xlang.ast.Expression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
@@ -157,6 +161,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
         ExpandedSheetEvaluator.INSTANCE.evaluateImages(expandedSheet, sheet.getImages(), xptRt);
         collectImages(expandedSheet);
 
+        initDataValidations(sheet, expandedSheet, xptRt);
         initExportFormula(expandedSheet, xptRt);
 
         return expandedSheet;
@@ -219,6 +224,25 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
             }
         }
         return removed;
+    }
+
+    private void initDataValidations(ExcelSheet sheetTpl, ExpandedSheet sheet, IXptRuntime xptRt) {
+        if (sheetTpl.getDataValidations() != null && !sheetTpl.getDataValidations().isEmpty()) {
+            List<ExcelDataValidation> validations = new ArrayList<>(sheetTpl.getDataValidations().size());
+            for (ExcelDataValidation validation : sheetTpl.getDataValidations()) {
+                ExcelDataValidation copy = validation.cloneInstance();
+                List<CellRange> ranges = copy.getRanges();
+                if (ranges != null) {
+                    ranges = xptRt.getExpandedCellRanges(ranges);
+                    if (ranges != null && !ranges.isEmpty()) {
+                        copy.setRanges(ranges);
+                        validations.add(copy);
+                    }
+                }
+            }
+            if (!validations.isEmpty())
+                sheet.setDataValidations(validations);
+        }
     }
 
     private void initExportFormula(ExpandedSheet sheet, IXptRuntime xptRt) {

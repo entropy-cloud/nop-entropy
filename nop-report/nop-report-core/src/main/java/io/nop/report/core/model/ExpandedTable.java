@@ -9,6 +9,8 @@ package io.nop.report.core.model;
 
 import io.nop.api.core.util.ProcessResult;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.core.model.table.CellPosition;
+import io.nop.core.model.table.CellRange;
 import io.nop.core.reflect.hook.SerializableExtensibleObject;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelTable;
@@ -42,6 +44,41 @@ public class ExpandedTable extends SerializableExtensibleObject implements IExce
 
     public ExpandedTable(int rowCount, int colCount) {
         this.initEmptyTable(rowCount, colCount);
+    }
+
+    public CellRange getExpandedCellRange(CellRange range) {
+        ExpandedCell startCell = getNamedCell(range.getFirstCellAbString());
+        if (startCell == null)
+            return null;
+
+        int firstRowIndex = startCell.getRowIndex();
+        int firstColIndex = startCell.getColIndex();
+
+        int lastRowIndex = range.getLastRowIndex();
+        int lastColIndex = range.getLastColIndex();
+
+        if (!range.isToMaxCols() || !range.isToMaxRows()) {
+            ExpandedCell lastCell;
+            if (range.isToMaxCols()) {
+                lastCell = getLastNamedCell(CellPosition.toABString(lastRowIndex, firstColIndex));
+                if (lastCell != null) {
+                    lastRowIndex = lastCell.getRowIndex();
+                }
+            } else if (range.isToMaxRows()) {
+                lastCell = getLastNamedCell(CellPosition.toABString(firstRowIndex, lastColIndex));
+                if (lastCell != null) {
+                    lastColIndex = lastCell.getColIndex();
+                }
+            } else {
+                lastCell = getNamedCell(range.getLastCellAbString());
+                if (lastCell != null) {
+                    lastRowIndex = lastCell.getRowIndex();
+                    lastColIndex = lastCell.getColIndex();
+                }
+            }
+        }
+
+        return new CellRange(firstRowIndex, firstColIndex, lastRowIndex, lastColIndex);
     }
 
     public void assignRowIndexAndColIndex() {
@@ -141,6 +178,13 @@ public class ExpandedTable extends SerializableExtensibleObject implements IExce
     public ExpandedCell getNamedCell(String cellName) {
         List<ExpandedCell> cells = getNamedCells(cellName);
         return cells == null ? null : cells.get(0);
+    }
+
+    public ExpandedCell getLastNamedCell(String cellName) {
+        List<ExpandedCell> cells = getNamedCells(cellName);
+        if (cells == null)
+            return null;
+        return cells.get(cells.size() - 1);
     }
 
     private void initParentForExpanded(Map<IExcelCell, ExpandedCell> cellMap) {
