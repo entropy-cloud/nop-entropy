@@ -75,10 +75,10 @@ public class FileBatchSupport {
 
         CsvResourceRecordIO<Object> io = new CsvResourceRecordIO<>();
         io.setHeaders(readerModel.getHeaders());
-        io.setHeaders(readerModel.getHeaderLabels());
-        io.setHeaders(readerModel.getHeaders());
         io.setHeaderLabels(readerModel.getHeaderLabels());
-        io.setFormat(readerModel.getCsvFormat());
+        if (readerModel.getCsvFormat() != null) {
+           io.setFormat(readerModel.getCsvFormat());
+        }
         if (readerModel.getHeadersNormalizer() != null) {
             io.setHeadersNormalizer(headers -> (List<String>) readerModel.getHeadersNormalizer().call1(null, headers, XLang.newEvalScope()));
         }
@@ -125,9 +125,9 @@ public class FileBatchSupport {
         CsvResourceRecordIO<Object> io = new CsvResourceRecordIO<>();
         io.setHeaders(writerModel.getHeaders());
         io.setHeaderLabels(writerModel.getHeaderLabels());
-        io.setFormat(writerModel.getCsvFormat());
-        io.setHeaders(writerModel.getHeaders());
-        io.setHeaderLabels(writerModel.getHeaderLabels());
+        if (writerModel.getCsvFormat() != null) {
+           io.setFormat(writerModel.getCsvFormat());
+        }
         return io;
     }
 
