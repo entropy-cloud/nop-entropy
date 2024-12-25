@@ -339,9 +339,11 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
         } else if ("dataValidation".equals(localName)) {
             output.dataValidation(dataValidation);
         } else if ("formula".equals(localName)) {
-            vfOpen = false;
-            dataValidation.setFormula(validationFormula.toString());
-            validationFormula.setLength(0);
+            if(dataValidation != null) {
+                vfOpen = false;
+                dataValidation.setFormula(validationFormula.toString());
+                validationFormula.setLength(0);
+            }
         }
     }
 
