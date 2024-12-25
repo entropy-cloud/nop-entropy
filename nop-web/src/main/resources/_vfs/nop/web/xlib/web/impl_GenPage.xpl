@@ -29,7 +29,7 @@
             <c:include src="page_tabs.xpl"/>
         </when>
         <otherwise>
-            <c:throw errorCode="nop.err.web.unknown-page-type" params="${{type:pageModel.type}}"/>
+            <thisLib:GenPageDefault />
         </otherwise>
     </c:choose>
 </c:unit>

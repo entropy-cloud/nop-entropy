@@ -14,6 +14,17 @@
             </source>
         </GenPage>
 
+        <GenPageDefault outputMode="xjson">
+            <attr name="viewModel" mandatory="true" implicit="true"/>
+            <attr name="pageModel" mandatory="true" implicit="true"/>
+            <attr name="objMeta" implicit="true" />
+            <attr name="controlLib" implicit="true" />
+
+            <source>
+                <c:throw errorCode="nop.err.web.unknown-page-type" params="${{type:pageModel.type}}"/>
+            </source>
+        </GenPageDefault>
+
         <GenForm outputMode="xjson">
             <attr name="view" mandatory="true" type="String" stdDomain="v-path"/>
             <attr name="form" mandatory="true" type="string"/>
