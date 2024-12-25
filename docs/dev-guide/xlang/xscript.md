@@ -59,9 +59,11 @@ result = xpl('my:MyTag',1, x+3)
 ```
 
 为了避免与Java类上已经定义的方法名冲突，一般扩展方法注册时都增加`$`前缀。
-`ListFunctions`为`List`增加了`push`/`pop`等JavaScript中`Array`对象的方法，为了尽量和JavaScript语法接近，这些扩展方法没有增加`$`前缀。
+`ListFunctions`为`List`增加了`push`/`pop`等JavaScript中`Array`对象的方法，为了尽量和JavaScript语法接近，这些扩展方法没有增加
+`$`前缀。
 
-4. 安全性限制。所有以`$`为前缀的变量名保留为系统变量名，无法在XScript脚本中声明或者设置以`$`为前缀的变量。禁止访问`System`, `Class`等敏感对象。
+4. 安全性限制。所有以`$`为前缀的变量名保留为系统变量名，无法在XScript脚本中声明或者设置以`$`为前缀的变量。禁止访问`System`,
+   `Class`等敏感对象。
 
 ## 全局变量
 
@@ -73,6 +75,21 @@ result = xpl('my:MyTag',1, x+3)
 2. `/r/DevDoc__globalVars`
 
 其他调试信息参见[debug.md](../debug.md)
+
+| 变量名           | 描述                                  |
+|---------------|-------------------------------------|
+| $context      | 对应于ContextProvider.currentContext() |
+| $scope        | 当前运行时的IEvalScope                    |
+| $out          | 当前运行时的IEvalOutput                   |
+| $beanProvider | 当前运行时的IEvalScope所关联的IBeanProvider   |
+| $evalRt       | 当前运行时 EvalRuntime                   |
+| $             | 对应于 Guard类                          |
+| $JSON         | 对应于JsonTool类                        |
+| $Math         | 对应于MathHelper类                      |
+| $String       | 对应于StringHelper类                    |
+| $Date         | 对应于DateHelper类                      |
+| _             | 对应于Underscore类                      |
+| $config       | 对应于AppConfig类                       |
 
 ## 特定上下文变量
 

@@ -27,6 +27,6 @@ public class ContextGlobalVariable implements IGlobalVariableDefinition {
 
     @Override
     public Object getValue(EvalRuntime rt) {
-        return ContextProvider.instance().currentContext();
+        return ContextProvider.currentContext();
     }
 }
