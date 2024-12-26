@@ -588,7 +588,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 主键: SID
      */
-    public java.lang.String getSid(){
+    public final java.lang.String getSid(){
          onPropGet(PROP_ID_sid);
          return _sid;
     }
@@ -596,7 +596,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 主键: SID
      */
-    public void setSid(java.lang.String value){
+    public final void setSid(java.lang.String value){
         if(onPropSet(PROP_ID_sid,value)){
             this._sid = value;
             internalClearRefs(PROP_ID_sid);
@@ -607,7 +607,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 文件名: FILE_NAME
      */
-    public java.lang.String getFileName(){
+    public final java.lang.String getFileName(){
          onPropGet(PROP_ID_fileName);
          return _fileName;
     }
@@ -615,7 +615,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 文件名: FILE_NAME
      */
-    public void setFileName(java.lang.String value){
+    public final void setFileName(java.lang.String value){
         if(onPropSet(PROP_ID_fileName,value)){
             this._fileName = value;
             internalClearRefs(PROP_ID_fileName);
@@ -626,7 +626,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 文件路径: FILE_PATH
      */
-    public java.lang.String getFilePath(){
+    public final java.lang.String getFilePath(){
          onPropGet(PROP_ID_filePath);
          return _filePath;
     }
@@ -634,7 +634,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 文件路径: FILE_PATH
      */
-    public void setFilePath(java.lang.String value){
+    public final void setFilePath(java.lang.String value){
         if(onPropSet(PROP_ID_filePath,value)){
             this._filePath = value;
             internalClearRefs(PROP_ID_filePath);
@@ -645,7 +645,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 文件长度: FILE_LENGTH
      */
-    public java.lang.Long getFileLength(){
+    public final java.lang.Long getFileLength(){
          onPropGet(PROP_ID_fileLength);
          return _fileLength;
     }
@@ -653,7 +653,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 文件长度: FILE_LENGTH
      */
-    public void setFileLength(java.lang.Long value){
+    public final void setFileLength(java.lang.Long value){
         if(onPropSet(PROP_ID_fileLength,value)){
             this._fileLength = value;
             internalClearRefs(PROP_ID_fileLength);
@@ -664,7 +664,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 文件分类: FILE_CATEGORY
      */
-    public java.lang.String getFileCategory(){
+    public final java.lang.String getFileCategory(){
          onPropGet(PROP_ID_fileCategory);
          return _fileCategory;
     }
@@ -672,7 +672,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 文件分类: FILE_CATEGORY
      */
-    public void setFileCategory(java.lang.String value){
+    public final void setFileCategory(java.lang.String value){
         if(onPropSet(PROP_ID_fileCategory,value)){
             this._fileCategory = value;
             internalClearRefs(PROP_ID_fileCategory);
@@ -683,7 +683,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 文件来源: FILE_SOURCE
      */
-    public java.lang.String getFileSource(){
+    public final java.lang.String getFileSource(){
          onPropGet(PROP_ID_fileSource);
          return _fileSource;
     }
@@ -691,7 +691,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 文件来源: FILE_SOURCE
      */
-    public void setFileSource(java.lang.String value){
+    public final void setFileSource(java.lang.String value){
         if(onPropSet(PROP_ID_fileSource,value)){
             this._fileSource = value;
             internalClearRefs(PROP_ID_fileSource);
@@ -702,7 +702,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 批处理任务: BATCH_TASK_ID
      */
-    public java.lang.String getBatchTaskId(){
+    public final java.lang.String getBatchTaskId(){
          onPropGet(PROP_ID_batchTaskId);
          return _batchTaskId;
     }
@@ -710,7 +710,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 批处理任务: BATCH_TASK_ID
      */
-    public void setBatchTaskId(java.lang.String value){
+    public final void setBatchTaskId(java.lang.String value){
         if(onPropSet(PROP_ID_batchTaskId,value)){
             this._batchTaskId = value;
             internalClearRefs(PROP_ID_batchTaskId);
@@ -721,7 +721,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 处理状态: PROCESS_STATE
      */
-    public java.lang.String getProcessState(){
+    public final java.lang.String getProcessState(){
          onPropGet(PROP_ID_processState);
          return _processState;
     }
@@ -729,7 +729,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 处理状态: PROCESS_STATE
      */
-    public void setProcessState(java.lang.String value){
+    public final void setProcessState(java.lang.String value){
         if(onPropSet(PROP_ID_processState,value)){
             this._processState = value;
             internalClearRefs(PROP_ID_processState);
@@ -740,7 +740,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 文件接收时间: ACCEPT_DATE
      */
-    public java.time.LocalDate getAcceptDate(){
+    public final java.time.LocalDate getAcceptDate(){
          onPropGet(PROP_ID_acceptDate);
          return _acceptDate;
     }
@@ -748,7 +748,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 文件接收时间: ACCEPT_DATE
      */
-    public void setAcceptDate(java.time.LocalDate value){
+    public final void setAcceptDate(java.time.LocalDate value){
         if(onPropSet(PROP_ID_acceptDate,value)){
             this._acceptDate = value;
             internalClearRefs(PROP_ID_acceptDate);
@@ -759,7 +759,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Long getVersion(){
+    public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -767,7 +767,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Long value){
+    public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -778,7 +778,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -786,7 +786,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -797,7 +797,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -805,7 +805,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -816,7 +816,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -824,7 +824,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -835,7 +835,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -843,7 +843,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -854,7 +854,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -862,7 +862,7 @@ public class _NopBatchFile extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);

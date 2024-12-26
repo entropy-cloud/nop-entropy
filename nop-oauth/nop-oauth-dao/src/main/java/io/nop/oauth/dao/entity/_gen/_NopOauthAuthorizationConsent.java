@@ -228,7 +228,7 @@ public class _NopOauthAuthorizationConsent extends DynamicOrmEntity{
     /**
      * 注册客户端ID: REGISTERED_CLIENT_ID
      */
-    public java.lang.String getRegisteredClientId(){
+    public final java.lang.String getRegisteredClientId(){
          onPropGet(PROP_ID_registeredClientId);
          return _registeredClientId;
     }
@@ -236,7 +236,7 @@ public class _NopOauthAuthorizationConsent extends DynamicOrmEntity{
     /**
      * 注册客户端ID: REGISTERED_CLIENT_ID
      */
-    public void setRegisteredClientId(java.lang.String value){
+    public final void setRegisteredClientId(java.lang.String value){
         if(onPropSet(PROP_ID_registeredClientId,value)){
             this._registeredClientId = value;
             internalClearRefs(PROP_ID_registeredClientId);
@@ -247,7 +247,7 @@ public class _NopOauthAuthorizationConsent extends DynamicOrmEntity{
     /**
      * 客户端名称: PRINCIPAL_NAME
      */
-    public java.lang.String getPrincipalName(){
+    public final java.lang.String getPrincipalName(){
          onPropGet(PROP_ID_principalName);
          return _principalName;
     }
@@ -255,7 +255,7 @@ public class _NopOauthAuthorizationConsent extends DynamicOrmEntity{
     /**
      * 客户端名称: PRINCIPAL_NAME
      */
-    public void setPrincipalName(java.lang.String value){
+    public final void setPrincipalName(java.lang.String value){
         if(onPropSet(PROP_ID_principalName,value)){
             this._principalName = value;
             internalClearRefs(PROP_ID_principalName);
@@ -266,7 +266,7 @@ public class _NopOauthAuthorizationConsent extends DynamicOrmEntity{
     /**
      * 扩展属性: AUTHORITIES
      */
-    public java.lang.String getAuthorities(){
+    public final java.lang.String getAuthorities(){
          onPropGet(PROP_ID_authorities);
          return _authorities;
     }
@@ -274,7 +274,7 @@ public class _NopOauthAuthorizationConsent extends DynamicOrmEntity{
     /**
      * 扩展属性: AUTHORITIES
      */
-    public void setAuthorities(java.lang.String value){
+    public final void setAuthorities(java.lang.String value){
         if(onPropSet(PROP_ID_authorities,value)){
             this._authorities = value;
             internalClearRefs(PROP_ID_authorities);

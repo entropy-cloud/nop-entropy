@@ -648,7 +648,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 文件ID: FILE_ID
      */
-    public java.lang.String getFileId(){
+    public final java.lang.String getFileId(){
          onPropGet(PROP_ID_fileId);
          return _fileId;
     }
@@ -656,7 +656,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 文件ID: FILE_ID
      */
-    public void setFileId(java.lang.String value){
+    public final void setFileId(java.lang.String value){
         if(onPropSet(PROP_ID_fileId,value)){
             this._fileId = value;
             internalClearRefs(PROP_ID_fileId);
@@ -667,7 +667,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 文件名: FILE_NAME
      */
-    public java.lang.String getFileName(){
+    public final java.lang.String getFileName(){
          onPropGet(PROP_ID_fileName);
          return _fileName;
     }
@@ -675,7 +675,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 文件名: FILE_NAME
      */
-    public void setFileName(java.lang.String value){
+    public final void setFileName(java.lang.String value){
         if(onPropSet(PROP_ID_fileName,value)){
             this._fileName = value;
             internalClearRefs(PROP_ID_fileName);
@@ -686,7 +686,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 文件路径: FILE_PATH
      */
-    public java.lang.String getFilePath(){
+    public final java.lang.String getFilePath(){
          onPropGet(PROP_ID_filePath);
          return _filePath;
     }
@@ -694,7 +694,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 文件路径: FILE_PATH
      */
-    public void setFilePath(java.lang.String value){
+    public final void setFilePath(java.lang.String value){
         if(onPropSet(PROP_ID_filePath,value)){
             this._filePath = value;
             internalClearRefs(PROP_ID_filePath);
@@ -705,7 +705,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 扩展名: FILE_EXT
      */
-    public java.lang.String getFileExt(){
+    public final java.lang.String getFileExt(){
          onPropGet(PROP_ID_fileExt);
          return _fileExt;
     }
@@ -713,7 +713,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 扩展名: FILE_EXT
      */
-    public void setFileExt(java.lang.String value){
+    public final void setFileExt(java.lang.String value){
         if(onPropSet(PROP_ID_fileExt,value)){
             this._fileExt = value;
             internalClearRefs(PROP_ID_fileExt);
@@ -724,7 +724,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 内容类型: MIME_TYPE
      */
-    public java.lang.String getMimeType(){
+    public final java.lang.String getMimeType(){
          onPropGet(PROP_ID_mimeType);
          return _mimeType;
     }
@@ -732,7 +732,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 内容类型: MIME_TYPE
      */
-    public void setMimeType(java.lang.String value){
+    public final void setMimeType(java.lang.String value){
         if(onPropSet(PROP_ID_mimeType,value)){
             this._mimeType = value;
             internalClearRefs(PROP_ID_mimeType);
@@ -743,7 +743,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 文件长度: FILE_LENGTH
      */
-    public java.lang.Long getFileLength(){
+    public final java.lang.Long getFileLength(){
          onPropGet(PROP_ID_fileLength);
          return _fileLength;
     }
@@ -751,7 +751,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 文件长度: FILE_LENGTH
      */
-    public void setFileLength(java.lang.Long value){
+    public final void setFileLength(java.lang.Long value){
         if(onPropSet(PROP_ID_fileLength,value)){
             this._fileLength = value;
             internalClearRefs(PROP_ID_fileLength);
@@ -762,7 +762,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 文件修改时间: FILE_LAST_MODIFIED
      */
-    public java.sql.Timestamp getFileLastModified(){
+    public final java.sql.Timestamp getFileLastModified(){
          onPropGet(PROP_ID_fileLastModified);
          return _fileLastModified;
     }
@@ -770,7 +770,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 文件修改时间: FILE_LAST_MODIFIED
      */
-    public void setFileLastModified(java.sql.Timestamp value){
+    public final void setFileLastModified(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_fileLastModified,value)){
             this._fileLastModified = value;
             internalClearRefs(PROP_ID_fileLastModified);
@@ -781,7 +781,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 对象名: BIZ_OBJ_NAME
      */
-    public java.lang.String getBizObjName(){
+    public final java.lang.String getBizObjName(){
          onPropGet(PROP_ID_bizObjName);
          return _bizObjName;
     }
@@ -789,7 +789,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 对象名: BIZ_OBJ_NAME
      */
-    public void setBizObjName(java.lang.String value){
+    public final void setBizObjName(java.lang.String value){
         if(onPropSet(PROP_ID_bizObjName,value)){
             this._bizObjName = value;
             internalClearRefs(PROP_ID_bizObjName);
@@ -800,7 +800,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 对象ID: BIZ_OBJ_ID
      */
-    public java.lang.String getBizObjId(){
+    public final java.lang.String getBizObjId(){
          onPropGet(PROP_ID_bizObjId);
          return _bizObjId;
     }
@@ -808,7 +808,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 对象ID: BIZ_OBJ_ID
      */
-    public void setBizObjId(java.lang.String value){
+    public final void setBizObjId(java.lang.String value){
         if(onPropSet(PROP_ID_bizObjId,value)){
             this._bizObjId = value;
             internalClearRefs(PROP_ID_bizObjId);
@@ -819,7 +819,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 字段名: FIELD_NAME
      */
-    public java.lang.String getFieldName(){
+    public final java.lang.String getFieldName(){
          onPropGet(PROP_ID_fieldName);
          return _fieldName;
     }
@@ -827,7 +827,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 字段名: FIELD_NAME
      */
-    public void setFieldName(java.lang.String value){
+    public final void setFieldName(java.lang.String value){
         if(onPropSet(PROP_ID_fieldName,value)){
             this._fieldName = value;
             internalClearRefs(PROP_ID_fieldName);
@@ -838,7 +838,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 文件摘要: FILE_HASH
      */
-    public java.lang.String getFileHash(){
+    public final java.lang.String getFileHash(){
          onPropGet(PROP_ID_fileHash);
          return _fileHash;
     }
@@ -846,7 +846,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 文件摘要: FILE_HASH
      */
-    public void setFileHash(java.lang.String value){
+    public final void setFileHash(java.lang.String value){
         if(onPropSet(PROP_ID_fileHash,value)){
             this._fileHash = value;
             internalClearRefs(PROP_ID_fileHash);
@@ -857,7 +857,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 原始文件ID: ORIGIN_FILE_ID
      */
-    public java.lang.String getOriginFileId(){
+    public final java.lang.String getOriginFileId(){
          onPropGet(PROP_ID_originFileId);
          return _originFileId;
     }
@@ -865,7 +865,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 原始文件ID: ORIGIN_FILE_ID
      */
-    public void setOriginFileId(java.lang.String value){
+    public final void setOriginFileId(java.lang.String value){
         if(onPropSet(PROP_ID_originFileId,value)){
             this._originFileId = value;
             internalClearRefs(PROP_ID_originFileId);
@@ -876,7 +876,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 是否允许公开访问: IS_PUBLIC
      */
-    public java.lang.Boolean getIsPublic(){
+    public final java.lang.Boolean getIsPublic(){
          onPropGet(PROP_ID_isPublic);
          return _isPublic;
     }
@@ -884,7 +884,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 是否允许公开访问: IS_PUBLIC
      */
-    public void setIsPublic(java.lang.Boolean value){
+    public final void setIsPublic(java.lang.Boolean value){
         if(onPropSet(PROP_ID_isPublic,value)){
             this._isPublic = value;
             internalClearRefs(PROP_ID_isPublic);
@@ -895,7 +895,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 删除标识: DEL_FLAG
      */
-    public java.lang.Byte getDelFlag(){
+    public final java.lang.Byte getDelFlag(){
          onPropGet(PROP_ID_delFlag);
          return _delFlag;
     }
@@ -903,7 +903,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 删除标识: DEL_FLAG
      */
-    public void setDelFlag(java.lang.Byte value){
+    public final void setDelFlag(java.lang.Byte value){
         if(onPropSet(PROP_ID_delFlag,value)){
             this._delFlag = value;
             internalClearRefs(PROP_ID_delFlag);
@@ -914,7 +914,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -922,7 +922,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -933,7 +933,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -941,7 +941,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -952,7 +952,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -960,7 +960,7 @@ public class _NopFileRecord extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);

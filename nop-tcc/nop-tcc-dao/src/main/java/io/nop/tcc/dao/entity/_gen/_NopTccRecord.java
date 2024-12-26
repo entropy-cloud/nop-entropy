@@ -591,7 +591,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 事务ID: TXN_ID
      */
-    public java.lang.String getTxnId(){
+    public final java.lang.String getTxnId(){
          onPropGet(PROP_ID_txnId);
          return _txnId;
     }
@@ -599,7 +599,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 事务ID: TXN_ID
      */
-    public void setTxnId(java.lang.String value){
+    public final void setTxnId(java.lang.String value){
         if(onPropSet(PROP_ID_txnId,value)){
             this._txnId = value;
             internalClearRefs(PROP_ID_txnId);
@@ -610,7 +610,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 事务分组: TXN_GROUP
      */
-    public java.lang.String getTxnGroup(){
+    public final java.lang.String getTxnGroup(){
          onPropGet(PROP_ID_txnGroup);
          return _txnGroup;
     }
@@ -618,7 +618,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 事务分组: TXN_GROUP
      */
-    public void setTxnGroup(java.lang.String value){
+    public final void setTxnGroup(java.lang.String value){
         if(onPropSet(PROP_ID_txnGroup,value)){
             this._txnGroup = value;
             internalClearRefs(PROP_ID_txnGroup);
@@ -629,7 +629,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 事务名: TXN_NAME
      */
-    public java.lang.String getTxnName(){
+    public final java.lang.String getTxnName(){
          onPropGet(PROP_ID_txnName);
          return _txnName;
     }
@@ -637,7 +637,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 事务名: TXN_NAME
      */
-    public void setTxnName(java.lang.String value){
+    public final void setTxnName(java.lang.String value){
         if(onPropSet(PROP_ID_txnName,value)){
             this._txnName = value;
             internalClearRefs(PROP_ID_txnName);
@@ -648,7 +648,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public java.lang.Integer getStatus(){
+    public final java.lang.Integer getStatus(){
          onPropGet(PROP_ID_status);
          return _status;
     }
@@ -656,7 +656,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public void setStatus(java.lang.Integer value){
+    public final void setStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
@@ -667,7 +667,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 过期时间: EXPIRE_TIME
      */
-    public java.sql.Timestamp getExpireTime(){
+    public final java.sql.Timestamp getExpireTime(){
          onPropGet(PROP_ID_expireTime);
          return _expireTime;
     }
@@ -675,7 +675,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 过期时间: EXPIRE_TIME
      */
-    public void setExpireTime(java.sql.Timestamp value){
+    public final void setExpireTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_expireTime,value)){
             this._expireTime = value;
             internalClearRefs(PROP_ID_expireTime);
@@ -686,7 +686,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 应用ID: APP_ID
      */
-    public java.lang.String getAppId(){
+    public final java.lang.String getAppId(){
          onPropGet(PROP_ID_appId);
          return _appId;
     }
@@ -694,7 +694,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 应用ID: APP_ID
      */
-    public void setAppId(java.lang.String value){
+    public final void setAppId(java.lang.String value){
         if(onPropSet(PROP_ID_appId,value)){
             this._appId = value;
             internalClearRefs(PROP_ID_appId);
@@ -705,7 +705,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 应用数据: APP_DATA
      */
-    public java.lang.String getAppData(){
+    public final java.lang.String getAppData(){
          onPropGet(PROP_ID_appData);
          return _appData;
     }
@@ -713,7 +713,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 应用数据: APP_DATA
      */
-    public void setAppData(java.lang.String value){
+    public final void setAppData(java.lang.String value){
         if(onPropSet(PROP_ID_appData,value)){
             this._appData = value;
             internalClearRefs(PROP_ID_appData);
@@ -724,7 +724,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 开始时间: BEGIN_TIME
      */
-    public java.sql.Timestamp getBeginTime(){
+    public final java.sql.Timestamp getBeginTime(){
          onPropGet(PROP_ID_beginTime);
          return _beginTime;
     }
@@ -732,7 +732,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 开始时间: BEGIN_TIME
      */
-    public void setBeginTime(java.sql.Timestamp value){
+    public final void setBeginTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_beginTime,value)){
             this._beginTime = value;
             internalClearRefs(PROP_ID_beginTime);
@@ -743,7 +743,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 结束时间: END_TIME
      */
-    public java.sql.Timestamp getEndTime(){
+    public final java.sql.Timestamp getEndTime(){
          onPropGet(PROP_ID_endTime);
          return _endTime;
     }
@@ -751,7 +751,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 结束时间: END_TIME
      */
-    public void setEndTime(java.sql.Timestamp value){
+    public final void setEndTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_endTime,value)){
             this._endTime = value;
             internalClearRefs(PROP_ID_endTime);
@@ -762,7 +762,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 错误码: ERROR_CODE
      */
-    public java.lang.String getErrorCode(){
+    public final java.lang.String getErrorCode(){
          onPropGet(PROP_ID_errorCode);
          return _errorCode;
     }
@@ -770,7 +770,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 错误码: ERROR_CODE
      */
-    public void setErrorCode(java.lang.String value){
+    public final void setErrorCode(java.lang.String value){
         if(onPropSet(PROP_ID_errorCode,value)){
             this._errorCode = value;
             internalClearRefs(PROP_ID_errorCode);
@@ -781,7 +781,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 错误消息: ERROR_MESSAGE
      */
-    public java.lang.String getErrorMessage(){
+    public final java.lang.String getErrorMessage(){
          onPropGet(PROP_ID_errorMessage);
          return _errorMessage;
     }
@@ -789,7 +789,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 错误消息: ERROR_MESSAGE
      */
-    public void setErrorMessage(java.lang.String value){
+    public final void setErrorMessage(java.lang.String value){
         if(onPropSet(PROP_ID_errorMessage,value)){
             this._errorMessage = value;
             internalClearRefs(PROP_ID_errorMessage);
@@ -800,7 +800,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 错误堆栈: ERROR_STACK
      */
-    public java.lang.String getErrorStack(){
+    public final java.lang.String getErrorStack(){
          onPropGet(PROP_ID_errorStack);
          return _errorStack;
     }
@@ -808,7 +808,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 错误堆栈: ERROR_STACK
      */
-    public void setErrorStack(java.lang.String value){
+    public final void setErrorStack(java.lang.String value){
         if(onPropSet(PROP_ID_errorStack,value)){
             this._errorStack = value;
             internalClearRefs(PROP_ID_errorStack);
@@ -819,7 +819,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -827,7 +827,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -838,7 +838,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -846,7 +846,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -857,7 +857,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -865,7 +865,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -879,7 +879,7 @@ public class _NopTccRecord extends DynamicOrmEntity{
     /**
      * 分支事务记录。 refPropName: tccRecord, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.tcc.dao.entity.NopTccBranchRecord> getBranchRecords(){
+    public final IOrmEntitySet<io.nop.tcc.dao.entity.NopTccBranchRecord> getBranchRecords(){
        return _branchRecords;
     }
        

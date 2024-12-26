@@ -504,7 +504,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 主键: SID
      */
-    public java.lang.String getSid(){
+    public final java.lang.String getSid(){
          onPropGet(PROP_ID_sid);
          return _sid;
     }
@@ -512,7 +512,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 主键: SID
      */
-    public void setSid(java.lang.String value){
+    public final void setSid(java.lang.String value){
         if(onPropSet(PROP_ID_sid,value)){
             this._sid = value;
             internalClearRefs(PROP_ID_sid);
@@ -523,7 +523,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 用户ID: USER_ID
      */
-    public java.lang.String getUserId(){
+    public final java.lang.String getUserId(){
          onPropGet(PROP_ID_userId);
          return _userId;
     }
@@ -531,7 +531,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 用户ID: USER_ID
      */
-    public void setUserId(java.lang.String value){
+    public final void setUserId(java.lang.String value){
         if(onPropSet(PROP_ID_userId,value)){
             this._userId = value;
             internalClearRefs(PROP_ID_userId);
@@ -542,7 +542,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 被代理的用户ID: SUBSTITUTED_USER_ID
      */
-    public java.lang.String getSubstitutedUserId(){
+    public final java.lang.String getSubstitutedUserId(){
          onPropGet(PROP_ID_substitutedUserId);
          return _substitutedUserId;
     }
@@ -550,7 +550,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 被代理的用户ID: SUBSTITUTED_USER_ID
      */
-    public void setSubstitutedUserId(java.lang.String value){
+    public final void setSubstitutedUserId(java.lang.String value){
         if(onPropSet(PROP_ID_substitutedUserId,value)){
             this._substitutedUserId = value;
             internalClearRefs(PROP_ID_substitutedUserId);
@@ -561,7 +561,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 工作范围: WORK_SCOPE
      */
-    public java.lang.String getWorkScope(){
+    public final java.lang.String getWorkScope(){
          onPropGet(PROP_ID_workScope);
          return _workScope;
     }
@@ -569,7 +569,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 工作范围: WORK_SCOPE
      */
-    public void setWorkScope(java.lang.String value){
+    public final void setWorkScope(java.lang.String value){
         if(onPropSet(PROP_ID_workScope,value)){
             this._workScope = value;
             internalClearRefs(PROP_ID_workScope);
@@ -580,7 +580,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 开始时间: START_TIME
      */
-    public java.time.LocalDateTime getStartTime(){
+    public final java.time.LocalDateTime getStartTime(){
          onPropGet(PROP_ID_startTime);
          return _startTime;
     }
@@ -588,7 +588,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 开始时间: START_TIME
      */
-    public void setStartTime(java.time.LocalDateTime value){
+    public final void setStartTime(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_startTime,value)){
             this._startTime = value;
             internalClearRefs(PROP_ID_startTime);
@@ -599,7 +599,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 结束时间: END_TIME
      */
-    public java.time.LocalDateTime getEndTime(){
+    public final java.time.LocalDateTime getEndTime(){
          onPropGet(PROP_ID_endTime);
          return _endTime;
     }
@@ -607,7 +607,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 结束时间: END_TIME
      */
-    public void setEndTime(java.time.LocalDateTime value){
+    public final void setEndTime(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_endTime,value)){
             this._endTime = value;
             internalClearRefs(PROP_ID_endTime);
@@ -618,7 +618,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -626,7 +626,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -637,7 +637,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -645,7 +645,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -656,7 +656,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -664,7 +664,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -675,7 +675,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -683,7 +683,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -694,7 +694,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -702,7 +702,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -713,7 +713,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -721,7 +721,7 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
@@ -732,11 +732,11 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 用户
      */
-    public io.nop.auth.dao.entity.NopAuthUser getUser(){
+    public final io.nop.auth.dao.entity.NopAuthUser getUser(){
        return (io.nop.auth.dao.entity.NopAuthUser)internalGetRefEntity(PROP_NAME_user);
     }
 
-    public void setUser(io.nop.auth.dao.entity.NopAuthUser refEntity){
+    public final void setUser(io.nop.auth.dao.entity.NopAuthUser refEntity){
    
            if(refEntity == null){
            
@@ -755,11 +755,11 @@ public class _NopAuthUserSubstitution extends DynamicOrmEntity{
     /**
      * 被代理的用户
      */
-    public io.nop.auth.dao.entity.NopAuthUser getSubstitutedUser(){
+    public final io.nop.auth.dao.entity.NopAuthUser getSubstitutedUser(){
        return (io.nop.auth.dao.entity.NopAuthUser)internalGetRefEntity(PROP_NAME_substitutedUser);
     }
 
-    public void setSubstitutedUser(io.nop.auth.dao.entity.NopAuthUser refEntity){
+    public final void setSubstitutedUser(io.nop.auth.dao.entity.NopAuthUser refEntity){
    
            if(refEntity == null){
            

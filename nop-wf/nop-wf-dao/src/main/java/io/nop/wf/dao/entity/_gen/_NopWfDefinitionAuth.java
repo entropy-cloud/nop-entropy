@@ -591,7 +591,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 主键: SID
      */
-    public java.lang.String getSid(){
+    public final java.lang.String getSid(){
          onPropGet(PROP_ID_sid);
          return _sid;
     }
@@ -599,7 +599,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 主键: SID
      */
-    public void setSid(java.lang.String value){
+    public final void setSid(java.lang.String value){
         if(onPropSet(PROP_ID_sid,value)){
             this._sid = value;
             internalClearRefs(PROP_ID_sid);
@@ -610,7 +610,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 工作流定义ID: WF_DEF_ID
      */
-    public java.lang.String getWfDefId(){
+    public final java.lang.String getWfDefId(){
          onPropGet(PROP_ID_wfDefId);
          return _wfDefId;
     }
@@ -618,7 +618,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 工作流定义ID: WF_DEF_ID
      */
-    public void setWfDefId(java.lang.String value){
+    public final void setWfDefId(java.lang.String value){
         if(onPropSet(PROP_ID_wfDefId,value)){
             this._wfDefId = value;
             internalClearRefs(PROP_ID_wfDefId);
@@ -629,7 +629,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 参与者类型: ACTOR_TYPE
      */
-    public java.lang.String getActorType(){
+    public final java.lang.String getActorType(){
          onPropGet(PROP_ID_actorType);
          return _actorType;
     }
@@ -637,7 +637,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 参与者类型: ACTOR_TYPE
      */
-    public void setActorType(java.lang.String value){
+    public final void setActorType(java.lang.String value){
         if(onPropSet(PROP_ID_actorType,value)){
             this._actorType = value;
             internalClearRefs(PROP_ID_actorType);
@@ -648,7 +648,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 参与者ID: ACTOR_ID
      */
-    public java.lang.String getActorId(){
+    public final java.lang.String getActorId(){
          onPropGet(PROP_ID_actorId);
          return _actorId;
     }
@@ -656,7 +656,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 参与者ID: ACTOR_ID
      */
-    public void setActorId(java.lang.String value){
+    public final void setActorId(java.lang.String value){
         if(onPropSet(PROP_ID_actorId,value)){
             this._actorId = value;
             internalClearRefs(PROP_ID_actorId);
@@ -667,7 +667,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 参与者部门ID: ACTOR_DEPT_ID
      */
-    public java.lang.String getActorDeptId(){
+    public final java.lang.String getActorDeptId(){
          onPropGet(PROP_ID_actorDeptId);
          return _actorDeptId;
     }
@@ -675,7 +675,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 参与者部门ID: ACTOR_DEPT_ID
      */
-    public void setActorDeptId(java.lang.String value){
+    public final void setActorDeptId(java.lang.String value){
         if(onPropSet(PROP_ID_actorDeptId,value)){
             this._actorDeptId = value;
             internalClearRefs(PROP_ID_actorDeptId);
@@ -686,7 +686,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 参与者名称: ACTOR_NAME
      */
-    public java.lang.String getActorName(){
+    public final java.lang.String getActorName(){
          onPropGet(PROP_ID_actorName);
          return _actorName;
     }
@@ -694,7 +694,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 参与者名称: ACTOR_NAME
      */
-    public void setActorName(java.lang.String value){
+    public final void setActorName(java.lang.String value){
         if(onPropSet(PROP_ID_actorName,value)){
             this._actorName = value;
             internalClearRefs(PROP_ID_actorName);
@@ -705,7 +705,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 允许编辑: ALLOW_EDIT
      */
-    public java.lang.Boolean getAllowEdit(){
+    public final java.lang.Boolean getAllowEdit(){
          onPropGet(PROP_ID_allowEdit);
          return _allowEdit;
     }
@@ -713,7 +713,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 允许编辑: ALLOW_EDIT
      */
-    public void setAllowEdit(java.lang.Boolean value){
+    public final void setAllowEdit(java.lang.Boolean value){
         if(onPropSet(PROP_ID_allowEdit,value)){
             this._allowEdit = value;
             internalClearRefs(PROP_ID_allowEdit);
@@ -724,7 +724,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 允许管理: ALLOW_MANAGE
      */
-    public java.lang.Boolean getAllowManage(){
+    public final java.lang.Boolean getAllowManage(){
          onPropGet(PROP_ID_allowManage);
          return _allowManage;
     }
@@ -732,7 +732,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 允许管理: ALLOW_MANAGE
      */
-    public void setAllowManage(java.lang.Boolean value){
+    public final void setAllowManage(java.lang.Boolean value){
         if(onPropSet(PROP_ID_allowManage,value)){
             this._allowManage = value;
             internalClearRefs(PROP_ID_allowManage);
@@ -743,7 +743,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 允许启动: ALLOW_START
      */
-    public java.lang.Boolean getAllowStart(){
+    public final java.lang.Boolean getAllowStart(){
          onPropGet(PROP_ID_allowStart);
          return _allowStart;
     }
@@ -751,7 +751,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 允许启动: ALLOW_START
      */
-    public void setAllowStart(java.lang.Boolean value){
+    public final void setAllowStart(java.lang.Boolean value){
         if(onPropSet(PROP_ID_allowStart,value)){
             this._allowStart = value;
             internalClearRefs(PROP_ID_allowStart);
@@ -762,7 +762,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -770,7 +770,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -781,7 +781,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -789,7 +789,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -800,7 +800,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -808,7 +808,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -819,7 +819,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -827,7 +827,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -838,7 +838,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -846,7 +846,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -857,7 +857,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -865,7 +865,7 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
@@ -876,11 +876,11 @@ public class _NopWfDefinitionAuth extends DynamicOrmEntity{
     /**
      * 工作流定义
      */
-    public io.nop.wf.dao.entity.NopWfDefinition getWfDefinition(){
+    public final io.nop.wf.dao.entity.NopWfDefinition getWfDefinition(){
        return (io.nop.wf.dao.entity.NopWfDefinition)internalGetRefEntity(PROP_NAME_wfDefinition);
     }
 
-    public void setWfDefinition(io.nop.wf.dao.entity.NopWfDefinition refEntity){
+    public final void setWfDefinition(io.nop.wf.dao.entity.NopWfDefinition refEntity){
    
            if(refEntity == null){
            

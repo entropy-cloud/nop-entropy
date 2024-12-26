@@ -558,7 +558,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 主键: SID
      */
-    public java.lang.String getSid(){
+    public final java.lang.String getSid(){
          onPropGet(PROP_ID_sid);
          return _sid;
     }
@@ -566,7 +566,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 主键: SID
      */
-    public void setSid(java.lang.String value){
+    public final void setSid(java.lang.String value){
         if(onPropSet(PROP_ID_sid,value)){
             this._sid = value;
             internalClearRefs(PROP_ID_sid);
@@ -577,7 +577,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 角色ID: ROLE_IDS
      */
-    public java.lang.String getRoleIds(){
+    public final java.lang.String getRoleIds(){
          onPropGet(PROP_ID_roleIds);
          return _roleIds;
     }
@@ -585,7 +585,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 角色ID: ROLE_IDS
      */
-    public void setRoleIds(java.lang.String value){
+    public final void setRoleIds(java.lang.String value){
         if(onPropSet(PROP_ID_roleIds,value)){
             this._roleIds = value;
             internalClearRefs(PROP_ID_roleIds);
@@ -596,7 +596,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 业务对象名: BIZ_OBJ
      */
-    public java.lang.String getBizObj(){
+    public final java.lang.String getBizObj(){
          onPropGet(PROP_ID_bizObj);
          return _bizObj;
     }
@@ -604,7 +604,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 业务对象名: BIZ_OBJ
      */
-    public void setBizObj(java.lang.String value){
+    public final void setBizObj(java.lang.String value){
         if(onPropSet(PROP_ID_bizObj,value)){
             this._bizObj = value;
             internalClearRefs(PROP_ID_bizObj);
@@ -615,7 +615,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 优先级: PRIORITY
      */
-    public java.lang.Integer getPriority(){
+    public final java.lang.Integer getPriority(){
          onPropGet(PROP_ID_priority);
          return _priority;
     }
@@ -623,7 +623,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 优先级: PRIORITY
      */
-    public void setPriority(java.lang.Integer value){
+    public final void setPriority(java.lang.Integer value){
         if(onPropSet(PROP_ID_priority,value)){
             this._priority = value;
             internalClearRefs(PROP_ID_priority);
@@ -634,7 +634,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 业务过滤条件: FILTER_CONFIG
      */
-    public java.lang.String getFilterConfig(){
+    public final java.lang.String getFilterConfig(){
          onPropGet(PROP_ID_filterConfig);
          return _filterConfig;
     }
@@ -642,7 +642,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 业务过滤条件: FILTER_CONFIG
      */
-    public void setFilterConfig(java.lang.String value){
+    public final void setFilterConfig(java.lang.String value){
         if(onPropSet(PROP_ID_filterConfig,value)){
             this._filterConfig = value;
             internalClearRefs(PROP_ID_filterConfig);
@@ -653,7 +653,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 权限应用条件: WHEN_CONFIG
      */
-    public java.lang.String getWhenConfig(){
+    public final java.lang.String getWhenConfig(){
          onPropGet(PROP_ID_whenConfig);
          return _whenConfig;
     }
@@ -661,7 +661,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 权限应用条件: WHEN_CONFIG
      */
-    public void setWhenConfig(java.lang.String value){
+    public final void setWhenConfig(java.lang.String value){
         if(onPropSet(PROP_ID_whenConfig,value)){
             this._whenConfig = value;
             internalClearRefs(PROP_ID_whenConfig);
@@ -672,7 +672,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 描述: DESCRIPTION
      */
-    public java.lang.String getDescription(){
+    public final java.lang.String getDescription(){
          onPropGet(PROP_ID_description);
          return _description;
     }
@@ -680,7 +680,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 描述: DESCRIPTION
      */
-    public void setDescription(java.lang.String value){
+    public final void setDescription(java.lang.String value){
         if(onPropSet(PROP_ID_description,value)){
             this._description = value;
             internalClearRefs(PROP_ID_description);
@@ -691,7 +691,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 删除标识: DEL_FLAG
      */
-    public java.lang.Byte getDelFlag(){
+    public final java.lang.Byte getDelFlag(){
          onPropGet(PROP_ID_delFlag);
          return _delFlag;
     }
@@ -699,7 +699,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 删除标识: DEL_FLAG
      */
-    public void setDelFlag(java.lang.Byte value){
+    public final void setDelFlag(java.lang.Byte value){
         if(onPropSet(PROP_ID_delFlag,value)){
             this._delFlag = value;
             internalClearRefs(PROP_ID_delFlag);
@@ -710,7 +710,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -718,7 +718,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -729,7 +729,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -737,7 +737,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -748,7 +748,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -756,7 +756,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -767,7 +767,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -775,7 +775,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -786,7 +786,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -794,7 +794,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -805,7 +805,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -813,7 +813,7 @@ public class _NopAuthRoleDataAuth extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);

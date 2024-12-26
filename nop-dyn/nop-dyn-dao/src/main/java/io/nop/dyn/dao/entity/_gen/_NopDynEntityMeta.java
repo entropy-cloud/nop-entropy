@@ -666,7 +666,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 实体定义ID: ENTITY_META_ID
      */
-    public java.lang.String getEntityMetaId(){
+    public final java.lang.String getEntityMetaId(){
          onPropGet(PROP_ID_entityMetaId);
          return _entityMetaId;
     }
@@ -674,7 +674,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 实体定义ID: ENTITY_META_ID
      */
-    public void setEntityMetaId(java.lang.String value){
+    public final void setEntityMetaId(java.lang.String value){
         if(onPropSet(PROP_ID_entityMetaId,value)){
             this._entityMetaId = value;
             internalClearRefs(PROP_ID_entityMetaId);
@@ -685,7 +685,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 模块ID: MODULE_ID
      */
-    public java.lang.String getModuleId(){
+    public final java.lang.String getModuleId(){
          onPropGet(PROP_ID_moduleId);
          return _moduleId;
     }
@@ -693,7 +693,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 模块ID: MODULE_ID
      */
-    public void setModuleId(java.lang.String value){
+    public final void setModuleId(java.lang.String value){
         if(onPropSet(PROP_ID_moduleId,value)){
             this._moduleId = value;
             internalClearRefs(PROP_ID_moduleId);
@@ -704,7 +704,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 实体名: ENTITY_NAME
      */
-    public java.lang.String getEntityName(){
+    public final java.lang.String getEntityName(){
          onPropGet(PROP_ID_entityName);
          return _entityName;
     }
@@ -712,7 +712,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 实体名: ENTITY_NAME
      */
-    public void setEntityName(java.lang.String value){
+    public final void setEntityName(java.lang.String value){
         if(onPropSet(PROP_ID_entityName,value)){
             this._entityName = value;
             internalClearRefs(PROP_ID_entityName);
@@ -723,7 +723,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 显示名: DISPLAY_NAME
      */
-    public java.lang.String getDisplayName(){
+    public final java.lang.String getDisplayName(){
          onPropGet(PROP_ID_displayName);
          return _displayName;
     }
@@ -731,7 +731,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 显示名: DISPLAY_NAME
      */
-    public void setDisplayName(java.lang.String value){
+    public final void setDisplayName(java.lang.String value){
         if(onPropSet(PROP_ID_displayName,value)){
             this._displayName = value;
             internalClearRefs(PROP_ID_displayName);
@@ -742,7 +742,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 表名: TABLE_NAME
      */
-    public java.lang.String getTableName(){
+    public final java.lang.String getTableName(){
          onPropGet(PROP_ID_tableName);
          return _tableName;
     }
@@ -750,7 +750,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 表名: TABLE_NAME
      */
-    public void setTableName(java.lang.String value){
+    public final void setTableName(java.lang.String value){
         if(onPropSet(PROP_ID_tableName,value)){
             this._tableName = value;
             internalClearRefs(PROP_ID_tableName);
@@ -761,7 +761,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 查询空间: QUERY_SPACE
      */
-    public java.lang.String getQuerySpace(){
+    public final java.lang.String getQuerySpace(){
          onPropGet(PROP_ID_querySpace);
          return _querySpace;
     }
@@ -769,7 +769,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 查询空间: QUERY_SPACE
      */
-    public void setQuerySpace(java.lang.String value){
+    public final void setQuerySpace(java.lang.String value){
         if(onPropSet(PROP_ID_querySpace,value)){
             this._querySpace = value;
             internalClearRefs(PROP_ID_querySpace);
@@ -780,7 +780,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 存储类型: STORE_TYPE
      */
-    public java.lang.Integer getStoreType(){
+    public final java.lang.Integer getStoreType(){
          onPropGet(PROP_ID_storeType);
          return _storeType;
     }
@@ -788,7 +788,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 存储类型: STORE_TYPE
      */
-    public void setStoreType(java.lang.Integer value){
+    public final void setStoreType(java.lang.Integer value){
         if(onPropSet(PROP_ID_storeType,value)){
             this._storeType = value;
             internalClearRefs(PROP_ID_storeType);
@@ -799,7 +799,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 标签: TAGS_TEXT
      */
-    public java.lang.String getTagsText(){
+    public final java.lang.String getTagsText(){
          onPropGet(PROP_ID_tagsText);
          return _tagsText;
     }
@@ -807,7 +807,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 标签: TAGS_TEXT
      */
-    public void setTagsText(java.lang.String value){
+    public final void setTagsText(java.lang.String value){
         if(onPropSet(PROP_ID_tagsText,value)){
             this._tagsText = value;
             internalClearRefs(PROP_ID_tagsText);
@@ -818,7 +818,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 是否外部实体: IS_EXTERNAL
      */
-    public java.lang.Boolean getIsExternal(){
+    public final java.lang.Boolean getIsExternal(){
          onPropGet(PROP_ID_isExternal);
          return _isExternal;
     }
@@ -826,7 +826,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 是否外部实体: IS_EXTERNAL
      */
-    public void setIsExternal(java.lang.Boolean value){
+    public final void setIsExternal(java.lang.Boolean value){
         if(onPropSet(PROP_ID_isExternal,value)){
             this._isExternal = value;
             internalClearRefs(PROP_ID_isExternal);
@@ -837,7 +837,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public java.lang.Integer getStatus(){
+    public final java.lang.Integer getStatus(){
          onPropGet(PROP_ID_status);
          return _status;
     }
@@ -845,7 +845,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public void setStatus(java.lang.Integer value){
+    public final void setStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
@@ -856,7 +856,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 扩展配置: EXT_CONFIG
      */
-    public java.lang.String getExtConfig(){
+    public final java.lang.String getExtConfig(){
          onPropGet(PROP_ID_extConfig);
          return _extConfig;
     }
@@ -864,7 +864,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 扩展配置: EXT_CONFIG
      */
-    public void setExtConfig(java.lang.String value){
+    public final void setExtConfig(java.lang.String value){
         if(onPropSet(PROP_ID_extConfig,value)){
             this._extConfig = value;
             internalClearRefs(PROP_ID_extConfig);
@@ -875,7 +875,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -883,7 +883,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -894,7 +894,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -902,7 +902,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -913,7 +913,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -921,7 +921,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -932,7 +932,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -940,7 +940,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -951,7 +951,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -959,7 +959,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -970,7 +970,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -978,7 +978,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
@@ -989,11 +989,11 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 所属模块
      */
-    public io.nop.dyn.dao.entity.NopDynModule getModule(){
+    public final io.nop.dyn.dao.entity.NopDynModule getModule(){
        return (io.nop.dyn.dao.entity.NopDynModule)internalGetRefEntity(PROP_NAME_module);
     }
 
-    public void setModule(io.nop.dyn.dao.entity.NopDynModule refEntity){
+    public final void setModule(io.nop.dyn.dao.entity.NopDynModule refEntity){
    
            if(refEntity == null){
            
@@ -1015,7 +1015,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 。 refPropName: entityMeta, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynPropMeta> getPropMetas(){
+    public final IOrmEntitySet<io.nop.dyn.dao.entity.NopDynPropMeta> getPropMetas(){
        return _propMetas;
     }
        
@@ -1025,7 +1025,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 关联属性元数据。 refPropName: entityMeta, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityRelationMeta> getRelationMetasForEntity(){
+    public final IOrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityRelationMeta> getRelationMetasForEntity(){
        return _relationMetasForEntity;
     }
        
@@ -1035,7 +1035,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 引用本实体的关联属性。 refPropName: refEntityMeta, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityRelationMeta> getRelationMetasForRefEntity(){
+    public final IOrmEntitySet<io.nop.dyn.dao.entity.NopDynEntityRelationMeta> getRelationMetasForRefEntity(){
        return _relationMetasForRefEntity;
     }
        
@@ -1045,7 +1045,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
     /**
      * 函数定义。 refPropName: entityMeta, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynFunctionMeta> getFunctionMetas(){
+    public final IOrmEntitySet<io.nop.dyn.dao.entity.NopDynFunctionMeta> getFunctionMetas(){
        return _functionMetas;
     }
        
@@ -1058,7 +1058,7 @@ public class _NopDynEntityMeta extends DynamicOrmEntity{
       
    }
 
-   public io.nop.orm.component.JsonOrmComponent getExtConfigComponent(){
+   public final io.nop.orm.component.JsonOrmComponent getExtConfigComponent(){
       if(_extConfigComponent == null){
           _extConfigComponent = new io.nop.orm.component.JsonOrmComponent();
           _extConfigComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_extConfigComponent);

@@ -588,7 +588,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 实体名: ENTITY_NAME
      */
-    public java.lang.String getEntityName(){
+    public final java.lang.String getEntityName(){
          onPropGet(PROP_ID_entityName);
          return _entityName;
     }
@@ -596,7 +596,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 实体名: ENTITY_NAME
      */
-    public void setEntityName(java.lang.String value){
+    public final void setEntityName(java.lang.String value){
         if(onPropSet(PROP_ID_entityName,value)){
             this._entityName = value;
             internalClearRefs(PROP_ID_entityName);
@@ -607,7 +607,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 实体ID: ENTITY_ID
      */
-    public java.lang.String getEntityId(){
+    public final java.lang.String getEntityId(){
          onPropGet(PROP_ID_entityId);
          return _entityId;
     }
@@ -615,7 +615,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 实体ID: ENTITY_ID
      */
-    public void setEntityId(java.lang.String value){
+    public final void setEntityId(java.lang.String value){
         if(onPropSet(PROP_ID_entityId,value)){
             this._entityId = value;
             internalClearRefs(PROP_ID_entityId);
@@ -626,7 +626,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 字段名: FIELD_NAME
      */
-    public java.lang.String getFieldName(){
+    public final java.lang.String getFieldName(){
          onPropGet(PROP_ID_fieldName);
          return _fieldName;
     }
@@ -634,7 +634,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 字段名: FIELD_NAME
      */
-    public void setFieldName(java.lang.String value){
+    public final void setFieldName(java.lang.String value){
         if(onPropSet(PROP_ID_fieldName,value)){
             this._fieldName = value;
             internalClearRefs(PROP_ID_fieldName);
@@ -645,7 +645,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 字段类型: FIELD_TYPE
      */
-    public java.lang.Integer getFieldType(){
+    public final java.lang.Integer getFieldType(){
          onPropGet(PROP_ID_fieldType);
          return _fieldType;
     }
@@ -653,7 +653,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 字段类型: FIELD_TYPE
      */
-    public void setFieldType(java.lang.Integer value){
+    public final void setFieldType(java.lang.Integer value){
         if(onPropSet(PROP_ID_fieldType,value)){
             this._fieldType = value;
             internalClearRefs(PROP_ID_fieldType);
@@ -664,7 +664,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 浮点精度: DECIMAL_SCALE
      */
-    public java.lang.Byte getDecimalScale(){
+    public final java.lang.Byte getDecimalScale(){
          onPropGet(PROP_ID_decimalScale);
          return _decimalScale;
     }
@@ -672,7 +672,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 浮点精度: DECIMAL_SCALE
      */
-    public void setDecimalScale(java.lang.Byte value){
+    public final void setDecimalScale(java.lang.Byte value){
         if(onPropSet(PROP_ID_decimalScale,value)){
             this._decimalScale = value;
             internalClearRefs(PROP_ID_decimalScale);
@@ -683,7 +683,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 浮点值: DECIMAL_VALUE
      */
-    public java.math.BigDecimal getDecimalValue(){
+    public final java.math.BigDecimal getDecimalValue(){
          onPropGet(PROP_ID_decimalValue);
          return _decimalValue;
     }
@@ -691,7 +691,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 浮点值: DECIMAL_VALUE
      */
-    public void setDecimalValue(java.math.BigDecimal value){
+    public final void setDecimalValue(java.math.BigDecimal value){
         if(onPropSet(PROP_ID_decimalValue,value)){
             this._decimalValue = value;
             internalClearRefs(PROP_ID_decimalValue);
@@ -702,7 +702,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 日期值: DATE_VALUE
      */
-    public java.time.LocalDate getDateValue(){
+    public final java.time.LocalDate getDateValue(){
          onPropGet(PROP_ID_dateValue);
          return _dateValue;
     }
@@ -710,7 +710,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 日期值: DATE_VALUE
      */
-    public void setDateValue(java.time.LocalDate value){
+    public final void setDateValue(java.time.LocalDate value){
         if(onPropSet(PROP_ID_dateValue,value)){
             this._dateValue = value;
             internalClearRefs(PROP_ID_dateValue);
@@ -721,7 +721,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 时间点值: TIMESTAMP_VALUE
      */
-    public java.sql.Timestamp getTimestampValue(){
+    public final java.sql.Timestamp getTimestampValue(){
          onPropGet(PROP_ID_timestampValue);
          return _timestampValue;
     }
@@ -729,7 +729,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 时间点值: TIMESTAMP_VALUE
      */
-    public void setTimestampValue(java.sql.Timestamp value){
+    public final void setTimestampValue(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_timestampValue,value)){
             this._timestampValue = value;
             internalClearRefs(PROP_ID_timestampValue);
@@ -740,7 +740,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 字符串值: STRING_VALUE
      */
-    public java.lang.String getStringValue(){
+    public final java.lang.String getStringValue(){
          onPropGet(PROP_ID_stringValue);
          return _stringValue;
     }
@@ -748,7 +748,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 字符串值: STRING_VALUE
      */
-    public void setStringValue(java.lang.String value){
+    public final void setStringValue(java.lang.String value){
         if(onPropSet(PROP_ID_stringValue,value)){
             this._stringValue = value;
             internalClearRefs(PROP_ID_stringValue);
@@ -759,7 +759,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -767,7 +767,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -778,7 +778,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -786,7 +786,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -797,7 +797,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -805,7 +805,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -816,7 +816,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -824,7 +824,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -835,7 +835,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -843,7 +843,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -854,7 +854,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -862,7 +862,7 @@ public class _NopSysExtField extends AbstractOrmKeyValueTable{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);

@@ -498,7 +498,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 主键: TENANT_ID
      */
-    public java.lang.String getTenantId(){
+    public final java.lang.String getTenantId(){
          onPropGet(PROP_ID_tenantId);
          return _tenantId;
     }
@@ -506,7 +506,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 主键: TENANT_ID
      */
-    public void setTenantId(java.lang.String value){
+    public final void setTenantId(java.lang.String value){
         if(onPropSet(PROP_ID_tenantId,value)){
             this._tenantId = value;
             internalClearRefs(PROP_ID_tenantId);
@@ -517,7 +517,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 名称: NAME
      */
-    public java.lang.String getName(){
+    public final java.lang.String getName(){
          onPropGet(PROP_ID_name);
          return _name;
     }
@@ -525,7 +525,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 名称: NAME
      */
-    public void setName(java.lang.String value){
+    public final void setName(java.lang.String value){
         if(onPropSet(PROP_ID_name,value)){
             this._name = value;
             internalClearRefs(PROP_ID_name);
@@ -536,7 +536,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 开始时间: BEGIN_TIME
      */
-    public java.time.LocalDateTime getBeginTime(){
+    public final java.time.LocalDateTime getBeginTime(){
          onPropGet(PROP_ID_beginTime);
          return _beginTime;
     }
@@ -544,7 +544,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 开始时间: BEGIN_TIME
      */
-    public void setBeginTime(java.time.LocalDateTime value){
+    public final void setBeginTime(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_beginTime,value)){
             this._beginTime = value;
             internalClearRefs(PROP_ID_beginTime);
@@ -555,7 +555,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 结束时间: END_TIME
      */
-    public java.time.LocalDateTime getEndTime(){
+    public final java.time.LocalDateTime getEndTime(){
          onPropGet(PROP_ID_endTime);
          return _endTime;
     }
@@ -563,7 +563,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 结束时间: END_TIME
      */
-    public void setEndTime(java.time.LocalDateTime value){
+    public final void setEndTime(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_endTime,value)){
             this._endTime = value;
             internalClearRefs(PROP_ID_endTime);
@@ -574,7 +574,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 租户状态: STATUS
      */
-    public java.lang.Integer getStatus(){
+    public final java.lang.Integer getStatus(){
          onPropGet(PROP_ID_status);
          return _status;
     }
@@ -582,7 +582,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 租户状态: STATUS
      */
-    public void setStatus(java.lang.Integer value){
+    public final void setStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
@@ -593,7 +593,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 删除标识: DEL_FLAG
      */
-    public java.lang.Byte getDelFlag(){
+    public final java.lang.Byte getDelFlag(){
          onPropGet(PROP_ID_delFlag);
          return _delFlag;
     }
@@ -601,7 +601,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 删除标识: DEL_FLAG
      */
-    public void setDelFlag(java.lang.Byte value){
+    public final void setDelFlag(java.lang.Byte value){
         if(onPropSet(PROP_ID_delFlag,value)){
             this._delFlag = value;
             internalClearRefs(PROP_ID_delFlag);
@@ -612,7 +612,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -620,7 +620,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -631,7 +631,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -639,7 +639,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -650,7 +650,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -658,7 +658,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -669,7 +669,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -677,7 +677,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -688,7 +688,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -696,7 +696,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -707,7 +707,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -715,7 +715,7 @@ public class _NopAuthTenant extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);

@@ -1326,7 +1326,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 主键: WF_ID
      */
-    public java.lang.String getWfId(){
+    public final java.lang.String getWfId(){
          onPropGet(PROP_ID_wfId);
          return _wfId;
     }
@@ -1334,7 +1334,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 主键: WF_ID
      */
-    public void setWfId(java.lang.String value){
+    public final void setWfId(java.lang.String value){
         if(onPropSet(PROP_ID_wfId,value)){
             this._wfId = value;
             internalClearRefs(PROP_ID_wfId);
@@ -1345,7 +1345,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 工作流名称: WF_NAME
      */
-    public java.lang.String getWfName(){
+    public final java.lang.String getWfName(){
          onPropGet(PROP_ID_wfName);
          return _wfName;
     }
@@ -1353,7 +1353,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 工作流名称: WF_NAME
      */
-    public void setWfName(java.lang.String value){
+    public final void setWfName(java.lang.String value){
         if(onPropSet(PROP_ID_wfName,value)){
             this._wfName = value;
             internalClearRefs(PROP_ID_wfName);
@@ -1364,7 +1364,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 工作流版本: WF_VERSION
      */
-    public java.lang.Long getWfVersion(){
+    public final java.lang.Long getWfVersion(){
          onPropGet(PROP_ID_wfVersion);
          return _wfVersion;
     }
@@ -1372,7 +1372,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 工作流版本: WF_VERSION
      */
-    public void setWfVersion(java.lang.Long value){
+    public final void setWfVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_wfVersion,value)){
             this._wfVersion = value;
             internalClearRefs(PROP_ID_wfVersion);
@@ -1383,7 +1383,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 工作流参数: WF_PARAMS
      */
-    public java.lang.String getWfParams(){
+    public final java.lang.String getWfParams(){
          onPropGet(PROP_ID_wfParams);
          return _wfParams;
     }
@@ -1391,7 +1391,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 工作流参数: WF_PARAMS
      */
-    public void setWfParams(java.lang.String value){
+    public final void setWfParams(java.lang.String value){
         if(onPropSet(PROP_ID_wfParams,value)){
             this._wfParams = value;
             internalClearRefs(PROP_ID_wfParams);
@@ -1402,7 +1402,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 工作流分组: WF_GROUP
      */
-    public java.lang.String getWfGroup(){
+    public final java.lang.String getWfGroup(){
          onPropGet(PROP_ID_wfGroup);
          return _wfGroup;
     }
@@ -1410,7 +1410,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 工作流分组: WF_GROUP
      */
-    public void setWfGroup(java.lang.String value){
+    public final void setWfGroup(java.lang.String value){
         if(onPropSet(PROP_ID_wfGroup,value)){
             this._wfGroup = value;
             internalClearRefs(PROP_ID_wfGroup);
@@ -1421,7 +1421,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 工作分类: WORK_SCOPE
      */
-    public java.lang.String getWorkScope(){
+    public final java.lang.String getWorkScope(){
          onPropGet(PROP_ID_workScope);
          return _workScope;
     }
@@ -1429,7 +1429,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 工作分类: WORK_SCOPE
      */
-    public void setWorkScope(java.lang.String value){
+    public final void setWorkScope(java.lang.String value){
         if(onPropSet(PROP_ID_workScope,value)){
             this._workScope = value;
             internalClearRefs(PROP_ID_workScope);
@@ -1440,7 +1440,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 实例标题: TITLE
      */
-    public java.lang.String getTitle(){
+    public final java.lang.String getTitle(){
          onPropGet(PROP_ID_title);
          return _title;
     }
@@ -1448,7 +1448,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 实例标题: TITLE
      */
-    public void setTitle(java.lang.String value){
+    public final void setTitle(java.lang.String value){
         if(onPropSet(PROP_ID_title,value)){
             this._title = value;
             internalClearRefs(PROP_ID_title);
@@ -1459,7 +1459,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public java.lang.Integer getStatus(){
+    public final java.lang.Integer getStatus(){
          onPropGet(PROP_ID_status);
          return _status;
     }
@@ -1467,7 +1467,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public void setStatus(java.lang.Integer value){
+    public final void setStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
@@ -1478,7 +1478,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 应用状态: APP_STATE
      */
-    public java.lang.String getAppState(){
+    public final java.lang.String getAppState(){
          onPropGet(PROP_ID_appState);
          return _appState;
     }
@@ -1486,7 +1486,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 应用状态: APP_STATE
      */
-    public void setAppState(java.lang.String value){
+    public final void setAppState(java.lang.String value){
         if(onPropSet(PROP_ID_appState,value)){
             this._appState = value;
             internalClearRefs(PROP_ID_appState);
@@ -1497,7 +1497,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 启动时间: START_TIME
      */
-    public java.sql.Timestamp getStartTime(){
+    public final java.sql.Timestamp getStartTime(){
          onPropGet(PROP_ID_startTime);
          return _startTime;
     }
@@ -1505,7 +1505,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 启动时间: START_TIME
      */
-    public void setStartTime(java.sql.Timestamp value){
+    public final void setStartTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_startTime,value)){
             this._startTime = value;
             internalClearRefs(PROP_ID_startTime);
@@ -1516,7 +1516,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 结束时间: END_TIME
      */
-    public java.sql.Timestamp getEndTime(){
+    public final java.sql.Timestamp getEndTime(){
          onPropGet(PROP_ID_endTime);
          return _endTime;
     }
@@ -1524,7 +1524,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 结束时间: END_TIME
      */
-    public void setEndTime(java.sql.Timestamp value){
+    public final void setEndTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_endTime,value)){
             this._endTime = value;
             internalClearRefs(PROP_ID_endTime);
@@ -1535,7 +1535,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 完成时限: DUE_TIME
      */
-    public java.sql.Timestamp getDueTime(){
+    public final java.sql.Timestamp getDueTime(){
          onPropGet(PROP_ID_dueTime);
          return _dueTime;
     }
@@ -1543,7 +1543,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 完成时限: DUE_TIME
      */
-    public void setDueTime(java.sql.Timestamp value){
+    public final void setDueTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_dueTime,value)){
             this._dueTime = value;
             internalClearRefs(PROP_ID_dueTime);
@@ -1554,7 +1554,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 业务唯一键: BIZ_KEY
      */
-    public java.lang.String getBizKey(){
+    public final java.lang.String getBizKey(){
          onPropGet(PROP_ID_bizKey);
          return _bizKey;
     }
@@ -1562,7 +1562,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 业务唯一键: BIZ_KEY
      */
-    public void setBizKey(java.lang.String value){
+    public final void setBizKey(java.lang.String value){
         if(onPropSet(PROP_ID_bizKey,value)){
             this._bizKey = value;
             internalClearRefs(PROP_ID_bizKey);
@@ -1573,7 +1573,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 业务对象名: BIZ_OBJ_NAME
      */
-    public java.lang.String getBizObjName(){
+    public final java.lang.String getBizObjName(){
          onPropGet(PROP_ID_bizObjName);
          return _bizObjName;
     }
@@ -1581,7 +1581,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 业务对象名: BIZ_OBJ_NAME
      */
-    public void setBizObjName(java.lang.String value){
+    public final void setBizObjName(java.lang.String value){
         if(onPropSet(PROP_ID_bizObjName,value)){
             this._bizObjName = value;
             internalClearRefs(PROP_ID_bizObjName);
@@ -1592,7 +1592,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 业务对象ID: BIZ_OBJ_ID
      */
-    public java.lang.String getBizObjId(){
+    public final java.lang.String getBizObjId(){
          onPropGet(PROP_ID_bizObjId);
          return _bizObjId;
     }
@@ -1600,7 +1600,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 业务对象ID: BIZ_OBJ_ID
      */
-    public void setBizObjId(java.lang.String value){
+    public final void setBizObjId(java.lang.String value){
         if(onPropSet(PROP_ID_bizObjId,value)){
             this._bizObjId = value;
             internalClearRefs(PROP_ID_bizObjId);
@@ -1611,7 +1611,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 父工作流名称: PARENT_WF_NAME
      */
-    public java.lang.String getParentWfName(){
+    public final java.lang.String getParentWfName(){
          onPropGet(PROP_ID_parentWfName);
          return _parentWfName;
     }
@@ -1619,7 +1619,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 父工作流名称: PARENT_WF_NAME
      */
-    public void setParentWfName(java.lang.String value){
+    public final void setParentWfName(java.lang.String value){
         if(onPropSet(PROP_ID_parentWfName,value)){
             this._parentWfName = value;
             internalClearRefs(PROP_ID_parentWfName);
@@ -1630,7 +1630,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 父流程版本: PARENT_WF_VERSION
      */
-    public java.lang.Long getParentWfVersion(){
+    public final java.lang.Long getParentWfVersion(){
          onPropGet(PROP_ID_parentWfVersion);
          return _parentWfVersion;
     }
@@ -1638,7 +1638,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 父流程版本: PARENT_WF_VERSION
      */
-    public void setParentWfVersion(java.lang.Long value){
+    public final void setParentWfVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_parentWfVersion,value)){
             this._parentWfVersion = value;
             internalClearRefs(PROP_ID_parentWfVersion);
@@ -1649,7 +1649,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 父流程ID: PARENT_WF_ID
      */
-    public java.lang.String getParentWfId(){
+    public final java.lang.String getParentWfId(){
          onPropGet(PROP_ID_parentWfId);
          return _parentWfId;
     }
@@ -1657,7 +1657,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 父流程ID: PARENT_WF_ID
      */
-    public void setParentWfId(java.lang.String value){
+    public final void setParentWfId(java.lang.String value){
         if(onPropSet(PROP_ID_parentWfId,value)){
             this._parentWfId = value;
             internalClearRefs(PROP_ID_parentWfId);
@@ -1668,7 +1668,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 父流程步骤ID: PARENT_STEP_ID
      */
-    public java.lang.String getParentStepId(){
+    public final java.lang.String getParentStepId(){
          onPropGet(PROP_ID_parentStepId);
          return _parentStepId;
     }
@@ -1676,7 +1676,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 父流程步骤ID: PARENT_STEP_ID
      */
-    public void setParentStepId(java.lang.String value){
+    public final void setParentStepId(java.lang.String value){
         if(onPropSet(PROP_ID_parentStepId,value)){
             this._parentStepId = value;
             internalClearRefs(PROP_ID_parentStepId);
@@ -1687,7 +1687,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 启动人ID: STARTER_ID
      */
-    public java.lang.String getStarterId(){
+    public final java.lang.String getStarterId(){
          onPropGet(PROP_ID_starterId);
          return _starterId;
     }
@@ -1695,7 +1695,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 启动人ID: STARTER_ID
      */
-    public void setStarterId(java.lang.String value){
+    public final void setStarterId(java.lang.String value){
         if(onPropSet(PROP_ID_starterId,value)){
             this._starterId = value;
             internalClearRefs(PROP_ID_starterId);
@@ -1706,7 +1706,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 启动人: STARTER_NAME
      */
-    public java.lang.String getStarterName(){
+    public final java.lang.String getStarterName(){
          onPropGet(PROP_ID_starterName);
          return _starterName;
     }
@@ -1714,7 +1714,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 启动人: STARTER_NAME
      */
-    public void setStarterName(java.lang.String value){
+    public final void setStarterName(java.lang.String value){
         if(onPropSet(PROP_ID_starterName,value)){
             this._starterName = value;
             internalClearRefs(PROP_ID_starterName);
@@ -1725,7 +1725,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 启动人单位ID: STARTER_DEPT_ID
      */
-    public java.lang.String getStarterDeptId(){
+    public final java.lang.String getStarterDeptId(){
          onPropGet(PROP_ID_starterDeptId);
          return _starterDeptId;
     }
@@ -1733,7 +1733,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 启动人单位ID: STARTER_DEPT_ID
      */
-    public void setStarterDeptId(java.lang.String value){
+    public final void setStarterDeptId(java.lang.String value){
         if(onPropSet(PROP_ID_starterDeptId,value)){
             this._starterDeptId = value;
             internalClearRefs(PROP_ID_starterDeptId);
@@ -1744,7 +1744,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 上次操作者ID: LAST_OPERATOR_ID
      */
-    public java.lang.String getLastOperatorId(){
+    public final java.lang.String getLastOperatorId(){
          onPropGet(PROP_ID_lastOperatorId);
          return _lastOperatorId;
     }
@@ -1752,7 +1752,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 上次操作者ID: LAST_OPERATOR_ID
      */
-    public void setLastOperatorId(java.lang.String value){
+    public final void setLastOperatorId(java.lang.String value){
         if(onPropSet(PROP_ID_lastOperatorId,value)){
             this._lastOperatorId = value;
             internalClearRefs(PROP_ID_lastOperatorId);
@@ -1763,7 +1763,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 上次操作者: LAST_OPERATOR_NAME
      */
-    public java.lang.String getLastOperatorName(){
+    public final java.lang.String getLastOperatorName(){
          onPropGet(PROP_ID_lastOperatorName);
          return _lastOperatorName;
     }
@@ -1771,7 +1771,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 上次操作者: LAST_OPERATOR_NAME
      */
-    public void setLastOperatorName(java.lang.String value){
+    public final void setLastOperatorName(java.lang.String value){
         if(onPropSet(PROP_ID_lastOperatorName,value)){
             this._lastOperatorName = value;
             internalClearRefs(PROP_ID_lastOperatorName);
@@ -1782,7 +1782,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 上次操作者单位ID: LAST_OPERATOR_DEPT_ID
      */
-    public java.lang.String getLastOperatorDeptId(){
+    public final java.lang.String getLastOperatorDeptId(){
          onPropGet(PROP_ID_lastOperatorDeptId);
          return _lastOperatorDeptId;
     }
@@ -1790,7 +1790,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 上次操作者单位ID: LAST_OPERATOR_DEPT_ID
      */
-    public void setLastOperatorDeptId(java.lang.String value){
+    public final void setLastOperatorDeptId(java.lang.String value){
         if(onPropSet(PROP_ID_lastOperatorDeptId,value)){
             this._lastOperatorDeptId = value;
             internalClearRefs(PROP_ID_lastOperatorDeptId);
@@ -1801,7 +1801,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 上次操作时间: LAST_OPERATE_TIME
      */
-    public java.sql.Timestamp getLastOperateTime(){
+    public final java.sql.Timestamp getLastOperateTime(){
          onPropGet(PROP_ID_lastOperateTime);
          return _lastOperateTime;
     }
@@ -1809,7 +1809,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 上次操作时间: LAST_OPERATE_TIME
      */
-    public void setLastOperateTime(java.sql.Timestamp value){
+    public final void setLastOperateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_lastOperateTime,value)){
             this._lastOperateTime = value;
             internalClearRefs(PROP_ID_lastOperateTime);
@@ -1820,7 +1820,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 管理者类型: MANAGER_TYPE
      */
-    public java.lang.String getManagerType(){
+    public final java.lang.String getManagerType(){
          onPropGet(PROP_ID_managerType);
          return _managerType;
     }
@@ -1828,7 +1828,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 管理者类型: MANAGER_TYPE
      */
-    public void setManagerType(java.lang.String value){
+    public final void setManagerType(java.lang.String value){
         if(onPropSet(PROP_ID_managerType,value)){
             this._managerType = value;
             internalClearRefs(PROP_ID_managerType);
@@ -1839,7 +1839,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 管理者单位ID: MANAGER_DEPT_ID
      */
-    public java.lang.String getManagerDeptId(){
+    public final java.lang.String getManagerDeptId(){
          onPropGet(PROP_ID_managerDeptId);
          return _managerDeptId;
     }
@@ -1847,7 +1847,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 管理者单位ID: MANAGER_DEPT_ID
      */
-    public void setManagerDeptId(java.lang.String value){
+    public final void setManagerDeptId(java.lang.String value){
         if(onPropSet(PROP_ID_managerDeptId,value)){
             this._managerDeptId = value;
             internalClearRefs(PROP_ID_managerDeptId);
@@ -1858,7 +1858,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 管理者: MANAGER_NAME
      */
-    public java.lang.String getManagerName(){
+    public final java.lang.String getManagerName(){
          onPropGet(PROP_ID_managerName);
          return _managerName;
     }
@@ -1866,7 +1866,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 管理者: MANAGER_NAME
      */
-    public void setManagerName(java.lang.String value){
+    public final void setManagerName(java.lang.String value){
         if(onPropSet(PROP_ID_managerName,value)){
             this._managerName = value;
             internalClearRefs(PROP_ID_managerName);
@@ -1877,7 +1877,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 管理者ID: MANAGER_ID
      */
-    public java.lang.String getManagerId(){
+    public final java.lang.String getManagerId(){
          onPropGet(PROP_ID_managerId);
          return _managerId;
     }
@@ -1885,7 +1885,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 管理者ID: MANAGER_ID
      */
-    public void setManagerId(java.lang.String value){
+    public final void setManagerId(java.lang.String value){
         if(onPropSet(PROP_ID_managerId,value)){
             this._managerId = value;
             internalClearRefs(PROP_ID_managerId);
@@ -1896,7 +1896,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 优先级: PRIORITY
      */
-    public java.lang.Integer getPriority(){
+    public final java.lang.Integer getPriority(){
          onPropGet(PROP_ID_priority);
          return _priority;
     }
@@ -1904,7 +1904,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 优先级: PRIORITY
      */
-    public void setPriority(java.lang.Integer value){
+    public final void setPriority(java.lang.Integer value){
         if(onPropSet(PROP_ID_priority,value)){
             this._priority = value;
             internalClearRefs(PROP_ID_priority);
@@ -1915,7 +1915,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 信号集合: SIGNAL_TEXT
      */
-    public java.lang.String getSignalText(){
+    public final java.lang.String getSignalText(){
          onPropGet(PROP_ID_signalText);
          return _signalText;
     }
@@ -1923,7 +1923,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 信号集合: SIGNAL_TEXT
      */
-    public void setSignalText(java.lang.String value){
+    public final void setSignalText(java.lang.String value){
         if(onPropSet(PROP_ID_signalText,value)){
             this._signalText = value;
             internalClearRefs(PROP_ID_signalText);
@@ -1934,7 +1934,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 标签: TAG_TEXT
      */
-    public java.lang.String getTagText(){
+    public final java.lang.String getTagText(){
          onPropGet(PROP_ID_tagText);
          return _tagText;
     }
@@ -1942,7 +1942,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 标签: TAG_TEXT
      */
-    public void setTagText(java.lang.String value){
+    public final void setTagText(java.lang.String value){
         if(onPropSet(PROP_ID_tagText,value)){
             this._tagText = value;
             internalClearRefs(PROP_ID_tagText);
@@ -1953,7 +1953,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -1961,7 +1961,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -1972,7 +1972,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -1980,7 +1980,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -1991,7 +1991,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -1999,7 +1999,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -2010,7 +2010,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -2018,7 +2018,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -2029,7 +2029,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -2037,7 +2037,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -2048,7 +2048,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -2056,7 +2056,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
@@ -2067,11 +2067,11 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 父流程
      */
-    public io.nop.wf.dao.entity.NopWfInstance getWfInstance(){
+    public final io.nop.wf.dao.entity.NopWfInstance getWfInstance(){
        return (io.nop.wf.dao.entity.NopWfInstance)internalGetRefEntity(PROP_NAME_wfInstance);
     }
 
-    public void setWfInstance(io.nop.wf.dao.entity.NopWfInstance refEntity){
+    public final void setWfInstance(io.nop.wf.dao.entity.NopWfInstance refEntity){
    
            if(refEntity == null){
            
@@ -2093,7 +2093,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 。 refPropName: wfInstance, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfStatusHistory> getStatusHistories(){
+    public final IOrmEntitySet<io.nop.wf.dao.entity.NopWfStatusHistory> getStatusHistories(){
        return _statusHistories;
     }
        
@@ -2103,7 +2103,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 。 refPropName: wfInstance, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfStepInstance> getSteps(){
+    public final IOrmEntitySet<io.nop.wf.dao.entity.NopWfStepInstance> getSteps(){
        return _steps;
     }
        
@@ -2113,7 +2113,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 。 refPropName: wfInstance, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfOutput> getOutputs(){
+    public final IOrmEntitySet<io.nop.wf.dao.entity.NopWfOutput> getOutputs(){
        return _outputs;
     }
        
@@ -2123,7 +2123,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 。 refPropName: wfInstance, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfVar> getGlobalVars(){
+    public final IOrmEntitySet<io.nop.wf.dao.entity.NopWfVar> getGlobalVars(){
        return _globalVars;
     }
        
@@ -2133,7 +2133,7 @@ public class _NopWfInstance extends DynamicOrmEntity{
     /**
      * 。 refPropName: wfInstance, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfWork> getWorks(){
+    public final IOrmEntitySet<io.nop.wf.dao.entity.NopWfWork> getWorks(){
        return _works;
     }
        

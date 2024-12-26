@@ -531,7 +531,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 主键: BATCH_TASK_ID
      */
-    public java.lang.String getBatchTaskId(){
+    public final java.lang.String getBatchTaskId(){
          onPropGet(PROP_ID_batchTaskId);
          return _batchTaskId;
     }
@@ -539,7 +539,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 主键: BATCH_TASK_ID
      */
-    public void setBatchTaskId(java.lang.String value){
+    public final void setBatchTaskId(java.lang.String value){
         if(onPropSet(PROP_ID_batchTaskId,value)){
             this._batchTaskId = value;
             internalClearRefs(PROP_ID_batchTaskId);
@@ -550,7 +550,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 变量名: FIELD_NAME
      */
-    public java.lang.String getFieldName(){
+    public final java.lang.String getFieldName(){
          onPropGet(PROP_ID_fieldName);
          return _fieldName;
     }
@@ -558,7 +558,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 变量名: FIELD_NAME
      */
-    public void setFieldName(java.lang.String value){
+    public final void setFieldName(java.lang.String value){
         if(onPropSet(PROP_ID_fieldName,value)){
             this._fieldName = value;
             internalClearRefs(PROP_ID_fieldName);
@@ -569,7 +569,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 变量类型: FIELD_TYPE
      */
-    public java.lang.Integer getFieldType(){
+    public final java.lang.Integer getFieldType(){
          onPropGet(PROP_ID_fieldType);
          return _fieldType;
     }
@@ -577,7 +577,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 变量类型: FIELD_TYPE
      */
-    public void setFieldType(java.lang.Integer value){
+    public final void setFieldType(java.lang.Integer value){
         if(onPropSet(PROP_ID_fieldType,value)){
             this._fieldType = value;
             internalClearRefs(PROP_ID_fieldType);
@@ -588,7 +588,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 字符串值: STRING_VALUE
      */
-    public java.lang.String getStringValue(){
+    public final java.lang.String getStringValue(){
          onPropGet(PROP_ID_stringValue);
          return _stringValue;
     }
@@ -596,7 +596,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 字符串值: STRING_VALUE
      */
-    public void setStringValue(java.lang.String value){
+    public final void setStringValue(java.lang.String value){
         if(onPropSet(PROP_ID_stringValue,value)){
             this._stringValue = value;
             internalClearRefs(PROP_ID_stringValue);
@@ -607,7 +607,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 浮点值: DECIMAL_VALUE
      */
-    public java.math.BigDecimal getDecimalValue(){
+    public final java.math.BigDecimal getDecimalValue(){
          onPropGet(PROP_ID_decimalValue);
          return _decimalValue;
     }
@@ -615,7 +615,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 浮点值: DECIMAL_VALUE
      */
-    public void setDecimalValue(java.math.BigDecimal value){
+    public final void setDecimalValue(java.math.BigDecimal value){
         if(onPropSet(PROP_ID_decimalValue,value)){
             this._decimalValue = value;
             internalClearRefs(PROP_ID_decimalValue);
@@ -626,7 +626,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 整数型: LONG_VALUE
      */
-    public java.lang.Long getLongValue(){
+    public final java.lang.Long getLongValue(){
          onPropGet(PROP_ID_longValue);
          return _longValue;
     }
@@ -634,7 +634,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 整数型: LONG_VALUE
      */
-    public void setLongValue(java.lang.Long value){
+    public final void setLongValue(java.lang.Long value){
         if(onPropSet(PROP_ID_longValue,value)){
             this._longValue = value;
             internalClearRefs(PROP_ID_longValue);
@@ -645,7 +645,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 日期值: DATE_VALUE
      */
-    public java.time.LocalDate getDateValue(){
+    public final java.time.LocalDate getDateValue(){
          onPropGet(PROP_ID_dateValue);
          return _dateValue;
     }
@@ -653,7 +653,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 日期值: DATE_VALUE
      */
-    public void setDateValue(java.time.LocalDate value){
+    public final void setDateValue(java.time.LocalDate value){
         if(onPropSet(PROP_ID_dateValue,value)){
             this._dateValue = value;
             internalClearRefs(PROP_ID_dateValue);
@@ -664,7 +664,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 时间点值: TIMESTAMP_VALUE
      */
-    public java.sql.Timestamp getTimestampValue(){
+    public final java.sql.Timestamp getTimestampValue(){
          onPropGet(PROP_ID_timestampValue);
          return _timestampValue;
     }
@@ -672,7 +672,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 时间点值: TIMESTAMP_VALUE
      */
-    public void setTimestampValue(java.sql.Timestamp value){
+    public final void setTimestampValue(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_timestampValue,value)){
             this._timestampValue = value;
             internalClearRefs(PROP_ID_timestampValue);
@@ -683,7 +683,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Long getVersion(){
+    public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -691,7 +691,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Long value){
+    public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -702,7 +702,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -710,7 +710,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -721,7 +721,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -729,7 +729,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -740,7 +740,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -748,7 +748,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -759,7 +759,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -767,7 +767,7 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -778,11 +778,11 @@ public class _NopBatchTaskVar extends DynamicOrmEntity{
     /**
      * 批处理任务
      */
-    public io.nop.batch.dao.entity.NopBatchTask getTask(){
+    public final io.nop.batch.dao.entity.NopBatchTask getTask(){
        return (io.nop.batch.dao.entity.NopBatchTask)internalGetRefEntity(PROP_NAME_task);
     }
 
-    public void setTask(io.nop.batch.dao.entity.NopBatchTask refEntity){
+    public final void setTask(io.nop.batch.dao.entity.NopBatchTask refEntity){
    
            if(refEntity == null){
            

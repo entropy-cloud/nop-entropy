@@ -1713,7 +1713,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 步骤ID: STEP_ID
      */
-    public java.lang.String getStepId(){
+    public final java.lang.String getStepId(){
          onPropGet(PROP_ID_stepId);
          return _stepId;
     }
@@ -1721,7 +1721,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 步骤ID: STEP_ID
      */
-    public void setStepId(java.lang.String value){
+    public final void setStepId(java.lang.String value){
         if(onPropSet(PROP_ID_stepId,value)){
             this._stepId = value;
             internalClearRefs(PROP_ID_stepId);
@@ -1732,7 +1732,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 工作流实例ID: WF_ID
      */
-    public java.lang.String getWfId(){
+    public final java.lang.String getWfId(){
          onPropGet(PROP_ID_wfId);
          return _wfId;
     }
@@ -1740,7 +1740,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 工作流实例ID: WF_ID
      */
-    public void setWfId(java.lang.String value){
+    public final void setWfId(java.lang.String value){
         if(onPropSet(PROP_ID_wfId,value)){
             this._wfId = value;
             internalClearRefs(PROP_ID_wfId);
@@ -1751,7 +1751,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 步骤类型: STEP_TYPE
      */
-    public java.lang.String getStepType(){
+    public final java.lang.String getStepType(){
          onPropGet(PROP_ID_stepType);
          return _stepType;
     }
@@ -1759,7 +1759,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 步骤类型: STEP_TYPE
      */
-    public void setStepType(java.lang.String value){
+    public final void setStepType(java.lang.String value){
         if(onPropSet(PROP_ID_stepType,value)){
             this._stepType = value;
             internalClearRefs(PROP_ID_stepType);
@@ -1770,7 +1770,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 步骤名称: STEP_NAME
      */
-    public java.lang.String getStepName(){
+    public final java.lang.String getStepName(){
          onPropGet(PROP_ID_stepName);
          return _stepName;
     }
@@ -1778,7 +1778,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 步骤名称: STEP_NAME
      */
-    public void setStepName(java.lang.String value){
+    public final void setStepName(java.lang.String value){
         if(onPropSet(PROP_ID_stepName,value)){
             this._stepName = value;
             internalClearRefs(PROP_ID_stepName);
@@ -1789,7 +1789,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 步骤显示名称: DISPLAY_NAME
      */
-    public java.lang.String getDisplayName(){
+    public final java.lang.String getDisplayName(){
          onPropGet(PROP_ID_displayName);
          return _displayName;
     }
@@ -1797,7 +1797,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 步骤显示名称: DISPLAY_NAME
      */
-    public void setDisplayName(java.lang.String value){
+    public final void setDisplayName(java.lang.String value){
         if(onPropSet(PROP_ID_displayName,value)){
             this._displayName = value;
             internalClearRefs(PROP_ID_displayName);
@@ -1808,7 +1808,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public java.lang.Integer getStatus(){
+    public final java.lang.Integer getStatus(){
          onPropGet(PROP_ID_status);
          return _status;
     }
@@ -1816,7 +1816,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public void setStatus(java.lang.Integer value){
+    public final void setStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
@@ -1827,7 +1827,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 应用状态: APP_STATE
      */
-    public java.lang.String getAppState(){
+    public final java.lang.String getAppState(){
          onPropGet(PROP_ID_appState);
          return _appState;
     }
@@ -1835,7 +1835,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 应用状态: APP_STATE
      */
-    public void setAppState(java.lang.String value){
+    public final void setAppState(java.lang.String value){
         if(onPropSet(PROP_ID_appState,value)){
             this._appState = value;
             internalClearRefs(PROP_ID_appState);
@@ -1846,7 +1846,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 子工作流ID: SUB_WF_ID
      */
-    public java.lang.String getSubWfId(){
+    public final java.lang.String getSubWfId(){
          onPropGet(PROP_ID_subWfId);
          return _subWfId;
     }
@@ -1854,7 +1854,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 子工作流ID: SUB_WF_ID
      */
-    public void setSubWfId(java.lang.String value){
+    public final void setSubWfId(java.lang.String value){
         if(onPropSet(PROP_ID_subWfId,value)){
             this._subWfId = value;
             internalClearRefs(PROP_ID_subWfId);
@@ -1865,7 +1865,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 子工作流名: SUB_WF_NAME
      */
-    public java.lang.String getSubWfName(){
+    public final java.lang.String getSubWfName(){
          onPropGet(PROP_ID_subWfName);
          return _subWfName;
     }
@@ -1873,7 +1873,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 子工作流名: SUB_WF_NAME
      */
-    public void setSubWfName(java.lang.String value){
+    public final void setSubWfName(java.lang.String value){
         if(onPropSet(PROP_ID_subWfName,value)){
             this._subWfName = value;
             internalClearRefs(PROP_ID_subWfName);
@@ -1884,7 +1884,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 子流程版本: SUB_WF_VERSION
      */
-    public java.lang.Long getSubWfVersion(){
+    public final java.lang.Long getSubWfVersion(){
          onPropGet(PROP_ID_subWfVersion);
          return _subWfVersion;
     }
@@ -1892,7 +1892,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 子流程版本: SUB_WF_VERSION
      */
-    public void setSubWfVersion(java.lang.Long value){
+    public final void setSubWfVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_subWfVersion,value)){
             this._subWfVersion = value;
             internalClearRefs(PROP_ID_subWfVersion);
@@ -1903,7 +1903,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 子流程结果状态: SUB_WF_RESULT_STATUS
      */
-    public java.lang.Integer getSubWfResultStatus(){
+    public final java.lang.Integer getSubWfResultStatus(){
          onPropGet(PROP_ID_subWfResultStatus);
          return _subWfResultStatus;
     }
@@ -1911,7 +1911,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 子流程结果状态: SUB_WF_RESULT_STATUS
      */
-    public void setSubWfResultStatus(java.lang.Integer value){
+    public final void setSubWfResultStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_subWfResultStatus,value)){
             this._subWfResultStatus = value;
             internalClearRefs(PROP_ID_subWfResultStatus);
@@ -1922,7 +1922,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 是否已读: IS_READ
      */
-    public java.lang.Boolean getIsRead(){
+    public final java.lang.Boolean getIsRead(){
          onPropGet(PROP_ID_isRead);
          return _isRead;
     }
@@ -1930,7 +1930,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 是否已读: IS_READ
      */
-    public void setIsRead(java.lang.Boolean value){
+    public final void setIsRead(java.lang.Boolean value){
         if(onPropSet(PROP_ID_isRead,value)){
             this._isRead = value;
             internalClearRefs(PROP_ID_isRead);
@@ -1941,7 +1941,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 参与者模型ID: ACTOR_MODEL_ID
      */
-    public java.lang.String getActorModelId(){
+    public final java.lang.String getActorModelId(){
          onPropGet(PROP_ID_actorModelId);
          return _actorModelId;
     }
@@ -1949,7 +1949,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 参与者模型ID: ACTOR_MODEL_ID
      */
-    public void setActorModelId(java.lang.String value){
+    public final void setActorModelId(java.lang.String value){
         if(onPropSet(PROP_ID_actorModelId,value)){
             this._actorModelId = value;
             internalClearRefs(PROP_ID_actorModelId);
@@ -1960,7 +1960,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 参与者类型: ACTOR_TYPE
      */
-    public java.lang.String getActorType(){
+    public final java.lang.String getActorType(){
          onPropGet(PROP_ID_actorType);
          return _actorType;
     }
@@ -1968,7 +1968,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 参与者类型: ACTOR_TYPE
      */
-    public void setActorType(java.lang.String value){
+    public final void setActorType(java.lang.String value){
         if(onPropSet(PROP_ID_actorType,value)){
             this._actorType = value;
             internalClearRefs(PROP_ID_actorType);
@@ -1979,7 +1979,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 参与者ID: ACTOR_ID
      */
-    public java.lang.String getActorId(){
+    public final java.lang.String getActorId(){
          onPropGet(PROP_ID_actorId);
          return _actorId;
     }
@@ -1987,7 +1987,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 参与者ID: ACTOR_ID
      */
-    public void setActorId(java.lang.String value){
+    public final void setActorId(java.lang.String value){
         if(onPropSet(PROP_ID_actorId,value)){
             this._actorId = value;
             internalClearRefs(PROP_ID_actorId);
@@ -1998,7 +1998,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 参与者部门ID: ACTOR_DEPT_ID
      */
-    public java.lang.String getActorDeptId(){
+    public final java.lang.String getActorDeptId(){
          onPropGet(PROP_ID_actorDeptId);
          return _actorDeptId;
     }
@@ -2006,7 +2006,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 参与者部门ID: ACTOR_DEPT_ID
      */
-    public void setActorDeptId(java.lang.String value){
+    public final void setActorDeptId(java.lang.String value){
         if(onPropSet(PROP_ID_actorDeptId,value)){
             this._actorDeptId = value;
             internalClearRefs(PROP_ID_actorDeptId);
@@ -2017,7 +2017,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 参与者名称: ACTOR_NAME
      */
-    public java.lang.String getActorName(){
+    public final java.lang.String getActorName(){
          onPropGet(PROP_ID_actorName);
          return _actorName;
     }
@@ -2025,7 +2025,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 参与者名称: ACTOR_NAME
      */
-    public void setActorName(java.lang.String value){
+    public final void setActorName(java.lang.String value){
         if(onPropSet(PROP_ID_actorName,value)){
             this._actorName = value;
             internalClearRefs(PROP_ID_actorName);
@@ -2036,7 +2036,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 拥有者ID: OWNER_ID
      */
-    public java.lang.String getOwnerId(){
+    public final java.lang.String getOwnerId(){
          onPropGet(PROP_ID_ownerId);
          return _ownerId;
     }
@@ -2044,7 +2044,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 拥有者ID: OWNER_ID
      */
-    public void setOwnerId(java.lang.String value){
+    public final void setOwnerId(java.lang.String value){
         if(onPropSet(PROP_ID_ownerId,value)){
             this._ownerId = value;
             internalClearRefs(PROP_ID_ownerId);
@@ -2055,7 +2055,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 拥有者姓名: OWNER_NAME
      */
-    public java.lang.String getOwnerName(){
+    public final java.lang.String getOwnerName(){
          onPropGet(PROP_ID_ownerName);
          return _ownerName;
     }
@@ -2063,7 +2063,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 拥有者姓名: OWNER_NAME
      */
-    public void setOwnerName(java.lang.String value){
+    public final void setOwnerName(java.lang.String value){
         if(onPropSet(PROP_ID_ownerName,value)){
             this._ownerName = value;
             internalClearRefs(PROP_ID_ownerName);
@@ -2074,7 +2074,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 拥有者部门ID: OWNER_DEPT_ID
      */
-    public java.lang.String getOwnerDeptId(){
+    public final java.lang.String getOwnerDeptId(){
          onPropGet(PROP_ID_ownerDeptId);
          return _ownerDeptId;
     }
@@ -2082,7 +2082,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 拥有者部门ID: OWNER_DEPT_ID
      */
-    public void setOwnerDeptId(java.lang.String value){
+    public final void setOwnerDeptId(java.lang.String value){
         if(onPropSet(PROP_ID_ownerDeptId,value)){
             this._ownerDeptId = value;
             internalClearRefs(PROP_ID_ownerDeptId);
@@ -2093,7 +2093,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 分配者ID: ASSIGNER_ID
      */
-    public java.lang.String getAssignerId(){
+    public final java.lang.String getAssignerId(){
          onPropGet(PROP_ID_assignerId);
          return _assignerId;
     }
@@ -2101,7 +2101,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 分配者ID: ASSIGNER_ID
      */
-    public void setAssignerId(java.lang.String value){
+    public final void setAssignerId(java.lang.String value){
         if(onPropSet(PROP_ID_assignerId,value)){
             this._assignerId = value;
             internalClearRefs(PROP_ID_assignerId);
@@ -2112,7 +2112,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 分配者姓名: ASSIGNER_NAME
      */
-    public java.lang.String getAssignerName(){
+    public final java.lang.String getAssignerName(){
          onPropGet(PROP_ID_assignerName);
          return _assignerName;
     }
@@ -2120,7 +2120,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 分配者姓名: ASSIGNER_NAME
      */
-    public void setAssignerName(java.lang.String value){
+    public final void setAssignerName(java.lang.String value){
         if(onPropSet(PROP_ID_assignerName,value)){
             this._assignerName = value;
             internalClearRefs(PROP_ID_assignerName);
@@ -2131,7 +2131,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 调用者ID: CALLER_ID
      */
-    public java.lang.String getCallerId(){
+    public final java.lang.String getCallerId(){
          onPropGet(PROP_ID_callerId);
          return _callerId;
     }
@@ -2139,7 +2139,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 调用者ID: CALLER_ID
      */
-    public void setCallerId(java.lang.String value){
+    public final void setCallerId(java.lang.String value){
         if(onPropSet(PROP_ID_callerId,value)){
             this._callerId = value;
             internalClearRefs(PROP_ID_callerId);
@@ -2150,7 +2150,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 调用者姓名: CALLER_NAME
      */
-    public java.lang.String getCallerName(){
+    public final java.lang.String getCallerName(){
          onPropGet(PROP_ID_callerName);
          return _callerName;
     }
@@ -2158,7 +2158,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 调用者姓名: CALLER_NAME
      */
-    public void setCallerName(java.lang.String value){
+    public final void setCallerName(java.lang.String value){
         if(onPropSet(PROP_ID_callerName,value)){
             this._callerName = value;
             internalClearRefs(PROP_ID_callerName);
@@ -2169,7 +2169,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 取消人ID: CANCELLER_ID
      */
-    public java.lang.String getCancellerId(){
+    public final java.lang.String getCancellerId(){
          onPropGet(PROP_ID_cancellerId);
          return _cancellerId;
     }
@@ -2177,7 +2177,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 取消人ID: CANCELLER_ID
      */
-    public void setCancellerId(java.lang.String value){
+    public final void setCancellerId(java.lang.String value){
         if(onPropSet(PROP_ID_cancellerId,value)){
             this._cancellerId = value;
             internalClearRefs(PROP_ID_cancellerId);
@@ -2188,7 +2188,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 取消人姓名: CANCELLER_NAME
      */
-    public java.lang.String getCancellerName(){
+    public final java.lang.String getCancellerName(){
          onPropGet(PROP_ID_cancellerName);
          return _cancellerName;
     }
@@ -2196,7 +2196,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 取消人姓名: CANCELLER_NAME
      */
-    public void setCancellerName(java.lang.String value){
+    public final void setCancellerName(java.lang.String value){
         if(onPropSet(PROP_ID_cancellerName,value)){
             this._cancellerName = value;
             internalClearRefs(PROP_ID_cancellerName);
@@ -2207,7 +2207,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 来源操作: FROM_ACTION
      */
-    public java.lang.String getFromAction(){
+    public final java.lang.String getFromAction(){
          onPropGet(PROP_ID_fromAction);
          return _fromAction;
     }
@@ -2215,7 +2215,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 来源操作: FROM_ACTION
      */
-    public void setFromAction(java.lang.String value){
+    public final void setFromAction(java.lang.String value){
         if(onPropSet(PROP_ID_fromAction,value)){
             this._fromAction = value;
             internalClearRefs(PROP_ID_fromAction);
@@ -2226,7 +2226,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 最后一次操作: LAST_ACTION
      */
-    public java.lang.String getLastAction(){
+    public final java.lang.String getLastAction(){
          onPropGet(PROP_ID_lastAction);
          return _lastAction;
     }
@@ -2234,7 +2234,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 最后一次操作: LAST_ACTION
      */
-    public void setLastAction(java.lang.String value){
+    public final void setLastAction(java.lang.String value){
         if(onPropSet(PROP_ID_lastAction,value)){
             this._lastAction = value;
             internalClearRefs(PROP_ID_lastAction);
@@ -2245,7 +2245,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 开始时间: START_TIME
      */
-    public java.sql.Timestamp getStartTime(){
+    public final java.sql.Timestamp getStartTime(){
          onPropGet(PROP_ID_startTime);
          return _startTime;
     }
@@ -2253,7 +2253,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 开始时间: START_TIME
      */
-    public void setStartTime(java.sql.Timestamp value){
+    public final void setStartTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_startTime,value)){
             this._startTime = value;
             internalClearRefs(PROP_ID_startTime);
@@ -2264,7 +2264,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 结束时间: FINISH_TIME
      */
-    public java.sql.Timestamp getFinishTime(){
+    public final java.sql.Timestamp getFinishTime(){
          onPropGet(PROP_ID_finishTime);
          return _finishTime;
     }
@@ -2272,7 +2272,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 结束时间: FINISH_TIME
      */
-    public void setFinishTime(java.sql.Timestamp value){
+    public final void setFinishTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_finishTime,value)){
             this._finishTime = value;
             internalClearRefs(PROP_ID_finishTime);
@@ -2283,7 +2283,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 到期时间: DUE_TIME
      */
-    public java.sql.Timestamp getDueTime(){
+    public final java.sql.Timestamp getDueTime(){
          onPropGet(PROP_ID_dueTime);
          return _dueTime;
     }
@@ -2291,7 +2291,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 到期时间: DUE_TIME
      */
-    public void setDueTime(java.sql.Timestamp value){
+    public final void setDueTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_dueTime,value)){
             this._dueTime = value;
             internalClearRefs(PROP_ID_dueTime);
@@ -2302,7 +2302,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 读取时间: READ_TIME
      */
-    public java.sql.Timestamp getReadTime(){
+    public final java.sql.Timestamp getReadTime(){
          onPropGet(PROP_ID_readTime);
          return _readTime;
     }
@@ -2310,7 +2310,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 读取时间: READ_TIME
      */
-    public void setReadTime(java.sql.Timestamp value){
+    public final void setReadTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_readTime,value)){
             this._readTime = value;
             internalClearRefs(PROP_ID_readTime);
@@ -2321,7 +2321,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 提醒时间: REMIND_TIME
      */
-    public java.sql.Timestamp getRemindTime(){
+    public final java.sql.Timestamp getRemindTime(){
          onPropGet(PROP_ID_remindTime);
          return _remindTime;
     }
@@ -2329,7 +2329,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 提醒时间: REMIND_TIME
      */
-    public void setRemindTime(java.sql.Timestamp value){
+    public final void setRemindTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_remindTime,value)){
             this._remindTime = value;
             internalClearRefs(PROP_ID_remindTime);
@@ -2340,7 +2340,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 提醒次数: REMIND_COUNT
      */
-    public java.lang.Integer getRemindCount(){
+    public final java.lang.Integer getRemindCount(){
          onPropGet(PROP_ID_remindCount);
          return _remindCount;
     }
@@ -2348,7 +2348,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 提醒次数: REMIND_COUNT
      */
-    public void setRemindCount(java.lang.Integer value){
+    public final void setRemindCount(java.lang.Integer value){
         if(onPropSet(PROP_ID_remindCount,value)){
             this._remindCount = value;
             internalClearRefs(PROP_ID_remindCount);
@@ -2359,7 +2359,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 下次重试时间: NEXT_RETRY_TIME
      */
-    public java.sql.Timestamp getNextRetryTime(){
+    public final java.sql.Timestamp getNextRetryTime(){
          onPropGet(PROP_ID_nextRetryTime);
          return _nextRetryTime;
     }
@@ -2367,7 +2367,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 下次重试时间: NEXT_RETRY_TIME
      */
-    public void setNextRetryTime(java.sql.Timestamp value){
+    public final void setNextRetryTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_nextRetryTime,value)){
             this._nextRetryTime = value;
             internalClearRefs(PROP_ID_nextRetryTime);
@@ -2378,7 +2378,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 已重试次数: RETRY_COUNT
      */
-    public java.lang.Integer getRetryCount(){
+    public final java.lang.Integer getRetryCount(){
          onPropGet(PROP_ID_retryCount);
          return _retryCount;
     }
@@ -2386,7 +2386,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 已重试次数: RETRY_COUNT
      */
-    public void setRetryCount(java.lang.Integer value){
+    public final void setRetryCount(java.lang.Integer value){
         if(onPropSet(PROP_ID_retryCount,value)){
             this._retryCount = value;
             internalClearRefs(PROP_ID_retryCount);
@@ -2397,7 +2397,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 错误码: ERR_CODE
      */
-    public java.lang.String getErrCode(){
+    public final java.lang.String getErrCode(){
          onPropGet(PROP_ID_errCode);
          return _errCode;
     }
@@ -2405,7 +2405,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 错误码: ERR_CODE
      */
-    public void setErrCode(java.lang.String value){
+    public final void setErrCode(java.lang.String value){
         if(onPropSet(PROP_ID_errCode,value)){
             this._errCode = value;
             internalClearRefs(PROP_ID_errCode);
@@ -2416,7 +2416,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 错误消息: ERR_MSG
      */
-    public java.lang.String getErrMsg(){
+    public final java.lang.String getErrMsg(){
          onPropGet(PROP_ID_errMsg);
          return _errMsg;
     }
@@ -2424,7 +2424,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 错误消息: ERR_MSG
      */
-    public void setErrMsg(java.lang.String value){
+    public final void setErrMsg(java.lang.String value){
         if(onPropSet(PROP_ID_errMsg,value)){
             this._errMsg = value;
             internalClearRefs(PROP_ID_errMsg);
@@ -2435,7 +2435,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 优先级: PRIORITY
      */
-    public java.lang.Integer getPriority(){
+    public final java.lang.Integer getPriority(){
          onPropGet(PROP_ID_priority);
          return _priority;
     }
@@ -2443,7 +2443,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 优先级: PRIORITY
      */
-    public void setPriority(java.lang.Integer value){
+    public final void setPriority(java.lang.Integer value){
         if(onPropSet(PROP_ID_priority,value)){
             this._priority = value;
             internalClearRefs(PROP_ID_priority);
@@ -2454,7 +2454,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 汇聚分组: JOIN_GROUP
      */
-    public java.lang.String getJoinGroup(){
+    public final java.lang.String getJoinGroup(){
          onPropGet(PROP_ID_joinGroup);
          return _joinGroup;
     }
@@ -2462,7 +2462,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 汇聚分组: JOIN_GROUP
      */
-    public void setJoinGroup(java.lang.String value){
+    public final void setJoinGroup(java.lang.String value){
         if(onPropSet(PROP_ID_joinGroup,value)){
             this._joinGroup = value;
             internalClearRefs(PROP_ID_joinGroup);
@@ -2473,7 +2473,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 标签: TAG_TEXT
      */
-    public java.lang.String getTagText(){
+    public final java.lang.String getTagText(){
          onPropGet(PROP_ID_tagText);
          return _tagText;
     }
@@ -2481,7 +2481,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 标签: TAG_TEXT
      */
-    public void setTagText(java.lang.String value){
+    public final void setTagText(java.lang.String value){
         if(onPropSet(PROP_ID_tagText,value)){
             this._tagText = value;
             internalClearRefs(PROP_ID_tagText);
@@ -2492,7 +2492,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 下一步骤ID: NEXT_STEP_ID
      */
-    public java.lang.String getNextStepId(){
+    public final java.lang.String getNextStepId(){
          onPropGet(PROP_ID_nextStepId);
          return _nextStepId;
     }
@@ -2500,7 +2500,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 下一步骤ID: NEXT_STEP_ID
      */
-    public void setNextStepId(java.lang.String value){
+    public final void setNextStepId(java.lang.String value){
         if(onPropSet(PROP_ID_nextStepId,value)){
             this._nextStepId = value;
             internalClearRefs(PROP_ID_nextStepId);
@@ -2511,7 +2511,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 执行分组: EXEC_GROUP
      */
-    public java.lang.String getExecGroup(){
+    public final java.lang.String getExecGroup(){
          onPropGet(PROP_ID_execGroup);
          return _execGroup;
     }
@@ -2519,7 +2519,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 执行分组: EXEC_GROUP
      */
-    public void setExecGroup(java.lang.String value){
+    public final void setExecGroup(java.lang.String value){
         if(onPropSet(PROP_ID_execGroup,value)){
             this._execGroup = value;
             internalClearRefs(PROP_ID_execGroup);
@@ -2530,7 +2530,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 执行顺序: EXEC_ORDER
      */
-    public java.lang.Integer getExecOrder(){
+    public final java.lang.Integer getExecOrder(){
          onPropGet(PROP_ID_execOrder);
          return _execOrder;
     }
@@ -2538,7 +2538,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 执行顺序: EXEC_ORDER
      */
-    public void setExecOrder(java.lang.Integer value){
+    public final void setExecOrder(java.lang.Integer value){
         if(onPropSet(PROP_ID_execOrder,value)){
             this._execOrder = value;
             internalClearRefs(PROP_ID_execOrder);
@@ -2549,7 +2549,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 执行次数: EXEC_COUNT
      */
-    public java.lang.Integer getExecCount(){
+    public final java.lang.Integer getExecCount(){
          onPropGet(PROP_ID_execCount);
          return _execCount;
     }
@@ -2557,7 +2557,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 执行次数: EXEC_COUNT
      */
-    public void setExecCount(java.lang.Integer value){
+    public final void setExecCount(java.lang.Integer value){
         if(onPropSet(PROP_ID_execCount,value)){
             this._execCount = value;
             internalClearRefs(PROP_ID_execCount);
@@ -2568,7 +2568,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 投票权重: VOTE_WEIGHT
      */
-    public java.lang.Integer getVoteWeight(){
+    public final java.lang.Integer getVoteWeight(){
          onPropGet(PROP_ID_voteWeight);
          return _voteWeight;
     }
@@ -2576,7 +2576,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 投票权重: VOTE_WEIGHT
      */
-    public void setVoteWeight(java.lang.Integer value){
+    public final void setVoteWeight(java.lang.Integer value){
         if(onPropSet(PROP_ID_voteWeight,value)){
             this._voteWeight = value;
             internalClearRefs(PROP_ID_voteWeight);
@@ -2587,7 +2587,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -2595,7 +2595,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -2606,7 +2606,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -2614,7 +2614,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -2625,7 +2625,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -2633,7 +2633,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -2644,7 +2644,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -2652,7 +2652,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -2663,7 +2663,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -2671,7 +2671,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -2682,7 +2682,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -2690,7 +2690,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
@@ -2701,11 +2701,11 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 工作流实例
      */
-    public io.nop.wf.dao.entity.NopWfInstance getWfInstance(){
+    public final io.nop.wf.dao.entity.NopWfInstance getWfInstance(){
        return (io.nop.wf.dao.entity.NopWfInstance)internalGetRefEntity(PROP_NAME_wfInstance);
     }
 
-    public void setWfInstance(io.nop.wf.dao.entity.NopWfInstance refEntity){
+    public final void setWfInstance(io.nop.wf.dao.entity.NopWfInstance refEntity){
    
            if(refEntity == null){
            
@@ -2724,11 +2724,11 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 子流程实例
      */
-    public io.nop.wf.dao.entity.NopWfInstance getSubWfInstance(){
+    public final io.nop.wf.dao.entity.NopWfInstance getSubWfInstance(){
        return (io.nop.wf.dao.entity.NopWfInstance)internalGetRefEntity(PROP_NAME_subWfInstance);
     }
 
-    public void setSubWfInstance(io.nop.wf.dao.entity.NopWfInstance refEntity){
+    public final void setSubWfInstance(io.nop.wf.dao.entity.NopWfInstance refEntity){
    
            if(refEntity == null){
            
@@ -2750,7 +2750,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 。 refPropName: wfStep, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfStepInstanceLink> getNextLinks(){
+    public final IOrmEntitySet<io.nop.wf.dao.entity.NopWfStepInstanceLink> getNextLinks(){
        return _nextLinks;
     }
        
@@ -2760,7 +2760,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 。 refPropName: nextWfStep, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfStepInstanceLink> getPrevLinks(){
+    public final IOrmEntitySet<io.nop.wf.dao.entity.NopWfStepInstanceLink> getPrevLinks(){
        return _prevLinks;
     }
        
@@ -2770,7 +2770,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     /**
      * 。 refPropName: wfStepInstance, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.wf.dao.entity.NopWfAction> getStepActions(){
+    public final IOrmEntitySet<io.nop.wf.dao.entity.NopWfAction> getStepActions(){
        return _stepActions;
     }
        

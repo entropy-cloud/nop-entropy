@@ -981,7 +981,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * SID: SID
      */
-    public java.lang.String getSid(){
+    public final java.lang.String getSid(){
          onPropGet(PROP_ID_sid);
          return _sid;
     }
@@ -989,7 +989,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * SID: SID
      */
-    public void setSid(java.lang.String value){
+    public final void setSid(java.lang.String value){
         if(onPropSet(PROP_ID_sid,value)){
             this._sid = value;
             internalClearRefs(PROP_ID_sid);
@@ -1000,7 +1000,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 显示名: DISPLAY_NAME
      */
-    public java.lang.String getDisplayName(){
+    public final java.lang.String getDisplayName(){
          onPropGet(PROP_ID_displayName);
          return _displayName;
     }
@@ -1008,7 +1008,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 显示名: DISPLAY_NAME
      */
-    public void setDisplayName(java.lang.String value){
+    public final void setDisplayName(java.lang.String value){
         if(onPropSet(PROP_ID_displayName,value)){
             this._displayName = value;
             internalClearRefs(PROP_ID_displayName);
@@ -1019,7 +1019,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 任务名: JOB_NAME
      */
-    public java.lang.String getJobName(){
+    public final java.lang.String getJobName(){
          onPropGet(PROP_ID_jobName);
          return _jobName;
     }
@@ -1027,7 +1027,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 任务名: JOB_NAME
      */
-    public void setJobName(java.lang.String value){
+    public final void setJobName(java.lang.String value){
         if(onPropSet(PROP_ID_jobName,value)){
             this._jobName = value;
             internalClearRefs(PROP_ID_jobName);
@@ -1038,7 +1038,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 任务组: JOB_GROUP
      */
-    public java.lang.String getJobGroup(){
+    public final java.lang.String getJobGroup(){
          onPropGet(PROP_ID_jobGroup);
          return _jobGroup;
     }
@@ -1046,7 +1046,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 任务组: JOB_GROUP
      */
-    public void setJobGroup(java.lang.String value){
+    public final void setJobGroup(java.lang.String value){
         if(onPropSet(PROP_ID_jobGroup,value)){
             this._jobGroup = value;
             internalClearRefs(PROP_ID_jobGroup);
@@ -1057,7 +1057,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 任务参数: JOB_PARAMS
      */
-    public java.lang.String getJobParams(){
+    public final java.lang.String getJobParams(){
          onPropGet(PROP_ID_jobParams);
          return _jobParams;
     }
@@ -1065,7 +1065,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 任务参数: JOB_PARAMS
      */
-    public void setJobParams(java.lang.String value){
+    public final void setJobParams(java.lang.String value){
         if(onPropSet(PROP_ID_jobParams,value)){
             this._jobParams = value;
             internalClearRefs(PROP_ID_jobParams);
@@ -1076,7 +1076,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 任务执行函数: JOB_INVOKER
      */
-    public java.lang.String getJobInvoker(){
+    public final java.lang.String getJobInvoker(){
          onPropGet(PROP_ID_jobInvoker);
          return _jobInvoker;
     }
@@ -1084,7 +1084,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 任务执行函数: JOB_INVOKER
      */
-    public void setJobInvoker(java.lang.String value){
+    public final void setJobInvoker(java.lang.String value){
         if(onPropSet(PROP_ID_jobInvoker,value)){
             this._jobInvoker = value;
             internalClearRefs(PROP_ID_jobInvoker);
@@ -1095,7 +1095,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 任务描述: DESCRIPTION
      */
-    public java.lang.String getDescription(){
+    public final java.lang.String getDescription(){
          onPropGet(PROP_ID_description);
          return _description;
     }
@@ -1103,7 +1103,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 任务描述: DESCRIPTION
      */
-    public void setDescription(java.lang.String value){
+    public final void setDescription(java.lang.String value){
         if(onPropSet(PROP_ID_description,value)){
             this._description = value;
             internalClearRefs(PROP_ID_description);
@@ -1114,7 +1114,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 任务状态: STATUS
      */
-    public java.lang.Integer getStatus(){
+    public final java.lang.Integer getStatus(){
          onPropGet(PROP_ID_status);
          return _status;
     }
@@ -1122,7 +1122,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 任务状态: STATUS
      */
-    public void setStatus(java.lang.Integer value){
+    public final void setStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
@@ -1133,7 +1133,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 定时表达式: CRON_EXPR
      */
-    public java.lang.String getCronExpr(){
+    public final java.lang.String getCronExpr(){
          onPropGet(PROP_ID_cronExpr);
          return _cronExpr;
     }
@@ -1141,7 +1141,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 定时表达式: CRON_EXPR
      */
-    public void setCronExpr(java.lang.String value){
+    public final void setCronExpr(java.lang.String value){
         if(onPropSet(PROP_ID_cronExpr,value)){
             this._cronExpr = value;
             internalClearRefs(PROP_ID_cronExpr);
@@ -1152,7 +1152,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 定时执行间隔: REPEAT_INTERVAL
      */
-    public java.lang.Integer getRepeatInterval(){
+    public final java.lang.Integer getRepeatInterval(){
          onPropGet(PROP_ID_repeatInterval);
          return _repeatInterval;
     }
@@ -1160,7 +1160,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 定时执行间隔: REPEAT_INTERVAL
      */
-    public void setRepeatInterval(java.lang.Integer value){
+    public final void setRepeatInterval(java.lang.Integer value){
         if(onPropSet(PROP_ID_repeatInterval,value)){
             this._repeatInterval = value;
             internalClearRefs(PROP_ID_repeatInterval);
@@ -1171,7 +1171,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 是否固定延时: IS_FIXED_DELAY
      */
-    public java.lang.Byte getIsFixedDelay(){
+    public final java.lang.Byte getIsFixedDelay(){
          onPropGet(PROP_ID_isFixedDelay);
          return _isFixedDelay;
     }
@@ -1179,7 +1179,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 是否固定延时: IS_FIXED_DELAY
      */
-    public void setIsFixedDelay(java.lang.Byte value){
+    public final void setIsFixedDelay(java.lang.Byte value){
         if(onPropSet(PROP_ID_isFixedDelay,value)){
             this._isFixedDelay = value;
             internalClearRefs(PROP_ID_isFixedDelay);
@@ -1190,7 +1190,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 最多执行次数: MAX_EXECUTION_COUNT
      */
-    public java.lang.Integer getMaxExecutionCount(){
+    public final java.lang.Integer getMaxExecutionCount(){
          onPropGet(PROP_ID_maxExecutionCount);
          return _maxExecutionCount;
     }
@@ -1198,7 +1198,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 最多执行次数: MAX_EXECUTION_COUNT
      */
-    public void setMaxExecutionCount(java.lang.Integer value){
+    public final void setMaxExecutionCount(java.lang.Integer value){
         if(onPropSet(PROP_ID_maxExecutionCount,value)){
             this._maxExecutionCount = value;
             internalClearRefs(PROP_ID_maxExecutionCount);
@@ -1209,7 +1209,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 最近调度时间: MIN_SCHEDULE_TIME
      */
-    public java.sql.Timestamp getMinScheduleTime(){
+    public final java.sql.Timestamp getMinScheduleTime(){
          onPropGet(PROP_ID_minScheduleTime);
          return _minScheduleTime;
     }
@@ -1217,7 +1217,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 最近调度时间: MIN_SCHEDULE_TIME
      */
-    public void setMinScheduleTime(java.sql.Timestamp value){
+    public final void setMinScheduleTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_minScheduleTime,value)){
             this._minScheduleTime = value;
             internalClearRefs(PROP_ID_minScheduleTime);
@@ -1228,7 +1228,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 最大调度时间: MAX_SCHEDULE_TIME
      */
-    public java.sql.Timestamp getMaxScheduleTime(){
+    public final java.sql.Timestamp getMaxScheduleTime(){
          onPropGet(PROP_ID_maxScheduleTime);
          return _maxScheduleTime;
     }
@@ -1236,7 +1236,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 最大调度时间: MAX_SCHEDULE_TIME
      */
-    public void setMaxScheduleTime(java.sql.Timestamp value){
+    public final void setMaxScheduleTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_maxScheduleTime,value)){
             this._maxScheduleTime = value;
             internalClearRefs(PROP_ID_maxScheduleTime);
@@ -1247,7 +1247,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 超时阈值: MISFIRE_THRESHOLD
      */
-    public java.lang.Integer getMisfireThreshold(){
+    public final java.lang.Integer getMisfireThreshold(){
          onPropGet(PROP_ID_misfireThreshold);
          return _misfireThreshold;
     }
@@ -1255,7 +1255,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 超时阈值: MISFIRE_THRESHOLD
      */
-    public void setMisfireThreshold(java.lang.Integer value){
+    public final void setMisfireThreshold(java.lang.Integer value){
         if(onPropSet(PROP_ID_misfireThreshold,value)){
             this._misfireThreshold = value;
             internalClearRefs(PROP_ID_misfireThreshold);
@@ -1266,7 +1266,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 最大允许失败次数: MAX_FAILED_COUNT
      */
-    public java.lang.Integer getMaxFailedCount(){
+    public final java.lang.Integer getMaxFailedCount(){
          onPropGet(PROP_ID_maxFailedCount);
          return _maxFailedCount;
     }
@@ -1274,7 +1274,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 最大允许失败次数: MAX_FAILED_COUNT
      */
-    public void setMaxFailedCount(java.lang.Integer value){
+    public final void setMaxFailedCount(java.lang.Integer value){
         if(onPropSet(PROP_ID_maxFailedCount,value)){
             this._maxFailedCount = value;
             internalClearRefs(PROP_ID_maxFailedCount);
@@ -1285,7 +1285,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 使用系统内置日历: IS_USE_DEFAULT_CALENDAR
      */
-    public java.lang.Byte getIsUseDefaultCalendar(){
+    public final java.lang.Byte getIsUseDefaultCalendar(){
          onPropGet(PROP_ID_isUseDefaultCalendar);
          return _isUseDefaultCalendar;
     }
@@ -1293,7 +1293,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 使用系统内置日历: IS_USE_DEFAULT_CALENDAR
      */
-    public void setIsUseDefaultCalendar(java.lang.Byte value){
+    public final void setIsUseDefaultCalendar(java.lang.Byte value){
         if(onPropSet(PROP_ID_isUseDefaultCalendar,value)){
             this._isUseDefaultCalendar = value;
             internalClearRefs(PROP_ID_isUseDefaultCalendar);
@@ -1304,7 +1304,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 暂停日历: PAUSE_CALENDARS
      */
-    public java.lang.String getPauseCalendars(){
+    public final java.lang.String getPauseCalendars(){
          onPropGet(PROP_ID_pauseCalendars);
          return _pauseCalendars;
     }
@@ -1312,7 +1312,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 暂停日历: PAUSE_CALENDARS
      */
-    public void setPauseCalendars(java.lang.String value){
+    public final void setPauseCalendars(java.lang.String value){
         if(onPropSet(PROP_ID_pauseCalendars,value)){
             this._pauseCalendars = value;
             internalClearRefs(PROP_ID_pauseCalendars);
@@ -1323,7 +1323,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 调度器分组: SCHEDULER_GROUP
      */
-    public java.lang.String getSchedulerGroup(){
+    public final java.lang.String getSchedulerGroup(){
          onPropGet(PROP_ID_schedulerGroup);
          return _schedulerGroup;
     }
@@ -1331,7 +1331,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 调度器分组: SCHEDULER_GROUP
      */
-    public void setSchedulerGroup(java.lang.String value){
+    public final void setSchedulerGroup(java.lang.String value){
         if(onPropSet(PROP_ID_schedulerGroup,value)){
             this._schedulerGroup = value;
             internalClearRefs(PROP_ID_schedulerGroup);
@@ -1342,7 +1342,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 调度器ID: SCHEDULER_ID
      */
-    public java.lang.String getSchedulerId(){
+    public final java.lang.String getSchedulerId(){
          onPropGet(PROP_ID_schedulerId);
          return _schedulerId;
     }
@@ -1350,7 +1350,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 调度器ID: SCHEDULER_ID
      */
-    public void setSchedulerId(java.lang.String value){
+    public final void setSchedulerId(java.lang.String value){
         if(onPropSet(PROP_ID_schedulerId,value)){
             this._schedulerId = value;
             internalClearRefs(PROP_ID_schedulerId);
@@ -1361,7 +1361,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 调度器世代: SCHEDULER_EPOCH
      */
-    public java.lang.Long getSchedulerEpoch(){
+    public final java.lang.Long getSchedulerEpoch(){
          onPropGet(PROP_ID_schedulerEpoch);
          return _schedulerEpoch;
     }
@@ -1369,7 +1369,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 调度器世代: SCHEDULER_EPOCH
      */
-    public void setSchedulerEpoch(java.lang.Long value){
+    public final void setSchedulerEpoch(java.lang.Long value){
         if(onPropSet(PROP_ID_schedulerEpoch,value)){
             this._schedulerEpoch = value;
             internalClearRefs(PROP_ID_schedulerEpoch);
@@ -1380,7 +1380,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 调度器加载时间: SCHEDULER_LOAD_TIME
      */
-    public java.sql.Timestamp getSchedulerLoadTime(){
+    public final java.sql.Timestamp getSchedulerLoadTime(){
          onPropGet(PROP_ID_schedulerLoadTime);
          return _schedulerLoadTime;
     }
@@ -1388,7 +1388,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 调度器加载时间: SCHEDULER_LOAD_TIME
      */
-    public void setSchedulerLoadTime(java.sql.Timestamp value){
+    public final void setSchedulerLoadTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_schedulerLoadTime,value)){
             this._schedulerLoadTime = value;
             internalClearRefs(PROP_ID_schedulerLoadTime);
@@ -1399,7 +1399,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Long getVersion(){
+    public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -1407,7 +1407,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Long value){
+    public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -1418,7 +1418,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -1426,7 +1426,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -1437,7 +1437,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -1445,7 +1445,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -1456,7 +1456,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -1464,7 +1464,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -1475,7 +1475,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -1483,7 +1483,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -1494,7 +1494,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -1502,7 +1502,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
@@ -1519,7 +1519,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
       
    }
 
-   public io.nop.orm.component.JsonOrmComponent getJobParamsComponent(){
+   public final io.nop.orm.component.JsonOrmComponent getJobParamsComponent(){
       if(_jobParamsComponent == null){
           _jobParamsComponent = new io.nop.orm.component.JsonOrmComponent();
           _jobParamsComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_jobParamsComponent);

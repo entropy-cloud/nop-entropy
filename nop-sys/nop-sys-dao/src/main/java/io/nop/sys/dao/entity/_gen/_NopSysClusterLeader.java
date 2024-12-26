@@ -348,7 +348,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     /**
      * 集群ID: CLUSTER_ID
      */
-    public java.lang.String getClusterId(){
+    public final java.lang.String getClusterId(){
          onPropGet(PROP_ID_clusterId);
          return _clusterId;
     }
@@ -356,7 +356,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     /**
      * 集群ID: CLUSTER_ID
      */
-    public void setClusterId(java.lang.String value){
+    public final void setClusterId(java.lang.String value){
         if(onPropSet(PROP_ID_clusterId,value)){
             this._clusterId = value;
             internalClearRefs(PROP_ID_clusterId);
@@ -367,7 +367,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     /**
      * 主服务器ID: LEADER_ID
      */
-    public java.lang.String getLeaderId(){
+    public final java.lang.String getLeaderId(){
          onPropGet(PROP_ID_leaderId);
          return _leaderId;
     }
@@ -375,7 +375,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     /**
      * 主服务器ID: LEADER_ID
      */
-    public void setLeaderId(java.lang.String value){
+    public final void setLeaderId(java.lang.String value){
         if(onPropSet(PROP_ID_leaderId,value)){
             this._leaderId = value;
             internalClearRefs(PROP_ID_leaderId);
@@ -386,7 +386,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     /**
      * 主服务器地址: LEADER_ADDER
      */
-    public java.lang.String getLeaderAdder(){
+    public final java.lang.String getLeaderAdder(){
          onPropGet(PROP_ID_leaderAdder);
          return _leaderAdder;
     }
@@ -394,7 +394,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     /**
      * 主服务器地址: LEADER_ADDER
      */
-    public void setLeaderAdder(java.lang.String value){
+    public final void setLeaderAdder(java.lang.String value){
         if(onPropSet(PROP_ID_leaderAdder,value)){
             this._leaderAdder = value;
             internalClearRefs(PROP_ID_leaderAdder);
@@ -405,7 +405,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     /**
      * 选举世代: LEADER_EPOCH
      */
-    public java.lang.Long getLeaderEpoch(){
+    public final java.lang.Long getLeaderEpoch(){
          onPropGet(PROP_ID_leaderEpoch);
          return _leaderEpoch;
     }
@@ -413,7 +413,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     /**
      * 选举世代: LEADER_EPOCH
      */
-    public void setLeaderEpoch(java.lang.Long value){
+    public final void setLeaderEpoch(java.lang.Long value){
         if(onPropSet(PROP_ID_leaderEpoch,value)){
             this._leaderEpoch = value;
             internalClearRefs(PROP_ID_leaderEpoch);
@@ -424,7 +424,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     /**
      * 选举时间: ELECT_TIME
      */
-    public java.sql.Timestamp getElectTime(){
+    public final java.sql.Timestamp getElectTime(){
          onPropGet(PROP_ID_electTime);
          return _electTime;
     }
@@ -432,7 +432,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     /**
      * 选举时间: ELECT_TIME
      */
-    public void setElectTime(java.sql.Timestamp value){
+    public final void setElectTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_electTime,value)){
             this._electTime = value;
             internalClearRefs(PROP_ID_electTime);
@@ -443,7 +443,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     /**
      * 过期时间: EXPIRE_AT
      */
-    public java.sql.Timestamp getExpireAt(){
+    public final java.sql.Timestamp getExpireAt(){
          onPropGet(PROP_ID_expireAt);
          return _expireAt;
     }
@@ -451,7 +451,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     /**
      * 过期时间: EXPIRE_AT
      */
-    public void setExpireAt(java.sql.Timestamp value){
+    public final void setExpireAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_expireAt,value)){
             this._expireAt = value;
             internalClearRefs(PROP_ID_expireAt);
@@ -462,7 +462,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     /**
      * 应用ID: APP_ID
      */
-    public java.lang.String getAppId(){
+    public final java.lang.String getAppId(){
          onPropGet(PROP_ID_appId);
          return _appId;
     }
@@ -470,7 +470,7 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     /**
      * 应用ID: APP_ID
      */
-    public void setAppId(java.lang.String value){
+    public final void setAppId(java.lang.String value){
         if(onPropSet(PROP_ID_appId,value)){
             this._appId = value;
             internalClearRefs(PROP_ID_appId);

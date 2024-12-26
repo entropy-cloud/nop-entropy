@@ -573,7 +573,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * SID: SID
      */
-    public java.lang.String getSid(){
+    public final java.lang.String getSid(){
          onPropGet(PROP_ID_sid);
          return _sid;
     }
@@ -581,7 +581,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * SID: SID
      */
-    public void setSid(java.lang.String value){
+    public final void setSid(java.lang.String value){
         if(onPropSet(PROP_ID_sid,value)){
             this._sid = value;
             internalClearRefs(PROP_ID_sid);
@@ -592,7 +592,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 规则ID: RULE_ID
      */
-    public java.lang.String getRuleId(){
+    public final java.lang.String getRuleId(){
          onPropGet(PROP_ID_ruleId);
          return _ruleId;
     }
@@ -600,7 +600,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 规则ID: RULE_ID
      */
-    public void setRuleId(java.lang.String value){
+    public final void setRuleId(java.lang.String value){
         if(onPropSet(PROP_ID_ruleId,value)){
             this._ruleId = value;
             internalClearRefs(PROP_ID_ruleId);
@@ -611,7 +611,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 显示标签: LABEL
      */
-    public java.lang.String getLabel(){
+    public final java.lang.String getLabel(){
          onPropGet(PROP_ID_label);
          return _label;
     }
@@ -619,7 +619,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 显示标签: LABEL
      */
-    public void setLabel(java.lang.String value){
+    public final void setLabel(java.lang.String value){
         if(onPropSet(PROP_ID_label,value)){
             this._label = value;
             internalClearRefs(PROP_ID_label);
@@ -630,7 +630,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 排序序号: SORT_NO
      */
-    public java.lang.Integer getSortNo(){
+    public final java.lang.Integer getSortNo(){
          onPropGet(PROP_ID_sortNo);
          return _sortNo;
     }
@@ -638,7 +638,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 排序序号: SORT_NO
      */
-    public void setSortNo(java.lang.Integer value){
+    public final void setSortNo(java.lang.Integer value){
         if(onPropSet(PROP_ID_sortNo,value)){
             this._sortNo = value;
             internalClearRefs(PROP_ID_sortNo);
@@ -649,7 +649,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 判断条件: PREDICATE
      */
-    public java.lang.String getPredicate(){
+    public final java.lang.String getPredicate(){
          onPropGet(PROP_ID_predicate);
          return _predicate;
     }
@@ -657,7 +657,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 判断条件: PREDICATE
      */
-    public void setPredicate(java.lang.String value){
+    public final void setPredicate(java.lang.String value){
         if(onPropSet(PROP_ID_predicate,value)){
             this._predicate = value;
             internalClearRefs(PROP_ID_predicate);
@@ -668,7 +668,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 输出结果: OUTPUTS
      */
-    public java.lang.String getOutputs(){
+    public final java.lang.String getOutputs(){
          onPropGet(PROP_ID_outputs);
          return _outputs;
     }
@@ -676,7 +676,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 输出结果: OUTPUTS
      */
-    public void setOutputs(java.lang.String value){
+    public final void setOutputs(java.lang.String value){
         if(onPropSet(PROP_ID_outputs,value)){
             this._outputs = value;
             internalClearRefs(PROP_ID_outputs);
@@ -687,7 +687,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 父ID: PARENT_ID
      */
-    public java.lang.String getParentId(){
+    public final java.lang.String getParentId(){
          onPropGet(PROP_ID_parentId);
          return _parentId;
     }
@@ -695,7 +695,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 父ID: PARENT_ID
      */
-    public void setParentId(java.lang.String value){
+    public final void setParentId(java.lang.String value){
         if(onPropSet(PROP_ID_parentId,value)){
             this._parentId = value;
             internalClearRefs(PROP_ID_parentId);
@@ -706,7 +706,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 是否叶子节点: IS_LEAF
      */
-    public java.lang.Boolean getIsLeaf(){
+    public final java.lang.Boolean getIsLeaf(){
          onPropGet(PROP_ID_isLeaf);
          return _isLeaf;
     }
@@ -714,7 +714,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 是否叶子节点: IS_LEAF
      */
-    public void setIsLeaf(java.lang.Boolean value){
+    public final void setIsLeaf(java.lang.Boolean value){
         if(onPropSet(PROP_ID_isLeaf,value)){
             this._isLeaf = value;
             internalClearRefs(PROP_ID_isLeaf);
@@ -725,7 +725,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -733,7 +733,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -744,7 +744,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -752,7 +752,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -763,7 +763,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -771,7 +771,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -782,7 +782,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -790,7 +790,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -801,7 +801,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -809,7 +809,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -820,7 +820,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -828,7 +828,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
@@ -839,11 +839,11 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 父节点
      */
-    public io.nop.rule.dao.entity.NopRuleNode getParent(){
+    public final io.nop.rule.dao.entity.NopRuleNode getParent(){
        return (io.nop.rule.dao.entity.NopRuleNode)internalGetRefEntity(PROP_NAME_parent);
     }
 
-    public void setParent(io.nop.rule.dao.entity.NopRuleNode refEntity){
+    public final void setParent(io.nop.rule.dao.entity.NopRuleNode refEntity){
    
            if(refEntity == null){
            
@@ -862,11 +862,11 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 规则定义
      */
-    public io.nop.rule.dao.entity.NopRuleDefinition getRuleDefinition(){
+    public final io.nop.rule.dao.entity.NopRuleDefinition getRuleDefinition(){
        return (io.nop.rule.dao.entity.NopRuleDefinition)internalGetRefEntity(PROP_NAME_ruleDefinition);
     }
 
-    public void setRuleDefinition(io.nop.rule.dao.entity.NopRuleDefinition refEntity){
+    public final void setRuleDefinition(io.nop.rule.dao.entity.NopRuleDefinition refEntity){
    
            if(refEntity == null){
            
@@ -888,7 +888,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
     /**
      * 子节点。 refPropName: parent, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.rule.dao.entity.NopRuleNode> getChildren(){
+    public final IOrmEntitySet<io.nop.rule.dao.entity.NopRuleNode> getChildren(){
        return _children;
     }
        
@@ -901,7 +901,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
       
    }
 
-   public io.nop.orm.component.JsonOrmComponent getPredicateComponent(){
+   public final io.nop.orm.component.JsonOrmComponent getPredicateComponent(){
       if(_predicateComponent == null){
           _predicateComponent = new io.nop.orm.component.JsonOrmComponent();
           _predicateComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_predicateComponent);
@@ -918,7 +918,7 @@ public class _NopRuleNode extends DynamicOrmEntity{
       
    }
 
-   public io.nop.orm.component.JsonOrmComponent getOutputsComponent(){
+   public final io.nop.orm.component.JsonOrmComponent getOutputsComponent(){
       if(_outputsComponent == null){
           _outputsComponent = new io.nop.orm.component.JsonOrmComponent();
           _outputsComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_outputsComponent);

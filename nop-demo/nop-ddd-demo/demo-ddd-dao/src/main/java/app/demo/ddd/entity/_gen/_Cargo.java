@@ -702,7 +702,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * Id: ID
      */
-    public java.lang.Long getId(){
+    public final java.lang.Long getId(){
          onPropGet(PROP_ID_id);
          return _id;
     }
@@ -710,7 +710,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * Id: ID
      */
-    public void setId(java.lang.Long value){
+    public final void setId(java.lang.Long value){
         if(onPropSet(PROP_ID_id,value)){
             this._id = value;
             internalClearRefs(PROP_ID_id);
@@ -721,7 +721,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 计算时间: CALCULATED_AT
      */
-    public java.time.LocalDateTime getCalculatedAt(){
+    public final java.time.LocalDateTime getCalculatedAt(){
          onPropGet(PROP_ID_calculatedAt);
          return _calculatedAt;
     }
@@ -729,7 +729,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 计算时间: CALCULATED_AT
      */
-    public void setCalculatedAt(java.time.LocalDateTime value){
+    public final void setCalculatedAt(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_calculatedAt,value)){
             this._calculatedAt = value;
             internalClearRefs(PROP_ID_calculatedAt);
@@ -740,7 +740,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 预计到达时间: ETA
      */
-    public java.time.LocalDateTime getEta(){
+    public final java.time.LocalDateTime getEta(){
          onPropGet(PROP_ID_eta);
          return _eta;
     }
@@ -748,7 +748,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 预计到达时间: ETA
      */
-    public void setEta(java.time.LocalDateTime value){
+    public final void setEta(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_eta,value)){
             this._eta = value;
             internalClearRefs(PROP_ID_eta);
@@ -759,7 +759,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 目的地卸载时间: UNLOADED_AT_DEST
      */
-    public java.lang.Boolean getUnloadedAtDest(){
+    public final java.lang.Boolean getUnloadedAtDest(){
          onPropGet(PROP_ID_unloadedAtDest);
          return _unloadedAtDest;
     }
@@ -767,7 +767,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 目的地卸载时间: UNLOADED_AT_DEST
      */
-    public void setUnloadedAtDest(java.lang.Boolean value){
+    public final void setUnloadedAtDest(java.lang.Boolean value){
         if(onPropSet(PROP_ID_unloadedAtDest,value)){
             this._unloadedAtDest = value;
             internalClearRefs(PROP_ID_unloadedAtDest);
@@ -778,7 +778,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 路线错误: MISDIRECTED
      */
-    public java.lang.Boolean getMisdirected(){
+    public final java.lang.Boolean getMisdirected(){
          onPropGet(PROP_ID_misdirected);
          return _misdirected;
     }
@@ -786,7 +786,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 路线错误: MISDIRECTED
      */
-    public void setMisdirected(java.lang.Boolean value){
+    public final void setMisdirected(java.lang.Boolean value){
         if(onPropSet(PROP_ID_misdirected,value)){
             this._misdirected = value;
             internalClearRefs(PROP_ID_misdirected);
@@ -797,7 +797,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 下一步预期处理事件类型: NEXT_EXPECTED_HANDLING_EVENT_TYPE
      */
-    public java.lang.String getNextExpectedHandlingEventType(){
+    public final java.lang.String getNextExpectedHandlingEventType(){
          onPropGet(PROP_ID_nextExpectedHandlingEventType);
          return _nextExpectedHandlingEventType;
     }
@@ -805,7 +805,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 下一步预期处理事件类型: NEXT_EXPECTED_HANDLING_EVENT_TYPE
      */
-    public void setNextExpectedHandlingEventType(java.lang.String value){
+    public final void setNextExpectedHandlingEventType(java.lang.String value){
         if(onPropSet(PROP_ID_nextExpectedHandlingEventType,value)){
             this._nextExpectedHandlingEventType = value;
             internalClearRefs(PROP_ID_nextExpectedHandlingEventType);
@@ -816,7 +816,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 路由状态: ROUTING_STATUS
      */
-    public java.lang.String getRoutingStatus(){
+    public final java.lang.String getRoutingStatus(){
          onPropGet(PROP_ID_routingStatus);
          return _routingStatus;
     }
@@ -824,7 +824,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 路由状态: ROUTING_STATUS
      */
-    public void setRoutingStatus(java.lang.String value){
+    public final void setRoutingStatus(java.lang.String value){
         if(onPropSet(PROP_ID_routingStatus,value)){
             this._routingStatus = value;
             internalClearRefs(PROP_ID_routingStatus);
@@ -835,7 +835,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 运输状态: TRANSPORT_STATUS
      */
-    public java.lang.String getTransportStatus(){
+    public final java.lang.String getTransportStatus(){
          onPropGet(PROP_ID_transportStatus);
          return _transportStatus;
     }
@@ -843,7 +843,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 运输状态: TRANSPORT_STATUS
      */
-    public void setTransportStatus(java.lang.String value){
+    public final void setTransportStatus(java.lang.String value){
         if(onPropSet(PROP_ID_transportStatus,value)){
             this._transportStatus = value;
             internalClearRefs(PROP_ID_transportStatus);
@@ -854,7 +854,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 指定到达期限: SPEC_ARRIVAL_DEADLINE
      */
-    public java.time.LocalDateTime getSpecArrivalDeadline(){
+    public final java.time.LocalDateTime getSpecArrivalDeadline(){
          onPropGet(PROP_ID_specArrivalDeadline);
          return _specArrivalDeadline;
     }
@@ -862,7 +862,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 指定到达期限: SPEC_ARRIVAL_DEADLINE
      */
-    public void setSpecArrivalDeadline(java.time.LocalDateTime value){
+    public final void setSpecArrivalDeadline(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_specArrivalDeadline,value)){
             this._specArrivalDeadline = value;
             internalClearRefs(PROP_ID_specArrivalDeadline);
@@ -873,7 +873,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 跟踪ID: TRACKING_ID
      */
-    public java.lang.String getTrackingId(){
+    public final java.lang.String getTrackingId(){
          onPropGet(PROP_ID_trackingId);
          return _trackingId;
     }
@@ -881,7 +881,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 跟踪ID: TRACKING_ID
      */
-    public void setTrackingId(java.lang.String value){
+    public final void setTrackingId(java.lang.String value){
         if(onPropSet(PROP_ID_trackingId,value)){
             this._trackingId = value;
             internalClearRefs(PROP_ID_trackingId);
@@ -892,7 +892,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 当前航程ID: CURRENT_VOYAGE_ID
      */
-    public java.lang.Long getCurrentVoyageId(){
+    public final java.lang.Long getCurrentVoyageId(){
          onPropGet(PROP_ID_currentVoyageId);
          return _currentVoyageId;
     }
@@ -900,7 +900,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 当前航程ID: CURRENT_VOYAGE_ID
      */
-    public void setCurrentVoyageId(java.lang.Long value){
+    public final void setCurrentVoyageId(java.lang.Long value){
         if(onPropSet(PROP_ID_currentVoyageId,value)){
             this._currentVoyageId = value;
             internalClearRefs(PROP_ID_currentVoyageId);
@@ -911,7 +911,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 最后事件ID: LAST_EVENT_ID
      */
-    public java.lang.Long getLastEventId(){
+    public final java.lang.Long getLastEventId(){
          onPropGet(PROP_ID_lastEventId);
          return _lastEventId;
     }
@@ -919,7 +919,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 最后事件ID: LAST_EVENT_ID
      */
-    public void setLastEventId(java.lang.Long value){
+    public final void setLastEventId(java.lang.Long value){
         if(onPropSet(PROP_ID_lastEventId,value)){
             this._lastEventId = value;
             internalClearRefs(PROP_ID_lastEventId);
@@ -930,7 +930,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 最后已知位置ID: LAST_KNOWN_LOCATION_ID
      */
-    public java.lang.Long getLastKnownLocationId(){
+    public final java.lang.Long getLastKnownLocationId(){
          onPropGet(PROP_ID_lastKnownLocationId);
          return _lastKnownLocationId;
     }
@@ -938,7 +938,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 最后已知位置ID: LAST_KNOWN_LOCATION_ID
      */
-    public void setLastKnownLocationId(java.lang.Long value){
+    public final void setLastKnownLocationId(java.lang.Long value){
         if(onPropSet(PROP_ID_lastKnownLocationId,value)){
             this._lastKnownLocationId = value;
             internalClearRefs(PROP_ID_lastKnownLocationId);
@@ -949,7 +949,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 下一个预期位置ID: NEXT_EXPECTED_LOCATION_ID
      */
-    public java.lang.Long getNextExpectedLocationId(){
+    public final java.lang.Long getNextExpectedLocationId(){
          onPropGet(PROP_ID_nextExpectedLocationId);
          return _nextExpectedLocationId;
     }
@@ -957,7 +957,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 下一个预期位置ID: NEXT_EXPECTED_LOCATION_ID
      */
-    public void setNextExpectedLocationId(java.lang.Long value){
+    public final void setNextExpectedLocationId(java.lang.Long value){
         if(onPropSet(PROP_ID_nextExpectedLocationId,value)){
             this._nextExpectedLocationId = value;
             internalClearRefs(PROP_ID_nextExpectedLocationId);
@@ -968,7 +968,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 下一个预期航程ID: NEXT_EXPECTED_VOYAGE_ID
      */
-    public java.lang.Long getNextExpectedVoyageId(){
+    public final java.lang.Long getNextExpectedVoyageId(){
          onPropGet(PROP_ID_nextExpectedVoyageId);
          return _nextExpectedVoyageId;
     }
@@ -976,7 +976,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 下一个预期航程ID: NEXT_EXPECTED_VOYAGE_ID
      */
-    public void setNextExpectedVoyageId(java.lang.Long value){
+    public final void setNextExpectedVoyageId(java.lang.Long value){
         if(onPropSet(PROP_ID_nextExpectedVoyageId,value)){
             this._nextExpectedVoyageId = value;
             internalClearRefs(PROP_ID_nextExpectedVoyageId);
@@ -987,7 +987,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 出发地ID: ORIGIN_ID
      */
-    public java.lang.Long getOriginId(){
+    public final java.lang.Long getOriginId(){
          onPropGet(PROP_ID_originId);
          return _originId;
     }
@@ -995,7 +995,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 出发地ID: ORIGIN_ID
      */
-    public void setOriginId(java.lang.Long value){
+    public final void setOriginId(java.lang.Long value){
         if(onPropSet(PROP_ID_originId,value)){
             this._originId = value;
             internalClearRefs(PROP_ID_originId);
@@ -1006,7 +1006,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 指定目的地ID: SPEC_DESTINATION_ID
      */
-    public java.lang.Long getSpecDestinationId(){
+    public final java.lang.Long getSpecDestinationId(){
          onPropGet(PROP_ID_specDestinationId);
          return _specDestinationId;
     }
@@ -1014,7 +1014,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 指定目的地ID: SPEC_DESTINATION_ID
      */
-    public void setSpecDestinationId(java.lang.Long value){
+    public final void setSpecDestinationId(java.lang.Long value){
         if(onPropSet(PROP_ID_specDestinationId,value)){
             this._specDestinationId = value;
             internalClearRefs(PROP_ID_specDestinationId);
@@ -1025,7 +1025,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 指定出发地ID: SPEC_ORIGIN_ID
      */
-    public java.lang.Long getSpecOriginId(){
+    public final java.lang.Long getSpecOriginId(){
          onPropGet(PROP_ID_specOriginId);
          return _specOriginId;
     }
@@ -1033,7 +1033,7 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 指定出发地ID: SPEC_ORIGIN_ID
      */
-    public void setSpecOriginId(java.lang.Long value){
+    public final void setSpecOriginId(java.lang.Long value){
         if(onPropSet(PROP_ID_specOriginId,value)){
             this._specOriginId = value;
             internalClearRefs(PROP_ID_specOriginId);
@@ -1044,11 +1044,11 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 下一个预期航程
      */
-    public app.demo.ddd.entity.Voyage getNextExpectedVoyage(){
+    public final app.demo.ddd.entity.Voyage getNextExpectedVoyage(){
        return (app.demo.ddd.entity.Voyage)internalGetRefEntity(PROP_NAME_nextExpectedVoyage);
     }
 
-    public void setNextExpectedVoyage(app.demo.ddd.entity.Voyage refEntity){
+    public final void setNextExpectedVoyage(app.demo.ddd.entity.Voyage refEntity){
    
            if(refEntity == null){
            
@@ -1067,11 +1067,11 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 指定目的地
      */
-    public app.demo.ddd.entity.Location getSpecDestination(){
+    public final app.demo.ddd.entity.Location getSpecDestination(){
        return (app.demo.ddd.entity.Location)internalGetRefEntity(PROP_NAME_specDestination);
     }
 
-    public void setSpecDestination(app.demo.ddd.entity.Location refEntity){
+    public final void setSpecDestination(app.demo.ddd.entity.Location refEntity){
    
            if(refEntity == null){
            
@@ -1090,11 +1090,11 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 出发地
      */
-    public app.demo.ddd.entity.Location getOrigin(){
+    public final app.demo.ddd.entity.Location getOrigin(){
        return (app.demo.ddd.entity.Location)internalGetRefEntity(PROP_NAME_origin);
     }
 
-    public void setOrigin(app.demo.ddd.entity.Location refEntity){
+    public final void setOrigin(app.demo.ddd.entity.Location refEntity){
    
            if(refEntity == null){
            
@@ -1113,11 +1113,11 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 最后事件
      */
-    public app.demo.ddd.entity.HandlingEvent getLastEvent(){
+    public final app.demo.ddd.entity.HandlingEvent getLastEvent(){
        return (app.demo.ddd.entity.HandlingEvent)internalGetRefEntity(PROP_NAME_lastEvent);
     }
 
-    public void setLastEvent(app.demo.ddd.entity.HandlingEvent refEntity){
+    public final void setLastEvent(app.demo.ddd.entity.HandlingEvent refEntity){
    
            if(refEntity == null){
            
@@ -1136,11 +1136,11 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 最后已知位置
      */
-    public app.demo.ddd.entity.Location getLastKnownLocation(){
+    public final app.demo.ddd.entity.Location getLastKnownLocation(){
        return (app.demo.ddd.entity.Location)internalGetRefEntity(PROP_NAME_lastKnownLocation);
     }
 
-    public void setLastKnownLocation(app.demo.ddd.entity.Location refEntity){
+    public final void setLastKnownLocation(app.demo.ddd.entity.Location refEntity){
    
            if(refEntity == null){
            
@@ -1159,11 +1159,11 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 当前航程
      */
-    public app.demo.ddd.entity.Voyage getCurrentVoyage(){
+    public final app.demo.ddd.entity.Voyage getCurrentVoyage(){
        return (app.demo.ddd.entity.Voyage)internalGetRefEntity(PROP_NAME_currentVoyage);
     }
 
-    public void setCurrentVoyage(app.demo.ddd.entity.Voyage refEntity){
+    public final void setCurrentVoyage(app.demo.ddd.entity.Voyage refEntity){
    
            if(refEntity == null){
            
@@ -1182,11 +1182,11 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 下一个预期位置
      */
-    public app.demo.ddd.entity.Location getNextExpectedLocation(){
+    public final app.demo.ddd.entity.Location getNextExpectedLocation(){
        return (app.demo.ddd.entity.Location)internalGetRefEntity(PROP_NAME_nextExpectedLocation);
     }
 
-    public void setNextExpectedLocation(app.demo.ddd.entity.Location refEntity){
+    public final void setNextExpectedLocation(app.demo.ddd.entity.Location refEntity){
    
            if(refEntity == null){
            
@@ -1205,11 +1205,11 @@ public class _Cargo extends DynamicOrmEntity{
     /**
      * 指定出发地
      */
-    public app.demo.ddd.entity.Location getSpecOrigin(){
+    public final app.demo.ddd.entity.Location getSpecOrigin(){
        return (app.demo.ddd.entity.Location)internalGetRefEntity(PROP_NAME_specOrigin);
     }
 
-    public void setSpecOrigin(app.demo.ddd.entity.Location refEntity){
+    public final void setSpecOrigin(app.demo.ddd.entity.Location refEntity){
    
            if(refEntity == null){
            

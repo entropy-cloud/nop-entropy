@@ -1224,7 +1224,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 主键: TASK_INSTANCE_ID
      */
-    public java.lang.String getTaskInstanceId(){
+    public final java.lang.String getTaskInstanceId(){
          onPropGet(PROP_ID_taskInstanceId);
          return _taskInstanceId;
     }
@@ -1232,7 +1232,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 主键: TASK_INSTANCE_ID
      */
-    public void setTaskInstanceId(java.lang.String value){
+    public final void setTaskInstanceId(java.lang.String value){
         if(onPropSet(PROP_ID_taskInstanceId,value)){
             this._taskInstanceId = value;
             internalClearRefs(PROP_ID_taskInstanceId);
@@ -1243,7 +1243,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 逻辑流名称: TASK_NAME
      */
-    public java.lang.String getTaskName(){
+    public final java.lang.String getTaskName(){
          onPropGet(PROP_ID_taskName);
          return _taskName;
     }
@@ -1251,7 +1251,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 逻辑流名称: TASK_NAME
      */
-    public void setTaskName(java.lang.String value){
+    public final void setTaskName(java.lang.String value){
         if(onPropSet(PROP_ID_taskName,value)){
             this._taskName = value;
             internalClearRefs(PROP_ID_taskName);
@@ -1262,7 +1262,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 逻辑流版本: TASK_VERSION
      */
-    public java.lang.Long getTaskVersion(){
+    public final java.lang.Long getTaskVersion(){
          onPropGet(PROP_ID_taskVersion);
          return _taskVersion;
     }
@@ -1270,7 +1270,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 逻辑流版本: TASK_VERSION
      */
-    public void setTaskVersion(java.lang.Long value){
+    public final void setTaskVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_taskVersion,value)){
             this._taskVersion = value;
             internalClearRefs(PROP_ID_taskVersion);
@@ -1281,7 +1281,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 逻辑流参数: TASK_INPUTS
      */
-    public java.lang.String getTaskInputs(){
+    public final java.lang.String getTaskInputs(){
          onPropGet(PROP_ID_taskInputs);
          return _taskInputs;
     }
@@ -1289,7 +1289,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 逻辑流参数: TASK_INPUTS
      */
-    public void setTaskInputs(java.lang.String value){
+    public final void setTaskInputs(java.lang.String value){
         if(onPropSet(PROP_ID_taskInputs,value)){
             this._taskInputs = value;
             internalClearRefs(PROP_ID_taskInputs);
@@ -1300,7 +1300,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 逻辑流分组: TASK_GROUP
      */
-    public java.lang.String getTaskGroup(){
+    public final java.lang.String getTaskGroup(){
          onPropGet(PROP_ID_taskGroup);
          return _taskGroup;
     }
@@ -1308,7 +1308,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 逻辑流分组: TASK_GROUP
      */
-    public void setTaskGroup(java.lang.String value){
+    public final void setTaskGroup(java.lang.String value){
         if(onPropSet(PROP_ID_taskGroup,value)){
             this._taskGroup = value;
             internalClearRefs(PROP_ID_taskGroup);
@@ -1319,7 +1319,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public java.lang.Integer getStatus(){
+    public final java.lang.Integer getStatus(){
          onPropGet(PROP_ID_status);
          return _status;
     }
@@ -1327,7 +1327,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public void setStatus(java.lang.Integer value){
+    public final void setStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
@@ -1338,7 +1338,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 启动时间: START_TIME
      */
-    public java.sql.Timestamp getStartTime(){
+    public final java.sql.Timestamp getStartTime(){
          onPropGet(PROP_ID_startTime);
          return _startTime;
     }
@@ -1346,7 +1346,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 启动时间: START_TIME
      */
-    public void setStartTime(java.sql.Timestamp value){
+    public final void setStartTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_startTime,value)){
             this._startTime = value;
             internalClearRefs(PROP_ID_startTime);
@@ -1357,7 +1357,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 结束时间: END_TIME
      */
-    public java.sql.Timestamp getEndTime(){
+    public final java.sql.Timestamp getEndTime(){
          onPropGet(PROP_ID_endTime);
          return _endTime;
     }
@@ -1365,7 +1365,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 结束时间: END_TIME
      */
-    public void setEndTime(java.sql.Timestamp value){
+    public final void setEndTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_endTime,value)){
             this._endTime = value;
             internalClearRefs(PROP_ID_endTime);
@@ -1376,7 +1376,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 完成时限: DUE_TIME
      */
-    public java.sql.Timestamp getDueTime(){
+    public final java.sql.Timestamp getDueTime(){
          onPropGet(PROP_ID_dueTime);
          return _dueTime;
     }
@@ -1384,7 +1384,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 完成时限: DUE_TIME
      */
-    public void setDueTime(java.sql.Timestamp value){
+    public final void setDueTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_dueTime,value)){
             this._dueTime = value;
             internalClearRefs(PROP_ID_dueTime);
@@ -1395,7 +1395,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 业务唯一键: BIZ_KEY
      */
-    public java.lang.String getBizKey(){
+    public final java.lang.String getBizKey(){
          onPropGet(PROP_ID_bizKey);
          return _bizKey;
     }
@@ -1403,7 +1403,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 业务唯一键: BIZ_KEY
      */
-    public void setBizKey(java.lang.String value){
+    public final void setBizKey(java.lang.String value){
         if(onPropSet(PROP_ID_bizKey,value)){
             this._bizKey = value;
             internalClearRefs(PROP_ID_bizKey);
@@ -1414,7 +1414,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 业务对象名: BIZ_OBJ_NAME
      */
-    public java.lang.String getBizObjName(){
+    public final java.lang.String getBizObjName(){
          onPropGet(PROP_ID_bizObjName);
          return _bizObjName;
     }
@@ -1422,7 +1422,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 业务对象名: BIZ_OBJ_NAME
      */
-    public void setBizObjName(java.lang.String value){
+    public final void setBizObjName(java.lang.String value){
         if(onPropSet(PROP_ID_bizObjName,value)){
             this._bizObjName = value;
             internalClearRefs(PROP_ID_bizObjName);
@@ -1433,7 +1433,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 业务对象ID: BIZ_OBJ_ID
      */
-    public java.lang.String getBizObjId(){
+    public final java.lang.String getBizObjId(){
          onPropGet(PROP_ID_bizObjId);
          return _bizObjId;
     }
@@ -1441,7 +1441,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 业务对象ID: BIZ_OBJ_ID
      */
-    public void setBizObjId(java.lang.String value){
+    public final void setBizObjId(java.lang.String value){
         if(onPropSet(PROP_ID_bizObjId,value)){
             this._bizObjId = value;
             internalClearRefs(PROP_ID_bizObjId);
@@ -1452,7 +1452,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 父流程名称: PARENT_TASK_NAME
      */
-    public java.lang.String getParentTaskName(){
+    public final java.lang.String getParentTaskName(){
          onPropGet(PROP_ID_parentTaskName);
          return _parentTaskName;
     }
@@ -1460,7 +1460,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 父流程名称: PARENT_TASK_NAME
      */
-    public void setParentTaskName(java.lang.String value){
+    public final void setParentTaskName(java.lang.String value){
         if(onPropSet(PROP_ID_parentTaskName,value)){
             this._parentTaskName = value;
             internalClearRefs(PROP_ID_parentTaskName);
@@ -1471,7 +1471,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 父流程版本: PARENT_TASK_VERSION
      */
-    public java.lang.Long getParentTaskVersion(){
+    public final java.lang.Long getParentTaskVersion(){
          onPropGet(PROP_ID_parentTaskVersion);
          return _parentTaskVersion;
     }
@@ -1479,7 +1479,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 父流程版本: PARENT_TASK_VERSION
      */
-    public void setParentTaskVersion(java.lang.Long value){
+    public final void setParentTaskVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_parentTaskVersion,value)){
             this._parentTaskVersion = value;
             internalClearRefs(PROP_ID_parentTaskVersion);
@@ -1490,7 +1490,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 父流程ID: PARENT_TASK_ID
      */
-    public java.lang.String getParentTaskId(){
+    public final java.lang.String getParentTaskId(){
          onPropGet(PROP_ID_parentTaskId);
          return _parentTaskId;
     }
@@ -1498,7 +1498,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 父流程ID: PARENT_TASK_ID
      */
-    public void setParentTaskId(java.lang.String value){
+    public final void setParentTaskId(java.lang.String value){
         if(onPropSet(PROP_ID_parentTaskId,value)){
             this._parentTaskId = value;
             internalClearRefs(PROP_ID_parentTaskId);
@@ -1509,7 +1509,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 父流程步骤ID: PARENT_STEP_ID
      */
-    public java.lang.String getParentStepId(){
+    public final java.lang.String getParentStepId(){
          onPropGet(PROP_ID_parentStepId);
          return _parentStepId;
     }
@@ -1517,7 +1517,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 父流程步骤ID: PARENT_STEP_ID
      */
-    public void setParentStepId(java.lang.String value){
+    public final void setParentStepId(java.lang.String value){
         if(onPropSet(PROP_ID_parentStepId,value)){
             this._parentStepId = value;
             internalClearRefs(PROP_ID_parentStepId);
@@ -1528,7 +1528,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 启动人ID: STARTER_ID
      */
-    public java.lang.String getStarterId(){
+    public final java.lang.String getStarterId(){
          onPropGet(PROP_ID_starterId);
          return _starterId;
     }
@@ -1536,7 +1536,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 启动人ID: STARTER_ID
      */
-    public void setStarterId(java.lang.String value){
+    public final void setStarterId(java.lang.String value){
         if(onPropSet(PROP_ID_starterId,value)){
             this._starterId = value;
             internalClearRefs(PROP_ID_starterId);
@@ -1547,7 +1547,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 启动人: STARTER_NAME
      */
-    public java.lang.String getStarterName(){
+    public final java.lang.String getStarterName(){
          onPropGet(PROP_ID_starterName);
          return _starterName;
     }
@@ -1555,7 +1555,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 启动人: STARTER_NAME
      */
-    public void setStarterName(java.lang.String value){
+    public final void setStarterName(java.lang.String value){
         if(onPropSet(PROP_ID_starterName,value)){
             this._starterName = value;
             internalClearRefs(PROP_ID_starterName);
@@ -1566,7 +1566,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 启动人单位ID: STARTER_DEPT_ID
      */
-    public java.lang.String getStarterDeptId(){
+    public final java.lang.String getStarterDeptId(){
          onPropGet(PROP_ID_starterDeptId);
          return _starterDeptId;
     }
@@ -1574,7 +1574,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 启动人单位ID: STARTER_DEPT_ID
      */
-    public void setStarterDeptId(java.lang.String value){
+    public final void setStarterDeptId(java.lang.String value){
         if(onPropSet(PROP_ID_starterDeptId,value)){
             this._starterDeptId = value;
             internalClearRefs(PROP_ID_starterDeptId);
@@ -1585,7 +1585,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 管理者类型: MANAGER_TYPE
      */
-    public java.lang.String getManagerType(){
+    public final java.lang.String getManagerType(){
          onPropGet(PROP_ID_managerType);
          return _managerType;
     }
@@ -1593,7 +1593,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 管理者类型: MANAGER_TYPE
      */
-    public void setManagerType(java.lang.String value){
+    public final void setManagerType(java.lang.String value){
         if(onPropSet(PROP_ID_managerType,value)){
             this._managerType = value;
             internalClearRefs(PROP_ID_managerType);
@@ -1604,7 +1604,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 管理者单位ID: MANAGER_DEPT_ID
      */
-    public java.lang.String getManagerDeptId(){
+    public final java.lang.String getManagerDeptId(){
          onPropGet(PROP_ID_managerDeptId);
          return _managerDeptId;
     }
@@ -1612,7 +1612,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 管理者单位ID: MANAGER_DEPT_ID
      */
-    public void setManagerDeptId(java.lang.String value){
+    public final void setManagerDeptId(java.lang.String value){
         if(onPropSet(PROP_ID_managerDeptId,value)){
             this._managerDeptId = value;
             internalClearRefs(PROP_ID_managerDeptId);
@@ -1623,7 +1623,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 管理者: MANAGER_NAME
      */
-    public java.lang.String getManagerName(){
+    public final java.lang.String getManagerName(){
          onPropGet(PROP_ID_managerName);
          return _managerName;
     }
@@ -1631,7 +1631,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 管理者: MANAGER_NAME
      */
-    public void setManagerName(java.lang.String value){
+    public final void setManagerName(java.lang.String value){
         if(onPropSet(PROP_ID_managerName,value)){
             this._managerName = value;
             internalClearRefs(PROP_ID_managerName);
@@ -1642,7 +1642,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 管理者ID: MANAGER_ID
      */
-    public java.lang.String getManagerId(){
+    public final java.lang.String getManagerId(){
          onPropGet(PROP_ID_managerId);
          return _managerId;
     }
@@ -1650,7 +1650,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 管理者ID: MANAGER_ID
      */
-    public void setManagerId(java.lang.String value){
+    public final void setManagerId(java.lang.String value){
         if(onPropSet(PROP_ID_managerId,value)){
             this._managerId = value;
             internalClearRefs(PROP_ID_managerId);
@@ -1661,7 +1661,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 优先级: PRIORITY
      */
-    public java.lang.Integer getPriority(){
+    public final java.lang.Integer getPriority(){
          onPropGet(PROP_ID_priority);
          return _priority;
     }
@@ -1669,7 +1669,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 优先级: PRIORITY
      */
-    public void setPriority(java.lang.Integer value){
+    public final void setPriority(java.lang.Integer value){
         if(onPropSet(PROP_ID_priority,value)){
             this._priority = value;
             internalClearRefs(PROP_ID_priority);
@@ -1680,7 +1680,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 信号集合: SIGNAL_TEXT
      */
-    public java.lang.String getSignalText(){
+    public final java.lang.String getSignalText(){
          onPropGet(PROP_ID_signalText);
          return _signalText;
     }
@@ -1688,7 +1688,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 信号集合: SIGNAL_TEXT
      */
-    public void setSignalText(java.lang.String value){
+    public final void setSignalText(java.lang.String value){
         if(onPropSet(PROP_ID_signalText,value)){
             this._signalText = value;
             internalClearRefs(PROP_ID_signalText);
@@ -1699,7 +1699,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 标签: TAG_TEXT
      */
-    public java.lang.String getTagText(){
+    public final java.lang.String getTagText(){
          onPropGet(PROP_ID_tagText);
          return _tagText;
     }
@@ -1707,7 +1707,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 标签: TAG_TEXT
      */
-    public void setTagText(java.lang.String value){
+    public final void setTagText(java.lang.String value){
         if(onPropSet(PROP_ID_tagText,value)){
             this._tagText = value;
             internalClearRefs(PROP_ID_tagText);
@@ -1718,7 +1718,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * Job ID: JOB_INSTANCE_ID
      */
-    public java.lang.String getJobInstanceId(){
+    public final java.lang.String getJobInstanceId(){
          onPropGet(PROP_ID_jobInstanceId);
          return _jobInstanceId;
     }
@@ -1726,7 +1726,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * Job ID: JOB_INSTANCE_ID
      */
-    public void setJobInstanceId(java.lang.String value){
+    public final void setJobInstanceId(java.lang.String value){
         if(onPropSet(PROP_ID_jobInstanceId,value)){
             this._jobInstanceId = value;
             internalClearRefs(PROP_ID_jobInstanceId);
@@ -1737,7 +1737,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 错误码: ERR_CODE
      */
-    public java.lang.String getErrCode(){
+    public final java.lang.String getErrCode(){
          onPropGet(PROP_ID_errCode);
          return _errCode;
     }
@@ -1745,7 +1745,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 错误码: ERR_CODE
      */
-    public void setErrCode(java.lang.String value){
+    public final void setErrCode(java.lang.String value){
         if(onPropSet(PROP_ID_errCode,value)){
             this._errCode = value;
             internalClearRefs(PROP_ID_errCode);
@@ -1756,7 +1756,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 错误消息: ERR_MSG
      */
-    public java.lang.String getErrMsg(){
+    public final java.lang.String getErrMsg(){
          onPropGet(PROP_ID_errMsg);
          return _errMsg;
     }
@@ -1764,7 +1764,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 错误消息: ERR_MSG
      */
-    public void setErrMsg(java.lang.String value){
+    public final void setErrMsg(java.lang.String value){
         if(onPropSet(PROP_ID_errMsg,value)){
             this._errMsg = value;
             internalClearRefs(PROP_ID_errMsg);
@@ -1775,7 +1775,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * Worker ID: WORKER_ID
      */
-    public java.lang.String getWorkerId(){
+    public final java.lang.String getWorkerId(){
          onPropGet(PROP_ID_workerId);
          return _workerId;
     }
@@ -1783,7 +1783,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * Worker ID: WORKER_ID
      */
-    public void setWorkerId(java.lang.String value){
+    public final void setWorkerId(java.lang.String value){
         if(onPropSet(PROP_ID_workerId,value)){
             this._workerId = value;
             internalClearRefs(PROP_ID_workerId);
@@ -1794,7 +1794,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -1802,7 +1802,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -1813,7 +1813,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -1821,7 +1821,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -1832,7 +1832,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -1840,7 +1840,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -1851,7 +1851,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -1859,7 +1859,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -1870,7 +1870,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -1878,7 +1878,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -1889,7 +1889,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -1897,7 +1897,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
@@ -1908,11 +1908,11 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 父流程
      */
-    public io.nop.task.dao.entity.NopTaskInstance getParentTaskInstance(){
+    public final io.nop.task.dao.entity.NopTaskInstance getParentTaskInstance(){
        return (io.nop.task.dao.entity.NopTaskInstance)internalGetRefEntity(PROP_NAME_parentTaskInstance);
     }
 
-    public void setParentTaskInstance(io.nop.task.dao.entity.NopTaskInstance refEntity){
+    public final void setParentTaskInstance(io.nop.task.dao.entity.NopTaskInstance refEntity){
    
            if(refEntity == null){
            
@@ -1934,7 +1934,7 @@ public class _NopTaskInstance extends DynamicOrmEntity{
     /**
      * 。 refPropName: taskInstance, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.task.dao.entity.NopTaskStepInstance> getSteps(){
+    public final IOrmEntitySet<io.nop.task.dao.entity.NopTaskStepInstance> getSteps(){
        return _steps;
     }
        

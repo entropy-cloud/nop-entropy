@@ -384,7 +384,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 用户ID: USER_ID
      */
-    public java.lang.String getUserId(){
+    public final java.lang.String getUserId(){
          onPropGet(PROP_ID_userId);
          return _userId;
     }
@@ -392,7 +392,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 用户ID: USER_ID
      */
-    public void setUserId(java.lang.String value){
+    public final void setUserId(java.lang.String value){
         if(onPropSet(PROP_ID_userId,value)){
             this._userId = value;
             internalClearRefs(PROP_ID_userId);
@@ -403,7 +403,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 分组ID: GROUP_ID
      */
-    public java.lang.String getGroupId(){
+    public final java.lang.String getGroupId(){
          onPropGet(PROP_ID_groupId);
          return _groupId;
     }
@@ -411,7 +411,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 分组ID: GROUP_ID
      */
-    public void setGroupId(java.lang.String value){
+    public final void setGroupId(java.lang.String value){
         if(onPropSet(PROP_ID_groupId,value)){
             this._groupId = value;
             internalClearRefs(PROP_ID_groupId);
@@ -422,7 +422,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -430,7 +430,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -441,7 +441,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -449,7 +449,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -460,7 +460,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -468,7 +468,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -479,7 +479,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -487,7 +487,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -498,7 +498,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -506,7 +506,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -517,7 +517,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -525,7 +525,7 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
@@ -536,11 +536,11 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 用户
      */
-    public io.nop.auth.dao.entity.NopAuthUser getUser(){
+    public final io.nop.auth.dao.entity.NopAuthUser getUser(){
        return (io.nop.auth.dao.entity.NopAuthUser)internalGetRefEntity(PROP_NAME_user);
     }
 
-    public void setUser(io.nop.auth.dao.entity.NopAuthUser refEntity){
+    public final void setUser(io.nop.auth.dao.entity.NopAuthUser refEntity){
    
            if(refEntity == null){
            
@@ -559,11 +559,11 @@ public class _NopAuthGroupUser extends DynamicOrmEntity{
     /**
      * 分组
      */
-    public io.nop.auth.dao.entity.NopAuthGroup getGroup(){
+    public final io.nop.auth.dao.entity.NopAuthGroup getGroup(){
        return (io.nop.auth.dao.entity.NopAuthGroup)internalGetRefEntity(PROP_NAME_group);
     }
 
-    public void setGroup(io.nop.auth.dao.entity.NopAuthGroup refEntity){
+    public final void setGroup(io.nop.auth.dao.entity.NopAuthGroup refEntity){
    
            if(refEntity == null){
            

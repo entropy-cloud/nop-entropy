@@ -360,7 +360,7 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * Id: ID
      */
-    public java.lang.Long getId(){
+    public final java.lang.Long getId(){
          onPropGet(PROP_ID_id);
          return _id;
     }
@@ -368,7 +368,7 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * Id: ID
      */
-    public void setId(java.lang.Long value){
+    public final void setId(java.lang.Long value){
         if(onPropSet(PROP_ID_id,value)){
             this._id = value;
             internalClearRefs(PROP_ID_id);
@@ -379,7 +379,7 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 装货时间: LOAD_TIME
      */
-    public java.time.LocalDateTime getLoadTime(){
+    public final java.time.LocalDateTime getLoadTime(){
          onPropGet(PROP_ID_loadTime);
          return _loadTime;
     }
@@ -387,7 +387,7 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 装货时间: LOAD_TIME
      */
-    public void setLoadTime(java.time.LocalDateTime value){
+    public final void setLoadTime(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_loadTime,value)){
             this._loadTime = value;
             internalClearRefs(PROP_ID_loadTime);
@@ -398,7 +398,7 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 卸货时间: UNLOAD_TIME
      */
-    public java.time.LocalDateTime getUnloadTime(){
+    public final java.time.LocalDateTime getUnloadTime(){
          onPropGet(PROP_ID_unloadTime);
          return _unloadTime;
     }
@@ -406,7 +406,7 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 卸货时间: UNLOAD_TIME
      */
-    public void setUnloadTime(java.time.LocalDateTime value){
+    public final void setUnloadTime(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_unloadTime,value)){
             this._unloadTime = value;
             internalClearRefs(PROP_ID_unloadTime);
@@ -417,7 +417,7 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 装货地点: LOAD_LOCATION_ID
      */
-    public java.lang.Long getLoadLocationId(){
+    public final java.lang.Long getLoadLocationId(){
          onPropGet(PROP_ID_loadLocationId);
          return _loadLocationId;
     }
@@ -425,7 +425,7 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 装货地点: LOAD_LOCATION_ID
      */
-    public void setLoadLocationId(java.lang.Long value){
+    public final void setLoadLocationId(java.lang.Long value){
         if(onPropSet(PROP_ID_loadLocationId,value)){
             this._loadLocationId = value;
             internalClearRefs(PROP_ID_loadLocationId);
@@ -436,7 +436,7 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 卸货地点: UNLOAD_LOCATION_ID
      */
-    public java.lang.Long getUnloadLocationId(){
+    public final java.lang.Long getUnloadLocationId(){
          onPropGet(PROP_ID_unloadLocationId);
          return _unloadLocationId;
     }
@@ -444,7 +444,7 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 卸货地点: UNLOAD_LOCATION_ID
      */
-    public void setUnloadLocationId(java.lang.Long value){
+    public final void setUnloadLocationId(java.lang.Long value){
         if(onPropSet(PROP_ID_unloadLocationId,value)){
             this._unloadLocationId = value;
             internalClearRefs(PROP_ID_unloadLocationId);
@@ -455,7 +455,7 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 航程ID: VOYAGE_ID
      */
-    public java.lang.Long getVoyageId(){
+    public final java.lang.Long getVoyageId(){
          onPropGet(PROP_ID_voyageId);
          return _voyageId;
     }
@@ -463,7 +463,7 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 航程ID: VOYAGE_ID
      */
-    public void setVoyageId(java.lang.Long value){
+    public final void setVoyageId(java.lang.Long value){
         if(onPropSet(PROP_ID_voyageId,value)){
             this._voyageId = value;
             internalClearRefs(PROP_ID_voyageId);
@@ -474,7 +474,7 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 货物ID: CARGO_ID
      */
-    public java.lang.Long getCargoId(){
+    public final java.lang.Long getCargoId(){
          onPropGet(PROP_ID_cargoId);
          return _cargoId;
     }
@@ -482,7 +482,7 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 货物ID: CARGO_ID
      */
-    public void setCargoId(java.lang.Long value){
+    public final void setCargoId(java.lang.Long value){
         if(onPropSet(PROP_ID_cargoId,value)){
             this._cargoId = value;
             internalClearRefs(PROP_ID_cargoId);
@@ -493,11 +493,11 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 装货地点
      */
-    public app.demo.ddd.entity.Location getLoadLocation(){
+    public final app.demo.ddd.entity.Location getLoadLocation(){
        return (app.demo.ddd.entity.Location)internalGetRefEntity(PROP_NAME_loadLocation);
     }
 
-    public void setLoadLocation(app.demo.ddd.entity.Location refEntity){
+    public final void setLoadLocation(app.demo.ddd.entity.Location refEntity){
    
            if(refEntity == null){
            
@@ -516,11 +516,11 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 货物
      */
-    public app.demo.ddd.entity.Cargo getCargo(){
+    public final app.demo.ddd.entity.Cargo getCargo(){
        return (app.demo.ddd.entity.Cargo)internalGetRefEntity(PROP_NAME_cargo);
     }
 
-    public void setCargo(app.demo.ddd.entity.Cargo refEntity){
+    public final void setCargo(app.demo.ddd.entity.Cargo refEntity){
    
            if(refEntity == null){
            
@@ -539,11 +539,11 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 航程
      */
-    public app.demo.ddd.entity.Voyage getVoyage(){
+    public final app.demo.ddd.entity.Voyage getVoyage(){
        return (app.demo.ddd.entity.Voyage)internalGetRefEntity(PROP_NAME_voyage);
     }
 
-    public void setVoyage(app.demo.ddd.entity.Voyage refEntity){
+    public final void setVoyage(app.demo.ddd.entity.Voyage refEntity){
    
            if(refEntity == null){
            
@@ -562,11 +562,11 @@ public class _Leg extends DynamicOrmEntity{
     /**
      * 卸载地点
      */
-    public app.demo.ddd.entity.Location getUnloadLocation(){
+    public final app.demo.ddd.entity.Location getUnloadLocation(){
        return (app.demo.ddd.entity.Location)internalGetRefEntity(PROP_NAME_unloadLocation);
     }
 
-    public void setUnloadLocation(app.demo.ddd.entity.Location refEntity){
+    public final void setUnloadLocation(app.demo.ddd.entity.Location refEntity){
    
            if(refEntity == null){
            

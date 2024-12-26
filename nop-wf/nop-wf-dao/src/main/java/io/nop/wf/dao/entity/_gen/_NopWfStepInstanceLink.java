@@ -327,7 +327,7 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 工作流实例ID: WF_ID
      */
-    public java.lang.String getWfId(){
+    public final java.lang.String getWfId(){
          onPropGet(PROP_ID_wfId);
          return _wfId;
     }
@@ -335,7 +335,7 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 工作流实例ID: WF_ID
      */
-    public void setWfId(java.lang.String value){
+    public final void setWfId(java.lang.String value){
         if(onPropSet(PROP_ID_wfId,value)){
             this._wfId = value;
             internalClearRefs(PROP_ID_wfId);
@@ -346,7 +346,7 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 步骤ID: STEP_ID
      */
-    public java.lang.String getStepId(){
+    public final java.lang.String getStepId(){
          onPropGet(PROP_ID_stepId);
          return _stepId;
     }
@@ -354,7 +354,7 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 步骤ID: STEP_ID
      */
-    public void setStepId(java.lang.String value){
+    public final void setStepId(java.lang.String value){
         if(onPropSet(PROP_ID_stepId,value)){
             this._stepId = value;
             internalClearRefs(PROP_ID_stepId);
@@ -365,7 +365,7 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 下一步骤 ID: NEXT_STEP_ID
      */
-    public java.lang.String getNextStepId(){
+    public final java.lang.String getNextStepId(){
          onPropGet(PROP_ID_nextStepId);
          return _nextStepId;
     }
@@ -373,7 +373,7 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 下一步骤 ID: NEXT_STEP_ID
      */
-    public void setNextStepId(java.lang.String value){
+    public final void setNextStepId(java.lang.String value){
         if(onPropSet(PROP_ID_nextStepId,value)){
             this._nextStepId = value;
             internalClearRefs(PROP_ID_nextStepId);
@@ -384,7 +384,7 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 执行动作: EXEC_ACTION
      */
-    public java.lang.String getExecAction(){
+    public final java.lang.String getExecAction(){
          onPropGet(PROP_ID_execAction);
          return _execAction;
     }
@@ -392,7 +392,7 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 执行动作: EXEC_ACTION
      */
-    public void setExecAction(java.lang.String value){
+    public final void setExecAction(java.lang.String value){
         if(onPropSet(PROP_ID_execAction,value)){
             this._execAction = value;
             internalClearRefs(PROP_ID_execAction);
@@ -403,7 +403,7 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -411,7 +411,7 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -422,7 +422,7 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -430,7 +430,7 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -441,11 +441,11 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 工作流实例
      */
-    public io.nop.wf.dao.entity.NopWfInstance getWfInstance(){
+    public final io.nop.wf.dao.entity.NopWfInstance getWfInstance(){
        return (io.nop.wf.dao.entity.NopWfInstance)internalGetRefEntity(PROP_NAME_wfInstance);
     }
 
-    public void setWfInstance(io.nop.wf.dao.entity.NopWfInstance refEntity){
+    public final void setWfInstance(io.nop.wf.dao.entity.NopWfInstance refEntity){
    
            if(refEntity == null){
            
@@ -464,11 +464,11 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 工作流步骤
      */
-    public io.nop.wf.dao.entity.NopWfStepInstance getWfStep(){
+    public final io.nop.wf.dao.entity.NopWfStepInstance getWfStep(){
        return (io.nop.wf.dao.entity.NopWfStepInstance)internalGetRefEntity(PROP_NAME_wfStep);
     }
 
-    public void setWfStep(io.nop.wf.dao.entity.NopWfStepInstance refEntity){
+    public final void setWfStep(io.nop.wf.dao.entity.NopWfStepInstance refEntity){
    
            if(refEntity == null){
            
@@ -487,11 +487,11 @@ public class _NopWfStepInstanceLink extends DynamicOrmEntity{
     /**
      * 工作流步骤
      */
-    public io.nop.wf.dao.entity.NopWfStepInstance getNextWfStep(){
+    public final io.nop.wf.dao.entity.NopWfStepInstance getNextWfStep(){
        return (io.nop.wf.dao.entity.NopWfStepInstance)internalGetRefEntity(PROP_NAME_nextWfStep);
     }
 
-    public void setNextWfStep(io.nop.wf.dao.entity.NopWfStepInstance refEntity){
+    public final void setNextWfStep(io.nop.wf.dao.entity.NopWfStepInstance refEntity){
    
            if(refEntity == null){
            

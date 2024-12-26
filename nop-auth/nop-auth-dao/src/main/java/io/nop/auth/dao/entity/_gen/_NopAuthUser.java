@@ -1242,7 +1242,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 用户ID: USER_ID
      */
-    public java.lang.String getUserId(){
+    public final java.lang.String getUserId(){
          onPropGet(PROP_ID_userId);
          return _userId;
     }
@@ -1250,7 +1250,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 用户ID: USER_ID
      */
-    public void setUserId(java.lang.String value){
+    public final void setUserId(java.lang.String value){
         if(onPropSet(PROP_ID_userId,value)){
             this._userId = value;
             internalClearRefs(PROP_ID_userId);
@@ -1261,7 +1261,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 用户名: USER_NAME
      */
-    public java.lang.String getUserName(){
+    public final java.lang.String getUserName(){
          onPropGet(PROP_ID_userName);
          return _userName;
     }
@@ -1269,7 +1269,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 用户名: USER_NAME
      */
-    public void setUserName(java.lang.String value){
+    public final void setUserName(java.lang.String value){
         if(onPropSet(PROP_ID_userName,value)){
             this._userName = value;
             internalClearRefs(PROP_ID_userName);
@@ -1280,7 +1280,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 密码: PASSWORD
      */
-    public java.lang.String getPassword(){
+    public final java.lang.String getPassword(){
          onPropGet(PROP_ID_password);
          return _password;
     }
@@ -1288,7 +1288,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 密码: PASSWORD
      */
-    public void setPassword(java.lang.String value){
+    public final void setPassword(java.lang.String value){
         if(onPropSet(PROP_ID_password,value)){
             this._password = value;
             internalClearRefs(PROP_ID_password);
@@ -1299,7 +1299,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 密码加盐: SALT
      */
-    public java.lang.String getSalt(){
+    public final java.lang.String getSalt(){
          onPropGet(PROP_ID_salt);
          return _salt;
     }
@@ -1307,7 +1307,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 密码加盐: SALT
      */
-    public void setSalt(java.lang.String value){
+    public final void setSalt(java.lang.String value){
         if(onPropSet(PROP_ID_salt,value)){
             this._salt = value;
             internalClearRefs(PROP_ID_salt);
@@ -1318,7 +1318,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 昵称: NICK_NAME
      */
-    public java.lang.String getNickName(){
+    public final java.lang.String getNickName(){
          onPropGet(PROP_ID_nickName);
          return _nickName;
     }
@@ -1326,7 +1326,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 昵称: NICK_NAME
      */
-    public void setNickName(java.lang.String value){
+    public final void setNickName(java.lang.String value){
         if(onPropSet(PROP_ID_nickName,value)){
             this._nickName = value;
             internalClearRefs(PROP_ID_nickName);
@@ -1337,7 +1337,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 所属部门: DEPT_ID
      */
-    public java.lang.String getDeptId(){
+    public final java.lang.String getDeptId(){
          onPropGet(PROP_ID_deptId);
          return _deptId;
     }
@@ -1345,7 +1345,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 所属部门: DEPT_ID
      */
-    public void setDeptId(java.lang.String value){
+    public final void setDeptId(java.lang.String value){
         if(onPropSet(PROP_ID_deptId,value)){
             this._deptId = value;
             internalClearRefs(PROP_ID_deptId);
@@ -1356,7 +1356,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 用户外部标识: OPEN_ID
      */
-    public java.lang.String getOpenId(){
+    public final java.lang.String getOpenId(){
          onPropGet(PROP_ID_openId);
          return _openId;
     }
@@ -1364,7 +1364,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 用户外部标识: OPEN_ID
      */
-    public void setOpenId(java.lang.String value){
+    public final void setOpenId(java.lang.String value){
         if(onPropSet(PROP_ID_openId,value)){
             this._openId = value;
             internalClearRefs(PROP_ID_openId);
@@ -1375,7 +1375,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 相关部门: REL_DEPT_ID
      */
-    public java.lang.String getRelDeptId(){
+    public final java.lang.String getRelDeptId(){
          onPropGet(PROP_ID_relDeptId);
          return _relDeptId;
     }
@@ -1383,7 +1383,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 相关部门: REL_DEPT_ID
      */
-    public void setRelDeptId(java.lang.String value){
+    public final void setRelDeptId(java.lang.String value){
         if(onPropSet(PROP_ID_relDeptId,value)){
             this._relDeptId = value;
             internalClearRefs(PROP_ID_relDeptId);
@@ -1394,7 +1394,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 性别: GENDER
      */
-    public java.lang.Integer getGender(){
+    public final java.lang.Integer getGender(){
          onPropGet(PROP_ID_gender);
          return _gender;
     }
@@ -1402,7 +1402,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 性别: GENDER
      */
-    public void setGender(java.lang.Integer value){
+    public final void setGender(java.lang.Integer value){
         if(onPropSet(PROP_ID_gender,value)){
             this._gender = value;
             internalClearRefs(PROP_ID_gender);
@@ -1413,7 +1413,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 头像: AVATAR
      */
-    public java.lang.String getAvatar(){
+    public final java.lang.String getAvatar(){
          onPropGet(PROP_ID_avatar);
          return _avatar;
     }
@@ -1421,7 +1421,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 头像: AVATAR
      */
-    public void setAvatar(java.lang.String value){
+    public final void setAvatar(java.lang.String value){
         if(onPropSet(PROP_ID_avatar,value)){
             this._avatar = value;
             internalClearRefs(PROP_ID_avatar);
@@ -1432,7 +1432,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 邮件: EMAIL
      */
-    public java.lang.String getEmail(){
+    public final java.lang.String getEmail(){
          onPropGet(PROP_ID_email);
          return _email;
     }
@@ -1440,7 +1440,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 邮件: EMAIL
      */
-    public void setEmail(java.lang.String value){
+    public final void setEmail(java.lang.String value){
         if(onPropSet(PROP_ID_email,value)){
             this._email = value;
             internalClearRefs(PROP_ID_email);
@@ -1451,7 +1451,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 邮件已验证: EMAIL_VERIFIED
      */
-    public java.lang.Byte getEmailVerified(){
+    public final java.lang.Byte getEmailVerified(){
          onPropGet(PROP_ID_emailVerified);
          return _emailVerified;
     }
@@ -1459,7 +1459,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 邮件已验证: EMAIL_VERIFIED
      */
-    public void setEmailVerified(java.lang.Byte value){
+    public final void setEmailVerified(java.lang.Byte value){
         if(onPropSet(PROP_ID_emailVerified,value)){
             this._emailVerified = value;
             internalClearRefs(PROP_ID_emailVerified);
@@ -1470,7 +1470,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 电话: PHONE
      */
-    public java.lang.String getPhone(){
+    public final java.lang.String getPhone(){
          onPropGet(PROP_ID_phone);
          return _phone;
     }
@@ -1478,7 +1478,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 电话: PHONE
      */
-    public void setPhone(java.lang.String value){
+    public final void setPhone(java.lang.String value){
         if(onPropSet(PROP_ID_phone,value)){
             this._phone = value;
             internalClearRefs(PROP_ID_phone);
@@ -1489,7 +1489,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 电话已验证: PHONE_VERIFIED
      */
-    public java.lang.Byte getPhoneVerified(){
+    public final java.lang.Byte getPhoneVerified(){
          onPropGet(PROP_ID_phoneVerified);
          return _phoneVerified;
     }
@@ -1497,7 +1497,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 电话已验证: PHONE_VERIFIED
      */
-    public void setPhoneVerified(java.lang.Byte value){
+    public final void setPhoneVerified(java.lang.Byte value){
         if(onPropSet(PROP_ID_phoneVerified,value)){
             this._phoneVerified = value;
             internalClearRefs(PROP_ID_phoneVerified);
@@ -1508,7 +1508,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 生日: BIRTHDAY
      */
-    public java.time.LocalDate getBirthday(){
+    public final java.time.LocalDate getBirthday(){
          onPropGet(PROP_ID_birthday);
          return _birthday;
     }
@@ -1516,7 +1516,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 生日: BIRTHDAY
      */
-    public void setBirthday(java.time.LocalDate value){
+    public final void setBirthday(java.time.LocalDate value){
         if(onPropSet(PROP_ID_birthday,value)){
             this._birthday = value;
             internalClearRefs(PROP_ID_birthday);
@@ -1527,7 +1527,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 用户类型: USER_TYPE
      */
-    public java.lang.Integer getUserType(){
+    public final java.lang.Integer getUserType(){
          onPropGet(PROP_ID_userType);
          return _userType;
     }
@@ -1535,7 +1535,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 用户类型: USER_TYPE
      */
-    public void setUserType(java.lang.Integer value){
+    public final void setUserType(java.lang.Integer value){
         if(onPropSet(PROP_ID_userType,value)){
             this._userType = value;
             internalClearRefs(PROP_ID_userType);
@@ -1546,7 +1546,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 用户状态: STATUS
      */
-    public java.lang.Integer getStatus(){
+    public final java.lang.Integer getStatus(){
          onPropGet(PROP_ID_status);
          return _status;
     }
@@ -1554,7 +1554,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 用户状态: STATUS
      */
-    public void setStatus(java.lang.Integer value){
+    public final void setStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
@@ -1565,7 +1565,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 证件类型: ID_TYPE
      */
-    public java.lang.String getIdType(){
+    public final java.lang.String getIdType(){
          onPropGet(PROP_ID_idType);
          return _idType;
     }
@@ -1573,7 +1573,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 证件类型: ID_TYPE
      */
-    public void setIdType(java.lang.String value){
+    public final void setIdType(java.lang.String value){
         if(onPropSet(PROP_ID_idType,value)){
             this._idType = value;
             internalClearRefs(PROP_ID_idType);
@@ -1584,7 +1584,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 证件号: ID_NBR
      */
-    public java.lang.String getIdNbr(){
+    public final java.lang.String getIdNbr(){
          onPropGet(PROP_ID_idNbr);
          return _idNbr;
     }
@@ -1592,7 +1592,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 证件号: ID_NBR
      */
-    public void setIdNbr(java.lang.String value){
+    public final void setIdNbr(java.lang.String value){
         if(onPropSet(PROP_ID_idNbr,value)){
             this._idNbr = value;
             internalClearRefs(PROP_ID_idNbr);
@@ -1603,7 +1603,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 用户过期时间: EXPIRE_AT
      */
-    public java.time.LocalDateTime getExpireAt(){
+    public final java.time.LocalDateTime getExpireAt(){
          onPropGet(PROP_ID_expireAt);
          return _expireAt;
     }
@@ -1611,7 +1611,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 用户过期时间: EXPIRE_AT
      */
-    public void setExpireAt(java.time.LocalDateTime value){
+    public final void setExpireAt(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_expireAt,value)){
             this._expireAt = value;
             internalClearRefs(PROP_ID_expireAt);
@@ -1622,7 +1622,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 上次密码更新时间: PWD_UPDATE_TIME
      */
-    public java.time.LocalDateTime getPwdUpdateTime(){
+    public final java.time.LocalDateTime getPwdUpdateTime(){
          onPropGet(PROP_ID_pwdUpdateTime);
          return _pwdUpdateTime;
     }
@@ -1630,7 +1630,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 上次密码更新时间: PWD_UPDATE_TIME
      */
-    public void setPwdUpdateTime(java.time.LocalDateTime value){
+    public final void setPwdUpdateTime(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_pwdUpdateTime,value)){
             this._pwdUpdateTime = value;
             internalClearRefs(PROP_ID_pwdUpdateTime);
@@ -1641,7 +1641,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 登陆后立刻修改密码: CHANGE_PWD_AT_LOGIN
      */
-    public java.lang.Byte getChangePwdAtLogin(){
+    public final java.lang.Byte getChangePwdAtLogin(){
          onPropGet(PROP_ID_changePwdAtLogin);
          return _changePwdAtLogin;
     }
@@ -1649,7 +1649,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 登陆后立刻修改密码: CHANGE_PWD_AT_LOGIN
      */
-    public void setChangePwdAtLogin(java.lang.Byte value){
+    public final void setChangePwdAtLogin(java.lang.Byte value){
         if(onPropSet(PROP_ID_changePwdAtLogin,value)){
             this._changePwdAtLogin = value;
             internalClearRefs(PROP_ID_changePwdAtLogin);
@@ -1660,7 +1660,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 真实姓名: REAL_NAME
      */
-    public java.lang.String getRealName(){
+    public final java.lang.String getRealName(){
          onPropGet(PROP_ID_realName);
          return _realName;
     }
@@ -1668,7 +1668,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 真实姓名: REAL_NAME
      */
-    public void setRealName(java.lang.String value){
+    public final void setRealName(java.lang.String value){
         if(onPropSet(PROP_ID_realName,value)){
             this._realName = value;
             internalClearRefs(PROP_ID_realName);
@@ -1679,7 +1679,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 上级: MANAGER_ID
      */
-    public java.lang.String getManagerId(){
+    public final java.lang.String getManagerId(){
          onPropGet(PROP_ID_managerId);
          return _managerId;
     }
@@ -1687,7 +1687,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 上级: MANAGER_ID
      */
-    public void setManagerId(java.lang.String value){
+    public final void setManagerId(java.lang.String value){
         if(onPropSet(PROP_ID_managerId,value)){
             this._managerId = value;
             internalClearRefs(PROP_ID_managerId);
@@ -1698,7 +1698,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 工号: WORK_NO
      */
-    public java.lang.String getWorkNo(){
+    public final java.lang.String getWorkNo(){
          onPropGet(PROP_ID_workNo);
          return _workNo;
     }
@@ -1706,7 +1706,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 工号: WORK_NO
      */
-    public void setWorkNo(java.lang.String value){
+    public final void setWorkNo(java.lang.String value){
         if(onPropSet(PROP_ID_workNo,value)){
             this._workNo = value;
             internalClearRefs(PROP_ID_workNo);
@@ -1717,7 +1717,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 职务: POSITION_ID
      */
-    public java.lang.String getPositionId(){
+    public final java.lang.String getPositionId(){
          onPropGet(PROP_ID_positionId);
          return _positionId;
     }
@@ -1725,7 +1725,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 职务: POSITION_ID
      */
-    public void setPositionId(java.lang.String value){
+    public final void setPositionId(java.lang.String value){
         if(onPropSet(PROP_ID_positionId,value)){
             this._positionId = value;
             internalClearRefs(PROP_ID_positionId);
@@ -1736,7 +1736,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 座机: TELEPHONE
      */
-    public java.lang.String getTelephone(){
+    public final java.lang.String getTelephone(){
          onPropGet(PROP_ID_telephone);
          return _telephone;
     }
@@ -1744,7 +1744,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 座机: TELEPHONE
      */
-    public void setTelephone(java.lang.String value){
+    public final void setTelephone(java.lang.String value){
         if(onPropSet(PROP_ID_telephone,value)){
             this._telephone = value;
             internalClearRefs(PROP_ID_telephone);
@@ -1755,7 +1755,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 设备ID: CLIENT_ID
      */
-    public java.lang.String getClientId(){
+    public final java.lang.String getClientId(){
          onPropGet(PROP_ID_clientId);
          return _clientId;
     }
@@ -1763,7 +1763,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 设备ID: CLIENT_ID
      */
-    public void setClientId(java.lang.String value){
+    public final void setClientId(java.lang.String value){
         if(onPropSet(PROP_ID_clientId,value)){
             this._clientId = value;
             internalClearRefs(PROP_ID_clientId);
@@ -1774,7 +1774,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 删除标识: DEL_FLAG
      */
-    public java.lang.Byte getDelFlag(){
+    public final java.lang.Byte getDelFlag(){
          onPropGet(PROP_ID_delFlag);
          return _delFlag;
     }
@@ -1782,7 +1782,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 删除标识: DEL_FLAG
      */
-    public void setDelFlag(java.lang.Byte value){
+    public final void setDelFlag(java.lang.Byte value){
         if(onPropSet(PROP_ID_delFlag,value)){
             this._delFlag = value;
             internalClearRefs(PROP_ID_delFlag);
@@ -1793,7 +1793,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -1801,7 +1801,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -1812,7 +1812,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 租户ID: TENANT_ID
      */
-    public java.lang.String getTenantId(){
+    public final java.lang.String getTenantId(){
          onPropGet(PROP_ID_tenantId);
          return _tenantId;
     }
@@ -1820,7 +1820,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 租户ID: TENANT_ID
      */
-    public void setTenantId(java.lang.String value){
+    public final void setTenantId(java.lang.String value){
         if(onPropSet(PROP_ID_tenantId,value)){
             this._tenantId = value;
             internalClearRefs(PROP_ID_tenantId);
@@ -1831,7 +1831,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -1839,7 +1839,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -1850,7 +1850,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -1858,7 +1858,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -1869,7 +1869,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -1877,7 +1877,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -1888,7 +1888,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -1896,7 +1896,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -1907,7 +1907,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -1915,7 +1915,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
@@ -1926,11 +1926,11 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 部门
      */
-    public io.nop.auth.dao.entity.NopAuthDept getDept(){
+    public final io.nop.auth.dao.entity.NopAuthDept getDept(){
        return (io.nop.auth.dao.entity.NopAuthDept)internalGetRefEntity(PROP_NAME_dept);
     }
 
-    public void setDept(io.nop.auth.dao.entity.NopAuthDept refEntity){
+    public final void setDept(io.nop.auth.dao.entity.NopAuthDept refEntity){
    
            if(refEntity == null){
            
@@ -1949,11 +1949,11 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 部门
      */
-    public io.nop.auth.dao.entity.NopAuthDept getRelatedDept(){
+    public final io.nop.auth.dao.entity.NopAuthDept getRelatedDept(){
        return (io.nop.auth.dao.entity.NopAuthDept)internalGetRefEntity(PROP_NAME_relatedDept);
     }
 
-    public void setRelatedDept(io.nop.auth.dao.entity.NopAuthDept refEntity){
+    public final void setRelatedDept(io.nop.auth.dao.entity.NopAuthDept refEntity){
    
            if(refEntity == null){
            
@@ -1972,11 +1972,11 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 岗位
      */
-    public io.nop.auth.dao.entity.NopAuthPosition getPosition(){
+    public final io.nop.auth.dao.entity.NopAuthPosition getPosition(){
        return (io.nop.auth.dao.entity.NopAuthPosition)internalGetRefEntity(PROP_NAME_position);
     }
 
-    public void setPosition(io.nop.auth.dao.entity.NopAuthPosition refEntity){
+    public final void setPosition(io.nop.auth.dao.entity.NopAuthPosition refEntity){
    
            if(refEntity == null){
            
@@ -1995,11 +1995,11 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 上级
      */
-    public io.nop.auth.dao.entity.NopAuthUser getManager(){
+    public final io.nop.auth.dao.entity.NopAuthUser getManager(){
        return (io.nop.auth.dao.entity.NopAuthUser)internalGetRefEntity(PROP_NAME_manager);
     }
 
-    public void setManager(io.nop.auth.dao.entity.NopAuthUser refEntity){
+    public final void setManager(io.nop.auth.dao.entity.NopAuthUser refEntity){
    
            if(refEntity == null){
            
@@ -2021,7 +2021,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 角色映射。 refPropName: user, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.auth.dao.entity.NopAuthUserRole> getRoleMappings(){
+    public final IOrmEntitySet<io.nop.auth.dao.entity.NopAuthUserRole> getRoleMappings(){
        return _roleMappings;
     }
        
@@ -2031,7 +2031,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 代理人映射。 refPropName: user, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.auth.dao.entity.NopAuthUserSubstitution> getSubstitutionMappings(){
+    public final IOrmEntitySet<io.nop.auth.dao.entity.NopAuthUserSubstitution> getSubstitutionMappings(){
        return _substitutionMappings;
     }
        
@@ -2041,7 +2041,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
     /**
      * 分组映射。 refPropName: user, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupUser> getGroupMappings(){
+    public final IOrmEntitySet<io.nop.auth.dao.entity.NopAuthGroupUser> getGroupMappings(){
        return _groupMappings;
     }
        
@@ -2054,7 +2054,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
       
    }
 
-   public io.nop.orm.component.OrmFileComponent getAvatarComponent(){
+   public final io.nop.orm.component.OrmFileComponent getAvatarComponent(){
       if(_avatarComponent == null){
           _avatarComponent = new io.nop.orm.component.OrmFileComponent();
           _avatarComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_avatarComponent);
@@ -2062,11 +2062,11 @@ public class _NopAuthUser extends DynamicOrmEntity{
       return _avatarComponent;
    }
 
-        public List<io.nop.auth.dao.entity.NopAuthRole> getRelatedRoleList(){
+        public final List<io.nop.auth.dao.entity.NopAuthRole> getRelatedRoleList(){
             return (List<io.nop.auth.dao.entity.NopAuthRole>)io.nop.orm.support.OrmEntityHelper.getRefProps(getRoleMappings(),"role");
         }
 
-        public List<String> getRelatedRoleList_ids(){
+        public final List<String> getRelatedRoleList_ids(){
             return io.nop.orm.support.OrmEntityHelper.getRefIds(getRoleMappings(),"role");
         }
 
@@ -2075,16 +2075,16 @@ public class _NopAuthUser extends DynamicOrmEntity{
         }
     
 
-    public String getRelatedRoleList_label(){
+    public final String getRelatedRoleList_label(){
         return io.nop.orm.support.OrmEntityHelper.getLabelForRefProps(getRoleMappings(),"role");
     }
 
 
-        public List<io.nop.auth.dao.entity.NopAuthGroup> getRelatedGroupList(){
+        public final List<io.nop.auth.dao.entity.NopAuthGroup> getRelatedGroupList(){
             return (List<io.nop.auth.dao.entity.NopAuthGroup>)io.nop.orm.support.OrmEntityHelper.getRefProps(getGroupMappings(),"group");
         }
 
-        public List<String> getRelatedGroupList_ids(){
+        public final List<String> getRelatedGroupList_ids(){
             return io.nop.orm.support.OrmEntityHelper.getRefIds(getGroupMappings(),"group");
         }
 
@@ -2093,7 +2093,7 @@ public class _NopAuthUser extends DynamicOrmEntity{
         }
     
 
-    public String getRelatedGroupList_label(){
+    public final String getRelatedGroupList_label(){
         return io.nop.orm.support.OrmEntityHelper.getLabelForRefProps(getGroupMappings(),"group");
     }
 

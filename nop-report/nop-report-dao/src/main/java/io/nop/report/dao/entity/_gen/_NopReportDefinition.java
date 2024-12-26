@@ -468,7 +468,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 主键: RPT_ID
      */
-    public java.lang.String getRptId(){
+    public final java.lang.String getRptId(){
          onPropGet(PROP_ID_rptId);
          return _rptId;
     }
@@ -476,7 +476,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 主键: RPT_ID
      */
-    public void setRptId(java.lang.String value){
+    public final void setRptId(java.lang.String value){
         if(onPropSet(PROP_ID_rptId,value)){
             this._rptId = value;
             internalClearRefs(PROP_ID_rptId);
@@ -487,7 +487,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 报表名称: RPT_NAME
      */
-    public java.lang.String getRptName(){
+    public final java.lang.String getRptName(){
          onPropGet(PROP_ID_rptName);
          return _rptName;
     }
@@ -495,7 +495,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 报表名称: RPT_NAME
      */
-    public void setRptName(java.lang.String value){
+    public final void setRptName(java.lang.String value){
         if(onPropSet(PROP_ID_rptName,value)){
             this._rptName = value;
             internalClearRefs(PROP_ID_rptName);
@@ -506,7 +506,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 描述: DESCRIPTION
      */
-    public java.lang.String getDescription(){
+    public final java.lang.String getDescription(){
          onPropGet(PROP_ID_description);
          return _description;
     }
@@ -514,7 +514,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 描述: DESCRIPTION
      */
-    public void setDescription(java.lang.String value){
+    public final void setDescription(java.lang.String value){
         if(onPropSet(PROP_ID_description,value)){
             this._description = value;
             internalClearRefs(PROP_ID_description);
@@ -525,7 +525,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 报表文件: RPT_TEXT
      */
-    public java.lang.String getRptText(){
+    public final java.lang.String getRptText(){
          onPropGet(PROP_ID_rptText);
          return _rptText;
     }
@@ -533,7 +533,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 报表文件: RPT_TEXT
      */
-    public void setRptText(java.lang.String value){
+    public final void setRptText(java.lang.String value){
         if(onPropSet(PROP_ID_rptText,value)){
             this._rptText = value;
             internalClearRefs(PROP_ID_rptText);
@@ -544,7 +544,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public java.lang.Integer getStatus(){
+    public final java.lang.Integer getStatus(){
          onPropGet(PROP_ID_status);
          return _status;
     }
@@ -552,7 +552,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public void setStatus(java.lang.Integer value){
+    public final void setStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
@@ -563,7 +563,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -571,7 +571,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -582,7 +582,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -590,7 +590,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -601,7 +601,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -609,7 +609,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -620,7 +620,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -628,7 +628,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -639,7 +639,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -647,7 +647,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -658,7 +658,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -666,7 +666,7 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);

@@ -474,7 +474,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 应用ID: APP_ID
      */
-    public java.lang.String getAppId(){
+    public final java.lang.String getAppId(){
          onPropGet(PROP_ID_appId);
          return _appId;
     }
@@ -482,7 +482,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 应用ID: APP_ID
      */
-    public void setAppId(java.lang.String value){
+    public final void setAppId(java.lang.String value){
         if(onPropSet(PROP_ID_appId,value)){
             this._appId = value;
             internalClearRefs(PROP_ID_appId);
@@ -493,7 +493,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 应用名: APP_NAME
      */
-    public java.lang.String getAppName(){
+    public final java.lang.String getAppName(){
          onPropGet(PROP_ID_appName);
          return _appName;
     }
@@ -501,7 +501,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 应用名: APP_NAME
      */
-    public void setAppName(java.lang.String value){
+    public final void setAppName(java.lang.String value){
         if(onPropSet(PROP_ID_appName,value)){
             this._appName = value;
             internalClearRefs(PROP_ID_appName);
@@ -512,7 +512,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 显示名: DISPLAY_NAME
      */
-    public java.lang.String getDisplayName(){
+    public final java.lang.String getDisplayName(){
          onPropGet(PROP_ID_displayName);
          return _displayName;
     }
@@ -520,7 +520,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 显示名: DISPLAY_NAME
      */
-    public void setDisplayName(java.lang.String value){
+    public final void setDisplayName(java.lang.String value){
         if(onPropSet(PROP_ID_displayName,value)){
             this._displayName = value;
             internalClearRefs(PROP_ID_displayName);
@@ -531,7 +531,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 应用版本: APP_VERSION
      */
-    public java.lang.Integer getAppVersion(){
+    public final java.lang.Integer getAppVersion(){
          onPropGet(PROP_ID_appVersion);
          return _appVersion;
     }
@@ -539,7 +539,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 应用版本: APP_VERSION
      */
-    public void setAppVersion(java.lang.Integer value){
+    public final void setAppVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_appVersion,value)){
             this._appVersion = value;
             internalClearRefs(PROP_ID_appVersion);
@@ -550,7 +550,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 排序: SORT_ORDER
      */
-    public java.lang.Integer getSortOrder(){
+    public final java.lang.Integer getSortOrder(){
          onPropGet(PROP_ID_sortOrder);
          return _sortOrder;
     }
@@ -558,7 +558,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 排序: SORT_ORDER
      */
-    public void setSortOrder(java.lang.Integer value){
+    public final void setSortOrder(java.lang.Integer value){
         if(onPropSet(PROP_ID_sortOrder,value)){
             this._sortOrder = value;
             internalClearRefs(PROP_ID_sortOrder);
@@ -569,7 +569,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public java.lang.Integer getStatus(){
+    public final java.lang.Integer getStatus(){
          onPropGet(PROP_ID_status);
          return _status;
     }
@@ -577,7 +577,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public void setStatus(java.lang.Integer value){
+    public final void setStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
@@ -588,7 +588,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -596,7 +596,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -607,7 +607,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -615,7 +615,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -626,7 +626,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -634,7 +634,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -645,7 +645,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -653,7 +653,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -664,7 +664,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -672,7 +672,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -686,7 +686,7 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 补丁文件。 refPropName: app, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynPatchFile> getPatchFiles(){
+    public final IOrmEntitySet<io.nop.dyn.dao.entity.NopDynPatchFile> getPatchFiles(){
        return _patchFiles;
     }
        
@@ -696,15 +696,15 @@ public class _NopDynApp extends DynamicOrmEntity{
     /**
      * 。 refPropName: app, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynAppModule> getModuleMappings(){
+    public final IOrmEntitySet<io.nop.dyn.dao.entity.NopDynAppModule> getModuleMappings(){
        return _moduleMappings;
     }
        
-        public List<io.nop.dyn.dao.entity.NopDynModule> getRelatedModuleList(){
+        public final List<io.nop.dyn.dao.entity.NopDynModule> getRelatedModuleList(){
             return (List<io.nop.dyn.dao.entity.NopDynModule>)io.nop.orm.support.OrmEntityHelper.getRefProps(getModuleMappings(),"module");
         }
 
-        public List<String> getRelatedModuleList_ids(){
+        public final List<String> getRelatedModuleList_ids(){
             return io.nop.orm.support.OrmEntityHelper.getRefIds(getModuleMappings(),"module");
         }
 
@@ -713,7 +713,7 @@ public class _NopDynApp extends DynamicOrmEntity{
         }
     
 
-    public String getRelatedModuleList_label(){
+    public final String getRelatedModuleList_label(){
         return io.nop.orm.support.OrmEntityHelper.getLabelForRefProps(getModuleMappings(),"module");
     }
 

@@ -357,7 +357,7 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * Id: ID
      */
-    public java.lang.Long getId(){
+    public final java.lang.Long getId(){
          onPropGet(PROP_ID_id);
          return _id;
     }
@@ -365,7 +365,7 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * Id: ID
      */
-    public void setId(java.lang.Long value){
+    public final void setId(java.lang.Long value){
         if(onPropSet(PROP_ID_id,value)){
             this._id = value;
             internalClearRefs(PROP_ID_id);
@@ -376,7 +376,7 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * 完成时间: COMPLETION_TIME
      */
-    public java.time.LocalDateTime getCompletionTime(){
+    public final java.time.LocalDateTime getCompletionTime(){
          onPropGet(PROP_ID_completionTime);
          return _completionTime;
     }
@@ -384,7 +384,7 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * 完成时间: COMPLETION_TIME
      */
-    public void setCompletionTime(java.time.LocalDateTime value){
+    public final void setCompletionTime(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_completionTime,value)){
             this._completionTime = value;
             internalClearRefs(PROP_ID_completionTime);
@@ -395,7 +395,7 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * 注册时间: REGISTRATION_TIME
      */
-    public java.time.LocalDateTime getRegistrationTime(){
+    public final java.time.LocalDateTime getRegistrationTime(){
          onPropGet(PROP_ID_registrationTime);
          return _registrationTime;
     }
@@ -403,7 +403,7 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * 注册时间: REGISTRATION_TIME
      */
-    public void setRegistrationTime(java.time.LocalDateTime value){
+    public final void setRegistrationTime(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_registrationTime,value)){
             this._registrationTime = value;
             internalClearRefs(PROP_ID_registrationTime);
@@ -414,7 +414,7 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * 类型: TYPE
      */
-    public java.lang.String getType(){
+    public final java.lang.String getType(){
          onPropGet(PROP_ID_type);
          return _type;
     }
@@ -422,7 +422,7 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * 类型: TYPE
      */
-    public void setType(java.lang.String value){
+    public final void setType(java.lang.String value){
         if(onPropSet(PROP_ID_type,value)){
             this._type = value;
             internalClearRefs(PROP_ID_type);
@@ -433,7 +433,7 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * 货物ID: CARGO_ID
      */
-    public java.lang.Long getCargoId(){
+    public final java.lang.Long getCargoId(){
          onPropGet(PROP_ID_cargoId);
          return _cargoId;
     }
@@ -441,7 +441,7 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * 货物ID: CARGO_ID
      */
-    public void setCargoId(java.lang.Long value){
+    public final void setCargoId(java.lang.Long value){
         if(onPropSet(PROP_ID_cargoId,value)){
             this._cargoId = value;
             internalClearRefs(PROP_ID_cargoId);
@@ -452,7 +452,7 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * 位置ID: LOCATION_ID
      */
-    public java.lang.Long getLocationId(){
+    public final java.lang.Long getLocationId(){
          onPropGet(PROP_ID_locationId);
          return _locationId;
     }
@@ -460,7 +460,7 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * 位置ID: LOCATION_ID
      */
-    public void setLocationId(java.lang.Long value){
+    public final void setLocationId(java.lang.Long value){
         if(onPropSet(PROP_ID_locationId,value)){
             this._locationId = value;
             internalClearRefs(PROP_ID_locationId);
@@ -471,7 +471,7 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * 航程ID: VOYAGE_ID
      */
-    public java.lang.Long getVoyageId(){
+    public final java.lang.Long getVoyageId(){
          onPropGet(PROP_ID_voyageId);
          return _voyageId;
     }
@@ -479,7 +479,7 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * 航程ID: VOYAGE_ID
      */
-    public void setVoyageId(java.lang.Long value){
+    public final void setVoyageId(java.lang.Long value){
         if(onPropSet(PROP_ID_voyageId,value)){
             this._voyageId = value;
             internalClearRefs(PROP_ID_voyageId);
@@ -490,11 +490,11 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * 货物
      */
-    public app.demo.ddd.entity.Cargo getCargo(){
+    public final app.demo.ddd.entity.Cargo getCargo(){
        return (app.demo.ddd.entity.Cargo)internalGetRefEntity(PROP_NAME_cargo);
     }
 
-    public void setCargo(app.demo.ddd.entity.Cargo refEntity){
+    public final void setCargo(app.demo.ddd.entity.Cargo refEntity){
    
            if(refEntity == null){
            
@@ -513,11 +513,11 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * 航程
      */
-    public app.demo.ddd.entity.Voyage getVoyage(){
+    public final app.demo.ddd.entity.Voyage getVoyage(){
        return (app.demo.ddd.entity.Voyage)internalGetRefEntity(PROP_NAME_voyage);
     }
 
-    public void setVoyage(app.demo.ddd.entity.Voyage refEntity){
+    public final void setVoyage(app.demo.ddd.entity.Voyage refEntity){
    
            if(refEntity == null){
            
@@ -536,11 +536,11 @@ public class _HandlingEvent extends DynamicOrmEntity{
     /**
      * 位置
      */
-    public app.demo.ddd.entity.Location getLocation(){
+    public final app.demo.ddd.entity.Location getLocation(){
        return (app.demo.ddd.entity.Location)internalGetRefEntity(PROP_NAME_location);
     }
 
-    public void setLocation(app.demo.ddd.entity.Location refEntity){
+    public final void setLocation(app.demo.ddd.entity.Location refEntity){
    
            if(refEntity == null){
            

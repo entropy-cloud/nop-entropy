@@ -438,7 +438,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 变量名: VAR_NAME
      */
-    public java.lang.String getVarName(){
+    public final java.lang.String getVarName(){
          onPropGet(PROP_ID_varName);
          return _varName;
     }
@@ -446,7 +446,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 变量名: VAR_NAME
      */
-    public void setVarName(java.lang.String value){
+    public final void setVarName(java.lang.String value){
         if(onPropSet(PROP_ID_varName,value)){
             this._varName = value;
             internalClearRefs(PROP_ID_varName);
@@ -457,7 +457,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 变量值: VAR_VALUE
      */
-    public java.lang.String getVarValue(){
+    public final java.lang.String getVarValue(){
          onPropGet(PROP_ID_varValue);
          return _varValue;
     }
@@ -465,7 +465,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 变量值: VAR_VALUE
      */
-    public void setVarValue(java.lang.String value){
+    public final void setVarValue(java.lang.String value){
         if(onPropSet(PROP_ID_varValue,value)){
             this._varValue = value;
             internalClearRefs(PROP_ID_varValue);
@@ -476,7 +476,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 变量域: STD_DOMAIN
      */
-    public java.lang.String getStdDomain(){
+    public final java.lang.String getStdDomain(){
          onPropGet(PROP_ID_stdDomain);
          return _stdDomain;
     }
@@ -484,7 +484,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 变量域: STD_DOMAIN
      */
-    public void setStdDomain(java.lang.String value){
+    public final void setStdDomain(java.lang.String value){
         if(onPropSet(PROP_ID_stdDomain,value)){
             this._stdDomain = value;
             internalClearRefs(PROP_ID_stdDomain);
@@ -495,7 +495,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 变量类型: VAR_TYPE
      */
-    public java.lang.String getVarType(){
+    public final java.lang.String getVarType(){
          onPropGet(PROP_ID_varType);
          return _varType;
     }
@@ -503,7 +503,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 变量类型: VAR_TYPE
      */
-    public void setVarType(java.lang.String value){
+    public final void setVarType(java.lang.String value){
         if(onPropSet(PROP_ID_varType,value)){
             this._varType = value;
             internalClearRefs(PROP_ID_varType);
@@ -514,7 +514,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -522,7 +522,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -533,7 +533,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -541,7 +541,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -552,7 +552,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -560,7 +560,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -571,7 +571,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -579,7 +579,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -590,7 +590,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -598,7 +598,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -609,7 +609,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -617,7 +617,7 @@ public class _NopSysVariable extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);

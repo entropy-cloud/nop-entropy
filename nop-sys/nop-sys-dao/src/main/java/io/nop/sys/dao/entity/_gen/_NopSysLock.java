@@ -528,7 +528,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 锁名称: LOCK_NAME
      */
-    public java.lang.String getLockName(){
+    public final java.lang.String getLockName(){
          onPropGet(PROP_ID_lockName);
          return _lockName;
     }
@@ -536,7 +536,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 锁名称: LOCK_NAME
      */
-    public void setLockName(java.lang.String value){
+    public final void setLockName(java.lang.String value){
         if(onPropSet(PROP_ID_lockName,value)){
             this._lockName = value;
             internalClearRefs(PROP_ID_lockName);
@@ -547,7 +547,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 分组: LOCK_GROUP
      */
-    public java.lang.String getLockGroup(){
+    public final java.lang.String getLockGroup(){
          onPropGet(PROP_ID_lockGroup);
          return _lockGroup;
     }
@@ -555,7 +555,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 分组: LOCK_GROUP
      */
-    public void setLockGroup(java.lang.String value){
+    public final void setLockGroup(java.lang.String value){
         if(onPropSet(PROP_ID_lockGroup,value)){
             this._lockGroup = value;
             internalClearRefs(PROP_ID_lockGroup);
@@ -566,7 +566,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 锁定时间: LOCK_TIME
      */
-    public java.sql.Timestamp getLockTime(){
+    public final java.sql.Timestamp getLockTime(){
          onPropGet(PROP_ID_lockTime);
          return _lockTime;
     }
@@ -574,7 +574,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 锁定时间: LOCK_TIME
      */
-    public void setLockTime(java.sql.Timestamp value){
+    public final void setLockTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_lockTime,value)){
             this._lockTime = value;
             internalClearRefs(PROP_ID_lockTime);
@@ -585,7 +585,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 过期时间: EXPIRE_AT
      */
-    public java.sql.Timestamp getExpireAt(){
+    public final java.sql.Timestamp getExpireAt(){
          onPropGet(PROP_ID_expireAt);
          return _expireAt;
     }
@@ -593,7 +593,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 过期时间: EXPIRE_AT
      */
-    public void setExpireAt(java.sql.Timestamp value){
+    public final void setExpireAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_expireAt,value)){
             this._expireAt = value;
             internalClearRefs(PROP_ID_expireAt);
@@ -604,7 +604,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 锁定原因: LOCK_REASON
      */
-    public java.lang.String getLockReason(){
+    public final java.lang.String getLockReason(){
          onPropGet(PROP_ID_lockReason);
          return _lockReason;
     }
@@ -612,7 +612,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 锁定原因: LOCK_REASON
      */
-    public void setLockReason(java.lang.String value){
+    public final void setLockReason(java.lang.String value){
         if(onPropSet(PROP_ID_lockReason,value)){
             this._lockReason = value;
             internalClearRefs(PROP_ID_lockReason);
@@ -623,7 +623,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 锁的持有者: HOLDER_ID
      */
-    public java.lang.String getHolderId(){
+    public final java.lang.String getHolderId(){
          onPropGet(PROP_ID_holderId);
          return _holderId;
     }
@@ -631,7 +631,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 锁的持有者: HOLDER_ID
      */
-    public void setHolderId(java.lang.String value){
+    public final void setHolderId(java.lang.String value){
         if(onPropSet(PROP_ID_holderId,value)){
             this._holderId = value;
             internalClearRefs(PROP_ID_holderId);
@@ -642,7 +642,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 持有者地址: HOLDER_ADDER
      */
-    public java.lang.String getHolderAdder(){
+    public final java.lang.String getHolderAdder(){
          onPropGet(PROP_ID_holderAdder);
          return _holderAdder;
     }
@@ -650,7 +650,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 持有者地址: HOLDER_ADDER
      */
-    public void setHolderAdder(java.lang.String value){
+    public final void setHolderAdder(java.lang.String value){
         if(onPropSet(PROP_ID_holderAdder,value)){
             this._holderAdder = value;
             internalClearRefs(PROP_ID_holderAdder);
@@ -661,7 +661,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 应用ID: APP_ID
      */
-    public java.lang.String getAppId(){
+    public final java.lang.String getAppId(){
          onPropGet(PROP_ID_appId);
          return _appId;
     }
@@ -669,7 +669,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 应用ID: APP_ID
      */
-    public void setAppId(java.lang.String value){
+    public final void setAppId(java.lang.String value){
         if(onPropSet(PROP_ID_appId,value)){
             this._appId = value;
             internalClearRefs(PROP_ID_appId);
@@ -680,7 +680,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -688,7 +688,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -699,7 +699,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -707,7 +707,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -718,7 +718,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -726,7 +726,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -737,7 +737,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -745,7 +745,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -756,7 +756,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -764,7 +764,7 @@ public class _NopSysLock extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);

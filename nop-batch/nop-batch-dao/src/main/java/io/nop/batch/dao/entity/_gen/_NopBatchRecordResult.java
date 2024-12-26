@@ -471,7 +471,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 主键: BATCH_TASK_ID
      */
-    public java.lang.String getBatchTaskId(){
+    public final java.lang.String getBatchTaskId(){
          onPropGet(PROP_ID_batchTaskId);
          return _batchTaskId;
     }
@@ -479,7 +479,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 主键: BATCH_TASK_ID
      */
-    public void setBatchTaskId(java.lang.String value){
+    public final void setBatchTaskId(java.lang.String value){
         if(onPropSet(PROP_ID_batchTaskId,value)){
             this._batchTaskId = value;
             internalClearRefs(PROP_ID_batchTaskId);
@@ -490,7 +490,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 记录唯一键: RECORD_KEY
      */
-    public java.lang.String getRecordKey(){
+    public final java.lang.String getRecordKey(){
          onPropGet(PROP_ID_recordKey);
          return _recordKey;
     }
@@ -498,7 +498,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 记录唯一键: RECORD_KEY
      */
-    public void setRecordKey(java.lang.String value){
+    public final void setRecordKey(java.lang.String value){
         if(onPropSet(PROP_ID_recordKey,value)){
             this._recordKey = value;
             internalClearRefs(PROP_ID_recordKey);
@@ -509,7 +509,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 返回状态码: RESULT_STATUS
      */
-    public java.lang.Integer getResultStatus(){
+    public final java.lang.Integer getResultStatus(){
          onPropGet(PROP_ID_resultStatus);
          return _resultStatus;
     }
@@ -517,7 +517,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 返回状态码: RESULT_STATUS
      */
-    public void setResultStatus(java.lang.Integer value){
+    public final void setResultStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_resultStatus,value)){
             this._resultStatus = value;
             internalClearRefs(PROP_ID_resultStatus);
@@ -528,7 +528,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 返回码: RESULT_CODE
      */
-    public java.lang.String getResultCode(){
+    public final java.lang.String getResultCode(){
          onPropGet(PROP_ID_resultCode);
          return _resultCode;
     }
@@ -536,7 +536,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 返回码: RESULT_CODE
      */
-    public void setResultCode(java.lang.String value){
+    public final void setResultCode(java.lang.String value){
         if(onPropSet(PROP_ID_resultCode,value)){
             this._resultCode = value;
             internalClearRefs(PROP_ID_resultCode);
@@ -547,7 +547,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 返回消息: RESULT_MSG
      */
-    public java.lang.String getResultMsg(){
+    public final java.lang.String getResultMsg(){
          onPropGet(PROP_ID_resultMsg);
          return _resultMsg;
     }
@@ -555,7 +555,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 返回消息: RESULT_MSG
      */
-    public void setResultMsg(java.lang.String value){
+    public final void setResultMsg(java.lang.String value){
         if(onPropSet(PROP_ID_resultMsg,value)){
             this._resultMsg = value;
             internalClearRefs(PROP_ID_resultMsg);
@@ -566,7 +566,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 错误堆栈: ERROR_STACK
      */
-    public java.lang.String getErrorStack(){
+    public final java.lang.String getErrorStack(){
          onPropGet(PROP_ID_errorStack);
          return _errorStack;
     }
@@ -574,7 +574,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 错误堆栈: ERROR_STACK
      */
-    public void setErrorStack(java.lang.String value){
+    public final void setErrorStack(java.lang.String value){
         if(onPropSet(PROP_ID_errorStack,value)){
             this._errorStack = value;
             internalClearRefs(PROP_ID_errorStack);
@@ -585,7 +585,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Long getVersion(){
+    public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -593,7 +593,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Long value){
+    public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -604,7 +604,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -612,7 +612,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -623,7 +623,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -631,7 +631,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -642,7 +642,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -650,7 +650,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -661,7 +661,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -669,7 +669,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -680,11 +680,11 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     /**
      * 批处理任务
      */
-    public io.nop.batch.dao.entity.NopBatchTask getTask(){
+    public final io.nop.batch.dao.entity.NopBatchTask getTask(){
        return (io.nop.batch.dao.entity.NopBatchTask)internalGetRefEntity(PROP_NAME_task);
     }
 
-    public void setTask(io.nop.batch.dao.entity.NopBatchTask refEntity){
+    public final void setTask(io.nop.batch.dao.entity.NopBatchTask refEntity){
    
            if(refEntity == null){
            

@@ -198,7 +198,7 @@ public class _Voyage extends DynamicOrmEntity{
     /**
      * Id: ID
      */
-    public java.lang.Long getId(){
+    public final java.lang.Long getId(){
          onPropGet(PROP_ID_id);
          return _id;
     }
@@ -206,7 +206,7 @@ public class _Voyage extends DynamicOrmEntity{
     /**
      * Id: ID
      */
-    public void setId(java.lang.Long value){
+    public final void setId(java.lang.Long value){
         if(onPropSet(PROP_ID_id,value)){
             this._id = value;
             internalClearRefs(PROP_ID_id);
@@ -217,7 +217,7 @@ public class _Voyage extends DynamicOrmEntity{
     /**
      * 航程号: VOYAGE_NUMBER
      */
-    public java.lang.String getVoyageNumber(){
+    public final java.lang.String getVoyageNumber(){
          onPropGet(PROP_ID_voyageNumber);
          return _voyageNumber;
     }
@@ -225,7 +225,7 @@ public class _Voyage extends DynamicOrmEntity{
     /**
      * 航程号: VOYAGE_NUMBER
      */
-    public void setVoyageNumber(java.lang.String value){
+    public final void setVoyageNumber(java.lang.String value){
         if(onPropSet(PROP_ID_voyageNumber,value)){
             this._voyageNumber = value;
             internalClearRefs(PROP_ID_voyageNumber);

@@ -321,7 +321,7 @@ public class _NopRuleLog extends DynamicOrmEntity{
     /**
      * 日志ID: SID
      */
-    public java.lang.String getSid(){
+    public final java.lang.String getSid(){
          onPropGet(PROP_ID_sid);
          return _sid;
     }
@@ -329,7 +329,7 @@ public class _NopRuleLog extends DynamicOrmEntity{
     /**
      * 日志ID: SID
      */
-    public void setSid(java.lang.String value){
+    public final void setSid(java.lang.String value){
         if(onPropSet(PROP_ID_sid,value)){
             this._sid = value;
             internalClearRefs(PROP_ID_sid);
@@ -340,7 +340,7 @@ public class _NopRuleLog extends DynamicOrmEntity{
     /**
      * 规则ID: RULE_ID
      */
-    public java.lang.String getRuleId(){
+    public final java.lang.String getRuleId(){
          onPropGet(PROP_ID_ruleId);
          return _ruleId;
     }
@@ -348,7 +348,7 @@ public class _NopRuleLog extends DynamicOrmEntity{
     /**
      * 规则ID: RULE_ID
      */
-    public void setRuleId(java.lang.String value){
+    public final void setRuleId(java.lang.String value){
         if(onPropSet(PROP_ID_ruleId,value)){
             this._ruleId = value;
             internalClearRefs(PROP_ID_ruleId);
@@ -359,7 +359,7 @@ public class _NopRuleLog extends DynamicOrmEntity{
     /**
      * 日志级别: LOG_LEVEL
      */
-    public java.lang.Integer getLogLevel(){
+    public final java.lang.Integer getLogLevel(){
          onPropGet(PROP_ID_logLevel);
          return _logLevel;
     }
@@ -367,7 +367,7 @@ public class _NopRuleLog extends DynamicOrmEntity{
     /**
      * 日志级别: LOG_LEVEL
      */
-    public void setLogLevel(java.lang.Integer value){
+    public final void setLogLevel(java.lang.Integer value){
         if(onPropSet(PROP_ID_logLevel,value)){
             this._logLevel = value;
             internalClearRefs(PROP_ID_logLevel);
@@ -378,7 +378,7 @@ public class _NopRuleLog extends DynamicOrmEntity{
     /**
      * 日志消息: LOG_MSG
      */
-    public java.lang.String getLogMsg(){
+    public final java.lang.String getLogMsg(){
          onPropGet(PROP_ID_logMsg);
          return _logMsg;
     }
@@ -386,7 +386,7 @@ public class _NopRuleLog extends DynamicOrmEntity{
     /**
      * 日志消息: LOG_MSG
      */
-    public void setLogMsg(java.lang.String value){
+    public final void setLogMsg(java.lang.String value){
         if(onPropSet(PROP_ID_logMsg,value)){
             this._logMsg = value;
             internalClearRefs(PROP_ID_logMsg);
@@ -397,7 +397,7 @@ public class _NopRuleLog extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -405,7 +405,7 @@ public class _NopRuleLog extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -416,7 +416,7 @@ public class _NopRuleLog extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -424,7 +424,7 @@ public class _NopRuleLog extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -435,11 +435,11 @@ public class _NopRuleLog extends DynamicOrmEntity{
     /**
      * 规则定义
      */
-    public io.nop.rule.dao.entity.NopRuleDefinition getRuleDefinition(){
+    public final io.nop.rule.dao.entity.NopRuleDefinition getRuleDefinition(){
        return (io.nop.rule.dao.entity.NopRuleDefinition)internalGetRefEntity(PROP_NAME_ruleDefinition);
     }
 
-    public void setRuleDefinition(io.nop.rule.dao.entity.NopRuleDefinition refEntity){
+    public final void setRuleDefinition(io.nop.rule.dao.entity.NopRuleDefinition refEntity){
    
            if(refEntity == null){
            

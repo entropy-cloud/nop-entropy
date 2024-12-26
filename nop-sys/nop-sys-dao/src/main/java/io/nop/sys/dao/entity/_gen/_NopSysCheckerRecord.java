@@ -828,7 +828,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 主键: SID
      */
-    public java.lang.String getSid(){
+    public final java.lang.String getSid(){
          onPropGet(PROP_ID_sid);
          return _sid;
     }
@@ -836,7 +836,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 主键: SID
      */
-    public void setSid(java.lang.String value){
+    public final void setSid(java.lang.String value){
         if(onPropSet(PROP_ID_sid,value)){
             this._sid = value;
             internalClearRefs(PROP_ID_sid);
@@ -847,7 +847,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 业务对象名: BIZ_OBJ_NAME
      */
-    public java.lang.String getBizObjName(){
+    public final java.lang.String getBizObjName(){
          onPropGet(PROP_ID_bizObjName);
          return _bizObjName;
     }
@@ -855,7 +855,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 业务对象名: BIZ_OBJ_NAME
      */
-    public void setBizObjName(java.lang.String value){
+    public final void setBizObjName(java.lang.String value){
         if(onPropSet(PROP_ID_bizObjName,value)){
             this._bizObjName = value;
             internalClearRefs(PROP_ID_bizObjName);
@@ -866,7 +866,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 业务对象ID: BIZ_OBJ_ID
      */
-    public java.lang.String getBizObjId(){
+    public final java.lang.String getBizObjId(){
          onPropGet(PROP_ID_bizObjId);
          return _bizObjId;
     }
@@ -874,7 +874,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 业务对象ID: BIZ_OBJ_ID
      */
-    public void setBizObjId(java.lang.String value){
+    public final void setBizObjId(java.lang.String value){
         if(onPropSet(PROP_ID_bizObjId,value)){
             this._bizObjId = value;
             internalClearRefs(PROP_ID_bizObjId);
@@ -885,7 +885,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 请求发起人ID: MAKER_ID
      */
-    public java.lang.String getMakerId(){
+    public final java.lang.String getMakerId(){
          onPropGet(PROP_ID_makerId);
          return _makerId;
     }
@@ -893,7 +893,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 请求发起人ID: MAKER_ID
      */
-    public void setMakerId(java.lang.String value){
+    public final void setMakerId(java.lang.String value){
         if(onPropSet(PROP_ID_makerId,value)){
             this._makerId = value;
             internalClearRefs(PROP_ID_makerId);
@@ -904,7 +904,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 请求发起人: MAKER_NAME
      */
-    public java.lang.String getMakerName(){
+    public final java.lang.String getMakerName(){
          onPropGet(PROP_ID_makerName);
          return _makerName;
     }
@@ -912,7 +912,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 请求发起人: MAKER_NAME
      */
-    public void setMakerName(java.lang.String value){
+    public final void setMakerName(java.lang.String value){
         if(onPropSet(PROP_ID_makerName,value)){
             this._makerName = value;
             internalClearRefs(PROP_ID_makerName);
@@ -923,7 +923,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 请求操作: REQUEST_ACTION
      */
-    public java.lang.String getRequestAction(){
+    public final java.lang.String getRequestAction(){
          onPropGet(PROP_ID_requestAction);
          return _requestAction;
     }
@@ -931,7 +931,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 请求操作: REQUEST_ACTION
      */
-    public void setRequestAction(java.lang.String value){
+    public final void setRequestAction(java.lang.String value){
         if(onPropSet(PROP_ID_requestAction,value)){
             this._requestAction = value;
             internalClearRefs(PROP_ID_requestAction);
@@ -942,7 +942,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 请求数据: REQUEST_DATA
      */
-    public java.lang.String getRequestData(){
+    public final java.lang.String getRequestData(){
          onPropGet(PROP_ID_requestData);
          return _requestData;
     }
@@ -950,7 +950,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 请求数据: REQUEST_DATA
      */
-    public void setRequestData(java.lang.String value){
+    public final void setRequestData(java.lang.String value){
         if(onPropSet(PROP_ID_requestData,value)){
             this._requestData = value;
             internalClearRefs(PROP_ID_requestData);
@@ -961,7 +961,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 请求时间: REQUEST_TIME
      */
-    public java.time.LocalDateTime getRequestTime(){
+    public final java.time.LocalDateTime getRequestTime(){
          onPropGet(PROP_ID_requestTime);
          return _requestTime;
     }
@@ -969,7 +969,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 请求时间: REQUEST_TIME
      */
-    public void setRequestTime(java.time.LocalDateTime value){
+    public final void setRequestTime(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_requestTime,value)){
             this._requestTime = value;
             internalClearRefs(PROP_ID_requestTime);
@@ -980,7 +980,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 审批人ID: CHECKER_ID
      */
-    public java.lang.String getCheckerId(){
+    public final java.lang.String getCheckerId(){
          onPropGet(PROP_ID_checkerId);
          return _checkerId;
     }
@@ -988,7 +988,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 审批人ID: CHECKER_ID
      */
-    public void setCheckerId(java.lang.String value){
+    public final void setCheckerId(java.lang.String value){
         if(onPropSet(PROP_ID_checkerId,value)){
             this._checkerId = value;
             internalClearRefs(PROP_ID_checkerId);
@@ -999,7 +999,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 审批人: CHECKER_NAME
      */
-    public java.lang.String getCheckerName(){
+    public final java.lang.String getCheckerName(){
          onPropGet(PROP_ID_checkerName);
          return _checkerName;
     }
@@ -1007,7 +1007,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 审批人: CHECKER_NAME
      */
-    public void setCheckerName(java.lang.String value){
+    public final void setCheckerName(java.lang.String value){
         if(onPropSet(PROP_ID_checkerName,value)){
             this._checkerName = value;
             internalClearRefs(PROP_ID_checkerName);
@@ -1018,7 +1018,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 审批时间: CHECK_TIME
      */
-    public java.time.LocalDateTime getCheckTime(){
+    public final java.time.LocalDateTime getCheckTime(){
          onPropGet(PROP_ID_checkTime);
          return _checkTime;
     }
@@ -1026,7 +1026,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 审批时间: CHECK_TIME
      */
-    public void setCheckTime(java.time.LocalDateTime value){
+    public final void setCheckTime(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_checkTime,value)){
             this._checkTime = value;
             internalClearRefs(PROP_ID_checkTime);
@@ -1037,7 +1037,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 请求结果: TRY_RESULT
      */
-    public java.lang.String getTryResult(){
+    public final java.lang.String getTryResult(){
          onPropGet(PROP_ID_tryResult);
          return _tryResult;
     }
@@ -1045,7 +1045,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 请求结果: TRY_RESULT
      */
-    public void setTryResult(java.lang.String value){
+    public final void setTryResult(java.lang.String value){
         if(onPropSet(PROP_ID_tryResult,value)){
             this._tryResult = value;
             internalClearRefs(PROP_ID_tryResult);
@@ -1056,7 +1056,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 输入页面: INPUT_PAGE
      */
-    public java.lang.String getInputPage(){
+    public final java.lang.String getInputPage(){
          onPropGet(PROP_ID_inputPage);
          return _inputPage;
     }
@@ -1064,7 +1064,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 输入页面: INPUT_PAGE
      */
-    public void setInputPage(java.lang.String value){
+    public final void setInputPage(java.lang.String value){
         if(onPropSet(PROP_ID_inputPage,value)){
             this._inputPage = value;
             internalClearRefs(PROP_ID_inputPage);
@@ -1075,7 +1075,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 审批状态: STATUS
      */
-    public java.lang.Integer getStatus(){
+    public final java.lang.Integer getStatus(){
          onPropGet(PROP_ID_status);
          return _status;
     }
@@ -1083,7 +1083,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 审批状态: STATUS
      */
-    public void setStatus(java.lang.Integer value){
+    public final void setStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
@@ -1094,7 +1094,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 取消方法: CANCEL_ACTION
      */
-    public java.lang.String getCancelAction(){
+    public final java.lang.String getCancelAction(){
          onPropGet(PROP_ID_cancelAction);
          return _cancelAction;
     }
@@ -1102,7 +1102,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 取消方法: CANCEL_ACTION
      */
-    public void setCancelAction(java.lang.String value){
+    public final void setCancelAction(java.lang.String value){
         if(onPropSet(PROP_ID_cancelAction,value)){
             this._cancelAction = value;
             internalClearRefs(PROP_ID_cancelAction);
@@ -1113,7 +1113,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 回调错误码: CB_ERR_CODE
      */
-    public java.lang.String getCbErrCode(){
+    public final java.lang.String getCbErrCode(){
          onPropGet(PROP_ID_cbErrCode);
          return _cbErrCode;
     }
@@ -1121,7 +1121,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 回调错误码: CB_ERR_CODE
      */
-    public void setCbErrCode(java.lang.String value){
+    public final void setCbErrCode(java.lang.String value){
         if(onPropSet(PROP_ID_cbErrCode,value)){
             this._cbErrCode = value;
             internalClearRefs(PROP_ID_cbErrCode);
@@ -1132,7 +1132,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 回调错误消息: CE_ERR_MSG
      */
-    public java.lang.String getCeErrMsg(){
+    public final java.lang.String getCeErrMsg(){
          onPropGet(PROP_ID_ceErrMsg);
          return _ceErrMsg;
     }
@@ -1140,7 +1140,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 回调错误消息: CE_ERR_MSG
      */
-    public void setCeErrMsg(java.lang.String value){
+    public final void setCeErrMsg(java.lang.String value){
         if(onPropSet(PROP_ID_ceErrMsg,value)){
             this._ceErrMsg = value;
             internalClearRefs(PROP_ID_ceErrMsg);
@@ -1151,7 +1151,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -1159,7 +1159,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -1170,7 +1170,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -1178,7 +1178,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -1189,7 +1189,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -1197,7 +1197,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -1208,7 +1208,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -1216,7 +1216,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -1227,7 +1227,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -1235,7 +1235,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -1246,7 +1246,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -1254,7 +1254,7 @@ public class _NopSysCheckerRecord extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);

@@ -327,7 +327,7 @@ public class _CarrierMovement extends DynamicOrmEntity{
     /**
      * Id: ID
      */
-    public java.lang.Long getId(){
+    public final java.lang.Long getId(){
          onPropGet(PROP_ID_id);
          return _id;
     }
@@ -335,7 +335,7 @@ public class _CarrierMovement extends DynamicOrmEntity{
     /**
      * Id: ID
      */
-    public void setId(java.lang.Long value){
+    public final void setId(java.lang.Long value){
         if(onPropSet(PROP_ID_id,value)){
             this._id = value;
             internalClearRefs(PROP_ID_id);
@@ -346,7 +346,7 @@ public class _CarrierMovement extends DynamicOrmEntity{
     /**
      * 到达时间: ARRIVAL_TIME
      */
-    public java.time.LocalDateTime getArrivalTime(){
+    public final java.time.LocalDateTime getArrivalTime(){
          onPropGet(PROP_ID_arrivalTime);
          return _arrivalTime;
     }
@@ -354,7 +354,7 @@ public class _CarrierMovement extends DynamicOrmEntity{
     /**
      * 到达时间: ARRIVAL_TIME
      */
-    public void setArrivalTime(java.time.LocalDateTime value){
+    public final void setArrivalTime(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_arrivalTime,value)){
             this._arrivalTime = value;
             internalClearRefs(PROP_ID_arrivalTime);
@@ -365,7 +365,7 @@ public class _CarrierMovement extends DynamicOrmEntity{
     /**
      * 出发时间: DEPARTURE_TIME
      */
-    public java.time.LocalDateTime getDepartureTime(){
+    public final java.time.LocalDateTime getDepartureTime(){
          onPropGet(PROP_ID_departureTime);
          return _departureTime;
     }
@@ -373,7 +373,7 @@ public class _CarrierMovement extends DynamicOrmEntity{
     /**
      * 出发时间: DEPARTURE_TIME
      */
-    public void setDepartureTime(java.time.LocalDateTime value){
+    public final void setDepartureTime(java.time.LocalDateTime value){
         if(onPropSet(PROP_ID_departureTime,value)){
             this._departureTime = value;
             internalClearRefs(PROP_ID_departureTime);
@@ -384,7 +384,7 @@ public class _CarrierMovement extends DynamicOrmEntity{
     /**
      * 到达地点ID: ARRIVAL_LOCATION_ID
      */
-    public java.lang.Long getArrivalLocationId(){
+    public final java.lang.Long getArrivalLocationId(){
          onPropGet(PROP_ID_arrivalLocationId);
          return _arrivalLocationId;
     }
@@ -392,7 +392,7 @@ public class _CarrierMovement extends DynamicOrmEntity{
     /**
      * 到达地点ID: ARRIVAL_LOCATION_ID
      */
-    public void setArrivalLocationId(java.lang.Long value){
+    public final void setArrivalLocationId(java.lang.Long value){
         if(onPropSet(PROP_ID_arrivalLocationId,value)){
             this._arrivalLocationId = value;
             internalClearRefs(PROP_ID_arrivalLocationId);
@@ -403,7 +403,7 @@ public class _CarrierMovement extends DynamicOrmEntity{
     /**
      * 出发地点ID: DEPARTURE_LOCATION_ID
      */
-    public java.lang.Long getDepartureLocationId(){
+    public final java.lang.Long getDepartureLocationId(){
          onPropGet(PROP_ID_departureLocationId);
          return _departureLocationId;
     }
@@ -411,7 +411,7 @@ public class _CarrierMovement extends DynamicOrmEntity{
     /**
      * 出发地点ID: DEPARTURE_LOCATION_ID
      */
-    public void setDepartureLocationId(java.lang.Long value){
+    public final void setDepartureLocationId(java.lang.Long value){
         if(onPropSet(PROP_ID_departureLocationId,value)){
             this._departureLocationId = value;
             internalClearRefs(PROP_ID_departureLocationId);
@@ -422,7 +422,7 @@ public class _CarrierMovement extends DynamicOrmEntity{
     /**
      * 航程ID: VOYAGE_ID
      */
-    public java.lang.Long getVoyageId(){
+    public final java.lang.Long getVoyageId(){
          onPropGet(PROP_ID_voyageId);
          return _voyageId;
     }
@@ -430,7 +430,7 @@ public class _CarrierMovement extends DynamicOrmEntity{
     /**
      * 航程ID: VOYAGE_ID
      */
-    public void setVoyageId(java.lang.Long value){
+    public final void setVoyageId(java.lang.Long value){
         if(onPropSet(PROP_ID_voyageId,value)){
             this._voyageId = value;
             internalClearRefs(PROP_ID_voyageId);
@@ -441,11 +441,11 @@ public class _CarrierMovement extends DynamicOrmEntity{
     /**
      * 航程
      */
-    public app.demo.ddd.entity.Voyage getVoyage(){
+    public final app.demo.ddd.entity.Voyage getVoyage(){
        return (app.demo.ddd.entity.Voyage)internalGetRefEntity(PROP_NAME_voyage);
     }
 
-    public void setVoyage(app.demo.ddd.entity.Voyage refEntity){
+    public final void setVoyage(app.demo.ddd.entity.Voyage refEntity){
    
            if(refEntity == null){
            
@@ -464,11 +464,11 @@ public class _CarrierMovement extends DynamicOrmEntity{
     /**
      * 出发地点
      */
-    public app.demo.ddd.entity.Location getDepartureLocation(){
+    public final app.demo.ddd.entity.Location getDepartureLocation(){
        return (app.demo.ddd.entity.Location)internalGetRefEntity(PROP_NAME_departureLocation);
     }
 
-    public void setDepartureLocation(app.demo.ddd.entity.Location refEntity){
+    public final void setDepartureLocation(app.demo.ddd.entity.Location refEntity){
    
            if(refEntity == null){
            
@@ -487,11 +487,11 @@ public class _CarrierMovement extends DynamicOrmEntity{
     /**
      * 到达地点
      */
-    public app.demo.ddd.entity.Location getArrivalLocation(){
+    public final app.demo.ddd.entity.Location getArrivalLocation(){
        return (app.demo.ddd.entity.Location)internalGetRefEntity(PROP_NAME_arrivalLocation);
     }
 
-    public void setArrivalLocation(app.demo.ddd.entity.Location refEntity){
+    public final void setArrivalLocation(app.demo.ddd.entity.Location refEntity){
    
            if(refEntity == null){
            

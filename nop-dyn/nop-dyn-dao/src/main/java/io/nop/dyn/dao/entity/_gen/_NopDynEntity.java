@@ -1113,7 +1113,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 主键: SID
      */
-    public java.lang.String getSid(){
+    public final java.lang.String getSid(){
          onPropGet(PROP_ID_sid);
          return _sid;
     }
@@ -1121,7 +1121,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 主键: SID
      */
-    public void setSid(java.lang.String value){
+    public final void setSid(java.lang.String value){
         if(onPropSet(PROP_ID_sid,value)){
             this._sid = value;
             internalClearRefs(PROP_ID_sid);
@@ -1132,7 +1132,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 对象类型: NOP_OBJ_TYPE
      */
-    public java.lang.String getNopObjType(){
+    public final java.lang.String getNopObjType(){
          onPropGet(PROP_ID_nopObjType);
          return _nopObjType;
     }
@@ -1140,7 +1140,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 对象类型: NOP_OBJ_TYPE
      */
-    public void setNopObjType(java.lang.String value){
+    public final void setNopObjType(java.lang.String value){
         if(onPropSet(PROP_ID_nopObjType,value)){
             this._nopObjType = value;
             internalClearRefs(PROP_ID_nopObjType);
@@ -1151,7 +1151,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 名称: NOP_NAME
      */
-    public java.lang.String getNopName(){
+    public final java.lang.String getNopName(){
          onPropGet(PROP_ID_nopName);
          return _nopName;
     }
@@ -1159,7 +1159,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 名称: NOP_NAME
      */
-    public void setNopName(java.lang.String value){
+    public final void setNopName(java.lang.String value){
         if(onPropSet(PROP_ID_nopName,value)){
             this._nopName = value;
             internalClearRefs(PROP_ID_nopName);
@@ -1170,7 +1170,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 显示名称: NOP_DISPLAY_NAME
      */
-    public java.lang.String getNopDisplayName(){
+    public final java.lang.String getNopDisplayName(){
          onPropGet(PROP_ID_nopDisplayName);
          return _nopDisplayName;
     }
@@ -1178,7 +1178,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 显示名称: NOP_DISPLAY_NAME
      */
-    public void setNopDisplayName(java.lang.String value){
+    public final void setNopDisplayName(java.lang.String value){
         if(onPropSet(PROP_ID_nopDisplayName,value)){
             this._nopDisplayName = value;
             internalClearRefs(PROP_ID_nopDisplayName);
@@ -1189,7 +1189,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 排序: NOP_SORT_ORDER
      */
-    public java.lang.Integer getNopSortOrder(){
+    public final java.lang.Integer getNopSortOrder(){
          onPropGet(PROP_ID_nopSortOrder);
          return _nopSortOrder;
     }
@@ -1197,7 +1197,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 排序: NOP_SORT_ORDER
      */
-    public void setNopSortOrder(java.lang.Integer value){
+    public final void setNopSortOrder(java.lang.Integer value){
         if(onPropSet(PROP_ID_nopSortOrder,value)){
             this._nopSortOrder = value;
             internalClearRefs(PROP_ID_nopSortOrder);
@@ -1208,7 +1208,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 工作流实例ID: NOP_FLOW_ID
      */
-    public java.lang.String getNopFlowId(){
+    public final java.lang.String getNopFlowId(){
          onPropGet(PROP_ID_nopFlowId);
          return _nopFlowId;
     }
@@ -1216,7 +1216,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 工作流实例ID: NOP_FLOW_ID
      */
-    public void setNopFlowId(java.lang.String value){
+    public final void setNopFlowId(java.lang.String value){
         if(onPropSet(PROP_ID_nopFlowId,value)){
             this._nopFlowId = value;
             internalClearRefs(PROP_ID_nopFlowId);
@@ -1227,7 +1227,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 业务状态码: NOP_STATUS
      */
-    public java.lang.Integer getNopStatus(){
+    public final java.lang.Integer getNopStatus(){
          onPropGet(PROP_ID_nopStatus);
          return _nopStatus;
     }
@@ -1235,7 +1235,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 业务状态码: NOP_STATUS
      */
-    public void setNopStatus(java.lang.Integer value){
+    public final void setNopStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_nopStatus,value)){
             this._nopStatus = value;
             internalClearRefs(PROP_ID_nopStatus);
@@ -1246,7 +1246,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 业务状态: NOP_BIZ_STATE
      */
-    public java.lang.String getNopBizState(){
+    public final java.lang.String getNopBizState(){
          onPropGet(PROP_ID_nopBizState);
          return _nopBizState;
     }
@@ -1254,7 +1254,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 业务状态: NOP_BIZ_STATE
      */
-    public void setNopBizState(java.lang.String value){
+    public final void setNopBizState(java.lang.String value){
         if(onPropSet(PROP_ID_nopBizState,value)){
             this._nopBizState = value;
             internalClearRefs(PROP_ID_nopBizState);
@@ -1265,7 +1265,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 父ID: NOP_PARENT_ID
      */
-    public java.lang.String getNopParentId(){
+    public final java.lang.String getNopParentId(){
          onPropGet(PROP_ID_nopParentId);
          return _nopParentId;
     }
@@ -1273,7 +1273,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 父ID: NOP_PARENT_ID
      */
-    public void setNopParentId(java.lang.String value){
+    public final void setNopParentId(java.lang.String value){
         if(onPropSet(PROP_ID_nopParentId,value)){
             this._nopParentId = value;
             internalClearRefs(PROP_ID_nopParentId);
@@ -1284,7 +1284,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 拥有者姓名: NOP_OWNER_NAME
      */
-    public java.lang.String getNopOwnerName(){
+    public final java.lang.String getNopOwnerName(){
          onPropGet(PROP_ID_nopOwnerName);
          return _nopOwnerName;
     }
@@ -1292,7 +1292,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 拥有者姓名: NOP_OWNER_NAME
      */
-    public void setNopOwnerName(java.lang.String value){
+    public final void setNopOwnerName(java.lang.String value){
         if(onPropSet(PROP_ID_nopOwnerName,value)){
             this._nopOwnerName = value;
             internalClearRefs(PROP_ID_nopOwnerName);
@@ -1303,7 +1303,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 拥有者ID: NOP_OWNER_ID
      */
-    public java.lang.String getNopOwnerId(){
+    public final java.lang.String getNopOwnerId(){
          onPropGet(PROP_ID_nopOwnerId);
          return _nopOwnerId;
     }
@@ -1311,7 +1311,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 拥有者ID: NOP_OWNER_ID
      */
-    public void setNopOwnerId(java.lang.String value){
+    public final void setNopOwnerId(java.lang.String value){
         if(onPropSet(PROP_ID_nopOwnerId,value)){
             this._nopOwnerId = value;
             internalClearRefs(PROP_ID_nopOwnerId);
@@ -1322,7 +1322,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 部门ID: NOP_DEPT_ID
      */
-    public java.lang.String getNopDeptId(){
+    public final java.lang.String getNopDeptId(){
          onPropGet(PROP_ID_nopDeptId);
          return _nopDeptId;
     }
@@ -1330,7 +1330,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 部门ID: NOP_DEPT_ID
      */
-    public void setNopDeptId(java.lang.String value){
+    public final void setNopDeptId(java.lang.String value){
         if(onPropSet(PROP_ID_nopDeptId,value)){
             this._nopDeptId = value;
             internalClearRefs(PROP_ID_nopDeptId);
@@ -1341,7 +1341,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 字符串字段1: NOP_STRING_FLD1
      */
-    public java.lang.String getNopStringFld1(){
+    public final java.lang.String getNopStringFld1(){
          onPropGet(PROP_ID_nopStringFld1);
          return _nopStringFld1;
     }
@@ -1349,7 +1349,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 字符串字段1: NOP_STRING_FLD1
      */
-    public void setNopStringFld1(java.lang.String value){
+    public final void setNopStringFld1(java.lang.String value){
         if(onPropSet(PROP_ID_nopStringFld1,value)){
             this._nopStringFld1 = value;
             internalClearRefs(PROP_ID_nopStringFld1);
@@ -1360,7 +1360,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 浮点型字段1: NOP_DECIMAL_FLD1
      */
-    public java.math.BigDecimal getNopDecimalFld1(){
+    public final java.math.BigDecimal getNopDecimalFld1(){
          onPropGet(PROP_ID_nopDecimalFld1);
          return _nopDecimalFld1;
     }
@@ -1368,7 +1368,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 浮点型字段1: NOP_DECIMAL_FLD1
      */
-    public void setNopDecimalFld1(java.math.BigDecimal value){
+    public final void setNopDecimalFld1(java.math.BigDecimal value){
         if(onPropSet(PROP_ID_nopDecimalFld1,value)){
             this._nopDecimalFld1 = value;
             internalClearRefs(PROP_ID_nopDecimalFld1);
@@ -1379,7 +1379,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 整数型字段1: NOP_INT_FLD1
      */
-    public java.lang.Integer getNopIntFld1(){
+    public final java.lang.Integer getNopIntFld1(){
          onPropGet(PROP_ID_nopIntFld1);
          return _nopIntFld1;
     }
@@ -1387,7 +1387,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 整数型字段1: NOP_INT_FLD1
      */
-    public void setNopIntFld1(java.lang.Integer value){
+    public final void setNopIntFld1(java.lang.Integer value){
         if(onPropSet(PROP_ID_nopIntFld1,value)){
             this._nopIntFld1 = value;
             internalClearRefs(PROP_ID_nopIntFld1);
@@ -1398,7 +1398,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 长整型字段1: NOP_LONG_FLD1
      */
-    public java.lang.Long getNopLongFld1(){
+    public final java.lang.Long getNopLongFld1(){
          onPropGet(PROP_ID_nopLongFld1);
          return _nopLongFld1;
     }
@@ -1406,7 +1406,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 长整型字段1: NOP_LONG_FLD1
      */
-    public void setNopLongFld1(java.lang.Long value){
+    public final void setNopLongFld1(java.lang.Long value){
         if(onPropSet(PROP_ID_nopLongFld1,value)){
             this._nopLongFld1 = value;
             internalClearRefs(PROP_ID_nopLongFld1);
@@ -1417,7 +1417,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 日期字段1: NOP_DATE_FLD1
      */
-    public java.time.LocalDate getNopDateFld1(){
+    public final java.time.LocalDate getNopDateFld1(){
          onPropGet(PROP_ID_nopDateFld1);
          return _nopDateFld1;
     }
@@ -1425,7 +1425,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 日期字段1: NOP_DATE_FLD1
      */
-    public void setNopDateFld1(java.time.LocalDate value){
+    public final void setNopDateFld1(java.time.LocalDate value){
         if(onPropSet(PROP_ID_nopDateFld1,value)){
             this._nopDateFld1 = value;
             internalClearRefs(PROP_ID_nopDateFld1);
@@ -1436,7 +1436,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 时间戳字段1: NOP_TIMESTAMP_FLD1
      */
-    public java.sql.Timestamp getNopTimestampFld1(){
+    public final java.sql.Timestamp getNopTimestampFld1(){
          onPropGet(PROP_ID_nopTimestampFld1);
          return _nopTimestampFld1;
     }
@@ -1444,7 +1444,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 时间戳字段1: NOP_TIMESTAMP_FLD1
      */
-    public void setNopTimestampFld1(java.sql.Timestamp value){
+    public final void setNopTimestampFld1(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_nopTimestampFld1,value)){
             this._nopTimestampFld1 = value;
             internalClearRefs(PROP_ID_nopTimestampFld1);
@@ -1455,7 +1455,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 文件字段1: NOP_FILE_FLD1
      */
-    public java.lang.String getNopFileFld1(){
+    public final java.lang.String getNopFileFld1(){
          onPropGet(PROP_ID_nopFileFld1);
          return _nopFileFld1;
     }
@@ -1463,7 +1463,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 文件字段1: NOP_FILE_FLD1
      */
-    public void setNopFileFld1(java.lang.String value){
+    public final void setNopFileFld1(java.lang.String value){
         if(onPropSet(PROP_ID_nopFileFld1,value)){
             this._nopFileFld1 = value;
             internalClearRefs(PROP_ID_nopFileFld1);
@@ -1474,7 +1474,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 字符串字段2: NOP_STRING_FLD2
      */
-    public java.lang.String getNopStringFld2(){
+    public final java.lang.String getNopStringFld2(){
          onPropGet(PROP_ID_nopStringFld2);
          return _nopStringFld2;
     }
@@ -1482,7 +1482,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 字符串字段2: NOP_STRING_FLD2
      */
-    public void setNopStringFld2(java.lang.String value){
+    public final void setNopStringFld2(java.lang.String value){
         if(onPropSet(PROP_ID_nopStringFld2,value)){
             this._nopStringFld2 = value;
             internalClearRefs(PROP_ID_nopStringFld2);
@@ -1493,7 +1493,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 浮点型字段2: NOP_DECIMAL_FLD2
      */
-    public java.math.BigDecimal getNopDecimalFld2(){
+    public final java.math.BigDecimal getNopDecimalFld2(){
          onPropGet(PROP_ID_nopDecimalFld2);
          return _nopDecimalFld2;
     }
@@ -1501,7 +1501,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 浮点型字段2: NOP_DECIMAL_FLD2
      */
-    public void setNopDecimalFld2(java.math.BigDecimal value){
+    public final void setNopDecimalFld2(java.math.BigDecimal value){
         if(onPropSet(PROP_ID_nopDecimalFld2,value)){
             this._nopDecimalFld2 = value;
             internalClearRefs(PROP_ID_nopDecimalFld2);
@@ -1512,7 +1512,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 整数型字段2: NOP_INT_FLD2
      */
-    public java.lang.Integer getNopIntFld2(){
+    public final java.lang.Integer getNopIntFld2(){
          onPropGet(PROP_ID_nopIntFld2);
          return _nopIntFld2;
     }
@@ -1520,7 +1520,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 整数型字段2: NOP_INT_FLD2
      */
-    public void setNopIntFld2(java.lang.Integer value){
+    public final void setNopIntFld2(java.lang.Integer value){
         if(onPropSet(PROP_ID_nopIntFld2,value)){
             this._nopIntFld2 = value;
             internalClearRefs(PROP_ID_nopIntFld2);
@@ -1531,7 +1531,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 长整型字段2: NOP_LONG_FLD2
      */
-    public java.lang.Long getNopLongFld2(){
+    public final java.lang.Long getNopLongFld2(){
          onPropGet(PROP_ID_nopLongFld2);
          return _nopLongFld2;
     }
@@ -1539,7 +1539,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 长整型字段2: NOP_LONG_FLD2
      */
-    public void setNopLongFld2(java.lang.Long value){
+    public final void setNopLongFld2(java.lang.Long value){
         if(onPropSet(PROP_ID_nopLongFld2,value)){
             this._nopLongFld2 = value;
             internalClearRefs(PROP_ID_nopLongFld2);
@@ -1550,7 +1550,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 日期字段2: NOP_DATE_FLD2
      */
-    public java.time.LocalDate getNopDateFld2(){
+    public final java.time.LocalDate getNopDateFld2(){
          onPropGet(PROP_ID_nopDateFld2);
          return _nopDateFld2;
     }
@@ -1558,7 +1558,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 日期字段2: NOP_DATE_FLD2
      */
-    public void setNopDateFld2(java.time.LocalDate value){
+    public final void setNopDateFld2(java.time.LocalDate value){
         if(onPropSet(PROP_ID_nopDateFld2,value)){
             this._nopDateFld2 = value;
             internalClearRefs(PROP_ID_nopDateFld2);
@@ -1569,7 +1569,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 时间戳字段2: NOP_TIMESTAMP_FLD2
      */
-    public java.sql.Timestamp getNopTimestampFld2(){
+    public final java.sql.Timestamp getNopTimestampFld2(){
          onPropGet(PROP_ID_nopTimestampFld2);
          return _nopTimestampFld2;
     }
@@ -1577,7 +1577,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 时间戳字段2: NOP_TIMESTAMP_FLD2
      */
-    public void setNopTimestampFld2(java.sql.Timestamp value){
+    public final void setNopTimestampFld2(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_nopTimestampFld2,value)){
             this._nopTimestampFld2 = value;
             internalClearRefs(PROP_ID_nopTimestampFld2);
@@ -1588,7 +1588,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 文件字段2: NOP_FILE_FLD2
      */
-    public java.lang.String getNopFileFld2(){
+    public final java.lang.String getNopFileFld2(){
          onPropGet(PROP_ID_nopFileFld2);
          return _nopFileFld2;
     }
@@ -1596,7 +1596,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 文件字段2: NOP_FILE_FLD2
      */
-    public void setNopFileFld2(java.lang.String value){
+    public final void setNopFileFld2(java.lang.String value){
         if(onPropSet(PROP_ID_nopFileFld2,value)){
             this._nopFileFld2 = value;
             internalClearRefs(PROP_ID_nopFileFld2);
@@ -1607,7 +1607,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -1615,7 +1615,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -1626,7 +1626,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -1634,7 +1634,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -1645,7 +1645,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -1653,7 +1653,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -1664,7 +1664,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -1672,7 +1672,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -1683,7 +1683,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -1691,7 +1691,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -1702,7 +1702,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -1710,7 +1710,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
@@ -1721,11 +1721,11 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 父对象
      */
-    public io.nop.dyn.dao.entity.NopDynEntity getNopParent(){
+    public final io.nop.dyn.dao.entity.NopDynEntity getNopParent(){
        return (io.nop.dyn.dao.entity.NopDynEntity)internalGetRefEntity(PROP_NAME_nopParent);
     }
 
-    public void setNopParent(io.nop.dyn.dao.entity.NopDynEntity refEntity){
+    public final void setNopParent(io.nop.dyn.dao.entity.NopDynEntity refEntity){
    
            if(refEntity == null){
            
@@ -1747,7 +1747,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 子对象。 refPropName: nopParent, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.dyn.dao.entity.NopDynEntity> getNopChildren(){
+    public final IOrmEntitySet<io.nop.dyn.dao.entity.NopDynEntity> getNopChildren(){
        return _nopChildren;
     }
        
@@ -1757,7 +1757,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
     /**
      * 。 refPropName: , keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.orm.support.DynamicOrmKeyValueTable> getExtFields(){
+    public final IOrmEntitySet<io.nop.orm.support.DynamicOrmKeyValueTable> getExtFields(){
        return _extFields;
     }
        
@@ -1770,7 +1770,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
       
    }
 
-   public io.nop.orm.component.OrmFileComponent getNopFileFld1Component(){
+   public final io.nop.orm.component.OrmFileComponent getNopFileFld1Component(){
       if(_nopFileFld1Component == null){
           _nopFileFld1Component = new io.nop.orm.component.OrmFileComponent();
           _nopFileFld1Component.bindToEntity(this, COMPONENT_PROP_ID_MAP_nopFileFld1Component);
@@ -1787,7 +1787,7 @@ public class _NopDynEntity extends DynamicOrmEntity{
       
    }
 
-   public io.nop.orm.component.OrmFileComponent getNopFileFld2Component(){
+   public final io.nop.orm.component.OrmFileComponent getNopFileFld2Component(){
       if(_nopFileFld2Component == null){
           _nopFileFld2Component = new io.nop.orm.component.OrmFileComponent();
           _nopFileFld2Component.bindToEntity(this, COMPONENT_PROP_ID_MAP_nopFileFld2Component);

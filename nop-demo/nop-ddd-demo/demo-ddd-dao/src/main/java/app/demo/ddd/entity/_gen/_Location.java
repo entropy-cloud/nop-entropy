@@ -228,7 +228,7 @@ public class _Location extends DynamicOrmEntity{
     /**
      * Id: ID
      */
-    public java.lang.Long getId(){
+    public final java.lang.Long getId(){
          onPropGet(PROP_ID_id);
          return _id;
     }
@@ -236,7 +236,7 @@ public class _Location extends DynamicOrmEntity{
     /**
      * Id: ID
      */
-    public void setId(java.lang.Long value){
+    public final void setId(java.lang.Long value){
         if(onPropSet(PROP_ID_id,value)){
             this._id = value;
             internalClearRefs(PROP_ID_id);
@@ -247,7 +247,7 @@ public class _Location extends DynamicOrmEntity{
     /**
      * 名称: NAME
      */
-    public java.lang.String getName(){
+    public final java.lang.String getName(){
          onPropGet(PROP_ID_name);
          return _name;
     }
@@ -255,7 +255,7 @@ public class _Location extends DynamicOrmEntity{
     /**
      * 名称: NAME
      */
-    public void setName(java.lang.String value){
+    public final void setName(java.lang.String value){
         if(onPropSet(PROP_ID_name,value)){
             this._name = value;
             internalClearRefs(PROP_ID_name);
@@ -266,7 +266,7 @@ public class _Location extends DynamicOrmEntity{
     /**
      * UN编码: UNLOCODE
      */
-    public java.lang.String getUnlocode(){
+    public final java.lang.String getUnlocode(){
          onPropGet(PROP_ID_unlocode);
          return _unlocode;
     }
@@ -274,7 +274,7 @@ public class _Location extends DynamicOrmEntity{
     /**
      * UN编码: UNLOCODE
      */
-    public void setUnlocode(java.lang.String value){
+    public final void setUnlocode(java.lang.String value){
         if(onPropSet(PROP_ID_unlocode,value)){
             this._unlocode = value;
             internalClearRefs(PROP_ID_unlocode);

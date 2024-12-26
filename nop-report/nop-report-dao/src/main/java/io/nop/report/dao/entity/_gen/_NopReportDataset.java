@@ -597,7 +597,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 主键: DS_ID
      */
-    public java.lang.String getDsId(){
+    public final java.lang.String getDsId(){
          onPropGet(PROP_ID_dsId);
          return _dsId;
     }
@@ -605,7 +605,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 主键: DS_ID
      */
-    public void setDsId(java.lang.String value){
+    public final void setDsId(java.lang.String value){
         if(onPropSet(PROP_ID_dsId,value)){
             this._dsId = value;
             internalClearRefs(PROP_ID_dsId);
@@ -616,7 +616,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 数据集名称: DS_NAME
      */
-    public java.lang.String getDsName(){
+    public final java.lang.String getDsName(){
          onPropGet(PROP_ID_dsName);
          return _dsName;
     }
@@ -624,7 +624,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 数据集名称: DS_NAME
      */
-    public void setDsName(java.lang.String value){
+    public final void setDsName(java.lang.String value){
         if(onPropSet(PROP_ID_dsName,value)){
             this._dsName = value;
             internalClearRefs(PROP_ID_dsName);
@@ -635,7 +635,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 描述: DESCRIPTION
      */
-    public java.lang.String getDescription(){
+    public final java.lang.String getDescription(){
          onPropGet(PROP_ID_description);
          return _description;
     }
@@ -643,7 +643,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 描述: DESCRIPTION
      */
-    public void setDescription(java.lang.String value){
+    public final void setDescription(java.lang.String value){
         if(onPropSet(PROP_ID_description,value)){
             this._description = value;
             internalClearRefs(PROP_ID_description);
@@ -654,7 +654,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 数据集类型: DS_TYPE
      */
-    public java.lang.String getDsType(){
+    public final java.lang.String getDsType(){
          onPropGet(PROP_ID_dsType);
          return _dsType;
     }
@@ -662,7 +662,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 数据集类型: DS_TYPE
      */
-    public void setDsType(java.lang.String value){
+    public final void setDsType(java.lang.String value){
         if(onPropSet(PROP_ID_dsType,value)){
             this._dsType = value;
             internalClearRefs(PROP_ID_dsType);
@@ -673,7 +673,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 数据集配置: DS_CONFIG
      */
-    public java.lang.String getDsConfig(){
+    public final java.lang.String getDsConfig(){
          onPropGet(PROP_ID_dsConfig);
          return _dsConfig;
     }
@@ -681,7 +681,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 数据集配置: DS_CONFIG
      */
-    public void setDsConfig(java.lang.String value){
+    public final void setDsConfig(java.lang.String value){
         if(onPropSet(PROP_ID_dsConfig,value)){
             this._dsConfig = value;
             internalClearRefs(PROP_ID_dsConfig);
@@ -692,7 +692,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 数据集文本: DS_TEXT
      */
-    public java.lang.String getDsText(){
+    public final java.lang.String getDsText(){
          onPropGet(PROP_ID_dsText);
          return _dsText;
     }
@@ -700,7 +700,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 数据集文本: DS_TEXT
      */
-    public void setDsText(java.lang.String value){
+    public final void setDsText(java.lang.String value){
         if(onPropSet(PROP_ID_dsText,value)){
             this._dsText = value;
             internalClearRefs(PROP_ID_dsText);
@@ -711,7 +711,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 数据集元数据: DS_META
      */
-    public java.lang.String getDsMeta(){
+    public final java.lang.String getDsMeta(){
          onPropGet(PROP_ID_dsMeta);
          return _dsMeta;
     }
@@ -719,7 +719,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 数据集元数据: DS_META
      */
-    public void setDsMeta(java.lang.String value){
+    public final void setDsMeta(java.lang.String value){
         if(onPropSet(PROP_ID_dsMeta,value)){
             this._dsMeta = value;
             internalClearRefs(PROP_ID_dsMeta);
@@ -730,7 +730,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 数据集显示配置: DS_VIEW
      */
-    public java.lang.String getDsView(){
+    public final java.lang.String getDsView(){
          onPropGet(PROP_ID_dsView);
          return _dsView;
     }
@@ -738,7 +738,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 数据集显示配置: DS_VIEW
      */
-    public void setDsView(java.lang.String value){
+    public final void setDsView(java.lang.String value){
         if(onPropSet(PROP_ID_dsView,value)){
             this._dsView = value;
             internalClearRefs(PROP_ID_dsView);
@@ -749,7 +749,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public java.lang.Integer getStatus(){
+    public final java.lang.Integer getStatus(){
          onPropGet(PROP_ID_status);
          return _status;
     }
@@ -757,7 +757,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public void setStatus(java.lang.Integer value){
+    public final void setStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
@@ -768,7 +768,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -776,7 +776,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -787,7 +787,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -795,7 +795,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -806,7 +806,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -814,7 +814,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -825,7 +825,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -833,7 +833,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -844,7 +844,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -852,7 +852,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -863,7 +863,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -871,7 +871,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
@@ -888,7 +888,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
       
    }
 
-   public io.nop.orm.component.JsonOrmComponent getDsTextComponent(){
+   public final io.nop.orm.component.JsonOrmComponent getDsTextComponent(){
       if(_dsTextComponent == null){
           _dsTextComponent = new io.nop.orm.component.JsonOrmComponent();
           _dsTextComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_dsTextComponent);
@@ -905,7 +905,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
       
    }
 
-   public io.nop.orm.component.JsonOrmComponent getDsMetaComponent(){
+   public final io.nop.orm.component.JsonOrmComponent getDsMetaComponent(){
       if(_dsMetaComponent == null){
           _dsMetaComponent = new io.nop.orm.component.JsonOrmComponent();
           _dsMetaComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_dsMetaComponent);
@@ -922,7 +922,7 @@ public class _NopReportDataset extends DynamicOrmEntity{
       
    }
 
-   public io.nop.orm.component.JsonOrmComponent getDsViewComponent(){
+   public final io.nop.orm.component.JsonOrmComponent getDsViewComponent(){
       if(_dsViewComponent == null){
           _dsViewComponent = new io.nop.orm.component.JsonOrmComponent();
           _dsViewComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_dsViewComponent);

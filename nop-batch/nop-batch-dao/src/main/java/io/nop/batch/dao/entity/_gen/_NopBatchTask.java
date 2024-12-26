@@ -1074,7 +1074,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * SID: SID
      */
-    public java.lang.String getSid(){
+    public final java.lang.String getSid(){
          onPropGet(PROP_ID_sid);
          return _sid;
     }
@@ -1082,7 +1082,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * SID: SID
      */
-    public void setSid(java.lang.String value){
+    public final void setSid(java.lang.String value){
         if(onPropSet(PROP_ID_sid,value)){
             this._sid = value;
             internalClearRefs(PROP_ID_sid);
@@ -1093,7 +1093,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 任务名: TASK_NAME
      */
-    public java.lang.String getTaskName(){
+    public final java.lang.String getTaskName(){
          onPropGet(PROP_ID_taskName);
          return _taskName;
     }
@@ -1101,7 +1101,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 任务名: TASK_NAME
      */
-    public void setTaskName(java.lang.String value){
+    public final void setTaskName(java.lang.String value){
         if(onPropSet(PROP_ID_taskName,value)){
             this._taskName = value;
             internalClearRefs(PROP_ID_taskName);
@@ -1112,7 +1112,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 唯一Key: TASK_KEY
      */
-    public java.lang.String getTaskKey(){
+    public final java.lang.String getTaskKey(){
          onPropGet(PROP_ID_taskKey);
          return _taskKey;
     }
@@ -1120,7 +1120,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 唯一Key: TASK_KEY
      */
-    public void setTaskKey(java.lang.String value){
+    public final void setTaskKey(java.lang.String value){
         if(onPropSet(PROP_ID_taskKey,value)){
             this._taskKey = value;
             internalClearRefs(PROP_ID_taskKey);
@@ -1131,7 +1131,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 任务状态: TASK_STATUS
      */
-    public java.lang.Integer getTaskStatus(){
+    public final java.lang.Integer getTaskStatus(){
          onPropGet(PROP_ID_taskStatus);
          return _taskStatus;
     }
@@ -1139,7 +1139,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 任务状态: TASK_STATUS
      */
-    public void setTaskStatus(java.lang.Integer value){
+    public final void setTaskStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_taskStatus,value)){
             this._taskStatus = value;
             internalClearRefs(PROP_ID_taskStatus);
@@ -1150,7 +1150,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 任务启动时间: START_TIME
      */
-    public java.sql.Timestamp getStartTime(){
+    public final java.sql.Timestamp getStartTime(){
          onPropGet(PROP_ID_startTime);
          return _startTime;
     }
@@ -1158,7 +1158,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 任务启动时间: START_TIME
      */
-    public void setStartTime(java.sql.Timestamp value){
+    public final void setStartTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_startTime,value)){
             this._startTime = value;
             internalClearRefs(PROP_ID_startTime);
@@ -1169,7 +1169,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 任务结束时间: END_TIME
      */
-    public java.sql.Timestamp getEndTime(){
+    public final java.sql.Timestamp getEndTime(){
          onPropGet(PROP_ID_endTime);
          return _endTime;
     }
@@ -1177,7 +1177,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 任务结束时间: END_TIME
      */
-    public void setEndTime(java.sql.Timestamp value){
+    public final void setEndTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_endTime,value)){
             this._endTime = value;
             internalClearRefs(PROP_ID_endTime);
@@ -1188,7 +1188,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 任务参数: TASK_PARAMS
      */
-    public java.lang.String getTaskParams(){
+    public final java.lang.String getTaskParams(){
          onPropGet(PROP_ID_taskParams);
          return _taskParams;
     }
@@ -1196,7 +1196,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 任务参数: TASK_PARAMS
      */
-    public void setTaskParams(java.lang.String value){
+    public final void setTaskParams(java.lang.String value){
         if(onPropSet(PROP_ID_taskParams,value)){
             this._taskParams = value;
             internalClearRefs(PROP_ID_taskParams);
@@ -1207,7 +1207,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 执行次数: EXEC_COUNT
      */
-    public java.lang.Integer getExecCount(){
+    public final java.lang.Integer getExecCount(){
          onPropGet(PROP_ID_execCount);
          return _execCount;
     }
@@ -1215,7 +1215,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 执行次数: EXEC_COUNT
      */
-    public void setExecCount(java.lang.Integer value){
+    public final void setExecCount(java.lang.Integer value){
         if(onPropSet(PROP_ID_execCount,value)){
             this._execCount = value;
             internalClearRefs(PROP_ID_execCount);
@@ -1226,7 +1226,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 执行者: WORKER_ID
      */
-    public java.lang.String getWorkerId(){
+    public final java.lang.String getWorkerId(){
          onPropGet(PROP_ID_workerId);
          return _workerId;
     }
@@ -1234,7 +1234,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 执行者: WORKER_ID
      */
-    public void setWorkerId(java.lang.String value){
+    public final void setWorkerId(java.lang.String value){
         if(onPropSet(PROP_ID_workerId,value)){
             this._workerId = value;
             internalClearRefs(PROP_ID_workerId);
@@ -1245,7 +1245,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 输入文件: INPUT_FILE_ID
      */
-    public java.lang.String getInputFileId(){
+    public final java.lang.String getInputFileId(){
          onPropGet(PROP_ID_inputFileId);
          return _inputFileId;
     }
@@ -1253,7 +1253,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 输入文件: INPUT_FILE_ID
      */
-    public void setInputFileId(java.lang.String value){
+    public final void setInputFileId(java.lang.String value){
         if(onPropSet(PROP_ID_inputFileId,value)){
             this._inputFileId = value;
             internalClearRefs(PROP_ID_inputFileId);
@@ -1264,7 +1264,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 关联流程步骤ID: FLOW_STEP_ID
      */
-    public java.lang.String getFlowStepId(){
+    public final java.lang.String getFlowStepId(){
          onPropGet(PROP_ID_flowStepId);
          return _flowStepId;
     }
@@ -1272,7 +1272,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 关联流程步骤ID: FLOW_STEP_ID
      */
-    public void setFlowStepId(java.lang.String value){
+    public final void setFlowStepId(java.lang.String value){
         if(onPropSet(PROP_ID_flowStepId,value)){
             this._flowStepId = value;
             internalClearRefs(PROP_ID_flowStepId);
@@ -1283,7 +1283,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 关联流程ID: FLOW_ID
      */
-    public java.lang.String getFlowId(){
+    public final java.lang.String getFlowId(){
          onPropGet(PROP_ID_flowId);
          return _flowId;
     }
@@ -1291,7 +1291,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 关联流程ID: FLOW_ID
      */
-    public void setFlowId(java.lang.String value){
+    public final void setFlowId(java.lang.String value){
         if(onPropSet(PROP_ID_flowId,value)){
             this._flowId = value;
             internalClearRefs(PROP_ID_flowId);
@@ -1302,7 +1302,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 重启时间: RESTART_TIME
      */
-    public java.sql.Timestamp getRestartTime(){
+    public final java.sql.Timestamp getRestartTime(){
          onPropGet(PROP_ID_restartTime);
          return _restartTime;
     }
@@ -1310,7 +1310,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 重启时间: RESTART_TIME
      */
-    public void setRestartTime(java.sql.Timestamp value){
+    public final void setRestartTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_restartTime,value)){
             this._restartTime = value;
             internalClearRefs(PROP_ID_restartTime);
@@ -1321,7 +1321,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 返回状态码: RESULT_STATUS
      */
-    public java.lang.Integer getResultStatus(){
+    public final java.lang.Integer getResultStatus(){
          onPropGet(PROP_ID_resultStatus);
          return _resultStatus;
     }
@@ -1329,7 +1329,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 返回状态码: RESULT_STATUS
      */
-    public void setResultStatus(java.lang.Integer value){
+    public final void setResultStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_resultStatus,value)){
             this._resultStatus = value;
             internalClearRefs(PROP_ID_resultStatus);
@@ -1340,7 +1340,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 返回码: RESULT_CODE
      */
-    public java.lang.String getResultCode(){
+    public final java.lang.String getResultCode(){
          onPropGet(PROP_ID_resultCode);
          return _resultCode;
     }
@@ -1348,7 +1348,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 返回码: RESULT_CODE
      */
-    public void setResultCode(java.lang.String value){
+    public final void setResultCode(java.lang.String value){
         if(onPropSet(PROP_ID_resultCode,value)){
             this._resultCode = value;
             internalClearRefs(PROP_ID_resultCode);
@@ -1359,7 +1359,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 返回消息: RESULT_MSG
      */
-    public java.lang.String getResultMsg(){
+    public final java.lang.String getResultMsg(){
          onPropGet(PROP_ID_resultMsg);
          return _resultMsg;
     }
@@ -1367,7 +1367,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 返回消息: RESULT_MSG
      */
-    public void setResultMsg(java.lang.String value){
+    public final void setResultMsg(java.lang.String value){
         if(onPropSet(PROP_ID_resultMsg,value)){
             this._resultMsg = value;
             internalClearRefs(PROP_ID_resultMsg);
@@ -1378,7 +1378,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 错误堆栈: ERROR_STACK
      */
-    public java.lang.String getErrorStack(){
+    public final java.lang.String getErrorStack(){
          onPropGet(PROP_ID_errorStack);
          return _errorStack;
     }
@@ -1386,7 +1386,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 错误堆栈: ERROR_STACK
      */
-    public void setErrorStack(java.lang.String value){
+    public final void setErrorStack(java.lang.String value){
         if(onPropSet(PROP_ID_errorStack,value)){
             this._errorStack = value;
             internalClearRefs(PROP_ID_errorStack);
@@ -1397,7 +1397,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 已完成记录下标: COMPLETED_INDEX
      */
-    public java.lang.Long getCompletedIndex(){
+    public final java.lang.Long getCompletedIndex(){
          onPropGet(PROP_ID_completedIndex);
          return _completedIndex;
     }
@@ -1405,7 +1405,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 已完成记录下标: COMPLETED_INDEX
      */
-    public void setCompletedIndex(java.lang.Long value){
+    public final void setCompletedIndex(java.lang.Long value){
         if(onPropSet(PROP_ID_completedIndex,value)){
             this._completedIndex = value;
             internalClearRefs(PROP_ID_completedIndex);
@@ -1416,7 +1416,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 完成条目数量: COMPLETE_ITEM_COUNT
      */
-    public java.lang.Long getCompleteItemCount(){
+    public final java.lang.Long getCompleteItemCount(){
          onPropGet(PROP_ID_completeItemCount);
          return _completeItemCount;
     }
@@ -1424,7 +1424,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 完成条目数量: COMPLETE_ITEM_COUNT
      */
-    public void setCompleteItemCount(java.lang.Long value){
+    public final void setCompleteItemCount(java.lang.Long value){
         if(onPropSet(PROP_ID_completeItemCount,value)){
             this._completeItemCount = value;
             internalClearRefs(PROP_ID_completeItemCount);
@@ -1435,7 +1435,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 重试加载次数: LOAD_RETRY_COUNT
      */
-    public java.lang.Integer getLoadRetryCount(){
+    public final java.lang.Integer getLoadRetryCount(){
          onPropGet(PROP_ID_loadRetryCount);
          return _loadRetryCount;
     }
@@ -1443,7 +1443,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 重试加载次数: LOAD_RETRY_COUNT
      */
-    public void setLoadRetryCount(java.lang.Integer value){
+    public final void setLoadRetryCount(java.lang.Integer value){
         if(onPropSet(PROP_ID_loadRetryCount,value)){
             this._loadRetryCount = value;
             internalClearRefs(PROP_ID_loadRetryCount);
@@ -1454,7 +1454,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 加载跳过数量: LOAD_SKIP_COUNT
      */
-    public java.lang.Long getLoadSkipCount(){
+    public final java.lang.Long getLoadSkipCount(){
          onPropGet(PROP_ID_loadSkipCount);
          return _loadSkipCount;
     }
@@ -1462,7 +1462,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 加载跳过数量: LOAD_SKIP_COUNT
      */
-    public void setLoadSkipCount(java.lang.Long value){
+    public final void setLoadSkipCount(java.lang.Long value){
         if(onPropSet(PROP_ID_loadSkipCount,value)){
             this._loadSkipCount = value;
             internalClearRefs(PROP_ID_loadSkipCount);
@@ -1473,7 +1473,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 重试条目次数: RETRY_ITEM_COUNT
      */
-    public java.lang.Integer getRetryItemCount(){
+    public final java.lang.Integer getRetryItemCount(){
          onPropGet(PROP_ID_retryItemCount);
          return _retryItemCount;
     }
@@ -1481,7 +1481,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 重试条目次数: RETRY_ITEM_COUNT
      */
-    public void setRetryItemCount(java.lang.Integer value){
+    public final void setRetryItemCount(java.lang.Integer value){
         if(onPropSet(PROP_ID_retryItemCount,value)){
             this._retryItemCount = value;
             internalClearRefs(PROP_ID_retryItemCount);
@@ -1492,7 +1492,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 处理条目数量: PROCESS_ITEM_COUNT
      */
-    public java.lang.Long getProcessItemCount(){
+    public final java.lang.Long getProcessItemCount(){
          onPropGet(PROP_ID_processItemCount);
          return _processItemCount;
     }
@@ -1500,7 +1500,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 处理条目数量: PROCESS_ITEM_COUNT
      */
-    public void setProcessItemCount(java.lang.Long value){
+    public final void setProcessItemCount(java.lang.Long value){
         if(onPropSet(PROP_ID_processItemCount,value)){
             this._processItemCount = value;
             internalClearRefs(PROP_ID_processItemCount);
@@ -1511,7 +1511,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 跳过条目数量: SKIP_ITEM_COUNT
      */
-    public java.lang.Long getSkipItemCount(){
+    public final java.lang.Long getSkipItemCount(){
          onPropGet(PROP_ID_skipItemCount);
          return _skipItemCount;
     }
@@ -1519,7 +1519,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 跳过条目数量: SKIP_ITEM_COUNT
      */
-    public void setSkipItemCount(java.lang.Long value){
+    public final void setSkipItemCount(java.lang.Long value){
         if(onPropSet(PROP_ID_skipItemCount,value)){
             this._skipItemCount = value;
             internalClearRefs(PROP_ID_skipItemCount);
@@ -1530,7 +1530,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 写入条目数量: WRITE_ITEM_COUNT
      */
-    public java.lang.Long getWriteItemCount(){
+    public final java.lang.Long getWriteItemCount(){
          onPropGet(PROP_ID_writeItemCount);
          return _writeItemCount;
     }
@@ -1538,7 +1538,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 写入条目数量: WRITE_ITEM_COUNT
      */
-    public void setWriteItemCount(java.lang.Long value){
+    public final void setWriteItemCount(java.lang.Long value){
         if(onPropSet(PROP_ID_writeItemCount,value)){
             this._writeItemCount = value;
             internalClearRefs(PROP_ID_writeItemCount);
@@ -1549,7 +1549,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Long getVersion(){
+    public final java.lang.Long getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -1557,7 +1557,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Long value){
+    public final void setVersion(java.lang.Long value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -1568,7 +1568,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -1576,7 +1576,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -1587,7 +1587,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -1595,7 +1595,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -1606,7 +1606,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -1614,7 +1614,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -1625,7 +1625,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -1633,7 +1633,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -1644,7 +1644,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -1652,7 +1652,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
@@ -1663,11 +1663,11 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 批处理文件
      */
-    public io.nop.batch.dao.entity.NopBatchFile getInputFile(){
+    public final io.nop.batch.dao.entity.NopBatchFile getInputFile(){
        return (io.nop.batch.dao.entity.NopBatchFile)internalGetRefEntity(PROP_NAME_inputFile);
     }
 
-    public void setInputFile(io.nop.batch.dao.entity.NopBatchFile refEntity){
+    public final void setInputFile(io.nop.batch.dao.entity.NopBatchFile refEntity){
    
            if(refEntity == null){
            
@@ -1689,7 +1689,7 @@ public class _NopBatchTask extends DynamicOrmEntity{
     /**
      * 任务状态变量。 refPropName: task, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet<io.nop.batch.dao.entity.NopBatchTaskVar> getTaskVars(){
+    public final IOrmEntitySet<io.nop.batch.dao.entity.NopBatchTaskVar> getTaskVars(){
        return _taskVars;
     }
        

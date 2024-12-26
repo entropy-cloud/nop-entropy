@@ -215,7 +215,7 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
     /**
      * ${col.displayName}: ${col.code}
      */
-    public ${col.javaClassName} ${col.name.$methodGet()}(){
+    public final ${col.javaClassName} ${col.name.$methodGet()}(){
          onPropGet(PROP_ID_${col.name});
          return _${col.name};
     }
@@ -223,7 +223,7 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
     /**
      * ${col.displayName}: ${col.code}
      */
-    public void ${col.name.$methodSet()}(${col.javaClassName} value){
+    public final void ${col.name.$methodSet()}(${col.javaClassName} value){
         if(onPropSet(PROP_ID_${col.name},value)){
             this._${col.name} = value;
             internalClearRefs(PROP_ID_${col.name});
@@ -239,11 +239,11 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
     /**
      * ${rel.displayName}
      */
-    public ${rel.refEntityModel.className} ${rel.name.$methodGet()}(){
+    public final ${rel.refEntityModel.className} ${rel.name.$methodGet()}(){
        return (${rel.refEntityModel.className})internalGetRefEntity(PROP_NAME_${rel.name});
     }
 
-    public void ${rel.name.$methodSet()}(${rel.refEntityModel.className} refEntity){
+    public final void ${rel.name.$methodSet()}(${rel.refEntityModel.className} refEntity){
    <c:choose>
         <when test="${rel.oneToOne and rel.reverseDepends}">
             internalSetReverseRefEntity(PROP_NAME_${rel.name}, refEntity, ()->{
@@ -321,7 +321,7 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
     /**
      * ${rel.displayName}。 refPropName: ${rel.refPropName}, keyProp: {rel.keyProp}
      */
-    public IOrmEntitySet&lt;${rel.refEntityModel.className}> ${rel.name.$methodGet()}(){
+    public final IOrmEntitySet&lt;${rel.refEntityModel.className}> ${rel.name.$methodGet()}(){
        return _${rel.name};
     }
        </otherwise>
@@ -330,7 +330,7 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
 
 <c:for var="prop" items="${entityModel.aliases}">
 <c:script> if(prop.notGenCode) continue</c:script>
-   public ${prop.type} ${prop.name.$methodGet()}(){
+   public final ${prop.type} ${prop.name.$methodGet()}(){
       return (${prop.type})internalGetAliasValue("${prop.propPath}");
    }
 
@@ -350,7 +350,7 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
       </c:for>
    }
 
-   public ${prop.className} ${prop.name.$methodGet()}(){
+   public final ${prop.className} ${prop.name.$methodGet()}(){
       if(_${prop.name} == null){
           _${prop.name} = new ${prop.className}();
           _${prop.name}.bindToEntity(this, COMPONENT_PROP_ID_MAP_${prop.name});
@@ -373,11 +373,11 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
         if(!mappingPropInfo) continue;
     ]]></c:script>
     <c:if test="${mappingPropInfo and !mappingPropInfo.toMany}"><![CDATA[
-        public ${mappingPropInfo.refClassName} ${mappingInfo.propName.$methodGet()}(){
+        public final ${mappingPropInfo.refClassName} ${mappingInfo.propName.$methodGet()}(){
             return (${mappingPropInfo.refClassName})io.nop.orm.support.OrmEntityHelper.getPropFromSingleton(${rel.name.$methodGet()}(),"${mappingPropInfo.refPropNameInMappingTable}");
         }
 
-        public String ${mappingPropInfo.mappingIdProp.$methodGet()}(){
+        public final String ${mappingPropInfo.mappingIdProp.$methodGet()}(){
             return io.nop.orm.support.OrmEntityHelper.getRefIdFromSingleton(${rel.name.$methodGet()}(),"${mappingPropInfo.refPropNameInMappingTable}");
         }
 
@@ -387,11 +387,11 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
     ]]></c:if>
 
     <c:if test="${mappingPropInfo and mappingPropInfo.toMany}"><![CDATA[
-        public List<${mappingPropInfo.refClassName}> ${mappingPropInfo.propName.$methodGet()}(){
+        public final List<${mappingPropInfo.refClassName}> ${mappingPropInfo.propName.$methodGet()}(){
             return (List<${mappingPropInfo.refClassName}>)io.nop.orm.support.OrmEntityHelper.getRefProps(${rel.name.$methodGet()}(),"${mappingPropInfo.refPropNameInMappingTable}");
         }
 
-        public List<String> ${mappingPropInfo.mappingIdProp.$methodGet()}(){
+        public final List<String> ${mappingPropInfo.mappingIdProp.$methodGet()}(){
             return io.nop.orm.support.OrmEntityHelper.getRefIds(${rel.name.$methodGet()}(),"${mappingPropInfo.refPropNameInMappingTable}");
         }
 
@@ -400,7 +400,7 @@ public class _${entityModel.simpleClassName} extends ${entityModel['ext:baseClas
         }
     ]]></c:if>
 
-    public String ${mappingPropInfo.mappingLabelProp.$methodGet()}(){
+    public final String ${mappingPropInfo.mappingLabelProp.$methodGet()}(){
         return io.nop.orm.support.OrmEntityHelper.getLabelForRefProps(${rel.name.$methodGet()}(),"${mappingPropInfo.refPropNameInMappingTable}");
     }
 

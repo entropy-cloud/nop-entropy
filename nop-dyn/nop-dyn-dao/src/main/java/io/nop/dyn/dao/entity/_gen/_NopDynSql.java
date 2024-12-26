@@ -954,7 +954,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * SQL ID: SQL_ID
      */
-    public java.lang.String getSqlId(){
+    public final java.lang.String getSqlId(){
          onPropGet(PROP_ID_sqlId);
          return _sqlId;
     }
@@ -962,7 +962,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * SQL ID: SQL_ID
      */
-    public void setSqlId(java.lang.String value){
+    public final void setSqlId(java.lang.String value){
         if(onPropSet(PROP_ID_sqlId,value)){
             this._sqlId = value;
             internalClearRefs(PROP_ID_sqlId);
@@ -973,7 +973,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 模块ID: MODULE_ID
      */
-    public java.lang.String getModuleId(){
+    public final java.lang.String getModuleId(){
          onPropGet(PROP_ID_moduleId);
          return _moduleId;
     }
@@ -981,7 +981,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 模块ID: MODULE_ID
      */
-    public void setModuleId(java.lang.String value){
+    public final void setModuleId(java.lang.String value){
         if(onPropSet(PROP_ID_moduleId,value)){
             this._moduleId = value;
             internalClearRefs(PROP_ID_moduleId);
@@ -992,7 +992,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * SQL名称: NAME
      */
-    public java.lang.String getName(){
+    public final java.lang.String getName(){
          onPropGet(PROP_ID_name);
          return _name;
     }
@@ -1000,7 +1000,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * SQL名称: NAME
      */
-    public void setName(java.lang.String value){
+    public final void setName(java.lang.String value){
         if(onPropSet(PROP_ID_name,value)){
             this._name = value;
             internalClearRefs(PROP_ID_name);
@@ -1011,7 +1011,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 显示名称: DISPLAY_NAME
      */
-    public java.lang.String getDisplayName(){
+    public final java.lang.String getDisplayName(){
          onPropGet(PROP_ID_displayName);
          return _displayName;
     }
@@ -1019,7 +1019,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 显示名称: DISPLAY_NAME
      */
-    public void setDisplayName(java.lang.String value){
+    public final void setDisplayName(java.lang.String value){
         if(onPropSet(PROP_ID_displayName,value)){
             this._displayName = value;
             internalClearRefs(PROP_ID_displayName);
@@ -1030,7 +1030,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * SQL方法: SQL_METHOD
      */
-    public java.lang.String getSqlMethod(){
+    public final java.lang.String getSqlMethod(){
          onPropGet(PROP_ID_sqlMethod);
          return _sqlMethod;
     }
@@ -1038,7 +1038,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * SQL方法: SQL_METHOD
      */
-    public void setSqlMethod(java.lang.String value){
+    public final void setSqlMethod(java.lang.String value){
         if(onPropSet(PROP_ID_sqlMethod,value)){
             this._sqlMethod = value;
             internalClearRefs(PROP_ID_sqlMethod);
@@ -1049,7 +1049,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 行类型: ROW_TYPE
      */
-    public java.lang.String getRowType(){
+    public final java.lang.String getRowType(){
          onPropGet(PROP_ID_rowType);
          return _rowType;
     }
@@ -1057,7 +1057,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 行类型: ROW_TYPE
      */
-    public void setRowType(java.lang.String value){
+    public final void setRowType(java.lang.String value){
         if(onPropSet(PROP_ID_rowType,value)){
             this._rowType = value;
             internalClearRefs(PROP_ID_rowType);
@@ -1068,7 +1068,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 描述: DESCRIPTION
      */
-    public java.lang.String getDescription(){
+    public final java.lang.String getDescription(){
          onPropGet(PROP_ID_description);
          return _description;
     }
@@ -1076,7 +1076,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 描述: DESCRIPTION
      */
-    public void setDescription(java.lang.String value){
+    public final void setDescription(java.lang.String value){
         if(onPropSet(PROP_ID_description,value)){
             this._description = value;
             internalClearRefs(PROP_ID_description);
@@ -1087,7 +1087,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 缓存名称: CACHE_NAME
      */
-    public java.lang.String getCacheName(){
+    public final java.lang.String getCacheName(){
          onPropGet(PROP_ID_cacheName);
          return _cacheName;
     }
@@ -1095,7 +1095,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 缓存名称: CACHE_NAME
      */
-    public void setCacheName(java.lang.String value){
+    public final void setCacheName(java.lang.String value){
         if(onPropSet(PROP_ID_cacheName,value)){
             this._cacheName = value;
             internalClearRefs(PROP_ID_cacheName);
@@ -1106,7 +1106,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 缓存键表达式: CACHE_KEY_EXPR
      */
-    public java.lang.String getCacheKeyExpr(){
+    public final java.lang.String getCacheKeyExpr(){
          onPropGet(PROP_ID_cacheKeyExpr);
          return _cacheKeyExpr;
     }
@@ -1114,7 +1114,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 缓存键表达式: CACHE_KEY_EXPR
      */
-    public void setCacheKeyExpr(java.lang.String value){
+    public final void setCacheKeyExpr(java.lang.String value){
         if(onPropSet(PROP_ID_cacheKeyExpr,value)){
             this._cacheKeyExpr = value;
             internalClearRefs(PROP_ID_cacheKeyExpr);
@@ -1125,7 +1125,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 批量加载选择集: BATCH_LOAD_SELECTION
      */
-    public java.lang.String getBatchLoadSelection(){
+    public final java.lang.String getBatchLoadSelection(){
          onPropGet(PROP_ID_batchLoadSelection);
          return _batchLoadSelection;
     }
@@ -1133,7 +1133,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 批量加载选择集: BATCH_LOAD_SELECTION
      */
-    public void setBatchLoadSelection(java.lang.String value){
+    public final void setBatchLoadSelection(java.lang.String value){
         if(onPropSet(PROP_ID_batchLoadSelection,value)){
             this._batchLoadSelection = value;
             internalClearRefs(PROP_ID_batchLoadSelection);
@@ -1144,7 +1144,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 类型: SQL_KIND
      */
-    public java.lang.String getSqlKind(){
+    public final java.lang.String getSqlKind(){
          onPropGet(PROP_ID_sqlKind);
          return _sqlKind;
     }
@@ -1152,7 +1152,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 类型: SQL_KIND
      */
-    public void setSqlKind(java.lang.String value){
+    public final void setSqlKind(java.lang.String value){
         if(onPropSet(PROP_ID_sqlKind,value)){
             this._sqlKind = value;
             internalClearRefs(PROP_ID_sqlKind);
@@ -1163,7 +1163,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 查询空间: QUERY_SPACE
      */
-    public java.lang.String getQuerySpace(){
+    public final java.lang.String getQuerySpace(){
          onPropGet(PROP_ID_querySpace);
          return _querySpace;
     }
@@ -1171,7 +1171,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 查询空间: QUERY_SPACE
      */
-    public void setQuerySpace(java.lang.String value){
+    public final void setQuerySpace(java.lang.String value){
         if(onPropSet(PROP_ID_querySpace,value)){
             this._querySpace = value;
             internalClearRefs(PROP_ID_querySpace);
@@ -1182,7 +1182,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * SQL文本: SOURCE
      */
-    public java.lang.String getSource(){
+    public final java.lang.String getSource(){
          onPropGet(PROP_ID_source);
          return _source;
     }
@@ -1190,7 +1190,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * SQL文本: SOURCE
      */
-    public void setSource(java.lang.String value){
+    public final void setSource(java.lang.String value){
         if(onPropSet(PROP_ID_source,value)){
             this._source = value;
             internalClearRefs(PROP_ID_source);
@@ -1201,7 +1201,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 读取块大小: FETCH_SIZE
      */
-    public java.lang.Integer getFetchSize(){
+    public final java.lang.Integer getFetchSize(){
          onPropGet(PROP_ID_fetchSize);
          return _fetchSize;
     }
@@ -1209,7 +1209,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 读取块大小: FETCH_SIZE
      */
-    public void setFetchSize(java.lang.Integer value){
+    public final void setFetchSize(java.lang.Integer value){
         if(onPropSet(PROP_ID_fetchSize,value)){
             this._fetchSize = value;
             internalClearRefs(PROP_ID_fetchSize);
@@ -1220,7 +1220,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 超时时间: TIMEOUT
      */
-    public java.lang.Integer getTimeout(){
+    public final java.lang.Integer getTimeout(){
          onPropGet(PROP_ID_timeout);
          return _timeout;
     }
@@ -1228,7 +1228,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 超时时间: TIMEOUT
      */
-    public void setTimeout(java.lang.Integer value){
+    public final void setTimeout(java.lang.Integer value){
         if(onPropSet(PROP_ID_timeout,value)){
             this._timeout = value;
             internalClearRefs(PROP_ID_timeout);
@@ -1239,7 +1239,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 禁用逻辑删除: DISABLE_LOGICAL_DELETE
      */
-    public java.lang.Byte getDisableLogicalDelete(){
+    public final java.lang.Byte getDisableLogicalDelete(){
          onPropGet(PROP_ID_disableLogicalDelete);
          return _disableLogicalDelete;
     }
@@ -1247,7 +1247,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 禁用逻辑删除: DISABLE_LOGICAL_DELETE
      */
-    public void setDisableLogicalDelete(java.lang.Byte value){
+    public final void setDisableLogicalDelete(java.lang.Byte value){
         if(onPropSet(PROP_ID_disableLogicalDelete,value)){
             this._disableLogicalDelete = value;
             internalClearRefs(PROP_ID_disableLogicalDelete);
@@ -1258,7 +1258,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 启用数据权限: ENABLE_FILTER
      */
-    public java.lang.Byte getEnableFilter(){
+    public final java.lang.Byte getEnableFilter(){
          onPropGet(PROP_ID_enableFilter);
          return _enableFilter;
     }
@@ -1266,7 +1266,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 启用数据权限: ENABLE_FILTER
      */
-    public void setEnableFilter(java.lang.Byte value){
+    public final void setEnableFilter(java.lang.Byte value){
         if(onPropSet(PROP_ID_enableFilter,value)){
             this._enableFilter = value;
             internalClearRefs(PROP_ID_enableFilter);
@@ -1277,7 +1277,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 实体刷新规则: REFRESH_BEHAVIOR
      */
-    public java.lang.String getRefreshBehavior(){
+    public final java.lang.String getRefreshBehavior(){
          onPropGet(PROP_ID_refreshBehavior);
          return _refreshBehavior;
     }
@@ -1285,7 +1285,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 实体刷新规则: REFRESH_BEHAVIOR
      */
-    public void setRefreshBehavior(java.lang.String value){
+    public final void setRefreshBehavior(java.lang.String value){
         if(onPropSet(PROP_ID_refreshBehavior,value)){
             this._refreshBehavior = value;
             internalClearRefs(PROP_ID_refreshBehavior);
@@ -1296,7 +1296,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 列名需要转换为驼峰: COL_NAME_CAMEL_CASE
      */
-    public java.lang.Byte getColNameCamelCase(){
+    public final java.lang.Byte getColNameCamelCase(){
          onPropGet(PROP_ID_colNameCamelCase);
          return _colNameCamelCase;
     }
@@ -1304,7 +1304,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 列名需要转换为驼峰: COL_NAME_CAMEL_CASE
      */
-    public void setColNameCamelCase(java.lang.Byte value){
+    public final void setColNameCamelCase(java.lang.Byte value){
         if(onPropSet(PROP_ID_colNameCamelCase,value)){
             this._colNameCamelCase = value;
             internalClearRefs(PROP_ID_colNameCamelCase);
@@ -1315,7 +1315,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 参数列表: ARGS
      */
-    public java.lang.String getArgs(){
+    public final java.lang.String getArgs(){
          onPropGet(PROP_ID_args);
          return _args;
     }
@@ -1323,7 +1323,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 参数列表: ARGS
      */
-    public void setArgs(java.lang.String value){
+    public final void setArgs(java.lang.String value){
         if(onPropSet(PROP_ID_args,value)){
             this._args = value;
             internalClearRefs(PROP_ID_args);
@@ -1334,7 +1334,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public java.lang.Integer getStatus(){
+    public final java.lang.Integer getStatus(){
          onPropGet(PROP_ID_status);
          return _status;
     }
@@ -1342,7 +1342,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 状态: STATUS
      */
-    public void setStatus(java.lang.Integer value){
+    public final void setStatus(java.lang.Integer value){
         if(onPropSet(PROP_ID_status,value)){
             this._status = value;
             internalClearRefs(PROP_ID_status);
@@ -1353,7 +1353,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -1361,7 +1361,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -1372,7 +1372,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -1380,7 +1380,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -1391,7 +1391,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -1399,7 +1399,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -1410,7 +1410,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -1418,7 +1418,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -1429,7 +1429,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -1437,7 +1437,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -1448,7 +1448,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -1456,7 +1456,7 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
@@ -1467,11 +1467,11 @@ public class _NopDynSql extends DynamicOrmEntity{
     /**
      * 所属模块
      */
-    public io.nop.dyn.dao.entity.NopDynModule getModule(){
+    public final io.nop.dyn.dao.entity.NopDynModule getModule(){
        return (io.nop.dyn.dao.entity.NopDynModule)internalGetRefEntity(PROP_NAME_module);
     }
 
-    public void setModule(io.nop.dyn.dao.entity.NopDynModule refEntity){
+    public final void setModule(io.nop.dyn.dao.entity.NopDynModule refEntity){
    
            if(refEntity == null){
            
@@ -1496,7 +1496,7 @@ public class _NopDynSql extends DynamicOrmEntity{
       
    }
 
-   public io.nop.orm.component.JsonOrmComponent getArgsComponent(){
+   public final io.nop.orm.component.JsonOrmComponent getArgsComponent(){
       if(_argsComponent == null){
           _argsComponent = new io.nop.orm.component.JsonOrmComponent();
           _argsComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_argsComponent);

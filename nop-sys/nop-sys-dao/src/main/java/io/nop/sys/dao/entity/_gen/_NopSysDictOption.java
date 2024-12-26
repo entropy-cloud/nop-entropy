@@ -591,7 +591,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 主键: SID
      */
-    public java.lang.String getSid(){
+    public final java.lang.String getSid(){
          onPropGet(PROP_ID_sid);
          return _sid;
     }
@@ -599,7 +599,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 主键: SID
      */
-    public void setSid(java.lang.String value){
+    public final void setSid(java.lang.String value){
         if(onPropSet(PROP_ID_sid,value)){
             this._sid = value;
             internalClearRefs(PROP_ID_sid);
@@ -610,7 +610,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 字典ID: DICT_ID
      */
-    public java.lang.String getDictId(){
+    public final java.lang.String getDictId(){
          onPropGet(PROP_ID_dictId);
          return _dictId;
     }
@@ -618,7 +618,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 字典ID: DICT_ID
      */
-    public void setDictId(java.lang.String value){
+    public final void setDictId(java.lang.String value){
         if(onPropSet(PROP_ID_dictId,value)){
             this._dictId = value;
             internalClearRefs(PROP_ID_dictId);
@@ -629,7 +629,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 显示名: LABEL
      */
-    public java.lang.String getLabel(){
+    public final java.lang.String getLabel(){
          onPropGet(PROP_ID_label);
          return _label;
     }
@@ -637,7 +637,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 显示名: LABEL
      */
-    public void setLabel(java.lang.String value){
+    public final void setLabel(java.lang.String value){
         if(onPropSet(PROP_ID_label,value)){
             this._label = value;
             internalClearRefs(PROP_ID_label);
@@ -648,7 +648,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 值: VALUE
      */
-    public java.lang.String getValue(){
+    public final java.lang.String getValue(){
          onPropGet(PROP_ID_value);
          return _value;
     }
@@ -656,7 +656,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 值: VALUE
      */
-    public void setValue(java.lang.String value){
+    public final void setValue(java.lang.String value){
         if(onPropSet(PROP_ID_value,value)){
             this._value = value;
             internalClearRefs(PROP_ID_value);
@@ -667,7 +667,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 内部编码: CODE_VALUE
      */
-    public java.lang.String getCodeValue(){
+    public final java.lang.String getCodeValue(){
          onPropGet(PROP_ID_codeValue);
          return _codeValue;
     }
@@ -675,7 +675,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 内部编码: CODE_VALUE
      */
-    public void setCodeValue(java.lang.String value){
+    public final void setCodeValue(java.lang.String value){
         if(onPropSet(PROP_ID_codeValue,value)){
             this._codeValue = value;
             internalClearRefs(PROP_ID_codeValue);
@@ -686,7 +686,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 分组名: GROUP_NAME
      */
-    public java.lang.String getGroupName(){
+    public final java.lang.String getGroupName(){
          onPropGet(PROP_ID_groupName);
          return _groupName;
     }
@@ -694,7 +694,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 分组名: GROUP_NAME
      */
-    public void setGroupName(java.lang.String value){
+    public final void setGroupName(java.lang.String value){
         if(onPropSet(PROP_ID_groupName,value)){
             this._groupName = value;
             internalClearRefs(PROP_ID_groupName);
@@ -705,7 +705,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 是否内部: IS_INTERNAL
      */
-    public java.lang.Byte getIsInternal(){
+    public final java.lang.Byte getIsInternal(){
          onPropGet(PROP_ID_isInternal);
          return _isInternal;
     }
@@ -713,7 +713,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 是否内部: IS_INTERNAL
      */
-    public void setIsInternal(java.lang.Byte value){
+    public final void setIsInternal(java.lang.Byte value){
         if(onPropSet(PROP_ID_isInternal,value)){
             this._isInternal = value;
             internalClearRefs(PROP_ID_isInternal);
@@ -724,7 +724,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 是否已废弃: IS_DEPRECATED
      */
-    public java.lang.Byte getIsDeprecated(){
+    public final java.lang.Byte getIsDeprecated(){
          onPropGet(PROP_ID_isDeprecated);
          return _isDeprecated;
     }
@@ -732,7 +732,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 是否已废弃: IS_DEPRECATED
      */
-    public void setIsDeprecated(java.lang.Byte value){
+    public final void setIsDeprecated(java.lang.Byte value){
         if(onPropSet(PROP_ID_isDeprecated,value)){
             this._isDeprecated = value;
             internalClearRefs(PROP_ID_isDeprecated);
@@ -743,7 +743,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 删除标识: DEL_FLAG
      */
-    public java.lang.Byte getDelFlag(){
+    public final java.lang.Byte getDelFlag(){
          onPropGet(PROP_ID_delFlag);
          return _delFlag;
     }
@@ -751,7 +751,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 删除标识: DEL_FLAG
      */
-    public void setDelFlag(java.lang.Byte value){
+    public final void setDelFlag(java.lang.Byte value){
         if(onPropSet(PROP_ID_delFlag,value)){
             this._delFlag = value;
             internalClearRefs(PROP_ID_delFlag);
@@ -762,7 +762,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public java.lang.Integer getVersion(){
+    public final java.lang.Integer getVersion(){
          onPropGet(PROP_ID_version);
          return _version;
     }
@@ -770,7 +770,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 数据版本: VERSION
      */
-    public void setVersion(java.lang.Integer value){
+    public final void setVersion(java.lang.Integer value){
         if(onPropSet(PROP_ID_version,value)){
             this._version = value;
             internalClearRefs(PROP_ID_version);
@@ -781,7 +781,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public java.lang.String getCreatedBy(){
+    public final java.lang.String getCreatedBy(){
          onPropGet(PROP_ID_createdBy);
          return _createdBy;
     }
@@ -789,7 +789,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 创建人: CREATED_BY
      */
-    public void setCreatedBy(java.lang.String value){
+    public final void setCreatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_createdBy,value)){
             this._createdBy = value;
             internalClearRefs(PROP_ID_createdBy);
@@ -800,7 +800,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public java.sql.Timestamp getCreateTime(){
+    public final java.sql.Timestamp getCreateTime(){
          onPropGet(PROP_ID_createTime);
          return _createTime;
     }
@@ -808,7 +808,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 创建时间: CREATE_TIME
      */
-    public void setCreateTime(java.sql.Timestamp value){
+    public final void setCreateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_createTime,value)){
             this._createTime = value;
             internalClearRefs(PROP_ID_createTime);
@@ -819,7 +819,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public java.lang.String getUpdatedBy(){
+    public final java.lang.String getUpdatedBy(){
          onPropGet(PROP_ID_updatedBy);
          return _updatedBy;
     }
@@ -827,7 +827,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 修改人: UPDATED_BY
      */
-    public void setUpdatedBy(java.lang.String value){
+    public final void setUpdatedBy(java.lang.String value){
         if(onPropSet(PROP_ID_updatedBy,value)){
             this._updatedBy = value;
             internalClearRefs(PROP_ID_updatedBy);
@@ -838,7 +838,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public java.sql.Timestamp getUpdateTime(){
+    public final java.sql.Timestamp getUpdateTime(){
          onPropGet(PROP_ID_updateTime);
          return _updateTime;
     }
@@ -846,7 +846,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 修改时间: UPDATE_TIME
      */
-    public void setUpdateTime(java.sql.Timestamp value){
+    public final void setUpdateTime(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_updateTime,value)){
             this._updateTime = value;
             internalClearRefs(PROP_ID_updateTime);
@@ -857,7 +857,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public java.lang.String getRemark(){
+    public final java.lang.String getRemark(){
          onPropGet(PROP_ID_remark);
          return _remark;
     }
@@ -865,7 +865,7 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 备注: REMARK
      */
-    public void setRemark(java.lang.String value){
+    public final void setRemark(java.lang.String value){
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
@@ -876,11 +876,11 @@ public class _NopSysDictOption extends DynamicOrmEntity{
     /**
      * 字典
      */
-    public io.nop.sys.dao.entity.NopSysDict getDict(){
+    public final io.nop.sys.dao.entity.NopSysDict getDict(){
        return (io.nop.sys.dao.entity.NopSysDict)internalGetRefEntity(PROP_NAME_dict);
     }
 
-    public void setDict(io.nop.sys.dao.entity.NopSysDict refEntity){
+    public final void setDict(io.nop.sys.dao.entity.NopSysDict refEntity){
    
            if(refEntity == null){
            

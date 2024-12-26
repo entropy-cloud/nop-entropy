@@ -1128,7 +1128,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * Id: SID
      */
-    public java.lang.String getSid(){
+    public final java.lang.String getSid(){
          onPropGet(PROP_ID_sid);
          return _sid;
     }
@@ -1136,7 +1136,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * Id: SID
      */
-    public void setSid(java.lang.String value){
+    public final void setSid(java.lang.String value){
         if(onPropSet(PROP_ID_sid,value)){
             this._sid = value;
             internalClearRefs(PROP_ID_sid);
@@ -1147,7 +1147,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * 客户端ID: REGISTERED_CLIENT_ID
      */
-    public java.lang.String getRegisteredClientId(){
+    public final java.lang.String getRegisteredClientId(){
          onPropGet(PROP_ID_registeredClientId);
          return _registeredClientId;
     }
@@ -1155,7 +1155,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * 客户端ID: REGISTERED_CLIENT_ID
      */
-    public void setRegisteredClientId(java.lang.String value){
+    public final void setRegisteredClientId(java.lang.String value){
         if(onPropSet(PROP_ID_registeredClientId,value)){
             this._registeredClientId = value;
             internalClearRefs(PROP_ID_registeredClientId);
@@ -1166,7 +1166,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * 客户端名称: PRINCIPAL_NAME
      */
-    public java.lang.String getPrincipalName(){
+    public final java.lang.String getPrincipalName(){
          onPropGet(PROP_ID_principalName);
          return _principalName;
     }
@@ -1174,7 +1174,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * 客户端名称: PRINCIPAL_NAME
      */
-    public void setPrincipalName(java.lang.String value){
+    public final void setPrincipalName(java.lang.String value){
         if(onPropSet(PROP_ID_principalName,value)){
             this._principalName = value;
             internalClearRefs(PROP_ID_principalName);
@@ -1185,7 +1185,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * 授权类型: AUTHORIZATION_GRANT_TYPE
      */
-    public java.lang.String getAuthorizationGrantType(){
+    public final java.lang.String getAuthorizationGrantType(){
          onPropGet(PROP_ID_authorizationGrantType);
          return _authorizationGrantType;
     }
@@ -1193,7 +1193,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * 授权类型: AUTHORIZATION_GRANT_TYPE
      */
-    public void setAuthorizationGrantType(java.lang.String value){
+    public final void setAuthorizationGrantType(java.lang.String value){
         if(onPropSet(PROP_ID_authorizationGrantType,value)){
             this._authorizationGrantType = value;
             internalClearRefs(PROP_ID_authorizationGrantType);
@@ -1204,7 +1204,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * 授权范围: AUTHORIZED_SCOPES
      */
-    public java.lang.String getAuthorizedScopes(){
+    public final java.lang.String getAuthorizedScopes(){
          onPropGet(PROP_ID_authorizedScopes);
          return _authorizedScopes;
     }
@@ -1212,7 +1212,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * 授权范围: AUTHORIZED_SCOPES
      */
-    public void setAuthorizedScopes(java.lang.String value){
+    public final void setAuthorizedScopes(java.lang.String value){
         if(onPropSet(PROP_ID_authorizedScopes,value)){
             this._authorizedScopes = value;
             internalClearRefs(PROP_ID_authorizedScopes);
@@ -1223,7 +1223,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * 扩展属性: ATTRIBUTES
      */
-    public java.lang.String getAttributes(){
+    public final java.lang.String getAttributes(){
          onPropGet(PROP_ID_attributes);
          return _attributes;
     }
@@ -1231,7 +1231,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * 扩展属性: ATTRIBUTES
      */
-    public void setAttributes(java.lang.String value){
+    public final void setAttributes(java.lang.String value){
         if(onPropSet(PROP_ID_attributes,value)){
             this._attributes = value;
             internalClearRefs(PROP_ID_attributes);
@@ -1242,7 +1242,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * 状态码: STATE
      */
-    public java.lang.String getState(){
+    public final java.lang.String getState(){
          onPropGet(PROP_ID_state);
          return _state;
     }
@@ -1250,7 +1250,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * 状态码: STATE
      */
-    public void setState(java.lang.String value){
+    public final void setState(java.lang.String value){
         if(onPropSet(PROP_ID_state,value)){
             this._state = value;
             internalClearRefs(PROP_ID_state);
@@ -1261,7 +1261,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AuthorizationCode值: AUTHORIZATION_CODE_VALUE
      */
-    public java.lang.String getAuthorizationCodeValue(){
+    public final java.lang.String getAuthorizationCodeValue(){
          onPropGet(PROP_ID_authorizationCodeValue);
          return _authorizationCodeValue;
     }
@@ -1269,7 +1269,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AuthorizationCode值: AUTHORIZATION_CODE_VALUE
      */
-    public void setAuthorizationCodeValue(java.lang.String value){
+    public final void setAuthorizationCodeValue(java.lang.String value){
         if(onPropSet(PROP_ID_authorizationCodeValue,value)){
             this._authorizationCodeValue = value;
             internalClearRefs(PROP_ID_authorizationCodeValue);
@@ -1280,7 +1280,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AuthorizationCode发放时间: AUTHORIZATION_CODE_ISSUED_AT
      */
-    public java.sql.Timestamp getAuthorizationCodeIssuedAt(){
+    public final java.sql.Timestamp getAuthorizationCodeIssuedAt(){
          onPropGet(PROP_ID_authorizationCodeIssuedAt);
          return _authorizationCodeIssuedAt;
     }
@@ -1288,7 +1288,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AuthorizationCode发放时间: AUTHORIZATION_CODE_ISSUED_AT
      */
-    public void setAuthorizationCodeIssuedAt(java.sql.Timestamp value){
+    public final void setAuthorizationCodeIssuedAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_authorizationCodeIssuedAt,value)){
             this._authorizationCodeIssuedAt = value;
             internalClearRefs(PROP_ID_authorizationCodeIssuedAt);
@@ -1299,7 +1299,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AuthorizationCode过期使劲按: AUTHORIZATION_CODE_EXPIRES_AT
      */
-    public java.sql.Timestamp getAuthorizationCodeExpiresAt(){
+    public final java.sql.Timestamp getAuthorizationCodeExpiresAt(){
          onPropGet(PROP_ID_authorizationCodeExpiresAt);
          return _authorizationCodeExpiresAt;
     }
@@ -1307,7 +1307,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AuthorizationCode过期使劲按: AUTHORIZATION_CODE_EXPIRES_AT
      */
-    public void setAuthorizationCodeExpiresAt(java.sql.Timestamp value){
+    public final void setAuthorizationCodeExpiresAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_authorizationCodeExpiresAt,value)){
             this._authorizationCodeExpiresAt = value;
             internalClearRefs(PROP_ID_authorizationCodeExpiresAt);
@@ -1318,7 +1318,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AuthorizationCode元数据: AUTHORIZATION_CODE_METADATA
      */
-    public java.lang.String getAuthorizationCodeMetadata(){
+    public final java.lang.String getAuthorizationCodeMetadata(){
          onPropGet(PROP_ID_authorizationCodeMetadata);
          return _authorizationCodeMetadata;
     }
@@ -1326,7 +1326,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AuthorizationCode元数据: AUTHORIZATION_CODE_METADATA
      */
-    public void setAuthorizationCodeMetadata(java.lang.String value){
+    public final void setAuthorizationCodeMetadata(java.lang.String value){
         if(onPropSet(PROP_ID_authorizationCodeMetadata,value)){
             this._authorizationCodeMetadata = value;
             internalClearRefs(PROP_ID_authorizationCodeMetadata);
@@ -1337,7 +1337,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AccessToken: ACCESS_TOKEN_VALUE
      */
-    public java.lang.String getAccessTokenValue(){
+    public final java.lang.String getAccessTokenValue(){
          onPropGet(PROP_ID_accessTokenValue);
          return _accessTokenValue;
     }
@@ -1345,7 +1345,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AccessToken: ACCESS_TOKEN_VALUE
      */
-    public void setAccessTokenValue(java.lang.String value){
+    public final void setAccessTokenValue(java.lang.String value){
         if(onPropSet(PROP_ID_accessTokenValue,value)){
             this._accessTokenValue = value;
             internalClearRefs(PROP_ID_accessTokenValue);
@@ -1356,7 +1356,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AccessToken发放时间: ACCESS_TOKEN_ISSUED_AT
      */
-    public java.sql.Timestamp getAccessTokenIssuedAt(){
+    public final java.sql.Timestamp getAccessTokenIssuedAt(){
          onPropGet(PROP_ID_accessTokenIssuedAt);
          return _accessTokenIssuedAt;
     }
@@ -1364,7 +1364,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AccessToken发放时间: ACCESS_TOKEN_ISSUED_AT
      */
-    public void setAccessTokenIssuedAt(java.sql.Timestamp value){
+    public final void setAccessTokenIssuedAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_accessTokenIssuedAt,value)){
             this._accessTokenIssuedAt = value;
             internalClearRefs(PROP_ID_accessTokenIssuedAt);
@@ -1375,7 +1375,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AccessToken过期时间: ACCESS_TOKEN_EXPIRES_AT
      */
-    public java.sql.Timestamp getAccessTokenExpiresAt(){
+    public final java.sql.Timestamp getAccessTokenExpiresAt(){
          onPropGet(PROP_ID_accessTokenExpiresAt);
          return _accessTokenExpiresAt;
     }
@@ -1383,7 +1383,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AccessToken过期时间: ACCESS_TOKEN_EXPIRES_AT
      */
-    public void setAccessTokenExpiresAt(java.sql.Timestamp value){
+    public final void setAccessTokenExpiresAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_accessTokenExpiresAt,value)){
             this._accessTokenExpiresAt = value;
             internalClearRefs(PROP_ID_accessTokenExpiresAt);
@@ -1394,7 +1394,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AccessToken元数据: ACCESS_TOKEN_METADATA
      */
-    public java.lang.String getAccessTokenMetadata(){
+    public final java.lang.String getAccessTokenMetadata(){
          onPropGet(PROP_ID_accessTokenMetadata);
          return _accessTokenMetadata;
     }
@@ -1402,7 +1402,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AccessToken元数据: ACCESS_TOKEN_METADATA
      */
-    public void setAccessTokenMetadata(java.lang.String value){
+    public final void setAccessTokenMetadata(java.lang.String value){
         if(onPropSet(PROP_ID_accessTokenMetadata,value)){
             this._accessTokenMetadata = value;
             internalClearRefs(PROP_ID_accessTokenMetadata);
@@ -1413,7 +1413,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AccessToken类型: ACCESS_TOKEN_TYPE
      */
-    public java.lang.String getAccessTokenType(){
+    public final java.lang.String getAccessTokenType(){
          onPropGet(PROP_ID_accessTokenType);
          return _accessTokenType;
     }
@@ -1421,7 +1421,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AccessToken类型: ACCESS_TOKEN_TYPE
      */
-    public void setAccessTokenType(java.lang.String value){
+    public final void setAccessTokenType(java.lang.String value){
         if(onPropSet(PROP_ID_accessTokenType,value)){
             this._accessTokenType = value;
             internalClearRefs(PROP_ID_accessTokenType);
@@ -1432,7 +1432,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AccessToken权限范围: ACCESS_TOKEN_SCOPES
      */
-    public java.lang.String getAccessTokenScopes(){
+    public final java.lang.String getAccessTokenScopes(){
          onPropGet(PROP_ID_accessTokenScopes);
          return _accessTokenScopes;
     }
@@ -1440,7 +1440,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * AccessToken权限范围: ACCESS_TOKEN_SCOPES
      */
-    public void setAccessTokenScopes(java.lang.String value){
+    public final void setAccessTokenScopes(java.lang.String value){
         if(onPropSet(PROP_ID_accessTokenScopes,value)){
             this._accessTokenScopes = value;
             internalClearRefs(PROP_ID_accessTokenScopes);
@@ -1451,7 +1451,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * OidcIdToken值: OIDC_ID_TOKEN_VALUE
      */
-    public java.lang.String getOidcIdTokenValue(){
+    public final java.lang.String getOidcIdTokenValue(){
          onPropGet(PROP_ID_oidcIdTokenValue);
          return _oidcIdTokenValue;
     }
@@ -1459,7 +1459,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * OidcIdToken值: OIDC_ID_TOKEN_VALUE
      */
-    public void setOidcIdTokenValue(java.lang.String value){
+    public final void setOidcIdTokenValue(java.lang.String value){
         if(onPropSet(PROP_ID_oidcIdTokenValue,value)){
             this._oidcIdTokenValue = value;
             internalClearRefs(PROP_ID_oidcIdTokenValue);
@@ -1470,7 +1470,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * OidcIdToken发放时间: OIDC_ID_TOKEN_ISSUED_AT
      */
-    public java.sql.Timestamp getOidcIdTokenIssuedAt(){
+    public final java.sql.Timestamp getOidcIdTokenIssuedAt(){
          onPropGet(PROP_ID_oidcIdTokenIssuedAt);
          return _oidcIdTokenIssuedAt;
     }
@@ -1478,7 +1478,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * OidcIdToken发放时间: OIDC_ID_TOKEN_ISSUED_AT
      */
-    public void setOidcIdTokenIssuedAt(java.sql.Timestamp value){
+    public final void setOidcIdTokenIssuedAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_oidcIdTokenIssuedAt,value)){
             this._oidcIdTokenIssuedAt = value;
             internalClearRefs(PROP_ID_oidcIdTokenIssuedAt);
@@ -1489,7 +1489,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * OidcIdToken过期时间: OIDC_ID_TOKEN_EXPIRES_AT
      */
-    public java.sql.Timestamp getOidcIdTokenExpiresAt(){
+    public final java.sql.Timestamp getOidcIdTokenExpiresAt(){
          onPropGet(PROP_ID_oidcIdTokenExpiresAt);
          return _oidcIdTokenExpiresAt;
     }
@@ -1497,7 +1497,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * OidcIdToken过期时间: OIDC_ID_TOKEN_EXPIRES_AT
      */
-    public void setOidcIdTokenExpiresAt(java.sql.Timestamp value){
+    public final void setOidcIdTokenExpiresAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_oidcIdTokenExpiresAt,value)){
             this._oidcIdTokenExpiresAt = value;
             internalClearRefs(PROP_ID_oidcIdTokenExpiresAt);
@@ -1508,7 +1508,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * OidcIdToken元数据: OIDC_ID_TOKEN_METADATA
      */
-    public java.lang.String getOidcIdTokenMetadata(){
+    public final java.lang.String getOidcIdTokenMetadata(){
          onPropGet(PROP_ID_oidcIdTokenMetadata);
          return _oidcIdTokenMetadata;
     }
@@ -1516,7 +1516,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * OidcIdToken元数据: OIDC_ID_TOKEN_METADATA
      */
-    public void setOidcIdTokenMetadata(java.lang.String value){
+    public final void setOidcIdTokenMetadata(java.lang.String value){
         if(onPropSet(PROP_ID_oidcIdTokenMetadata,value)){
             this._oidcIdTokenMetadata = value;
             internalClearRefs(PROP_ID_oidcIdTokenMetadata);
@@ -1527,7 +1527,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * RefreshToken值: REFRESH_TOKEN_VALUE
      */
-    public java.lang.String getRefreshTokenValue(){
+    public final java.lang.String getRefreshTokenValue(){
          onPropGet(PROP_ID_refreshTokenValue);
          return _refreshTokenValue;
     }
@@ -1535,7 +1535,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * RefreshToken值: REFRESH_TOKEN_VALUE
      */
-    public void setRefreshTokenValue(java.lang.String value){
+    public final void setRefreshTokenValue(java.lang.String value){
         if(onPropSet(PROP_ID_refreshTokenValue,value)){
             this._refreshTokenValue = value;
             internalClearRefs(PROP_ID_refreshTokenValue);
@@ -1546,7 +1546,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * RefreshToken发放时间: REFRESH_TOKEN_ISSUED_AT
      */
-    public java.sql.Timestamp getRefreshTokenIssuedAt(){
+    public final java.sql.Timestamp getRefreshTokenIssuedAt(){
          onPropGet(PROP_ID_refreshTokenIssuedAt);
          return _refreshTokenIssuedAt;
     }
@@ -1554,7 +1554,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * RefreshToken发放时间: REFRESH_TOKEN_ISSUED_AT
      */
-    public void setRefreshTokenIssuedAt(java.sql.Timestamp value){
+    public final void setRefreshTokenIssuedAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_refreshTokenIssuedAt,value)){
             this._refreshTokenIssuedAt = value;
             internalClearRefs(PROP_ID_refreshTokenIssuedAt);
@@ -1565,7 +1565,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * RefreshToken过期时间: REFRESH_TOKEN_EXPIRES_AT
      */
-    public java.sql.Timestamp getRefreshTokenExpiresAt(){
+    public final java.sql.Timestamp getRefreshTokenExpiresAt(){
          onPropGet(PROP_ID_refreshTokenExpiresAt);
          return _refreshTokenExpiresAt;
     }
@@ -1573,7 +1573,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * RefreshToken过期时间: REFRESH_TOKEN_EXPIRES_AT
      */
-    public void setRefreshTokenExpiresAt(java.sql.Timestamp value){
+    public final void setRefreshTokenExpiresAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_refreshTokenExpiresAt,value)){
             this._refreshTokenExpiresAt = value;
             internalClearRefs(PROP_ID_refreshTokenExpiresAt);
@@ -1584,7 +1584,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * RefreshToken元数据: REFRESH_TOKEN_METADATA
      */
-    public java.lang.String getRefreshTokenMetadata(){
+    public final java.lang.String getRefreshTokenMetadata(){
          onPropGet(PROP_ID_refreshTokenMetadata);
          return _refreshTokenMetadata;
     }
@@ -1592,7 +1592,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * RefreshToken元数据: REFRESH_TOKEN_METADATA
      */
-    public void setRefreshTokenMetadata(java.lang.String value){
+    public final void setRefreshTokenMetadata(java.lang.String value){
         if(onPropSet(PROP_ID_refreshTokenMetadata,value)){
             this._refreshTokenMetadata = value;
             internalClearRefs(PROP_ID_refreshTokenMetadata);
@@ -1603,7 +1603,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * UserCode值: USER_CODE_VALUE
      */
-    public java.lang.String getUserCodeValue(){
+    public final java.lang.String getUserCodeValue(){
          onPropGet(PROP_ID_userCodeValue);
          return _userCodeValue;
     }
@@ -1611,7 +1611,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * UserCode值: USER_CODE_VALUE
      */
-    public void setUserCodeValue(java.lang.String value){
+    public final void setUserCodeValue(java.lang.String value){
         if(onPropSet(PROP_ID_userCodeValue,value)){
             this._userCodeValue = value;
             internalClearRefs(PROP_ID_userCodeValue);
@@ -1622,7 +1622,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * UserCode发放时间: USER_CODE_ISSUED_AT
      */
-    public java.sql.Timestamp getUserCodeIssuedAt(){
+    public final java.sql.Timestamp getUserCodeIssuedAt(){
          onPropGet(PROP_ID_userCodeIssuedAt);
          return _userCodeIssuedAt;
     }
@@ -1630,7 +1630,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * UserCode发放时间: USER_CODE_ISSUED_AT
      */
-    public void setUserCodeIssuedAt(java.sql.Timestamp value){
+    public final void setUserCodeIssuedAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_userCodeIssuedAt,value)){
             this._userCodeIssuedAt = value;
             internalClearRefs(PROP_ID_userCodeIssuedAt);
@@ -1641,7 +1641,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * UserCode过期时间: USER_CODE_EXPIRES_AT
      */
-    public java.sql.Timestamp getUserCodeExpiresAt(){
+    public final java.sql.Timestamp getUserCodeExpiresAt(){
          onPropGet(PROP_ID_userCodeExpiresAt);
          return _userCodeExpiresAt;
     }
@@ -1649,7 +1649,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * UserCode过期时间: USER_CODE_EXPIRES_AT
      */
-    public void setUserCodeExpiresAt(java.sql.Timestamp value){
+    public final void setUserCodeExpiresAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_userCodeExpiresAt,value)){
             this._userCodeExpiresAt = value;
             internalClearRefs(PROP_ID_userCodeExpiresAt);
@@ -1660,7 +1660,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * UserCode元数据: USER_CODE_METADATA
      */
-    public java.lang.String getUserCodeMetadata(){
+    public final java.lang.String getUserCodeMetadata(){
          onPropGet(PROP_ID_userCodeMetadata);
          return _userCodeMetadata;
     }
@@ -1668,7 +1668,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * UserCode元数据: USER_CODE_METADATA
      */
-    public void setUserCodeMetadata(java.lang.String value){
+    public final void setUserCodeMetadata(java.lang.String value){
         if(onPropSet(PROP_ID_userCodeMetadata,value)){
             this._userCodeMetadata = value;
             internalClearRefs(PROP_ID_userCodeMetadata);
@@ -1679,7 +1679,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * DeviceCode值: DEVICE_CODE_VALUE
      */
-    public java.lang.String getDeviceCodeValue(){
+    public final java.lang.String getDeviceCodeValue(){
          onPropGet(PROP_ID_deviceCodeValue);
          return _deviceCodeValue;
     }
@@ -1687,7 +1687,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * DeviceCode值: DEVICE_CODE_VALUE
      */
-    public void setDeviceCodeValue(java.lang.String value){
+    public final void setDeviceCodeValue(java.lang.String value){
         if(onPropSet(PROP_ID_deviceCodeValue,value)){
             this._deviceCodeValue = value;
             internalClearRefs(PROP_ID_deviceCodeValue);
@@ -1698,7 +1698,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * DeviceCode发放时间: DEVICE_CODE_ISSUED_AT
      */
-    public java.sql.Timestamp getDeviceCodeIssuedAt(){
+    public final java.sql.Timestamp getDeviceCodeIssuedAt(){
          onPropGet(PROP_ID_deviceCodeIssuedAt);
          return _deviceCodeIssuedAt;
     }
@@ -1706,7 +1706,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * DeviceCode发放时间: DEVICE_CODE_ISSUED_AT
      */
-    public void setDeviceCodeIssuedAt(java.sql.Timestamp value){
+    public final void setDeviceCodeIssuedAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_deviceCodeIssuedAt,value)){
             this._deviceCodeIssuedAt = value;
             internalClearRefs(PROP_ID_deviceCodeIssuedAt);
@@ -1717,7 +1717,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * DeviceCode过期时间: DEVICE_CODE_EXPIRES_AT
      */
-    public java.sql.Timestamp getDeviceCodeExpiresAt(){
+    public final java.sql.Timestamp getDeviceCodeExpiresAt(){
          onPropGet(PROP_ID_deviceCodeExpiresAt);
          return _deviceCodeExpiresAt;
     }
@@ -1725,7 +1725,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * DeviceCode过期时间: DEVICE_CODE_EXPIRES_AT
      */
-    public void setDeviceCodeExpiresAt(java.sql.Timestamp value){
+    public final void setDeviceCodeExpiresAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_deviceCodeExpiresAt,value)){
             this._deviceCodeExpiresAt = value;
             internalClearRefs(PROP_ID_deviceCodeExpiresAt);
@@ -1736,7 +1736,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * DeviceCode元数据: DEVICE_CODE_METADATA
      */
-    public java.lang.String getDeviceCodeMetadata(){
+    public final java.lang.String getDeviceCodeMetadata(){
          onPropGet(PROP_ID_deviceCodeMetadata);
          return _deviceCodeMetadata;
     }
@@ -1744,7 +1744,7 @@ public class _NopOauthAuthorization extends DynamicOrmEntity{
     /**
      * DeviceCode元数据: DEVICE_CODE_METADATA
      */
-    public void setDeviceCodeMetadata(java.lang.String value){
+    public final void setDeviceCodeMetadata(java.lang.String value){
         if(onPropSet(PROP_ID_deviceCodeMetadata,value)){
             this._deviceCodeMetadata = value;
             internalClearRefs(PROP_ID_deviceCodeMetadata);

@@ -528,7 +528,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * Id: SID
      */
-    public java.lang.String getSid(){
+    public final java.lang.String getSid(){
          onPropGet(PROP_ID_sid);
          return _sid;
     }
@@ -536,7 +536,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * Id: SID
      */
-    public void setSid(java.lang.String value){
+    public final void setSid(java.lang.String value){
         if(onPropSet(PROP_ID_sid,value)){
             this._sid = value;
             internalClearRefs(PROP_ID_sid);
@@ -547,7 +547,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端ID: CLIENT_ID
      */
-    public java.lang.String getClientId(){
+    public final java.lang.String getClientId(){
          onPropGet(PROP_ID_clientId);
          return _clientId;
     }
@@ -555,7 +555,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端ID: CLIENT_ID
      */
-    public void setClientId(java.lang.String value){
+    public final void setClientId(java.lang.String value){
         if(onPropSet(PROP_ID_clientId,value)){
             this._clientId = value;
             internalClearRefs(PROP_ID_clientId);
@@ -566,7 +566,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端ID发放时间: CLIENT_ID_ISSUED_AT
      */
-    public java.sql.Timestamp getClientIdIssuedAt(){
+    public final java.sql.Timestamp getClientIdIssuedAt(){
          onPropGet(PROP_ID_clientIdIssuedAt);
          return _clientIdIssuedAt;
     }
@@ -574,7 +574,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端ID发放时间: CLIENT_ID_ISSUED_AT
      */
-    public void setClientIdIssuedAt(java.sql.Timestamp value){
+    public final void setClientIdIssuedAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_clientIdIssuedAt,value)){
             this._clientIdIssuedAt = value;
             internalClearRefs(PROP_ID_clientIdIssuedAt);
@@ -585,7 +585,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端密码: CLIENT_SECRET
      */
-    public java.lang.String getClientSecret(){
+    public final java.lang.String getClientSecret(){
          onPropGet(PROP_ID_clientSecret);
          return _clientSecret;
     }
@@ -593,7 +593,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端密码: CLIENT_SECRET
      */
-    public void setClientSecret(java.lang.String value){
+    public final void setClientSecret(java.lang.String value){
         if(onPropSet(PROP_ID_clientSecret,value)){
             this._clientSecret = value;
             internalClearRefs(PROP_ID_clientSecret);
@@ -604,7 +604,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端密码过期时间: CLIENT_SECRET_EXPIRES_AT
      */
-    public java.sql.Timestamp getClientSecretExpiresAt(){
+    public final java.sql.Timestamp getClientSecretExpiresAt(){
          onPropGet(PROP_ID_clientSecretExpiresAt);
          return _clientSecretExpiresAt;
     }
@@ -612,7 +612,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端密码过期时间: CLIENT_SECRET_EXPIRES_AT
      */
-    public void setClientSecretExpiresAt(java.sql.Timestamp value){
+    public final void setClientSecretExpiresAt(java.sql.Timestamp value){
         if(onPropSet(PROP_ID_clientSecretExpiresAt,value)){
             this._clientSecretExpiresAt = value;
             internalClearRefs(PROP_ID_clientSecretExpiresAt);
@@ -623,7 +623,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端名称: CLIENT_NAME
      */
-    public java.lang.String getClientName(){
+    public final java.lang.String getClientName(){
          onPropGet(PROP_ID_clientName);
          return _clientName;
     }
@@ -631,7 +631,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端名称: CLIENT_NAME
      */
-    public void setClientName(java.lang.String value){
+    public final void setClientName(java.lang.String value){
         if(onPropSet(PROP_ID_clientName,value)){
             this._clientName = value;
             internalClearRefs(PROP_ID_clientName);
@@ -642,7 +642,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端授权方法: CLIENT_AUTHENTICATION_METHODS
      */
-    public java.lang.String getClientAuthenticationMethods(){
+    public final java.lang.String getClientAuthenticationMethods(){
          onPropGet(PROP_ID_clientAuthenticationMethods);
          return _clientAuthenticationMethods;
     }
@@ -650,7 +650,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端授权方法: CLIENT_AUTHENTICATION_METHODS
      */
-    public void setClientAuthenticationMethods(java.lang.String value){
+    public final void setClientAuthenticationMethods(java.lang.String value){
         if(onPropSet(PROP_ID_clientAuthenticationMethods,value)){
             this._clientAuthenticationMethods = value;
             internalClearRefs(PROP_ID_clientAuthenticationMethods);
@@ -661,7 +661,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端认证类型: AUTHORIZATION_GRANT_TYPES
      */
-    public java.lang.String getAuthorizationGrantTypes(){
+    public final java.lang.String getAuthorizationGrantTypes(){
          onPropGet(PROP_ID_authorizationGrantTypes);
          return _authorizationGrantTypes;
     }
@@ -669,7 +669,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端认证类型: AUTHORIZATION_GRANT_TYPES
      */
-    public void setAuthorizationGrantTypes(java.lang.String value){
+    public final void setAuthorizationGrantTypes(java.lang.String value){
         if(onPropSet(PROP_ID_authorizationGrantTypes,value)){
             this._authorizationGrantTypes = value;
             internalClearRefs(PROP_ID_authorizationGrantTypes);
@@ -680,7 +680,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 重定向URI: REDIRECT_URIS
      */
-    public java.lang.String getRedirectUris(){
+    public final java.lang.String getRedirectUris(){
          onPropGet(PROP_ID_redirectUris);
          return _redirectUris;
     }
@@ -688,7 +688,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 重定向URI: REDIRECT_URIS
      */
-    public void setRedirectUris(java.lang.String value){
+    public final void setRedirectUris(java.lang.String value){
         if(onPropSet(PROP_ID_redirectUris,value)){
             this._redirectUris = value;
             internalClearRefs(PROP_ID_redirectUris);
@@ -699,7 +699,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * Logout重定向URI: POST_LOGOUT_REDIRECT_URIS
      */
-    public java.lang.String getPostLogoutRedirectUris(){
+    public final java.lang.String getPostLogoutRedirectUris(){
          onPropGet(PROP_ID_postLogoutRedirectUris);
          return _postLogoutRedirectUris;
     }
@@ -707,7 +707,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * Logout重定向URI: POST_LOGOUT_REDIRECT_URIS
      */
-    public void setPostLogoutRedirectUris(java.lang.String value){
+    public final void setPostLogoutRedirectUris(java.lang.String value){
         if(onPropSet(PROP_ID_postLogoutRedirectUris,value)){
             this._postLogoutRedirectUris = value;
             internalClearRefs(PROP_ID_postLogoutRedirectUris);
@@ -718,7 +718,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 授权范围: SCOPES
      */
-    public java.lang.String getScopes(){
+    public final java.lang.String getScopes(){
          onPropGet(PROP_ID_scopes);
          return _scopes;
     }
@@ -726,7 +726,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 授权范围: SCOPES
      */
-    public void setScopes(java.lang.String value){
+    public final void setScopes(java.lang.String value){
         if(onPropSet(PROP_ID_scopes,value)){
             this._scopes = value;
             internalClearRefs(PROP_ID_scopes);
@@ -737,7 +737,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端设置: CLIENT_SETTINGS
      */
-    public java.lang.String getClientSettings(){
+    public final java.lang.String getClientSettings(){
          onPropGet(PROP_ID_clientSettings);
          return _clientSettings;
     }
@@ -745,7 +745,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * 客户端设置: CLIENT_SETTINGS
      */
-    public void setClientSettings(java.lang.String value){
+    public final void setClientSettings(java.lang.String value){
         if(onPropSet(PROP_ID_clientSettings,value)){
             this._clientSettings = value;
             internalClearRefs(PROP_ID_clientSettings);
@@ -756,7 +756,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * Token设置: TOKEN_SETTINGS
      */
-    public java.lang.String getTokenSettings(){
+    public final java.lang.String getTokenSettings(){
          onPropGet(PROP_ID_tokenSettings);
          return _tokenSettings;
     }
@@ -764,7 +764,7 @@ public class _NopOauthRegisteredClient extends DynamicOrmEntity{
     /**
      * Token设置: TOKEN_SETTINGS
      */
-    public void setTokenSettings(java.lang.String value){
+    public final void setTokenSettings(java.lang.String value){
         if(onPropSet(PROP_ID_tokenSettings,value)){
             this._tokenSettings = value;
             internalClearRefs(PROP_ID_tokenSettings);
