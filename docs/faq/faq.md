@@ -474,6 +474,17 @@ public MyUserPageBean findAll(){
 class MyUserPageBean extends MyPageBean<User>{}
 ```
 
+### 40. logInfo没有打印出数据
+
+```javascript
+ logInfo("data",data);
+```
+logInfo函数的第一个参数是模板消息字符串，使用slf4j日志框架的语法，需要使用`{}`来表示变量占位
+
+```javascript
+logInfo("data: {}",data);
+```
+
 ## 部署问题
 
 ## 设计问题

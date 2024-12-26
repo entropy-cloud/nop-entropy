@@ -91,6 +91,16 @@ result = xpl('my:MyTag',1, x+3)
 | _             | 对应于Underscore类                      |
 | $config       | 对应于AppConfig类                       |
 
+## 扩展属性
+实现了IPropGetMissingHook和IPropSetMissingHook扩展接口，在脚本代码或者表达式语言中就可以访问动态实体属性时，形式与访问普通属性相同。
+
+```typescript
+entity.extField = 3;
+
+// 等价于
+entity.prop_set('extField',3);
+```
+
 ## 特定上下文变量
 
 * `codeGenerator`: `XCodeGenerator`类型，`precompile`目录下的代码生成模板中可用

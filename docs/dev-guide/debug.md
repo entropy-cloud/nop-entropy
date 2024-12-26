@@ -89,7 +89,9 @@ Nop平台启动时会使用类扫描机制查找所有`_vfs`目录下的虚拟�
  logInfo("nop.err.invalid-name:name={}",name);
 ```
 
-第一个参数必须是静态字符串，不允许"sss"+yyy这种形式，从而也避免了log注入攻击。
+第一个参数必须是静态字符串，不允许"sss"+yyy这种形式，从而也避免了log注入攻击。注意第一个参数使用了slf4j框架的日志消息模板语法，必须通过`{}`来表示变量占位。
+
+日志函数的具体实现参见 `LogFunctions.java`和`LogHelper.java`。
 
 ### 2. 任意对象调用$函数都会导致打印调试语句
 
@@ -207,6 +209,18 @@ nop-config模块负责从多个配置来源收集配置信息，并按照优先�
 
 `/p/DevDoc__graphql`
 返回graphql定义
+
+### 6. 调试模型合并过程
+
+在  `x:gen-extends`或者 `x:post-extends`段中增加日志输出代码或者通过扩展属性来输出调试信息。
+
+```xml
+<orm>
+  <x:gen-extends>
+    <orm ext:time="${now()}" xgen:x:dump="true" />
+  </x:gen-extends>
+</orm>
+```
 
 ## 自动化测试
 
