@@ -92,6 +92,13 @@ public abstract class OrmEntity implements IOrmEntity {
      */
     private Map<String, Object> _t;
 
+    /**
+     * 实体必须是指针相等，不允许重载equals函数
+     */
+    public final boolean equals(Object obj) {
+        return this == obj;
+    }
+
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append(getClass().getSimpleName());
