@@ -40,7 +40,7 @@ public enum MessageStatus implements Serializable {
     /**
      * 其他内容
      */
-    UNKNOW(9),
+    OTHER(9),
     ;
     private int value;
 

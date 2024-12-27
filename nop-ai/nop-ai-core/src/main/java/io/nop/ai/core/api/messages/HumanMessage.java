@@ -15,6 +15,10 @@
  */
 package io.nop.ai.core.api.messages;
 
+import io.nop.ai.core.AiCoreConstants;
+import io.nop.api.core.annotations.data.DataBean;
+
+@DataBean
 public class HumanMessage extends AbstractTextMessage {
     private String imageUrl;
 
@@ -23,5 +27,10 @@ public class HumanMessage extends AbstractTextMessage {
 
     public HumanMessage(String content) {
         setContent(content);
+    }
+
+    @Override
+    public String getRole() {
+        return AiCoreConstants.ROLE_USER;
     }
 }

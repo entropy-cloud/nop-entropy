@@ -1,8 +1,7 @@
 package io.nop.ai.core.api.messages;
 
-public class AbstractTextMessage extends Message{
-
-    protected String content;
+public abstract class AbstractTextMessage extends Message {
+    private String content;
 
     public String getContent() {
         return content;

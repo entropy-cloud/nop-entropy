@@ -383,7 +383,7 @@ public class OrmEntityCopier {
             }
         }
 
-        // 删除没有在src集合中出现的条目
+        // 删除没有在src集合中出现的条目。所有需要保留的条目应该都在ret集合中。这里clear会导致不在ret集合中的条目会被删除
         if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_DELETE))
             refSet.clear();
 

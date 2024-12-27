@@ -7,13 +7,32 @@
  */
 package io.nop.ai.core.api.chat;
 
-import io.nop.ai.core.api.messages.AiMessage;
+import io.nop.ai.core.api.messages.AiResultMessage;
+import io.nop.ai.core.api.messages.Message;
 import io.nop.ai.core.api.messages.Prompt;
+import io.nop.api.core.util.FutureHelper;
+import io.nop.api.core.util.ICancelToken;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 public interface IChatSession extends AutoCloseable {
     String getSessionId();
 
-    CompletionStage<AiMessage> sendChatAsync(Prompt prompt, ChatOptions options);
+    List<Message> getActiveHistoryMessages();
+
+    void disableMessages(Collection<String> messageIds);
+
+    void addMessage(Message message);
+
+    void addMessages(Collection<Message> messages);
+
+    Prompt newPrompt(boolean includeHistory);
+
+    CompletionStage<AiResultMessage> sendChatAsync(Prompt prompt, ICancelToken cancelToken);
+
+    default AiResultMessage sendChat(Prompt prompt, ICancelToken cancelToken) {
+        return FutureHelper.syncGet(sendChatAsync(prompt, cancelToken));
+    }
 }

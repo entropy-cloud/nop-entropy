@@ -18,7 +18,17 @@ package io.nop.ai.core.api.messages;
 import io.nop.ai.core.api.support.Metadata;
 
 public abstract class Message extends Metadata {
+    private String messageId;
 
+    public String getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(String messageId) {
+        this.messageId = messageId;
+    }
+
+    public abstract String getRole();
 
     public abstract Object getMessageContent();
 

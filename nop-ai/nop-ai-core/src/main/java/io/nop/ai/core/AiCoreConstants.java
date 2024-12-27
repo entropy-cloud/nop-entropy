@@ -11,4 +11,6 @@ public interface AiCoreConstants {
     String ROLE_USER = "user";
 
     String ROLE_SYSTEM = "system";
+
+    String ROLE_ASSISTANT = "assistant";
 }

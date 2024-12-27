@@ -7,10 +7,8 @@
  */
 package io.nop.ai.core.api.chat;
 
-import io.nop.ai.core.api.messages.Prompt;
-
 public interface IChatSessionFactory {
-    IChatSession newSession(Prompt prompt);
+    IChatSession newSession(ChatOptions options);
 
     IChatSession getSession(String sessionId);
 }

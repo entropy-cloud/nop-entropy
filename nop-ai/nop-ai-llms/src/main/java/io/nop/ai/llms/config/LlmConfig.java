@@ -25,11 +25,9 @@ public class LlmConfig implements Serializable {
 
     private String model;
 
-    private String endpoint;
+    private String baseUrl;
 
     private String apiKey;
-
-    private String apiSecret;
 
     private boolean debug;
 
@@ -49,12 +47,12 @@ public class LlmConfig implements Serializable {
         this.model = model;
     }
 
-    public String getEndpoint() {
-        return endpoint;
+    public String getBaseUrl() {
+        return baseUrl;
     }
 
-    public void setEndpoint(String endpoint) {
-        this.endpoint = endpoint;
+    public void setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
     }
 
     public String getApiKey() {
@@ -63,13 +61,5 @@ public class LlmConfig implements Serializable {
 
     public void setApiKey(String apiKey) {
         this.apiKey = apiKey;
-    }
-
-    public String getApiSecret() {
-        return apiSecret;
-    }
-
-    public void setApiSecret(String apiSecret) {
-        this.apiSecret = apiSecret;
     }
 }

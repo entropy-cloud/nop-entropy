@@ -16,7 +16,11 @@
 package io.nop.ai.core.api.messages;
 
 
-public class AiMessage extends AbstractTextMessage {
+import io.nop.ai.core.AiCoreConstants;
+import io.nop.api.core.annotations.data.DataBean;
+
+@DataBean
+public class AiResultMessage extends AbstractTextMessage {
 
     private Integer index;
     private MessageStatus status;
@@ -79,14 +83,19 @@ public class AiMessage extends AbstractTextMessage {
     }
 
     @Override
+    public String getRole() {
+        return AiCoreConstants.ROLE_ASSISTANT;
+    }
+
+    @Override
     public String toString() {
         return "AiMessage{" +
-            "index=" + index +
-            ", status=" + status +
-            ", totalTokens=" + totalTokens +
-            ", fullContent='" + fullContent + '\'' +
-            ", content='" + content + '\'' +
-            ", metadataMap=" + metadataMap +
-            '}';
+                "index=" + index +
+                ", status=" + status +
+                ", totalTokens=" + totalTokens +
+                ", fullContent='" + fullContent + '\'' +
+                ", content='" + getContent() + '\'' +
+                ", metadataMap=" + metadataMap +
+                '}';
     }
 }

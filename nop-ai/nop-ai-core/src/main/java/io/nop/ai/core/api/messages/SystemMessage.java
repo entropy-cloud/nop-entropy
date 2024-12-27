@@ -15,14 +15,21 @@
  */
 package io.nop.ai.core.api.messages;
 
+import io.nop.ai.core.AiCoreConstants;
+import io.nop.api.core.annotations.data.DataBean;
+
+@DataBean
 public class SystemMessage extends AbstractTextMessage {
 
     public SystemMessage() {
     }
 
     public SystemMessage(String content) {
-        this.content = content;
+        this.setContent(content);
     }
 
-
+    @Override
+    public String getRole() {
+        return AiCoreConstants.ROLE_SYSTEM;
+    }
 }
