@@ -362,8 +362,10 @@ public class OrmEntityCopier {
                             action = BizConstants.METHOD_SAVE;
                         } else {
                             // 如果明确配置了不允许更新集合中的元素
-                            if (chgType != null && !chgType.contains(DaoConstants.CHANGE_TYPE_UPDATE))
+                            if (chgType != null && !chgType.contains(DaoConstants.CHANGE_TYPE_UPDATE)) {
+                                ret.add(refEntity); // 不允许修改也需要记录到集合中，否则会被自动删除
                                 continue;
+                            }
                             action = BizConstants.METHOD_UPDATE;
                         }
                         checkRefEntity(refEntity, item, null, null);
