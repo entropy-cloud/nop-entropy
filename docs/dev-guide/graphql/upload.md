@@ -236,6 +236,11 @@ IResource resource = fileStore.getFileResource(fileId, getBizObjName(), objId, N
 * nop.file.upload-url 全局指定的上传文件端点，缺省为/f/upload
 * nop.file.upload.max-size 全局指定的上传文件大小限制。每个prop上指定的ui:maxUploadSize不能超过这个值，实际起作用的是min(prop.uploadFileSize,global.uploadMaxSize)
 
+## 文件复制
+IOrmEntityFileStore提供了copyFile函数，可以根据指定fileId复制一份NopFileRecord记录，从而允许多个附件字段复用同一个文件存储。
+
+文件删除时可以调用IOrmEntityFileStore的detachFile函数。
+
 ## 集成Minio
 
 很多分布式存储都兼容Amazon的S3存储协议，例如阿里云OSS，腾讯云COS，七牛云，京东云，Minio等。

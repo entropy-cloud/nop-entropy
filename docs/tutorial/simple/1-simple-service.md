@@ -137,6 +137,7 @@ NopGraphQL仅使用了`/graphql`和`/r/{operationName}`等少数几个Http端点
 1. 我们可以通过`/r/Demo__hello?message=abc`这种REST接口形式调用DemoBizModel类中的hello方法
 2. 也可以通过`query{ Demo__hello(message:'abc') }` 这种GraphQL请求来访问同一个服务函数
 3. 如果引入了`nop-rpc-grpc`模块依赖，NopGraphQL引擎启动的时候还会自动生成如下proto服务定义，使得我们可以通过grpc来访问这个服务函数
+4. 使用`/r/{bizObjName}_{bizAction}`来调用服务函数时，服务端的返回类型是固定的ApiResponse。如果希望直接返回原始类型，而不用ApiResponse包裹，可以使用`/p/{bizObjName}_{bizAction}`调用。
 
 ```protobuf
 syntax = "proto3";
