@@ -130,6 +130,12 @@ public class TestSimpleExprParser {
         assertEquals("4", action.invoke(scope));
     }
 
+    @Test
+    public void testDefaultValue() {
+        String expr = "NULL.$toBoolean(true)";
+        assertEquals(true, eval(expr));
+    }
+
     String test(int value) {
         return String.valueOf(value + 1);
     }

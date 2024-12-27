@@ -18,10 +18,24 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: addable
+     * 
+     */
+    private java.lang.Boolean _addable ;
+    
+    /**
+     *  
      * xml name: buttonLabel
      * 如果不为空，则表示使用弹出页面显示。
      */
     private java.lang.String _buttonLabel ;
+    
+    /**
+     *  
+     * xml name: editable
+     * 
+     */
+    private java.lang.Boolean _editable ;
     
     /**
      *  
@@ -54,6 +68,32 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
     private java.lang.String _path ;
     
     /**
+     *  
+     * xml name: removable
+     * 
+     */
+    private java.lang.Boolean _removable ;
+    
+    /**
+     * 
+     * xml name: addable
+     *  
+     */
+    
+    public java.lang.Boolean getAddable(){
+      return _addable;
+    }
+
+    
+    public void setAddable(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._addable = value;
+           
+    }
+
+    
+    /**
      * 
      * xml name: buttonLabel
      *  如果不为空，则表示使用弹出页面显示。
@@ -68,6 +108,25 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._buttonLabel = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: editable
+     *  
+     */
+    
+    public java.lang.Boolean getEditable(){
+      return _editable;
+    }
+
+    
+    public void setEditable(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._editable = value;
            
     }
 
@@ -150,6 +209,25 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
     }
 
     
+    /**
+     * 
+     * xml name: removable
+     *  
+     */
+    
+    public java.lang.Boolean getRemovable(){
+      return _removable;
+    }
+
+    
+    public void setRemovable(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._removable = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -165,11 +243,14 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("addable",this.getAddable());
         out.putNotNull("buttonLabel",this.getButtonLabel());
+        out.putNotNull("editable",this.getEditable());
         out.putNotNull("form",this.getForm());
         out.putNotNull("grid",this.getGrid());
         out.putNotNull("page",this.getPage());
         out.putNotNull("path",this.getPath());
+        out.putNotNull("removable",this.getRemovable());
     }
 
     public UiRefViewModel cloneInstance(){
@@ -181,11 +262,14 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
     protected void copyTo(UiRefViewModel instance){
         super.copyTo(instance);
         
+        instance.setAddable(this.getAddable());
         instance.setButtonLabel(this.getButtonLabel());
+        instance.setEditable(this.getEditable());
         instance.setForm(this.getForm());
         instance.setGrid(this.getGrid());
         instance.setPage(this.getPage());
         instance.setPath(this.getPath());
+        instance.setRemovable(this.getRemovable());
     }
 
     protected UiRefViewModel newInstance(){

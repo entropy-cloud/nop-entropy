@@ -542,6 +542,9 @@
                                     <otherwise>
                                         <thisLib:GenInputTable view="${refView.path}" grid="${refView.grid}"
                                                                editMode="${editMode}"
+                                                               addable="${refView.addable}"
+                                                               removable="${refView.removable}"
+                                                               editable="${refView.editable}"
                                                                xpl:return="genPage"/>
                                     </otherwise>
                                 </c:choose>
@@ -571,11 +574,17 @@
             <attr name="view" mandatory="true"/>
             <attr name="grid" mandatory="true"/>
             <attr name="editMode" optional="true"/>
+            <attr name="removable" optional="true" />
+            <attr name="addable" optional="true" />
+            <attr name="editable" optional="true" />
 
             <source>
                 <c:include src="/nop/web/xlib/web/init_grid_gen_scope.xpl"/>
                 <c:collect outputMode="xjson">
-                    <input-table removable="@:true" addable="@:true" editable="@:true" needConfirm="@:false" showIndex="@:true" affixRow="${gridModel.affixRow}">
+                    <input-table removable="${removable ?? gridModel['ui:removable'].$toBoolean() ?? true}"
+                                 addable="${addable ?? gridModel['ui:addable'].$toBoolean() ?? true}"
+                                 editable="${editable?? gridModel['ui:editable'].$toBoolean() ?? true}"
+                                 needConfirm="@:false" showIndex="@:true" affixRow="${gridModel.affixRow}">
                         <columns j:list="true">
                             <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" editMode="${editMode}"/>
                         </columns>

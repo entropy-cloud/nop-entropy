@@ -12,7 +12,8 @@
       affixHeader="boolean" checkOnItemClick="boolean" sortable="boolean"
       selectable="boolean" multiple="boolean"
       combineNum="int" combineFromIndex="int-or-string"
-      xdef:name="UiGridModel" xdef:bean-package="io.nop.xui.model"
+      ui:addable="boolean" ui:removable="boolean" ui:editable="boolean"
+      xdef:name="UiGridModel" xdef:bean-package="io.nop.xui.model" xmlns:ui="ui"
       xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef"
       xmlns:xdef="/nop/schema/xdef.xdef">
 

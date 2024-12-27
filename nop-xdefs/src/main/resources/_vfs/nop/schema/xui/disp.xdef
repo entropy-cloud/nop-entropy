@@ -37,7 +37,7 @@
     @buttonLabel 如果不为空，则表示使用弹出页面显示。
     -->
     <view path="v-path" page="string" grid="string" form="string" buttonLabel="string"
-          xdef:name="UiRefViewModel" />
+          xdef:name="UiRefViewModel" addable="boolean" removable="boolean" editable="boolean" />
 
     <!--
     @blank 是否打开新页面
