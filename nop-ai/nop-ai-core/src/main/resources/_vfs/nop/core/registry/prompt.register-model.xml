@@ -1,0 +1,9 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="prompt">
+
+    <loaders>
+        <xdsl-loader fileType="prompt.xml" schemaPath="/nop/schema/ai/prompt.xdef"/>
+        <xdsl-loader fileType="prompt.yaml" schemaPath="/nop/schema/ai/prompt.xdef"/>
+    </loaders>
+
+</model>

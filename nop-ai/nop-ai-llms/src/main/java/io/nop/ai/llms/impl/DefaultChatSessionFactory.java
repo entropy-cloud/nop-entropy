@@ -35,6 +35,11 @@ public class DefaultChatSessionFactory implements IChatSessionFactory, IChatServ
     }
 
     @Override
+    public String getModel() {
+        return llmConfig.getModel();
+    }
+
+    @Override
     public IChatSession newSession(ChatOptions options) {
         DefaultChatSession session = new DefaultChatSession(this);
         session.setSessionId(generateSessionId());

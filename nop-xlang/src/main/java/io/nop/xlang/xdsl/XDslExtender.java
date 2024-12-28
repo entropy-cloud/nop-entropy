@@ -14,9 +14,13 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.json.JObject;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.IXNodeTransformer;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceConstants;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.api.XLang;
@@ -311,7 +315,14 @@ public class XDslExtender {
     }
 
     private XDslSource loadSource(IXDefinition def, String path, IEvalScope genScope) {
-        XNode node = XModelInclude.instance().loadActiveNode(path);
+        XNode node;
+        if (path.endsWith(ResourceConstants.FILE_POSTFIX_YAML)) {
+            IResource resource = VirtualFileSystem.instance().getResource(path);
+            Object bean = JsonTool.parseBeanFromResource(resource, JObject.class, true);
+            node = DslModelHelper.dslModelToXNode(def.resourcePath(), bean);
+        } else {
+            node = XModelInclude.instance().loadActiveNode(path);
+        }
         node = transformNode(node, def, genScope);
         return buildSource(def, node, node.resourcePath(), genScope);
     }

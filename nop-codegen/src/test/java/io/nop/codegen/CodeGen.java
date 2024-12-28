@@ -54,6 +54,9 @@ public class CodeGen {
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-auth/nop-auth-core"), "", false);
 
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-dbtool/nop-dbtool-exp"), "", false);
+
+            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-ai/nop-ai-core"), "", false);
+
             // System.setProperty("dryRun","true");
             // CodeGenTask.main(new String[]{new File("projectDir","../nop-graphql").getAbsolutePath()});
         } finally {

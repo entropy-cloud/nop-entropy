@@ -8,6 +8,8 @@
 package io.nop.ai.core.api.chat;
 
 public interface IChatSessionFactory {
+    String getModel();
+
     IChatSession newSession(ChatOptions options);
 
     IChatSession getSession(String sessionId);
