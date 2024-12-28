@@ -45,7 +45,7 @@
         -->
         <col id="!string" xdef:name="UiGridColModel" groupName="string" fixed="string"
              readonly="!boolean=false" hidden="!boolean=false" mandatory="!boolean=false" breakpoint="string"
-             sortable="!boolean=false" align="string" xdef:ref="disp.xdef"
+             sortable="!boolean=false" align="string" xdef:ref="disp.xdef" ui:number="boolean"
         >
             <labelClassName xdef:value="string"/>
         </col>
