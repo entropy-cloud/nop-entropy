@@ -43,13 +43,13 @@
                 <col id="loginTime" mandatory="true" sortable="true"/>
 
                 <!--登录方式-->
-                <col id="loginType" mandatory="true" sortable="true"/>
+                <col id="loginType" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--退出时间-->
                 <col id="logoutTime" sortable="true"/>
 
                 <!--退出方式-->
-                <col id="logoutType" mandatory="true" sortable="true"/>
+                <col id="logoutType" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--退出操作人-->
                 <col id="logoutBy" sortable="true"/>

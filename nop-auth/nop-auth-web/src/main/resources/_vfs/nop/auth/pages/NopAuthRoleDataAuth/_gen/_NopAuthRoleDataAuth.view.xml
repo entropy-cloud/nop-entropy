@@ -25,7 +25,7 @@
                 <col id="bizObj" sortable="true"/>
 
                 <!--优先级-->
-                <col id="priority" mandatory="true" sortable="true"/>
+                <col id="priority" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--业务过滤条件-->
                 <col id="filterConfig" mandatory="true" sortable="true"/>

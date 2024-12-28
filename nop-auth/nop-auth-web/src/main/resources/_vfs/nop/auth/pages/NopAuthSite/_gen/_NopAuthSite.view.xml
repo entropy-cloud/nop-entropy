@@ -25,13 +25,13 @@
                 <col id="displayName" mandatory="true" sortable="true"/>
 
                 <!--排序-->
-                <col id="orderNo" mandatory="true" sortable="true"/>
+                <col id="orderNo" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--链接-->
                 <col id="url" sortable="true"/>
 
                 <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--扩展配置-->
                 <col id="extConfig" sortable="true"/>

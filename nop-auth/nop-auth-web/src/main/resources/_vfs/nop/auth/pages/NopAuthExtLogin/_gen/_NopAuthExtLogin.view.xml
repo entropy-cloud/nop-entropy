@@ -19,7 +19,7 @@
             <cols>
 
                 <!--登录类型-->
-                <col id="loginType" mandatory="true" sortable="true"/>
+                <col id="loginType" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--登录标识-->
                 <col id="extId" mandatory="true" sortable="true"/>

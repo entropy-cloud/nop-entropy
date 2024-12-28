@@ -25,7 +25,7 @@
                 <col id="parentId" sortable="true"/>
 
                 <!--排序-->
-                <col id="orderNum" sortable="true"/>
+                <col id="orderNum" ui:number="true" sortable="true"/>
 
                 <!--类型-->
                 <col id="deptType" sortable="true"/>

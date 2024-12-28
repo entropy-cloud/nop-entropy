@@ -28,7 +28,7 @@
                 <col id="displayName" mandatory="true" sortable="true"/>
 
                 <!--排序-->
-                <col id="orderNo" mandatory="true" sortable="true" x:abstract="true"/>
+                <col id="orderNo" mandatory="true" ui:number="true" sortable="true" x:abstract="true"/>
 
                 <!--资源类型-->
                 <col id="resourceType" mandatory="true" sortable="true"/>
@@ -67,7 +67,7 @@
                 <col id="depends" sortable="true" x:abstract="true"/>
 
                 <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--自动更新父节点的权限-->
                 <col id="authCascadeUp" sortable="true"/>

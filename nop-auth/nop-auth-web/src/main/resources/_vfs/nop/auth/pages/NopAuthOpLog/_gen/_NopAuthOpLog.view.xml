@@ -40,10 +40,10 @@
                 <col id="actionTime" mandatory="true" sortable="true"/>
 
                 <!--操作时长-->
-                <col id="usedTime" mandatory="true" sortable="true"/>
+                <col id="usedTime" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--操作状态-->
-                <col id="resultStatus" mandatory="true" sortable="true"/>
+                <col id="resultStatus" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--错误码-->
                 <col id="errorCode" sortable="true"/>

@@ -34,7 +34,7 @@
                 <col id="relDeptId" sortable="true" x:abstract="true"/>
 
                 <!--性别-->
-                <col id="gender" mandatory="true" sortable="true"/>
+                <col id="gender" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--邮件-->
                 <col id="email" sortable="true" x:abstract="true"/>
@@ -46,10 +46,10 @@
                 <col id="birthday" sortable="true" x:abstract="true"/>
 
                 <!--用户类型-->
-                <col id="userType" mandatory="true" sortable="true"/>
+                <col id="userType" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--用户状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--证件类型-->
                 <col id="idType" sortable="true" x:abstract="true"/>
