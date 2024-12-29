@@ -12,6 +12,7 @@ import io.nop.core.initialize.ICoreInitializer;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.store.DefaultVirtualFileSystem;
+import io.nop.core.resource.tenant.ResourceTenantManager;
 
 import static io.nop.core.CoreConstants.INITIALIZER_PRIORITY_REGISTER_VFS;
 
@@ -41,5 +42,7 @@ public class VirtualFileSystemInitializer implements ICoreInitializer {
             vfs = null;
             ModuleManager.instance().clear();
         }
+
+        ResourceTenantManager.instance().reset();
     }
 }

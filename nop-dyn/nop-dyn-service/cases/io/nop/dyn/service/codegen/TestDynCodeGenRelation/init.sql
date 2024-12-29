@@ -1,3 +1,7 @@
+drop table user_entity if exists;
+drop table role_entity if exists;
+drop table user_many_role if exists;
+
 CREATE TABLE USER_ENTITY(
                   SID VARCHAR(32)   COMMENT '主键ID' ,
                   USER_NAME VARCHAR(100)   COMMENT '用户名' ,

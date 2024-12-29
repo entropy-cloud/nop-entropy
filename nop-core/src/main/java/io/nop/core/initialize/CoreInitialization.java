@@ -234,6 +234,7 @@ public class CoreInitialization {
             ReflectionManager.instance().clearCache();
             GlobalCacheRegistry.instance().clearAllCache();
 
+
             int maxLevel = CFG_CORE_MAX_INITIALIZE_LEVEL.get();
             i++;
             for (; i < n; i++) {

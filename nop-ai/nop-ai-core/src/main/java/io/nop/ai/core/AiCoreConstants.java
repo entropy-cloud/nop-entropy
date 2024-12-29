@@ -14,6 +14,8 @@ public interface AiCoreConstants {
 
     String ROLE_ASSISTANT = "assistant";
 
+    String ROLE_TOOL = "tool";
+
     String POSTFIX_PROMPT_XML = ".prompt.xml";
 
     String POSTFIX_PROMPT_YAML = ".prompt.yaml";
