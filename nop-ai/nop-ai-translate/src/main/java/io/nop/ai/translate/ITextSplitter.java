@@ -1,8 +1,11 @@
 package io.nop.ai.translate;
 
+import io.nop.api.core.annotations.data.DataBean;
+
 import java.util.List;
 
 public interface ITextSplitter {
+    @DataBean
     class SplitChunk {
         private final String prolog;
         private final String content;

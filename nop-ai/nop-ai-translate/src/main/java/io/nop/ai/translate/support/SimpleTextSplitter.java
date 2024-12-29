@@ -23,7 +23,7 @@ public class SimpleTextSplitter implements ITextSplitter {
         do {
             index = collectOneChunk(parts, index, prologSize, maxContentSize, ret);
         } while (index > 0);
-        return List.of();
+        return ret;
     }
 
     int collectOneChunk(List<String> parts, int index, int prologSize, int maxContentSize, List<SplitChunk> chunks) {
@@ -31,20 +31,23 @@ public class SimpleTextSplitter implements ITextSplitter {
         for (int i = index, n = parts.size(); i < n; i++) {
             String line = parts.get(i);
             if (sb.length() + line.length() <= maxContentSize) {
-                if (sb.length() <= 0)
+                if (sb.length() > 0)
                     sb.append('\n');
                 sb.append(line);
             } else if (sb.length() > 0) {
-                chunks.add(new SplitChunk(getProlog(parts, i, prologSize), sb.toString()));
+                chunks.add(new SplitChunk(getProlog(parts, index, prologSize), sb.toString()));
                 sb.setLength(0);
                 return i;
             } else {
                 // 一行太长，直接分隔。
                 String part = getPart(line, maxContentSize);
                 parts.set(i, line.substring(part.length() + 1));
-                chunks.add(new SplitChunk(getProlog(parts, i, prologSize), part));
+                chunks.add(new SplitChunk(getProlog(parts, index, prologSize), part));
                 return i;
             }
+        }
+        if (sb.length() > 0) {
+            chunks.add(new SplitChunk(getProlog(parts, index, prologSize), sb.toString()));
         }
         return -1;
     }
@@ -72,6 +75,7 @@ public class SimpleTextSplitter implements ITextSplitter {
             String line = parts.get(i);
             if (size + line.length() <= prologSize) {
                 lines.add(line);
+                size += line.length() + 1;
             } else {
                 int diff = size + line.length() - prologSize;
                 lines.add(line.substring(line.length() - diff, line.length()));
