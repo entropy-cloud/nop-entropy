@@ -4,6 +4,8 @@ import io.nop.commons.util.StringHelper;
 import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.OrmModelConstants;
 
+import java.util.Set;
+
 public class OrmMappingPropInfo {
     private final String propName;
     private final String displayName;
@@ -14,11 +16,12 @@ public class OrmMappingPropInfo {
     private final String mappingIdProp;
     private final IEntityRelationModel refPropInMappingTable;
     private final String bizModuleId;
+    private Set<String> tagSet;
 
     public OrmMappingPropInfo(String bizObjName, String propName,
                               String displayName, String enDisplayName, boolean toMany,
                               String mappingLabelProp, String mappingIdProp, IEntityRelationModel refPropInMappingTable,
-                              String bizModuleId) {
+                              String bizModuleId, Set<String> tagSet) {
         this.bizObjName = bizObjName;
         this.displayName = displayName;
         this.enDisplayName = enDisplayName;
@@ -28,6 +31,11 @@ public class OrmMappingPropInfo {
         this.mappingIdProp = mappingIdProp;
         this.refPropInMappingTable = refPropInMappingTable;
         this.bizModuleId = bizModuleId;
+        this.tagSet = tagSet;
+    }
+
+    public Set<String> getTagSet(){
+        return tagSet;
     }
 
     public IEntityRelationModel getRefPropInMappingTable() {

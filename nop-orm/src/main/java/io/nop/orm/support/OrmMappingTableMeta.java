@@ -1,5 +1,6 @@
 package io.nop.orm.support;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.orm.model.IEntityModel;
@@ -7,6 +8,7 @@ import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.OrmModelConstants;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * 专用于多对多关联的中间表MappingTable。
@@ -115,6 +117,14 @@ public class OrmMappingTableMeta {
         return displayName;
     }
 
+    public Set<String> getMappingTagSet1() {
+        return ConvertHelper.toCsvSet(mappingTable.prop_get(OrmModelConstants.ORM_MAPPING_TAG_SET_1));
+    }
+
+    public Set<String> getMappingTagSet2() {
+        return ConvertHelper.toCsvSet(mappingTable.prop_get(OrmModelConstants.ORM_MAPPING_TAG_SET_2));
+    }
+
     public String getBizModuleId1() {
         IEntityModel refEntityModel1 = refProp1.getRefEntityModel();
         return (String) refEntityModel1.prop_get(OrmModelConstants.EXT_BIZ_MODULE_ID);
@@ -129,14 +139,14 @@ public class OrmMappingTableMeta {
         return new OrmMappingPropInfo(getRefBizObjName2(), getMappingPropName1(),
                 getMappingPropDisplayName1(), getMappingPropEnDisplayName1(),
                 !isOneToOne(), getMappingPropName1_label(), getMappingPropName1_ids(),
-                refProp2, getBizModuleId1());
+                refProp2, getBizModuleId1(), getMappingTagSet1());
     }
 
     public OrmMappingPropInfo getMappingPropInfo2() {
         return new OrmMappingPropInfo(getRefBizObjName1(), getMappingPropName2(),
                 getMappingPropDisplayName2(), getMappingPropEnDisplayName2(),
                 !isOneToOne(), getMappingPropName2_label(), getMappingPropName2_ids(),
-                refProp1, getBizModuleId2());
+                refProp1, getBizModuleId2(), getMappingTagSet2());
     }
 
     public OrmMappingPropInfo getMappingPropInfo(IEntityRelationModel reverseRefProp) {

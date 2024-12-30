@@ -66,6 +66,8 @@ public class DynEntityMetaToOrmModel {
     private final boolean forceRealTable;
     private Map<String, MiddleEntityInfo> middleInfos = new HashMap<>();
 
+    private OrmModel ormModel;
+
     static final List<String> STD_PROPS = Arrays.asList(NopDynEntity.PROP_NAME_version,
             NopDynEntity.PROP_NAME_createdBy, NopDynEntity.PROP_NAME_createTime,
             NopDynEntity.PROP_NAME_updatedBy, NopDynEntity.PROP_NAME_updateTime);
@@ -116,7 +118,9 @@ public class DynEntityMetaToOrmModel {
 
     public OrmModel transformModule(NopDynModule module) {
         OrmModel model = new OrmModel();
+        this.ormModel = model;
         model.setDomains(toOrmDomains(getDomains(module)));
+
         if (module.getBasePackageName() != null) {
             model.prop_set(OrmModelConstants.EXT_BASE_PACKAGE_NAME, module.getBasePackageName());
         }
@@ -237,6 +241,20 @@ public class DynEntityMetaToOrmModel {
             col = ((OrmColumnModel) stdCol).cloneInstance();
             col.setDomain(null);
             entityModel.addColumn(col);
+
+            String domain = stdCol.getDomain();
+            if (domain != null) {
+                OrmDomainModel domainModel = ormModel.getDomain(domain);
+                if (domainModel == null) {
+                    domainModel = new OrmDomainModel();
+                    domainModel.setName(domain);
+                    domainModel.setDisplayName(domain);
+                    domainModel.setStdSqlType(col.getStdSqlType());
+                    domainModel.setPrecision(col.getPrecision());
+                    domainModel.setScale(col.getScale());
+                    ormModel.addDomain(domainModel);
+                }
+            }
         }
         return col;
     }
@@ -320,7 +338,7 @@ public class DynEntityMetaToOrmModel {
                             .param(ARG_PROP_MAPPING, propMeta.getDynPropMapping());
                 OrmColumnModel baseCol = ((OrmColumnModel) col).cloneInstance();
                 entityModel.addColumn(baseCol);
-                if(!propMeta.getPropName().equals(propMeta.getDynPropMapping())) {
+                if (!propMeta.getPropName().equals(propMeta.getDynPropMapping())) {
                     // 列本身声明为内部字段，对外暴露的只有alias
                     baseCol.setTagSet(TagsHelper.add(baseCol.getTagSet(), OrmModelConstants.TAG_SYS));
                     entityModel.addAlias(toAliasModel(propMeta));
@@ -405,20 +423,20 @@ public class DynEntityMetaToOrmModel {
 
         NopDynDomain domain = propMeta.getDomain();
         if (domain != null) {
-            sqlType = toStdSqlType(propMeta.getStdSqlType());
+            sqlType = toStdSqlType(domain.getStdSqlType());
             ret.setStdSqlType(sqlType);
 
             if (sqlType.isAllowPrecision()) {
-                if (propMeta.getPrecision() != null) {
-                    ret.setPrecision(propMeta.getPrecision());
+                if (domain.getPrecision() != null) {
+                    ret.setPrecision(domain.getPrecision());
                 } else {
                     ret.setPrecision(1);
                 }
             }
 
             if (sqlType.isAllowScale()) {
-                if (propMeta.getScale() != null) {
-                    ret.setScale(propMeta.getScale());
+                if (domain.getScale() != null) {
+                    ret.setScale(domain.getScale());
                 } else {
                     ret.setScale(0);
                 }
@@ -506,7 +524,7 @@ public class DynEntityMetaToOrmModel {
 
             if (useShareTable) {
                 for (IColumnModel col : dynRelationModel.getColumns()) {
-                    middleEntity.addColumn(((OrmColumnModel) col).cloneInstance());
+                    forceAddCol(middleEntity, col);
                 }
             } else {
                 forceAddCol(middleEntity, dynRelationModel.getColumn(NopDynEntityRelation.PROP_NAME_sid, false));
@@ -529,6 +547,22 @@ public class DynEntityMetaToOrmModel {
 
             if (relB != null)
                 addToManyRelation(middleInfo.entityModelB, middleName, relB, NopDynEntityRelation.PROP_NAME_entityId2);
+
+
+            middleEntity.prop_set(OrmModelConstants.ORM_MAPPING_PROP_NAME1, relA.getRelationName());
+            middleEntity.prop_set(OrmModelConstants.ORM_MAPPING_PROP_DISPLAY_NAME1, relA.getRelationDisplayName());
+
+            if (relA.getTagSet() != null && !relA.getTagSet().isEmpty())
+                middleEntity.prop_set(OrmModelConstants.ORM_MAPPING_TAG_SET_1, TagsHelper.toString(relA.getTagSet()));
+
+            if (relB != null) {
+                middleEntity.prop_set(OrmModelConstants.ORM_MAPPING_PROP_NAME2, relB.getRelationName());
+                middleEntity.prop_set(OrmModelConstants.ORM_MAPPING_PROP_DISPLAY_NAME2, relB.getRelationDisplayName());
+
+                if (relB.getTagSet() != null && !relB.getTagSet().isEmpty())
+                    middleEntity.prop_set(OrmModelConstants.ORM_MAPPING_TAG_SET_2, TagsHelper.toString(relB.getTagSet()));
+            }
+
         });
 
     }

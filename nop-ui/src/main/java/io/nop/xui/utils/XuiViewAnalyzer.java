@@ -225,7 +225,7 @@ public class XuiViewAnalyzer {
     }
 
     private String getEditMode(IUiDisplayMeta dispMeta, String defaultEditMode) {
-        if(dispMeta == null)
+        if (dispMeta == null)
             return defaultEditMode;
 
         String editMode = dispMeta.getEditMode();
@@ -356,9 +356,12 @@ public class XuiViewAnalyzer {
                 continue;
 
             String prop = StringHelper.firstPart(depend, '.');
-            if (objMeta != null && objMeta.getProp(prop) == null) {
+            IObjPropMeta propMeta = objMeta == null ? null : objMeta.getProp(prop);
+            if (propMeta == null) {
                 onMissing.accept(depend);
             } else {
+                if (!propMeta.isPublished())
+                    continue;
                 action.accept(depend);
             }
         }

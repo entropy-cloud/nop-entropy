@@ -144,6 +144,9 @@ public interface OrmModelConstants {
 
     String ORM_MAPPING_PROP_EN_DISPLAY_NAME2 = "i18n-en:mappingPropDisplayName2";
 
+    String ORM_MAPPING_TAG_SET_1 = "orm:mappingTagSet1";
+    String ORM_MAPPING_TAG_SET_2 = "orm:mappingTagSet2";
+
     String VAR_ENTITY = "entity";
 
     String VAR_VALUE = "value";

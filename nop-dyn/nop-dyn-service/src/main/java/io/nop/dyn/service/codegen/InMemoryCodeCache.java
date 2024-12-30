@@ -156,6 +156,10 @@ public class InMemoryCodeCache {
             dynBizModels.put(bizObjName, bizModel);
         }
 
+        for (String bizObjName : dynBizModels.keySet()) {
+            this.changeListeners.forEach(listener -> listener.onBizObjChanged(bizObjName));
+        }
+
         for (String oldName : oldNames) {
             if (!dynBizModels.containsKey(oldName))
                 this.changeListeners.forEach(listener -> listener.onBizObjRemoved(oldName));

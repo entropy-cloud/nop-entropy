@@ -7,6 +7,7 @@
  */
 package io.nop.dyn.service.codegen;
 
+import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.Description;
@@ -17,6 +18,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.commons.type.StdSqlType;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.core.unittest.BaseTestCase;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dyn.dao.NopDynDaoConstants;
@@ -25,12 +27,12 @@ import io.nop.dyn.dao.entity.NopDynEntityRelationMeta;
 import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.dyn.dao.entity.NopDynPropMeta;
 import io.nop.graphql.core.IGraphQLExecutionContext;
+import io.nop.graphql.core.ast.GraphQLDocument;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.model.OrmRelationType;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Iterator;
@@ -39,7 +41,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
-@Disabled
 @NopTestConfig(localDb = true, initDatabaseSchema = true)
 public class TestDynCodeGenRelation extends JunitAutoTestCase {
 
@@ -67,6 +68,7 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
     }
 
     @Test
+    @EnableSnapshot
     @Description("一对一是一种特殊形式的多对一，可以通过设置唯一约束来实现")
     public void testOneToOneRelation() {
         this.testManyToOneRelation();
@@ -99,6 +101,8 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
 
         testGen(OrmRelationType.o2m);
 
+        traceGraphQL();
+
         ApiRequest<?> request = new ApiRequest<>();
         request.setSelection(FieldSelectionBean.fromProp("roleKey", "roleName", "roleUsers.userName"));
         IGraphQLExecutionContext gqlContext = graphQLEngine.newRpcContext(GraphQLOperationType.query,
@@ -111,14 +115,22 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         assertEquals(1, items.size());
     }
 
-    @EnableSnapshot(saveOutput = true)
+    void traceGraphQL() {
+        GraphQLDocument doc = graphQLEngine.getSchemaLoader().getGraphQLDocument();
+        System.out.println("graphql=\n" + doc.toSource());
+    }
+
+    @EnableSnapshot
     @Test
     public void testManyToManyRelation() {
+        BaseTestCase.forceStackTrace();
+        BaseTestCase.setTestConfig(ApiConfigs.CFG_DEBUG, true);
 
         testGen(OrmRelationType.m2m);
+        traceGraphQL();
 
         ApiRequest<?> request = new ApiRequest<>();
-        request.setSelection(FieldSelectionBean.fromProp("roleKey", "roleName", "roleUsers.userId"));
+        request.setSelection(FieldSelectionBean.fromProp("roleKey", "roleName", "roleUsers.sid"));
         IGraphQLExecutionContext gqlContext = graphQLEngine.newRpcContext(GraphQLOperationType.query,
                 "RoleEntity__findList",
                 request);
@@ -129,7 +141,15 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         assertEquals(1, items.size());
     }
 
+    private void deleteTable() {
+        NopDynModule example = new NopDynModule();
+        example.setModuleName("relation-demo");
+        daoProvider.daoFor(NopDynModule.class).deleteByExample(example);
+    }
+
     private void saveRelModule(OrmRelationType ormRelationType) {
+        deleteTable();
+
         NopDynModule module = new NopDynModule();
         module.setModuleName("relation-demo");
         module.setDisplayName("Demo Module");
@@ -249,10 +269,10 @@ public class TestDynCodeGenRelation extends JunitAutoTestCase {
         module.getEntityMetas().remove(middleEntity);
 
         addRelation(OrmRelationType.m2m, "userRoles", "测试用户对多对关联",
-                "sid", "userId", userEntity, roleEntity, "USER_MANY_ROLE");
+                "sid", "userId", userEntity, roleEntity, null);
 
         addRelation(OrmRelationType.m2m, "roleUsers", "测试角色对多对关联",
-                "sid", "roleId", roleEntity, userEntity, "USER_MANY_ROLE");
+                "sid", "roleId", roleEntity, userEntity, null);
     }
 
     private NopDynPropMeta addProp(NopDynEntityMeta entityMeta, String propName, StdSqlType sqlType, int precision) {

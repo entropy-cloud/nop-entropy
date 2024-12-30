@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
@@ -94,6 +95,11 @@ public class DynCodeGen implements IResourceTenantInitializer, IDynamicBizModelP
         tenantCache.clear();
     }
 
+    @Override
+    public Set<String> getBizObjNames() {
+        return getCodeCache().getDynBizModels().keySet();
+    }
+
     public boolean isUseTenant() {
         return useTenant;
     }
@@ -113,7 +119,7 @@ public class DynCodeGen implements IResourceTenantInitializer, IDynamicBizModelP
 
     public InMemoryCodeCache getCodeCache() {
         String tenantId = ContextProvider.currentTenantId();
-        if (StringHelper.isEmpty(tenantId) || !isUseTenant()){
+        if (StringHelper.isEmpty(tenantId) || !isUseTenant()) {
             return codeCache;
         }
         return tenantCache.get(tenantId).updateAndGet(k -> {
