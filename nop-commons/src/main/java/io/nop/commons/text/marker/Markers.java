@@ -155,4 +155,59 @@ public class Markers {
             return new ValueMarker(textBegin, textEnd, name, value, masked);
         }
     }
+
+    public static class ParamMarker extends Marker {
+
+        private static final long serialVersionUID = -8974432479354034511L;
+
+        private final String name;
+        private final boolean masked;
+
+        public ParamMarker(int textStart, int textEnd, String name, boolean masked) {
+            super(textStart, textEnd);
+            this.name = name;
+            this.masked = masked;
+        }
+
+        public ParamMarker(int pos, boolean masked) {
+            this(pos, pos + 1, null, masked);
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public final ParamMarker offset(int offset) {
+            if (offset == 0)
+                return this;
+            return newParamMarker(textBegin + offset, textEnd + offset);
+        }
+
+        protected ParamMarker newParamMarker(int begin, int end) {
+            return new ParamMarker(begin, end, name, masked);
+        }
+
+        protected ValueMarker newValueMarker(int begin, int end, Object value) {
+            return new ValueMarker(begin, end, name, value, masked);
+        }
+
+        public boolean isMasked() {
+            return masked;
+        }
+
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            return appendPos(sb).append(':').append("?").toString();
+        }
+
+        public final ValueMarker changeValue(Object value) {
+            return newValueMarker(textBegin, textEnd, value);
+        }
+
+        public final ValueMarker changeValue(int offset, Object value) {
+            return newValueMarker(textBegin + offset, textEnd + offset, value);
+        }
+    }
+
 }

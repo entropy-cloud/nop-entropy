@@ -21,6 +21,7 @@ import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.lang.sql.SyntaxMarker;
+import io.nop.core.lang.sql.TypedParamMarker;
 import io.nop.core.lang.sql.TypedValueMarker;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.lock.LockOption;
@@ -176,7 +177,7 @@ public class GenSqlHelper {
             sb.and();
             IColumnModel col = entityModel.getColumnByPropId(entityModel.getVersionPropId(), false);
             params.add(col.getPropId());
-            appendEq(sb, dialect, null, col, binders[col.getPropId()], null);
+            appendEqMarker(sb, dialect, null, col, binders[col.getPropId()]);
         }
         return new EntitySQL(sb.end(), ImmutableIntArray.EMPTY, params);
     }
@@ -226,7 +227,7 @@ public class GenSqlHelper {
             if (col.getPropId() != entityModel.getNopRevBeginVerPropId()) {
                 sb.and();
                 params.add(col.getPropId());
-                appendEq(sb, dialect, null, col, binders[col.getPropId()], null);
+                appendEqMarker(sb, dialect, null, col, binders[col.getPropId()]);
             }
         }
         if (entityModel.isUseTenant()) {
@@ -234,7 +235,7 @@ public class GenSqlHelper {
             if (!col.isPrimary()) {
                 sb.and();
                 params.add(col.getPropId());
-                appendEq(sb, dialect, null, col, binders[col.getPropId()], null);
+                appendEqMarker(sb, dialect, null, col, binders[col.getPropId()]);
             }
         }
         return new EntitySQL(sb.end(), propIds, params);
@@ -269,7 +270,7 @@ public class GenSqlHelper {
         for (IColumnModel col : entityModel.getColumns()) {
             if (col.isInsertable()) {
                 params.add(col.getPropId());
-                sb.typeParam(binders[col.getPropId()], null, col.containsTag(OrmConstants.TAG_MASKED));
+                sb.typeParamMarker(binders[col.getPropId()], col.containsTag(OrmConstants.TAG_MASKED));
                 if (colCount % 5 == 4)
                     sb.append('\n');
                 colCount++;
@@ -309,7 +310,7 @@ public class GenSqlHelper {
                         .param(ARG_PROP_NAME, col.getName());
 
             params.add(propId);
-            appendEq(sb, dialect, null, col, binders[propId], null);
+            appendEqMarker(sb, dialect, null, col, binders[propId]);
             sb.append(',');
         }
 
@@ -322,7 +323,7 @@ public class GenSqlHelper {
             sb.and();
             IColumnModel col = entityModel.getColumnByPropId(entityModel.getVersionPropId(), false);
             params.add(col.getPropId());
-            appendEq(sb, dialect, null, col, binders[col.getPropId()], null);
+            appendEqMarker(sb, dialect, null, col, binders[col.getPropId()]);
         }
         return new EntitySQL(sb.end(), propIds, params);
     }
@@ -362,7 +363,7 @@ public class GenSqlHelper {
                 appendCol(sb, dialect, null, rightCol);
                 sb.append('=');
                 if (join.getLeftPropModel() != null) {
-                    sb.typeParam(binders[join.getRightPropModel().getColumnPropId()], null,
+                    sb.typeParamMarker(binders[join.getRightPropModel().getColumnPropId()],
                             rightCol.containsTag(OrmConstants.TAG_MASKED));
                     paramPropIds.add(join.getLeftPropModel().getColumnPropId());
                 } else {
@@ -570,21 +571,21 @@ public class GenSqlHelper {
             sb.querySpace(entity.orm_entityModel().getQuerySpace());
 
         sb.changeMarker(marker -> {
-            if (marker instanceof TypedValueMarker) {
+            if (marker instanceof TypedParamMarker) {
                 int propId = paramPropIds.get(index.getAndIncrement());
                 Object value = entity.orm_propValue(propId);
-                TypedValueMarker typedMarker = (TypedValueMarker) marker;
+                TypedParamMarker typedMarker = (TypedParamMarker) marker;
                 // 数据库中的数据类型可能与java属性的类型不同，需要进行类型转换
                 StdDataType sqlType = typedMarker.getStdDataType();
                 value = sqlType.convert(value,
                         err -> OrmException.newError(err, entity).param(ARG_PROP_NAME, entity.orm_propName(propId)));
                 return typedMarker.changeValue(value);
+            } else if (marker instanceof Markers.ParamMarker) {
+                int propId = paramPropIds.get(index.getAndIncrement());
+                Object value = entity.orm_propValue(propId);
+                return ((Markers.ValueMarker) marker).changeValue(value);
             } else if (marker instanceof Markers.ProviderMarker) {
                 return ((Markers.ProviderMarker) marker).buildValueMarker();
-                // } else if (marker instanceof Markers.ValueMarker) {
-                // int propId = paramPropIds.get(index.getAndIncrement());
-                // Object value = entity.orm_propValue(propId);
-                // return ((Markers.ValueMarker) marker).changeValue(value);
             } else {
                 return marker;
             }
@@ -634,7 +635,7 @@ public class GenSqlHelper {
                 if (prependAnd)
                     sb.and();
                 OrmColumnModel col = filter.getColumn();
-                appendEq(sb, dialect, owner, col, null, filter.getValue());
+                appendEq(sb, dialect, owner, col, binders[filter.getColumn().getPropId()], filter.getValue());
                 if (!prependAnd)
                     sb.and();
             });
@@ -648,7 +649,7 @@ public class GenSqlHelper {
             if (!col.isPrimary()) {
                 sb.and();
                 params.add(col.getPropId());
-                appendEq(sb, dialect, owner, col, binders[col.getPropId()], null);
+                appendEqMarker(sb, dialect, owner, col, binders[col.getPropId()]);
             }
         }
     }
@@ -666,7 +667,7 @@ public class GenSqlHelper {
                 sb.and();
 
             params.add(col.getPropId());
-            appendEq(sb, dialect, owner, col, binders[col.getPropId()], null);
+            appendEqMarker(sb, dialect, owner, col, binders[col.getPropId()]);
         }
     }
 
@@ -686,6 +687,13 @@ public class GenSqlHelper {
         appendCol(sb, dialect, owner, col);
         sb.append("=");
         sb.typeParam(binder, value, col.containsTag(OrmConstants.TAG_MASKED)).append(' ');
+    }
+
+    public static void appendEqMarker(SQL.SqlBuilder sb, IDialect dialect, String owner, IColumnModel col,
+                                IDataParameterBinder binder) {
+        appendCol(sb, dialect, owner, col);
+        sb.append("=");
+        sb.typeParamMarker(binder, col.containsTag(OrmConstants.TAG_MASKED)).append(' ');
     }
 
     public static Object cast(IOrmEntity entity, IColumnModel col, Object value) {
@@ -768,7 +776,7 @@ public class GenSqlHelper {
             IColumnModel col = entityModel.getColumnByPropId(propId, false);
             if (!col.isUpdatable())
                 return;
-            appendEq(sb, dialect, null, col, binders[propId], value);
+            appendEqMarker(sb, dialect, null, col, binders[propId]);
             sb.append(',');
         });
 

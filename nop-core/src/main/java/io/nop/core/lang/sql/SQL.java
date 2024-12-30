@@ -20,6 +20,7 @@ import io.nop.commons.text.marker.IMarkedString;
 import io.nop.commons.text.marker.MarkedString;
 import io.nop.commons.text.marker.MarkedStringBuilderT;
 import io.nop.commons.text.marker.Marker;
+import io.nop.commons.text.marker.Markers;
 import io.nop.commons.text.marker.Markers.ValueMarker;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.MaskedValue;
@@ -866,6 +867,17 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
                 addMarker(new ValueMarker(pos, value, masked));
             } else {
                 addMarker(new TypedValueMarker(pos, value, binder, masked));
+            }
+            return this;
+        }
+
+        public SqlBuilder typeParamMarker(IDataParameterBinder binder, boolean masked) {
+            int pos = length();
+            append("?");
+            if (binder == null) {
+                addMarker(new Markers.ParamMarker(pos, masked));
+            } else {
+                addMarker(new TypedParamMarker(pos, binder, masked));
             }
             return this;
         }
