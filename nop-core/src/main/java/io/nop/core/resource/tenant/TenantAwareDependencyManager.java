@@ -54,6 +54,11 @@ public class TenantAwareDependencyManager implements IResourceDependencyManager 
     }
 
     @Override
+    public void traceAllDepends(Collection<ResourceDependencySet> depends) {
+        getImpl().traceAllDepends(depends);
+    }
+
+    @Override
     public <T> T collectDepends(String resourcePath, Supplier<T> task) {
         return getImpl().collectDepends(resourcePath, task);
     }
@@ -74,7 +79,7 @@ public class TenantAwareDependencyManager implements IResourceDependencyManager 
     }
 
     @Override
-    public boolean isAnyDependsChange(Collection<String> depends) {
+    public boolean isAnyDependsChange(Collection<ResourceDependencySet> depends) {
         return getImpl().isAnyDependsChange(depends);
     }
 

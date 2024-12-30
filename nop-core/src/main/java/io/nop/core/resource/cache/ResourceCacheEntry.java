@@ -217,6 +217,7 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
 
         ResourceDependencySet deps = new VirtualResourceDependencySet(path);
         T result = ResourceComponentManager.instance().collectDependsTo(deps, () -> loader.loadObjectFromPath(path));
+        deps.freeze();
         this.deps = deps;
         this.lastLoadTime = CoreMetrics.currentTimeMillis();
         return result;

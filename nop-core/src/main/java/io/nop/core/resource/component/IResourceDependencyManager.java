@@ -39,9 +39,11 @@ public interface IResourceDependencyManager {
      */
     void traceDepends(String depResourcePath);
 
+    void traceAllDepends(Collection<ResourceDependencySet> depends);
+
     <T> T runWhenDependsChanged(String resourcePath, Supplier<T> task);
 
-    boolean isAnyDependsChange(Collection<String> depends);
+    boolean isAnyDependsChange(Collection<ResourceDependencySet> depends);
 
     <T> T collectDependsTo(ResourceDependencySet dep, Supplier<T> task);
 

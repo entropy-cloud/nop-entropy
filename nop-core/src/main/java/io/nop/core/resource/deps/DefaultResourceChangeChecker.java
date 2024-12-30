@@ -13,9 +13,8 @@ public class DefaultResourceChangeChecker implements IResourceChangeChecker {
     public static final DefaultResourceChangeChecker INSTANCE = new DefaultResourceChangeChecker();
 
     @Override
-    public ResourceChangeCheckResult checkChanged(IResourceReference resource, long lastModified) {
-        if (resource == null)
-            return new ResourceChangeCheckResult(lastModified != -1, -1);
+    public ResourceChangeCheckResult checkChanged(String resourcePath, long lastModified) {
+        IResourceReference resource = resolveResource(resourcePath);
 
         long current = resource.lastModified();
         boolean changed = lastModified != current;

@@ -9,8 +9,10 @@ package io.nop.core.resource.deps;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.resource.IResourceReference;
+import io.nop.api.core.util.Guard;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,34 +45,53 @@ public class ResourceDependsStack {
 
     public void updateDepends(ResourceDependencySet dep, Map<String, ResourceDependencySet> map) {
         map.merge(dep.getResourcePath(), dep, (old, newDep) -> {
-            if (old.getVersion() < version)
-                return newDep.copy();
-            return newDep.mergeWith(old);
+            if (old.getVersion() > version)
+                return old;
+
+            ResourceDependencySet ret;
+            if (old.getVersion() < version) {
+                ret = newDep.copy();
+            } else {
+                ret = newDep.mergeWith(old);
+            }
+            ret.freeze();
+            return ret;
         });
     }
 
     public ResourceDependencySet push(IResourceReference resource) {
-        if (depStack.size() >= CFG_RESOURCE_MAX_DEPS_STACK_SIZE.get())
-            throw new NopException(ERR_RESOURCE_EXCEED_MAX_DEPS_STACK_SIZE).param(ARG_RESOURCE_PATH, resource.getPath())
-                    .param(ARG_ROOT_PATH, depStack.get(0).getResourcePath());
-        // depSet.add(resourcePath);
-        // if (!depSet.add(resourcePath)) {
-        // throw new NopException(ERR_COMPONENT_DEP_STACK_CONTAINS_LOOP)
-        // .param(ARG_DEP_STACK, depStack).param(ARG_RESOURCE_PATH,resourcePath);
-        // }
         ResourceDependencySet dep = make(resource);
-        depStack.add(dep);
+        push(dep);
         return dep;
     }
 
     public ResourceDependencySet make(IResourceReference resource) {
         String resourcePath = resource.getPath();
         ResourceDependencySet dep = depMap.get(resourcePath);
-        if (dep == null) {
+        if (dep == null || dep.isFrozen()) {
             dep = new ResourceDependencySet(resource);
             depMap.put(resourcePath, dep);
         }
         return dep;
+    }
+
+    public void traceDepends(Collection<ResourceDependencySet> deps) {
+        ResourceDependencySet current = current();
+        if (current == null)
+            return;
+
+        for (ResourceDependencySet dep : deps) {
+            ResourceDependencySet old = depMap.get(dep.getResourcePath());
+            if (old != null) {
+                current.addDepend(old);
+            } else {
+                current.addDepend(dep);
+            }
+        }
+    }
+
+    public void add(ResourceDependencySet dep) {
+        depMap.put(dep.getResourcePath(), dep);
     }
 
     public ResourceDependencySet get(String path) {
@@ -78,6 +99,12 @@ public class ResourceDependsStack {
     }
 
     public void push(ResourceDependencySet dep) {
+        if (depStack.size() >= CFG_RESOURCE_MAX_DEPS_STACK_SIZE.get())
+            throw new NopException(ERR_RESOURCE_EXCEED_MAX_DEPS_STACK_SIZE).param(ARG_RESOURCE_PATH, dep.getResourcePath())
+                    .param(ARG_ROOT_PATH, depStack.get(0).getResourcePath());
+
+        Guard.checkArgument(!dep.isFrozen(), "dependency is frozen");
+
         depStack.add(dep);
     }
 

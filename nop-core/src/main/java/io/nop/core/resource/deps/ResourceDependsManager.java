@@ -86,7 +86,7 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
         try {
             T ret = task.get();
             if (current != null) {
-                current.addDependencySet(deps);
+                current.addDepend(deps);
             }
             deps.setLastModified(resource.lastModified());
             success = true;
@@ -98,7 +98,7 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
                 dependsStack.remove();
 
             if (success) {
-                stack.updateDepends(deps,dependencyMap);
+                stack.updateDepends(deps, dependencyMap);
             }
         }
     }
@@ -153,10 +153,20 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
             deps = makeDepends(stack, resourcePath);
         }
         if (deps != null)
-            current.addDependency(deps.getResourcePath());
+            current.addDepend(deps);
     }
 
     private ResourceDependencySet makeDepends(ResourceDependsStack stack, String path) {
+        ResourceDependencySet dep = stack.get(path);
+        if (dep != null) {
+            return dep;
+        }
+
+        dep = dependencyMap.get(path);
+        if(dep != null){
+            stack.add(dep);
+            return dep;
+        }
         IResourceReference resource = changeChecker.resolveResource(path);
         if (resource == null)
             return null;
@@ -177,7 +187,11 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
 
     @Override
     public boolean isDependencyChanged(String resourcePath) {
-        return isDependencyChanged(resourcePath, new HashSet<>());
+        ResourceDependencySet deps = dependencyMap.get(resourcePath);
+        if (deps == null)
+            return true;
+
+        return isAnyDependsChange(deps.getDepends(), new HashSet<>());
     }
 
     @Override
@@ -185,15 +199,27 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
         addDependency(depResourcePath);
     }
 
-    public boolean isAnyDependsChange(Collection<String> depends) {
+    @Override
+    public void traceAllDepends(Collection<ResourceDependencySet> depends) {
+        if (depends == null)
+            return;
+
+        ResourceDependsStack stack = dependsStack.get();
+        if (stack == null)
+            return;
+
+        stack.traceDepends(depends);
+    }
+
+    public boolean isAnyDependsChange(Collection<ResourceDependencySet> depends) {
         return isAnyDependsChange(depends, new HashSet<>());
     }
 
-    private boolean isAnyDependsChange(Collection<String> depends, Set<String> checkedResourcePaths) {
+    private boolean isAnyDependsChange(Collection<ResourceDependencySet> depends, Set<String> checkedResourcePaths) {
         if (depends != null) {
-            for (String depResourcePath : depends) {
-                if (isDependencyChanged(depResourcePath, checkedResourcePaths)) {
-                    LOG.debug("nop.resource.depends-changed:path={}", depResourcePath);
+            for (ResourceDependencySet depend : depends) {
+                if (isDependencyChanged(depend, checkedResourcePaths)) {
+                    LOG.debug("nop.resource.depends-changed:path={}", depend.getResourcePath());
                     return true;
                 }
             }
@@ -206,17 +232,12 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
      *
      * @param checkedResourcePaths 为避免循环调用，通过checkedResourcePaths记录已经检查过的资源文件
      */
-    private boolean isDependencyChanged(String resourcePath, Set<String> checkedResourcePaths) {
-        if (!checkedResourcePaths.add(resourcePath)) {
+    private boolean isDependencyChanged(ResourceDependencySet deps, Set<String> checkedResourcePaths) {
+        if (!checkedResourcePaths.add(deps.getResourcePath())) {
             return false;
         }
 
-        ResourceDependencySet deps = dependencyMap.get(resourcePath);
-        if (deps == null) {
-            return true;
-        }
-
-        ResourceChangeCheckResult result = changeChecker.checkChanged(deps.getResource(), deps.getLastModified());
+        ResourceChangeCheckResult result = changeChecker.checkChanged(deps.getResourcePath(), deps.getLastModified());
         if (result.isChanged()) {
             return true;
         }
@@ -224,9 +245,11 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
         // 内容没有修改，但是可能文件的修改时间变化了
         deps.setLastModified(result.getLastModified());
 
-        for (String depResourcePath : deps.getDepends()) {
-            if (isDependencyChanged(depResourcePath, checkedResourcePaths))
-                return true;
+        if (deps.getDepends() != null) {
+            for (ResourceDependencySet dep : deps.getDepends()) {
+                if (isDependencyChanged(dep, checkedResourcePaths))
+                    return true;
+            }
         }
         return false;
     }

@@ -61,6 +61,11 @@ public abstract class JunitAutoTestCase extends AutoTestCase {
     @AfterEach
     public void destroy(ExtensionContext ctx) {
         complete(ctx.getExecutionException().isEmpty());
+        afterDestroy();
+    }
+
+    protected void afterDestroy(){
+
     }
 
     protected void configExecutionMode(TestInfo testInfo) {

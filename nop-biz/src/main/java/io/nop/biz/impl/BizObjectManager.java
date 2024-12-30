@@ -49,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -106,7 +107,17 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
     public void setDynamicBizModelProvider(@Nullable IDynamicBizModelProvider dynamicBizModelProvider) {
         this.dynamicBizModelProvider = dynamicBizModelProvider;
         if (dynamicBizModelProvider != null)
-            cleanup = dynamicBizModelProvider.addOnChangeListener(this::removeCache);
+            cleanup = dynamicBizModelProvider.addOnChangeListener(new IDynamicBizModelProvider.ChangeListener() {
+                @Override
+                public void onBizObjRemoved(String bizObjName) {
+                    removeCache(bizObjName);
+                }
+
+                @Override
+                public void onBizObjChanged(String bizObjName) {
+                    removeCache(bizObjName);
+                }
+            });
     }
 
     public void setBizInitializers(List<IGraphQLBizInitializer> bizInitializers) {
@@ -299,7 +310,12 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
 
     @Override
     public Set<String> getBizObjNames() {
-        return bizModels.getBizObjNames();
+        Set<String> ret = bizModels.getBizObjNames();
+        if (dynamicBizModelProvider != null) {
+            ret = new HashSet<>(ret);
+            ret.addAll(dynamicBizModelProvider.getBizObjNames());
+        }
+        return ret;
     }
 
     @Override

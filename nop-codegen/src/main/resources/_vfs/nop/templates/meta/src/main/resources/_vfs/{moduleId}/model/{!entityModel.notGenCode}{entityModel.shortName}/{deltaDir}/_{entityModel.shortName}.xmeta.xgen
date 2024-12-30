@@ -189,14 +189,15 @@
                 const mappingMeta = new OrmMappingTableMeta(rel.refEntityModel);
 
                 const mappingPropInfo = mappingMeta.getMappingPropInfo(rel);
-                const insertable = rel.tagSet?.contains('insertable');
-                const updatable = rel.tagSet?.contains('updatable');
-                const published = rel.tagSet?.contains('pub') ? null : false;
+                const tagSet = mappingPropInfo?.tagSet || rel.tagSet;
+                const insertable = tagSet?.contains('insertable');
+                const updatable = tagSet?.contains('updatable');
+                const published = tagSet?.contains('pub') ? null : false;
 
             ]]></c:script>
             <prop name="${mappingPropInfo.propName}" displayName="${mappingPropInfo.displayName}"
                   i18n-en:displayName="${mappingPropInfo.enDisplayName}" published="${published}"
-                  insertable="${insertable}" updatable="${updatable}"
+                  insertable="${insertable}" updatable="${updatable}" tagSet="${tagSet?.join(',')}"
                   biz:moduleId="${mappingPropInfo.bizModuleId}" depends="~${rel.name}"
                   xpl:if="mappingPropInfo" internal="true" lazy="true">
                 <c:iif test="${mappingPropInfo.toMany}">
@@ -207,7 +208,7 @@
                         <getter><![CDATA[
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefProps(
-                                entity.${rel.name.$methodGet()}(), "${mappingPropInfo.refPropNameInMappingTable}");
+                                entity["${rel.name}"], "${mappingPropInfo.refPropNameInMappingTable}");
                         ]]></getter>
                     </c:unit>
                     <c:unit>
@@ -215,7 +216,7 @@
                         <c:unit xpl:ignoreTag="true"><![CDATA[
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getPropFromSingleton(
-                                entity.${rel.name.$methodGet()}(), "${mappingPropInfo.refPropNameInMappingTable}");
+                                 entity["${rel.name}"], "${mappingPropInfo.refPropNameInMappingTable}");
                         ]]></c:unit>
                     </c:unit>
                 </c:iif>
@@ -233,12 +234,12 @@
                         <getter><![CDATA[
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefIds(
-                                entity.${rel.name.$methodGet()}(), "${mappingPropInfo.refPropNameInMappingTable}");
+                                 entity["${rel.name}"], "${mappingPropInfo.refPropNameInMappingTable}");
                         ]]></getter>
                         <setter><![CDATA[
                             import io.nop.orm.support.OrmEntityHelper;
                             OrmEntityHelper.setRefIds(
-                                entity.${rel.name.$methodGet()}(), "${mappingPropInfo.refPropNameInMappingTable}",value);
+                                 entity["${rel.name}"], "${mappingPropInfo.refPropNameInMappingTable}",value);
                         ]]></setter>
                     </c:unit>
                     <c:unit>
@@ -246,12 +247,12 @@
                         <getter><![CDATA[
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefIdFromSingleton(
-                                entity.${rel.name.$methodGet()}(), "${mappingPropInfo.refPropNameInMappingTable}");
+                                 entity["${rel.name}"], "${mappingPropInfo.refPropNameInMappingTable}");
                         ]]></getter>
                         <setter><![CDATA[
                             import io.nop.orm.support.OrmEntityHelper;
                             OrmEntityHelper.setRefIdFromSingleton(
-                                entity.${rel.name.$methodGet()}(), "${mappingPropInfo.refPropNameInMappingTable}",value);
+                                 entity["${rel.name}"], "${mappingPropInfo.refPropNameInMappingTable}",value);
                         ]]></setter>
                     </c:unit>
                 </c:iif>
@@ -264,7 +265,7 @@
                 <getter><![CDATA[
                     import io.nop.orm.support.OrmEntityHelper;
                     return OrmEntityHelper.getLabelForRefProps(
-                        entity.${rel.name.$methodGet()}(), "${mappingPropInfo.refPropNameInMappingTable}");
+                         entity["${rel.name}"], "${mappingPropInfo.refPropNameInMappingTable}");
                 ]]></getter>
             </prop>
 

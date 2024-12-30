@@ -189,8 +189,8 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     }
 
     @Override
-    public ResourceChangeCheckResult checkChanged(IResourceReference resource, long lastModified) {
-        return changeChecker.checkChanged(resource, lastModified);
+    public ResourceChangeCheckResult checkChanged(String resourcePath, long lastModified) {
+        return changeChecker.checkChanged(resourcePath, lastModified);
     }
 
     @Override
@@ -199,7 +199,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     }
 
     @Override
-    public boolean isAnyDependsChange(Collection<String> depends) {
+    public boolean isAnyDependsChange(Collection<ResourceDependencySet> depends) {
         return dependsManager.isAnyDependsChange(depends);
     }
 
@@ -636,12 +636,8 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
     }
 
     @Override
-    public void traceAllDepends(Set<String> depends) {
-        if (depends != null) {
-            for (String depend : depends) {
-                traceDepends(depend);
-            }
-        }
+    public void traceAllDepends(Collection<ResourceDependencySet> depends) {
+        dependsManager.traceAllDepends(depends);
     }
 
     public ResourceDependencySet getResourceDepends(String resourcePath) {
@@ -656,7 +652,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     @Override
     public String dumpDependsSet(ResourceDependencySet deps) {
-        String info = ResourceDependsHelper.dumpDependsSet(deps, dependsManager);
+        String info = ResourceDependsHelper.dumpDependsSet(deps);
         return info;
     }
 

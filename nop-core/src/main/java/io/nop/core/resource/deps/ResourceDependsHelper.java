@@ -1,28 +1,24 @@
 package io.nop.core.resource.deps;
 
-import io.nop.core.resource.component.IResourceDependencyManager;
-
 import java.util.HashSet;
 import java.util.Set;
 
 public class ResourceDependsHelper {
-    public static String dumpDependsSet(ResourceDependencySet deps, IResourceDependencyManager manager) {
+    public static String dumpDependsSet(ResourceDependencySet deps) {
         StringBuilder sb = new StringBuilder();
-        _dump(sb, deps, manager, new HashSet<>(), 0);
+        _dump(sb, deps, new HashSet<>(), 0);
         return sb.toString();
     }
 
-    static private void _dump(StringBuilder sb, ResourceDependencySet deps, IResourceDependencyManager manager,
+    static private void _dump(StringBuilder sb, ResourceDependencySet deps,
                               Set<String> visited, int level) {
-        for (String dep : deps.getDepends()) {
+        for (ResourceDependencySet depSet : deps.getDepends()) {
+            String dep = depSet.getResourcePath();
             indent(sb, level);
             sb.append(dep);
 
             if (visited.add(dep)) {
-                ResourceDependencySet sub = manager.getResourceDepends(dep);
-                if (sub != null) {
-                    _dump(sb, sub, manager, visited, level + 1);
-                }
+                _dump(sb, depSet, visited, level + 1);
             } else {
                 sb.append('*');
             }

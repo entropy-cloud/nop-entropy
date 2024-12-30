@@ -8,12 +8,16 @@
 package io.nop.core.resource.deps;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.resource.IResourceReference;
 
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
+import static io.nop.core.CoreErrors.ERR_COMPONENT_NOT_ALLOW_CHANGE;
 
 /**
  * 记录单个组件对象所依赖的所有资源
@@ -30,25 +34,52 @@ public class ResourceDependencySet {
      */
     private final long version;
 
+    private boolean frozen;
+
     /**
      * resource和lastModified用于缓存上次IResourceChangeChecker的检查结果
      */
-    private final IResourceReference resource;
+    private final String path;
     private long lastModified;
 
-    protected final Set<String> depends = new HashSet<>();
+    /**
+     * 从资源路径到
+     */
+    protected Map<String, ResourceDependencySet> dependsMap;
 
     public ResourceDependencySet(IResourceReference resource) {
-        this.resource = resource;
+        this.path = resource.getPath();
         this.lastModified = resource.lastModified();
         this.version = nextVersion();
     }
 
-    public ResourceDependencySet(ResourceDependencySet other) {
+    protected ResourceDependencySet(ResourceDependencySet other) {
         this.version = other.version;
-        this.resource = other.resource;
+        this.path = other.path;
         this.lastModified = other.lastModified;
-        this.depends.addAll(other.depends);
+        if (other.dependsMap != null)
+            this.dependsMap = new HashMap<>(other.dependsMap);
+    }
+
+    public boolean isFrozen() {
+        return frozen;
+    }
+
+    public void freeze() {
+        if (frozen)
+            return;
+        frozen = true;
+
+        if (dependsMap != null) {
+            for (ResourceDependencySet dep : dependsMap.values()) {
+                dep.freeze();
+            }
+        }
+    }
+
+    protected void checkAllowChange() {
+        if (frozen)
+            throw new NopException(ERR_COMPONENT_NOT_ALLOW_CHANGE).param(ARG_RESOURCE_PATH, getResourcePath());
     }
 
     public boolean isMock() {
@@ -59,15 +90,6 @@ public class ResourceDependencySet {
         return new ResourceDependencySet(this);
     }
 
-    public void refreshLastModified() {
-        this.lastModified = resource.lastModified();
-    }
-
-    @JsonIgnore
-    public IResourceReference getResource() {
-        return resource;
-    }
-
     public long getLastModified() {
         return lastModified;
     }
@@ -76,8 +98,20 @@ public class ResourceDependencySet {
         this.lastModified = lastModified;
     }
 
-    public Set<String> getDepends() {
-        return depends;
+    public Map<String, ResourceDependencySet> getDependsMap() {
+        return dependsMap;
+    }
+
+    public Map<String, ResourceDependencySet> makeDepends() {
+        if (dependsMap == null)
+            this.dependsMap = new HashMap<>();
+        return this.dependsMap;
+    }
+
+    public Collection<ResourceDependencySet> getDepends() {
+        if (dependsMap == null)
+            return null;
+        return dependsMap.values();
     }
 
     public long getVersion() {
@@ -85,7 +119,7 @@ public class ResourceDependencySet {
     }
 
     public String getResourcePath() {
-        return resource.getPath();
+        return path;
     }
 
     public String toString() {
@@ -93,43 +127,37 @@ public class ResourceDependencySet {
     }
 
     public void clear() {
-        depends.clear();
+        checkAllowChange();
+        if (dependsMap != null)
+            dependsMap.clear();
     }
 
-    public void addDependency(String path) {
-        if (resource.getPath().equals(path))
-            return;
+    public void addDepend(ResourceDependencySet deps) {
+        checkAllowChange();
 
-        this.depends.add(path);
-    }
-
-    public void addDependencySet(ResourceDependencySet deps) {
         String path = deps.getResourcePath();
-        if (resource.getPath().equals(path)) {
+        if (this.path.equals(path)) {
             addDepends(deps.getDepends());
         } else {
-            addDependency(path);
+            makeDepends().put(deps.getResourcePath(), deps);
         }
     }
 
     public ResourceDependencySet mergeWith(ResourceDependencySet deps) {
-        if (deps.getVersion() < version) {
-            ResourceDependencySet ret = this.copy();
-            ret.addDepends(deps.getDepends());
-            return ret;
-        } else {
-            ResourceDependencySet ret = deps.copy();
-            ret.addDepends(this.getDepends());
-            return ret;
-        }
+        if (this == deps)
+            return this;
+
+        ResourceDependencySet ret = deps.copy();
+        ret.addDepends(this.getDepends());
+        return ret;
     }
 
-    public void addDepends(Collection<String> depends) {
+    public void addDepends(Collection<ResourceDependencySet> depends) {
         if (depends == null)
             return;
 
-        for (String depend : depends) {
-            addDependency(depend);
+        for (ResourceDependencySet depend : depends) {
+            addDepend(depend);
         }
     }
 }
