@@ -28,7 +28,7 @@
                 <col id="leaderAdder" mandatory="true" sortable="true"/>
 
                 <!--选举世代-->
-                <col id="leaderEpoch" mandatory="true" sortable="true"/>
+                <col id="leaderEpoch" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--选举时间-->
                 <col id="electTime" mandatory="true" sortable="true"/>

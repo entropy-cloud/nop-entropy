@@ -28,13 +28,13 @@
                 <col id="fieldName" mandatory="true" sortable="true"/>
 
                 <!--字段类型-->
-                <col id="fieldType" mandatory="true" sortable="true"/>
+                <col id="fieldType" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--浮点精度-->
                 <col id="decimalScale" sortable="true"/>
 
                 <!--浮点值-->
-                <col id="decimalValue" sortable="true"/>
+                <col id="decimalValue" ui:number="true" sortable="true"/>
 
                 <!--日期值-->
                 <col id="dateValue" sortable="true"/>

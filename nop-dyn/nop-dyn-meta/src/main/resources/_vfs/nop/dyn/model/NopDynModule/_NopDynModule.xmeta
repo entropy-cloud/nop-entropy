@@ -137,14 +137,14 @@
             </schema>
         </prop>
         <prop name="relatedAppList" displayName="relatedAppList" insertable="false" updatable="false"
-              depends="~appMappings" internal="true" lazy="true">
+              tagSet="pub,cascade-delete" depends="~appMappings" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopDynApp"/>
             </schema>
             <getter>
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefProps(
-                                entity.getAppMappings(), "app");
+                                entity["appMappings"], "app");
                         </getter>
         </prop>
         <prop name="relatedAppList_ids" displayName="relatedAppList" insertable="false" updatable="false"
@@ -155,12 +155,12 @@
             <getter>
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefIds(
-                                entity.getAppMappings(), "app");
+                                 entity["appMappings"], "app");
                         </getter>
             <setter>
                             import io.nop.orm.support.OrmEntityHelper;
                             OrmEntityHelper.setRefIds(
-                                entity.getAppMappings(), "app",value);
+                                 entity["appMappings"], "app",value);
                         </setter>
         </prop>
         <prop name="relatedAppList_label" displayName="relatedAppList" internal="true" depends="~appMappings"
@@ -169,7 +169,7 @@
             <getter>
                     import io.nop.orm.support.OrmEntityHelper;
                     return OrmEntityHelper.getLabelForRefProps(
-                        entity.getAppMappings(), "app");
+                         entity["appMappings"], "app");
                 </getter>
         </prop>
     </props>

@@ -124,14 +124,14 @@
             </schema>
         </prop>
         <prop name="relatedGroupList" displayName="relatedGroupList" insertable="true" updatable="true"
-              depends="~groupMappings" internal="true" lazy="true">
+              tagSet="pub,cascade-delete,insertable,updatable" depends="~groupMappings" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthGroup"/>
             </schema>
             <getter>
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefProps(
-                                entity.getGroupMappings(), "group");
+                                entity["groupMappings"], "group");
                         </getter>
         </prop>
         <prop name="relatedGroupList_ids" displayName="relatedGroupList" insertable="true" updatable="true"
@@ -142,12 +142,12 @@
             <getter>
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefIds(
-                                entity.getGroupMappings(), "group");
+                                 entity["groupMappings"], "group");
                         </getter>
             <setter>
                             import io.nop.orm.support.OrmEntityHelper;
                             OrmEntityHelper.setRefIds(
-                                entity.getGroupMappings(), "group",value);
+                                 entity["groupMappings"], "group",value);
                         </setter>
         </prop>
         <prop name="relatedGroupList_label" displayName="relatedGroupList" internal="true" depends="~groupMappings"
@@ -156,7 +156,7 @@
             <getter>
                     import io.nop.orm.support.OrmEntityHelper;
                     return OrmEntityHelper.getLabelForRefProps(
-                        entity.getGroupMappings(), "group");
+                         entity["groupMappings"], "group");
                 </getter>
         </prop>
     </props>

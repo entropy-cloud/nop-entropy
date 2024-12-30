@@ -22,7 +22,7 @@
                 <col id="taskName" mandatory="true" sortable="true"/>
 
                 <!--逻辑流版本-->
-                <col id="taskVersion" mandatory="true" sortable="true"/>
+                <col id="taskVersion" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--逻辑流参数-->
                 <col id="taskInputs" sortable="true"/>
@@ -31,7 +31,7 @@
                 <col id="taskGroup" mandatory="true" sortable="true"/>
 
                 <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--启动时间-->
                 <col id="startTime" sortable="true"/>
@@ -55,7 +55,7 @@
                 <col id="parentTaskName" sortable="true"/>
 
                 <!--父流程版本-->
-                <col id="parentTaskVersion" sortable="true"/>
+                <col id="parentTaskVersion" ui:number="true" sortable="true"/>
 
                 <!--父流程ID-->
                 <col id="parentTaskId" sortable="true"/>

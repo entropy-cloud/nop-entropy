@@ -79,14 +79,14 @@
             </schema>
         </prop>
         <prop name="relatedModuleList" displayName="relatedModuleList" insertable="false" updatable="false"
-              depends="~moduleMappings" internal="true" lazy="true">
+              tagSet="pub,cascade-delete" depends="~moduleMappings" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopDynModule"/>
             </schema>
             <getter>
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefProps(
-                                entity.getModuleMappings(), "module");
+                                entity["moduleMappings"], "module");
                         </getter>
         </prop>
         <prop name="relatedModuleList_ids" displayName="relatedModuleList" insertable="false" updatable="false"
@@ -97,12 +97,12 @@
             <getter>
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefIds(
-                                entity.getModuleMappings(), "module");
+                                 entity["moduleMappings"], "module");
                         </getter>
             <setter>
                             import io.nop.orm.support.OrmEntityHelper;
                             OrmEntityHelper.setRefIds(
-                                entity.getModuleMappings(), "module",value);
+                                 entity["moduleMappings"], "module",value);
                         </setter>
         </prop>
         <prop name="relatedModuleList_label" displayName="relatedModuleList" internal="true" depends="~moduleMappings"
@@ -111,7 +111,7 @@
             <getter>
                     import io.nop.orm.support.OrmEntityHelper;
                     return OrmEntityHelper.getLabelForRefProps(
-                        entity.getModuleMappings(), "module");
+                         entity["moduleMappings"], "module");
                 </getter>
         </prop>
     </props>

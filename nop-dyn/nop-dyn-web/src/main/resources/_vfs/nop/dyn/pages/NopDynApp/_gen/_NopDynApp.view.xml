@@ -25,13 +25,13 @@
                 <col id="displayName" mandatory="true" sortable="true"/>
 
                 <!--应用版本-->
-                <col id="appVersion" mandatory="true" sortable="true"/>
+                <col id="appVersion" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--排序-->
-                <col id="sortOrder" sortable="true"/>
+                <col id="sortOrder" ui:number="true" sortable="true"/>
 
                 <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>

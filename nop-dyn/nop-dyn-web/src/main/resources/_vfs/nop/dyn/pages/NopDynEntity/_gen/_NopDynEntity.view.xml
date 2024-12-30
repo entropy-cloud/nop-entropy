@@ -31,13 +31,13 @@
                 <col id="nopDisplayName" sortable="true"/>
 
                 <!--排序-->
-                <col id="nopSortOrder" sortable="true"/>
+                <col id="nopSortOrder" ui:number="true" sortable="true"/>
 
                 <!--工作流实例ID-->
                 <col id="nopFlowId" sortable="true"/>
 
                 <!--业务状态码-->
-                <col id="nopStatus" sortable="true"/>
+                <col id="nopStatus" ui:number="true" sortable="true"/>
 
                 <!--业务状态-->
                 <col id="nopBizState" sortable="true"/>

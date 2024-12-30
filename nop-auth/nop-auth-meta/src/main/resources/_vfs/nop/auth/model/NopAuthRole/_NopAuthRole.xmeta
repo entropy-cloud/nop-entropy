@@ -83,14 +83,14 @@
             </schema>
         </prop>
         <prop name="relatedUserList" displayName="relatedUserList" insertable="true" updatable="true"
-              depends="~userMappings" internal="true" lazy="true">
+              tagSet="pub,cascade-delete,insertable,updatable" depends="~userMappings" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthUser"/>
             </schema>
             <getter>
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefProps(
-                                entity.getUserMappings(), "user");
+                                entity["userMappings"], "user");
                         </getter>
         </prop>
         <prop name="relatedUserList_ids" displayName="relatedUserList" insertable="true" updatable="true"
@@ -101,12 +101,12 @@
             <getter>
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefIds(
-                                entity.getUserMappings(), "user");
+                                 entity["userMappings"], "user");
                         </getter>
             <setter>
                             import io.nop.orm.support.OrmEntityHelper;
                             OrmEntityHelper.setRefIds(
-                                entity.getUserMappings(), "user",value);
+                                 entity["userMappings"], "user",value);
                         </setter>
         </prop>
         <prop name="relatedUserList_label" displayName="relatedUserList" internal="true" depends="~userMappings"
@@ -115,18 +115,18 @@
             <getter>
                     import io.nop.orm.support.OrmEntityHelper;
                     return OrmEntityHelper.getLabelForRefProps(
-                        entity.getUserMappings(), "user");
+                         entity["userMappings"], "user");
                 </getter>
         </prop>
         <prop name="relatedResourceList" displayName="relatedResourceList" insertable="true" updatable="true"
-              depends="~resourceMappings" internal="true" lazy="true">
+              tagSet="pub,cascade-delete,insertable,updatable" depends="~resourceMappings" internal="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthResource"/>
             </schema>
             <getter>
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefProps(
-                                entity.getResourceMappings(), "resource");
+                                entity["resourceMappings"], "resource");
                         </getter>
         </prop>
         <prop name="relatedResourceList_ids" displayName="relatedResourceList" insertable="true" updatable="true"
@@ -137,12 +137,12 @@
             <getter>
                             import io.nop.orm.support.OrmEntityHelper;
                             return OrmEntityHelper.getRefIds(
-                                entity.getResourceMappings(), "resource");
+                                 entity["resourceMappings"], "resource");
                         </getter>
             <setter>
                             import io.nop.orm.support.OrmEntityHelper;
                             OrmEntityHelper.setRefIds(
-                                entity.getResourceMappings(), "resource",value);
+                                 entity["resourceMappings"], "resource",value);
                         </setter>
         </prop>
         <prop name="relatedResourceList_label" displayName="relatedResourceList" internal="true"
@@ -151,7 +151,7 @@
             <getter>
                     import io.nop.orm.support.OrmEntityHelper;
                     return OrmEntityHelper.getLabelForRefProps(
-                        entity.getResourceMappings(), "resource");
+                         entity["resourceMappings"], "resource");
                 </getter>
         </prop>
     </props>

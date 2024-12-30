@@ -22,7 +22,7 @@
                 <col id="taskName" mandatory="true" sortable="true"/>
 
                 <!--逻辑流版本-->
-                <col id="taskVersion" mandatory="true" sortable="true"/>
+                <col id="taskVersion" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--显示名称-->
                 <col id="displayName" mandatory="true" sortable="true"/>
@@ -34,7 +34,7 @@
                 <col id="modelText" mandatory="true" sortable="true"/>
 
                 <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>

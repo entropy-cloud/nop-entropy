@@ -31,13 +31,13 @@
                 <col id="displayName" mandatory="true" sortable="true"/>
 
                 <!--状态-->
-                <col id="stepStatus" mandatory="true" sortable="true"/>
+                <col id="stepStatus" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--子流程名称-->
                 <col id="subTaskName" sortable="true"/>
 
                 <!--子流程版本-->
-                <col id="subTaskVersion" sortable="true"/>
+                <col id="subTaskVersion" ui:number="true" sortable="true"/>
 
                 <!--开始时间-->
                 <col id="startTime" sortable="true"/>
@@ -64,10 +64,10 @@
                 <col id="stepPath" sortable="true"/>
 
                 <!--运行ID-->
-                <col id="runId" mandatory="true" sortable="true"/>
+                <col id="runId" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--步骤下标-->
-                <col id="bodyStepIndex" mandatory="true" sortable="true"/>
+                <col id="bodyStepIndex" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--状态数据-->
                 <col id="stateBeanData" sortable="true"/>

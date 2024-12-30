@@ -25,7 +25,7 @@
                 <col id="label" mandatory="true" sortable="true"/>
 
                 <!--排序序号-->
-                <col id="sortNo" mandatory="true" sortable="true"/>
+                <col id="sortNo" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--判断条件-->
                 <col id="predicateLabel"/>

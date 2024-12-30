@@ -28,19 +28,19 @@
                 <col id="isUuid" mandatory="true" sortable="true"/>
 
                 <!--下一个值-->
-                <col id="nextValue" mandatory="true" sortable="true"/>
+                <col id="nextValue" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--步长-->
-                <col id="stepSize" mandatory="true" sortable="true"/>
+                <col id="stepSize" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--缓存个数-->
-                <col id="cacheSize" sortable="true"/>
+                <col id="cacheSize" ui:number="true" sortable="true"/>
 
                 <!--最大值-->
-                <col id="maxValue" sortable="true"/>
+                <col id="maxValue" ui:number="true" sortable="true"/>
 
                 <!--重置方式-->
-                <col id="resetType" sortable="true"/>
+                <col id="resetType" ui:number="true" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>

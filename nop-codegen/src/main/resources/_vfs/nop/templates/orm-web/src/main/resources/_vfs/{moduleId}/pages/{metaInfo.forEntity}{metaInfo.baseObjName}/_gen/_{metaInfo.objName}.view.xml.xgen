@@ -50,7 +50,7 @@
             <cols>
                 <c:for var="prop" items="${visibleProps}">
                     <c:out escape="none"><![CDATA[<!-- ${prop.displayName?.$safeXmlComment()} -->]]></c:out>
-                    <col id="${prop.name}" mandatory="${prop.mandatory ? true: null}" ui:number="${prop.stdDataType.numericType?true:null}"
+                    <col id="${prop.name}" mandatory="${prop.mandatory ? true: null}" ui:number="${prop.stdDataType?.numericType?true:null}"
                          sortable="${prop.sortable?true:null}" x:abstract="${listProps.contains(prop)?null:true}"/>
                 </c:for>
             </cols>

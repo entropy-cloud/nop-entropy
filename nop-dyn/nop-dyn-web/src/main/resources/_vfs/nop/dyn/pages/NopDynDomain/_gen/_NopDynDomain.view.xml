@@ -37,10 +37,10 @@
                 <col id="stdSqlType" mandatory="true" sortable="true"/>
 
                 <!--长度-->
-                <col id="precision" sortable="true"/>
+                <col id="precision" ui:number="true" sortable="true"/>
 
                 <!--小数位数-->
-                <col id="scale" sortable="true"/>
+                <col id="scale" ui:number="true" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
