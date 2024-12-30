@@ -34,7 +34,7 @@
                 <col id="querySpace" sortable="true"/>
 
                 <!--存储类型-->
-                <col id="storeType" mandatory="true" sortable="true"/>
+                <col id="storeType" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--标签-->
                 <col id="tagsText" sortable="true"/>
@@ -43,7 +43,7 @@
                 <col id="isExternal" mandatory="true" sortable="true"/>
 
                 <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--测试页面-->
                 <col id="mainPagePath"/>

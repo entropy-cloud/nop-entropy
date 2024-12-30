@@ -19,7 +19,7 @@
             <cols>
 
                 <!--Id-->
-                <col id="id" mandatory="true" sortable="true"/>
+                <col id="id" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--到达时间-->
                 <col id="arrivalTime" mandatory="true" sortable="true"/>
@@ -28,13 +28,13 @@
                 <col id="departureTime" mandatory="true" sortable="true"/>
 
                 <!--到达地点ID-->
-                <col id="arrivalLocationId" mandatory="true" sortable="true"/>
+                <col id="arrivalLocationId" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--出发地点ID-->
-                <col id="departureLocationId" mandatory="true" sortable="true"/>
+                <col id="departureLocationId" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--航程ID-->
-                <col id="voyageId" sortable="true"/>
+                <col id="voyageId" ui:number="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>

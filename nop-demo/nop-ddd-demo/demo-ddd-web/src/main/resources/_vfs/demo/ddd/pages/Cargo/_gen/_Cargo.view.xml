@@ -19,7 +19,7 @@
             <cols>
 
                 <!--Id-->
-                <col id="id" mandatory="true" sortable="true"/>
+                <col id="id" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--计算时间-->
                 <col id="calculatedAt" sortable="true"/>
@@ -49,28 +49,28 @@
                 <col id="trackingId" sortable="true"/>
 
                 <!--当前航程ID-->
-                <col id="currentVoyageId" sortable="true"/>
+                <col id="currentVoyageId" ui:number="true" sortable="true"/>
 
                 <!--最后事件ID-->
-                <col id="lastEventId" sortable="true"/>
+                <col id="lastEventId" ui:number="true" sortable="true"/>
 
                 <!--最后已知位置ID-->
-                <col id="lastKnownLocationId" sortable="true"/>
+                <col id="lastKnownLocationId" ui:number="true" sortable="true"/>
 
                 <!--下一个预期位置ID-->
-                <col id="nextExpectedLocationId" sortable="true"/>
+                <col id="nextExpectedLocationId" ui:number="true" sortable="true"/>
 
                 <!--下一个预期航程ID-->
-                <col id="nextExpectedVoyageId" sortable="true"/>
+                <col id="nextExpectedVoyageId" ui:number="true" sortable="true"/>
 
                 <!--出发地ID-->
-                <col id="originId" sortable="true"/>
+                <col id="originId" ui:number="true" sortable="true"/>
 
                 <!--指定目的地ID-->
-                <col id="specDestinationId" sortable="true"/>
+                <col id="specDestinationId" ui:number="true" sortable="true"/>
 
                 <!--指定出发地ID-->
-                <col id="specOriginId" sortable="true"/>
+                <col id="specOriginId" ui:number="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>

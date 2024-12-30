@@ -34,13 +34,13 @@
                 <col id="stdSqlType" mandatory="true" sortable="true"/>
 
                 <!--长度-->
-                <col id="precision" sortable="true"/>
+                <col id="precision" ui:number="true" sortable="true"/>
 
                 <!--小数位数-->
-                <col id="scale" sortable="true"/>
+                <col id="scale" ui:number="true" sortable="true"/>
 
                 <!--属性编号-->
-                <col id="propId" mandatory="true" sortable="true"/>
+                <col id="propId" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--显示控制-->
                 <col id="uiShow" sortable="true"/>
@@ -70,7 +70,7 @@
                 <col id="extConfig" sortable="true"/>
 
                 <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>

@@ -34,7 +34,7 @@
                 <col id="mimeType" mandatory="true" sortable="true"/>
 
                 <!--文件长度-->
-                <col id="fileLength" sortable="true"/>
+                <col id="fileLength" ui:number="true" sortable="true"/>
 
                 <!--文件修改时间-->
                 <col id="fileLastModified" sortable="true"/>

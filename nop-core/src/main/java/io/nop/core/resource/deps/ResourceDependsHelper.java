@@ -12,6 +12,9 @@ public class ResourceDependsHelper {
 
     static private void _dump(StringBuilder sb, ResourceDependencySet deps,
                               Set<String> visited, int level) {
+        if(deps.getDepends() == null)
+            return;
+
         for (ResourceDependencySet depSet : deps.getDepends()) {
             String dep = depSet.getResourcePath();
             indent(sb, level);

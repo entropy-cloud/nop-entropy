@@ -19,7 +19,7 @@
             <cols>
 
                 <!--Id-->
-                <col id="id" mandatory="true" sortable="true"/>
+                <col id="id" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--装货时间-->
                 <col id="loadTime" sortable="true"/>
@@ -28,16 +28,16 @@
                 <col id="unloadTime" sortable="true"/>
 
                 <!--装货地点-->
-                <col id="loadLocationId" sortable="true"/>
+                <col id="loadLocationId" ui:number="true" sortable="true"/>
 
                 <!--卸货地点-->
-                <col id="unloadLocationId" sortable="true"/>
+                <col id="unloadLocationId" ui:number="true" sortable="true"/>
 
                 <!--航程ID-->
-                <col id="voyageId" sortable="true"/>
+                <col id="voyageId" ui:number="true" sortable="true"/>
 
                 <!--货物ID-->
-                <col id="cargoId" sortable="true"/>
+                <col id="cargoId" ui:number="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>

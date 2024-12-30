@@ -7,13 +7,14 @@
  */
 package io.nop.core.resource.deps;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.resource.IResourceReference;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
@@ -112,6 +113,16 @@ public class ResourceDependencySet {
         if (dependsMap == null)
             return null;
         return dependsMap.values();
+    }
+
+    public Set<String> getDependPaths() {
+        Set<String> ret = new HashSet<>();
+        if (dependsMap != null) {
+            for (ResourceDependencySet dep : dependsMap.values()) {
+                ret.add(dep.getResourcePath());
+            }
+        }
+        return ret;
     }
 
     public long getVersion() {

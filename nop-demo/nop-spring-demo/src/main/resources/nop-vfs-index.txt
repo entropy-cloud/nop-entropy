@@ -364,6 +364,7 @@
 /nop/rpc/imp/template.api.xlsx
 /nop/schema/action-auth.xdef
 /nop/schema/ai/llm.xdef
+/nop/schema/ai/prompt.xdef
 /nop/schema/api.xdef
 /nop/schema/beans.xdef
 /nop/schema/biz/state-machine.xdef

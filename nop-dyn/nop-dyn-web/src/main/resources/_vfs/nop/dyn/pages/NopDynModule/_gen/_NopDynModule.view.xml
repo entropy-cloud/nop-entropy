@@ -22,7 +22,7 @@
                 <col id="moduleName" mandatory="true" sortable="true"/>
 
                 <!--模块版本-->
-                <col id="moduleVersion" mandatory="true" sortable="true"/>
+                <col id="moduleVersion" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--显示名-->
                 <col id="displayName" mandatory="true" sortable="true"/>
@@ -40,7 +40,7 @@
                 <col id="mavenGroupId" sortable="true"/>
 
                 <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>

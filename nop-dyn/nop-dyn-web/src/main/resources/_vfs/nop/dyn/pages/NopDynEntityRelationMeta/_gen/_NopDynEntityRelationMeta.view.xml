@@ -52,7 +52,7 @@
                 <col id="refSetSort" sortable="true"/>
 
                 <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--标签-->
                 <col id="tagsText" sortable="true"/>

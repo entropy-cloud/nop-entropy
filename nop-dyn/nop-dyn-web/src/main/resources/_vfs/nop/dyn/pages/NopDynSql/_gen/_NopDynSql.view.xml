@@ -55,10 +55,10 @@
                 <col id="source" sortable="true"/>
 
                 <!--读取块大小-->
-                <col id="fetchSize" sortable="true"/>
+                <col id="fetchSize" ui:number="true" sortable="true"/>
 
                 <!--超时时间-->
-                <col id="timeout" sortable="true"/>
+                <col id="timeout" ui:number="true" sortable="true"/>
 
                 <!--禁用逻辑删除-->
                 <col id="disableLogicalDelete" sortable="true"/>
@@ -76,7 +76,7 @@
                 <col id="args" sortable="true"/>
 
                 <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>

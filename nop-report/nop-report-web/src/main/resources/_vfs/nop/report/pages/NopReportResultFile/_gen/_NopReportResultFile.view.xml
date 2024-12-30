@@ -40,7 +40,7 @@
                 <col id="rptId" sortable="true"/>
 
                 <!--状态-->
-                <col id="status" mandatory="true" sortable="true"/>
+                <col id="status" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--描述-->
                 <col id="description" sortable="true"/>
