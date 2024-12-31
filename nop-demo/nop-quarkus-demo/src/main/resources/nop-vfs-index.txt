@@ -73,6 +73,7 @@
 /i18n/zh-CN/nop-sys.i18n.yaml
 /i18n/zh-CN/nop-web.i18n.yaml
 /i18n/zh-CN/nop-wf.i18n.yaml
+/nop/ai/beans/ai-defaults.beans.xml
 /nop/aop/nop-api-core.annotations
 /nop/aop/nop-quarkus-demo.annotations
 /nop/auth/_module
@@ -301,6 +302,7 @@
 /nop/core/registry/graph-designer.register-model.xml
 /nop/core/registry/imp.register-model.xml
 /nop/core/registry/orm.register-model.xml
+/nop/core/registry/prompt.register-model.xml
 /nop/core/registry/rule.register-model.xml
 /nop/core/registry/task.register-model.xml
 /nop/core/registry/validator.register-model.xml
@@ -714,6 +716,7 @@
 /nop/rule/pages/RuleService/main.page.yaml
 /nop/schema/action-auth.xdef
 /nop/schema/ai/llm.xdef
+/nop/schema/ai/prompt.xdef
 /nop/schema/api.xdef
 /nop/schema/beans.xdef
 /nop/schema/biz/state-machine.xdef

@@ -15,6 +15,8 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.concurrent.executor.ExecutorHelper;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
@@ -52,7 +54,10 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
 
+import static io.nop.web.WebConfigs.CFG_WEB_PAGE_VALIDATION_THREAD_COUNT;
 import static io.nop.web.WebConstants.XDSL_SCHEMA_XVIEW;
 import static io.nop.web.WebErrors.ARG_PATH;
 import static io.nop.web.WebErrors.ARG_RESOURCE;
@@ -150,10 +155,20 @@ public class PageProvider extends ResourceWithHistoryProvider {
     }
 
     public void validateAllPages() {
+        int threadCount = CFG_WEB_PAGE_VALIDATION_THREAD_COUNT.get();
+        Semaphore semaphore = threadCount > 1 ? new Semaphore(threadCount) : null;
+        Executor executor = GlobalExecutors.globalWorker();
+
         ModuleManager.instance().getEnabledModules(true).forEach(module -> {
             List<IResource> pageFiles = VirtualFileSystem.instance().findAll("/" + module.getModuleId(), "pages/*/*.page.yaml");
             for (IResource resource : pageFiles) {
-                getPage(resource.getPath(), AppConfig.defaultLocale());
+                if (threadCount > 1) {
+                    ExecutorHelper.throttleExecute(executor, semaphore, () -> {
+                        getPage(resource.getPath(), AppConfig.defaultLocale());
+                    });
+                } else {
+                    getPage(resource.getPath(), AppConfig.defaultLocale());
+                }
             }
         });
     }

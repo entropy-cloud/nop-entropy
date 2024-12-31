@@ -8,6 +8,7 @@
 ## 优化应用启动时间
 
 * `nop.web.validate-page-model`不设置或者设置为false会跳过启动时的页面验证，跳过对view.xml和page.yaml文件的解析检查。
+* `nop.web.page-validation-thread-count`如果设置为大于1的值，且设置`nop.web.validate-page-model`为true，则会启动多线程进行检查
 * `nop.orm.db-differ.auto-upgrade-database`不设置或者设置为false，会跳过启动时的数据库升级检查。
 * `nop.orm.init-database-schema`不设置或者设置为false, 会跳过启动时自动建表的操作。
 * `nop.auth.login.allow-create-default-user`不设置或者设置为false,启动时就不会检查数据库中是否至少存在一个用户。

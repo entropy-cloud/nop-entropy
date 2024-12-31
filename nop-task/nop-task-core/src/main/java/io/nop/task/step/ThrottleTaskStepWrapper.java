@@ -30,7 +30,7 @@ public class ThrottleTaskStepWrapper extends DelegateTaskStep {
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         String key = getKey(stepRt);
 
-        return null;
+        return getTaskStep().execute(stepRt);
     }
 
     private String getKey(ITaskStepRuntime stepRt) {

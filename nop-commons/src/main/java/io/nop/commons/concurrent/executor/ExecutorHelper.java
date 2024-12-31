@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -234,5 +235,20 @@ public class ExecutorHelper {
             return null;
         });
         return future;
+    }
+
+    public static void throttleExecute(Executor executor, Semaphore semaphore, Runnable task) {
+        semaphore.acquireUninterruptibly();
+        try {
+            executor.execute(() -> {
+                try {
+                    task.run();
+                } finally {
+                    semaphore.release();
+                }
+            });
+        } catch (Exception e) {
+            semaphore.release();
+        }
     }
 }

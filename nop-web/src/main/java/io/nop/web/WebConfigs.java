@@ -27,5 +27,8 @@ public interface WebConfigs {
     IConfigReference<Boolean> CFG_WEB_USE_DYNAMIC_JS = varRef(s_loc,
             "nop.web.use-dynamic-js", Boolean.class, true);
 
+    @Description("并行验证页面模型的线程数")
+    IConfigReference<Integer> CFG_WEB_PAGE_VALIDATION_THREAD_COUNT = varRef(s_loc,
+            "nop.web.page-validation-thread-count", Integer.class, 1);
 
 }

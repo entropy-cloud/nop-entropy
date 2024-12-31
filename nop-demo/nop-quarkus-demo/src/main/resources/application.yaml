@@ -65,6 +65,9 @@ nop:
     tenant-resource:
       enabled: true
 
+  web:
+    page-validation-thread-count: 4
+
 # 开发模式配置
 
 "%dev":
