@@ -10,11 +10,13 @@ package io.nop.xlang.expr;
 import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.util.ICancellable;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.objects.Pair;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.core.lang.eval.global.EvalGlobalRegistry;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.xlang.api.ExprEvalAction;
@@ -24,6 +26,7 @@ import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.MemberExpression;
 import io.nop.xlang.exec.GetAttrExecutable;
 import io.nop.xlang.expr.simple.SimpleExprParser;
+import io.nop.xlang.functions.GlobalFunctions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -135,6 +138,22 @@ public class TestSimpleExprParser {
         String expr = "NULL.$toBoolean(true)";
         assertEquals(true, eval(expr));
     }
+
+    @Test
+    public void testIF(){
+        ICancellable cancellable = EvalGlobalRegistry.instance().registerStaticFunctions(GlobalFunctions.class);
+
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue("a",0);
+        scope.setLocalValue("b",4);
+
+        String expr = "IF(a>0,1,IF(b>3,2,3))";
+        IEvalAction action = XLang.newCompileTool().allowUnregisteredScopeVar(true).compileSimpleExpr(null, expr);
+        assertEquals(2, action.invoke(scope));
+
+        cancellable.cancel();
+    }
+
 
     String test(int value) {
         return String.valueOf(value + 1);
