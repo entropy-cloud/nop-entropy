@@ -104,6 +104,13 @@ public class ImportFieldModel extends _ImportFieldModel implements INeedInit, IF
         return fieldNameMap;
     }
 
+    public String getDisplayNameOrName() {
+        String displayName = getDisplayName();
+        if (displayName == null)
+            return getName();
+        return displayName;
+    }
+
     @Override
     public String getPropOrName() {
         String prop = getProp();

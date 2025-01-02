@@ -226,6 +226,11 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
         return options.stream().map(DictOptionBean::getValue).collect(Collectors.toList());
     }
 
+    @JsonIgnore
+    public List<String> getStringValues(){
+        return options.stream().map(DictOptionBean::getStringValue).collect(Collectors.toList());
+    }
+
     /**
      * 将下拉选项的label转换为value-label形式
      */

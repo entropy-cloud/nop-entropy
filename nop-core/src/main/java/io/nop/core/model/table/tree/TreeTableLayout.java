@@ -78,7 +78,11 @@ public class TreeTableLayout {
             calcBbox(child);
         }
 
-        switch (cell.getChildPos()) {
+        TreeCellChildPosition pos = cell.getChildPos();
+        if (pos == null)
+            pos = TreeCellChildPosition.ver;
+
+        switch (pos) {
             case right_hor:
             case left_hor: {
                 int w = sumBboxWidth(children);

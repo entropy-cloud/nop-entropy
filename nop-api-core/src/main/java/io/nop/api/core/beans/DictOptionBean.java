@@ -9,6 +9,7 @@ package io.nop.api.core.beans;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.nop.api.core.annotations.data.DataBean;
@@ -22,6 +23,7 @@ import io.nop.api.core.util.IFreezable;
 import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import static io.nop.api.core.util.FreezeHelper.checkNotFrozen;
 
@@ -83,6 +85,13 @@ public class DictOptionBean implements Serializable, IFreezable, IDeepCloneable 
     public void setValue(Object value) {
         checkNotFrozen(this);
         this.value = value;
+    }
+
+    @JsonIgnore
+    public String getStringValue() {
+        if (value == null)
+            return "";
+        return Objects.toString(value, "");
     }
 
     @PropMeta(propId = 3)

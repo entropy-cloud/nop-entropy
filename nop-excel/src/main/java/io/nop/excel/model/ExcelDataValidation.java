@@ -1,5 +1,6 @@
 package io.nop.excel.model;
 
+import io.nop.api.core.beans.DictBean;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.model.table.CellRange;
 import io.nop.excel.model._gen._ExcelDataValidation;
@@ -15,6 +16,12 @@ public class ExcelDataValidation extends _ExcelDataValidation {
 
     public ExcelDataValidation() {
 
+    }
+
+    public static ExcelDataValidation buildFromDict(DictBean dict) {
+        ExcelDataValidation obj = new ExcelDataValidation();
+        obj.setListOptions(dict.getLabels());
+        return obj;
     }
 
     public List<CellRange> getRanges() {
