@@ -136,7 +136,7 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
     }
 
     @Override
-    public void traceAllDepends(Set<String> depends) {
+    public void traceAllDepends(Collection<ResourceDependencySet> depends) {
         getImpl().traceAllDepends(depends);
     }
 
@@ -161,7 +161,7 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
     }
 
     @Override
-    public boolean isAnyDependsChange(Collection<String> collection) {
+    public boolean isAnyDependsChange(Collection<ResourceDependencySet> collection) {
         return getImpl().isAnyDependsChange(collection);
     }
 

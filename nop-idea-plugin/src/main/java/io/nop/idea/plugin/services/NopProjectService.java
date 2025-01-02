@@ -20,7 +20,7 @@ import io.nop.idea.plugin.resource.ProjectEnv;
 import io.nop.xlang.initialize.XLangCoreInitializer;
 
 @Service
-public class NopProjectService implements Disposable {
+public final class NopProjectService implements Disposable {
     private final ResourceComponentManager componentManager = new ResourceComponentManager(false);
     private boolean inited;
 
