@@ -79,6 +79,9 @@ import io.nop.xlang.ast.XLangASTProcessor;
 public class TypeInferenceProcessor extends XLangASTProcessor<ReturnTypeInfo, TypeInferenceState> {
     @Override
     public ReturnTypeInfo processIfStatement(IfStatement node, TypeInferenceState context) {
+        if (context == null)
+            return null;
+
         processAST(node.getTest(), context);
         TypeInferenceState s1 = context.newChild(); // true Branch
 
