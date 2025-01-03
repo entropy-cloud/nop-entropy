@@ -221,7 +221,6 @@ public class CascadeFlusher {
             return;
 
 
-
         // 对于proxy的情况，不需要处理
         if (state.isProxy()) {
             if (entity.orm_extDirty()) {
@@ -361,13 +360,26 @@ public class CascadeFlusher {
      */
     private void addOwnerJoinProps(IOrmEntitySet<IOrmEntity> coll, IEntityRelationModel relModel) {
         IOrmEntity owner = coll.orm_owner();
-        for (IOrmEntity entity : coll) {
-            if (entity.orm_state().isTransient()) {
+        if (owner.orm_state().isUnsaved()) {
+            // 如果是新建实体，则它的主键可能是临时分配的，需要同步到子表记录上
+            for (IOrmEntity entity : coll) {
                 for (IEntityJoinConditionModel join : relModel.getJoin()) {
                     IEntityPropModel rightProp = join.getRightPropModel();
                     if (rightProp != null) {
                         Object leftValue = OrmEntityHelper.getLeftValue(join, owner);
                         OrmEntityHelper.setPropValue(rightProp, entity, leftValue);
+                    }
+                }
+            }
+        } else {
+            for (IOrmEntity entity : coll) {
+                if (entity.orm_state().isTransient()) {
+                    for (IEntityJoinConditionModel join : relModel.getJoin()) {
+                        IEntityPropModel rightProp = join.getRightPropModel();
+                        if (rightProp != null) {
+                            Object leftValue = OrmEntityHelper.getLeftValue(join, owner);
+                            OrmEntityHelper.setPropValue(rightProp, entity, leftValue);
+                        }
                     }
                 }
             }

@@ -375,7 +375,8 @@ public class OrmEntityCopier {
                 } else {
                     if (chgType == null || chgType.contains(DaoConstants.CHANGE_TYPE_UPDATE)) {
                         IOrmEntity refEntity = dao.loadEntityById(id);
-                        checkRefEntity(refEntity, item, owner, refModel);
+                        // 不检查owner
+                        checkRefEntity(refEntity, item, null, refModel);
                         copyToEntity(item, refEntity, field, objMeta, baseBizObjName, BizConstants.METHOD_UPDATE, scope);
                         ret.add(refEntity);
                     }
@@ -422,7 +423,8 @@ public class OrmEntityCopier {
             String rightProp = join.getRightProp();
             if (rightProp != null) {
                 Object leftValue = OrmEntityHelper.getLeftValue(join, owner);
-                BeanTool.instance().setProperty(item, rightProp, leftValue);
+                if (leftValue != null)
+                    BeanTool.instance().setProperty(item, rightProp, leftValue);
             }
         }
     }
