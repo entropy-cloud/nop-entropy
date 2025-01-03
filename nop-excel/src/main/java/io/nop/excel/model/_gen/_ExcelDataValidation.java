@@ -25,10 +25,17 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     
     /**
      *  
-     * xml name: formula
+     * xml name: formula1
      * 
      */
-    private java.lang.String _formula ;
+    private java.lang.String _formula1 ;
+    
+    /**
+     *  
+     * xml name: formula2
+     * 
+     */
+    private java.lang.String _formula2 ;
     
     /**
      *  
@@ -86,19 +93,38 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
     
     /**
      * 
-     * xml name: formula
+     * xml name: formula1
      *  
      */
     
-    public java.lang.String getFormula(){
-      return _formula;
+    public java.lang.String getFormula1(){
+      return _formula1;
     }
 
     
-    public void setFormula(java.lang.String value){
+    public void setFormula1(java.lang.String value){
         checkAllowChange();
         
-        this._formula = value;
+        this._formula1 = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: formula2
+     *  
+     */
+    
+    public java.lang.String getFormula2(){
+      return _formula2;
+    }
+
+    
+    public void setFormula2(java.lang.String value){
+        checkAllowChange();
+        
+        this._formula2 = value;
            
     }
 
@@ -214,7 +240,8 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
         super.outputJson(out);
         
         out.putNotNull("allowBlank",this.getAllowBlank());
-        out.putNotNull("formula",this.getFormula());
+        out.putNotNull("formula1",this.getFormula1());
+        out.putNotNull("formula2",this.getFormula2());
         out.putNotNull("id",this.getId());
         out.putNotNull("showErrorMessage",this.getShowErrorMessage());
         out.putNotNull("showInputMessage",this.getShowInputMessage());
@@ -232,7 +259,8 @@ public abstract class _ExcelDataValidation extends io.nop.core.resource.componen
         super.copyTo(instance);
         
         instance.setAllowBlank(this.getAllowBlank());
-        instance.setFormula(this.getFormula());
+        instance.setFormula1(this.getFormula1());
+        instance.setFormula2(this.getFormula2());
         instance.setId(this.getId());
         instance.setShowErrorMessage(this.getShowErrorMessage());
         instance.setShowInputMessage(this.getShowInputMessage());

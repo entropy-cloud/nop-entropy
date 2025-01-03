@@ -349,15 +349,21 @@ public class ExcelWriteSupport {
 
         out.beginNode(null, "dataValidations", attrs("count", validations.size()));
         for (ExcelDataValidation validation : validations) {
-            int allowBlank = Boolean.TRUE.equals(validation.getAllowBlank()) ? 1 : 0;
-            int showInputMessage = Boolean.TRUE.equals(validation.getShowInputMessage()) ? 1 : 0;
-            int showErrorMessage = Boolean.TRUE.equals(validation.getShowErrorMessage()) ? 1 : 0;
+            int allowBlank = Boolean.FALSE.equals(validation.getAllowBlank()) ? 0 : 1;
+            int showInputMessage = Boolean.FALSE.equals(validation.getShowInputMessage()) ? 0 : 1;
+            int showErrorMessage = Boolean.FALSE.equals(validation.getShowErrorMessage()) ? 0 : 1;
             out.beginNode(null, "dataValidation", attrs("type", validation.getType(),
                     "allowBlank", allowBlank, "showInputMessage", showInputMessage, "showErrorMessage", showErrorMessage, "sqref", validation.getSqref()));
-            if (validation.getFormula() != null) {
-                out.beginNode("formula");
-                out.value(null, validation.getFormula());
-                out.endNode("formula");
+            if (validation.getFormula1() != null) {
+                out.beginNode("formula1");
+                out.value(null, validation.getFormula1());
+                out.endNode("formula1");
+            }
+
+            if (validation.getFormula2() != null) {
+                out.beginNode("formula2");
+                out.value(null, validation.getFormula2());
+                out.endNode("formula2");
             }
             out.endNode("dataValidation");
 

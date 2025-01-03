@@ -76,11 +76,11 @@
                 </field>
 
                 <field name="stdSqlType" displayName="类型" mandatory="true">
-                    <schema dict="enum:io.nop.commons.type.StdSqlType"/>
+                    <schema dict="io.nop.commons.type.StdSqlType"/>
                 </field>
 
                 <field name="stdDataType" displayName="标准类型" mandatory="true">
-                    <schema dict="enum:io.nop.commons.type.StdDataType"/>
+                    <schema dict="io.nop.commons.type.StdDataType"/>
                 </field>
 
                 <field name="precision" displayName="长度">

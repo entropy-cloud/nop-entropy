@@ -18,9 +18,9 @@ public class ExcelDataValidation extends _ExcelDataValidation {
 
     }
 
-    public static ExcelDataValidation buildFromDict(DictBean dict) {
+    public static ExcelDataValidation buildFromDict(DictBean dict, boolean useLabels) {
         ExcelDataValidation obj = new ExcelDataValidation();
-        obj.setListOptions(dict.getLabels());
+        obj.setListOptions(useLabels ? dict.getLabels() : dict.getStringValues());
         return obj;
     }
 
@@ -48,7 +48,7 @@ public class ExcelDataValidation extends _ExcelDataValidation {
 
     public List<String> getListOptions() {
         if ("list".equals(getType())) {
-            String formula = getFormula();
+            String formula = getFormula1();
             if (StringHelper.isEmpty(formula))
                 return Collections.emptyList();
             formula = StringHelper.unquote(formula);
@@ -60,6 +60,6 @@ public class ExcelDataValidation extends _ExcelDataValidation {
     public void setListOptions(List<String> listOptions) {
         setType("list");
         String str = StringHelper.join(listOptions, ",");
-        setFormula(StringHelper.quote(str));
+        setFormula1(StringHelper.quote(str));
     }
 }

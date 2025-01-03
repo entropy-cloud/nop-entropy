@@ -74,7 +74,8 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                 <dataValidation xdef:name="ExcelDataValidation" id="!string"
                                 type="!string" allowBlank="boolean" showInputMessage="boolean"
                                 showErrorMessage="boolean" sqref="!string">
-                    <formula xdef:value="string"/>
+                    <formula1 xdef:value="string"/>
+                    <formula2 xdef:value="string"/>
                 </dataValidation>
             </dataValidations>
 

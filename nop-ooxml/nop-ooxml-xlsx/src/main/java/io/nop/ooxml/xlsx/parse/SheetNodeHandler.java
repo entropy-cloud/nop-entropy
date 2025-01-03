@@ -301,7 +301,7 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             dataValidation.setShowInputMessage(showInputMessage);
             dataValidation.setShowErrorMessage(showErrorMessage);
             dataValidation.setId(id);
-        } else if ("formula".equals(localName)) {
+        } else if ("formula1".equals(localName) || "formula2".equals(localName)) {
             validationFormula.setLength(0);
             vfOpen = true;
         }
@@ -338,10 +338,14 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             output.cols(cols);
         } else if ("dataValidation".equals(localName)) {
             output.dataValidation(dataValidation);
-        } else if ("formula".equals(localName)) {
-            if(dataValidation != null) {
+        } else if ("formula1".equals(localName) || "formula2".equals(localName)) {
+            if (dataValidation != null) {
                 vfOpen = false;
-                dataValidation.setFormula(validationFormula.toString());
+                if ("formula1".equals(localName)) {
+                    dataValidation.setFormula1(validationFormula.toString());
+                } else {
+                    dataValidation.setFormula2(validationFormula.toString());
+                }
                 validationFormula.setLength(0);
             }
         }

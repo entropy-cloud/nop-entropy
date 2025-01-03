@@ -21,6 +21,7 @@ import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.xlang.api.XLang;
 
 import java.util.List;
+import java.util.UUID;
 
 import static io.nop.ooxml.xlsx.imp.ImportBeanLayout.STYLE_ID_AUTO_SEQ;
 import static io.nop.ooxml.xlsx.imp.ImportBeanLayout.STYLE_ID_COL;
@@ -76,7 +77,7 @@ public class ImportModelToExportModel {
 
         assignToTable(sheet.getTable(), rootCell.getChildren());
 
-        addValidation(rootCell, sheetModel);
+        addValidation(rootCell, sheetModel, sheet);
         return sheet;
     }
 
@@ -122,21 +123,31 @@ public class ImportModelToExportModel {
         }
     }
 
-    void addValidation(TreeCell cell, ImportSheetModel sheetModel) {
+    void addValidation(TreeCell cell, ImportSheetModel sheetModel, ExcelSheet sheet) {
+        if (!sheetModel.isList())
+            return;
+
+        cell = cell.getChildren().get(0);
+
         for (TreeCell child : cell.getChildren()) {
             if (!STYLE_ID_COL.equals(child.getStyleId()))
                 continue;
 
             TreeCell fieldCell = child.getChildren().get(1);
+            if (!(fieldCell.getValue() instanceof ImportFieldModel))
+                continue;
+
             ImportFieldModel field = (ImportFieldModel) fieldCell.getValue();
             if (field != null && field.getSchema() != null && field.getSchema().getDict() != null) {
                 String dictName = field.getSchema().getDict();
                 DictBean dict = DictProvider.instance().getDict(null, dictName, cache, scope);
 
-                ExcelDataValidation validation = ExcelDataValidation.buildFromDict(dict);
+                ExcelDataValidation validation = ExcelDataValidation.buildFromDict(dict, field.isImportDictLabel());
+                validation.setId("{" + UUID.randomUUID() + "}");
                 String start = CellPosition.toABString(fieldCell.getRowIndex(), fieldCell.getColIndex());
-                String end = CellPosition.toABString(CellPosition.MAX_ROWS, fieldCell.getColIndex());
+                String end = CellPosition.toABString(CellPosition.MAX_ROWS - 1, fieldCell.getColIndex());
                 validation.setSqref(start + ":" + end);
+                sheet.addDataValidation(validation);
             }
         }
     }
