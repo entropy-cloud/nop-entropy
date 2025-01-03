@@ -22,13 +22,15 @@ import io.nop.xlang.api.XLang;
 
 import java.util.List;
 
-import static io.nop.ooxml.xlsx.imp.TreeObjectLayout.STYLE_ID_AUTO_SEQ;
-import static io.nop.ooxml.xlsx.imp.TreeObjectLayout.STYLE_ID_COL;
-import static io.nop.ooxml.xlsx.imp.TreeObjectLayout.STYLE_ID_HEADER;
-import static io.nop.ooxml.xlsx.imp.TreeObjectLayout.STYLE_ID_LABEL;
-import static io.nop.ooxml.xlsx.imp.TreeObjectLayout.STYLE_ID_SEQ;
-import static io.nop.ooxml.xlsx.imp.TreeObjectLayout.STYLE_ID_TITLE;
-import static io.nop.ooxml.xlsx.imp.TreeObjectLayout.STYLE_ID_VALUE;
+import static io.nop.ooxml.xlsx.imp.ImportBeanLayout.STYLE_ID_AUTO_SEQ;
+import static io.nop.ooxml.xlsx.imp.ImportBeanLayout.STYLE_ID_COL;
+import static io.nop.ooxml.xlsx.imp.ImportBeanLayout.STYLE_ID_HEADER;
+import static io.nop.ooxml.xlsx.imp.ImportBeanLayout.STYLE_ID_LABEL;
+import static io.nop.ooxml.xlsx.imp.ImportBeanLayout.STYLE_ID_SEPARATOR;
+import static io.nop.ooxml.xlsx.imp.ImportBeanLayout.STYLE_ID_SEQ;
+import static io.nop.ooxml.xlsx.imp.ImportBeanLayout.STYLE_ID_SEQ_VALUE;
+import static io.nop.ooxml.xlsx.imp.ImportBeanLayout.STYLE_ID_TITLE;
+import static io.nop.ooxml.xlsx.imp.ImportBeanLayout.STYLE_ID_VALUE;
 
 public class ImportModelToExportModel {
     private ExcelWorkbook wk;
@@ -36,6 +38,7 @@ public class ImportModelToExportModel {
     private String labelStyle;
     private String valueStyle;
     private String titleStyle;
+    private String seqStyle;
     private ICache<Object, Object> cache = new MapCache<>("import", false);
     private IEvalScope scope = XLang.newEvalScope();
 
@@ -47,6 +50,7 @@ public class ImportModelToExportModel {
         labelStyle = this.getCellStyleId(0, 0);
         valueStyle = this.getCellStyleId(1, 0);
         titleStyle = this.getCellStyleId(0, 1);
+        seqStyle = this.getCellStyleId(0, 2);
     }
 
     String getCellStyleId(int row, int col) {
@@ -67,7 +71,7 @@ public class ImportModelToExportModel {
         sheet.setName(sheetModel.getName());
         sheet.setLocation(sheetModel.getLocation());
 
-        TreeObjectLayout layout = new TreeObjectLayout();
+        ImportBeanLayout layout = new ImportBeanLayout();
         TreeCell rootCell = layout.init(sheetModel);
 
         assignToTable(sheet.getTable(), rootCell.getChildren());
@@ -84,7 +88,11 @@ public class ImportModelToExportModel {
                 continue;
             }
 
-            ExcelCell ec = (ExcelCell) table.makeCell(cell.getRowIndex(), cell.getColIndex());
+            ExcelCell ec = new ExcelCell();
+            ec.setMergeAcross(cell.getMergeAcross());
+            ec.setMergeDown(cell.getMergeDown());
+            table.setCell(cell.getRowIndex(), cell.getColIndex(), ec);
+
             if (STYLE_ID_HEADER.equals(cell.getStyleId())) {
                 ec.setStyleId(labelStyle);
                 ImportFieldModel field = (ImportFieldModel) cell.getValue();
@@ -99,12 +107,17 @@ public class ImportModelToExportModel {
                 ec.setStyleId(titleStyle);
                 ImportFieldModel field = (ImportFieldModel) cell.getValue();
                 ec.setValue(field.getDisplayNameOrName());
-            }else if(STYLE_ID_AUTO_SEQ.equals(cell.getStyleId())){
+            } else if (STYLE_ID_AUTO_SEQ.equals(cell.getStyleId())) {
                 ec.setStyleId(labelStyle);
                 ec.setValue("序号");
-            }else if(STYLE_ID_SEQ.equals(cell.getStyleId())){
+            } else if (STYLE_ID_SEQ.equals(cell.getStyleId())) {
+                ec.setStyleId(seqStyle);
+                ec.setValue("1");
+            } else if (STYLE_ID_SEQ_VALUE.equals(cell.getStyleId())) {
                 ec.setStyleId(valueStyle);
                 ec.setValue("1");
+            } else if (STYLE_ID_SEPARATOR.equals(cell.getStyleId())) {
+                ec.setStyleId(valueStyle);
             }
         }
     }

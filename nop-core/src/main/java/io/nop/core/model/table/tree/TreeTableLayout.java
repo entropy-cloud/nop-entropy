@@ -10,7 +10,6 @@ package io.nop.core.model.table.tree;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.model.table.IRow;
 import io.nop.core.model.table.ITable;
-import io.nop.core.model.tree.TreeVisitors;
 
 import java.util.List;
 
@@ -49,11 +48,16 @@ public class TreeTableLayout {
 
     public void assignToTable(List<TreeCell> cells, ITable<IRow> table) {
         for (TreeCell cell : cells) {
-            for (TreeCell c : TreeVisitors.depthFirstIterator(cell, true)) {
-                if (c.isVirtual())
-                    continue;
-                table.setCell(c.getRowIndex(), c.getColIndex(), cell);
+            if (cell.isVirtual()) {
+                if (cell.getChildren() != null)
+                    assignToTable(cell.getChildren(), table);
+                continue;
             }
+
+
+            table.setCell(cell.getRowIndex(), cell.getColIndex(), cell);
+            if (cell.getChildren() != null)
+                assignToTable(cell.getChildren(), table);
         }
     }
 
@@ -95,7 +99,7 @@ public class TreeTableLayout {
             case right_ver:
             case left_ver: {
                 int w = maxBboxWidth(children);
-                int h = sumBboxWidth(children);
+                int h = sumBboxHeight(children);
                 cell.setMergeDown(Math.max(cell.getMergeDown(), h - 1));
                 cell.setBboxWidth(cell.getColSpan() + w);
                 cell.setBboxHeight(cell.getRowSpan());
@@ -113,7 +117,7 @@ public class TreeTableLayout {
             case bottom_ver:
             case top_ver: {
                 int w = maxBboxWidth(children);
-                int h = sumBboxWidth(children);
+                int h = sumBboxHeight(children);
                 cell.setMergeAcross(Math.max(cell.getMergeAcross(), w - 1));
                 cell.setBboxWidth(cell.getColSpan());
                 cell.setBboxHeight(cell.getRowSpan() + h);
@@ -122,17 +126,17 @@ public class TreeTableLayout {
             case hor: {
                 int w = sumBboxWidth(children);
                 int h = maxBboxHeight(children);
-                cell.setMergeAcross(0);
-                cell.setMergeDown(0);
+                cell.setColSpan(w);
+                cell.setRowSpan(h);
                 cell.setBboxWidth(w);
                 cell.setBboxHeight(h);
                 break;
             }
             case ver: {
                 int w = maxBboxWidth(children);
-                int h = sumBboxWidth(children);
-                cell.setMergeAcross(0);
-                cell.setMergeDown(0);
+                int h = sumBboxHeight(children);
+                cell.setColSpan(w);
+                cell.setRowSpan(h);
                 cell.setBboxWidth(w);
                 cell.setBboxHeight(h);
                 break;
@@ -191,51 +195,105 @@ public class TreeTableLayout {
 
         int bboxWidth = cell.getBboxWidth();
         int bboxHeight = cell.getBboxHeight();
+        int sumFlex = childrenFlex(cell);
 
         cell.setBboxWidth(w);
         cell.setBboxHeight(h);
 
-        switch (cell.getChildPos()) {
+        TreeCellChildPosition pos = cell.getChildPos();
+        if (pos == null)
+            pos = TreeCellChildPosition.ver;
+
+        switch (pos) {
             case right_hor:
             case left_hor: {
-                // 如果边框宽度增加了，则延展最后一个child
-                lastChild(children).incWidth(w - bboxWidth);
-                adjustChildrenHor(children, h);
                 cell.setMergeDown(h - 1);
+                distributeWidth(children, sumFlex, w - bboxWidth);
+                adjustChildrenHor(children, h);
                 break;
             }
             case right_ver:
             case left_ver: {
-                lastChild(children).incHeight(h - bboxHeight);
-                adjustChildrenVer(children, w - cell.getColSpan());
                 cell.setMergeDown(h - 1);
+                distributeHeight(children, sumFlex, h - bboxHeight);
+                adjustChildrenVer(children, w - cell.getColSpan());
                 break;
             }
             case bottom_hor:
             case top_hor: {
-                lastChild(children).incWidth(w - bboxWidth);
-                adjustChildrenHor(children, h - cell.getRowSpan());
                 cell.setMergeAcross(w - 1);
+                distributeWidth(children, sumFlex, w - bboxWidth);
+                adjustChildrenHor(children, h - cell.getRowSpan());
                 break;
             }
             case bottom_ver:
             case top_ver: {
                 cell.setMergeAcross(w - 1);
-                lastChild(children).incHeight(h - bboxHeight);
+                distributeHeight(children, sumFlex, h - bboxHeight);
                 adjustChildrenVer(children, w);
                 break;
             }
             case hor:
-                lastChild(children).incWidth(w - bboxWidth);
+                cell.setMergeDown(h - 1);
+                cell.setMergeAcross(w - 1);
+                distributeWidth(children, sumFlex, w - bboxWidth);
                 adjustChildrenHor(children, h);
                 break;
             case ver:
-                lastChild(children).incHeight(h - bboxHeight);
+                cell.setMergeDown(h - 1);
+                cell.setMergeAcross(w - 1);
+                distributeHeight(children, sumFlex, h - bboxHeight);
                 adjustChildrenVer(children, w);
                 break;
             default:
                 throw new NopException(ERR_TREE_TABLE_UNSUPPORTED_CHILD_POS).param(ARG_POS, cell.getChildPos());
         }
+    }
+
+    void distributeWidth(List<TreeCell> children, int sumFlex, int deltaWidth) {
+        if (sumFlex == 0 || deltaWidth <= 0)
+            return;
+
+        for (TreeCell child : children) {
+            int flex = child.getFlex();
+            if (flex > 0) {
+                if (flex == sumFlex) {
+                    child.incWidth(deltaWidth);
+                } else {
+                    int dw = deltaWidth * flex / sumFlex;
+                    child.incWidth(dw);
+                    deltaWidth -= dw;
+                    sumFlex -= flex;
+                }
+            }
+        }
+    }
+
+    void distributeHeight(List<TreeCell> children, int sumFlex, int deltaHeight) {
+        if (sumFlex == 0 || deltaHeight <= 0)
+            return;
+
+        for (TreeCell child : children) {
+            int flex = child.getFlex();
+            if (flex > 0) {
+                if (flex == sumFlex) {
+                    child.incHeight(deltaHeight);
+                } else {
+                    int dh = deltaHeight * flex / sumFlex;
+                    child.incHeight(dh);
+                    deltaHeight -= dh;
+                    sumFlex -= flex;
+                }
+            }
+        }
+    }
+
+    int childrenFlex(TreeCell cell) {
+        int total = 0;
+        for (TreeCell child : cell.getChildren()) {
+            total += child.getFlex();
+        }
+        return total;
     }
 
     TreeCell lastChild(List<TreeCell> children) {

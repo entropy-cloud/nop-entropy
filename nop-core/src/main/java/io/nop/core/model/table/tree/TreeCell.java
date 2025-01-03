@@ -46,6 +46,11 @@ public class TreeCell extends AbstractFreezable implements ITreeStructure, ICell
     private int colIndex = -1;
 
     /**
+     * 如果不为0，则表示允许自动延展。flex表示自动延展时的占比
+     */
+    private int flex;
+
+    /**
      * 树节点所处的层次，顶层的treeLevel为0，子层加1
      */
     private int treeLevel;
@@ -67,6 +72,14 @@ public class TreeCell extends AbstractFreezable implements ITreeStructure, ICell
     @Override
     public String getFormula() {
         return null;
+    }
+
+    public int getFlex() {
+        return flex;
+    }
+
+    public void setFlex(int flex) {
+        this.flex = flex;
     }
 
     public String getComment() {
@@ -109,6 +122,7 @@ public class TreeCell extends AbstractFreezable implements ITreeStructure, ICell
         ret.colIndex = colIndex;
         ret.leafIndex = leafIndex;
         ret.treeLevel = treeLevel;
+        ret.flex = flex;
         return ret;
     }
 
@@ -135,6 +149,18 @@ public class TreeCell extends AbstractFreezable implements ITreeStructure, ICell
 
     public void setLeafIndex(int leafIndex) {
         this.leafIndex = leafIndex;
+    }
+
+    public TreeCell getFirstChild() {
+        if (children == null || children.isEmpty())
+            return null;
+        return children.get(0);
+    }
+
+    public TreeCell getLastChild() {
+        if (children == null || children.isEmpty())
+            return null;
+        return children.get(children.size() - 1);
     }
 
     public void addChild(TreeCell cell) {
@@ -183,6 +209,16 @@ public class TreeCell extends AbstractFreezable implements ITreeStructure, ICell
 
     public int getRowSpan() {
         return mergeDown + 1;
+    }
+
+    public void setColSpan(int colSpan) {
+        Guard.positiveInt(colSpan, "colSpan");
+        this.mergeAcross = colSpan - 1;
+    }
+
+    public void setRowSpan(int rowSpan) {
+        Guard.positiveInt(rowSpan, "rowSpan");
+        this.mergeDown = rowSpan - 1;
     }
 
     public Object getValue() {

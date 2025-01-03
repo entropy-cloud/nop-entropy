@@ -75,12 +75,12 @@
                     <schema stdDomain="std-domain"/>
                 </field>
 
-                <field name="stdSqlType" displayName="数据类型" mandatory="true">
-                    <schema stdDomain="std-sql-type"/>
+                <field name="stdSqlType" displayName="类型" mandatory="true">
+                    <schema dict="enum:io.nop.commons.type.StdSqlType"/>
                 </field>
 
-                <field name="stdDataType" displayName="Java类型">
-                    <schema stdDomain="std-data-type"/>
+                <field name="stdDataType" displayName="标准类型" mandatory="true">
+                    <schema dict="enum:io.nop.commons.type.StdDataType"/>
                 </field>
 
                 <field name="precision" displayName="长度">

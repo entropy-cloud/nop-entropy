@@ -83,25 +83,25 @@ public class TestDynCodeGenRelation2 extends JunitAutoTestCase {
 //        List<?> items = BeanTool.castBeanToType(response.getData(), List.class);
 //        assertEquals(1, items.size());
 
-           //  {deptName=2222, deptUsers=[{userId=7ab81}, {id=dasda2}]}
+        //  {deptName=2222, deptUsers=[{id=7ab81}, {id=dasda2}]}
 
-            Map<Object, Object> mapData = new HashMap<>();
-            mapData.put("roleKey", "test1");
-            mapData.put("roleName", "test1");
-            Map<Object, Object> deptUserData = new HashMap<>();
-            deptUserData.put("id", "1");
-            mapData.put("roleUsers", List.of(deptUserData));
+        Map<Object, Object> mapData = new HashMap<>();
+        mapData.put("roleKey", "test1");
+        mapData.put("roleName", "test1");
+        Map<Object, Object> deptUserData = new HashMap<>();
+        deptUserData.put("id", "1");
+        mapData.put("roleUsers", List.of(deptUserData));
 
-            ApiRequest<?> request = ApiRequest.build(Map.of("data", mapData));
-            request.setSelection(FieldSelectionBean.fromProp("roleUsers"));
-            IGraphQLExecutionContext context = graphQLEngine.newRpcContext(GraphQLOperationType.mutation,
-                                                                           "RoleEntity__save", request);
-            Object result = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
-            System.out.println(result);
+        ApiRequest<?> request = ApiRequest.build(Map.of("data", mapData));
+        request.setSelection(FieldSelectionBean.fromProp("roleUsers.userName"));
+        IGraphQLExecutionContext context =
+            graphQLEngine.newRpcContext(GraphQLOperationType.mutation,"RoleEntity__save", request);
+        ApiResponse<?> response =  FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
+        assertEquals(true, response.isOk());
+        List roleUsers = (List)BeanTool.getProperty(response.getData(), "roleUsers");
+        assertEquals(1, roleUsers.size());
     }
 
-    @EnableSnapshot
-    @Test
     public void testManyToManyRelation() {
 
         testGen(OrmRelationType.m2m);
@@ -206,7 +206,7 @@ public class TestDynCodeGenRelation2 extends JunitAutoTestCase {
         relationMeta.setLeftPropName(leftPropName);
         relationMeta.setRightPropName(rightPropName);
         relationMeta.setStatus(1);
-        relationMeta.setTagsText("pub");
+        relationMeta.setTagsText("pub,insertable");
 //        relationMeta.setMiddleTableName(middleTableName);
         leftEntity.getRelationMetasForEntity().add(relationMeta);
     }
