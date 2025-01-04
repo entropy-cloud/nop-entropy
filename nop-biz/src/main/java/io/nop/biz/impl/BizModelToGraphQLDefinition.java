@@ -15,6 +15,7 @@ import io.nop.biz.model.BizActionArgModel;
 import io.nop.biz.model.BizActionModel;
 import io.nop.biz.model.BizLoaderModel;
 import io.nop.biz.model.BizReturnModel;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.context.action.IServiceAction;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
@@ -34,8 +35,8 @@ import io.nop.graphql.core.ast.GraphQLType;
 import io.nop.graphql.core.fetcher.BeanMethodBatchFetcher;
 import io.nop.graphql.core.fetcher.ServiceActionFetcher;
 import io.nop.graphql.core.reflection.ArgBuilders;
-import io.nop.graphql.core.reflection.EvalGraphQLArgsNormalizer;
 import io.nop.graphql.core.reflection.IServiceActionArgBuilder;
+import io.nop.graphql.core.reflection.LazyGraphQLArgsNormalizer;
 import io.nop.graphql.core.schema.GraphQLScalarType;
 import io.nop.graphql.core.schema.TypeRegistry;
 import io.nop.graphql.core.schema.meta.ObjMetaToGraphQLDefinition;
@@ -97,7 +98,7 @@ public class BizModelToGraphQLDefinition {
         }
 
         if (actionModel.getArgsNormalizer() != null) {
-            field.setArgsNormalizer(new EvalGraphQLArgsNormalizer(actionModel.getArgsNormalizer()));
+            field.setArgsNormalizer(new LazyGraphQLArgsNormalizer(actionModel.getArgsNormalizer()));
         }
         return field;
     }
@@ -115,6 +116,10 @@ public class BizModelToGraphQLDefinition {
         IDataFetcher fetcher = buildFetcher(thisObjName, loaderModel, typeRegistry);
         field.setFetcher(fetcher);
         field.setAutoCreate(loaderModel.isAutoCreateField());
+
+        if (!StringHelper.isEmpty(loaderModel.getArgsNormalizer()))
+            field.setArgsNormalizer(new LazyGraphQLArgsNormalizer(loaderModel.getArgsNormalizer()));
+
         return field;
     }
 

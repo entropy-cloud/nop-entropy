@@ -28,7 +28,7 @@
         <query xdef:name="BizActionModel" name="!string" displayName="string"
                executor="string" bizSequential="!boolean=false" task:name="string" task:version="long"
                timeout="long" disabled="!boolean=false" idempotent="!boolean=false" safe="!boolean=false"
-               async="!boolean=false" xdef:bean-tag-prop="type">
+               async="!boolean=false" xdef:bean-tag-prop="type" argsNormalizer="bean-name">
 
             <auth xdef:ref="../schema/auth.xdef"/>
 
@@ -50,8 +50,6 @@
             <cache-evicts xdef:body-type="list">
                 <cache-evict cacheName="string" cacheKeyExpr="expr" xdef:name="BizCacheEvictModel"/>
             </cache-evicts>
-
-            <args-normalizer xdef:value="xpl-fn:(args:Map,svcCtx:io.nop.core.context.IServiceContext)=>Map"/>
 
             <arg xdef:name="BizActionArgModel" name="!var-name" mandatory="!boolean=false"
                  displayName="string" xdef:unique-attr="name" type="generic-type" graphql:type="string"
@@ -80,7 +78,8 @@
     </actions>
 
     <loaders xdef:body-type="list" xdef:key-attr="name">
-        <loader name="!string" xdef:name="BizLoaderModel" disabled="!boolean=false" autoCreateField="!boolean=false">
+        <loader name="!string" xdef:name="BizLoaderModel" disabled="!boolean=false" autoCreateField="!boolean=false"
+                argsNormalizer="bean-name">
             <!--
               是否缓存action调用结果
              -->

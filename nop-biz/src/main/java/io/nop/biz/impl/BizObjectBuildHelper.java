@@ -63,6 +63,15 @@ public class BizObjectBuildHelper {
                 if (op.getArguments() == null) {
                     op.setArguments(action.cloneArguments());
                 }
+                if( op.getArgsNormalizer() == null){
+                    op.setArgsNormalizer(action.getArgsNormalizer());
+                }
+                if(op.getAuth() == null)
+                    op.setAuth(action.getAuth());
+                if(op.getMakerCheckerMeta() == null)
+                    op.setMakerCheckerMeta(action.getMakerCheckerMeta());
+                if(op.getLazy() == null)
+                    op.setLazy(action.getLazy());
             }
         }
     }

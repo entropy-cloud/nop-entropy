@@ -25,10 +25,10 @@ public abstract class _BizActionModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
-     * xml name: args-normalizer
+     * xml name: argsNormalizer
      * 
      */
-    private io.nop.core.lang.eval.IEvalFunction _argsNormalizer ;
+    private java.lang.String _argsNormalizer ;
     
     /**
      *  
@@ -203,16 +203,16 @@ public abstract class _BizActionModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
-     * xml name: args-normalizer
+     * xml name: argsNormalizer
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getArgsNormalizer(){
+    public java.lang.String getArgsNormalizer(){
       return _argsNormalizer;
     }
 
     
-    public void setArgsNormalizer(io.nop.core.lang.eval.IEvalFunction value){
+    public void setArgsNormalizer(java.lang.String value){
         checkAllowChange();
         
         this._argsNormalizer = value;

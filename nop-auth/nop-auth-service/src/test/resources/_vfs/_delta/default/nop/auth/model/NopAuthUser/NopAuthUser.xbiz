@@ -7,6 +7,9 @@
            <auth roles="user" />
         </query>
 
+        <query name="findPage">
+        </query>
+
         <query name="my_findPage">
             <arg name="query" type="io.nop.api.core.beans.query.QueryBean" />
 

@@ -274,6 +274,9 @@ public class ReflectionBizModelBuilder {
 
         GraphQLFieldDefinition field = new GraphQLFieldDefinition();
         field.setFunctionModel(func);
+        field.setLocation(loc);
+        field.setName(GraphQLNameHelper.getOperationName(bizObjName, name));
+        field.setServiceAction(action);
 
         ReflectionGraphQLTypeFactory.INSTANCE.getArgDefinitions(field, func, registry);
 
@@ -299,9 +302,6 @@ public class ReflectionBizModelBuilder {
             field.setArgsNormalizer(new LazyGraphQLArgsNormalizer(argsNormalizer.value()));
         }
 
-        field.setLocation(loc);
-        field.setName(GraphQLNameHelper.getOperationName(bizObjName, name));
-        field.setServiceAction(action);
         field.setFetcher(fetcher);
 
         if (func.getAsyncReturnType().getRawClass() == ApiResponse.class)

@@ -25,6 +25,13 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: argsNormalizer
+     * 
+     */
+    private java.lang.String _argsNormalizer ;
+    
+    /**
+     *  
      * xml name: autoCreateField
      * 
      */
@@ -109,6 +116,25 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
     public boolean hasArgs(){
         return !this._args.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: argsNormalizer
+     *  
+     */
+    
+    public java.lang.String getArgsNormalizer(){
+      return _argsNormalizer;
+    }
+
+    
+    public void setArgsNormalizer(java.lang.String value){
+        checkAllowChange();
+        
+        this._argsNormalizer = value;
+           
+    }
+
     
     /**
      * 
@@ -246,6 +272,7 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
         super.outputJson(out);
         
         out.putNotNull("args",this.getArgs());
+        out.putNotNull("argsNormalizer",this.getArgsNormalizer());
         out.putNotNull("autoCreateField",this.isAutoCreateField());
         out.putNotNull("cache",this.getCache());
         out.putNotNull("disabled",this.isDisabled());
@@ -264,6 +291,7 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
         super.copyTo(instance);
         
         instance.setArgs(this.getArgs());
+        instance.setArgsNormalizer(this.getArgsNormalizer());
         instance.setAutoCreateField(this.isAutoCreateField());
         instance.setCache(this.getCache());
         instance.setDisabled(this.isDisabled());

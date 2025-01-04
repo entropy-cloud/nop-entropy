@@ -255,6 +255,25 @@ filter对应于后台的TreeBean类型的对象，这是一个通用的Tree结�
 | startsWith  | 字符串的前缀为指定值   |
 | endsWith    | 字符串的后缀为指定值   |
 
+### BizArgsNormalizer参数规范格式转换
+CrudBizModel的`findPage/findList`等函数接收QueryBean格式的query参数，但是前台构造QueryBean结构比较复杂，所以也支持直接传递`filter_{propName}`格式的过滤条件，例如`filter_status=1`。
+后台的实现是利用`@BizArgsNormalizer`注解引入的IGraphQLArgsNormalizer接口对象来对前台传递的参数进行规范化，将前台传递的`filter_xx`条件转换为QueryBean对象。这是一种通用机制，不仅仅用在QueryBean结构转换上。
+
+```javascript
+    @BizQuery
+    @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
+    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
+    public PageBean<T> deleted_findPage(@Optional @Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
+                                        FieldSelectionBean selection, IServiceContext context) {
+      ...
+   }
+```
+
+`@BizArgsNormalizer`的参数是在NopIoC中注册的bean的名字，nopQueryBeanArgsNormalizer对应于`biz-defaults.beans.xml`中注册的QueryBeanArgsNormalizer对象。
+
+`IGraphQLEngine.newRpcContext`的时候会调用argsNormalizer，因此前台通过`/p/{bizObjName}_{bizAction}`或者`/r/{bizObjName}_{bizAction}`执行后台服务时都会调用到这一逻辑。
+单元测试参见`TestNopAuthUserBizModel.testQueryBeanNormalizer`。
+
 ## 3.3 this指针：知识的相对化
 
 GraphQL中定义的操作名是全局名称，例如 `query{ getUser(id:3){ id, userName}}`
