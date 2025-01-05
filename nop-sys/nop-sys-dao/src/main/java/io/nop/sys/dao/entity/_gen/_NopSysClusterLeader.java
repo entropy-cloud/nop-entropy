@@ -44,19 +44,27 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     public static final String PROP_NAME_expireAt = "expireAt";
     public static final int PROP_ID_expireAt = 6;
     
-    /* 应用ID: APP_ID VARCHAR */
-    public static final String PROP_NAME_appId = "appId";
-    public static final int PROP_ID_appId = 7;
+    /* 刷新时间: REFRESH_TIME TIMESTAMP */
+    public static final String PROP_NAME_refreshTime = "refreshTime";
+    public static final int PROP_ID_refreshTime = 7;
+    
+    /* 修改版本: VERSION INTEGER */
+    public static final String PROP_NAME_version = "version";
+    public static final int PROP_ID_version = 8;
+    
+    /* 应用名: APP_NAME VARCHAR */
+    public static final String PROP_NAME_appName = "appName";
+    public static final int PROP_ID_appName = 9;
     
 
-    private static int _PROP_ID_BOUND = 8;
+    private static int _PROP_ID_BOUND = 10;
 
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_clusterId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_clusterId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[8];
+    private static final String[] PROP_ID_TO_NAME = new String[10];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -78,8 +86,14 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_expireAt] = PROP_NAME_expireAt;
           PROP_NAME_TO_ID.put(PROP_NAME_expireAt, PROP_ID_expireAt);
       
-          PROP_ID_TO_NAME[PROP_ID_appId] = PROP_NAME_appId;
-          PROP_NAME_TO_ID.put(PROP_NAME_appId, PROP_ID_appId);
+          PROP_ID_TO_NAME[PROP_ID_refreshTime] = PROP_NAME_refreshTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_refreshTime, PROP_ID_refreshTime);
+      
+          PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
+          PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
+      
+          PROP_ID_TO_NAME[PROP_ID_appName] = PROP_NAME_appName;
+          PROP_NAME_TO_ID.put(PROP_NAME_appName, PROP_ID_appName);
       
     }
 
@@ -102,8 +116,14 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     /* 过期时间: EXPIRE_AT */
     private java.sql.Timestamp _expireAt;
     
-    /* 应用ID: APP_ID */
-    private java.lang.String _appId;
+    /* 刷新时间: REFRESH_TIME */
+    private java.sql.Timestamp _refreshTime;
+    
+    /* 修改版本: VERSION */
+    private java.lang.Integer _version;
+    
+    /* 应用名: APP_NAME */
+    private java.lang.String _appName;
     
 
     public _NopSysClusterLeader(){
@@ -197,8 +217,14 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
             case PROP_ID_expireAt:
                return getExpireAt();
         
-            case PROP_ID_appId:
-               return getAppId();
+            case PROP_ID_refreshTime:
+               return getRefreshTime();
+        
+            case PROP_ID_version:
+               return getVersion();
+        
+            case PROP_ID_appName:
+               return getAppName();
         
            default:
               return super.orm_propValue(propId);
@@ -271,13 +297,33 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_appId:{
+            case PROP_ID_refreshTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_refreshTime));
+               }
+               setRefreshTime(typedValue);
+               break;
+            }
+        
+            case PROP_ID_version:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_version));
+               }
+               setVersion(typedValue);
+               break;
+            }
+        
+            case PROP_ID_appName:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_appId));
+                       err-> newTypeConversionError(PROP_NAME_appName));
                }
-               setAppId(typedValue);
+               setAppName(typedValue);
                break;
             }
         
@@ -332,9 +378,23 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_appId:{
+            case PROP_ID_refreshTime:{
                onInitProp(propId);
-               this._appId = (java.lang.String)value;
+               this._refreshTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_version:{
+               onInitProp(propId);
+               this._version = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_appName:{
+               onInitProp(propId);
+               this._appName = (java.lang.String)value;
                
                break;
             }
@@ -460,20 +520,58 @@ public class _NopSysClusterLeader extends DynamicOrmEntity{
     }
     
     /**
-     * 应用ID: APP_ID
+     * 刷新时间: REFRESH_TIME
      */
-    public final java.lang.String getAppId(){
-         onPropGet(PROP_ID_appId);
-         return _appId;
+    public final java.sql.Timestamp getRefreshTime(){
+         onPropGet(PROP_ID_refreshTime);
+         return _refreshTime;
     }
 
     /**
-     * 应用ID: APP_ID
+     * 刷新时间: REFRESH_TIME
      */
-    public final void setAppId(java.lang.String value){
-        if(onPropSet(PROP_ID_appId,value)){
-            this._appId = value;
-            internalClearRefs(PROP_ID_appId);
+    public final void setRefreshTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_refreshTime,value)){
+            this._refreshTime = value;
+            internalClearRefs(PROP_ID_refreshTime);
+            
+        }
+    }
+    
+    /**
+     * 修改版本: VERSION
+     */
+    public final java.lang.Integer getVersion(){
+         onPropGet(PROP_ID_version);
+         return _version;
+    }
+
+    /**
+     * 修改版本: VERSION
+     */
+    public final void setVersion(java.lang.Integer value){
+        if(onPropSet(PROP_ID_version,value)){
+            this._version = value;
+            internalClearRefs(PROP_ID_version);
+            
+        }
+    }
+    
+    /**
+     * 应用名: APP_NAME
+     */
+    public final java.lang.String getAppName(){
+         onPropGet(PROP_ID_appName);
+         return _appName;
+    }
+
+    /**
+     * 应用名: APP_NAME
+     */
+    public final void setAppName(java.lang.String value){
+        if(onPropSet(PROP_ID_appName,value)){
+            this._appName = value;
+            internalClearRefs(PROP_ID_appName);
             
         }
     }

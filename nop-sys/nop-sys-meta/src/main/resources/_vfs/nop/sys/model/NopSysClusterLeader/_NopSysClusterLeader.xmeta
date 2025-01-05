@@ -34,16 +34,24 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Long"/>
         </prop>
-        <prop name="electTime" displayName="选举时间" propId="5" i18n-en:displayName="Elect Time" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true">
+        <prop name="electTime" displayName="选举时间" propId="5" i18n-en:displayName="Elect Time" tagSet="clock"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="expireAt" displayName="过期时间" propId="6" i18n-en:displayName="Expire At" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true">
+        <prop name="expireAt" displayName="过期时间" propId="6" i18n-en:displayName="Expire At" tagSet="clock"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="appId" displayName="应用ID" propId="7" i18n-en:displayName="App ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="refreshTime" displayName="刷新时间" propId="7" i18n-en:displayName="Refresh Time" tagSet="clock"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="version" displayName="修改版本" propId="8" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="appName" displayName="应用名" propId="9" i18n-en:displayName="App Name" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
     </props>

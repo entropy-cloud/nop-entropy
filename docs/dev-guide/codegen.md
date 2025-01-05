@@ -179,6 +179,20 @@ if(globalVar){
 /src/{package.name}/{webEnabled}{model.name}Controller.java.xgen
 ```
 
+### 具体示例
+```xml
+<gen:DefineLoop xpl:lib="/nop/codegen/xlib/gen.xlib" xpl:slotScope="builder">
+<c:script>
+builder.defineLoopVar("task","tasks",model=>model);
+builder.defineLoopVar("response","task", model => model.taskResponse?.responseList);
+</c:script>
+</gen:DefineLoop>
+```
+
+这样就定义了两个上下文变量，task和response，然后在路径中就可以使用`{response.responseCode}`这种方式来引用变量属性。
+
+`Task{task.taskCode}{response.responseCode}ResponseTrigger.java`这种路径会自动识别出task和response之间的循环依赖关系，自动执行循环展开。
+
 ### 表达式特殊约定
 
 1. `{!!entity.field}` 这样的表达式中!表示取反，`!!`表示连续取反，因此对于空值它会返回false。

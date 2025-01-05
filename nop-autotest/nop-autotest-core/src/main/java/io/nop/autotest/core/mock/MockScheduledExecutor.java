@@ -20,7 +20,7 @@ public class MockScheduledExecutor implements IScheduledExecutor {
     public void setName(String name) {
         this.name = name;
     }
-    
+
     @Override
     public synchronized <V> CompletableFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
         CompletableFuture<V> promise = new CompletableFuture<>();

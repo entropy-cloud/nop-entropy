@@ -23,6 +23,11 @@ public interface ILeaderElector {
         return leaderEpoch == null ? null : leaderEpoch.getLeaderId();
     }
 
+    default long getCurrentEpoch() {
+        LeaderEpoch leaderEpoch = getLeaderEpoch();
+        return leaderEpoch == null ? -1L : leaderEpoch.getEpoch();
+    }
+
     LeaderEpoch getLeaderEpoch();
 
     AutoCloseable addElectionListener(ILeaderElectionListener listener);
@@ -35,14 +40,9 @@ public interface ILeaderElector {
     }
 
     /**
-     * 发起选举过程
-     *
-     * @param preferredLeaderId 可以选择传入优先选择的leader
-     */
-    void restartElection(String preferredLeaderId);
-
-    /**
      * 等待一次leader选举完毕。每次发生leader选举都会返回一个新的CompletionStage对象。
      */
     CompletionStage<LeaderEpoch> whenElectionCompleted();
+
+    void restartElection();
 }

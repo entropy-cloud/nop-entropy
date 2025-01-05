@@ -5,6 +5,7 @@ entity:
     NopSysCodeRule: Code Rule
     NopSysDict: Dictionary
     NopSysDictOption: Dictionay Item
+    NopSysEvent: Event Queue
     NopSysExtField: Extension Field
     NopSysI18n: I18n Message
     NopSysLock: Lock
@@ -45,7 +46,9 @@ prop:
       leaderEpoch: Leader Epoch
       electTime: Elect Time
       expireAt: Expire At
-      appId: App ID
+      refreshTime: Refresh Time
+      version: Version
+      appName: App Name
     NopSysCodeRule:
       sid: SID
       name: Name
@@ -89,6 +92,24 @@ prop:
       remark: Remark
       dict: Dictionary
       dict.displayName: Dictionary
+    NopSysEvent:
+      eventId: Event ID
+      eventTopic: Event Topic
+      eventName: Event Name
+      eventHeaders: Headers
+      eventData: Data
+      eventTime: Event Time
+      eventStatus: Event Status
+      processTime: Process Time
+      bizObjName: BizObjName
+      bizKey: BizKey
+      bizDate: Biz Date
+      partitionIndex: Partition Index
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
     NopSysExtField:
       entityName: Entity Name
       entityId: Entity ID

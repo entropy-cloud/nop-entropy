@@ -1,0 +1,19 @@
+{
+  "eventId": 0,
+  "eventTopic": "",
+  "eventName": "",
+  "eventHeaders": null,
+  "eventData": null,
+  "eventTime": "2000-01-01 14:00:00",
+  "eventStatus": 0,
+  "processTime": "2000-01-01 14:00:00",
+  "bizObjName": "",
+  "bizKey": "",
+  "bizDate": "2000-01-01",
+  "partitionIndex": 0,
+  "version": 0,
+  "createdBy": "",
+  "createTime": "2000-01-01 14:00:00",
+  "updatedBy": "",
+  "updateTime": "2000-01-01 14:00:00"
+}

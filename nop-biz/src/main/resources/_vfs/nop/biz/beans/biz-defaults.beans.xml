@@ -101,4 +101,7 @@
     <bean id="nopFilterArgsNormalizer" class="io.nop.biz.crud.FilterArgsNormalizer"/>
 
     <bean id="nopGlobalQueryTransformer" ioc:default="true" class="io.nop.biz.impl.EmptyQueryTransformer"/>
+
+    <bean id="nopDummyGraphQLArgsNormalizer" class="io.nop.graphql.core.reflection.DummyGraphQLArgsNormalizer"/>
+
 </beans>

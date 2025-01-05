@@ -9,6 +9,8 @@ alter table nop_sys_dict add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_sys_dict_option add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_sys_event add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_sys_ext_field add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_sys_i18n add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
@@ -37,6 +39,9 @@ alter table nop_sys_dict add primary key (NOP_TENANT_ID, SID);
 
 alter table nop_sys_dict_option drop primary key;
 alter table nop_sys_dict_option add primary key (NOP_TENANT_ID, SID);
+
+alter table nop_sys_event drop primary key;
+alter table nop_sys_event add primary key (NOP_TENANT_ID, EVENT_ID);
 
 alter table nop_sys_ext_field drop primary key;
 alter table nop_sys_ext_field add primary key (NOP_TENANT_ID, ENTITY_NAME,ENTITY_ID,FIELD_NAME);

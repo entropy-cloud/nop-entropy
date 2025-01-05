@@ -32,20 +32,26 @@ public abstract class AbstractLeaderElector extends LifeCycleSupport implements 
     private volatile LeaderEpoch leaderEpoch; //NOSONAR
     protected volatile CompletableFuture<LeaderEpoch> electionPromise = new CompletableFuture<>(); // NOSONAR
 
+    private String hostId;
 
     private String clusterId;
 
     private int leaseMs = 30000;
     private int checkIntervalMs = 2000;
+    private int leaseSafeGap = 4000;
 
     private final CopyOnWriteArrayList<ILeaderElectionListener> listeners = new CopyOnWriteArrayList<>();
 
-    @InjectValue("@cfg:nop.leader.lease-time-ms|30000")
+    @InjectValue("@cfg:nop.cluster.leader.lease-time-ms|30000")
     public void setLeaseMs(int leaseMs) {
         this.leaseMs = leaseMs;
     }
 
-    @InjectValue("@cfg:nop.leader.check-interval-ms|2000")
+    public int getLeaseMs() {
+        return leaseMs;
+    }
+
+    @InjectValue("@cfg:nop.cluster.leader.check-interval-ms|2000")
     public void setCheckIntervalMs(int checkIntervalMs) {
         this.checkIntervalMs = checkIntervalMs;
     }
@@ -59,12 +65,17 @@ public abstract class AbstractLeaderElector extends LifeCycleSupport implements 
         this.clusterId = clusterId;
     }
 
-    public String getClusterId() {
-        return clusterId;
+    public int getLeaseSafeGap() {
+        return leaseSafeGap;
     }
 
-    public int getLeaseMs() {
-        return leaseMs;
+    @InjectValue("@cfg;nop.cluster.leader.lease-safe-gap|4000")
+    public void setLeaseSafeGap(int leaseSafeGap) {
+        this.leaseSafeGap = leaseSafeGap;
+    }
+
+    public String getClusterId() {
+        return clusterId;
     }
 
     public int getPort() {
@@ -120,7 +131,13 @@ public abstract class AbstractLeaderElector extends LifeCycleSupport implements 
 
     @Override
     public String getHostId() {
+        if (hostId != null)
+            return hostId;
         return AppConfig.hostId();
+    }
+
+    public void setHostId(String hostId) {
+        this.hostId = hostId;
     }
 
     @Override
@@ -145,18 +162,22 @@ public abstract class AbstractLeaderElector extends LifeCycleSupport implements 
         this.electionPromise = new CompletableFuture<>();
     }
 
-    protected synchronized void updateLeader(LeaderEpoch leader) {
-        LeaderEpoch current = this.leaderEpoch;
-        if (current == null || current.getEpoch() < leader.getEpoch()) {
-            this.leaderEpoch = leader;
-            this.electionPromise.complete(leader);
+    protected synchronized void onRestartElection() {
+        this.leaderEpoch = null;
+        CompletableFuture<?> promise = this.electionPromise;
+        if (promise != null)
+            promise.cancel(false);
+        this.electionPromise = new CompletableFuture<>();
+    }
 
-            if (current.getLeaderId().equals(getHostId())) {
-                onBecomeLeader(leader);
-            }
-        } else {
-            onBecomeFollower(leader);
+    protected synchronized void onElectionCompleted(LeaderEpoch epoch) {
+        this.leaderEpoch = epoch;
+        CompletableFuture<LeaderEpoch> promise = this.electionPromise;
+        if(promise.isDone()){
+            promise = new CompletableFuture<>();
+            this.electionPromise = promise;
         }
+        promise.complete(epoch);
     }
 
     protected void onBecomeLeader(LeaderEpoch epoch) {
@@ -197,5 +218,9 @@ public abstract class AbstractLeaderElector extends LifeCycleSupport implements 
                 LOG.error("nop.cluster.invoke-stop-listener-error", e);
             }
         }
+        this.leaderEpoch = null;
+        CompletableFuture<LeaderEpoch> promise = this.electionPromise;
+        if (promise != null)
+            promise.cancel(false);
     }
 }

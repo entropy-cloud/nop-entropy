@@ -36,8 +36,8 @@ import java.sql.Timestamp;
 
 import static io.nop.sys.dao.NopSysDaoConstants.RESOURCE_GROUP_DEFAULT;
 
-public class DaoResourceLockManager extends AbstractDaoHandler implements IResourceLockManager, IResourceLockManagerImplementor {
-    static final Logger LOG = LoggerFactory.getLogger(DaoResourceLockManager.class);
+public class SysDaoResourceLockManager extends AbstractDaoHandler implements IResourceLockManager, IResourceLockManagerImplementor {
+    static final Logger LOG = LoggerFactory.getLogger(SysDaoResourceLockManager.class);
 
     private long defaultWaitTime = 1000; // 1s
     private long defaultLeaseTime = 10000; // 10s

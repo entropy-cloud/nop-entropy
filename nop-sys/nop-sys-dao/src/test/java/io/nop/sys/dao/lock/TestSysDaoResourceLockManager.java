@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @NopTestConfig(localDb = true, initDatabaseSchema = true)
-public class TestDaoResourceLockManager extends JunitBaseTestCase {
+public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
 
     @Inject
     IResourceLockManager lockManager;

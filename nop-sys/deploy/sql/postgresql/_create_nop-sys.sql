@@ -175,8 +175,31 @@ CREATE TABLE nop_sys_cluster_leader(
   LEADER_EPOCH INT8 NOT NULL ,
   ELECT_TIME TIMESTAMP NOT NULL ,
   EXPIRE_AT TIMESTAMP NOT NULL ,
-  APP_ID VARCHAR(100) NOT NULL ,
+  REFRESH_TIME TIMESTAMP NOT NULL ,
+  VERSION INT4 NOT NULL ,
+  APP_NAME VARCHAR(100) NOT NULL ,
   constraint PK_nop_sys_cluster_leader primary key (CLUSTER_ID)
+);
+
+CREATE TABLE nop_sys_event(
+  EVENT_ID INT8 NOT NULL ,
+  EVENT_TOPIC VARCHAR(100) NOT NULL ,
+  EVENT_NAME VARCHAR(100) NOT NULL ,
+  EVENT_HEADERS JSON NOT NULL ,
+  EVENT_DATA JSON NOT NULL ,
+  EVENT_TIME TIMESTAMP NOT NULL ,
+  EVENT_STATUS INT4 NOT NULL ,
+  PROCESS_TIME TIMESTAMP NOT NULL ,
+  BIZ_OBJ_NAME VARCHAR(100)  ,
+  BIZ_KEY VARCHAR(50)  ,
+  BIZ_DATE DATE NOT NULL ,
+  PARTITION_INDEX INT4 NOT NULL ,
+  VERSION INT4 NOT NULL ,
+  CREATED_BY VARCHAR(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  constraint PK_nop_sys_event primary key (EVENT_ID)
 );
 
 CREATE TABLE nop_sys_dict_option(
@@ -491,7 +514,47 @@ CREATE TABLE nop_sys_dict_option(
                     
       COMMENT ON COLUMN nop_sys_cluster_leader.EXPIRE_AT IS '过期时间';
                     
-      COMMENT ON COLUMN nop_sys_cluster_leader.APP_ID IS '应用ID';
+      COMMENT ON COLUMN nop_sys_cluster_leader.REFRESH_TIME IS '刷新时间';
+                    
+      COMMENT ON COLUMN nop_sys_cluster_leader.VERSION IS '修改版本';
+                    
+      COMMENT ON COLUMN nop_sys_cluster_leader.APP_NAME IS '应用名';
+                    
+      COMMENT ON TABLE nop_sys_event IS '事件队列';
+                
+      COMMENT ON COLUMN nop_sys_event.EVENT_ID IS '事件ID';
+                    
+      COMMENT ON COLUMN nop_sys_event.EVENT_TOPIC IS '事件主题';
+                    
+      COMMENT ON COLUMN nop_sys_event.EVENT_NAME IS '事件名称';
+                    
+      COMMENT ON COLUMN nop_sys_event.EVENT_HEADERS IS '事件元数据';
+                    
+      COMMENT ON COLUMN nop_sys_event.EVENT_DATA IS '数据';
+                    
+      COMMENT ON COLUMN nop_sys_event.EVENT_TIME IS '事件时间';
+                    
+      COMMENT ON COLUMN nop_sys_event.EVENT_STATUS IS '事件状态';
+                    
+      COMMENT ON COLUMN nop_sys_event.PROCESS_TIME IS '处理时间';
+                    
+      COMMENT ON COLUMN nop_sys_event.BIZ_OBJ_NAME IS '业务对象名';
+                    
+      COMMENT ON COLUMN nop_sys_event.BIZ_KEY IS '业务标识';
+                    
+      COMMENT ON COLUMN nop_sys_event.BIZ_DATE IS '业务日期';
+                    
+      COMMENT ON COLUMN nop_sys_event.PARTITION_INDEX IS '数据分区';
+                    
+      COMMENT ON COLUMN nop_sys_event.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_sys_event.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_sys_event.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_sys_event.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_sys_event.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON TABLE nop_sys_dict_option IS '字典明细';
                 

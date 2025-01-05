@@ -78,7 +78,7 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
 
     @Override
     public boolean isDestroyed() {
-        return executor.isShutdown();
+        return executor == null || executor.isShutdown();
     }
 
     @Override

@@ -36,8 +36,11 @@
                 <!--过期时间-->
                 <col id="expireAt" mandatory="true" sortable="true"/>
 
-                <!--应用ID-->
-                <col id="appId" mandatory="true" sortable="true"/>
+                <!--刷新时间-->
+                <col id="refreshTime" mandatory="true" sortable="true"/>
+
+                <!--应用名-->
+                <col id="appName" mandatory="true" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -52,7 +55,8 @@
  leaderEpoch[选举世代]
  electTime[选举时间]
  expireAt[过期时间]
- appId[应用ID]
+ refreshTime[刷新时间]
+ appName[应用名]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-集群选举" i18n-en:title="Add Cluster Leader" x:prototype="edit"/>
@@ -64,7 +68,8 @@
  leaderEpoch[选举世代]
  electTime[选举时间]
  expireAt[过期时间]
- appId[应用ID]
+ refreshTime[刷新时间]
+ appName[应用名]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

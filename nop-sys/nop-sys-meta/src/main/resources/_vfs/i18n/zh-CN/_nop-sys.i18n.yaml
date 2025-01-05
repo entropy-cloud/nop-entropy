@@ -5,6 +5,7 @@ entity:
     NopSysCodeRule: 编码规则
     NopSysDict: 字典表
     NopSysDictOption: 字典明细
+    NopSysEvent: 事件队列
     NopSysExtField: 扩展字段
     NopSysI18n: 多语言消息
     NopSysLock: 资源锁
@@ -39,13 +40,15 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopSysClusterLeader:
-      appId: 应用ID
+      appName: 应用名
       clusterId: 集群ID
       electTime: 选举时间
       expireAt: 过期时间
       leaderAdder: 主服务器地址
       leaderEpoch: 选举世代
       leaderId: 主服务器ID
+      refreshTime: 刷新时间
+      version: 修改版本
     NopSysCodeRule:
       codePattern: 编码模式
       createTime: 创建时间
@@ -88,6 +91,24 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       value: 值
+      version: 数据版本
+    NopSysEvent:
+      bizDate: 业务日期
+      bizKey: 业务标识
+      bizObjName: 业务对象名
+      createTime: 创建时间
+      createdBy: 创建人
+      eventData: 数据
+      eventHeaders: 事件元数据
+      eventId: 事件ID
+      eventName: 事件名称
+      eventStatus: 事件状态
+      eventTime: 事件时间
+      eventTopic: 事件主题
+      partitionIndex: 数据分区
+      processTime: 处理时间
+      updateTime: 修改时间
+      updatedBy: 修改人
       version: 数据版本
     NopSysExtField:
       createTime: 创建时间

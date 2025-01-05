@@ -14,7 +14,6 @@ public interface ILeaderElectionListener {
     void becomeFollower(LeaderEpoch leaderEpoch);
 
     default void onException(Throwable e) {
-        becomeFollower(null);
     }
 
     default void onStop() {

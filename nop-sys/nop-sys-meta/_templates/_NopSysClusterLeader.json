@@ -5,5 +5,7 @@
   "leaderEpoch": 0,
   "electTime": "2000-01-01 14:00:00",
   "expireAt": "2000-01-01 14:00:00",
-  "appId": ""
+  "refreshTime": "2000-01-01 14:00:00",
+  "version": 0,
+  "appName": ""
 }

@@ -696,6 +696,10 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
             return append(" set ");
         }
 
+        public SqlBuilder comma() {
+            return append(',');
+        }
+
         public SqlBuilder set(String owner, Map<String, Object> props) {
             append(" set ");
             boolean first = true;

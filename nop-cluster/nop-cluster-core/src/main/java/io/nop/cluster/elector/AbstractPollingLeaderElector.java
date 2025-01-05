@@ -19,8 +19,14 @@ public abstract class AbstractPollingLeaderElector extends AbstractLeaderElector
             scheduledExecutor = GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
         }
 
-        scheduledExecutor.schedule(this::checkLeader, 0, TimeUnit.MILLISECONDS);
+        scheduledExecutor.schedule(this::checkElection, 0, TimeUnit.MILLISECONDS);
     }
 
-    protected abstract Void checkLeader();
+    protected void scheduleCheck() {
+        IScheduledExecutor executor = this.scheduledExecutor;
+        if (executor != null)
+            executor.schedule(this::checkElection, getCheckIntervalMs(), TimeUnit.MICROSECONDS);
+    }
+
+    protected abstract Void checkElection();
 }

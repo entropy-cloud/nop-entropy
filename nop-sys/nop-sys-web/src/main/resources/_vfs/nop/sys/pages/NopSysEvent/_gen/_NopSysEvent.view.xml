@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopSysEvent" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+
+    <objMeta>/nop/sys/model/NopSysEvent/NopSysEvent.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--事件ID-->
+                <col id="eventId" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--事件主题-->
+                <col id="eventTopic" mandatory="true" sortable="true"/>
+
+                <!--事件名称-->
+                <col id="eventName" mandatory="true" sortable="true"/>
+
+                <!--事件元数据-->
+                <col id="eventHeaders" mandatory="true" sortable="true"/>
+
+                <!--数据-->
+                <col id="eventData" mandatory="true" sortable="true"/>
+
+                <!--事件时间-->
+                <col id="eventTime" mandatory="true" sortable="true"/>
+
+                <!--事件状态-->
+                <col id="eventStatus" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--处理时间-->
+                <col id="processTime" mandatory="true" sortable="true"/>
+
+                <!--业务对象名-->
+                <col id="bizObjName" sortable="true"/>
+
+                <!--业务标识-->
+                <col id="bizKey" sortable="true"/>
+
+                <!--业务日期-->
+                <col id="bizDate" mandatory="true" sortable="true"/>
+
+                <!--数据分区-->
+                <col id="partitionIndex" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--创建人-->
+                <col id="createdBy" mandatory="true" sortable="true"/>
+
+                <!--创建时间-->
+                <col id="createTime" mandatory="true" sortable="true"/>
+
+                <!--修改人-->
+                <col id="updatedBy" mandatory="true" sortable="true"/>
+
+                <!--修改时间-->
+                <col id="updateTime" mandatory="true" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-事件队列" i18n-en:title="View Event Queue">
+            <layout>
+ eventId[事件ID] eventTopic[事件主题]
+ eventName[事件名称] eventHeaders[事件元数据]
+ eventData[数据] eventTime[事件时间]
+ eventStatus[事件状态] processTime[处理时间]
+ bizObjName[业务对象名] bizKey[业务标识]
+ bizDate[业务日期] partitionIndex[数据分区]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-事件队列" i18n-en:title="Add Event Queue" x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-事件队列" i18n-en:title="Edit Event Queue">
+            <layout>
+ eventId[事件ID] eventTopic[事件主题]
+ eventName[事件名称] eventHeaders[事件元数据]
+ eventData[数据] eventTime[事件时间]
+ eventStatus[事件状态] processTime[处理时间]
+ bizObjName[业务对象名] bizKey[业务标识]
+ bizDate[业务日期] partitionIndex[数据分区]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-事件队列" i18n-en:title="Update Event Queue"/>
+    </forms>
+
+    <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopSysEvent__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopSysEvent__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopSysEvent__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopSysEvent__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopSysEvent__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table noOperations="true">
+                <api url="@query:NopSysEvent__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopSysEvent__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopSysEvent__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopSysEvent__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopSysEvent__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>
