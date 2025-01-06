@@ -67,6 +67,7 @@ public abstract class OrmEntity implements IOrmEntity {
     private boolean flushVisiting;
     private boolean disableAutoStamp;
     private boolean disableLogicalDelete;
+    private boolean disableVersionCheckError;
 
     /**
      * 记录哪些属性被读取过
@@ -164,6 +165,16 @@ public abstract class OrmEntity implements IOrmEntity {
     @Override
     public void orm_state(OrmEntityState status) {
         this.state = notNull(status, "state");
+    }
+
+    @Override
+    public boolean orm_disableVersionCheckError() {
+        return disableVersionCheckError;
+    }
+
+    @Override
+    public void orm_disableVersionCheckError(boolean value) {
+        this.disableVersionCheckError = value;
     }
 
     @Override

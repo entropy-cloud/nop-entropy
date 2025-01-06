@@ -8,11 +8,9 @@
 package io.nop.sys.dao.elector;
 
 import io.nop.api.core.config.AppConfig;
-import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.IEstimatedClock;
 import io.nop.cluster.elector.AbstractPollingLeaderElector;
 import io.nop.cluster.elector.LeaderEpoch;
-import io.nop.core.lang.sql.SQL;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmTemplate;
@@ -68,6 +66,9 @@ public class SysDaoLeaderElector extends AbstractPollingLeaderElector {
         } catch (Exception e) {
             LOG.info("nop.cluster.leader-elector.check-fail", e);
             onException(e);
+
+            this.onBecomeFollower(null);
+            this.onRestartElection();
         }
         if (!isStopping())
             scheduleCheck();
@@ -99,6 +100,7 @@ public class SysDaoLeaderElector extends AbstractPollingLeaderElector {
         } else {
             // 是leader，但可能已超时，先尝试续期
             if (!tryRenewLease(leader, dao)) {
+                this.onBecomeFollower(null);
                 onRestartElection();
                 return false;
             } else {
@@ -116,14 +118,12 @@ public class SysDaoLeaderElector extends AbstractPollingLeaderElector {
 
     private boolean tryRenewLease(NopSysClusterLeader leader, IEntityDao<NopSysClusterLeader> dao) {
         IEstimatedClock clock = dao.getDbEstimatedClock();
-        SQL.SqlBuilder sb = SQL.begin();
-        sb.update(NopSysClusterLeader.class.getName());
-        sb.set().eq(NopSysClusterLeader.PROP_NAME_refreshTime, clock.getMinCurrentTime())
-                .comma().eq(NopSysClusterLeader.PROP_NAME_version, leader.getVersion() + 1)
-                .comma().eq(NopSysClusterLeader.PROP_NAME_expireAt, new Timestamp(clock.getMaxCurrentTimeMillis() + this.getLeaseMs()));
-        sb.where().eq(NopSysClusterLeader.PROP_NAME_clusterId, getClusterId())
-                .and().eq(NopSysClusterLeader.PROP_NAME_version, leader.getVersion());
-        return ormTemplate.executeUpdate(sb.end()) > 0;
+        leader.orm_disableVersionCheckError(true);
+
+        leader.setRefreshTime(clock.getMinCurrentTime());
+        leader.setExpireAt(new Timestamp(clock.getMaxCurrentTimeMillis() + this.getLeaseMs()));
+        dao.updateEntityDirectly(leader);
+        return !leader.orm_readonly();
     }
 
     private boolean checkFollower(NopSysClusterLeader leader, IEntityDao<NopSysClusterLeader> dao) {
@@ -201,10 +201,12 @@ public class SysDaoLeaderElector extends AbstractPollingLeaderElector {
         leader.setElectTime(clock.getMinCurrentTime());
         leader.setAppName(AppConfig.appName());
 
-        try {
-            dao.updateEntityDirectly(leader);
-        } catch (NopException e) {
-            LOG.debug("nop.cluster.leader-elector.change-leader-fail:leaderId={},epoch={}", getLeaderId(), leader.getLeaderEpoch(), e);
+        leader.orm_disableVersionCheckError(true);
+
+        dao.updateEntityDirectly(leader);
+
+        if (leader.orm_readonly()) {
+            LOG.debug("nop.cluster.leader-elector.change-leader-fail:leaderId={},epoch={}", getLeaderId(), leader.getLeaderEpoch());
             return false;
         }
 
@@ -219,19 +221,23 @@ public class SysDaoLeaderElector extends AbstractPollingLeaderElector {
         IEntityDao<NopSysClusterLeader> dao = dao();
 
         for (int i = 0; i < 10; i++) {
-            NopSysClusterLeader leader = dao.getEntityById(getClusterId());
+            NopSysClusterLeader leader = getEntity(dao);
             if (leader == null)
                 return;
 
             // 增大epoch将导致当前的leader发现epoch已改变，需要重新获取leader
-            SQL.SqlBuilder sb = SQL.begin();
-            sb.update(NopSysClusterLeader.class.getName());
-            sb.set().eq(NopSysClusterLeader.PROP_NAME_leaderEpoch, leader.getLeaderEpoch() + 1)
-                    .comma().eq(NopSysClusterLeader.PROP_NAME_version, leader.getVersion() + 1);
-            sb.where().eq(NopSysClusterLeader.PROP_NAME_clusterId, getClusterId())
-                    .and().eq(NopSysClusterLeader.PROP_NAME_version, leader.getVersion());
-            if (ormTemplate.executeUpdate(sb.end()) > 0)
+            leader.setLeaderEpoch(leader.getLeaderEpoch() + 1);
+            leader.orm_disableVersionCheckError(true);
+            dao.updateEntityDirectly(leader);
+
+            if (!leader.orm_readonly())
                 break;
         }
+    }
+
+    NopSysClusterLeader getEntity(IEntityDao<NopSysClusterLeader> dao) {
+        return ormTemplate.runInNewSession(session -> {
+            return dao.getEntityById(getClusterId());
+        });
     }
 }

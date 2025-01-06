@@ -15,3 +15,5 @@ deleteVersionProp用于避免逻辑删除时唯一键依然存在导致与正常
 缺省情况下EQL查询和关联集合查询都会考虑到逻辑删除条件，只查询`delFlag=0`的记录。
 
 QueryBean和SQL对象都支持disableLogicalDelete设置，从而禁用逻辑删除的过滤条件。
+
+IOrmEntity上也具有`orm_disableLogicalDelete()`方法，则可以真正执行物理删除，否则`session.delete(entity)`实际只会设置entity的deleteFlag属性。

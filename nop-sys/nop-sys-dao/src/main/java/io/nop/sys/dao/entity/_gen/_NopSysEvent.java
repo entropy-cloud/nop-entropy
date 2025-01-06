@@ -40,9 +40,13 @@ public class _NopSysEvent extends DynamicOrmEntity{
     public static final String PROP_NAME_eventData = "eventData";
     public static final int PROP_ID_eventData = 5;
     
+    /* 字段选择: SELECTION VARCHAR */
+    public static final String PROP_NAME_selection = "selection";
+    public static final int PROP_ID_selection = 6;
+    
     /* 事件时间: EVENT_TIME TIMESTAMP */
     public static final String PROP_NAME_eventTime = "eventTime";
-    public static final int PROP_ID_eventTime = 6;
+    public static final int PROP_ID_eventTime = 7;
     
     /* 事件状态: EVENT_STATUS INTEGER */
     public static final String PROP_NAME_eventStatus = "eventStatus";
@@ -115,6 +119,9 @@ public class _NopSysEvent extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_eventData] = PROP_NAME_eventData;
           PROP_NAME_TO_ID.put(PROP_NAME_eventData, PROP_ID_eventData);
       
+          PROP_ID_TO_NAME[PROP_ID_selection] = PROP_NAME_selection;
+          PROP_NAME_TO_ID.put(PROP_NAME_selection, PROP_ID_selection);
+      
           PROP_ID_TO_NAME[PROP_ID_eventTime] = PROP_NAME_eventTime;
           PROP_NAME_TO_ID.put(PROP_NAME_eventTime, PROP_ID_eventTime);
       
@@ -168,6 +175,9 @@ public class _NopSysEvent extends DynamicOrmEntity{
     
     /* 数据: EVENT_DATA */
     private java.lang.Object _eventData;
+    
+    /* 字段选择: SELECTION */
+    private java.lang.String _selection;
     
     /* 事件时间: EVENT_TIME */
     private java.sql.Timestamp _eventTime;
@@ -294,6 +304,9 @@ public class _NopSysEvent extends DynamicOrmEntity{
             case PROP_ID_eventData:
                return getEventData();
         
+            case PROP_ID_selection:
+               return getSelection();
+        
             case PROP_ID_eventTime:
                return getEventTime();
         
@@ -388,6 +401,16 @@ public class _NopSysEvent extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_eventData));
                }
                setEventData(typedValue);
+               break;
+            }
+        
+            case PROP_ID_selection:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_selection));
+               }
+               setSelection(typedValue);
                break;
             }
         
@@ -551,6 +574,13 @@ public class _NopSysEvent extends DynamicOrmEntity{
             case PROP_ID_eventData:{
                onInitProp(propId);
                this._eventData = (java.lang.Object)value;
+               
+               break;
+            }
+        
+            case PROP_ID_selection:{
+               onInitProp(propId);
+               this._selection = (java.lang.String)value;
                
                break;
             }
@@ -736,6 +766,25 @@ public class _NopSysEvent extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_eventData,value)){
             this._eventData = value;
             internalClearRefs(PROP_ID_eventData);
+            
+        }
+    }
+    
+    /**
+     * 字段选择: SELECTION
+     */
+    public final java.lang.String getSelection(){
+         onPropGet(PROP_ID_selection);
+         return _selection;
+    }
+
+    /**
+     * 字段选择: SELECTION
+     */
+    public final void setSelection(java.lang.String value){
+        if(onPropSet(PROP_ID_selection,value)){
+            this._selection = value;
+            internalClearRefs(PROP_ID_selection);
             
         }
     }

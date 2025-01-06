@@ -187,6 +187,7 @@ CREATE TABLE nop_sys_event(
   EVENT_NAME VARCHAR2(100) NOT NULL ,
   EVENT_HEADERS JSON NOT NULL ,
   EVENT_DATA JSON NOT NULL ,
+  SELECTION VARCHAR2(1000)  ,
   EVENT_TIME TIMESTAMP NOT NULL ,
   EVENT_STATUS INTEGER NOT NULL ,
   PROCESS_TIME TIMESTAMP NOT NULL ,
@@ -531,6 +532,8 @@ CREATE TABLE nop_sys_dict_option(
       COMMENT ON COLUMN nop_sys_event.EVENT_HEADERS IS '事件元数据';
                     
       COMMENT ON COLUMN nop_sys_event.EVENT_DATA IS '数据';
+                    
+      COMMENT ON COLUMN nop_sys_event.SELECTION IS '字段选择';
                     
       COMMENT ON COLUMN nop_sys_event.EVENT_TIME IS '事件时间';
                     

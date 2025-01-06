@@ -38,6 +38,8 @@ import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.OrmEntityFilterModel;
 import io.nop.orm.model.utils.OrmModelHelper;
 import io.nop.orm.session.IOrmSessionImplementor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -66,6 +68,8 @@ import static io.nop.orm.OrmErrors.ERR_ORM_UPDATE_ENTITY_NOT_FOUND;
  * @author canonical_entropy@163.com
  */
 public class EntityPersisterImpl implements IEntityPersister {
+    static final Logger LOG = LoggerFactory.getLogger(EntityPersisterImpl.class);
+
     private IEntityModel entityModel;
     private IPersistEnv env;
     private IEntityIdGenerator idGenerator;
@@ -502,9 +506,19 @@ public class EntityPersisterImpl implements IEntityPersister {
 
     protected void checkUpdateResult(int count, IOrmEntity entity) {
         if (count > 1) {
-            throw newError(ERR_ORM_UPDATE_ENTITY_MULTIPLE_ROWS, entity);
+            if (entity.orm_disableVersionCheckError()) {
+                LOG.info("nop.err.orm.update-entity-multiple-rows:entity={}", entity);
+                entity.orm_readonly(true);
+            } else {
+                throw newError(ERR_ORM_UPDATE_ENTITY_MULTIPLE_ROWS, entity);
+            }
         } else if (count == 0) {
-            throw newError(ERR_ORM_UPDATE_ENTITY_NOT_FOUND, entity);
+            if (entity.orm_disableVersionCheckError()) {
+                LOG.info("nop.err.orm.update-entity-not-found:entity={}", entity);
+                entity.orm_readonly(true);
+            } else {
+                throw newError(ERR_ORM_UPDATE_ENTITY_NOT_FOUND, entity);
+            }
         }
     }
 

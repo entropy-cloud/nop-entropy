@@ -107,6 +107,7 @@ prop:
       eventTopic: 事件主题
       partitionIndex: 数据分区
       processTime: 处理时间
+      selection: 字段选择
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
