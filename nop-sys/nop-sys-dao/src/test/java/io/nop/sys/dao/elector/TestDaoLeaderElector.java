@@ -5,8 +5,6 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.cluster.elector.LeaderEpoch;
 import io.nop.commons.concurrent.executor.DefaultScheduledExecutor;
-import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
-import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.thread.ThreadHelper;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;

@@ -67,6 +67,7 @@ public abstract class OrmEntity implements IOrmEntity {
     private boolean flushVisiting;
     private boolean disableAutoStamp;
     private boolean disableLogicalDelete;
+    private boolean disableOptimisticLock;
 
     /**
      * 记录哪些属性被读取过
@@ -164,6 +165,16 @@ public abstract class OrmEntity implements IOrmEntity {
     @Override
     public void orm_state(OrmEntityState status) {
         this.state = notNull(status, "state");
+    }
+
+    @Override
+    public boolean orm_disableOptimisticLock() {
+        return disableOptimisticLock;
+    }
+
+    @Override
+    public void orm_disableOptimisticLock(boolean value) {
+        this.disableOptimisticLock = value;
     }
 
     @Override

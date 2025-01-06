@@ -98,6 +98,7 @@ prop:
       eventName: Event Name
       eventHeaders: Headers
       eventData: Data
+      selection: Field Selections
       eventTime: Event Time
       eventStatus: Event Status
       processTime: Process Time

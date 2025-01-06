@@ -33,6 +33,9 @@
                 <!--数据-->
                 <col id="eventData" mandatory="true" sortable="true"/>
 
+                <!--字段选择-->
+                <col id="selection" sortable="true"/>
+
                 <!--事件时间-->
                 <col id="eventTime" mandatory="true" sortable="true"/>
 
@@ -75,12 +78,13 @@
             <layout>
  eventId[事件ID] eventTopic[事件主题]
  eventName[事件名称] eventHeaders[事件元数据]
- eventData[数据] eventTime[事件时间]
- eventStatus[事件状态] processTime[处理时间]
- bizObjName[业务对象名] bizKey[业务标识]
- bizDate[业务日期] partitionIndex[数据分区]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
+ eventData[数据] selection[字段选择]
+ eventTime[事件时间] eventStatus[事件状态]
+ processTime[处理时间] bizObjName[业务对象名]
+ bizKey[业务标识] bizDate[业务日期]
+ partitionIndex[数据分区] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-事件队列" i18n-en:title="Add Event Queue" x:prototype="edit"/>
@@ -88,10 +92,11 @@
             <layout>
  eventId[事件ID] eventTopic[事件主题]
  eventName[事件名称] eventHeaders[事件元数据]
- eventData[数据] eventTime[事件时间]
- eventStatus[事件状态] processTime[处理时间]
- bizObjName[业务对象名] bizKey[业务标识]
- bizDate[业务日期] partitionIndex[数据分区]
+ eventData[数据] selection[字段选择]
+ eventTime[事件时间] eventStatus[事件状态]
+ processTime[处理时间] bizObjName[业务对象名]
+ bizKey[业务标识] bizDate[业务日期]
+ partitionIndex[数据分区] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
