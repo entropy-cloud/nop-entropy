@@ -18,6 +18,8 @@
 
 package io.nop.stream.core.windowing.utils;
 
+import io.nop.stream.core.streamrecord.StreamRecord;
+
 /**
  * Stores the value and the timestamp of the record.
  *
@@ -89,4 +91,16 @@ public class TimestampedValue<T> {
         return hasTimestamp;
     }
 
+    /**
+     * Creates a TimestampedValue from given {@link StreamRecord}.
+     *
+     * @param streamRecord The StreamRecord object from which TimestampedValue is to be created.
+     */
+    public static <T> TimestampedValue<T> from(StreamRecord<T> streamRecord) {
+        if (streamRecord.hasTimestamp()) {
+            return new TimestampedValue<>(streamRecord.getValue(), streamRecord.getTimestamp());
+        } else {
+            return new TimestampedValue<>(streamRecord.getValue());
+        }
+    }
 }
