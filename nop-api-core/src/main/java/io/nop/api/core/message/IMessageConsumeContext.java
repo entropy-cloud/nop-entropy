@@ -12,12 +12,6 @@ import io.nop.api.core.util.ICancelToken;
 import java.util.concurrent.CompletionStage;
 
 public interface IMessageConsumeContext extends IMessageSender {
-    /**
-     * 消息消费者有可能向发送者返回多个消息
-     *
-     * @param message 返回消息
-     */
-    void reply(Object message);
 
     default ICancelToken getCancelToken() {
         return null;

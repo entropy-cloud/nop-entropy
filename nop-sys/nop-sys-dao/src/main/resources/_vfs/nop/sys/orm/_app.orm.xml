@@ -491,7 +491,7 @@
                 i18n-en:displayName="Event Queue">
             <columns>
                 <column code="EVENT_ID" displayName="事件ID" mandatory="true" name="eventId" primary="true" propId="1"
-                        stdDataType="long" stdSqlType="BIGINT" tagSet="seq" i18n-en:displayName="Event ID"/>
+                        stdDataType="long" stdSqlType="BIGINT" tagSet="seq-default" i18n-en:displayName="Event ID"/>
                 <column code="EVENT_TOPIC" displayName="事件主题" mandatory="true" name="eventTopic" precision="100"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Event Topic"/>
                 <column code="EVENT_NAME" displayName="事件名称" mandatory="true" name="eventName" precision="100"
@@ -509,26 +509,32 @@
                 <column code="PROCESS_TIME" comment="将处理时间设置为未来时间可以实现延迟发送" displayName="处理时间" mandatory="true"
                         name="processTime" propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock"
                         i18n-en:displayName="Process Time"/>
-                <column code="BIZ_OBJ_NAME" displayName="业务对象名" name="bizObjName" precision="100" propId="10"
+                <column code="SCHEDULE_TIME" displayName="调度时间" mandatory="true" name="scheduleTime" propId="10"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Schedule Time"/>
+                <column code="IS_BROADCAST" displayName="是否广播" mandatory="true" name="isBroadcast" propId="11"
+                        stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="Is Broadcast"/>
+                <column code="BIZ_OBJ_NAME" displayName="业务对象名" name="bizObjName" precision="100" propId="12"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="BizObjName"/>
-                <column code="BIZ_KEY" displayName="业务标识" name="bizKey" precision="50" propId="11" stdDataType="string"
+                <column code="BIZ_KEY" displayName="业务标识" name="bizKey" precision="50" propId="13" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="BizKey"/>
-                <column code="BIZ_DATE" displayName="业务日期" mandatory="true" name="bizDate" propId="12"
+                <column code="BIZ_DATE" displayName="业务日期" mandatory="true" name="bizDate" propId="14"
                         stdDataType="date" stdSqlType="DATE" tagSet="clock" i18n-en:displayName="Biz Date"/>
-                <column code="PARTITION_INDEX" displayName="数据分区" mandatory="true" name="partitionIndex" propId="13"
+                <column code="PARTITION_INDEX" displayName="数据分区" mandatory="true" name="partitionIndex" propId="15"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Partition Index"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="14"
+                <column code="RETRY_TIMES" displayName="重试次数" mandatory="true" name="retryTimes" propId="16"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Retry Times"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="17"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="15" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="18" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="16" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="19" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="17" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="20" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="18" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                        propId="21" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
             </columns>
         </entity>
     </entities>

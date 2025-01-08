@@ -186,11 +186,6 @@ public class MqttConnection implements IMqttConnection {
     }
 
     @Override
-    public void reply(Object message) {
-
-    }
-
-    @Override
     public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
         return null;
     }

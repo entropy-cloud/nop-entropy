@@ -8,6 +8,7 @@
 package io.nop.message.pulsar;
 
 import io.nop.api.core.beans.ApiMessage;
+import io.nop.api.core.message.Acknowledge;
 import io.nop.api.core.message.ConsumeLater;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
@@ -72,7 +73,7 @@ public class PulsarConsumeTask {
                     consume();
                 }
             } catch (Exception e) {
-                LOG.error("nop.err.pulsar.consume-fail", e);
+                LOG.error("nop.err.message.pulsar.consume-fail", e);
                 config.getConsumer().onException(e);
             }
         } while (active);
@@ -110,7 +111,7 @@ public class PulsarConsumeTask {
                         CompletionStage<?> future = pulsarConsumer.reconsumeLaterAsync(message, later.getDelay(), TimeUnit.MILLISECONDS);
                         futures.add(future);
                     } else {
-                        futures.add(context.sendAsync(getReplyTopic(message.getTopicName()), response));
+                        futures.add(context.sendAsync(getAckTopic(message.getTopicName()), response));
                         futures.add(ackAsync(context, message));
                     }
                 } else {
@@ -120,7 +121,7 @@ public class PulsarConsumeTask {
             FutureHelper.syncGet(FutureHelper.waitAll(futures));
             context.commit();
         } catch (Exception e) {
-            LOG.error("nop.err.pulsar.batch-consume-fail", e);
+            LOG.error("nop.err.message.pulsar.batch-consume-fail", e);
             pulsarConsumer.negativeAcknowledge(messages);
             context.rollback();
         }
@@ -138,15 +139,17 @@ public class PulsarConsumeTask {
         try {
             Object response = consumer.onMessage(message.getTopicName(), apiMessage, context);
             response = FutureHelper.getResult(response);
-            if (response != null) {
-                if (response instanceof ConsumeLater) {
-                    ConsumeLater later = (ConsumeLater) response;
-                    pulsarConsumer.reconsumeLater(message, later.getDelay(), TimeUnit.MILLISECONDS);
-                } else {
-                    context.send(getReplyTopic(message.getTopicName()), response);
-                    FutureHelper.syncGet(ackAsync(context, message));
-                }
+
+            if (response instanceof ConsumeLater) {
+                ConsumeLater later = (ConsumeLater) response;
+                pulsarConsumer.reconsumeLater(message, later.getDelay(), TimeUnit.MILLISECONDS);
+            } else if (response instanceof Acknowledge) {
+                context.send(getAckTopic(message.getTopicName()), ((Acknowledge) response).getReplyMessage());
+                FutureHelper.syncGet(ackAsync(context, message));
             } else {
+                if (response != null) {
+                    context.send(getAckTopic(message.getTopicName()), response);
+                }
                 FutureHelper.syncGet(ackAsync(context, message));
             }
             context.commit();
@@ -156,8 +159,8 @@ public class PulsarConsumeTask {
         }
     }
 
-    String getReplyTopic(String topic) {
-        return service.getReplyTopic(topic);
+    String getAckTopic(String topic) {
+        return service.getAckTopic(topic);
     }
 
     ConsumeContext newConsumeContext() throws PulsarClientException {
@@ -178,11 +181,11 @@ public class PulsarConsumeTask {
     }
 
     void fail(ConsumeContext context, Message<Object> message, Throwable exception) throws Exception {
-        LOG.error("nop.err.pulsar.consume-fail:messageId={}", message.getMessageId(), exception);
+        LOG.error("nop.err.message.pulsar.consume-fail:messageId={}", message.getMessageId(), exception);
         pulsarConsumer.negativeAcknowledge(message.getMessageId());
     }
 
-    class ConsumeContext implements IMessageConsumeContext {
+    protected class ConsumeContext implements IMessageConsumeContext {
         private Transaction transaction;
 
         public ConsumeContext(Transaction transaction) {
@@ -191,11 +194,6 @@ public class PulsarConsumeTask {
 
         public Transaction getTransaction() {
             return transaction;
-        }
-
-        @Override
-        public void reply(Object message) {
-
         }
 
         @Override

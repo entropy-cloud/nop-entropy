@@ -191,10 +191,13 @@ CREATE TABLE nop_sys_event(
   EVENT_TIME TIMESTAMP NOT NULL ,
   EVENT_STATUS INT4 NOT NULL ,
   PROCESS_TIME TIMESTAMP NOT NULL ,
+  SCHEDULE_TIME TIMESTAMP NOT NULL ,
+  IS_BROADCAST BOOLEAN NOT NULL ,
   BIZ_OBJ_NAME VARCHAR(100)  ,
   BIZ_KEY VARCHAR(50)  ,
   BIZ_DATE DATE NOT NULL ,
   PARTITION_INDEX INT4 NOT NULL ,
+  RETRY_TIMES INT4 NOT NULL ,
   VERSION INT4 NOT NULL ,
   CREATED_BY VARCHAR(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -541,6 +544,10 @@ CREATE TABLE nop_sys_dict_option(
                     
       COMMENT ON COLUMN nop_sys_event.PROCESS_TIME IS '处理时间';
                     
+      COMMENT ON COLUMN nop_sys_event.SCHEDULE_TIME IS '调度时间';
+                    
+      COMMENT ON COLUMN nop_sys_event.IS_BROADCAST IS '是否广播';
+                    
       COMMENT ON COLUMN nop_sys_event.BIZ_OBJ_NAME IS '业务对象名';
                     
       COMMENT ON COLUMN nop_sys_event.BIZ_KEY IS '业务标识';
@@ -548,6 +555,8 @@ CREATE TABLE nop_sys_dict_option(
       COMMENT ON COLUMN nop_sys_event.BIZ_DATE IS '业务日期';
                     
       COMMENT ON COLUMN nop_sys_event.PARTITION_INDEX IS '数据分区';
+                    
+      COMMENT ON COLUMN nop_sys_event.RETRY_TIMES IS '重试次数';
                     
       COMMENT ON COLUMN nop_sys_event.VERSION IS '数据版本';
                     

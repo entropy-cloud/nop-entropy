@@ -102,10 +102,13 @@ prop:
       eventTime: Event Time
       eventStatus: Event Status
       processTime: Process Time
+      scheduleTime: Schedule Time
+      isBroadcast: Is Broadcast
       bizObjName: BizObjName
       bizKey: BizKey
       bizDate: Biz Date
       partitionIndex: Partition Index
+      retryTimes: Retry Times
       version: Version
       createdBy: Created By
       createTime: Create Time

@@ -20,7 +20,7 @@ import static io.nop.rpc.core.RpcErrors.ARG_TOPIC;
 import static io.nop.rpc.core.RpcErrors.ERR_RPC_NOT_ALLOW_MULTIPLE_SUBSCRIPTION;
 
 public class RpcMessageSubscriptions {
-    private Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
+    private final Map<String, Subscription> subscriptions = new ConcurrentHashMap<>();
 
     public class Subscription extends Cancellable implements IMessageSubscription {
         private volatile boolean suspended;

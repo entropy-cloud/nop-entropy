@@ -18,8 +18,8 @@ public class DelegateMessageService extends DelegateMessageSender implements IMe
     }
 
     @Override
-    public String getReplyTopic(String topic) {
-        return subscriber.getReplyTopic(topic);
+    public String getAckTopic(String topic) {
+        return subscriber.getAckTopic(topic);
     }
 
     @Override

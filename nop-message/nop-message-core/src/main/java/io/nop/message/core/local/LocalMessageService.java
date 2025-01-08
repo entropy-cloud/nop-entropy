@@ -1,5 +1,6 @@
 package io.nop.message.core.local;
 
+import io.nop.api.core.message.Acknowledge;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
@@ -21,11 +22,15 @@ public class LocalMessageService implements IMessageService {
     static final Logger LOG = LoggerFactory.getLogger(LocalMessageService.class);
     private final Map<String, List<Subscription>> consumers = new ConcurrentHashMap<>();
 
-    public void clear() {
+    public void clearConsumers() {
         consumers.clear();
     }
 
-    class Subscription implements IMessageSubscription {
+    public Map<String, List<Subscription>> getConsumers() {
+        return consumers;
+    }
+
+    public class Subscription implements IMessageSubscription {
         private final String topic;
         private final IMessageConsumer consumer;
         private volatile boolean suspended = false;
@@ -63,7 +68,7 @@ public class LocalMessageService implements IMessageService {
         }
     }
 
-    class ConsumeContext implements IMessageConsumeContext {
+    protected class ConsumeContext implements IMessageConsumeContext {
         private final String topic;
 
         public ConsumeContext(String topic) {
@@ -71,13 +76,11 @@ public class LocalMessageService implements IMessageService {
         }
 
         @Override
-        public void reply(Object message) {
-            send(getReplyTopic(topic), message);
-        }
-
-        @Override
         public CompletionStage<Void> sendAsync(String topic, Object message, MessageSendOptions options) {
-            return null;
+            return FutureHelper.futureCall(() -> {
+                send(topic, message, options);
+                return null;
+            });
         }
 
         @Override
@@ -132,6 +135,10 @@ public class LocalMessageService implements IMessageService {
 
     @Override
     public void send(String topic, Object message, MessageSendOptions options) {
+        this.invokeMessageListener(topic, message, options);
+    }
+
+    public void invokeMessageListener(String topic, Object message, MessageSendOptions options) {
         List<Subscription> subscriptions = consumers.get(topic);
         if (subscriptions != null) {
             IMessageConsumeContext context = new ConsumeContext(topic);
@@ -139,10 +146,31 @@ public class LocalMessageService implements IMessageService {
                 if (subscription.suspended)
                     continue;
                 IMessageConsumer consumer = subscription.consumer;
-                consumer.onMessage(topic, message, context);
+                Object ret = consumer.onMessage(topic, message, context);
+                if (ret instanceof CompletionStage) {
+                    ((CompletionStage) ret).whenComplete((r, e) -> {
+                        if (e != null) {
+                            LOG.error("nop.message.consumer-error:topic={},message={},error={}", topic, message, e);
+                        } else {
+                            handleMessageResult(ret, topic, message, context);
+                        }
+                    });
+                } else {
+                    handleMessageResult(ret, topic, message, context);
+                }
             }
         } else {
             LOG.debug("nop.message.ignore-message-when-no-consumer:topic={},message={}", topic, message);
+        }
+    }
+
+    protected void handleMessageResult(Object ret, String topic, Object message, IMessageConsumeContext context) {
+        if (ret instanceof Acknowledge) {
+            send(getAckTopic(topic), ((Acknowledge) ret).getReplyMessage());
+        } else if (ret != null) {
+            send(getAckTopic(topic), ret);
+        } else {
+            LOG.debug("nop.message.ignore-message-when-no-reply:topic={},message={}", topic, message);
         }
     }
 

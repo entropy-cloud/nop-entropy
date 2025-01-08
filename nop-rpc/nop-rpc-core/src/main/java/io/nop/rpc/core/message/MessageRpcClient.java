@@ -119,7 +119,7 @@ public class MessageRpcClient extends LifeCycleSupport implements IRpcService {
         notEmpty(topic, "topic is null");
         notNull(messageService, "messageService is null");
 
-        String replyTopic = messageService.getReplyTopic(topic);
+        String replyTopic = messageService.getAckTopic(topic);
         subscription = messageService.subscribe(replyTopic, new IMessageConsumer() {
             @Override
             public Object onMessage(String topic, Object data, IMessageConsumeContext context) {

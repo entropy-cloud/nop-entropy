@@ -14,8 +14,8 @@ public interface IMessageSubscriber {
      * @param topic 请求消息所属的topic
      * @return reply消息所对应的队列
      */
-    default String getReplyTopic(String topic) {
-        return "reply-" + topic;
+    default String getAckTopic(String topic) {
+        return "ack-" + topic;
     }
 
     IMessageSubscription subscribe(String topic, IMessageConsumer listener, MessageSubscribeOptions options);

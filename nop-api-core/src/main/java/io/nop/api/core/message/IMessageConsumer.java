@@ -38,7 +38,7 @@ public interface IMessageConsumer {
         return responses;
     }
 
-    default void onException(Throwable error) {
+    default void onException(Exception e){
 
     }
 }

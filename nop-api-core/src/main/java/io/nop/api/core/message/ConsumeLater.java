@@ -7,10 +7,14 @@
  */
 package io.nop.api.core.message;
 
-public class ConsumeLater {
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.nop.api.core.annotations.data.DataBean;
+
+@DataBean
+public final class ConsumeLater {
     private final long delay;
 
-    public ConsumeLater(long delay) {
+    public ConsumeLater(@JsonProperty("delay") long delay) {
         this.delay = delay;
     }
 

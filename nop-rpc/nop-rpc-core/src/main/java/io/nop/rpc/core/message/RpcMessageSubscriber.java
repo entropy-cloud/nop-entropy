@@ -10,6 +10,7 @@ package io.nop.rpc.core.message;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.message.Acknowledge;
 import io.nop.api.core.message.DelegateMessageSender;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
@@ -49,38 +50,16 @@ public class RpcMessageSubscriber implements IMessageSubscriber, IRpcService {
     }
 
     static class ConsumeContext extends DelegateMessageSender implements IMessageConsumeContext {
-        private final ApiRequest<?> request;
         private final ICancelToken cancelToken;
-        private final CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
 
-        public ConsumeContext(IMessageSender sender, ApiRequest<?> request, ICancelToken cancelToken) {
+        public ConsumeContext(IMessageSender sender, ICancelToken cancelToken) {
             super(sender);
-            this.request = request;
             this.cancelToken = cancelToken;
-        }
-
-        public CompletableFuture<ApiResponse<?>> getReplyFuture() {
-            return future;
         }
 
         @Override
         public ICancelToken getCancelToken() {
             return cancelToken;
-        }
-
-        @Override
-        public void reply(Object message) {
-            ApiResponse<Object> rep = null;
-            if (message instanceof ApiResponse) {
-                rep = (ApiResponse<Object>) message;
-            } else {
-                rep = ApiResponse.buildSuccess(message);
-            }
-            String reqId = ApiHeaders.getId(request);
-            if (!StringHelper.isEmpty(reqId)) {
-                ApiHeaders.setRelId(rep, reqId);
-            }
-            future.complete(rep);
         }
     }
 
@@ -104,20 +83,47 @@ public class RpcMessageSubscriber implements IMessageSubscriber, IRpcService {
 
     private CompletionStage<ApiResponse<?>> handleMethod(String topic, IMessageConsumer consumer, ApiRequest<?> request,
                                                          ICancelToken cancelToken) {
-        ConsumeContext context = new ConsumeContext(sender, request, cancelToken);
+        CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
+
+        ConsumeContext context = new ConsumeContext(sender, cancelToken);
 
         try {
             Object ret = consumer.onMessage(topic, request, context);
             if (ret instanceof CompletionStage) {
-                ((CompletionStage<?>) ret).thenAccept(v -> context.reply(v));
+                ((CompletionStage<?>) ret).whenComplete((v, err) -> {
+                    if (err != null) {
+                        future.completeExceptionally(err);
+                    } else {
+                        handleResponse(v, request, future);
+                    }
+                });
             } else {
-                context.reply(ret);
+                handleResponse(ret, request, future);
             }
         } catch (Exception e) {
-            context.getReplyFuture().completeExceptionally(e);
+            future.completeExceptionally(e);
         }
 
-        return context.getReplyFuture();
+        return future;
+    }
+
+    protected void handleResponse(Object ret, ApiRequest<?> request, CompletableFuture<ApiResponse<?>> future) {
+        Object message = ret;
+        if (ret instanceof Acknowledge) {
+            message = ((Acknowledge) ret).getReplyMessage();
+        }
+
+        ApiResponse<Object> rep = null;
+        if (message instanceof ApiResponse) {
+            rep = (ApiResponse<Object>) message;
+        } else {
+            rep = ApiResponse.buildSuccess(message);
+        }
+        String reqId = ApiHeaders.getId(request);
+        if (!StringHelper.isEmpty(reqId)) {
+            ApiHeaders.setRelId(rep, reqId);
+        }
+        future.complete(rep);
     }
 
     protected String getTopic(String serviceMethod, ApiRequest<?> request) {

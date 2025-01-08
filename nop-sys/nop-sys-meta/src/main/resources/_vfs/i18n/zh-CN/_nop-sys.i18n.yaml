@@ -105,8 +105,11 @@ prop:
       eventStatus: 事件状态
       eventTime: 事件时间
       eventTopic: 事件主题
+      isBroadcast: 是否广播
       partitionIndex: 数据分区
       processTime: 处理时间
+      retryTimes: 重试次数
+      scheduleTime: 调度时间
       selection: 字段选择
       updateTime: 修改时间
       updatedBy: 修改人

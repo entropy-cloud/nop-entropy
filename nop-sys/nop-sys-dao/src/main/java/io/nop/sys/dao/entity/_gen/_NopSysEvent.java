@@ -56,51 +56,63 @@ public class _NopSysEvent extends DynamicOrmEntity{
     public static final String PROP_NAME_processTime = "processTime";
     public static final int PROP_ID_processTime = 9;
     
+    /* 调度时间: SCHEDULE_TIME TIMESTAMP */
+    public static final String PROP_NAME_scheduleTime = "scheduleTime";
+    public static final int PROP_ID_scheduleTime = 10;
+    
+    /* 是否广播: IS_BROADCAST BOOLEAN */
+    public static final String PROP_NAME_isBroadcast = "isBroadcast";
+    public static final int PROP_ID_isBroadcast = 11;
+    
     /* 业务对象名: BIZ_OBJ_NAME VARCHAR */
     public static final String PROP_NAME_bizObjName = "bizObjName";
-    public static final int PROP_ID_bizObjName = 10;
+    public static final int PROP_ID_bizObjName = 12;
     
     /* 业务标识: BIZ_KEY VARCHAR */
     public static final String PROP_NAME_bizKey = "bizKey";
-    public static final int PROP_ID_bizKey = 11;
+    public static final int PROP_ID_bizKey = 13;
     
     /* 业务日期: BIZ_DATE DATE */
     public static final String PROP_NAME_bizDate = "bizDate";
-    public static final int PROP_ID_bizDate = 12;
+    public static final int PROP_ID_bizDate = 14;
     
     /* 数据分区: PARTITION_INDEX INTEGER */
     public static final String PROP_NAME_partitionIndex = "partitionIndex";
-    public static final int PROP_ID_partitionIndex = 13;
+    public static final int PROP_ID_partitionIndex = 15;
+    
+    /* 重试次数: RETRY_TIMES INTEGER */
+    public static final String PROP_NAME_retryTimes = "retryTimes";
+    public static final int PROP_ID_retryTimes = 16;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 14;
+    public static final int PROP_ID_version = 17;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 15;
+    public static final int PROP_ID_createdBy = 18;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 16;
+    public static final int PROP_ID_createTime = 19;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 17;
+    public static final int PROP_ID_updatedBy = 20;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 18;
+    public static final int PROP_ID_updateTime = 21;
     
 
-    private static int _PROP_ID_BOUND = 19;
+    private static int _PROP_ID_BOUND = 22;
 
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_eventId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_eventId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[19];
+    private static final String[] PROP_ID_TO_NAME = new String[22];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -131,6 +143,12 @@ public class _NopSysEvent extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_processTime] = PROP_NAME_processTime;
           PROP_NAME_TO_ID.put(PROP_NAME_processTime, PROP_ID_processTime);
       
+          PROP_ID_TO_NAME[PROP_ID_scheduleTime] = PROP_NAME_scheduleTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_scheduleTime, PROP_ID_scheduleTime);
+      
+          PROP_ID_TO_NAME[PROP_ID_isBroadcast] = PROP_NAME_isBroadcast;
+          PROP_NAME_TO_ID.put(PROP_NAME_isBroadcast, PROP_ID_isBroadcast);
+      
           PROP_ID_TO_NAME[PROP_ID_bizObjName] = PROP_NAME_bizObjName;
           PROP_NAME_TO_ID.put(PROP_NAME_bizObjName, PROP_ID_bizObjName);
       
@@ -142,6 +160,9 @@ public class _NopSysEvent extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_partitionIndex] = PROP_NAME_partitionIndex;
           PROP_NAME_TO_ID.put(PROP_NAME_partitionIndex, PROP_ID_partitionIndex);
+      
+          PROP_ID_TO_NAME[PROP_ID_retryTimes] = PROP_NAME_retryTimes;
+          PROP_NAME_TO_ID.put(PROP_NAME_retryTimes, PROP_ID_retryTimes);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -188,6 +209,12 @@ public class _NopSysEvent extends DynamicOrmEntity{
     /* 处理时间: PROCESS_TIME */
     private java.sql.Timestamp _processTime;
     
+    /* 调度时间: SCHEDULE_TIME */
+    private java.sql.Timestamp _scheduleTime;
+    
+    /* 是否广播: IS_BROADCAST */
+    private java.lang.Boolean _isBroadcast;
+    
     /* 业务对象名: BIZ_OBJ_NAME */
     private java.lang.String _bizObjName;
     
@@ -199,6 +226,9 @@ public class _NopSysEvent extends DynamicOrmEntity{
     
     /* 数据分区: PARTITION_INDEX */
     private java.lang.Integer _partitionIndex;
+    
+    /* 重试次数: RETRY_TIMES */
+    private java.lang.Integer _retryTimes;
     
     /* 数据版本: VERSION */
     private java.lang.Integer _version;
@@ -316,6 +346,12 @@ public class _NopSysEvent extends DynamicOrmEntity{
             case PROP_ID_processTime:
                return getProcessTime();
         
+            case PROP_ID_scheduleTime:
+               return getScheduleTime();
+        
+            case PROP_ID_isBroadcast:
+               return getIsBroadcast();
+        
             case PROP_ID_bizObjName:
                return getBizObjName();
         
@@ -327,6 +363,9 @@ public class _NopSysEvent extends DynamicOrmEntity{
         
             case PROP_ID_partitionIndex:
                return getPartitionIndex();
+        
+            case PROP_ID_retryTimes:
+               return getRetryTimes();
         
             case PROP_ID_version:
                return getVersion();
@@ -444,6 +483,26 @@ public class _NopSysEvent extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_scheduleTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_scheduleTime));
+               }
+               setScheduleTime(typedValue);
+               break;
+            }
+        
+            case PROP_ID_isBroadcast:{
+               java.lang.Boolean typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_isBroadcast));
+               }
+               setIsBroadcast(typedValue);
+               break;
+            }
+        
             case PROP_ID_bizObjName:{
                java.lang.String typedValue = null;
                if(value != null){
@@ -481,6 +540,16 @@ public class _NopSysEvent extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_partitionIndex));
                }
                setPartitionIndex(typedValue);
+               break;
+            }
+        
+            case PROP_ID_retryTimes:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_retryTimes));
+               }
+               setRetryTimes(typedValue);
                break;
             }
         
@@ -606,6 +675,20 @@ public class _NopSysEvent extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_scheduleTime:{
+               onInitProp(propId);
+               this._scheduleTime = (java.sql.Timestamp)value;
+               
+               break;
+            }
+        
+            case PROP_ID_isBroadcast:{
+               onInitProp(propId);
+               this._isBroadcast = (java.lang.Boolean)value;
+               
+               break;
+            }
+        
             case PROP_ID_bizObjName:{
                onInitProp(propId);
                this._bizObjName = (java.lang.String)value;
@@ -630,6 +713,13 @@ public class _NopSysEvent extends DynamicOrmEntity{
             case PROP_ID_partitionIndex:{
                onInitProp(propId);
                this._partitionIndex = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_retryTimes:{
+               onInitProp(propId);
+               this._retryTimes = (java.lang.Integer)value;
                
                break;
             }
@@ -847,6 +937,44 @@ public class _NopSysEvent extends DynamicOrmEntity{
     }
     
     /**
+     * 调度时间: SCHEDULE_TIME
+     */
+    public final java.sql.Timestamp getScheduleTime(){
+         onPropGet(PROP_ID_scheduleTime);
+         return _scheduleTime;
+    }
+
+    /**
+     * 调度时间: SCHEDULE_TIME
+     */
+    public final void setScheduleTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_scheduleTime,value)){
+            this._scheduleTime = value;
+            internalClearRefs(PROP_ID_scheduleTime);
+            
+        }
+    }
+    
+    /**
+     * 是否广播: IS_BROADCAST
+     */
+    public final java.lang.Boolean getIsBroadcast(){
+         onPropGet(PROP_ID_isBroadcast);
+         return _isBroadcast;
+    }
+
+    /**
+     * 是否广播: IS_BROADCAST
+     */
+    public final void setIsBroadcast(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_isBroadcast,value)){
+            this._isBroadcast = value;
+            internalClearRefs(PROP_ID_isBroadcast);
+            
+        }
+    }
+    
+    /**
      * 业务对象名: BIZ_OBJ_NAME
      */
     public final java.lang.String getBizObjName(){
@@ -918,6 +1046,25 @@ public class _NopSysEvent extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_partitionIndex,value)){
             this._partitionIndex = value;
             internalClearRefs(PROP_ID_partitionIndex);
+            
+        }
+    }
+    
+    /**
+     * 重试次数: RETRY_TIMES
+     */
+    public final java.lang.Integer getRetryTimes(){
+         onPropGet(PROP_ID_retryTimes);
+         return _retryTimes;
+    }
+
+    /**
+     * 重试次数: RETRY_TIMES
+     */
+    public final void setRetryTimes(java.lang.Integer value){
+        if(onPropSet(PROP_ID_retryTimes,value)){
+            this._retryTimes = value;
+            internalClearRefs(PROP_ID_retryTimes);
             
         }
     }

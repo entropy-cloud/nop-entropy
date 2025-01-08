@@ -18,8 +18,9 @@
     <keys/>
 
     <props>
-        <prop name="eventId" displayName="事件ID" propId="1" i18n-en:displayName="Event ID" tagSet="seq" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="false" graphql:type="String">
+        <prop name="eventId" displayName="事件ID" propId="1" i18n-en:displayName="Event ID" tagSet="seq-default"
+              mandatory="true" queryable="true" sortable="true" insertable="true" updatable="false"
+              graphql:type="String">
             <schema type="java.lang.Long"/>
         </prop>
         <prop name="eventTopic" displayName="事件主题" propId="2" i18n-en:displayName="Event Topic" mandatory="true"
@@ -54,39 +55,51 @@
               mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.sql.Timestamp"/>
         </prop>
-        <prop name="bizObjName" displayName="业务对象名" propId="10" i18n-en:displayName="BizObjName" queryable="true"
+        <prop name="scheduleTime" displayName="调度时间" propId="10" i18n-en:displayName="Schedule Time" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="isBroadcast" displayName="是否广播" propId="11" i18n-en:displayName="Is Broadcast" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="bizObjName" displayName="业务对象名" propId="12" i18n-en:displayName="BizObjName" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="bizKey" displayName="业务标识" propId="11" i18n-en:displayName="BizKey" queryable="true" sortable="true"
+        <prop name="bizKey" displayName="业务标识" propId="13" i18n-en:displayName="BizKey" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="bizDate" displayName="业务日期" propId="12" i18n-en:displayName="Biz Date" tagSet="clock"
+        <prop name="bizDate" displayName="业务日期" propId="14" i18n-en:displayName="Biz Date" tagSet="clock"
               mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.time.LocalDate"/>
         </prop>
-        <prop name="partitionIndex" displayName="数据分区" propId="13" i18n-en:displayName="Partition Index"
+        <prop name="partitionIndex" displayName="数据分区" propId="15" i18n-en:displayName="Partition Index"
               mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.Integer"/>
         </prop>
-        <prop name="version" displayName="数据版本" propId="14" i18n-en:displayName="Version" mandatory="true"
+        <prop name="retryTimes" displayName="重试次数" propId="16" i18n-en:displayName="Retry Times" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="17" i18n-en:displayName="Version" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" internal="true">
             <schema domain="version" type="java.lang.Integer"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" propId="15" i18n-en:displayName="Created By" mandatory="true"
+        <prop name="createdBy" displayName="创建人" propId="18" i18n-en:displayName="Created By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" propId="16" i18n-en:displayName="Create Time" mandatory="true"
+        <prop name="createTime" displayName="创建时间" propId="19" i18n-en:displayName="Create Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="updatedBy" displayName="修改人" propId="17" i18n-en:displayName="Updated By" mandatory="true"
+        <prop name="updatedBy" displayName="修改人" propId="20" i18n-en:displayName="Updated By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="updatedBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="updateTime" displayName="修改时间" propId="18" i18n-en:displayName="Update Time" mandatory="true"
+        <prop name="updateTime" displayName="修改时间" propId="21" i18n-en:displayName="Update Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
