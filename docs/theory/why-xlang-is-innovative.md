@@ -1,83 +1,211 @@
-# 为什么XLang是一门创新的程序语言？
+# 为什么说XLang是一门创新的程序语言？
+
+> 我们的物理世界是一个四维时空，量子场论和相对论是它底层的构造规则。超弦理论试图突破底层结构空间的限制，在11维时空中建立统一的构造规则。
 
 ## 一. 为什么需要设计XLang语言
 
 ![](https://gitee.com/canonical-entropy/nop-entropy/raw/master/docs/tutorial/simple/images/xlang.png)
 
-XLang语言是Nop平台底层的关键性支撑技术，在形式上它包含了XDef、Xpl、XScript等多个子语言。因为XLang与其他单一语法形式的程序语言有着较大的差异，它到底算不算是一种程序语言？它是不是只是在多种现有语言的基础上增加了一些零散的扩展？
+XLang语言是Nop平台底层的关键性支撑技术，在形式上它包含了XDef、Xpl、XScript等多个子语言。因为XLang与其他单一语法形式的程序语言有着较大的差异，所以很多人第一次接触时可能会有疑惑，它到底算不算是一种程序语言？它是不是只是在多种现有语言的基础上增加了一些零散的扩展？
 
-这里我想提出一个对程序语言的本质性理解：**一门程序语言定义了一种程序结构空间，程序语言是程序结构空间的构造规则**。也就是说，一门程序语言所能够创造的所有结构以及这些结构之间的所有可行演化路径构成了一个特定的程序结构空间，所有可行的计算都在这个结构空间中发生。
-
-> 我们的物理世界是一个四维时空，量子场论和相对论是它底层的构造规则。超弦理论试图突破底层结构空间的限制，在11维时空中建立统一的构造规则。
+这里我想提出一个对程序语言的本质的理解：**一门程序语言定义了一种程序结构空间，程序语言是程序结构空间的构造规则**。也就是说，一门程序语言所能够创造的所有结构以及这些结构之间的所有可行演化路径构成了一个特定的程序结构空间，所有可行的计算都在这个结构空间中发生。
 
 基于以上理解，**XLang语言之所以是一门创新的程序语言，是因为它创造了一个新的程序结构空间，在这个结构空间中可以很方便的实现可逆计算理论所提出的`Y = F(X) + Delta`的计算范式**。虽然XLang可以认为是包含XDef, XPL, XScript等多个子语言，但是它们作为一个整体才是实现可逆计算的关键所在。
 **XLang是世界上第一个在语言中明确定义领域结构坐标并内置通用的差量计算规则的程序语言**。
 
-要解释清楚XLang语言的创新性，有必要回顾一下历史。
+### 从结构的观点看程序语言
 
-### 高级程序语言的发展历史
+通用的高级程序语言从FORTRAN开始，经历了几十年的长期发展，目前已经发展到某种瓶颈。新语言所带来的本质上新颖的特性越来越少，各个高级语言都发展到了所谓的多范式编程阶段，它们的语法特性逐渐开始融合、趋同，比如大部分语言现在都同时支持面向对象式的结构声明，支持函数式的Lambda表达式，支持元编程所需要的自定义注解，支持异步编程所需的Async相关语法和支持库等。
 
-以下是智谱AI所生成的高级程序语言发展历史：
+一个有趣的问题是，是否还存在着通用的可抽象的语法特性，它们具有足够的技术价值以至于需要一个新的程序语言来承载？XLang的创新是指出目前主流的的程序语言虽然表面上语法形式差异很大，但是在语法层面之下的基本结构层面是非常相似的，在基本结构层面的创新仍然大有可为。
 
-### 早期阶段（1950s-1960s）
+程序的结构空间本质上是由数据+函数构成，将相关的数据和函数组织在一起就构成自定义的类型，在一般的程序语言中就对应于类（Class）或者接口（Interface）。从结构的层面看，类结构不过是一个Map，可以通过名称来获取到属性或者方法。
 
-- **Fortran（1957）**：引入了数组、循环和子程序等概念，解决了科学计算中的复杂数学问题。
-- **COBOL（1959）**：设计了类似于英语的语法，便于商业数据处理。
-- **ALGOL（1958）**：引入了块结构、递归和过程抽象，对后来的语言设计产生了深远影响。
-  
-  ### 结构化编程阶段（1970s）
-- **C（1972）**：引入了指针、结构体和函数指针，提供了低级访问和高效性能，解决了系统编程的问题。
-- **Pascal（1970）**：强调了数据类型和程序结构，引入了枚举、集合和记录类型，便于教学和软件开发。
-- **Ada（1980）**：引入了包、任务和异常处理，支持并行编程和嵌入式系统开发。
-  
-  ### 面向对象编程阶段（1980s-1990s）
-- **C++（1983）**：在C的基础上引入了类、对象、继承和多态，解决了大型软件开发的模块化和重用性问题。
-- **Java（1995）**：引入了垃圾回收、异常处理和平台独立的Java虚拟机（JVM），解决了跨平台开发和网络编程的问题。
-- **Python（1991）**：强调了代码可读性和简洁性，引入了动态类型、列表推导和装饰器，适用于快速开发和脚本编写。
-  
-  ### 互联网时代（1990s-2000s）
-- **PHP（1995）**：专为网页开发设计，引入了HTML嵌入式代码、数据库连接和会话管理，解决了动态网页生成和服务器端脚本的问题。PHP的发展可以细分为几个小阶段：
-- **JavaScript（1995）**：引入了事件驱动、异步编程和DOM操作，解决了浏览器端交互和动态内容的问题。
-- **Ruby（1995）**：强调了简洁和一致性的语法，引入了块、迭代器和元编程，适用于快速开发和Web应用。
-  
-  ### 现代多范式编程阶段（2010s-2020s）
-- **Go（2009）**：引入了协程（Goroutine）、通道（Channel）和强大的标准库，解决了并发编程和大规模系统开发的问题。
-- **Rust（2010）**：引入了所有权系统、生命周期和借用检查，提供了内存安全和并发性能，适用于系统编程和性能敏感的应用。
-- **Kotlin（2011）**：在Java的基础上引入了空安全、扩展函数和协程，解决了Android开发中的痛点，提高了开发效率。
-- **Swift（2014）**：为iOS开发设计，引入了闭包、元组和非空类型，提供了更安全、更高效的编程体验。
-- **TypeScript（2012）**：在JavaScript的基础上引入了类型系统、接口和装饰器，提高了代码的可维护性和开发效率。
-
-========智谱清言AI创作完毕=================
-
-通用的高级程序语言从FORTRAN开始，经历了几十年的长期发展，目前已经发展到某种瓶颈，新语言所带来的本质上新颖的特性越来越少，各个高级语言都发展到了所谓的多范式编程阶段，它们的语法特性逐渐开始融合、趋同，比如大部分语言现在都同时支持面向对象式的结构声明，支持函数式的Lambda表达式，支持元编程所需要的自定义注解，支持异步编程所需的Async相关语法和支持库等。
-
-一个有趣的问题是，是否还存在着通用的可抽象的语法特性，它们具有足够的技术价值以至于需要一个新的程序语言来承载？
-
-### 面向对象的进一步发展
-
-目前主流的编程语言大多采用面向对象编程范式，会引入类结构定义以及类型之间的继承关系。
-
-```java
-class Shape {
-  public void draw() {
-    System.out.println("Drawing a generic shape");
-  }
+```javascript
+type MyClass = {
+  name: string,
+  myMethod: (arg1:string) => number
 }
-class Circle extends Shape {
-  @Override
-  public void draw() {
-    System.out.println("Drawing a circle");
-  }
-}
-class Rectangle extends Shape {
-  @Override
-  public void draw() {
-    System.out.println("Drawing a rectangle");
-  }
+
+或者
+
+interface MyClass{
+  name: string,
+  myMethod: (arg1:string) => number
 }
 ```
 
-面向对象语言和函数式语言是两种主流的程序语言范式。
+当我们想利用一个已有的自定义类型来得到一个新的类型的时候，可以使用继承或者Traits机制。
+
+```javascript
+type MySubClass = MyClass & {
+  subName: string
+}
+
+或者
+
+interface MySubClass extends MyClass {
+   subName: string
+}
+```
+
+在概念层面上大概相当于如下构造方式：
+
+```javascript
+Map = Map extends Map
+```
+
+类继承在结构层面上相当于是将两个Map按照名称叠加覆盖在一起，上一层中的元素会覆盖下一层的元素。
+
+传统的面向对象语言中可以利用继承机制来复用基类。比如说，构造MapX和MapY的时候复用基类Map1，也就是可以复用继承树的下层。
+
+```javascript
+MapX = Map2 extends Map1
+MapY = Map3 extends Map1
+```
+
+将继承表达为上述结构构造公式之后，很多问题会变得非常自然直观。比如说，我们能不能交换Map1和Map2的相对位置？也就是说，在构造MapX和MapY的时候，我们仍然是复用Map1，但是并不作为基类，而是选择不同的基类，但是用同样的Map1去覆盖。
+
+```javascript
+MapX = Map1 extends Map2
+MapY = Map1 extends Map3
+```
+
+有趣的是，很多面向对象程序语言并不支持上述操作，**面向对象并不直接支持复用继承树的上层！**
+
+更进一步的思考会发现传统的面向对象在结构层面难以回答的问题还有很多，比如说继承链条中如果存在多个同样的对象会导致什么问题？
+
+```javascript
+MapX = Map1 extends Map2 extends Map1
+```
+
+`C++`中多重继承存在概念层面的严重困难，本质原因就是从不同的继承路径复用了同样的Map1之后产生的结构融合障碍。
+
+现代程序语言是通过Traits机制解决了这些问题。比如在Scala语言中，
+
+```scala
+trait Map1 {
+  val name: String = "Map1" // 同名属性
+  def method1(): Unit = {
+    println(s"Method 1 from $name")
+  }
+}
+
+trait Map2 {
+  val name: String = "Map2" // 同名属性
+  def method2(): Unit = {
+    println(s"Method 2 from $name")
+  }
+}
+
+class MapX extends Map1 with Map2 {
+}
+
+class MapY extends Map1 with Map3 {
+}
+```
+
+> Scala语言中多个Trait可以定义同名的属性，编译器会自动合并这些属性定义，最终在运行时只会存在一个变量，但是在Java或者C++中，不同类中定义的多个同名属性并不会自动合并为一个。
+
+传统的面向对象程序语言中 `A extends B`表示派生类A可以比基类B多，但是具体多了什么并没有一个明确的技术形式把它隔离出来，我们也就无法直接复用这个多出来的部分（Delta差量）。
+但是Traits机制相比于继承概念来说，它构成一个更加完善的差量语义。**`type MapX = Map1 with Map2 with Map1`是合法的Scala类型定义！**
+
+对于多重继承所造成的问题，Scala的解决方案是引入所谓的线性化规则，按照一定的顺序将继承链条中的所有类和Trait排成一个线性序列，然后约定上层的元素覆盖下层的元素。
+
+```
+MapX -> Map2 -> Map1
+```
+
+### 泛型作为Generator
+
+泛型(Generic Type)在Java语言中仅仅是用于类型检查，编译器并没有根据泛型参数来执行什么特殊动作。但是在`C++`语言中，情况则大为不同。`C++`的泛型编程是通过模板（Templates）实现的，编译器会根据模板参数的不同将同一个模板类实例化为针对特定类型的不同代码。
+
+在 1994 年的 C++ 标准委员会会议 上，Erwin Unruh 进行了一次技惊四座的演示。他编写了一段模板元程序，能够在编译期计算一个数是否是质数，如果是质数，编译器会在错误信息中输出这个质数。这段代码被称为 “Unruh 质数计算”，成为了 C++ 模板元编程的经典示例。
+Unruh 的演示证明了 C++ 模板在编译期是图灵完备的，这意味着理论上可以在编译期执行任何计算。这一发现开启了 产生式编程（Generative Programming） 的新时代，即利用编译期的计算能力生成代码或优化程序。
+C++ 的模板元编程（Template Metaprogramming）成为了实现产生式编程的重要工具。通过模板，开发者可以在编译期完成复杂的计算、类型推导和代码生成，从而在运行时获得更高的性能和灵活性。
+
+参见[C++ Compile-Time Programming](https://accu.org/journals/overload/32/183/wu/)
+
+```c++
+template <int p, int i> struct is_prime {
+  enum {
+    prim = (p==2) ||
+           (p%i) && is_prime<(i>2?p:0),
+                             i-1> :: prim };
+};
+
+template<>
+struct is_prime<0,0> { enum {prim=1}; };
+
+template<>
+struct is_prime<0,1> { enum {prim=1}; };
+
+template <int i> struct D { D(void*); };
+
+template <int i> struct Prime_print {
+  Prime_print<i-1> a;
+  enum { prim = is_prime<i, i-1>::prim };
+  void f() { D<i> d = prim ? 1 : 0; a.f();}
+};
+
+template<> struct Prime_print<1> {
+  enum {prim=0};
+  void f() { D<1> d = prim ? 1 : 0; };
+};
+
+int main() {
+  Prime_print<18> a;
+  a.f();
+}
+```
+输出
+
+```
+unruh.cpp:20:19: error: no viable conversion from ‘int’ to ‘D<17>’
+…
+unruh.cpp:20:19: error: no viable conversion from ‘int’ to ‘D<13>’
+…
+unruh.cpp:20:19: error: no viable conversion from ‘int’ to ‘D<11>’
+…
+unruh.cpp:20:19: error: no viable conversion from ‘int’ to ‘D<7>’
+…
+unruh.cpp:20:19: error: no viable conversion from ‘int’ to ‘D<5>’
+…
+unruh.cpp:20:19: error: no viable conversion from ‘int’ to ‘D<3>’
+…
+unruh.cpp:20:19: error: no viable conversion from ‘int’ to ‘D<2>’
+```
+
+如果从结构层面去理解模板元编程，则它可以被理解为如下构造公式
+
+```
+Map = Generator<Map> = Map<Map>
+```
+
+> A<X,Y> 可以被理解为 A<B>, struct B{ using T1=X; using T2=Y;}
+> 注意，这里的Map指的是编译器在编译期所看到的结构。每一个成员变量，无论它是属性、方法、还是类型声明，在编译器看来，都是Map中的一个条目。
+> 即使编译器将参数列表作为List来管理，它也可以看作是一个用下标来作为Key的Map。而且有趣的是，如果是用数组来做管理，则一般无法引入类似继承这种更高级的合成机制。在概念层面上我们一般会选择按名称合并，而不会选择按下标合并。
+
+作为生成器的模板类在结构层面（编译器所看到的结构）也可以被看作是一个Map。再结合上一节中差量化Traits概念的内容，面向对象程序语言的最强形态在结构层面可以表达为
+
+```
+Map = Map extends Map<Map>
+```
+
+### 从Map结构到Tree结构
+
+在编译器看来，所谓的类、模板类、模板参数都可以被看作是Map，而且实际情况也一般是按照Map结构来管理的。对于孤立的函数定义和变量定义，实际上也会属于某种Map，比如模块对象可以看作是一个Map，它包含一组模块内定义的变量、函数和类型等。即使不从属于任何模块，那些独立的函数也会属于某个隐式存在的全局命名空间。
+
+> Lisp语言的内在结构是List，本质上是利用下标来管理元素（原始的Lisp甚至没有下标，只有car、cdr这种逐个遍历的处理机制），但是现在流行的Lisp变种早就引入了类似Map的Associated List结构，使用名称来定位子元素，而不是按照下标去定位。在概念层面上（不考虑冯诺依曼机器按照下标取值的性能优势），List可以看作是用下标来做key的一种特殊的Map。
+
+现有主流程序语言提供的各种语法可以看作是在以Map为基础的结构空间中不断构造新的Map的各种规则。XLang语言的创新点在于它选择将Map结构扩展为Tree结构，在Tree结构的基础上重新思考软件结构构造问题。也就是将软件结构的构推广为如下公式：
+
+```
+Tree = Tree x-extends Tree<Tree>
+```
+
+
+
 
 如果TypeScript被认为是JavaScript + JSX + Type扩展，那么XLang可以看作是 JavaScript + XPL + 差量计算 + 元模型+ 元编程扩展。
 
