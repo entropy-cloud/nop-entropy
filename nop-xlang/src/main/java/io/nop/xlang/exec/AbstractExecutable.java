@@ -120,6 +120,8 @@ public abstract class AbstractExecutable implements IExecutableExpression {
             case SELF_ASSIGN_UNSIGNED_RIGHT_SHIFT:
                 return MathHelper.usr(value, change);
             case SELF_ASSIGN_ADD:
+                if(value instanceof String || change instanceof String)
+                    return String.valueOf(value) + String.valueOf(change);
                 return MathHelper.add(value, change);
             case SELF_ASSIGN_MINUS:
                 return MathHelper.minus(value, change);

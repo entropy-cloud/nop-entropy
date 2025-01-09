@@ -21,12 +21,26 @@
                         if(right['ui:show']?.contains('S'))
                            return '\n                '
                     }
+
+                    function gen_row(row){
+                        let s = "\n ";
+                        for(let i=0,n=row.length;i<n;i++){
+                            s += cell(row[i]) || '';
+                            if(i < n-1){
+                                s += ' ';
+                                s += cell_gap(row[i], row[i+1]) || '';
+                            }else if(i % 2 == 0){
+                                s += ' ';
+                            }
+                        }
+                        return s;
+                    }
                 ]]></c:script>
                 <layout>
                     <c:choose>
                         <when test="${props.length >= 10 or chunkSize}">
                             <c:for var="row" items="${_.chunk(props,chunkSize || 2)}">
-                                <c:unit>${'\n'} ${cell(row[0])} ${cell_gap(row[0],row[1])}${cell(row[1])}</c:unit>
+                                <c:unit>${gen_row(row)}</c:unit>
                             </c:for>
                         </when>
                         <otherwise>
