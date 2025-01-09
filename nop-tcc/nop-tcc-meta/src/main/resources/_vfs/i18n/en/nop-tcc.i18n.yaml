@@ -1,4 +1,4 @@
 
-&quot;x:extends&quot;: _nop-tcc.i18n.yaml
+“x:extends”: _nop-tcc.i18n.yaml
 
 # key: &quot;value&quot;
