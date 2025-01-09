@@ -140,6 +140,8 @@ public interface CoreErrors {
     String ARG_VALUE = "value";
     String ARG_PATTERN = "pattern";
 
+    String ARG_TPL_PATH = "tplPath";
+
     String ARG_LOC_A = "locA";
     String ARG_LOC_B = "locB";
     String ARG_VALUE_A = "valueA";
@@ -528,6 +530,9 @@ public interface CoreErrors {
 
     ErrorCode ERR_RESOURCE_STORE_NOT_SUPPORT_TENANT_DELTA = define("nop.err.core.resource.store-not-support-tenant-delta",
             "文件存储没有开启租户Delta支持");
+
+    ErrorCode ERR_RESOURCE_TPL_NOT_EXISTS = define("nop.err.core.resource.tpl-not-exists",
+            "模板文件不存在:{tpl}", ARG_TPL_PATH);
 
     ErrorCode ERR_XML_NOT_NODE_VALUE = define("nop.err.core.xml.not-node-value",
             "值不是XNode类型:{value}", ARG_VALUE);

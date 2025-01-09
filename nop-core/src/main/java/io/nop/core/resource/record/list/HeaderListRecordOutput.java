@@ -9,6 +9,8 @@ package io.nop.core.resource.record.list;
 
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.EvalExprProvider;
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.dataset.record.IRecordOutput;
 
 import java.util.ArrayList;
@@ -21,11 +23,23 @@ public class HeaderListRecordOutput<R> implements IRecordOutput<List<Object>> {
     private final BiFunction<List<String>, List<Object>, R> rowBuilder;
     private boolean headersWritten;
     private long writeCount;
-    private int skipCount;
+    private int headerRowCount;
+    private List<String> headerLabels;
+    private IEvalFunction headersNormalizer;
 
-    public HeaderListRecordOutput(int skipCount, BiFunction<List<String>, List<Object>, R> rowBuilder) {
-        this.skipCount = skipCount;
+    private List<List<String>> headerRows = new ArrayList<>();
+
+    public HeaderListRecordOutput(int headerRowCount, BiFunction<List<String>, List<Object>, R> rowBuilder) {
+        this.headerRowCount = headerRowCount;
         this.rowBuilder = rowBuilder;
+    }
+
+    public void setHeaderLabels(List<String> headerLabels) {
+        this.headerLabels = headerLabels;
+    }
+
+    public void setHeadersNormalizer(IEvalFunction headersNormalizer) {
+        this.headersNormalizer = headersNormalizer;
     }
 
     public List<R> getResult() {
@@ -38,19 +52,31 @@ public class HeaderListRecordOutput<R> implements IRecordOutput<List<Object>> {
 
     @Override
     public void write(List<Object> record) {
-        if (skipCount > writeCount) {
+        if (headerRowCount > writeCount) {
+            List<String> row = CollectionHelper.toStringList(record);
+            headerRows.add(row);
             writeCount++;
             return;
         }
 
         if (!headersWritten) {
-            this.headers = CollectionHelper.toStringList(record);
+            normalizeHeaders();
             headersWritten = true;
-            return;
         }
 
         doWriteRecord(record);
         writeCount++;
+    }
+
+    private void normalizeHeaders() {
+        if (this.headers == null || this.headers.isEmpty()) {
+            if (!headerRows.isEmpty())
+                this.headers = headerRows.get(headerRows.size() - 1);
+
+            if (headersNormalizer != null) {
+                this.headers = (List<String>) this.headersNormalizer.call2(null, headers, headerRows, EvalExprProvider.newEvalScope());
+            }
+        }
     }
 
     private String toString(Object value) {

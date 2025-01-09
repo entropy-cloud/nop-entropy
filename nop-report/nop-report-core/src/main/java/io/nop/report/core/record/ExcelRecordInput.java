@@ -2,6 +2,7 @@ package io.nop.report.core.record;
 
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.ResourceComponentManager;
@@ -21,7 +22,6 @@ import java.util.NoSuchElementException;
 public class ExcelRecordInput<T> implements IRecordInput<T> {
     private final IResource resource;
     private final ExcelIOConfig config;
-
     private final IGenericType beanType;
 
     private List<String> headers;
@@ -34,6 +34,8 @@ public class ExcelRecordInput<T> implements IRecordInput<T> {
     private XlsxToRecordOutput output;
 
     private List<Map<String, Object>> list;
+
+    private IEvalFunction headersNormalizer;
     private int nextIndex = 0;
 
     public ExcelRecordInput(IResource resource, IGenericType beanType, ExcelIOConfig config) {
@@ -41,6 +43,10 @@ public class ExcelRecordInput<T> implements IRecordInput<T> {
         this.config = config == null ? ExcelIOConfig.DEFAULT : config;
         this.xptModel = loadXptModel(this.config);
         this.beanType = beanType;
+    }
+
+    public void setHeadersNormalizer(IEvalFunction headersNormalizer) {
+        this.headersNormalizer = headersNormalizer;
     }
 
     private ExcelWorkbook loadXptModel(ExcelIOConfig config) {
@@ -79,7 +85,10 @@ public class ExcelRecordInput<T> implements IRecordInput<T> {
 
     @Override
     public void beforeRead(Map<String, Object> map) {
-        HeaderListRecordOutput<Map<String, Object>> collector = new HeaderListRecordOutput<>(config.getSkipRowCount(), CollectionHelper::toNonEmptyKeyMap);
+        HeaderListRecordOutput<Map<String, Object>> collector = new HeaderListRecordOutput<>(config.getHeaderRowCount(), CollectionHelper::toNonEmptyKeyMap);
+        collector.setHeaderLabels(headerLabels);
+        collector.setHeadersNormalizer(headersNormalizer);
+
         this.output = new XlsxToRecordOutput(name -> collector);
         this.output.loadFromResource(resource);
         String sheetName = config.getDataSheetName();

@@ -46,6 +46,8 @@ import static io.nop.core.CoreConstants.XGEN_FILE_SUFFIX;
 import static io.nop.core.CoreConstants.XGEN_MARK_FORCE_OVERRIDE;
 import static io.nop.core.CoreConstants.XGEN_MARK_TPL_FORCE_OVERRIDE;
 import static io.nop.core.CoreConstants.XRUN_FILE_SUFFIX;
+import static io.nop.core.CoreErrors.ARG_TPL_PATH;
+import static io.nop.core.CoreErrors.ERR_RESOURCE_TPL_NOT_EXISTS;
 
 public class TemplateFileGenerator {
     static final Logger LOG = LoggerFactory.getLogger(TemplateFileGenerator.class);
@@ -69,12 +71,19 @@ public class TemplateFileGenerator {
 
     private boolean checkOverrideHead = true;
 
+    private boolean checkTplExisits = true;
+
     private Map<String, Boolean> tplForceOverrides = new ConcurrentHashMap<>();
 
     public TemplateFileGenerator(ITemplateLoader loader, String tplRootPath, String targetRootPath) {
         this.loader = loader;
         this.tplRootPath = Guard.notEmpty(tplRootPath, "tplRootPath");
         this.targetRootPath = Guard.notEmpty(normalizeTargetRootDir(targetRootPath), "targetRootPath");
+    }
+
+    public TemplateFileGenerator checkTplExists(boolean b) {
+        this.checkTplExisits = b;
+        return this;
     }
 
     static String normalizeTargetRootDir(String path) {
@@ -166,6 +175,9 @@ public class TemplateFileGenerator {
         // 找到根目录
         IResource resource = getTplResource("");
         if (!resource.exists()) {
+            if (checkTplExisits)
+                throw new NopException(ERR_RESOURCE_TPL_NOT_EXISTS).param(ARG_TPL_PATH, getTplRootPath());
+
             LOG.warn("nop.tpl.execute-is-skipped-since-resource-not-exists:resource={}", resource);
             return;
         }

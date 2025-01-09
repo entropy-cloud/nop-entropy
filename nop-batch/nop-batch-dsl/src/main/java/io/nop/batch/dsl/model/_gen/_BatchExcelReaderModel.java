@@ -46,6 +46,13 @@ public abstract class _BatchExcelReaderModel extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: headerRowCount
+     * 
+     */
+    private java.lang.Integer _headerRowCount ;
+    
+    /**
+     *  
      * xml name: headerSheetName
      * 
      */
@@ -151,6 +158,25 @@ public abstract class _BatchExcelReaderModel extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._headerLabels = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: headerRowCount
+     *  
+     */
+    
+    public java.lang.Integer getHeaderRowCount(){
+      return _headerRowCount;
+    }
+
+    
+    public void setHeaderRowCount(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._headerRowCount = value;
            
     }
 
@@ -269,6 +295,7 @@ public abstract class _BatchExcelReaderModel extends io.nop.core.resource.compon
         out.putNotNull("filePath",this.getFilePath());
         out.putNotNull("filter",this.getFilter());
         out.putNotNull("headerLabels",this.getHeaderLabels());
+        out.putNotNull("headerRowCount",this.getHeaderRowCount());
         out.putNotNull("headerSheetName",this.getHeaderSheetName());
         out.putNotNull("headers",this.getHeaders());
         out.putNotNull("headersNormalizer",this.getHeadersNormalizer());
@@ -289,6 +316,7 @@ public abstract class _BatchExcelReaderModel extends io.nop.core.resource.compon
         instance.setFilePath(this.getFilePath());
         instance.setFilter(this.getFilter());
         instance.setHeaderLabels(this.getHeaderLabels());
+        instance.setHeaderRowCount(this.getHeaderRowCount());
         instance.setHeaderSheetName(this.getHeaderSheetName());
         instance.setHeaders(this.getHeaders());
         instance.setHeadersNormalizer(this.getHeadersNormalizer());

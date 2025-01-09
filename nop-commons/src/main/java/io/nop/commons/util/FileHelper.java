@@ -36,6 +36,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static io.nop.commons.CommonErrors.ARG_DEST;
@@ -548,5 +549,37 @@ public class FileHelper {
             }
         }
         return FileVisitResult.SKIP_SUBTREE;
+    }
+
+    public static FileVisitResult walk2(File dir1, File dir2, BiFunction<File, File, FileVisitResult> fn) {
+        FileVisitResult result = fn.apply(dir1, dir2);
+        if (result != null && result != FileVisitResult.CONTINUE)
+            return result;
+
+        File[] subFiles = dir1.listFiles();
+        if (subFiles != null) {
+            for (File subFile : subFiles) {
+                result = walk2(subFile, new File(dir2, subFile.getName()), fn);
+
+                if (result == FileVisitResult.SKIP_SIBLINGS)
+                    break;
+
+                if (result == FileVisitResult.TERMINATE)
+                    return result;
+            }
+        }
+        return FileVisitResult.SKIP_SUBTREE;
+    }
+
+    public static void copyFileWithFilter(File dir1, File dir2, BiFunction<File, File, Boolean> filter) {
+        walk2(dir1, dir2, (file1, file2) -> {
+            if (file1.isFile()) {
+                if (filter.apply(file1, file2)) {
+                    copyFile(file1, file2);
+                    return FileVisitResult.SKIP_SUBTREE;
+                }
+            }
+            return FileVisitResult.CONTINUE;
+        });
     }
 }

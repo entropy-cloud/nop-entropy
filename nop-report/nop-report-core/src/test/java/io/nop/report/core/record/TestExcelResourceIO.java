@@ -38,9 +38,27 @@ public class TestExcelResourceIO extends BaseTestCase {
         input.beforeRead(new HashMap<>());
 
         List<Map<String, Object>> list = input.readAll();
-        System.out.println(JSON.serialize(list,true));
+        System.out.println(JSON.serialize(list, true));
         assertEquals(1, list.get(0).get("a"));
         assertEquals(9001, list.get(9).get("c"));
+        input.close();
+    }
+
+    @Test
+    public void testReadMultiHeader() throws IOException {
+        ExcelResourceIO<Map<String, Object>> io = new ExcelResourceIO<>();
+        ExcelIOConfig config = new ExcelIOConfig();
+        // Excel文件的前两行是header
+        config.setHeaderRowCount(2);
+        io.setIOConfig(config);
+
+        IRecordInput<Map<String, Object>> input = io.openInput(new ClassPathResource("classpath:io/nop/report/core/excel-input.xlsx"), null);
+        input.beforeRead(new HashMap<>());
+
+        List<Map<String, Object>> list = input.readAll();
+        System.out.println(JSON.serialize(list, true));
+        assertEquals(1001, list.get(0).get("1"));
+        assertEquals(9001, list.get(8).get("1"));
         input.close();
     }
 

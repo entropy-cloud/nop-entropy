@@ -88,16 +88,16 @@
             -->
             <headers xdef:value="csv-list"/>
             <headerLabels xdef:value="csv-list"/>
-            <headersNormalizer xdef:value="xpl-fn:(headers)=>List"/>
+            <headersNormalizer xdef:value="xpl-fn:(headers,headerRows)=>List"/>
         </file-reader>
 
-        <excel-reader filePath="!t-expr" xdef:name="BatchExcelReaderModel" templatePath="v-path"
+        <excel-reader filePath="!t-expr" xdef:name="BatchExcelReaderModel" templatePath="v-path" headerRowCount="int"
                       dataSheetName="string" headerSheetName="string" trailerSheetName="string">
             <filter xdef:value="xpl-fn:(item,batchTaskCtx)=>boolean"/>
 
             <headers xdef:value="csv-list"/>
             <headerLabels xdef:value="csv-list"/>
-            <headersNormalizer xdef:value="xpl-fn:(headers)=>List"/>
+            <headersNormalizer xdef:value="xpl-fn:(headers,headerRows)=>List"/>
         </excel-reader>
 
         <!--
@@ -156,7 +156,7 @@
         </file-writer>
 
         <excel-writer filePath="!t-expr" xdef:name="BatchExcelWriterModel" templatePath="v-path"
-                      dataSheetName="string" headerSheetName="string" trailerSheetName="string">
+                      dataSheetName="string" headerSheetName="string" trailerSheetName="string" headerRowCount="int">
             <headers xdef:value="csv-list"/>
             <headerLabels xdef:value="csv-list"/>
         </excel-writer>

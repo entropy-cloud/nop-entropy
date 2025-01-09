@@ -1,5 +1,6 @@
 package io.nop.report.core.record;
 
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.record.IResourceRecordIO;
@@ -18,6 +19,7 @@ public class ExcelResourceIO<T> implements IResourceRecordIO<T> {
     private List<String> headers;
     private List<String> headerLabels;
     private Type recordType = Map.class;
+    private IEvalFunction headersNormalizer;
 
     public void setRecordType(Type recordType) {
         this.recordType = recordType;
@@ -43,12 +45,20 @@ public class ExcelResourceIO<T> implements IResourceRecordIO<T> {
         this.ioConfig = outputConfig;
     }
 
+    public IEvalFunction getHeadersNormalizer() {
+        return headersNormalizer;
+    }
+
+    public void setHeadersNormalizer(IEvalFunction headersNormalizer) {
+        this.headersNormalizer = headersNormalizer;
+    }
 
     @Override
     public IRecordInput<T> openInput(IResource resource, String encoding) {
         ExcelRecordInput<T> input = new ExcelRecordInput<>(resource, getTypeInfo(resource), ioConfig);
         input.setHeaders(headers);
         input.setHeaderLabels(headerLabels);
+        input.setHeadersNormalizer(headersNormalizer);
         return input;
     }
 

@@ -2,11 +2,13 @@ package io.nop.batch.dsl.manager;
 
 import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.batch.core.IBatchAggregator;
+import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchRecordFilter;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.consumer.ResourceRecordConsumerProvider;
 import io.nop.batch.core.filter.EvalBatchRecordFilter;
+import io.nop.batch.core.loader.ListBatchLoader;
 import io.nop.batch.core.loader.ResourceRecordLoaderProvider;
 import io.nop.batch.dsl.BatchDslConstants;
 import io.nop.batch.dsl.model.BatchExcelReaderModel;
@@ -25,8 +27,10 @@ import io.nop.report.core.record.ExcelIOConfig;
 import io.nop.report.core.record.ExcelResourceIO;
 import io.nop.xlang.api.XLang;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class FileBatchSupport {
 
@@ -77,7 +81,7 @@ public class FileBatchSupport {
         io.setHeaders(readerModel.getHeaders());
         io.setHeaderLabels(readerModel.getHeaderLabels());
         if (readerModel.getCsvFormat() != null) {
-           io.setFormat(readerModel.getCsvFormat());
+            io.setFormat(readerModel.getCsvFormat());
         }
         if (readerModel.getHeadersNormalizer() != null) {
             io.setHeadersNormalizer(headers -> (List<String>) readerModel.getHeadersNormalizer().call1(null, headers, XLang.newEvalScope()));
@@ -126,7 +130,7 @@ public class FileBatchSupport {
         io.setHeaders(writerModel.getHeaders());
         io.setHeaderLabels(writerModel.getHeaderLabels());
         if (writerModel.getCsvFormat() != null) {
-           io.setFormat(writerModel.getCsvFormat());
+            io.setFormat(writerModel.getCsvFormat());
         }
         return io;
     }
@@ -172,9 +176,37 @@ public class FileBatchSupport {
         config.setHeaderSheetName(ioModel.getHeaderSheetName());
         config.setTrailerSheetName(ioModel.getTrailerSheetName());
         config.setTemplatePath(ioModel.getTemplatePath());
+        if (ioModel.getHeaderRowCount() != null) {
+            config.setHeaderRowCount(ioModel.getHeaderRowCount());
+        }
+
         io.setIOConfig(config);
         io.setHeaders(ioModel.getHeaders());
         io.setHeaderLabels(ioModel.getHeaderLabels());
         return io;
+    }
+
+    static final String KEY_LOADER = "batchLoader";
+
+    public static <T> List<T> batchLoad(int batchSize, IBatchChunkContext chunkCtx, IBatchLoaderProvider<T> provider) {
+        IBatchTaskContext taskCtx = chunkCtx.getTaskContext();
+        synchronized (chunkCtx) {
+            IBatchLoaderProvider.IBatchLoader loader = (IBatchLoaderProvider.IBatchLoader) taskCtx.getAttribute(KEY_LOADER);
+            if (loader == null) {
+                loader = provider.setup(taskCtx);
+                taskCtx.setAttribute(KEY_LOADER, loader);
+            }
+            return loader.load(batchSize, chunkCtx);
+        }
+    }
+
+    public static <T> List<T> batchLoadList(int batchSize, IBatchChunkContext chunkCtx,
+                                            Function<IBatchTaskContext, List<T>> listProvider) {
+        return batchLoad(batchSize, chunkCtx, taskCtx -> {
+            List<T> list = listProvider.apply(taskCtx);
+            if (list == null)
+                list = Collections.emptyList();
+            return new ListBatchLoader<>(list);
+        });
     }
 }
