@@ -105,3 +105,15 @@ entity.prop_set('extField',3);
 
 * `codeGenerator`: `XCodeGenerator`类型，`precompile`目录下的代码生成模板中可用
 * `__dsl_root`：`XNode`类型，在`x:gen-extends`和`x:post-extends`这样的元编程处理段中可用
+
+
+## JS兼容性
+
+XScript可以看作是使用JavaScript语法的Java，它使用的对象和库都是Java语言的，因此很多地方并不兼容JavaScript.
+
+### 全局对象
+XScript中没有JSON、Object等全局对象，所有的全局对象名都以`$`开头，例如`$JSON`、`$Math`、`$Date`等。
+
+### 集合函数
+* 通过ListFunctions上的扩展函数为Java的List对象增加了一些JavaScript中Array对象的方法，例如`push/pop/shift/unshift/includes/some/reduceRight/slice/splice`等。
+* `forEach/map`等函数只支持一个参数，使用的是Java Collection上定义的方法。JavaScript的map和forEach都具有两个参数，可以获知记录的下标。XScript增加了`map2/forEach2`，它们的语义类似JavaScript。

@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -177,5 +178,21 @@ public class SetFunctions {
 
     public static boolean hasNext(Collection<?> list, int index) {
         return index <= list.size() - 1;
+    }
+
+    public static void forEach2(Collection<?> list, BiConsumer<Object, Integer> action) {
+        int i = 0;
+        for (Object item : list) {
+            action.accept(item, i++);
+        }
+    }
+
+    public static <T, R> List<R> map2(Collection<T> list, BiFunction<T, Integer, R> fn) {
+        List<R> ret = new ArrayList<>(list.size());
+        int i = 0;
+        for (T item : list) {
+            ret.add(fn.apply(item, i++));
+        }
+        return ret;
     }
 }
