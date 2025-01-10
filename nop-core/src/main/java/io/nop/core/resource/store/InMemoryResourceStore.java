@@ -17,12 +17,14 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceStore;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.ByteArrayResource;
+import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.impl.InMemoryDirResource;
 import io.nop.core.resource.impl.InMemoryTextResource;
 import io.nop.core.resource.impl.UnknownResource;
 import io.nop.core.resource.zip.IZipInput;
 import io.nop.core.resource.zip.ZipOptions;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
@@ -59,6 +61,22 @@ public class InMemoryResourceStore implements IResourceStore {
 
     public boolean addResourceIfAbsent(IResource resource) {
         return root.addNodeIfAbsent(resource.getPath(), resource);
+    }
+
+    public void addFileDir(String basePath, File dir) {
+        String normalized = normalizeBasePath(basePath);
+
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                String path = StringHelper.appendPath(normalized, file.getName());
+                if (file.isDirectory()) {
+                    addFileDir(path, file);
+                } else if (file.isFile()) {
+                    addResource(new FileResource(path, file));
+                }
+            }
+        }
     }
 
     public void addZipFile(String basePath, IResource zipResource) {

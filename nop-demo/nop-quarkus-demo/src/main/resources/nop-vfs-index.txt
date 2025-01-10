@@ -274,6 +274,7 @@
 /nop/autoconfig/nop-gateway.beans
 /nop/autoconfig/nop-http-client-jdk.beans
 /nop/autoconfig/nop-integration-zxing.beans
+/nop/autoconfig/nop-message-core.beans
 /nop/autoconfig/nop-orm.beans
 /nop/autoconfig/nop-quarkus-web-starter.beans
 /nop/autoconfig/nop-report-ext.beans
@@ -543,6 +544,7 @@
 /nop/http/beans/http-client-jdk.beans.xml
 /nop/integration/beans/zxing-defaults.beans.xml
 /nop/main/app.gateway.xml
+/nop/message/beans/message-core-defaults.beans.xml
 /nop/ooxml/templates/empty.xlsx
 /nop/ooxml/templates/simple-data.xpt.xlsx
 /nop/orm/beans/orm-defaults.beans.xml
@@ -828,6 +830,10 @@
 /nop/sys/model/NopSysDictOption/NopSysDictOption.xmeta
 /nop/sys/model/NopSysDictOption/_NopSysDictOption.xbiz
 /nop/sys/model/NopSysDictOption/_NopSysDictOption.xmeta
+/nop/sys/model/NopSysEvent/NopSysEvent.xbiz
+/nop/sys/model/NopSysEvent/NopSysEvent.xmeta
+/nop/sys/model/NopSysEvent/_NopSysEvent.xbiz
+/nop/sys/model/NopSysEvent/_NopSysEvent.xmeta
 /nop/sys/model/NopSysExtField/NopSysExtField.xbiz
 /nop/sys/model/NopSysExtField/NopSysExtField.xmeta
 /nop/sys/model/NopSysExtField/_NopSysExtField.xbiz
@@ -888,6 +894,11 @@
 /nop/sys/pages/NopSysDictOption/dict-ref.page.yaml
 /nop/sys/pages/NopSysDictOption/main.page.yaml
 /nop/sys/pages/NopSysDictOption/picker.page.yaml
+/nop/sys/pages/NopSysEvent/NopSysEvent.lib.xjs
+/nop/sys/pages/NopSysEvent/NopSysEvent.view.xml
+/nop/sys/pages/NopSysEvent/_gen/_NopSysEvent.view.xml
+/nop/sys/pages/NopSysEvent/main.page.yaml
+/nop/sys/pages/NopSysEvent/picker.page.yaml
 /nop/sys/pages/NopSysExtField/NopSysExtField.lib.js
 /nop/sys/pages/NopSysExtField/NopSysExtField.lib.xjs
 /nop/sys/pages/NopSysExtField/NopSysExtField.view.xml

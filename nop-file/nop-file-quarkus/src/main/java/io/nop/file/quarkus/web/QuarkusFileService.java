@@ -106,9 +106,11 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
 
     /**
      * resteasy内部强制使用了固定编码方式解析content-disposition来得到文件名
+     * 2025-01-10, 根据反馈，目前quarkus已经不需要Fix上传文件名
      */
-    private String fixFileName(String fileName) {
-        return new String(fileName.getBytes(StringHelper.CHARSET_ISO_8859_1), StringHelper.CHARSET_UTF8);
+    protected String fixFileName(String fileName) {
+        return fileName;
+        //return new String(fileName.getBytes(StringHelper.CHARSET_ISO_8859_1), StringHelper.CHARSET_UTF8);
     }
 
     protected <T> ApiRequest<T> buildApiRequest(HttpServerRequest req, T data) {

@@ -22,7 +22,7 @@ public class VfsConfig implements Serializable {
     /**
      * 资源jar包，合并所有_vfs目录下的文件，作为虚拟文件系统的一部分。排在前面的jar包优先级高，将会自动屏蔽后续jar包中的同名文件。
      */
-    private List<String> libFiles;
+    private List<String> libPaths;
 
     private List<String> deltaLayerIds;
 
@@ -65,11 +65,11 @@ public class VfsConfig implements Serializable {
         this.scanClassPath = scanClassPath;
     }
 
-    public List<String> getLibFiles() {
-        return libFiles;
+    public List<String> getLibPaths() {
+        return libPaths;
     }
 
-    public void setLibFiles(List<String> libFiles) {
-        this.libFiles = libFiles;
+    public void setLibPaths(List<String> libPaths) {
+        this.libPaths = libPaths;
     }
 }

@@ -6382,6 +6382,16 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.core.reflection.DummyGraphQLArgsNormalizer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowWrite": true,
@@ -7360,6 +7370,36 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.log.java.JavaLoggerConfiguratorInitializer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "handleMessageResult",
+        "parameterTypes": [
+          "java.lang.Object",
+          "java.lang.String",
+          "java.lang.Object",
+          "io.nop.api.core.message.IMessageConsumeContext"
+        ]
+      }
+    ],
+    "name": "io.nop.message.core.local.LocalMessageService"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.message.core.reflection.ReflectionMessageSubscriptionRegistrar"
   },
   {
     "allDeclaredConstructors": true,
@@ -9579,6 +9619,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.sys.dao.entity.NopSysEvent"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysExtField"
   },
   {
@@ -9715,6 +9765,21 @@
       }
     ],
     "name": "io.nop.sys.dao.entity._gen._NopSysDictOption"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.sys.dao.entity._gen._NopSysEvent"
   },
   {
     "allDeclaredConstructors": true,
@@ -9869,6 +9934,24 @@
     "fields": [],
     "methods": [
       {
+        "name": "isExpired",
+        "parameterTypes": [
+          "io.nop.sys.dao.entity.NopSysLock",
+          "io.nop.api.core.time.IEstimatedClock"
+        ]
+      }
+    ],
+    "name": "io.nop.sys.dao.lock.SysDaoResourceLockManager"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "loadCacheItemFromDb",
         "parameterTypes": [
           "java.lang.String"
@@ -9932,6 +10015,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.sys.service.entity.NopSysDictOptionBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysEventBizModel"
   },
   {
     "allDeclaredConstructors": true,

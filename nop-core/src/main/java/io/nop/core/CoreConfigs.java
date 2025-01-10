@@ -107,6 +107,10 @@ public interface CoreConfigs {
     IConfigReference<String> CFG_VFS_DELTA_LAYER_IDS = varRef(s_loc, "nop.core.vfs.delta-layer-ids",
             String.class, null);
 
+    @Description("指定差量文件系统的Delta层所在的目录或者jar文件,其中_vfs子目录为虚拟文件目录")
+    IConfigReference<String> CFG_VFS_LIB_PATHS = varRef(s_loc, "nop.core.vfs.lib-paths",
+            String.class, null);
+
     @Description("指定Delta差量文件系统的StoreBuilder对象，需要实现IDeltaResourceStoreBuilder接口")
     IConfigReference<String> CFG_VFS_DELTA_RESOURCE_STORE_BUILDER_CLASS = varRef(s_loc,
             "nop.core.vfs.delta-resource-store-builder-class", String.class, null);

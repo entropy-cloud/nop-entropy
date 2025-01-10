@@ -73,6 +73,11 @@ public class VfsConfigLoader {
             config.setDeltaLayerIds(layerIds);
         }
 
+        List<String> libPaths = ConvertHelper.toCsvList(CoreConfigs.CFG_VFS_LIB_PATHS.get(), NopException::new);
+        if (libPaths != null && !libPaths.isEmpty()) {
+            config.setLibPaths(libPaths);
+        }
+
         String builderClass = CFG_VFS_DELTA_RESOURCE_STORE_BUILDER_CLASS.get();
         if (!StringHelper.isEmpty(builderClass)) {
             config.setStoreBuilderClass(builderClass);

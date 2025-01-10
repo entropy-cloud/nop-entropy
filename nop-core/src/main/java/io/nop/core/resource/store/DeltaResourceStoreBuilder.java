@@ -84,7 +84,7 @@ public class DeltaResourceStoreBuilder implements IDeltaResourceStoreBuilder {
         if (dir == null)
             return store;
 
-        LOG.info("nop.resource.use-override-fs-dir:{}", FileHelper.getAbsolutePath(dir));
+        LOG.info("nop.vfs.use-override-fs-dir:{}", FileHelper.getAbsolutePath(dir));
 
         LocalResourceStore vfsStore = new LocalResourceStore("/", dir);
         store = new OverrideResourceStore(vfsStore, store);
@@ -149,11 +149,21 @@ public class DeltaResourceStoreBuilder implements IDeltaResourceStoreBuilder {
             });
         }
 
-        if (config.getLibFiles() != null) {
-            for (String libJar : config.getLibFiles()) {
-                File libJarFile = new File(libJar);
-                ZipFile zipFile = newZipFile(libJarFile);
-                FileScanHelper.scanZip(zipFile, ResourceConstants.CLASS_PATH_VFS_DIR, "/", store);
+        if (config.getLibPaths() != null) {
+            for (String libPath : config.getLibPaths()) {
+                File libFile = new File(libPath);
+                if (libFile.isDirectory()) {
+                    LOG.info("nop.vfs.add-lib-dir:{}", libFile.getAbsolutePath());
+                    if (libFile.getName().equals(ResourceConstants.VFS_DIR_NAME)) {
+                        store.addFileDir("/", libFile);
+                    } else {
+                        store.addFileDir("/", new File(libFile, ResourceConstants.CLASS_PATH_VFS_DIR));
+                    }
+                } else {
+                    LOG.info("nop.vfs.add-lib-jar:{}", libFile.getAbsolutePath());
+                    ZipFile zipFile = newZipFile(libFile);
+                    FileScanHelper.scanZip(zipFile, ResourceConstants.CLASS_PATH_VFS_DIR, "/", store);
+                }
             }
         }
 

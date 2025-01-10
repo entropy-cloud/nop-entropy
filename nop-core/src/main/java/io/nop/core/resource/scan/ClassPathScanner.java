@@ -74,6 +74,7 @@ public class ClassPathScanner {
         Set<URL> urls = doFindAllClassPathResources(classLoader, path);
 
         for (URL rootDirUrl : urls) {
+            logger.info("nop.resource.scan-classpath.find-root-dir:path={},url={}", path, rootDirUrl);
             if (URLHelper.isJarURL(rootDirUrl)) {
                 doFindPathMatchingJarResources(rootDirUrl, path, consumer);
             } else {
@@ -109,7 +110,7 @@ public class ClassPathScanner {
         boolean closeJarFile = false;
 
         URLConnection con;
-        try{
+        try {
             con = rootDirURL.openConnection();
 
             if (con instanceof JarURLConnection) {
@@ -121,11 +122,11 @@ public class ClassPathScanner {
                 //JarEntry jarEntry = jarCon.getJarEntry();
                 closeJarFile = !jarCon.getUseCaches();
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             // IGNORE
         }
 
-        if(jarFile == null){
+        if (jarFile == null) {
 //         No JarURLConnection -> need to resort to URL file parsing.
 //         We'll assume URLs of the format "jar:path!/entry", with the protocol
 //         being arbitrary as long as following the entry format.
@@ -155,7 +156,7 @@ public class ClassPathScanner {
 
         try {
             if (logger.isTraceEnabled()) {
-                logger.trace("Looking for matching resources in jar file [" + jarFileUrl + "],path="+path);
+                logger.trace("Looking for matching resources in jar file [" + jarFileUrl + "],path=" + path);
             }
 
             for (Enumeration<JarEntry> entries = jarFile.entries(); entries.hasMoreElements(); ) {//NOSONAR

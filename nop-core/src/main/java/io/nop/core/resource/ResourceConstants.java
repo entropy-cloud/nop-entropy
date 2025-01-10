@@ -69,6 +69,8 @@ public interface ResourceConstants {
 
     String CLASS_PATH_VFS_DIR = "_vfs/";
 
+    String VFS_DIR_NAME = "_vfs";
+
     String COMPONENT_PARAM_TRANSFORM = "transform";
     String COMPONENT_PARAM_SUB = "sub";
 

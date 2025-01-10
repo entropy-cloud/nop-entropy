@@ -64,7 +64,6 @@ nop:
   core:
     tenant-resource:
       enabled: true
-
   web:
     page-validation-thread-count: 4
 
