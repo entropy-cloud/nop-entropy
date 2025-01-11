@@ -584,6 +584,24 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-batch-meta</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-batch-service</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-batch-web</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-ooxml-common</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
