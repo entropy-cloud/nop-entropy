@@ -290,7 +290,7 @@ Nop平台基于可逆计算原理，提供了一种系统化的多阶段编译�
 2. **每一个组件能够提供哪些扩展方式和扩展能力都需要单独去设计，每个组件都不一样**
 3. **扩展机制往往会影响性能，扩展点越多，系统性能越差**
 
-以Hibernate中增加Gis扩展为例，需要实现ContribuerImplementor接口，实现contributionFunctions等函数，在其中注册GIS相关函数。
+以Hibernate中增加Gis扩展为例，需要实现ContributorImplementor接口，实现contributionFunctions等函数，在其中注册GIS相关函数。
 
 ```
         @Override
