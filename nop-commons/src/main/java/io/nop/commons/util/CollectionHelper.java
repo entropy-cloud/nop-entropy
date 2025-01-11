@@ -250,9 +250,9 @@ public class CollectionHelper {
 
         while (kIt.hasNext() && vIt.hasNext()) {
             K key = kIt.next();
+            V value = vIt.next();
             if (StringHelper.isEmptyObject(key))
                 continue;
-            V value = vIt.next();
             ret.put(key, value);
         }
         return ret;

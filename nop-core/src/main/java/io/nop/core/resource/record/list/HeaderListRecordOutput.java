@@ -18,12 +18,13 @@ import java.util.List;
 import java.util.function.BiFunction;
 
 public class HeaderListRecordOutput<R> implements IRecordOutput<List<Object>> {
-    private List<String> headers;
+
     private final List<R> records = new ArrayList<>();
     private final BiFunction<List<String>, List<Object>, R> rowBuilder;
     private boolean headersWritten;
     private long writeCount;
     private int headerRowCount;
+    private List<String> headers;
     private List<String> headerLabels;
     private IEvalFunction headersNormalizer;
 
@@ -32,6 +33,10 @@ public class HeaderListRecordOutput<R> implements IRecordOutput<List<Object>> {
     public HeaderListRecordOutput(int headerRowCount, BiFunction<List<String>, List<Object>, R> rowBuilder) {
         this.headerRowCount = headerRowCount;
         this.rowBuilder = rowBuilder;
+    }
+
+    public void setHeaders(List<String> headers) {
+        this.headers = headers;
     }
 
     public void setHeaderLabels(List<String> headerLabels) {

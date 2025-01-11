@@ -86,6 +86,7 @@ public class ExcelRecordInput<T> implements IRecordInput<T> {
     @Override
     public void beforeRead(Map<String, Object> map) {
         HeaderListRecordOutput<Map<String, Object>> collector = new HeaderListRecordOutput<>(config.getHeaderRowCount(), CollectionHelper::toNonEmptyKeyMap);
+        collector.setHeaders(headers);
         collector.setHeaderLabels(headerLabels);
         collector.setHeadersNormalizer(headersNormalizer);
 

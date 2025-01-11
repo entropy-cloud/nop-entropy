@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestExcelResourceIO extends BaseTestCase {
 
@@ -41,6 +42,50 @@ public class TestExcelResourceIO extends BaseTestCase {
         System.out.println(JSON.serialize(list, true));
         assertEquals(1, list.get(0).get("a"));
         assertEquals(9001, list.get(9).get("c"));
+        input.close();
+    }
+
+    @Test
+    public void testReadSpecifiedHeader() throws IOException {
+        ExcelResourceIO<Map<String, Object>> io = new ExcelResourceIO<>();
+        ExcelIOConfig config = new ExcelIOConfig();
+        io.setIOConfig(config);
+        // 指定 headers
+        io.setHeaders(Arrays.asList("a","b","c"));
+
+        IRecordInput<Map<String, Object>> input = io.openInput(new ClassPathResource("classpath:io/nop/report/core/excel-input.xlsx"), null);
+        input.beforeRead(new HashMap<>());
+
+        List<Map<String, Object>> list = input.readAll();
+        System.out.println(JSON.serialize(list, true));
+        assertEquals(1, list.get(0).get("a"));
+        assertEquals(1, list.get(0).get("b"));
+        assertEquals(1, list.get(0).get("c"));
+        assertEquals(10, list.get(9).get("a"));
+        assertEquals(901, list.get(9).get("b"));
+        assertEquals(9001, list.get(9).get("c"));
+        input.close();
+    }
+
+    @Test
+    public void testReadHeaderWithNull() throws IOException {
+        ExcelResourceIO<Map<String, Object>> io = new ExcelResourceIO<>();
+        ExcelIOConfig config = new ExcelIOConfig();
+        // header 为空的列，就不会处理
+        io.setHeaders(Arrays.asList("a",null/*b*/,"c",null/*d*/,null/*e*/,"f"));
+        io.setIOConfig(config);
+
+        IRecordInput<Map<String, Object>> input = io.openInput(new ClassPathResource("classpath:io/nop/report/core/excel-input.xlsx"), null);
+        input.beforeRead(new HashMap<>());
+
+        List<Map<String, Object>> list = input.readAll();
+        System.out.println(JSON.serialize(list, true));
+        assertEquals(1, list.get(0).get("a"));
+        assertNull(list.get(0).get("b"));
+        assertEquals(1, list.get(0).get("c"));
+        assertNull(list.get(0).get("d"));
+        assertNull(list.get(0).get("e"));
+        assertEquals(11, list.get(0).get("f"));
         input.close();
     }
 
