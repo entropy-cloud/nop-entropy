@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopBatchFile" xmlns:i18n-en="i18n-en"
-      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
 
     <objMeta>/nop/batch/model/NopBatchFile/NopBatchFile.xmeta</objMeta>
 
     <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
 
     <grids>
         <grid id="list" x:abstract="true">
@@ -17,7 +25,7 @@
                 <col id="filePath" mandatory="true" sortable="true"/>
 
                 <!--文件长度-->
-                <col id="fileLength" mandatory="true" sortable="true"/>
+                <col id="fileLength" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--文件分类-->
                 <col id="fileCategory" mandatory="true" sortable="true"/>
@@ -25,8 +33,8 @@
                 <!--文件来源-->
                 <col id="fileSource" mandatory="true" sortable="true"/>
 
-                <!--当前处理任务-->
-                <col id="currentTaskId" mandatory="true" sortable="true"/>
+                <!--批处理任务-->
+                <col id="batchTaskId" mandatory="true" sortable="true"/>
 
                 <!--处理状态-->
                 <col id="processState" mandatory="true" sortable="true"/>
@@ -58,7 +66,7 @@
             <layout>
  fileName[文件名] filePath[文件路径]
  fileLength[文件长度] fileCategory[文件分类]
- fileSource[文件来源] currentTaskId[当前处理任务]
+ fileSource[文件来源] batchTaskId[批处理任务]
  processState[处理状态] acceptDate[文件接收时间]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
@@ -66,31 +74,30 @@
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-批处理文件" i18n-en:title="Add Batch File" x:prototype="edit"/>
-        <form id="edit" editMode="update" title="编辑-批处理文件" i18n-en:title="Edit Batch File">
+        <form id="edit" editMode="edit" title="编辑-批处理文件" i18n-en:title="Edit Batch File">
             <layout>
  fileName[文件名]
  filePath[文件路径]
  fileLength[文件长度]
  fileCategory[文件分类]
  fileSource[文件来源]
- currentTaskId[当前处理任务]
+ batchTaskId[批处理任务]
  processState[处理状态]
  acceptDate[文件接收时间]
  remark[备注]
 </layout>
         </form>
-        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
-            <layout/>
-        </form>
-        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
-            <layout/>
-        </form>
-        <form id="batchUpdate" editMode="update" x:abstract="true" title="修改-批处理文件" i18n-en:title="Update Batch File">
-            <layout/>
-        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-批处理文件" i18n-en:title="Update Batch File"/>
     </forms>
 
     <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopBatchFile__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
         <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table autoFillHeight="true">
                 <api url="@query:NopBatchFile__findPage" gql:selection="{@pageSelection}"/>
@@ -116,10 +123,10 @@
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
-                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                    <action id="row-update-button" label="@i18n:common.edit">
                         <dialog page="update"/>
                     </action>
-                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                    <action id="row-delete-button" label="@i18n:common.delete">
                         <api url="@mutation:NopBatchFile__delete?id=$id"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>
@@ -127,7 +134,7 @@
             </rowActions>
         </crud>
         <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
-            <table>
+            <table noOperations="true">
                 <api url="@query:NopBatchFile__findPage" gql:selection="{@pageSelection}"/>
             </table>
         </picker>

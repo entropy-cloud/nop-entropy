@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopBatchTask" xmlns:i18n-en="i18n-en"
-      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:gql="gql">
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
 
     <objMeta>/nop/batch/model/NopBatchTask/NopBatchTask.xmeta</objMeta>
 
     <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
 
     <grids>
         <grid id="list" x:abstract="true">
@@ -20,7 +28,7 @@
                 <col id="taskKey" mandatory="true" sortable="true"/>
 
                 <!--任务状态-->
-                <col id="taskStatus" mandatory="true" sortable="true"/>
+                <col id="taskStatus" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--任务启动时间-->
                 <col id="startTime" sortable="true"/>
@@ -31,17 +39,26 @@
                 <!--任务参数-->
                 <col id="taskParams" sortable="true"/>
 
+                <!--执行次数-->
+                <col id="execCount" mandatory="true" ui:number="true" sortable="true"/>
+
                 <!--执行者-->
-                <col id="worker" mandatory="true" sortable="true"/>
+                <col id="workerId" mandatory="true" sortable="true"/>
 
                 <!--输入文件-->
                 <col id="inputFileId" sortable="true"/>
 
-                <!--重试次数-->
-                <col id="retryCount" mandatory="true" sortable="true"/>
+                <!--关联流程步骤ID-->
+                <col id="flowStepId" sortable="true"/>
+
+                <!--关联流程ID-->
+                <col id="flowId" sortable="true"/>
+
+                <!--重启时间-->
+                <col id="restartTime" sortable="true"/>
 
                 <!--返回状态码-->
-                <col id="resultStatus" sortable="true"/>
+                <col id="resultStatus" ui:number="true" sortable="true"/>
 
                 <!--返回码-->
                 <col id="resultCode" sortable="true"/>
@@ -53,19 +70,28 @@
                 <col id="errorStack" sortable="true"/>
 
                 <!--已完成记录下标-->
-                <col id="completedIndex" sortable="true"/>
+                <col id="completedIndex" mandatory="true" ui:number="true" sortable="true"/>
 
-                <!--读数量-->
-                <col id="readCount" sortable="true"/>
+                <!--完成条目数量-->
+                <col id="completeItemCount" mandatory="true" ui:number="true" sortable="true"/>
 
-                <!--写数量-->
-                <col id="writeCount" sortable="true"/>
+                <!--重试加载次数-->
+                <col id="loadRetryCount" mandatory="true" ui:number="true" sortable="true"/>
 
-                <!--处理数量-->
-                <col id="processCount" sortable="true"/>
+                <!--加载跳过数量-->
+                <col id="loadSkipCount" mandatory="true" ui:number="true" sortable="true"/>
 
-                <!--跳过数量-->
-                <col id="skipCount" sortable="true"/>
+                <!--重试条目次数-->
+                <col id="retryItemCount" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--处理条目数量-->
+                <col id="processItemCount" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--跳过条目数量-->
+                <col id="skipItemCount" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--写入条目数量-->
+                <col id="writeItemCount" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
@@ -92,44 +118,49 @@
  sid[SID] taskName[任务名]
  taskKey[唯一Key] taskStatus[任务状态]
  startTime[任务启动时间] endTime[任务结束时间]
- taskParams[任务参数] worker[执行者]
- inputFileId[输入文件] retryCount[重试次数]
- resultStatus[返回状态码] resultCode[返回码]
- resultMsg[返回消息] errorStack[错误堆栈]
- completedIndex[已完成记录下标] readCount[读数量]
- writeCount[写数量] processCount[处理数量]
- skipCount[跳过数量] createdBy[创建人]
+ taskParams[任务参数] execCount[执行次数]
+ workerId[执行者] inputFileId[输入文件]
+ flowStepId[关联流程步骤ID] flowId[关联流程ID]
+ restartTime[重启时间] resultStatus[返回状态码]
+ resultCode[返回码] resultMsg[返回消息]
+ errorStack[错误堆栈] completedIndex[已完成记录下标]
+ completeItemCount[完成条目数量] loadRetryCount[重试加载次数]
+ loadSkipCount[加载跳过数量] retryItemCount[重试条目次数]
+ processItemCount[处理条目数量] skipItemCount[跳过条目数量]
+ writeItemCount[写入条目数量] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-批处理任务" i18n-en:title="Add Batch Task" x:prototype="edit"/>
-        <form id="edit" editMode="update" title="编辑-批处理任务" i18n-en:title="Edit Batch Task">
+        <form id="edit" editMode="edit" title="编辑-批处理任务" i18n-en:title="Edit Batch Task">
             <layout>
  sid[SID] taskName[任务名]
  taskKey[唯一Key] taskStatus[任务状态]
  startTime[任务启动时间] endTime[任务结束时间]
- taskParams[任务参数] worker[执行者]
- inputFileId[输入文件] retryCount[重试次数]
- resultStatus[返回状态码] resultCode[返回码]
- resultMsg[返回消息] errorStack[错误堆栈]
- completedIndex[已完成记录下标] readCount[读数量]
- writeCount[写数量] processCount[处理数量]
- skipCount[跳过数量] remark[备注]
+ taskParams[任务参数] execCount[执行次数]
+ workerId[执行者] inputFileId[输入文件]
+ flowStepId[关联流程步骤ID] flowId[关联流程ID]
+ restartTime[重启时间] resultStatus[返回状态码]
+ resultCode[返回码] resultMsg[返回消息]
+ errorStack[错误堆栈] completedIndex[已完成记录下标]
+ completeItemCount[完成条目数量] loadRetryCount[重试加载次数]
+ loadSkipCount[加载跳过数量] retryItemCount[重试条目次数]
+ processItemCount[处理条目数量] skipItemCount[跳过条目数量]
+ writeItemCount[写入条目数量] remark[备注]
 </layout>
         </form>
-        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true">
-            <layout/>
-        </form>
-        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true">
-            <layout/>
-        </form>
-        <form id="batchUpdate" editMode="update" x:abstract="true" title="修改-批处理任务" i18n-en:title="Update Batch Task">
-            <layout/>
-        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-批处理任务" i18n-en:title="Update Batch Task"/>
     </forms>
 
     <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopBatchTask__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
         <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
             <table autoFillHeight="true">
                 <api url="@query:NopBatchTask__findPage" gql:selection="{@pageSelection}"/>
@@ -155,10 +186,10 @@
                     <confirmText>@i18n:common.confirmDelete</confirmText>
                 </action>
                 <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
-                    <action id="row-update-button" level="primary" label="@i18n:common.edit">
+                    <action id="row-update-button" label="@i18n:common.edit">
                         <dialog page="update"/>
                     </action>
-                    <action id="row-delete-button" level="danger" label="@i18n:common.delete">
+                    <action id="row-delete-button" label="@i18n:common.delete">
                         <api url="@mutation:NopBatchTask__delete?id=$id"/>
                         <confirmText>@i18n:common.confirmDelete</confirmText>
                     </action>
@@ -166,7 +197,7 @@
             </rowActions>
         </crud>
         <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
-            <table>
+            <table noOperations="true">
                 <api url="@query:NopBatchTask__findPage" gql:selection="{@pageSelection}"/>
             </table>
         </picker>

@@ -12,7 +12,7 @@
     "updatedBy": "autotest-ref",
     "updateTime": "@var:NopSysNoticeTemplate@updateTime",
     "remark": "sss",
-    "extCode": "D2024123001",
+    "extCode": "@var:codeRule",
     "extFldA": "x"
   },
   "status": 0
