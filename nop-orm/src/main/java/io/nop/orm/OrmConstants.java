@@ -159,4 +159,14 @@ public interface OrmConstants {
     String PROP_FILE_STATUS_LIST = "fileStatusList";
 
     String EXT_AUTO_UPGRADE_DATABASE = "ext:auto-upgrade-database";
+
+    String PRE_SAVE = "pre-save";
+    String PRE_UPDATE = "pre-update";
+    String PRE_DELETE = "pre-delete";
+    String PRE_RESET = "pre-reset";
+    String POST_SAVE = "post-save";
+    String POST_UPDATE = "post-update";
+    String POST_DELETE = "post-delete";
+    String POST_LOAD = "post-load";
+
 }

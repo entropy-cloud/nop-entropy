@@ -32,21 +32,21 @@ public class XplOrmInterceptor implements IOrmInterceptor {
     private List<IEvalAction> postFlushActions;
 
     public void setActions(String event, Map<String, List<IEvalAction>> actions) {
-        if ("pre-save".equals(event)) {
+        if (OrmConstants.PRE_SAVE.equals(event)) {
             setPreSaveActions(actions);
-        } else if ("pre-update".equals(event)) {
+        } else if (OrmConstants.PRE_UPDATE.equals(event)) {
             setPreUpdateActions(actions);
-        } else if ("pre-delete".equals(event)) {
+        } else if (OrmConstants.PRE_DELETE.equals(event)) {
             setPreDeleteActions(actions);
-        } else if ("pre-reset".equals(event)) {
+        } else if (OrmConstants.PRE_RESET.equals(event)) {
             setPreResetActions(actions);
-        } else if ("post-save".equals(event)) {
+        } else if (OrmConstants.POST_SAVE.equals(event)) {
             setPostSaveActions(actions);
-        } else if ("post-update".equals(event)) {
+        } else if (OrmConstants.POST_UPDATE.equals(event)) {
             setPostUpdateActions(actions);
-        } else if ("post-delete".equals(event)) {
+        } else if (OrmConstants.POST_DELETE.equals(event)) {
             setPostDeleteActions(actions);
-        } else if ("post-load".equals(event)) {
+        } else if (OrmConstants.POST_LOAD.equals(event)) {
             setPostLoadActions(actions);
         } else {
             throw new IllegalArgumentException("nop.err.orm.unsupported-event:" + event);
