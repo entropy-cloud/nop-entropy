@@ -277,7 +277,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         return FutureHelper.waitAll(promises);
     }
 
-    private Object fetchSelections(Object source, GraphQLSelectionSet selectionSet, DataFetchingEnvironment env) {
+    protected Object fetchSelections(Object source, GraphQLSelectionSet selectionSet, DataFetchingEnvironment env) {
         Map<String, Object> ret = new LinkedHashMap<>();
 
         List<CompletionStage<?>> promises = _fetchSelections(null, ret, source, selectionSet, env);
@@ -399,7 +399,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
     // return env;
     // }
 
-    private Object fetchNext(Object value, DataFetchingEnvironment env) {
+    protected Object fetchNext(Object value, DataFetchingEnvironment env) {
         if (isEmpty(value))
             return value;
 
@@ -423,7 +423,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         return false;
     }
 
-    private Object fetchList(Collection<?> c, GraphQLSelectionSet selectionSet, DataFetchingEnvironment env) {
+    protected Object fetchList(Collection<?> c, GraphQLSelectionSet selectionSet, DataFetchingEnvironment env) {
         List<Object> list = new ArrayList<>(c.size());
         List<CompletionStage<?>> promises = null;
 

@@ -200,6 +200,10 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         return daoProvider;
     }
 
+    public IBizObjectManager bizObjectManager() {
+        return bizObjectManager;
+    }
+
     @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {
         this.daoProvider = daoProvider;
