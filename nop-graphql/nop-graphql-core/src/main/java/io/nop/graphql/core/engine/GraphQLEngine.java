@@ -402,7 +402,7 @@ public class GraphQLEngine implements IGraphQLEngine {
         field.setFieldDefinition(action);
     }
 
-    private GraphQLFieldSelection initForReturnType(IGraphQLExecutionContext context,
+    public GraphQLFieldSelection initForReturnType(IGraphQLExecutionContext context,
                                                     GraphQLOperationType operationType, String operationName, Object request,
                                                     GraphQLType returnType, FieldSelectionBean selectionBean) {
         GraphQLDocument doc = new GraphQLDocument();
