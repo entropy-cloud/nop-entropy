@@ -20,7 +20,7 @@ XLang语言是Nop平台底层的关键性支撑技术，在形式上它包含了
 
 一个有趣的问题是，是否还存在着通用的可抽象的语法特性，它们具有足够的技术价值以至于需要一个新的程序语言来承载？XLang的创新是指出目前主流的的程序语言虽然表面上语法形式差异很大，但是在语法层面之下的基本结构层面是非常相似的，在基本结构层面的创新仍然大有可为。
 
-程序的结构空间本质上是由数据+函数构成，将相关的数据和函数组织在一起就构成自定义的类型，在一般的程序语言中就对应于类（Class）或者接口（Interface）。从结构的层面看，类结构不过是一个Map，可以通过名称来获取到属性或者方法。
+**程序的结构空间本质上是由数据+函数构成，将相关的数据和函数组织在一起就构成自定义的类型**，在一般的程序语言中就对应于类（Class）或者接口（Interface）。从结构的层面看，类结构不过是一个Map，可以通过名称来获取到属性或者方法。
 
 ```javascript
 type MyClass = {
@@ -108,8 +108,8 @@ class MapY extends Map1 with Map3 {
 
 > Scala语言中多个Trait可以定义同名的属性，编译器会自动合并这些属性定义，最终在运行时只会存在一个变量，但是在Java或者C++中，不同类中定义的多个同名属性并不会自动合并为一个。
 
-传统的面向对象程序语言中 `A extends B`表示派生类A可以比基类B多，但是具体多了什么并没有一个明确的技术形式把它隔离出来，我们也就无法直接复用这个多出来的部分（Delta差量）。
-但是Traits机制相比于继承概念来说，它构成一个更加完善的差量语义。**`type MapX = Map1 with Map2 with Map1`是合法的Scala类型定义！**
+传统的面向对象程序语言中 `A extends B`表示派生类A可以比基类B多，但是具体多了什么并没有一个明确的技术形式把它隔离出来，我们也就无法直接复用这个多出来的部分（Delta差量）。Traits则是直接把这个差量明确的表达出来了。
+Traits机制相比于继承概念来说，它构成一个更加完善的差量语义。**`type MapX = Map1 with Map2 with Map1`是合法的Scala类型定义！**
 
 对于多重继承所造成的问题，Scala的解决方案是引入所谓的线性化规则，按照一定的顺序将继承链条中的所有类和Trait排成一个线性序列，然后约定上层的元素覆盖下层的元素。
 
@@ -184,7 +184,7 @@ unruh.cpp:20:19: error: no viable conversion from ‘int’ to ‘D<2>’
 Map = Generator<Map> = Map<Map>
 ```
 
-> A<X,Y> 可以被理解为 A<B>, struct B{ using T1=X; using T2=Y;}
+> A<X,Y> 可以被理解为 `A<B>, struct B{ using T1=X; using T2=Y;}`
 > 注意，这里的Map指的是编译器在编译期所看到的结构。每一个成员变量，无论它是属性、方法、还是类型声明，在编译器看来，都是Map中的一个条目。
 > 即使编译器将参数列表作为List来管理，它也可以看作是一个用下标来作为Key的Map。而且有趣的是，如果是用数组来做管理，则一般无法引入类似继承这种更高级的合成机制。在概念层面上我们一般会选择按名称合并，而不会选择按下标合并。
 
@@ -199,7 +199,7 @@ Map = Map extends Map<Map>
 在编译器看来，所谓的类、模板类、模板参数都可以被看作是Map，而且实际情况也一般是按照Map结构来管理的。至于孤立的函数定义和变量定义，实际上也会属于某种Map，比如模块对象可以看作是一个Map，它包含一组模块内定义的变量、函数和类型等。即使不从属于任何模块，那些独立的函数也会属于某个隐式存在的全局命名空间。
 
 > Lisp语言的内在结构是List，本质上是利用下标来管理元素（原始的Lisp甚至没有下标，只有car、cdr这种逐个遍历的处理机制），但是现在流行的Lisp变种早就引入了类似Map的Associated List结构，使用名称来定位子元素，而不是按照下标去定位。在概念层面上（不考虑冯诺依曼机器按照下标取值的性能优势），List可以看作是用下标来做key的一种特殊的Map。
-> 
+>
 > Lisp的核心创造S表达式可以看作是一种通用的Tree结构，而Lisp也提供了宏等操作这些Tree结构的内置机制，但是Lisp并没有建立Tree的差量的概念。XLang可以看作是对S表达式这一通用处理机制的进一步深化发展。
 
 现有主流程序语言提供的各种语法可以看作是在以Map为基础的结构空间中不断构造新的Map的各种规则。XLang语言的创新点在于它选择将Map结构扩展为Tree结构，在Tree结构的基础上重新思考软件结构的构造问题。也就是将软件结构的构造公式推广为：
@@ -238,7 +238,7 @@ XLang语言是在程序语言级别实现这一技术战略的具体实现方案
 
 上述的xpath表示tasks节点下的名称为test的子节点的name属性。
 
-首先我们来明确一下坐标系统的作用: 每一个业务上关心的值在坐标系统中都具有唯一的坐标，可以通过这个坐标来实现值的读取和修改。
+首先我们来明确一下坐标系统的作用: **每一个业务上关心的值在坐标系统中都具有唯一的坐标**，可以通过这个坐标来实现值的读取和修改。
 
 ```
 value = get(path);
@@ -273,14 +273,14 @@ Tree结构**实现了相对坐标与绝对坐标的统一**：从根节点开始
 
 ### 1.4 可扩展设计必然需要软件结构坐标系
 
-在软件开发中，所谓的可扩展性指的是在不需要修改原始代码的情况下，通过添加额外的代码或差异信息，可以满足新的需求或实现新的功能。如果在完全抽象的数学层面去理解软件开发中的扩展机制，我们可以认为它对应于如下公式：  
+在软件开发中，所谓的可扩展性指的是在不需要修改原始代码的情况下，通过添加额外的代码或差异信息，可以满足新的需求或实现新的功能。如果在完全抽象的数学层面去理解软件开发中的扩展机制，我们可以认为它对应于如下公式：
 
 ```
   Y = X + Delta
 ```
 
-* X对应于我们已经编写完毕的基础代码，它不会随需求的变化而变化  
-* Delta对应于额外增加的配置信息或者差异化代码  
+* X对应于我们已经编写完毕的基础代码，它不会随需求的变化而变化
+* Delta对应于额外增加的配置信息或者差异化代码
 
 在这个视角下，所谓的可扩展性方面的研究就等价于Delta差量的定义和运算关系方面的研究。
 
@@ -310,7 +310,7 @@ Delta差量不仅仅是向系统中增加内容。如果我们要实现粗粒度
 
 另外需要注意的是，**插件机制只支持少量事先确定的扩展点**，我们并不可能在原始设计之外通过插件来定制原有系统的功能。但是Delta的概念则不同，只要存在一个全局的结构坐标系，这个坐标系中的任何一点上都可以引入Delta差量。k8s中引入的Kustomize机制就是利用Delta差量来实现全面定制，可以看作是可逆计算理论的一个具体应用，参见[从可逆计算看Kustomize](https://mp.weixin.qq.com/s/48LWMYjEoRr3dT_HSHP0jQ)
 
->  组件的黑箱模型类似于高中阶段牛顿力学的世界观，它是完全机械化的：刚体的运动完全由它的质心坐标和尺寸形状朝向等少数几个参数来描述，刚体的内部构造无法被观测也无关紧要，刚体之间通过直接接触发生相互作用， 刚体的形状必须精确匹配才能构成一个无缝的整体。即使是在古典力学中，稍微高级一点的观点也都会转换到拉格朗日表述或者哈密尔顿表述，它的精神实质是转向场论的世界观。 所谓的场（Field），其实就是建立一个无所不在的坐标系，然后在坐标系的每一点上都可以指定一个物理量。场的自由度是无限的，但是通过坐标系它是可描述的、可定义的、可研究的，在坐标系的每一点上我们都可以精确的度量局部的变化。在场的世界观中，我们面对的核心图像是对象总是浸泡在场（无所不在的坐标系）中，而不再是孤立对象之间的两两相互作用。
+>  组件的黑箱模型类似于高中阶段牛顿力学的世界观，它是完全机械化的：刚体的运动完全由它的质心坐标和尺寸形状朝向等少数几个参数来描述，刚体的内部构造无法被观测也无关紧要，刚体之间通过直接接触发生相互作用， 刚体的形状必须精确匹配才能构成一个无缝的整体。即使是在古典力学中，稍微高级一点的观点也都会转换到拉格朗日表述或者哈密尔顿表述，它的精神实质是转向场论的世界观。 所谓的场（Field），其实就是建立一个无所不在的坐标系，然后在坐标系的每一点上都可以指定一个物理量。**场的自由度是无限的，但是通过坐标系它是可描述的、可定义的、可研究的**，在坐标系的每一点上我们都可以精确的度量局部的变化。在场的世界观中，我们面对的核心图像是对象总是浸泡在场（无所不在的坐标系）中，而不再是孤立对象之间的两两相互作用。
 
 ### 1.6 稳定的领域结构坐标系
 
@@ -318,7 +318,7 @@ Delta差量不仅仅是向系统中增加内容。如果我们要实现粗粒度
 
 业务需求变化的时候，一般情况下会影响到多处代码发生变化。本质上这是因为从问题空间到解空间的结构映射在一般性的业务环境中都是**非平凡的**，因此两种描述方式无法有效的对齐。套用人工智能领域的话语，我们可以说：**有用的特征都是分布式的（distributed）**。
 
-> 在物理学中，同一个物理事实可以使用无数多种坐标系去建立描述，但是其中可能会存在一个特别的、针对这个特定问题定制的坐标系，在物理学中我们称之为内禀坐标系。在这个坐标系中建立的描述可以突出最核心的物理意义，简化相关的描述。比如说，在一个球面上发生的物理现象当然可以在通用的三维直角坐标系中进行描述，但是如果我们使用球面坐标系往往可以实现简化。  
+> 在物理学中，同一个物理事实可以使用无数多种坐标系去建立描述，但是其中可能会存在一个特别的、针对这个特定问题定制的坐标系，在物理学中我们称之为内禀坐标系。在这个坐标系中建立的描述可以突出最核心的物理意义，简化相关的描述。比如说，在一个球面上发生的物理现象当然可以在通用的三维直角坐标系中进行描述，但是如果我们使用球面坐标系往往可以实现简化。
 
 可逆计算理论指出可以针对特定的业务领域建立一个专用的DSL语言(Domain Specific Language)，利用这个DSL语言很自然的建立一个领域坐标系，然后再在这个领域坐标系所定义的差量结构空间中表达差量。因为这个领域坐标系是针对领域问题特制的，因此它往往可以实现差量表达的最小化。比如说，发生了一个业务层面的变化导致需要增加一个字段，如果采用通用语言去表达，则很多地方可能都需要做相应调整，前台、后台、数据库都要一起修改。而如果使用领域模型描述，这种变化可能就只体现为局部的一个字段级别变化，然后由底层引擎框架自动将领域描述翻译为实际执行的逻辑功能。
 
@@ -331,40 +331,292 @@ XLang与其他语言的本质区别在于，它是基于可逆计算理论、面
 
 ## 二. XLang的具体语法设计
 
-
-
 XLang语言是面向Tree结构的语言设计，它的语法组成可以和面向表结构的SQL语言做一个对比。
 
-| SQL语言              | XLang语言         |
-| ------------------ | --------------- |
-| DDL数据定义语言          | XDef元模型定义语法     |
-| 面向表结构的DDL/DML等操作语言 | 面向Tree差量的XDSL语法 |
-| 引入过程逻辑的存储过程语法      | XScript/Xpl子语法  |
+| SQL语言                       | XLang语言                                   |
+| --------------------------- | ----------------------------------------- |
+| DDL数据定义语言                   | XDef元模型定义语法                               |
+| 无冗余的表格数据                    | 无信息冗余的树形信息结构：XNode                        |
+| 在标准化数据结构基础上的即时计算：SQL Select | 在通用的XNode数据结构基础上的运行时和编译期计算：Xpl/XTransform |
+| 表格数据的合并和差分：Union/Minus      | Tree结构上的Delta差量计算：x-extends/x-diff        |
+| 通过函数定义和存储过程扩展SQL            | 通过Xpl标签库和XScript扩展XLang                   |
 
+首先需要说明的是，XLang是面向Tree结构的一种程序语言，那么一种很自然的语法载体就是XML语法，所以一般XLang语言文件也是一个合法的XML文件。但是这并不是唯一的选择。传统的程序语言很强调语法形式，但是XLang基于可逆计算理论，它强调的是语法形式并不重要，**不同的语法形式不过是同一信息的不同展现形式，而信息等价的不同展现形式之间可以进行可逆转换**。XLang可以采用任何能够直接表达树状结构的语法来表达，比如JSON、YAML等。Lisp语言中的S表达式，增加一些扩展属性之后，也可以作为XLang的语法载体。
 
+> Nop平台还实现了Tree结构和Excel数据文件的一种双向映射，可以在不需要编写Excel解析和生成代码的情况下，使用Excel来表达DSL模型对象，比如用`app.orm.xlsx` Excel文件来表达ORM DSL，它等价于`app.orm.xml`这种XML格式的DSL文件。
 
-如果TypeScript被认为是JavaScript + JSX + Type扩展，那么XLang可以看作是 JavaScript + XPL + 差量计算 + 元模型+ 元编程扩展。
+### 2.1 XDSL的基本语法结构
 
-一般的程序语言很强调语法形式，但是XLang强调的是语法形式不重要，不同展现形式之间可以进行可逆转换，此外语义结构应该支持差量分解、合并。
+XLang语言本身是图灵完备的，但它的设计用途主要不是作为一种通用程序语言，而是作为一种快速开发新的DSL语言的元语言来使用。也就是说虽然可以将XLang作为一种胶水语言来使用，但更多的是用它来开发一种DSL语言嵌入在Java语言环境中使用。
 
-1. XPL模板语言是一种类似Freemarker的XML格式的模板语言，但是它的AST语法树与XScript是同一个AST语法树，这样这两者的元编程和类型分析等可以统一实现。后续也有打算开发更多的语法前端，比如类似Python的语法形式也可以解析到XLang的AST语法树，这样可以在多种形式之间自由转换。
-2. 与JSX不同，XLang提供了一种更加灵活、可扩展性更强的方式实现JavaScript语法中嵌入XML，以及在XML中嵌入JavaScript
-3. XLang在XML语法方面提供了XDef元模型定义语言，支持定义新的DSL语言。这个子语言的作用类似于XML Schema语言，但是更加直观、强大。
-4. 使用XDef定义的所有DSL统称为XDSL, 这些XDSL都自动具有`x:override`， `x:extends`, `x:gen-extends`等语法特性。这些语法特性是可逆计算理论所提出的，在此前的程序语言中没有建立这种通用的抽象。
-   也就是说，XLang是第一个内置通用差量计算语法的程序语言。
-5. XLang可以认为是包含XDef, XPL, XScript等多个子语言，但是它们作为一个整体才能实现可逆计算理论所提出的Y = F(X) + Delta的计算范式。
+所有基于XLang开发的DSL语言具有一些统一的语法结构，这些DSL统称为XDSL。
 
-6. 支持泛型的面向对象程序语言 在结构层面的计算模式可以看作是 Map =  Map extends Map<Map>，而可逆计算理论以及XLang语言是将这种计算范式从Map结构扩展到Tree结构，并且引入包含删除语义的x-extends差量合并运算
-   Tree = Tree x-extends Tree<Tree>
+```xml
+<state-machine x:schema="/nop/schema/state-machine.xdef"
+     x:extends="base.state-machine.xml">
+    <x:gen-extends>
+       <app:GenStateMachineDelta1/>
+       <app:GenStateMachineDelta2/>
+    </x:gen-extends>
 
-一般的通用程序语言，比如C#和Java，它们试图解决的问题和采用的解决方案本质上是类似的，语法和语义层面基本也是可以一一对应的。XLang与这些语言都不同，它试图基于Tree和Delta差量的概念重建程序结构空间。程序语言是程序结构空间的构造规则，而XLang就是这个新视角下的程序结构空间的构造规则
+    <x:post-extends>
+       <app:PostProcessGeneratedModel />
+    </x:post-extends>
 
-可逆计算是一个创新性很强的软件构造理论，而XLang是实现可逆计算理论的一个关键手段。如果只是从传统的程序语言角度去理解，面向的是传统的软件结构空间和传统的思想路线，可能无法感知到XLang到底要解决什么问题，为什么此前所有的技术都无法解决这些问题。
+    <!-- x:override=remove表示在最终的合并结果中删除这个节点 -->
+    <state id="commit" x:override="remove" />
 
-创新性的语言所提出的问题和所实现的解决方案都是不同于传统语言的。比如rust它提出了对于内存安全和并发安全的新的认知，并创造了新的语法结构作为解决方案。XLang语言是基于可逆计算理论所提出的新的软件构造的结构规律，提出了一整套针对Tree结构的生成、转换、分解、合并语法规则。其实Lisp就可以看作是最早的使用通用Tree结构的程序语言，但是Lisp并没有建立Tree的差量的概念。根据可逆计算理论， A = 0 + A，在存在单位元的情况下，任何全量都是差量的特例，我们应该在差量概念的基础上重建所有理解。
+    <on-exit>
+       <c:if test="${abc}">
+           <c:log info="${xyz}" />
+        </c:if>
+    </on-exit>
+</state-machine>
+```
 
-SQL语言是面向表结构的，具有一个内置的Schema定义语言，并且具有存储过程子语法。而XLang是面向Tree结构和DSL开发的，具有内置的XDef元模型语言和类似JavaScript的XScript子语法。
+参考上面的示例，所有的XDSL都支持如下语法：
 
-## 
+1. `x:schema`引入XDef元模型，类似于JSON Schema，用于约束DSL的语法结构。
 
-## 三. 语言之外的世界
+2. `x:extends`表示继承已有的DSL文件，将两个DSL模型按照Tree结构逐层合并在一起。
+
+3. `x:override`在执行`x:extends`时用于指定如何合并两个对应节点，`x:override=remove`表示删除语义。
+
+4. `x:gen-extends`使用Xpl模板语言动态生成多个Tree结构节点，然后依次按照Delta合并算法合并在一起。
+
+5. `x:post-extends`同样是使用Xpl模板语言来动态生成多个Tree结构节点，只是它的执行时刻与`x:gen-extends`不同。
+
+6. DSL中如果希望嵌入脚本代码，可以直接使用Xpl模板语言，比如`on-exit`回调函数。
+
+```xml
+<model x:extends="A,B">
+   <x:gen-extends>
+      <C/>
+      <D/>
+   </x:gen-extends>
+   <x:gen-extends>
+      <E/>
+      <F/>
+   </x:gen-extends>
+</model>
+```
+
+完整的合并顺序为
+
+```
+F -> E -> Model -> D -> C -> B -> A
+```
+
+任意的XML或者JSON文件格式都可以引入上面的XLang差量运算语法。比如我们为AMIS(百度开源的一个JSON格式的前端界面定义语言)引入了如下分解方案：
+
+```yaml
+x:gen-extends: |
+   <web:GenPage view="NopSysCheckerRecord.view.xml" page="main"
+        xpl:lib="/nop/web/xlib/web.xlib" />
+
+body:
+   x:extends: add-form.page.yaml
+   title: 覆盖add-form.page.yaml中定义已有的标题
+```
+
+AMIS的JSON格式本身并没有提供分解合并机制，导致一个完整应用的JSON文件很大，也很难进行人工维护。通过引入XLang的`x:gen-extends`语法，可以根据View模型自动基础页面结构，在页面内部还可以使用`x:extends`引入已有的文件。
+
+XLang语言内置了可逆计算支持，也就是`App = Delta x-exends Generator<DSL>`这种计算模式。`x:gen-extends`和`x:post-extends`对应于Generator，是一种元编程机制，可以在编译期作为内置的代码生成器生成模型节点。`x:extends`语法用于合并两个模型节点。
+
+进一步的介绍参见 [XDSL：通用的领域特定语言设计](https://zhuanlan.zhihu.com/p/612512300)
+
+下一代低代码平台-Nop平台中已经定义了多种DSL，比如工作流模型Workflow, 规则模型Rule， 数据模型ORM，组件编配模型BeanDefinition， 批处理模型Batch，二进制消息模型Record等。一般并不需要专门针对自定义的DSL编写运行时引擎，可以通过XLang的元编程机制在编译期将自定义的DSL翻译为已有的DSL语言，或者将多个DSL无缝集成在一起，构成一个新的DSL。参见[为什么SpringBatch是一个糟糕的设计](https://mp.weixin.qq.com/s/1F2Mkz99ihiw3_juYXrTFw)这篇文章中介绍的DSL森林的解决方案。
+
+### 2.2 XDef元模型定义语言
+
+XML格式存在着一系列的国际化标准，比如XSD(XML Schema Definition)，XSLT(EXtensible Stylesheet Language)，但是这些标准的底层假定都是和DOM模型一样，它们都是应用于文本结构的处理，所有的属性都是字符串格式，这使得它们无法应用于通用的Tree结构处理。
+
+XLang引入了XDef元模型定义语言来取代XSD。XDef比XSD要简单、直观得多，而且可以提供比XSD强大得多的结构约束。
+
+```xml
+<state-machine x:schema="/nop/schema/xdef.xdef">
+   <state id="!var-name" displayName="string" xdef:unique-attr="id" />
+   <on-exit xdef:value="xpl" />
+</state-machine>
+```
+
+与XSD和JSON Schema不同，XDef采用的是一种同态设计，即元模型定义的结构和它所要约束的XML格式之间基本完全一致，将XML节点的属性值替换为对应的类型声明即可。比如
+
+* `id="!var-name"`表示id属性的格式满足var-name格式要求，不能包含特殊字符，不能以数字为前缀，`!`表示属性值不能为空。
+
+* `<on-exit xdef:value="xpl"/>` 表示on-exit节点的内容是Xpl模板语言格式。读取模型文件时会自动解析得到IEvalAction类型的可执行函数。
+
+* `xdef:unqiue-attr="id"`表示当前节点可以出现多个，构成一个列表，列表中的元素通过id属性来作为唯一标识。、
+
+值得注意的是XDef元模型定义语言由`xdef.xdef`来定义。也就是说`state-machine.xml`是一个DSL语言，它的语法结构由元模型`state-machine.xdef`来定义，而`state-machine.xdef`的根节点上标注`x:schema='/nop/schema/xdef.xdef'`，表示这个元模型文件由`xdef.xdef`来约束，最终`xdef.xdef`仍然由`xdef.xdef`来完成约束，从而完成闭环。
+
+所有XDSL领域特定语言共享的XDSL语法由`xdsl.xdef`元模型来定义。IDEA插件会自动根据`xdsl.xdef`中的定义来自动识别`x:extends`、`x:gen-extends`等语法，实现语法提示 、文件跳转等功能。
+
+### 2.3 Xpl模板语言
+
+XLang需要引入一种模板语言用于编译期的代码生成，但是它没有使用常见的velocity、FreeMarker等模板语言，而是重新设计了一种新的Xpl模板语言。
+
+Xpl模板语言是一种图灵完备的语言，它提供了`c:for`、`c:if`、`c:choose`、`c:break`、`c:continue`等语法节点。
+
+```xml
+<c:for var="num" items="${numbers}">
+    <!-- 检查数字是否为7 -->
+    <c:if test="${num == 7}">
+        <p>遇到数字 7，停止遍历。</p>
+        <c:break /> <!-- 中断循环 -->
+    </c:if>
+
+    <!-- 使用 c:choose 判断数字的奇偶性 -->
+    <c:choose>
+        <when test="${num % 2 == 0}">
+            <p>${num} 是偶数。</p>
+        </when>
+        <otherwise>
+            <p>${num} 是奇数。</p>
+        </otherwise>
+    </c:choose>
+</c:for>
+```
+
+Xpl模板中通过\${expr}表示嵌入XScript表达式，除此之外，Xpl中还提供了一个专用的`c:script`节点来执行XScript语句。
+
+```xml
+<c:script>
+  import my.MyDSLParser;
+  let model = new MyDSLParser().parseFromNode(path);
+</c:script>
+```
+
+XScript的语法类似于JavaScript，但是增加了一些扩展语法，比如import语句可以引入Java类。
+
+#### XML和表达式语法的相互嵌入
+
+XLang没有采用jsx语法实现类XML语法，而是沿用XML语法，扩展JavaScript中的Template表达式语法。
+
+```javascript
+let resut = xpl `<my:MyTag a='1' />`
+const y = result + 3;
+```
+
+等价于
+
+```xml
+<my:MyTag a='1' xpl:return="result" />
+<c:script>
+  const y = result + 3;
+</c:script>
+```
+
+XLang修改了JavaScript中的Template表达式语法的解析格式，将反引号字符之间的内容识别为一个在编译期待解析的字符串，而不是一个Expression列表。这使得XLang可以利用这个语法形式扩展支持更多的DSL格式，比如引入类似C#的LinQ语法
+
+```javascript
+const result = linq `select sum(amount) from myList where status > ${status}`
+```
+
+#### 多种输出模式
+
+与一般的模板语言不同，Xpl模板语言特别针对编译期代码生成进行了优化设计。一般的模板语言总是直接输出文本内容，这样在用于代码生成的时候会丢失原始代码位置，为了克服这个问题，又需要引入SourceMap机制，要求代码生成器在生成过程中额外记录生成代码和原始代码之间的对应关系。Xpl模板语言的做法则不同，它引入了多种输出模式，用于编译期代码生成时使用`outputMode=node`模式，此时并不是直接输出文本内容，而是输出XNode节点。
+
+```java
+class XNode{
+    SourceLocation loc;
+    String tagName;
+    Map<String, ValueWithLocation> attributes;
+    List<XNode> children;
+    ValueWithLocation content;
+
+    XNode parent;
+}
+
+class ValueWithLocation{
+    SourceLocation location;
+    Object value;
+}
+```
+
+XNode结构中记录了属性和节点的源码位置，同时将attribute和content的值类型修改为Object类型，从而克服了XML原始设计中只针对文本文档的缺陷，使得它可以更高效的表达复杂的业务对象结构。
+
+### 2.4 可扩展语法
+
+类似于Lisp语言，XLang中可以通过宏函数和标签函数等机制扩展XLang的语法。可以通过`<c:lib>`来引入新的语法节点，然后在该节点内部再通过宏函数等机制实现结构转换。
+
+```xml
+<c:lib from="/nop/core/xlib/biz.xlib" />
+<biz:Validator fatalSeverity="100"
+               obj="${entity}">
+
+    <check id="checkTransferCode" errorCode="test.not-transfer-code"
+           errorDescription="扫入的码不是流转码">
+        <eq name="entity.flowMode" value="1"/>
+    </check>
+</biz:Validator>
+```
+
+`<biz:Validator>`引入一个验证用的DSL，Validator标签在编译的时候会利用宏函数机制解析节点内容，将它翻译为XLang的Expression来运行。
+
+## 三. XLang应用实例：差量化的组件模型
+
+所有涉及到差量概念的软件实践都可以遵循可逆计算理论的技术路线，很多情况下都可以直接使用XLang来实现差量合并和分解，从而完全避免在运行时引擎中引入差量概念，简化运行时的实现。这里介绍一个在前端低代码/无代码平台的组件模型中的应用实例。
+
+目前前端无代码/低代码平台的功能本质上就是通过可视化界面实现组件的嵌套组合。但是**组件封装在实际应用中经常出现困难：封装的组件难以直接满足需求，但完全从零开始编写一个新的组件成本又太高**。UIOTOS这个无代码平台提出了一种页面继承的做法。
+
+![](nop/uiotos.webp)
+
+具体来说，在UIOTOS中可以引入已有的页面作为基础页面，然后在上层设置属性覆盖底层页面的属性。详细介绍参见[UIOTOS的文档](https://www.yuque.com/liuhuo-nc809/uiotos/fa6vnvggwl9ubpwg#rsHSa)
+
+为了实现这一特性，UIOTOS做了大量特殊的设计，并且在运行时引擎中引入了大量与属性继承相关的代码。但是，如果基于XLang语言，可以把差量计算完全压缩到编译期来执行，运行时引擎只需要知道普通组件结构即可，不需要有任何差量分解、合并的知识。
+
+```xml
+<component x:schema="component.xdef">
+  <import from="comp:MyComponent/1.0.0"/>
+
+  <component name="MyComponent" x:extends="comp:MyComponent/1.0.0">
+    <state>
+      <a>1</a>
+    </state>
+    <props>
+      <prop name="a" x:override="remove"/>
+      <prop name="b"/>
+    </props>
+
+    <component name="SubComponent" x:extends="ss">
+      <prop name="ss"/>
+    </component>
+
+    <template x:override="merge">
+      这里可以只显示Delta修正的部分
+
+      <form x:extends="a.form.xml">
+        <actions>
+          <action name="ss" x:id="ss"/>
+        </actions>
+      </form>
+    </template>
+  </component>
+
+  <template>
+    <MyComponent/>
+    <MyComponentEx/>
+  </template>
+</component>
+```
+
+* Component的template段用于表达如何通过子组件组合实现。
+* 使用子组件的时候可以通过import语法引入已有的组件，也可以通过component语法定义一个局部组件。
+* 如果将Component模型作为XLang的XDSL来实现，则可以使用`x:extends`语法来基于已有的组件进行Delta定制。完全不需要UIOTOS那种特殊设计，直接使用`x:extends`语法就可以实现差量化组件定义。
+* 局部组件内部还可以包含自己的局部组件，同样可以被定制。也就是说Delta定制可以修改整个组件树，而不是简单的某个组件类的属性或者方法。
+* Delta合并要求每个节点都必须具有唯一坐标，如果DSL节点没有可利用的id或者name属性，可以使用XLang内置的`x:id`扩展属性，这些属性在Delta合并完成之后会被自动删除，因此不会影响到运行时DSL引擎的处理。
+* `x:extends`在模型加载的时候被执行，送入运行时引擎时所有x名字空间的属性都已经被处理并自动删除了。因此运行时引擎完全不需要有任何`x:extends`相关的知识，这和UIOTOS的做法形成鲜明对比：Delta差量可以被一种通用引擎一劳永逸的实现，而不需要针对每个特定需求引入差量处理机制。
+* 通过`comp:MyComponent/1.0.0`这种扩展格式的虚拟文件路径来引用组件，当通过虚拟文件系统加载的时候可以自动实现租户隔离和版本升级隔离。
+
+完整的讲解可以参见B站视频 [与UIOTOS作者的交流以及支持Delta概念的前端低代码平台的设计](https://www.bilibili.com/video/BV1ask2YhEfp/)。
+
+引入XLang之后，实现Delta组件基本不需要做任何工作，而且这种做法可以被推广到所有需要Delta编辑的DSL模型。比如，有些人在后端服务应用的开发中也引入类似的组件模型。
+
+基于可逆计算理论设计的低代码平台NopPlatform已开源：
+
+- gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV14u411T715/)
+
