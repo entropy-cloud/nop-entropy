@@ -439,7 +439,10 @@ public class FutureHelper {
     public static boolean isError(CompletionStage<?> f) {
         if (f instanceof ResolvedPromise)
             return ((ResolvedPromise<?>) f).getException() != null;
-        return true;
+        if (f instanceof CompletableFuture) {
+            return ((CompletableFuture<?>) f).isCompletedExceptionally();
+        }
+        return false;
     }
 
     public static CompletableFuture<?> waitAnySuccess(Collection<? extends CompletionStage> futures) {
