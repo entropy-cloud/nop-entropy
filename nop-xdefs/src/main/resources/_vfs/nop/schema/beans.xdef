@@ -54,7 +54,7 @@
                            by-type="class-name" by-annotation="class-name" only-concrete-classes="!boolean=false"/>
     </xdef:define>
 
-    <xdef:define xdef:name="BeanCollectionValue" xdef:body-type="list"
+    <xdef:define xdef:name="BeanCollectionValue" xdef:body-type="list" ioc:exclude-null="!boolean=false"
                  xdef:bean-body-prop="body" xdef:bean-sub-type-prop="beanValueType"
                  merge="!boolean=false" xdef:bean-body-type="List&lt;io.nop.ioc.model.IBeanPropValue>">
         <bean xdef:ref="BeanValue"/>
@@ -86,7 +86,7 @@
     </xdef:define>
 
     <xdef:define xdef:name="BeanMapValue" key-type="class-name" value-type="class-name"
-                 merge="!boolean=false" map-class="class-name"
+                 merge="!boolean=false" map-class="class-name" ioc:exclude-null="!boolean=false"
                  xdef:body-type="list" xdef:key-attr="key">
         <entry key="!string" xdef:name="BeanEntryValue" value="string"
                value-ref="bean-name" xdef:ref="BeanPropValue"/>

@@ -10,7 +10,6 @@ package io.nop.commons.functional;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class ChainedAsyncFunctionInvoker implements IAsyncFunctionInvoker {
     private final IAsyncFunctionInvoker first;
@@ -33,7 +32,6 @@ public class ChainedAsyncFunctionInvoker implements IAsyncFunctionInvoker {
     }
 
     public static IAsyncFunctionInvoker chain(List<IAsyncFunctionInvoker> invokers) {
-        invokers = invokers.stream().filter(i -> i != null).collect(Collectors.toList());
         if (invokers.isEmpty()) {
             return null;
         } else if (invokers.size() == 1) {

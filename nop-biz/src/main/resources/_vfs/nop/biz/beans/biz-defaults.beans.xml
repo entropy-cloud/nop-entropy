@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-       xmlns="http://www.springframework.org/schema/beans" xmlns:ioc="ioc"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans
-        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+       xmlns="http://www.springframework.org/schema/beans" xmlns:ioc="ioc">
 
     <bean id="nopGraphQLEngine" class="io.nop.graphql.core.engine.GraphQLEngine">
         <property name="executionInvoker">
@@ -25,7 +22,7 @@
 
     <bean id="nopGraphQLOperationInvoker" class="io.nop.commons.functional.ChainedAsyncFunctionInvoker">
         <constructor-arg index="0">
-            <list>
+            <list ioc:exclude-null="true">
                 <ref bean="nopGraphQLAuditOperationInvoker"/>
                 <ref bean="nopGraphQLTransactionOperationInvoker" ioc:optional="true"/>
             </list>

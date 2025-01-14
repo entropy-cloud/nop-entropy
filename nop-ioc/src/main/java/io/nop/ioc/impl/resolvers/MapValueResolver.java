@@ -19,10 +19,12 @@ import java.util.Set;
 public class MapValueResolver implements IBeanPropValueResolver {
     private final Class<?> type;
     private final Map<String, IBeanPropValueResolver> props;
+    private final boolean excludeNull;
 
-    public MapValueResolver(Class<?> type, Map<String, IBeanPropValueResolver> props) {
+    public MapValueResolver(Class<?> type, Map<String, IBeanPropValueResolver> props, boolean excludeNull) {
         this.type = type;
         this.props = props;
+        this.excludeNull = excludeNull;
     }
 
     @Override
@@ -55,7 +57,10 @@ public class MapValueResolver implements IBeanPropValueResolver {
 
         for (Map.Entry<String, IBeanPropValueResolver> entry : props.entrySet()) {
             IBeanPropValueResolver prop = entry.getValue();
-            ret.put(entry.getKey(), prop.resolveValue(container, scope));
+            Object value = prop.resolveValue(container, scope);
+            if (excludeNull && value == null)
+                continue;
+            ret.put(entry.getKey(), value);
         }
         return ret;
     }

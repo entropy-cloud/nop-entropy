@@ -25,6 +25,13 @@ public abstract class _BeanCollectionValue extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: ioc:exclude-null
+     * 
+     */
+    private boolean _iocExcludeNull  = false;
+    
+    /**
+     *  
      * xml name: merge
      * 
      */
@@ -45,6 +52,25 @@ public abstract class _BeanCollectionValue extends io.nop.core.resource.componen
         checkAllowChange();
         
         this._body = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: ioc:exclude-null
+     *  
+     */
+    
+    public boolean isIocExcludeNull(){
+      return _iocExcludeNull;
+    }
+
+    
+    public void setIocExcludeNull(boolean value){
+        checkAllowChange();
+        
+        this._iocExcludeNull = value;
            
     }
 
@@ -86,6 +112,7 @@ public abstract class _BeanCollectionValue extends io.nop.core.resource.componen
         super.outputJson(out);
         
         out.putNotNull("body",this.getBody());
+        out.putNotNull("iocExcludeNull",this.isIocExcludeNull());
         out.putNotNull("merge",this.isMerge());
     }
 
@@ -99,6 +126,7 @@ public abstract class _BeanCollectionValue extends io.nop.core.resource.componen
         super.copyTo(instance);
         
         instance.setBody(this.getBody());
+        instance.setIocExcludeNull(this.isIocExcludeNull());
         instance.setMerge(this.isMerge());
     }
 

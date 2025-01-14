@@ -19,10 +19,12 @@ import java.util.Set;
 public class ListValueResolver implements IBeanPropValueResolver {
     private final Class<?> type;
     private final List<IBeanPropValueResolver> items;
+    private final boolean excludeNull;
 
-    public ListValueResolver(Class<?> type, List<IBeanPropValueResolver> items) {
+    public ListValueResolver(Class<?> type, List<IBeanPropValueResolver> items, boolean excludeNull) {
         this.type = type;
         this.items = items;
+        this.excludeNull = excludeNull;
     }
 
     @Override
@@ -44,7 +46,11 @@ public class ListValueResolver implements IBeanPropValueResolver {
         List<Object> ret = (List<Object>) ClassHelper.newInstance(type);
 
         for (IBeanPropValueResolver item : items) {
-            ret.add(item.resolveValue(container, scope));
+            Object value = item.resolveValue(container, scope);
+            if (excludeNull && value == null)
+                continue;
+
+            ret.add(value);
         }
         return ret;
     }

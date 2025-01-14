@@ -15,23 +15,105 @@ import io.nop.commons.lang.IClassLoader;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.Pair;
-import io.nop.core.reflect.*;
+import io.nop.core.reflect.IClassModel;
+import io.nop.core.reflect.IFieldModel;
+import io.nop.core.reflect.IFunctionArgument;
+import io.nop.core.reflect.IFunctionModel;
+import io.nop.core.reflect.IPropertySetter;
+import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.accessor.FunctionSpecializedPropertySetter;
 import io.nop.core.reflect.bean.IBeanPropertyModel;
 import io.nop.core.type.IGenericType;
 import io.nop.ioc.IocConstants;
-import io.nop.ioc.impl.*;
-import io.nop.ioc.impl.resolvers.*;
-import io.nop.ioc.model.*;
+import io.nop.ioc.impl.BeanDefinition;
+import io.nop.ioc.impl.BeanFinder;
+import io.nop.ioc.impl.BeanInjectInfo;
+import io.nop.ioc.impl.BeanProperty;
+import io.nop.ioc.impl.BeanTypeMapping;
+import io.nop.ioc.impl.IBeanClassIntrospection;
+import io.nop.ioc.impl.IBeanPropValueResolver;
+import io.nop.ioc.impl.resolvers.ConstantValueResolver;
+import io.nop.ioc.impl.resolvers.FixedValueResolver;
+import io.nop.ioc.impl.resolvers.InjectRefValueResolver;
+import io.nop.ioc.impl.resolvers.ListValueResolver;
+import io.nop.ioc.impl.resolvers.MapValueResolver;
+import io.nop.ioc.impl.resolvers.NullValueResolver;
+import io.nop.ioc.impl.resolvers.PropsValueResolver;
+import io.nop.ioc.impl.resolvers.SetValueResolver;
+import io.nop.ioc.impl.resolvers.XplValueResolver;
+import io.nop.ioc.model.AutowireType;
+import io.nop.ioc.model.BeanCollectBeansValue;
+import io.nop.ioc.model.BeanConfigModel;
+import io.nop.ioc.model.BeanConstantValue;
+import io.nop.ioc.model.BeanConstructorArgModel;
+import io.nop.ioc.model.BeanEntryValue;
+import io.nop.ioc.model.BeanIdRefValue;
+import io.nop.ioc.model.BeanInterceptorModel;
+import io.nop.ioc.model.BeanIocInjectValue;
+import io.nop.ioc.model.BeanListValue;
+import io.nop.ioc.model.BeanMapValue;
+import io.nop.ioc.model.BeanModel;
+import io.nop.ioc.model.BeanNullValue;
+import io.nop.ioc.model.BeanPropEntryValue;
+import io.nop.ioc.model.BeanPropertyModel;
+import io.nop.ioc.model.BeanPropsValue;
+import io.nop.ioc.model.BeanRefValue;
+import io.nop.ioc.model.BeanSetValue;
+import io.nop.ioc.model.BeanSimpleValue;
+import io.nop.ioc.model.BeanValue;
+import io.nop.ioc.model.BeanXplValue;
+import io.nop.ioc.model.IBeanPropValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Modifier;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import static io.nop.ioc.IocErrors.*;
+import static io.nop.ioc.IocErrors.ARG_BEAN;
+import static io.nop.ioc.IocErrors.ARG_BEANS;
+import static io.nop.ioc.IocErrors.ARG_BEAN_NAME;
+import static io.nop.ioc.IocErrors.ARG_BEAN_REF;
+import static io.nop.ioc.IocErrors.ARG_BEAN_TYPE;
+import static io.nop.ioc.IocErrors.ARG_CLASS_NAME;
+import static io.nop.ioc.IocErrors.ARG_DEPEND;
+import static io.nop.ioc.IocErrors.ARG_FACTORY_BEAN;
+import static io.nop.ioc.IocErrors.ARG_FIELD_NAME;
+import static io.nop.ioc.IocErrors.ARG_INDEX;
+import static io.nop.ioc.IocErrors.ARG_OTHER_BEAN;
+import static io.nop.ioc.IocErrors.ARG_PARAM_COUNT;
+import static io.nop.ioc.IocErrors.ARG_PROP_NAME;
+import static io.nop.ioc.IocErrors.ARG_STATIC_FIELD;
+import static io.nop.ioc.IocErrors.ARG_TRACE;
+import static io.nop.ioc.IocErrors.ERR_IOC_CLASS_NOT_FOUND;
+import static io.nop.ioc.IocErrors.ERR_IOC_CLASS_NO_FIELD;
+import static io.nop.ioc.IocErrors.ERR_IOC_EMPTY_CLASS_NAME;
+import static io.nop.ioc.IocErrors.ERR_IOC_FACTORY_BEAN_MUST_BE_USED_WITH_FACTORY_METHOD;
+import static io.nop.ioc.IocErrors.ERR_IOC_INVALID_CONSTRUCTOR_ARG_INDEX;
+import static io.nop.ioc.IocErrors.ERR_IOC_INVALID_STATIC_FIELD;
+import static io.nop.ioc.IocErrors.ERR_IOC_MISSING_CONSTRUCTOR;
+import static io.nop.ioc.IocErrors.ERR_IOC_MULTIPLE_BEAN_WITH_TYPE_FOR_PROP;
+import static io.nop.ioc.IocErrors.ERR_IOC_MULTIPLE_PRIMARY_BEAN;
+import static io.nop.ioc.IocErrors.ERR_IOC_NOT_ALLOW_BOTH_DELAY_METHOD_AND_BEAN_METHOD;
+import static io.nop.ioc.IocErrors.ERR_IOC_NOT_ALLOW_BOTH_FACTORY_METHOD_AND_BEAN_METHOD;
+import static io.nop.ioc.IocErrors.ERR_IOC_NOT_FIND_BEAN_WITH_TYPE;
+import static io.nop.ioc.IocErrors.ERR_IOC_REF_FACTORY_BEAN_NO_BEAN_TYPE;
+import static io.nop.ioc.IocErrors.ERR_IOC_UNKNOWN_BEAN_METHOD;
+import static io.nop.ioc.IocErrors.ERR_IOC_UNKNOWN_BEAN_PROP;
+import static io.nop.ioc.IocErrors.ERR_IOC_UNKNOWN_BEAN_REF;
+import static io.nop.ioc.IocErrors.ERR_IOC_UNKNOWN_CONCRETE_BEAN_REF;
+import static io.nop.ioc.IocErrors.ERR_IOC_UNKNOWN_DEPEND_REF;
 import static io.nop.xlang.XLangErrors.ARG_EXPECTED;
 import static io.nop.xlang.XLangErrors.ARG_METHOD_NAME;
 
@@ -649,7 +731,7 @@ public class BeanDefinitionBuilder {
             Map<String, IBeanPropValueResolver> props = buildEntryResolvers(bean, propName, model.getBody());
             Class<?> type = model.getMapClass() == null ? LinkedHashMap.class
                     : loadBeanClass(bean, model.getLocation(), model.getMapClass());
-            return new MapValueResolver(type, props);
+            return new MapValueResolver(type, props, model.isIocExcludeNull());
         }
 
         if (value instanceof BeanListValue) {
@@ -657,7 +739,7 @@ public class BeanDefinitionBuilder {
             List<IBeanPropValueResolver> items = buildItemsResolver(bean, propName, model.getBody());
             Class<?> type = model.getListClass() == null ? ArrayList.class
                     : loadBeanClass(bean, model.getLocation(), model.getListClass());
-            return new ListValueResolver(type, items);
+            return new ListValueResolver(type, items, model.isIocExcludeNull());
         }
 
         if (value instanceof BeanSetValue) {
@@ -665,7 +747,7 @@ public class BeanDefinitionBuilder {
             List<IBeanPropValueResolver> items = buildItemsResolver(bean, propName, model.getBody());
             Class<?> type = model.getSetClass() == null ? ArrayList.class
                     : loadBeanClass(bean, model.getLocation(), model.getSetClass());
-            return new SetValueResolver(type, items);
+            return new SetValueResolver(type, items, model.isIocExcludeNull());
         }
 
         if (value instanceof BeanConstantValue) {
@@ -786,7 +868,7 @@ public class BeanDefinitionBuilder {
                                     model.isIocIgnoreDepends(), matchedBean));
                 }
             }
-            return new MapValueResolver(LinkedHashMap.class, resolvers);
+            return new MapValueResolver(LinkedHashMap.class, resolvers, true);
         } else {
             List<IBeanPropValueResolver> items = new ArrayList<>(matched.size());
             if (beanType != null || annType != null) {
@@ -811,7 +893,7 @@ public class BeanDefinitionBuilder {
                     }
                 }
             }
-            ListValueResolver resolver = new ListValueResolver(ArrayList.class, items);
+            ListValueResolver resolver = new ListValueResolver(ArrayList.class, items, true);
             return resolver;
         }
     }

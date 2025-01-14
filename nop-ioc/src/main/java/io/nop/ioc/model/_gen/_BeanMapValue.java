@@ -25,6 +25,13 @@ public abstract class _BeanMapValue extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: ioc:exclude-null
+     * 
+     */
+    private boolean _iocExcludeNull  = false;
+    
+    /**
+     *  
      * xml name: key-type
      * 
      */
@@ -95,6 +102,25 @@ public abstract class _BeanMapValue extends io.nop.core.resource.component.Abstr
     public boolean hasBody(){
         return !this._body.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: ioc:exclude-null
+     *  
+     */
+    
+    public boolean isIocExcludeNull(){
+      return _iocExcludeNull;
+    }
+
+    
+    public void setIocExcludeNull(boolean value){
+        checkAllowChange();
+        
+        this._iocExcludeNull = value;
+           
+    }
+
     
     /**
      * 
@@ -190,6 +216,7 @@ public abstract class _BeanMapValue extends io.nop.core.resource.component.Abstr
         super.outputJson(out);
         
         out.putNotNull("body",this.getBody());
+        out.putNotNull("iocExcludeNull",this.isIocExcludeNull());
         out.putNotNull("keyType",this.getKeyType());
         out.putNotNull("mapClass",this.getMapClass());
         out.putNotNull("merge",this.isMerge());
@@ -206,6 +233,7 @@ public abstract class _BeanMapValue extends io.nop.core.resource.component.Abstr
         super.copyTo(instance);
         
         instance.setBody(this.getBody());
+        instance.setIocExcludeNull(this.isIocExcludeNull());
         instance.setKeyType(this.getKeyType());
         instance.setMapClass(this.getMapClass());
         instance.setMerge(this.isMerge());
