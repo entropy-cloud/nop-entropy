@@ -1,0 +1,6 @@
+# 服务调用审计
+
+可以在ORM层面通过IOrmInterceptor来跟踪实体修改历史。
+
+如果希望在GraphQL层面记录类似的调用日志，则可以仿照DefaultGraphQLAuditer的实现，注册一个id为nopGraphQLAuditer的bean，实现IGraphQLAuditer接口即可。
+

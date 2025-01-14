@@ -15,7 +15,7 @@ import io.nop.graphql.core.ast.GraphQLOperationType;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
-public class DefaultOperationFunctionInvoker implements IAsyncFunctionInvoker {
+public class GraphQLTransactionOperationInvoker implements IAsyncFunctionInvoker {
 
     private IAsyncFunctionInvoker transactionalInvoker;
 

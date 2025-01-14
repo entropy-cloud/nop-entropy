@@ -287,8 +287,8 @@
     </bean>
 
 <!--LOC:[12:14:0:0]/nop/biz/beans/biz-defaults.beans.xml-->
-    <bean class="io.nop.graphql.core.engine.DefaultOperationFunctionInvoker" ioc:aop="false"
-          id="$GEN$io.nop.graphql.core.engine.DefaultOperationFunctionInvoker$2">
+    <bean class="io.nop.graphql.core.engine.GraphQLTransactionOperationInvoker" ioc:aop="false"
+          id="$GEN$io.nop.graphql.core.engine.GraphQLTransactionOperationInvoker$2">
         <property name="transactionalInvoker" ext:autowired="true">
             <ref bean="nopTransactionalFunctionInvoker"
                  ext:resolved-loc="[61:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
@@ -552,7 +552,7 @@
                  ext:resolved-loc="[59:6:0:0]/nop/orm/beans/orm-defaults.beans.xml"/>
         </property>
         <property name="operationInvoker">
-            <ref bean="$GEN$io.nop.graphql.core.engine.DefaultOperationFunctionInvoker$2"
+            <ref bean="$GEN$io.nop.graphql.core.engine.GraphQLTransactionOperationInvoker$2"
                  ext:resolved-loc="[12:14:0:0]/nop/biz/beans/biz-defaults.beans.xml"/>
         </property>
         <property name="schemaLoader" ext:autowired="true">

@@ -23,7 +23,22 @@
 
     <bean id="nopMetricsGraphQLHook" class="io.nop.graphql.core.engine.MetricsGraphQLHook"/>
 
-    <bean id="nopGraphQLOperationInvoker" class="io.nop.graphql.core.engine.DefaultOperationFunctionInvoker">
+    <bean id="nopGraphQLOperationInvoker" class="io.nop.commons.functional.ChainedAsyncFunctionInvoker">
+        <constructor-arg index="0">
+            <list>
+                <ref bean="nopGraphQLAuditOperationInvoker"/>
+                <ref bean="nopGraphQLTransactionOperationInvoker" ioc:optional="true"/>
+            </list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="nopGraphQLAuditOperationInvoker" class="io.nop.graphql.core.audit.GraphQLAuditOperationInvoker">
+        <constructor-arg index="0" ref="nopGraphQLAuditer"/>
+    </bean>
+
+    <bean id="nopGraphQLAuditer" class="io.nop.graphql.core.audit.DefaultGraphQLAuditer" ioc:default="true"/>
+
+    <bean id="nopGraphQLTransactionOperationInvoker" class="io.nop.graphql.core.engine.GraphQLTransactionOperationInvoker">
         <ioc:condition>
             <on-bean>nopTransactionalFunctionInvoker</on-bean>
         </ioc:condition>
@@ -76,7 +91,8 @@
     <!--
     BizModel模型初始化时需要校验obj字典是否有效，因此需要注册对应的DictLoader。为了避免并行初始化报错，这里还需要强制指定依赖于ormTemplate
     -->
-    <bean id="nopObjDictLoader" class="io.nop.biz.dict.ObjDictLoader" ioc:before="nopBizObjectManager" depends-on="nopOrmTemplate"/>
+    <bean id="nopObjDictLoader" class="io.nop.biz.dict.ObjDictLoader" ioc:before="nopBizObjectManager"
+          depends-on="nopOrmTemplate"/>
 
     <bean id="nopContextHttpServerFilter" class="io.nop.http.api.server.ContextHttpServerFilter">
         <ioc:condition>
