@@ -394,10 +394,10 @@ XLang语言本身是图灵完备的，但它的设计用途主要不是作为一
       <C/>
       <D/>
    </x:gen-extends>
-   <x:gen-extends>
+   <x:post-extends>
       <E/>
       <F/>
-   </x:gen-extends>
+   </x:post-extends>
 </model>
 ```
 
