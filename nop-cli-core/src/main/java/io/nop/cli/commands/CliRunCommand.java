@@ -10,8 +10,8 @@ package io.nop.cli.commands;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.util.FileHelper;
-import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XplModel;
@@ -22,7 +22,6 @@ import picocli.CommandLine;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,7 +43,9 @@ public class CliRunCommand implements Callable<Integer> {
     @CommandLine.Parameters(index = "0", description = "脚本文件路径或者脚本文件目录。如果是目录，则会运行目录下所有的xrun文件")
     File file;
 
-    @CommandLine.Option(names = {"-i", "--interval"}, description = "循环运行的时间间隔")
+    @CommandLine.Option(names = {"-i", "--input"}, description = "输入参数")
+    String input;
+    @CommandLine.Option(names = {"-t", "--interval"}, description = "循环运行的时间间隔")
     int interval;
 
     public Integer call() {
@@ -55,6 +56,11 @@ public class CliRunCommand implements Callable<Integer> {
         }
 
         Map<String, Object> globalState = new ConcurrentHashMap<>();
+        if (input != null) {
+            Map<String, Object> map = (Map<String, Object>) JsonTool.parseNonStrict(null, input);
+            if (map != null)
+                globalState.putAll(map);
+        }
 
         runTasks(globalState);
 
@@ -98,6 +104,7 @@ public class CliRunCommand implements Callable<Integer> {
         String path = FileHelper.getFileUrl(file);
         XplModel xpl = (XplModel) ResourceComponentManager.instance().loadComponentModel(path);
         IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValues(globalState);
         scope.setLocalValue("globalState", globalState);
         xpl.invoke(scope);
     }

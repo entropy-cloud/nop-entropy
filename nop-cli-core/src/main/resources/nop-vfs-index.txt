@@ -69,6 +69,7 @@
 /nop/core/xlib/biz!when.xlib
 /nop/core/xlib/biz-gen.xlib
 /nop/core/xlib/biz.xlib
+/nop/core/xlib/dsl-gen.xlib
 /nop/core/xlib/file.xlib
 /nop/core/xlib/filter.xlib
 /nop/core/xlib/meta-gen.xlib
