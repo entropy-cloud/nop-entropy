@@ -1,0 +1,1 @@
+java -Dfile.encoding=UTF8 -jar ../target/nop-cli-2.0.0-BETA.1.jar gen -t=v:/nop/templates/orm v:/nop/demo/orm/app.orm.xml -o=target

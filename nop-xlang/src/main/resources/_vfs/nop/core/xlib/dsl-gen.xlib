@@ -1,0 +1,23 @@
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef"
+>
+
+    <tags>
+        <GenModelFromExcel outputMode="node">
+            <attr name="path" stdDomain="v-path"/>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.xlang.xdsl.DslModelHelper;
+                    import io.nop.core.resource.component.ResourceComponentManager;
+
+                    const model =  ResourceComponentManager.instance().loadComponentModel(path);
+                    const xdefPath = ResourceComponentManager.instance().getXDefPathByModelPath(path);
+                    const node = DslModelHelper.dslModelToXNode(xdefPath,model);
+                    $out.appendChild(node);
+                    ]]>
+                </c:script>
+            </source>
+        </GenModelFromExcel>
+    </tags>
+</lib>

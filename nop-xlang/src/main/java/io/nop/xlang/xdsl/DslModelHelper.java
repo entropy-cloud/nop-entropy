@@ -7,10 +7,12 @@
  */
 package io.nop.xlang.xdsl;
 
+import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.object.DynamicObject;
+import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.VirtualFileSystem;
@@ -67,6 +69,15 @@ public class DslModelHelper {
     }
 
     public static XNode dslModelToXNode(String xdefPath, Object model) {
+        if (xdefPath == null) {
+            if (model instanceof IXDslModel) {
+                xdefPath = ((IXDslModel) model).getXdslSchema();
+            } else if (model instanceof IPropGetMissingHook) {
+                xdefPath = (String) ((IPropGetMissingHook) model).prop_get(XDslKeys.DEFAULT.SCHEMA);
+            }
+        }
+
+        Guard.notEmpty(xdefPath, "xdefPath");
         IObjMeta objMeta = SchemaLoader.loadXMeta(xdefPath);
         XNode node = new DslModelToXNodeTransformer(objMeta).transformToXNode(model);
         return node;

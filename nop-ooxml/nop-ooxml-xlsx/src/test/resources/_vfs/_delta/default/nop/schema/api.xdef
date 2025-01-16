@@ -1,0 +1,6 @@
+<api xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef" x:extends="super">
+
+   <messages>
+       <message packageName="string" />
+   </messages>
+</api>

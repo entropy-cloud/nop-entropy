@@ -344,3 +344,8 @@ class _SqlTableSource extends EqlASTNode {...}
                 xpl:lib="/nop/codegen/xlib/gen.xlib" inheritCodeGenLoop="true"/>
 </c:unit>
 ```
+
+### 在xgen模版生成的时候如何对${}进行转义
+```
+${'$'}{varName}
+```

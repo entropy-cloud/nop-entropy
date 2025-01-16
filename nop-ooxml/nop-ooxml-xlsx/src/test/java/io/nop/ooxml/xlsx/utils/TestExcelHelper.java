@@ -1,9 +1,13 @@
 package io.nop.ooxml.xlsx.utils;
 
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.util.IComponentModel;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.component.ResourceComponentManager;
+import io.nop.core.resource.impl.FileResource;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelSheet;
@@ -11,6 +15,7 @@ import io.nop.excel.model.ExcelTable;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.util.ExcelHelper;
 import io.nop.ooxml.xlsx.util.ExcelSheetData;
+import io.nop.xlang.xdsl.DslModelHelper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -19,6 +24,7 @@ import java.io.File;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestExcelHelper extends BaseTestCase {
     @BeforeAll
@@ -66,7 +72,7 @@ public class TestExcelHelper extends BaseTestCase {
         System.out.println("xlsxToCsv:" + (endTime - beginTime) + "ms");
 
         beginTime = CoreMetrics.currentTimeMillis();
-        ExcelHelper.readSheet(xlsx, null,0);
+        ExcelHelper.readSheet(xlsx, null, 0);
         endTime = CoreMetrics.currentTimeMillis();
         // 1M => 16312ms
         System.out.println("readXlsx:" + (endTime - beginTime) + "ms");
@@ -80,5 +86,16 @@ public class TestExcelHelper extends BaseTestCase {
         assertEquals(2, sheets.size());
         assertEquals("Sheet2", sheets.get(1).getName());
         assertEquals("[{c=5, d=6}, {c=7, d=8}]", sheets.get(1).getData().toString());
+    }
+
+    @Test
+    public void testApi() {
+        IResource resource = attachmentResource("test.api.xlsx");
+        String impPath = "/test/test-api.imp.xml";
+        IComponentModel model = (IComponentModel) ExcelHelper.loadXlsxObject(impPath, resource);
+        String xdefPath = ResourceComponentManager.instance().getXDefPathByModelPath(resource.getPath());
+        XNode node = DslModelHelper.dslModelToXNode(xdefPath, model);
+        node.dump();
+        assertTrue(node.xml().contains("packageName=\"abc\""));
     }
 }

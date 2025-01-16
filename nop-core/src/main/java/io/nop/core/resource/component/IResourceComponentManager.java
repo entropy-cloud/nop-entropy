@@ -15,7 +15,6 @@ import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.deps.ResourceDependencySet;
 
 import java.util.Collection;
-import java.util.Map;
 import java.util.function.Supplier;
 
 import static io.nop.core.CoreErrors.ARG_FILE_TYPE;
@@ -44,6 +43,12 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
                                                IComponentTransformer<?, ?> transformer, boolean replace);
 
     ComponentModelConfig getModelConfigByModelPath(String path);
+
+    default String getXDefPathByModelPath(String path) {
+        ComponentModelConfig config = this.getModelConfigByModelPath(path);
+        return config == null ? null : config.getXdefPath();
+    }
+
 
     ComponentModelLoader getComponentModelLoader(String fileType);
 
@@ -160,4 +165,5 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
     void clearAllCache();
 
     <T> T runWhenDependsChanged(String resourcePath, Supplier<T> task);
+
 }
