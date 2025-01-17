@@ -36,7 +36,7 @@ public class CliGenCommand implements Callable<Integer> {
     static final Logger LOG = LoggerFactory.getLogger(CliGenCommand.class);
 
 
-    @CommandLine.Option(names = {"-t", "--template"},
+    @CommandLine.Option(names = {"-t", "--template"}, required = true,
             description = "模板文件路径,至少需要指定一个模板。")
     String[] templates;
 

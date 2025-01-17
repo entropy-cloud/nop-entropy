@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.xdsl.json;
 
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ISourceLocationGetter;
@@ -14,6 +15,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.CoreConstants;
 import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.lang.json.JObject;
+import io.nop.core.lang.json.JsonEncodeString;
 import io.nop.core.lang.xml.IObjectToXNodeTransformer;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.XNodeValuePosition;
@@ -164,8 +166,13 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
         } else if (key.indexOf(':') > 0) {
             // 具有名字空间的属性
             if (value instanceof Map<?, ?>) {
-                TreeBean bean = TreeBean.createFromJson((Map<String, Object>) value);
-                node.appendChild(XNode.fromTreeBean(bean));
+                Map<String,Object> mapValue = (Map<String, Object>) value;
+                if(mapValue.get(ApiConstants.TREE_BEAN_PROP_TYPE) == null){
+                    node.setAttr(key, JsonEncodeString.of(null, value));
+                }else {
+                    TreeBean bean = TreeBean.createFromJson(mapValue);
+                    node.appendChild(XNode.fromTreeBean(bean));
+                }
             } else {
                 node.setAttr(getLocation(map, key, value), key, value);
             }

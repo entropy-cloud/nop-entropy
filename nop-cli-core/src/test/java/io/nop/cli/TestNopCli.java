@@ -109,7 +109,22 @@ public class TestNopCli extends BaseTestCase {
         File devDir = new File(getModuleDir(), "../nop-cli/demo/");
         System.setProperty(CoreConfigs.CFG_DEV_ROOT_PATH.getName(), devDir.getAbsolutePath());
         System.setProperty(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName(), file.getAbsolutePath());
-        String[] args = new String[]{"run-task", "v:/batch/batch-demo.task.xml", "-i", "{bizDate:'2024-12-08'}"};
+        String[] args = new String[]{"run-task", "v:/batch/batch-demo.task.xml", "-i", "{bizDate:'2024-12-08'}",
+        "-t","v:/worldline/temp"};
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        int ret = app.run(args);
+        assertEquals(0, ret);
+        System.getProperties().remove(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName());
+    }
+
+    @Test
+    public void testApi() {
+        CoreInitialization.destroy();
+        File file = new File("C:\\workspace\\cardlite-product\\codegen\\_vfs");
+        System.setProperty(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName(), file.getAbsolutePath());
+        String[] args = new String[]{"gen", "file:/C:/workspace/cardlite-sinopac/codegen/model/api/CAS-delta.api.xml",
+        "-t=v:/worldline/templates/api","-o", "C:/workspace/cardlite-sinopac/codegen/gen/api"};
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);
         int ret = app.run(args);
