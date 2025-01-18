@@ -11,6 +11,7 @@ entity:
     NopSysLock: 资源锁
     NopSysNoticeTemplate: 通知模板
     NopSysSequence: 序列号
+    NopSysServiceInstance: 服务实例
     NopSysUserVariable: 用户变量
     NopSysVariable: 系统变量
 prop:
@@ -184,6 +185,22 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+    NopSysServiceInstance:
+      clusterName: 集群名
+      createTime: 创建时间
+      groupName: 分组名
+      instanceId: 服务实例ID
+      isEnabled: 是否启用
+      isEphemeral: 是否临时
+      isHealthy: 是否健康
+      metaData: 扩展数据
+      serverAddr: 服务地址
+      serverPort: 服务端口
+      serviceName: 服务名
+      tagsText: 标签
+      updateTime: 修改时间
+      version: 数据版本
+      weight: 权重
     NopSysUserVariable:
       createTime: 创建时间
       createdBy: 创建人

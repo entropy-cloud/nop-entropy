@@ -61,7 +61,7 @@ public class TestTrigger {
         spec.setMaxScheduleTime(DateHelper.dateMillis(2022, 2, 15));
 
         AnnualCalendarSpec cal = new AnnualCalendarSpec();
-        cal.setExcludes(new MonthDay[]{MonthDay.of(2, 11), MonthDay.of(2, 13)});
+        cal.setExcludes(List.of(MonthDay.of(2, 11), MonthDay.of(2, 13)));
         spec.setPauseCalendars(Arrays.asList(cal));
 
         ITrigger trigger = TriggerBuilder.buildTrigger(spec, null);
@@ -100,7 +100,7 @@ public class TestTrigger {
         spec.setMaxScheduleTime(DateHelper.dateMillis(2022, 2, 15));
 
         AnnualCalendarSpec cal = new AnnualCalendarSpec();
-        cal.setExcludes(new MonthDay[]{MonthDay.of(2, 11), MonthDay.of(2, 13)});
+        cal.setExcludes(List.of(MonthDay.of(2, 11), MonthDay.of(2, 13)));
         spec.setPauseCalendars(Arrays.asList(cal));
         spec.setMisfireThreshold(1000 * 10);
 

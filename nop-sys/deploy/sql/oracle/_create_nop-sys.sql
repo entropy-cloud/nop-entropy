@@ -206,6 +206,25 @@ CREATE TABLE nop_sys_event(
   constraint PK_nop_sys_event primary key (EVENT_ID)
 );
 
+CREATE TABLE nop_sys_service_instance(
+  INSTANCE_ID VARCHAR2(50) NOT NULL ,
+  SERVICE_NAME VARCHAR2(100) NOT NULL ,
+  CLUSTER_NAME VARCHAR2(100) NOT NULL ,
+  GROUP_NAME VARCHAR2(100) NOT NULL ,
+  TAGS_TEXT VARCHAR2(100) NOT NULL ,
+  SERVER_ADDR VARCHAR2(20) NOT NULL ,
+  SERVER_PORT INTEGER NOT NULL ,
+  WEIGHT INTEGER NOT NULL ,
+  META_DATA VARCHAR2(1000)  ,
+  IS_HEALTHY CHAR(1) NOT NULL ,
+  IS_ENABLED CHAR(1) NOT NULL ,
+  IS_EPHEMERAL CHAR(1) NOT NULL ,
+  VERSION INTEGER NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  constraint PK_nop_sys_service_instance primary key (INSTANCE_ID)
+);
+
 CREATE TABLE nop_sys_dict_option(
   SID VARCHAR2(32) NOT NULL ,
   DICT_ID VARCHAR2(32) NOT NULL ,
@@ -567,6 +586,38 @@ CREATE TABLE nop_sys_dict_option(
       COMMENT ON COLUMN nop_sys_event.UPDATED_BY IS '修改人';
                     
       COMMENT ON COLUMN nop_sys_event.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON TABLE nop_sys_service_instance IS '服务实例';
+                
+      COMMENT ON COLUMN nop_sys_service_instance.INSTANCE_ID IS '服务实例ID';
+                    
+      COMMENT ON COLUMN nop_sys_service_instance.SERVICE_NAME IS '服务名';
+                    
+      COMMENT ON COLUMN nop_sys_service_instance.CLUSTER_NAME IS '集群名';
+                    
+      COMMENT ON COLUMN nop_sys_service_instance.GROUP_NAME IS '分组名';
+                    
+      COMMENT ON COLUMN nop_sys_service_instance.TAGS_TEXT IS '标签';
+                    
+      COMMENT ON COLUMN nop_sys_service_instance.SERVER_ADDR IS '服务地址';
+                    
+      COMMENT ON COLUMN nop_sys_service_instance.SERVER_PORT IS '服务端口';
+                    
+      COMMENT ON COLUMN nop_sys_service_instance.WEIGHT IS '权重';
+                    
+      COMMENT ON COLUMN nop_sys_service_instance.META_DATA IS '扩展数据';
+                    
+      COMMENT ON COLUMN nop_sys_service_instance.IS_HEALTHY IS '是否健康';
+                    
+      COMMENT ON COLUMN nop_sys_service_instance.IS_ENABLED IS '是否启用';
+                    
+      COMMENT ON COLUMN nop_sys_service_instance.IS_EPHEMERAL IS '是否临时';
+                    
+      COMMENT ON COLUMN nop_sys_service_instance.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_sys_service_instance.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_sys_service_instance.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON TABLE nop_sys_dict_option IS '字典明细';
                 

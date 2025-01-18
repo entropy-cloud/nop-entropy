@@ -21,6 +21,8 @@ alter table nop_sys_notice_template add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' N
 
 alter table nop_sys_sequence add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
+alter table nop_sys_service_instance add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+
 alter table nop_sys_user_variable add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
 alter table nop_sys_variable add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
@@ -57,6 +59,9 @@ alter table nop_sys_notice_template add constraint PK_nop_sys_notice_template pr
 
 alter table nop_sys_sequence drop constraint PK_nop_sys_sequence;
 alter table nop_sys_sequence add constraint PK_nop_sys_sequence primary key (NOP_TENANT_ID, SEQ_NAME);
+
+alter table nop_sys_service_instance drop constraint PK_nop_sys_service_instance;
+alter table nop_sys_service_instance add constraint PK_nop_sys_service_instance primary key (NOP_TENANT_ID, INSTANCE_ID);
 
 alter table nop_sys_user_variable drop constraint PK_nop_sys_user_variable;
 alter table nop_sys_user_variable add constraint PK_nop_sys_user_variable primary key (NOP_TENANT_ID, USER_ID,VAR_NAME);

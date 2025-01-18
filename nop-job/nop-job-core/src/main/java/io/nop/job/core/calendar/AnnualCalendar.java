@@ -13,6 +13,7 @@ import io.nop.job.core.ICalendar;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.MonthDay;
+import java.util.ArrayList;
 import java.util.List;
 
 public class AnnualCalendar extends BaseCalendar implements ICalendar, Serializable {
@@ -29,8 +30,8 @@ public class AnnualCalendar extends BaseCalendar implements ICalendar, Serializa
     }
 
     public void setExcludeDays(List<MonthDay> excludeDays) {
-        this.excludeDays = excludeDays;
-        excludeDays.sort(MonthDay::compareTo);
+        this.excludeDays = new ArrayList<>(excludeDays);
+        this.excludeDays.sort(MonthDay::compareTo);
     }
 
     private boolean isExcludedDay(LocalDate day) {

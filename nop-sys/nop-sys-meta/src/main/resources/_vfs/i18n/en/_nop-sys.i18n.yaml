@@ -11,6 +11,7 @@ entity:
     NopSysLock: Lock
     NopSysNoticeTemplate: Notice Template
     NopSysSequence: Sequence
+    NopSysServiceInstance: Instance ID
     NopSysUserVariable: User Variable
     NopSysVariable: System Variable
 prop:
@@ -184,6 +185,22 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+    NopSysServiceInstance:
+      instanceId: Instance ID
+      serviceName: Service Name
+      clusterName: Cluster Name
+      groupName: Group Name
+      tagsText: Tags
+      serverAddr: Server Addr
+      serverPort: Server Port
+      weight: Weight
+      metaData: Meta Data
+      isHealthy: Is Healthy
+      isEnabled: Is Enabled
+      isEphemeral: Is Ephemeral
+      version: Version
+      createTime: Create Time
+      updateTime: Update Time
     NopSysUserVariable:
       userId: User ID
       varName: Var Name

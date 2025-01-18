@@ -32,6 +32,13 @@ public abstract class _ApiMethodModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: mutation
+     * 
+     */
+    private boolean _mutation  = false;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -113,6 +120,25 @@ public abstract class _ApiMethodModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._displayName = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: mutation
+     *  
+     */
+    
+    public boolean isMutation(){
+      return _mutation;
+    }
+
+    
+    public void setMutation(boolean value){
+        checkAllowChange();
+        
+        this._mutation = value;
            
     }
 
@@ -295,6 +321,7 @@ public abstract class _ApiMethodModel extends io.nop.core.resource.component.Abs
         
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("mutation",this.isMutation());
         out.putNotNull("name",this.getName());
         out.putNotNull("options",this.getOptions());
         out.putNotNull("requestMessage",this.getRequestMessage());
@@ -315,6 +342,7 @@ public abstract class _ApiMethodModel extends io.nop.core.resource.component.Abs
         
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
+        instance.setMutation(this.isMutation());
         instance.setName(this.getName());
         instance.setOptions(this.getOptions());
         instance.setRequestMessage(this.getRequestMessage());

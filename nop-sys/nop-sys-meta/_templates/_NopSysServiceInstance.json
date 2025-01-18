@@ -1,0 +1,17 @@
+{
+  "instanceId": "",
+  "serviceName": "",
+  "clusterName": "",
+  "groupName": "",
+  "tagsText": "",
+  "serverAddr": "",
+  "serverPort": 0,
+  "weight": 0,
+  "metaData": "",
+  "isHealthy": false,
+  "isEnabled": false,
+  "isEphemeral": false,
+  "version": 0,
+  "createTime": "2000-01-01 14:00:00",
+  "updateTime": "2000-01-01 14:00:00"
+}

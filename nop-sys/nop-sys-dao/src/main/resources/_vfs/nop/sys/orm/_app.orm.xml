@@ -537,5 +537,43 @@
                         propId="21" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
             </columns>
         </entity>
+        <entity className="io.nop.sys.dao.entity.NopSysServiceInstance" createTimeProp="createTime" displayName="服务实例"
+                name="io.nop.sys.dao.entity.NopSysServiceInstance" registerShortName="true"
+                tableName="nop_sys_service_instance" updateTimeProp="updateTime" versionProp="version"
+                i18n-en:displayName="Instance ID">
+            <columns>
+                <column code="INSTANCE_ID" displayName="服务实例ID" mandatory="true" name="instanceId" precision="50"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="var"
+                        i18n-en:displayName="Instance ID"/>
+                <column code="SERVICE_NAME" displayName="服务名" mandatory="true" name="serviceName" precision="100"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Service Name"/>
+                <column code="CLUSTER_NAME" displayName="集群名" mandatory="true" name="clusterName" precision="100"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Cluster Name"/>
+                <column code="GROUP_NAME" displayName="分组名" mandatory="true" name="groupName" precision="100" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Group Name"/>
+                <column code="TAGS_TEXT" displayName="标签" mandatory="true" name="tagsText" precision="100" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Tags"/>
+                <column code="SERVER_ADDR" displayName="服务地址" mandatory="true" name="serverAddr" precision="20"
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Server Addr"/>
+                <column code="SERVER_PORT" displayName="服务端口" mandatory="true" name="serverPort" propId="7"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Server Port"/>
+                <column code="WEIGHT" displayName="权重" mandatory="true" name="weight" propId="8" stdDataType="int"
+                        stdSqlType="INTEGER" i18n-en:displayName="Weight"/>
+                <column code="META_DATA" displayName="扩展数据" name="metaData" precision="1000" propId="9"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Data"/>
+                <column code="IS_HEALTHY" displayName="是否健康" mandatory="true" name="isHealthy" propId="10"
+                        stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="Is Healthy"/>
+                <column code="IS_ENABLED" displayName="是否启用" mandatory="true" name="isEnabled" propId="11"
+                        stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="Is Enabled"/>
+                <column code="IS_EPHEMERAL" displayName="是否临时" mandatory="true" name="isEphemeral" propId="12"
+                        stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="Is Ephemeral"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="13"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Version"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
+                        propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
+                        propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+            </columns>
+        </entity>
     </entities>
 </orm>

@@ -27,6 +27,8 @@
 
     <bean id="io.nop.sys.service.entity.NopSysSequenceBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
+    <bean id="io.nop.sys.service.entity.NopSysServiceInstanceBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
     <bean id="io.nop.sys.service.entity.NopSysUserVariableBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="io.nop.sys.service.entity.NopSysVariableBizModel" ioc:type="@bean:id" ioc:default="true"/>

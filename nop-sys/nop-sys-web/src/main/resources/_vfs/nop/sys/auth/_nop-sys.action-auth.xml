@@ -152,29 +152,43 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopSysUserVariable-main" displayName="用户变量" orderNo="10034"
+                <resource id="NopSysServiceInstance-main" displayName="服务实例" orderNo="10034"
+                          i18n-en:displayName="Instance ID" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/sys/pages/NopSysServiceInstance/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopSysServiceInstance:query" displayName="查询服务实例" orderNo="10035"
+                                  resourceType="FNPT">
+                            <permissions>NopSysServiceInstance:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopSysServiceInstance:mutation" displayName="修改服务实例" orderNo="10036"
+                                  resourceType="FNPT">
+                            <permissions>NopSysServiceInstance:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopSysUserVariable-main" displayName="用户变量" orderNo="10037"
                           i18n-en:displayName="User Variable" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/sys/pages/NopSysUserVariable/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysUserVariable:query" displayName="查询用户变量" orderNo="10035"
+                        <resource id="FNPT:NopSysUserVariable:query" displayName="查询用户变量" orderNo="10038"
                                   resourceType="FNPT">
                             <permissions>NopSysUserVariable:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysUserVariable:mutation" displayName="修改用户变量" orderNo="10036"
+                        <resource id="FNPT:NopSysUserVariable:mutation" displayName="修改用户变量" orderNo="10039"
                                   resourceType="FNPT">
                             <permissions>NopSysUserVariable:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopSysVariable-main" displayName="系统变量" orderNo="10037"
+                <resource id="NopSysVariable-main" displayName="系统变量" orderNo="10040"
                           i18n-en:displayName="System Variable" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/sys/pages/NopSysVariable/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopSysVariable:query" displayName="查询系统变量" orderNo="10038"
+                        <resource id="FNPT:NopSysVariable:query" displayName="查询系统变量" orderNo="10041"
                                   resourceType="FNPT">
                             <permissions>NopSysVariable:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopSysVariable:mutation" displayName="修改系统变量" orderNo="10039"
+                        <resource id="FNPT:NopSysVariable:mutation" displayName="修改系统变量" orderNo="10042"
                                   resourceType="FNPT">
                             <permissions>NopSysVariable:mutation</permissions>
                         </resource>
