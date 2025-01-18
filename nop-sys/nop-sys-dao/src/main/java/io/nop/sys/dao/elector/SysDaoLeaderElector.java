@@ -219,6 +219,7 @@ public class SysDaoLeaderElector extends AbstractPollingLeaderElector {
     @Override
     public void restartElection() {
         IEntityDao<NopSysClusterLeader> dao = dao();
+        IEstimatedClock clock = dao.getDbEstimatedClock();
 
         for (int i = 0; i < 10; i++) {
             NopSysClusterLeader leader = getEntity(dao);
@@ -227,6 +228,7 @@ public class SysDaoLeaderElector extends AbstractPollingLeaderElector {
 
             // 增大epoch将导致当前的leader发现epoch已改变，需要重新获取leader
             leader.setLeaderEpoch(leader.getLeaderEpoch() + 1);
+            leader.setExpireAt(clock.getMinCurrentTime());
             leader.orm_disableVersionCheckError(true);
             dao.updateEntityDirectly(leader);
 

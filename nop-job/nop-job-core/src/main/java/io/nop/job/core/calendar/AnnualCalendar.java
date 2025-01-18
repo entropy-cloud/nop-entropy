@@ -13,7 +13,7 @@ import io.nop.job.core.ICalendar;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.MonthDay;
-import java.util.Arrays;
+import java.util.List;
 
 public class AnnualCalendar extends BaseCalendar implements ICalendar, Serializable {
 
@@ -22,15 +22,15 @@ public class AnnualCalendar extends BaseCalendar implements ICalendar, Serializa
     /**
      * excludeDays需要按时间顺序排好序
      */
-    private MonthDay[] excludeDays;
+    private List<MonthDay> excludeDays;
 
     public AnnualCalendar(ICalendar baseCalendar) {
         super(baseCalendar);
     }
 
-    public void setExcludeDays(MonthDay[] excludeDays) {
+    public void setExcludeDays(List<MonthDay> excludeDays) {
         this.excludeDays = excludeDays;
-        Arrays.sort(excludeDays);
+        excludeDays.sort(MonthDay::compareTo);
     }
 
     private boolean isExcludedDay(LocalDate day) {

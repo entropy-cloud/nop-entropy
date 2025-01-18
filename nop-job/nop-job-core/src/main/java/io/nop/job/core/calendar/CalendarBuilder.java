@@ -39,7 +39,7 @@ public class CalendarBuilder {
         for (CalendarSpec calInfo : calendars) {
             if (calInfo instanceof AnnualCalendarSpec) {
                 AnnualCalendarSpec spec = (AnnualCalendarSpec) calInfo;
-                if (ArrayHelper.isEmpty(spec.getExcludes()))
+                if (CollectionHelper.isEmpty(spec.getExcludes()))
                     continue;
 
                 AnnualCalendar annual = new AnnualCalendar(cal);

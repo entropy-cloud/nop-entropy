@@ -10,18 +10,19 @@ package io.nop.job.api.spec;
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.time.MonthDay;
+import java.util.List;
 
 @DataBean
 public class AnnualCalendarSpec extends CalendarSpec {
     private static final long serialVersionUID = 1L;
 
-    private MonthDay[] excludes;
+    private List<MonthDay> excludes;
 
-    public MonthDay[] getExcludes() {
+    public List<MonthDay> getExcludes() {
         return excludes;
     }
 
-    public void setExcludes(MonthDay[] excludes) {
+    public void setExcludes(List<MonthDay> excludes) {
         this.excludes = excludes;
     }
 }
