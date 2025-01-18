@@ -161,7 +161,7 @@
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="TIME" stdSqlType="TIME"/>
         <sqlDataType name="DATETIME" stdSqlType="DATETIME"/>
-        <sqlDataType name="TIMESTAMP" code="TIMESTAMP(3)" stdSqlType="TIMESTAMP"/>
+        <sqlDataType name="TIMESTAMP" code="DATETIME(3)" stdSqlType="TIMESTAMP"/>
         <sqlDataType name="REAL" stdSqlType="REAL" alias="FLOAT"/>
         <sqlDataType name="DOUBLE" stdSqlType="DOUBLE" alias="DOUBLE PRECISION"/>
         <sqlDataType name="DECIMAL" stdSqlType="DECIMAL"/>
@@ -175,7 +175,7 @@
         <sqlDataType name="JSON" stdSqlType="JSON" />
         <sqlDataType name="SET" stdSqlType="ARRAY" deprecated="true"/>
         <sqlDataType name="BINARY" stdSqlType="VARBINARY" />
-        <sqlDataType name="TIMESTAMP(6) WITH TIME ZONE" stdSqlType="TIMESTAMP" alias="TIMESTAMP WITH TIME ZONE"/>
+        <sqlDataType name="TIMESTAMP(6) WITH TIME ZONE" code="DATETIME(6)" stdSqlType="TIMESTAMP" alias="TIMESTAMP WITH TIME ZONE"/>
     </sqlDataTypes>
 
 </dialect>
