@@ -11,14 +11,18 @@ import com.vdurmont.semver4j.Requirement;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.cluster.discovery.ServiceInstance;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.io.net.IServerAddrFinder;
 import io.nop.commons.util.StringHelper;
-
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
+
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static io.nop.cluster.ClusterErrors.ARG_VERSION;
 import static io.nop.cluster.ClusterErrors.ERR_CLUSTER_APP_VERSION_MUST_BE_NPM_LIKE;
@@ -43,6 +47,12 @@ public class AutoRegistration {
 
     private ServiceInstance instance;
 
+    private Duration autoUpdateInterval;
+
+    private Future<?> autoUpdateTimerFuture;
+
+    private boolean ephemeral = true;
+
     public AutoRegistration(INamingService namingService) {
         this.namingService = namingService;
     }
@@ -58,6 +68,14 @@ public class AutoRegistration {
     @Inject
     public void setAddrFinder(IServerAddrFinder addrFinder) {
         this.addrFinder = addrFinder;
+    }
+
+    public boolean isEphemeral() {
+        return ephemeral;
+    }
+
+    public void setEphemeral(boolean ephemeral) {
+        this.ephemeral = ephemeral;
     }
 
     public String getServiceName() {
@@ -116,10 +134,14 @@ public class AutoRegistration {
         this.metadata = metadata;
     }
 
+    public void setAutoUpdateInterval(Duration autoUpdateInterval) {
+        this.autoUpdateInterval = autoUpdateInterval;
+    }
+
     protected ServiceInstance getServiceInstance() {
         ServiceInstance instance = new ServiceInstance();
         instance.setEnabled(true);
-        instance.setEphemeral(true);
+        instance.setEphemeral(ephemeral);
 
         String serviceName = this.serviceName;
         if (serviceName == null)
@@ -156,10 +178,24 @@ public class AutoRegistration {
             }
         }
         namingService.registerInstance(getServiceInstance());
+
+        if (autoUpdateInterval != null && autoUpdateInterval.toMillis() > 0) {
+            autoUpdateTimerFuture = GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker())
+                    .scheduleWithFixedDelay(this::refreshRegistration, autoUpdateInterval.toMillis(), autoUpdateInterval.toMillis(), TimeUnit.MILLISECONDS);
+        }
+    }
+
+    protected void refreshRegistration() {
+        if (instance != null) {
+            namingService.updateInstance(getServiceInstance());
+        }
     }
 
     @PreDestroy
     public void stop() {
+        if (autoUpdateTimerFuture != null)
+            autoUpdateTimerFuture.cancel(false);
+        autoUpdateTimerFuture = null;
         if (instance == null)
             return;
         namingService.unregisterInstance(instance);

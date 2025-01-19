@@ -20,6 +20,10 @@ public interface INamingService extends IDiscoveryClient {
 
     void unregisterInstance(ServiceInstance instance);
 
+    default void updateInstance(ServiceInstance instance) {
+
+    }
+
     List<String> getServices();
 
     List<ServiceInstance> getInstances(String serviceName);
