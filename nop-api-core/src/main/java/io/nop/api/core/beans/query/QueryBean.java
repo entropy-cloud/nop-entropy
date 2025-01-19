@@ -36,6 +36,7 @@ public class QueryBean implements Serializable, ICloneable {
 
     private String cursor;
     private boolean findPrev;
+    private boolean distinct;
 
     private List<QueryFieldBean> fields;
 
@@ -73,6 +74,7 @@ public class QueryBean implements Serializable, ICloneable {
         query.setLimit(limit);
         query.setCursor(cursor);
         query.setFindPrev(findPrev);
+        query.setDistinct(distinct);
         if (fields != null) {
             query.setFields(fields.stream().map(QueryFieldBean::cloneInstance).collect(Collectors.toList()));
         }
@@ -100,6 +102,20 @@ public class QueryBean implements Serializable, ICloneable {
         query.setTimeout(timeout);
         query.setDisableLogicalDelete(disableLogicalDelete);
         return query;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    public boolean isDistinct() {
+        return distinct;
+    }
+
+    public void setDistinct(boolean distinct) {
+        this.distinct = distinct;
+    }
+
+    public QueryBean distinct() {
+        this.setDistinct(true);
+        return this;
     }
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)

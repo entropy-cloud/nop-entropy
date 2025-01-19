@@ -316,6 +316,10 @@ public class SQL extends MarkedString implements ISourceLocationGetter {
             return append(name).append(" <> '')");
         }
 
+        public SqlBuilder distinct(){
+            return append(" distinct ");
+        }
+
         public SqlBuilder isTrue(String name) {
             return append(name).append(" = 1 ");
         }

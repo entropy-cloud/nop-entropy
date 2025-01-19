@@ -26,6 +26,7 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.api.IEntityDaoExtension;
 import io.nop.dao.exceptions.UnknownEntityException;
+import io.nop.dataset.rowmapper.SingleColumnRowMapper;
 import io.nop.orm.IOrmBatchLoadQueue;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmSession;
@@ -760,5 +761,29 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
     @Override
     public IEstimatedClock getDbEstimatedClock() {
         return orm().getDbEstimatedClock(getEntityModel().getQuerySpace());
+    }
+
+
+    QueryBean makeQuery(QueryBean query) {
+        if (query.getSourceName() == null) {
+            query = query.cloneInstance();
+            query.setSourceName(getEntityName());
+        } else {
+            Guard.checkEquals(getEntityName(), query.getSourceName(), "entityName");
+        }
+        return query;
+    }
+
+    @Override
+    public List<Map<String, Object>> selectFieldsByQuery(QueryBean query) {
+        query = makeQuery(query);
+        return orm().findListByQuery(query);
+    }
+
+    @Override
+    public List<Object> selectFieldByQuery(QueryBean query) {
+        query = makeQuery(query);
+        Guard.checkArgument(query.getFields().size() == 1, "field size must be one");
+        return orm().findListByQuery(query, SingleColumnRowMapper.INSTANCE);
     }
 }

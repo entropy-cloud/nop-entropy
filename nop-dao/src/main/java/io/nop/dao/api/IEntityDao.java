@@ -15,6 +15,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.time.IEstimatedClock;
 import io.nop.commons.collections.iterator.FindNextPageIterator;
 import io.nop.commons.collections.iterator.SelectNextIterator;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.exceptions.DaoException;
 import io.nop.dao.exceptions.UnknownEntityException;
@@ -109,6 +110,11 @@ public interface IEntityDao<T extends IDaoEntity> {
     void saveOrUpdateEntity(T entity);
 
     void deleteEntity(T entity);
+
+    default void deleteEntityById(Object id) {
+        T entity = loadEntityById(id);
+        deleteEntity(entity);
+    }
 
     /**
      * 根据id返回实体，有可能只是返回一个proxy而没有真正去查询数据库
@@ -239,6 +245,15 @@ public interface IEntityDao<T extends IDaoEntity> {
     long updateByQuery(QueryBean query, Map<String, Object> props);
 
     List<T> findAll();
+
+    List<Map<String, Object>> selectFieldsByQuery(QueryBean query);
+
+    List<Object> selectFieldByQuery(QueryBean query);
+
+    default List<String> selectStringFieldByQuery(QueryBean query){
+        return CollectionHelper.toStringList(selectFieldByQuery(query));
+    }
+
 
     /**
      * 查找在lastEntity之后的n条记录，用于下一页这种形式的分页查询。 类似于 select o from entity o where o.id > lastEntity.id limit 10

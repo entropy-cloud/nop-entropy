@@ -125,6 +125,9 @@ public class DaoQueryHelper {
 
         SQL.SqlBuilder sb = newSQL(query);
         sb.select();
+        if(query.isDistinct()){
+            sb.distinct();
+        }
 
         for (QueryFieldBean field : query.getFields()) {
             if (StringHelper.isEmpty(field.getAggFunc())) {
