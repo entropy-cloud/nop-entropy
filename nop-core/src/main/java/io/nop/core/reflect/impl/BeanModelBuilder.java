@@ -29,6 +29,7 @@ import io.nop.api.core.annotations.core.PropertyGetter;
 import io.nop.api.core.annotations.core.PropertySetter;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.data.ImmutableBean;
+import io.nop.api.core.annotations.graphql.GraphQLReturn;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ClassHelper;
@@ -200,7 +201,7 @@ public class BeanModelBuilder {
                         Object defaultValue = propModel.getGetter()
                                 .getProperty(bean, propModel.getName(), DisabledEvalScope.INSTANCE);
                         ((BeanPropertyModel) propModel).setDefaultValue(defaultValue);
-                    }catch (Exception e){
+                    } catch (Exception e) {
                         LOG.trace("nop.reflect.ignore-default-value-error", e);
                     }
                 }
@@ -457,6 +458,10 @@ public class BeanModelBuilder {
             BizObjName bizObjName = ann.getAnnotation(BizObjName.class);
             if (bizObjName != null) {
                 prop.setBizObjName(bizObjName.value());
+            } else {
+                GraphQLReturn graphQLReturn = ann.getAnnotation(GraphQLReturn.class);
+                if (graphQLReturn != null && !graphQLReturn.bizObjName().isEmpty())
+                    prop.setBizObjName(graphQLReturn.bizObjName());
             }
         }
 
