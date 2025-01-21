@@ -356,6 +356,10 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
 
         if (value != null && value.isSupportBody() && supportExtends == null)
             supportExtends = true;
+
+        if (ref != null && supportExtends == null)
+            supportExtends = true;
+        
         defNode.setXdefSupportExtends(supportExtends);
 
         boolean refResolved = node.attrBoolean(keys.REF_RESOLVED);
