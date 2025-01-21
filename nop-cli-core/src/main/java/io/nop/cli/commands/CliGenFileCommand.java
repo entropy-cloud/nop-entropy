@@ -75,12 +75,14 @@ public class CliGenFileCommand implements Callable<Integer> {
             }
         }
 
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValues(json);
+
         if (template.endsWith(".xdef")) {
             DslModelHelper.saveDslModel(template, json, new FileResource(outputFile));
         } else if (template.endsWith(".imp.xml")) {
             ExcelWorkbook xptModel = ExcelReportHelper.buildXptModelFromImpModel(template);
 
-            IEvalScope scope = XLang.newEvalScope();
             scope.setLocalValue(null, XptConstants.VAR_ENTITY, json);
 
             String renderType = StringHelper.fileExt(outputFile.getName());
@@ -89,7 +91,6 @@ public class CliGenFileCommand implements Callable<Integer> {
             // 报表模板
             IResource tplResource = ResourceHelper.resolveRelativePathResource(template);
             ExcelWorkbook xptModel = new XptModelLoader().loadModelFromResource(tplResource);
-            IEvalScope scope = XLang.newEvalScope();
             scope.setLocalValue(null, XptConstants.VAR_ENTITY, json);
 
             String renderType = StringHelper.fileExt(outputFile.getName());
@@ -98,7 +99,6 @@ public class CliGenFileCommand implements Callable<Integer> {
             // Word模板
             IResource tplResource = ResourceHelper.resolveRelativePathResource(template);
             WordTemplate tpl = new WordTemplateParser().parseFromResource(tplResource);
-            IEvalScope scope = XLang.newEvalScope();
             scope.setLocalValue(null, XptConstants.VAR_ENTITY, json);
             tpl.generateToFile(outputFile, scope);
         } else {

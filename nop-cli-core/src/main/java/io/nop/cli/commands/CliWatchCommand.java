@@ -10,6 +10,7 @@ package io.nop.cli.commands;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.FileHelper;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.watch.FileChangeEvent;
@@ -17,11 +18,11 @@ import io.nop.core.resource.watch.FileWatcher;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XplModel;
 import io.nop.xlang.ast.XLangOutputMode;
+import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
-import jakarta.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -54,6 +55,9 @@ public class CliWatchCommand implements Callable<Integer> {
 
     @CommandLine.Option(names = {"-w", "--wait"}, description = "延迟处理等待间隔，缺省为100毫秒")
     int debounceWait = 100;
+
+    @CommandLine.Option(names = {"-i", "--input"}, description = "输入参数")
+    String input;
 
     @Inject
     FileWatcherFactory fileWatcherFactory;
@@ -91,6 +95,12 @@ public class CliWatchCommand implements Callable<Integer> {
 
     private void processEvents(XplModel xpl, Collection<FileChangeEvent> events, Map<String, Object> state) {
         IEvalScope scope = XLang.newEvalScope();
+
+        if (input != null) {
+            Map<String, Object> map = (Map<String, Object>) JsonTool.parseNonStrict(null, input);
+            scope.setLocalValues(map);
+        }
+
         scope.setLocalValue("changeEvents", events);
         scope.setLocalValue("globalState", state);
         scope.setLocalValue("watchDirs", watchDirs);

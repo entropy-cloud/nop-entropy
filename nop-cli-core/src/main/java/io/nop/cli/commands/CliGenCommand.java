@@ -14,6 +14,7 @@ import io.nop.codegen.XCodeGenerator;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
@@ -25,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 import java.io.File;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 @CommandLine.Command(
@@ -40,6 +42,9 @@ public class CliGenCommand implements Callable<Integer> {
             description = "模板文件路径,至少需要指定一个模板。")
     String[] templates;
 
+    @CommandLine.Option(names = {"-i", "--input"}, description = "输入参数")
+    String input;
+
     @CommandLine.Option(names = {"-o", "--output"}, description = "输出目录，缺省为当前目录")
     File outputDir;
 
@@ -54,6 +59,11 @@ public class CliGenCommand implements Callable<Integer> {
         try {
             IResource resource = ResourceHelper.resolveRelativePathResource(file);
             IEvalScope scope = XLang.newEvalScope();
+            if (input != null) {
+                Map<String, Object> map = (Map<String, Object>) JsonTool.parseNonStrict(null, input);
+                scope.setLocalValues(map);
+            }
+
             scope.setLocalValue(null, CodeGenConstants.VAR_CODE_GEN_MODEL_PATH, resource.getPath());
 
             ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByModelPath(resource.getPath());
