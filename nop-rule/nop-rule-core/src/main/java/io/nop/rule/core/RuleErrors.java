@@ -18,6 +18,9 @@ public interface RuleErrors {
 
     String ARG_DISPLAY_NAME = "displayName";
 
+    String ARG_RULE_NAME = "ruleName";
+    String ARG_OUTPUT_NAME = "outputName";
+
     ErrorCode ERR_RULE_WORKBOOK_NO_RULE_SHEET =
             define("nop.err.rule.workbook-no-rule-sheet",
                     "工作簿中没有名称为Rule的Sheet");
@@ -64,4 +67,7 @@ public interface RuleErrors {
     ErrorCode ERR_RULE_INPUT_VAR_NOT_ALLOW_EMPTY =
             define("nop.err.rule.input-var-not-allow-empty", "输入变量不允许为空:name={varName},displayName={displayName}",
                     ARG_VAR_NAME, ARG_DISPLAY_NAME);
+
+    ErrorCode ERR_RULE_AGGREGATE_WEIGHT_SIZE_NOT_MATCH =
+            define("nop.err.rule.aggregate-weight-size-not-match", "权重列表长度与输出列表长度不一致", ARG_RULE_NAME, ARG_OUTPUT_NAME);
 }

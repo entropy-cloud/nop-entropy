@@ -7,10 +7,15 @@
  */
 package io.nop.rule.core.model;
 
+import io.nop.rule.core.RuleConstants;
 import io.nop.rule.core.model._gen._RuleOutputDefineModel;
 
-public class RuleOutputDefineModel extends _RuleOutputDefineModel{
-    public RuleOutputDefineModel(){
+public class RuleOutputDefineModel extends _RuleOutputDefineModel {
+    public RuleOutputDefineModel() {
 
+    }
+
+    public String getWeightName() {
+        return getName() + RuleConstants.WEIGHT_NAME_POSTFIX;
     }
 }

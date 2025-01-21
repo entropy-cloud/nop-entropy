@@ -19,7 +19,7 @@ GraphQL缺省只有Float、Int、String、Boolean、ID这几种基本类型。No
 
 
 ```java
-static class ResultBean {
+class ResultBean {
       List<IOrmEntity> list;
 
         @GraphQLReturn(bizObjName = "MyObject")

@@ -25,6 +25,9 @@ public enum RuleAggregateMethod {
     @Label("取平均值")
     avg,
 
+    @Label("按权重取平均值")
+    weighted_avg,
+
     @Label("取第一个值")
     first,
 

@@ -7,7 +7,10 @@
  */
 package io.nop.rule.core.execute;
 
+import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.MathHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.utils.Underscore;
 import io.nop.rule.core.IExecutableRule;
@@ -15,7 +18,13 @@ import io.nop.rule.core.IRuleRuntime;
 import io.nop.rule.core.model.RuleAggregateMethod;
 import io.nop.rule.core.model.RuleOutputDefineModel;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+
+import static io.nop.rule.api.RuleApiErrors.ARG_RULE_NAME;
+import static io.nop.rule.core.RuleErrors.ARG_OUTPUT_NAME;
+import static io.nop.rule.core.RuleErrors.ERR_RULE_AGGREGATE_WEIGHT_SIZE_NOT_MATCH;
 
 public class NormalizeOutputExecutableRule implements IExecutableRule {
     private final IExecutableRule rule;
@@ -52,6 +61,26 @@ public class NormalizeOutputExecutableRule implements IExecutableRule {
             return;
         }
 
+        boolean useWeight = output.isUseWeight();
+        List<Double> weights = null;
+        if (useWeight) {
+            weights = getWeights(ruleRt, output.getWeightName());
+            if (weights.isEmpty()) {
+                useWeight = false;
+            } else {
+                if (weights.size() != list.size()) {
+                    throw new NopException(ERR_RULE_AGGREGATE_WEIGHT_SIZE_NOT_MATCH)
+                            .param(ARG_RULE_NAME, ruleRt.getRuleName()).param(ARG_OUTPUT_NAME, name);
+                }
+
+                List<Object> withWeights = new ArrayList<>(list.size());
+                for (int i = 0; i < list.size(); i++) {
+                    withWeights.add(MathHelper.multiply(list.get(i), weights.get(i)));
+                }
+                list = withWeights;
+            }
+        }
+
         switch (aggMethod) {
             case min: {
                 Object value = Underscore.min(list);
@@ -73,6 +102,16 @@ public class NormalizeOutputExecutableRule implements IExecutableRule {
                 ruleRt.setOutput(name, value);
                 break;
             }
+            case weighted_avg: {
+                Object value = Underscore.sum(list);
+                Number sumWeight = list.size();
+                if (useWeight) {
+                    sumWeight = Underscore.sum(weights);
+                }
+                value = MathHelper.divide(value, sumWeight);
+                ruleRt.setOutput(name, value);
+                break;
+            }
             case list: {
                 ruleRt.setOutput(name, list);
                 break;
@@ -85,6 +124,19 @@ public class NormalizeOutputExecutableRule implements IExecutableRule {
                 ruleRt.setOutput(name, CollectionHelper.last(list));
             }
         }
+    }
+
+    private List<Double> getWeights(IRuleRuntime ruleRt, String name) {
+        List<Object> list = ruleRt.getOutputList(name);
+        if (list == null || list.isEmpty())
+            return Collections.emptyList();
+        List<Double> weights = new ArrayList<>(list.size());
+        for (Object obj : list) {
+            weights.add(ConvertHelper.toPrimitiveDouble(obj, 1.0,
+                    err -> new NopException(err)
+                            .param(ARG_RULE_NAME, ruleRt.getRuleName()).param(ARG_OUTPUT_NAME, name)));
+        }
+        return weights;
     }
 
     private Object getDefaultValue(RuleOutputDefineModel output, IRuleRuntime ruleRt) {
