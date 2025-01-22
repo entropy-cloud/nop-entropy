@@ -28,3 +28,64 @@ class ResultBean {
         }
 }
 ```
+
+## 使用XBiz来定义动态GraphQL类型
+
+通过return的schema配置，可以定义GraphQL类型。
+
+```xml
+ <query name="testDynamicItem">
+      <arg name="id" type="String" />
+      <return>
+          <schema x:extends="ItemSchema.schema.xml" />
+      </return>
+
+      <source>
+         import io.nop.auth.service.biz.ItemData;
+
+         const ret = new ItemData();
+         ret.name = "a";
+         ret.rows = [];
+         return ret;
+      </source>
+  </query>
+```
+
+通过`x:extends`可以复用已有的schema定义。
+
+```xml
+<schema x:schema="/nop/schema/schema/schema.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <props>
+        <prop name="name">
+            <schema type="String"/>
+        </prop>
+
+        <prop name="rows" graphql:type="[NopAuthUser]" />
+
+        <prop name="rows2">
+            <schema>
+                <item bizObjName="NopAuthUser" />
+            </schema>
+        </prop>
+    </props>
+</schema>
+```
+
+上面的示例中rows和rows2的定义在GraphQL层面产生的类型是一样的。
+
+## 通过graphql文件引入类型定义。
+通过`nop.graphql.builtin-schema-path`可以指定多个graphql虚拟文件路径，这些文件中的类型定义会被自动引入到GraphQL中。
+
+```graphql
+type UserItemData{
+    name:String
+    rows:[UserItemData]
+}
+```
+然后在xbiz中就可以直接使用这个类型名
+
+```xml
+<query name="testDynamicItem">
+   <return graphql:type="UserItemData" />
+</query>
+```
