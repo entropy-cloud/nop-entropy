@@ -253,7 +253,7 @@ public class ExcelTemplateToXptModelTransformer {
             }
 
             ExcelCell cell = (ExcelCell) getTable().getCell(rowIndex, colIndex);
-            if (StringHelper.isNumber(cell.getText())) {
+            if (cell != null && StringHelper.isNumber(cell.getText())) {
                 XptCellModel cellModel = cell.makeModel();
                 initCellField(cellModel, range, fieldModel.getFieldName());
                 cellModel.setExpandType(XptExpandType.r);
