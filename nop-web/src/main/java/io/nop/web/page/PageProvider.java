@@ -18,6 +18,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.concurrent.executor.ExecutorHelper;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.lang.impl.Cancellable;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.i18n.I18nMessageManager;
@@ -186,7 +187,7 @@ public class PageProvider extends ResourceWithHistoryProvider {
         return data;
     }
 
-    Object transformPermissions(Object value) {
+    protected Object transformPermissions(Object value) {
         Map<String, Object> map = (Map<String, Object>) value;
         Object perms = map.remove(WebConstants.ATTR_XUI_PERMISSIONS);
         if (perms == null)
@@ -194,7 +195,9 @@ public class PageProvider extends ResourceWithHistoryProvider {
 
         Set<String> permissions = ConvertHelper.toCsvSet(perms);
         Set<String> roles = rolePermissionMapping.getRolesWithPermission(permissions);
-        map.put(WebConstants.ATTR_XUI_ROLES, roles);
+        Set<String> oldRoles = ConvertHelper.toCsvSet(map.get(WebConstants.ATTR_XUI_ROLES));
+        Set<String> merged = CollectionHelper.mergeSet(roles, oldRoles);
+        map.put(WebConstants.ATTR_XUI_ROLES, merged);
         return map;
     }
 
