@@ -27,5 +27,21 @@
                 </bo:DoFindPage>
             </source>
         </query>
+
+        <query name="testDynamicItem">
+            <arg name="id" type="String" />
+            <return>
+                <schema x:extends="ItemSchema.schema.xml" />
+            </return>
+
+            <source>
+               import io.nop.auth.service.biz.ItemData;
+
+               const ret = new ItemData();
+               ret.name = "a";
+               ret.rows = [];
+               return ret;
+            </source>
+        </query>
     </actions>
 </biz>

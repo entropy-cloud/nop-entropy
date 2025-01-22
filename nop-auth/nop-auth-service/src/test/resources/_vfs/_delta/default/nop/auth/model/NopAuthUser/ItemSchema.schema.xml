@@ -1,0 +1,15 @@
+<schema x:schema="/nop/schema/schema/schema.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <props>
+        <prop name="name">
+            <schema type="String"/>
+        </prop>
+
+        <prop name="rows" graphql:type="[NopAuthUser]" />
+
+        <prop name="rows2">
+            <schema>
+                <item bizObjName="NopAuthUser" />
+            </schema>
+        </prop>
+    </props>
+</schema>
