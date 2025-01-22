@@ -17,4 +17,6 @@ public interface IRegex {
     }
 
     List<String> exec(String text);
+
+    List<String> match(String text);
 }

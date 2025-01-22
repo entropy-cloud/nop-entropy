@@ -45,4 +45,17 @@ public class JdkRegex implements IRegex {
             return null;
         }
     }
+
+    @Override
+    public List<String> match(String text) {
+        if (StringHelper.isEmpty(text))
+            return null;
+
+        Matcher matcher = pattern.matcher(text);
+        List<String> ret = new ArrayList<>();
+        while (matcher.find()) {
+            ret.add(matcher.group());
+        }
+        return ret.isEmpty() ? null : ret;
+    }
 }

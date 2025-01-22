@@ -17,6 +17,7 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestRegex {
     @Test
@@ -68,5 +69,25 @@ public class TestRegex {
         list = regex2.exec(fullGenericTypeName);
         String simpleName = list.get(1);
         assertEquals("SimpleDomainServiceDto", simpleName);
+    }
+
+    @Test
+    public void checkIRegexMatch() {
+        String input = "xxxxAA10002 BB10022 abcdefAA10003saasdsd";
+        // 正则表达式, 提取匹配的字符串
+        String regexString = "(AA\\d{4,}|BB\\d{4,})";
+        IRegex regex = RegexHelper.compileRegex(regexString);
+
+        List<String> list = regex.match(input);
+        assertEquals(3, list.size());
+        assertEquals("AA10002", list.get(0));
+        assertEquals("BB10022", list.get(1));
+        assertEquals("AA10003", list.get(2));
+
+        // 正则表达式, 不匹配应该返回 null
+        String regexString2 = "(CC.*)";
+        IRegex regex2 = RegexHelper.compileRegex(regexString2);
+        List<String> list2 = regex2.match(input);
+        assertNull(list2);
     }
 }
