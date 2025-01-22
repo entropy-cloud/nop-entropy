@@ -287,6 +287,19 @@ public class DateHelper {
         return LocalDate.parse(s, formatter);
     }
 
+    public static LocalDate safeParseDate(String s, String ...patterns) {
+        if (StringHelper.isEmpty(s))
+            return null;
+        for(String pattern : patterns) {
+            try {
+                DateTimeFormatter formatter = buildFormatter(pattern);
+                return LocalDate.parse(s, formatter);
+            } catch (Exception ignore) {
+            }
+        }
+        return null;
+    }
+
     public static LocalDateTime parseDateTime(String s, String pattern) {
         if (StringHelper.isEmpty(s))
             return null;

@@ -17,6 +17,7 @@ import java.time.ZoneOffset;
 import java.util.TimeZone;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestDateHelper {
 
@@ -80,5 +81,15 @@ public class TestDateHelper {
         String str = ConvertHelper.toString(dateTime);
         System.out.println(str);
         assertEquals(str, DateHelper.formatDateTime(dateTime, "yyyy-MM-dd HH:mm:ss"));
+    }
+
+    @Test
+    public void testSafeParseDate() {
+        String[] patterns = new String[]{"yyyyMMdd", "yyyy-MM-dd", "yyyy/MM/dd", "yyMMdd"};
+        assertEquals(DateHelper.parseDate("2024-01-02"), DateHelper.safeParseDate("20240102", patterns));
+        assertEquals(DateHelper.parseDate("2024-01-02"), DateHelper.safeParseDate("2024-01-02", patterns));
+        assertEquals(DateHelper.parseDate("2024-01-02"), DateHelper.safeParseDate("2024/01/02", patterns));
+        assertEquals(DateHelper.parseDate("2024-01-02"), DateHelper.safeParseDate("240102", patterns));
+        assertNull(DateHelper.safeParseDate("2024_01_02", patterns));
     }
 }
