@@ -23,6 +23,7 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import java.lang.reflect.Type;
+import java.util.Map;
 import java.util.function.Function;
 
 import static io.nop.core.CoreConfigs.CFG_JSON_PARSE_IGNORE_UNKNOWN_PROP;
@@ -40,6 +41,8 @@ public class JsonTool {
     }
 
     public static Object parse(String str) {
+        if (StringHelper.isBlank(str))
+            return null;
         JsonParseOptions options = new JsonParseOptions();
         options.setStrictMode(true);
         return instance().parseFromText(null, str, options);
@@ -49,6 +52,10 @@ public class JsonTool {
         JsonParseOptions options = new JsonParseOptions();
         options.setStrictMode(false);
         return instance().parseFromText(null, str, options);
+    }
+
+    public static Map<String, Object> parseMap(String str) {
+        return (Map<String, Object>) parseNonStrict(str);
     }
 
     public static Object parseNonStrict(SourceLocation loc, String str) {

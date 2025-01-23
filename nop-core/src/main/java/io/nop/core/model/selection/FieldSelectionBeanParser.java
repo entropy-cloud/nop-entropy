@@ -11,6 +11,7 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.util.Symbol;
 import io.nop.commons.text.tokenizer.TextScanner;
+import io.nop.commons.util.StringHelper;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -21,6 +22,12 @@ import static io.nop.core.CoreErrors.ARG_NAME;
 import static io.nop.core.CoreErrors.ERR_SELECTION_INVALID_ARG_NAME;
 
 public class FieldSelectionBeanParser {
+    public static FieldSelectionBean fromText(SourceLocation loc, String text) {
+        if (StringHelper.isEmpty(text))
+            return null;
+        return new FieldSelectionBeanParser().parseFromText(loc, text);
+    }
+
     public FieldSelectionBean parseFromText(SourceLocation loc, String text) {
         TextScanner sc = TextScanner.fromString(loc, text);
         sc.skipBlank();
