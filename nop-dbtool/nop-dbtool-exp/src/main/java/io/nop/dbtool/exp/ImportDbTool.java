@@ -273,7 +273,7 @@ public class ImportDbTool {
         ResourceRecordLoaderProvider<S> loader = new ResourceRecordLoaderProvider<>();
         loader.setRecordIO(recordIO);
         loader.setResourcePath(resourcePath);
-        loader.setResourceLoader(inputResourceLoader);
+        loader.setResourceLocator(inputResourceLoader);
 
         if (tableConfig.getFilter() != null) {
             IBatchRecordFilter<S, IBatchTaskContext> filter = (record, ctx) ->

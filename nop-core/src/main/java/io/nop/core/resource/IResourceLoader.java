@@ -23,7 +23,7 @@ import java.util.function.Function;
 /**
  * 通过路径名可以定位资源文件，支持遍历文件树。
  */
-public interface IResourceLoader {
+public interface IResourceLoader extends IResourceLocator{
     IResource getResource(String path);
 
     default IResource makeResource(String path){

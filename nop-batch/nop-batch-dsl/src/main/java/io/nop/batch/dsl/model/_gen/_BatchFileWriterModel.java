@@ -74,10 +74,10 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     
     /**
      *  
-     * xml name: resourceLoader
+     * xml name: resourceLocator
      * 
      */
-    private java.lang.String _resourceLoader ;
+    private java.lang.String _resourceLocator ;
     
     /**
      * 
@@ -233,19 +233,19 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
     
     /**
      * 
-     * xml name: resourceLoader
+     * xml name: resourceLocator
      *  
      */
     
-    public java.lang.String getResourceLoader(){
-      return _resourceLoader;
+    public java.lang.String getResourceLocator(){
+      return _resourceLocator;
     }
 
     
-    public void setResourceLoader(java.lang.String value){
+    public void setResourceLocator(java.lang.String value){
         checkAllowChange();
         
-        this._resourceLoader = value;
+        this._resourceLocator = value;
            
     }
 
@@ -273,7 +273,7 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
         out.putNotNull("headers",this.getHeaders());
         out.putNotNull("newRecordOutputProvider",this.getNewRecordOutputProvider());
         out.putNotNull("resourceIO",this.getResourceIO());
-        out.putNotNull("resourceLoader",this.getResourceLoader());
+        out.putNotNull("resourceLocator",this.getResourceLocator());
     }
 
     public BatchFileWriterModel cloneInstance(){
@@ -293,7 +293,7 @@ public abstract class _BatchFileWriterModel extends io.nop.core.resource.compone
         instance.setHeaders(this.getHeaders());
         instance.setNewRecordOutputProvider(this.getNewRecordOutputProvider());
         instance.setResourceIO(this.getResourceIO());
-        instance.setResourceLoader(this.getResourceLoader());
+        instance.setResourceLocator(this.getResourceLocator());
     }
 
     protected BatchFileWriterModel newInstance(){

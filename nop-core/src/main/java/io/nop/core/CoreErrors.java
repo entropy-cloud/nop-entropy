@@ -428,6 +428,8 @@ public interface CoreErrors {
             "nop.err.core.resource.unknown-resource-not-allow-operation", "未知资源对象[{resourcePath}]不支持此操作",
             ARG_RESOURCE_PATH);
 
+    ErrorCode ERR_RESOURCE_NOT_FILE = define("nop.err.core.resource.not-file", "资源对象不是文件对象:{resource}", ARG_RESOURCE);
+
     ErrorCode ERR_RESOURCE_CREATE_TEMP_FILE_FAIL = define("nop.err.core.resource.create-temp-file-fail",
             "在目录{resource}下创建临时文件失败", ARG_RESOURCE);
 

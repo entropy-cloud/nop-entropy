@@ -46,12 +46,13 @@
 * 每个批处理任务包含一个loader, 多个processor，以及多个consumer。processor和consumer都是可选配置。
 
 ### CSV文件读写
+
 如果file-reader不配置fileModelPath，则缺省情况下会按照csv格式进行读写。
 
 * csvFormat 配置csv文件的格式，默认为DEFAULT。具体可用格式参见CSVFormat类。
 * headers 用于指定解析得到的字段名。缺省情况下使用文件第一行读取的Headers。如果指定，则会忽略第一行指定的Header，以这里指定的header为准。
-* headerLabels 如果指定了headerLabels，则只有匹配了headerLabels的列才会被保留，否则会被忽略。忽略列时会打印日志`nop.csv.ignore-header:header={}, allowed={}`。
-
+* headerLabels 如果指定了headerLabels，则只有匹配了headerLabels的列才会被保留，否则会被忽略。忽略列时会打印日志
+  `nop.csv.ignore-header:header={}, allowed={}`。
 
 ## 分区处理
 
@@ -135,7 +136,6 @@
 * allowInsert：如果发现数据不存在，是否允许插入数据，缺省为true。
 * allowUpdate：如果发现数据已经存在，是否允许更新数据，缺省为false。
 
-
 ## 参数传递
 
 1. IBatchTaskContext和IBatchChunkContext都提供了setAttribute/getAttribute方法，可以用于在整个批处理任务环境以及单个Chunk执行环境中共享数据。
@@ -150,14 +150,21 @@
 
 2. 在启用BatchTask的saveState属性的情况下，可以通过`IBatchTaskContext.getPersistVar/setPersistVar`来持久化保存变量信息。
 
+## 扩展
+
+* `loader/consumer`等都支持bean配置，可以直接指定IoC中的bean来实现加载器和处理器等。
+* `file-reader`和`file-writer`等支持resourceLocator配置，通过它可以定制资源路径到IResource资源对象的映射逻辑。缺省情况下使用ZipResourceLocator，
+  它自动识别`/a.zip!/entryNameInZip.txt`这种形式，可以从zip或者jar文件中加载指定文件。
 
 ## 常见问题
 
 ### 1. 数据文件中有两列数据，属性名分别为 a, b。 现在我要将这个文件导入数据库的 T1, T2 表， 属性 a 对应 T1表的字段 c1，属性 b 对应 T2表的字段 c1。 这种场景的映射关系怎么处理？
 
-如果使用ORM来保存，则在processor中直接调用`dao.xlib`中的`SaveEntity`标签，会自动延迟提交数据库操作，只是调用`ormSession.save`.
+如果使用ORM来保存，则在processor中直接调用`dao.xlib`中的`SaveEntity`标签，会自动延迟提交数据库操作，只是调用
+`ormSession.save`.
 
 ```xml
+
 <processor name="saveCustomer">
   <source>
     <dao:SaveEntity entityName="DemoCustomer" data="${{
@@ -176,6 +183,7 @@
 另外可以processor中调用多次consume来输出多个结果。 然后在writer中配置filter，过滤接收即可。
 
 ```xml
+
 <processor name="process">
   <source>
     ...
@@ -185,10 +193,10 @@
 </processor>
 
 <consumer name="saveResult1">
-  <filter>
-    return item.name == 'result1';
-  </filter>
+<filter>
+  return item.name == 'result1';
+</filter>
 
-  <file-writer filePath="result.csv"/>
+<file-writer filePath="result.csv"/>
 </consumer>
 ```

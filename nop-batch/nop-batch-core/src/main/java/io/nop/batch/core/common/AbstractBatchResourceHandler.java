@@ -11,21 +11,21 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.resource.IResource;
-import io.nop.core.resource.IResourceLoader;
+import io.nop.core.resource.IResourceLocator;
 
 public class AbstractBatchResourceHandler {
-    private IResourceLoader resourceLoader;
+    private IResourceLocator resourceLocator;
     private String resourcePath;
 
     private IEvalAction pathExpr;
     private IResource resource;
 
-    public IResourceLoader getResourceLoader() {
-        return resourceLoader;
+    public IResourceLocator getResourceLocator() {
+        return resourceLocator;
     }
 
-    public void setResourceLoader(IResourceLoader resourceLoader) {
-        this.resourceLoader = resourceLoader;
+    public void setResourceLocator(IResourceLocator resourceLocator) {
+        this.resourceLocator = resourceLocator;
     }
 
     public String getResourcePath() {
@@ -53,7 +53,7 @@ public class AbstractBatchResourceHandler {
             resourcePath = ConvertHelper.toString(pathExpr.invoke(context));
         }
 
-        return resourceLoader.getResource(resourcePath);
+        return resourceLocator.getResource(resourcePath);
     }
 
     public void onTaskEnd(Throwable exception, IBatchTaskContext context) {

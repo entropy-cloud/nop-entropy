@@ -261,7 +261,7 @@ public class ExportDbTool {
         ResourceRecordConsumerProvider<S> consumer = new ResourceRecordConsumerProvider<>();
         consumer.setRecordIO(recordIO);
         consumer.setResourcePath(resourcePath);
-        consumer.setResourceLoader(outputResourceLoader);
+        consumer.setResourceLocator(outputResourceLoader);
         return consumer;
     }
 }

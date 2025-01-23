@@ -18,10 +18,12 @@ import io.nop.batch.dsl.model.BatchFileWriterModel;
 import io.nop.batch.dsl.model.IBatchExcelIOModel;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.IResourceLoader;
+import io.nop.core.resource.IResourceLocator;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.record.IResourceRecordInputProvider;
 import io.nop.core.resource.record.IResourceRecordOutputProvider;
 import io.nop.core.resource.record.csv.CsvResourceRecordIO;
+import io.nop.core.resource.zip.ZipResourceLocator;
 import io.nop.record.resource.ModelBasedResourceRecordIO;
 import io.nop.report.core.record.ExcelIOConfig;
 import io.nop.report.core.record.ExcelResourceIO;
@@ -39,11 +41,11 @@ public class FileBatchSupport {
                                                              IBeanProvider beanContainer, boolean saveState,
                                                              IBatchAggregator<Object, Object, Map<String, Object>> aggregator) {
         IResourceRecordInputProvider<Object> recordIO = newRecordInputProvider(loaderModel, beanContainer);
-        IResourceLoader resourceLoader = loadResourceLoader(loaderModel.getResourceLoader(), beanContainer);
+        IResourceLocator resourceLoader = loadResourceLocator(loaderModel.getResourceLocator(), beanContainer);
 
         ResourceRecordLoaderProvider<Object> loader = new ResourceRecordLoaderProvider<>();
         loader.setRecordIO(recordIO);
-        loader.setResourceLoader(resourceLoader);
+        loader.setResourceLocator(resourceLoader);
         loader.setSaveState(Boolean.TRUE.equals(saveState));
 
         if (loaderModel.getMaxCountExpr() != null)
@@ -93,20 +95,20 @@ public class FileBatchSupport {
     public static ResourceRecordConsumerProvider<Object> newFileWriter(BatchFileWriterModel consumerModel,
                                                                        IBeanProvider beanContainer) {
         IResourceRecordOutputProvider<Object> recordIO = newRecordOutputProvider(consumerModel, beanContainer);
-        IResourceLoader resourceLoader = loadResourceLoader(consumerModel.getResourceLoader(), beanContainer);
+        IResourceLocator resourceLoader = loadResourceLocator(consumerModel.getResourceLocator(), beanContainer);
 
         ResourceRecordConsumerProvider<Object> writer = new ResourceRecordConsumerProvider<>();
         writer.setEncodingExpr(consumerModel.getEncoding());
         writer.setPathExpr(consumerModel.getFilePath());
         writer.setRecordIO(recordIO);
-        writer.setResourceLoader(resourceLoader);
+        writer.setResourceLocator(resourceLoader);
         return writer;
     }
 
-    private static IResourceLoader loadResourceLoader(String loaderBean, IBeanProvider beanContainer) {
+    private static IResourceLocator loadResourceLocator(String loaderBean, IBeanProvider beanContainer) {
         if (loaderBean != null)
             return (IResourceLoader) beanContainer.getBean(loaderBean);
-        return VirtualFileSystem.instance();
+        return ZipResourceLocator.INSTANCE;
     }
 
     private static IResourceRecordOutputProvider<Object> newRecordOutputProvider(BatchFileWriterModel writerModel, IBeanProvider beanContainer) {
@@ -142,7 +144,7 @@ public class FileBatchSupport {
 
         ResourceRecordLoaderProvider<Object> loader = new ResourceRecordLoaderProvider<>();
         loader.setRecordIO(recordIO);
-        loader.setResourceLoader(VirtualFileSystem.instance());
+        loader.setResourceLocator(VirtualFileSystem.instance());
         loader.setSaveState(Boolean.TRUE.equals(saveState));
 
 //        if (loaderModel.getMaxCountExpr() != null)

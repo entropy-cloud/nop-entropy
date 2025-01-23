@@ -70,14 +70,14 @@
 
         @filePath 用于定位数据文件。支持表达式，支持使用${}引用变量
         @encoding 文件编码，缺省值为UTF-8
-        @resourceLoader 用于定位filePath对应的数据文件。如果不指定，则使用VirtualFileSystem
+        @resourceLocator 用于定位filePath对应的数据文件。如果不指定，则使用ZipResourceLocator
         @resourceIO 指定resourceIO对应的bean的名称。用于读取数据文件，如果不指定，则使用newRecordInputProvider，或者根据fileModelPath自动生成
         @maxCount 读取的最大记录数，缺省值为-1，表示不限制
         @fileModelPath 文件模型路径。当没有指定resourceIO和newRecordInputProvider时，根据fileModelPath自动生成resourceIO
         -->
         <file-reader filePath="!t-expr" xdef:name="BatchFileReaderModel" encoding="t-expr"
                      csvFormat="string"
-                     resourceLoader="bean-name" resourceIO="bean-name" maxCountExpr="expr" fileModelPath="v-path">
+                     resourceLocator="bean-name" resourceIO="bean-name" maxCountExpr="expr" fileModelPath="v-path">
             <!-- 动态创建resourceIO -->
             <newRecordInputProvider xdef:value="xpl"/>
 
@@ -149,7 +149,7 @@
 
         <file-writer filePath="!t-expr" xdef:name="BatchFileWriterModel" encoding="t-expr"
                      csvFormat="string"
-                     resourceLoader="bean-name" resourceIO="bean-name" fileModelPath="v-path">
+                     resourceLocator="bean-name" resourceIO="bean-name" fileModelPath="v-path">
             <newRecordOutputProvider xdef:value="xpl"/>
             <headers xdef:value="csv-list"/>
             <headerLabels xdef:value="csv-list"/>

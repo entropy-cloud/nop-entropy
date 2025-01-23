@@ -46,10 +46,7 @@ public class ZipEntryResource extends AbstractResource {
 
     @Override
     public String getExternalPath() {
-        String protocol = "zip";
-        if (zipFile.getName().endsWith("jar")) {
-            protocol = "jar";
-        }
+        String protocol = "jar";
         String url = protocol + "://" + FileHelper.getCanonicalPath(new File(zipFile.getName())) + "!/"
                 + entry.getName();
         return url;

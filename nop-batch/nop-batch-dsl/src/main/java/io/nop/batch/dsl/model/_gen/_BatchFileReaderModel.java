@@ -95,10 +95,10 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      *  
-     * xml name: resourceLoader
-     * 用于定位filePath对应的数据文件。如果不指定，则使用VirtualFileSystem
+     * xml name: resourceLocator
+     * 用于定位filePath对应的数据文件。如果不指定，则使用ZipResourceLocator
      */
-    private java.lang.String _resourceLoader ;
+    private java.lang.String _resourceLocator ;
     
     /**
      * 
@@ -311,19 +311,19 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
     
     /**
      * 
-     * xml name: resourceLoader
-     *  用于定位filePath对应的数据文件。如果不指定，则使用VirtualFileSystem
+     * xml name: resourceLocator
+     *  用于定位filePath对应的数据文件。如果不指定，则使用ZipResourceLocator
      */
     
-    public java.lang.String getResourceLoader(){
-      return _resourceLoader;
+    public java.lang.String getResourceLocator(){
+      return _resourceLocator;
     }
 
     
-    public void setResourceLoader(java.lang.String value){
+    public void setResourceLocator(java.lang.String value){
         checkAllowChange();
         
-        this._resourceLoader = value;
+        this._resourceLocator = value;
            
     }
 
@@ -354,7 +354,7 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
         out.putNotNull("maxCountExpr",this.getMaxCountExpr());
         out.putNotNull("newRecordInputProvider",this.getNewRecordInputProvider());
         out.putNotNull("resourceIO",this.getResourceIO());
-        out.putNotNull("resourceLoader",this.getResourceLoader());
+        out.putNotNull("resourceLocator",this.getResourceLocator());
     }
 
     public BatchFileReaderModel cloneInstance(){
@@ -377,7 +377,7 @@ public abstract class _BatchFileReaderModel extends io.nop.core.resource.compone
         instance.setMaxCountExpr(this.getMaxCountExpr());
         instance.setNewRecordInputProvider(this.getNewRecordInputProvider());
         instance.setResourceIO(this.getResourceIO());
-        instance.setResourceLoader(this.getResourceLoader());
+        instance.setResourceLocator(this.getResourceLocator());
     }
 
     protected BatchFileReaderModel newInstance(){

@@ -358,7 +358,7 @@ public class ModelBasedBatchTaskBuilderFactory {
         BatchGenLoaderProvider<Object> provider = new BatchGenLoaderProvider<>();
         provider.setTotalCount(totalCountExpr);
         provider.setResourcePath(genModelPath);
-        provider.setResourceLoader(VirtualFileSystem.instance());
+        provider.setResourceLocator(VirtualFileSystem.instance());
         return provider;
     }
 
