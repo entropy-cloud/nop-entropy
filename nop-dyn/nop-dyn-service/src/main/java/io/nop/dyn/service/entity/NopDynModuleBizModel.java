@@ -94,6 +94,7 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> {
     @BizMutation
     public void generateByAI(@Name("response") String response) {
         OrmModel ormModel = new GptCodeGen().generateOrmModel(response);
+        ormModel.init();
         IEntityDao<NopDynModule> dao = dao();
         NopDynModule entity = dao.newEntity();
         entity.setStatus(NopDynDaoConstants.APP_STATUS_UNPUBLISHED);
