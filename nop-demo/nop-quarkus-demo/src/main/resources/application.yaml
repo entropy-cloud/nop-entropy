@@ -77,7 +77,7 @@ nop:
 
     auth:
       login:
-        allow-create-default-user: false # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test
+        allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码nop-test
 
     datasource:
       driver-class-name: org.h2.Driver
@@ -101,7 +101,7 @@ nop:
 
     ioc:
       app-beans-container:
-        concurrent-start: true
+        concurrent-start: false
 
 # devservices 会启用testcontainers来管理测试数据库
 quarkus:
