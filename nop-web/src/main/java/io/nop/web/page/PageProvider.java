@@ -197,7 +197,7 @@ public class PageProvider extends ResourceWithHistoryProvider {
         Set<String> roles = rolePermissionMapping.getRolesWithPermission(permissions);
         Set<String> oldRoles = ConvertHelper.toCsvSet(map.get(WebConstants.ATTR_XUI_ROLES));
         Set<String> merged = CollectionHelper.mergeSet(roles, oldRoles);
-        map.put(WebConstants.ATTR_XUI_ROLES, merged);
+        map.put(WebConstants.ATTR_XUI_ROLES, StringHelper.join(merged,","));
         return map;
     }
 
