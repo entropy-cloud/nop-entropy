@@ -497,9 +497,9 @@
                 <column code="EVENT_NAME" displayName="事件名称" mandatory="true" name="eventName" precision="100"
                         propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Event Name"/>
                 <column code="EVENT_HEADERS" displayName="事件元数据" mandatory="true" name="eventHeaders" precision="4000"
-                        propId="4" stdDataType="any" stdSqlType="JSON" i18n-en:displayName="Headers"/>
+                        propId="4" stdDataType="string" stdSqlType="JSON" i18n-en:displayName="Headers"/>
                 <column code="EVENT_DATA" displayName="数据" mandatory="true" name="eventData" precision="4000" propId="5"
-                        stdDataType="any" stdSqlType="JSON" i18n-en:displayName="Data"/>
+                        stdDataType="string" stdSqlType="JSON" i18n-en:displayName="Data"/>
                 <column code="SELECTION" displayName="字段选择" name="selection" precision="1000" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Field Selections"/>
                 <column code="EVENT_TIME" displayName="事件时间" mandatory="true" name="eventTime" propId="7"

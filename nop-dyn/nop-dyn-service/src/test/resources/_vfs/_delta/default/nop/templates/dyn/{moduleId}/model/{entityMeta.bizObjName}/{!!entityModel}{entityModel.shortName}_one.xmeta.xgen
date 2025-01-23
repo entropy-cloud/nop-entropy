@@ -1,0 +1,26 @@
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:dump="true">
+  <entityName>${entityModel.name}</entityName>
+
+  <primaryKey>${_.join(entityModel.pkColumnNames,',')}</primaryKey>
+  <c:script>const dispCol = entityModel.getColumnByTag('disp')</c:script>
+  <displayProp xpl:if="dispCol">${dispCol.name}</displayProp>
+
+  <c:print>
+    <x:gen-extends111>
+      <meta-reload:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-reload.xlib"/>
+    </x:gen-extends111>
+
+    <x:post-extends>
+      <meta-reload:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-reload.xlib"/>
+    </x:post-extends>
+  </c:print>
+
+  <c:import from="/nop/codegen/xlib/meta-gen.xlib"/>
+
+  <props>
+    <c:for var="col" items="${entityModel.columns}">
+      <prop name="${col.name}___11111" displayName="${col.displayName}" propId="${col.propId}"/>
+    </c:for>
+  </props>
+  <meta-gen:GenMetaExt entityModel="${entityModel}" xpl:lib="/nop/codegen/xlib/meta-gen.xlib"/>
+</meta>

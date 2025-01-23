@@ -88,7 +88,7 @@ public enum StdSqlType implements ISqlDataType {
     // ROW(PrecScale.NO_NO, false, Types.STRUCT, null),
     OTHER(false, false, Types.OTHER, StdDataType.ANY),
 
-    JSON(false, false, Types.JAVA_OBJECT, StdDataType.ANY),
+    JSON(false, false, Types.VARCHAR, StdDataType.STRING),
 
     ANY(false, false, Types.JAVA_OBJECT, StdDataType.ANY),
     // CURSOR(PrecScale.NO_NO, false, ExtraSqlTypes.REF_CURSOR,

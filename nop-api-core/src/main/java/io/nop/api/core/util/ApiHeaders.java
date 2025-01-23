@@ -13,6 +13,7 @@ import io.nop.api.core.beans.ApiMessage;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 
+import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -314,6 +315,30 @@ public class ApiHeaders {
 
     public static void setSvcName(ApiMessage message, String value) {
         message.setHeader(ApiConstants.HEADER_SVC_NAME, value);
+    }
+
+    public static String getTopic(ApiMessage message) {
+        return getStringHeader(message.getHeaders(), ApiConstants.HEADER_TOPIC);
+    }
+
+    public static void setTopic(ApiMessage message, String value) {
+        message.setHeader(ApiConstants.HEADER_TOPIC, value);
+    }
+
+    public static Timestamp getEventTime(ApiMessage message) {
+        return ConvertHelper.toTimestamp(getHeader(message.getHeaders(), ApiConstants.HEADER_EVENT_TIME));
+    }
+
+    public static void setEventTime(ApiMessage message, Timestamp value) {
+        message.setHeader(ApiConstants.HEADER_EVENT_TIME, ConvertHelper.toLong(value));
+    }
+
+    public static Timestamp getProcessTime(ApiMessage message) {
+        return ConvertHelper.toTimestamp(getHeader(message.getHeaders(), ApiConstants.HEADER_PROCESS_TIME));
+    }
+
+    public static void setProcessTime(ApiMessage message, Timestamp value) {
+        message.setHeader(ApiConstants.HEADER_PROCESS_TIME, ConvertHelper.toLong(value));
     }
 
     public static String getSvcAction(ApiMessage message) {

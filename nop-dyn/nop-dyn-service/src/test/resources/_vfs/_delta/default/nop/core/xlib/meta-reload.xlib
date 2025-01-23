@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdsl="xdsl" xmlns:xpl="xpl" xmlns:c="c" xmlns:ui="ui">
+
+    <tags>
+        <DefaultMetaPostExtends outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <c:script>
+                    logInfo("DefaultM2222___{}", _dsl_root)
+                </c:script>
+                <thisLib:GenDictLabelFields/>
+            </source>
+        </DefaultMetaPostExtends>
+
+
+        <GenDictLabelFields outputMode="node">
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <meta>
+                    <props>
+                        <c:for var="prop" items="${_dsl_root.childByTag('props').children}">
+                            <c:script><![CDATA[
+                        let name = prop.attrText('name');
+                        if(name.endsWith("_label"))
+                            continue;
+
+                        let dict = prop.childAttr('schema','dict');
+                        if(!dict)
+                            continue;
+                    ]]></c:script>
+
+                            <prop name="${name}" graphql:labelProp="${name}_label"
+                                  xpl:if="!prop.hasAttr('graphql:labelProp')">
+                            </prop>
+
+                            <prop name="${name}_label" displayName="${prop.getAttr('displayName')}" internal="true"
+                                  graphql:dictName="${dict}" graphql:dictValueProp="${name}">
+                                <schema type="String"/>
+                            </prop>
+                        </c:for>
+                    </props>
+                </meta>
+            </source>
+        </GenDictLabelFields>
+    </tags>
+</lib>

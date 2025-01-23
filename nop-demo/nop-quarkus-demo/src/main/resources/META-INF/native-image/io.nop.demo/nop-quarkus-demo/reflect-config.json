@@ -2872,6 +2872,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.commons.functional.ChainedAsyncFunctionInvoker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.commons.lang.IAttributeSet"
   },
   {
@@ -6317,6 +6327,26 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.graphql.core.audit.DefaultGraphQLAuditer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.core.audit.GraphQLAuditOperationInvoker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.graphql.core.biz.GraphQLQueryMethod"
   },
   {
@@ -6365,6 +6395,16 @@
       }
     ],
     "name": "io.nop.graphql.core.engine.GraphQLEngine"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.core.engine.GraphQLTransactionOperationInvoker"
   },
   {
     "allDeclaredConstructors": true,
@@ -9679,6 +9719,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.sys.dao.entity.NopSysServiceInstance"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysUserVariable"
   },
   {
@@ -9855,6 +9905,21 @@
       }
     ],
     "name": "io.nop.sys.dao.entity._gen._NopSysSequence"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.sys.dao.entity._gen._NopSysServiceInstance"
   },
   {
     "allDeclaredConstructors": true,
@@ -10075,6 +10140,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.sys.service.entity.NopSysSequenceBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysServiceInstanceBizModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -10504,7 +10579,14 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "transformPermissions",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      }
+    ],
     "name": "io.nop.web.page.PageProvider"
   },
   {

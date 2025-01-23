@@ -192,10 +192,10 @@ public class _NopSysEvent extends DynamicOrmEntity{
     private java.lang.String _eventName;
     
     /* 事件元数据: EVENT_HEADERS */
-    private java.lang.Object _eventHeaders;
+    private java.lang.String _eventHeaders;
     
     /* 数据: EVENT_DATA */
-    private java.lang.Object _eventData;
+    private java.lang.String _eventData;
     
     /* 字段选择: SELECTION */
     private java.lang.String _selection;
@@ -424,9 +424,9 @@ public class _NopSysEvent extends DynamicOrmEntity{
             }
         
             case PROP_ID_eventHeaders:{
-               java.lang.Object typedValue = null;
+               java.lang.String typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toObject(value,
+                   typedValue = ConvertHelper.toString(value,
                        err-> newTypeConversionError(PROP_NAME_eventHeaders));
                }
                setEventHeaders(typedValue);
@@ -434,9 +434,9 @@ public class _NopSysEvent extends DynamicOrmEntity{
             }
         
             case PROP_ID_eventData:{
-               java.lang.Object typedValue = null;
+               java.lang.String typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toObject(value,
+                   typedValue = ConvertHelper.toString(value,
                        err-> newTypeConversionError(PROP_NAME_eventData));
                }
                setEventData(typedValue);
@@ -635,14 +635,14 @@ public class _NopSysEvent extends DynamicOrmEntity{
         
             case PROP_ID_eventHeaders:{
                onInitProp(propId);
-               this._eventHeaders = (java.lang.Object)value;
+               this._eventHeaders = (java.lang.String)value;
                
                break;
             }
         
             case PROP_ID_eventData:{
                onInitProp(propId);
-               this._eventData = (java.lang.Object)value;
+               this._eventData = (java.lang.String)value;
                
                break;
             }
@@ -825,7 +825,7 @@ public class _NopSysEvent extends DynamicOrmEntity{
     /**
      * 事件元数据: EVENT_HEADERS
      */
-    public final java.lang.Object getEventHeaders(){
+    public final java.lang.String getEventHeaders(){
          onPropGet(PROP_ID_eventHeaders);
          return _eventHeaders;
     }
@@ -833,7 +833,7 @@ public class _NopSysEvent extends DynamicOrmEntity{
     /**
      * 事件元数据: EVENT_HEADERS
      */
-    public final void setEventHeaders(java.lang.Object value){
+    public final void setEventHeaders(java.lang.String value){
         if(onPropSet(PROP_ID_eventHeaders,value)){
             this._eventHeaders = value;
             internalClearRefs(PROP_ID_eventHeaders);
@@ -844,7 +844,7 @@ public class _NopSysEvent extends DynamicOrmEntity{
     /**
      * 数据: EVENT_DATA
      */
-    public final java.lang.Object getEventData(){
+    public final java.lang.String getEventData(){
          onPropGet(PROP_ID_eventData);
          return _eventData;
     }
@@ -852,7 +852,7 @@ public class _NopSysEvent extends DynamicOrmEntity{
     /**
      * 数据: EVENT_DATA
      */
-    public final void setEventData(java.lang.Object value){
+    public final void setEventData(java.lang.String value){
         if(onPropSet(PROP_ID_eventData,value)){
             this._eventData = value;
             internalClearRefs(PROP_ID_eventData);

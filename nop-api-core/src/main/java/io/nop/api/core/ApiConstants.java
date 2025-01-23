@@ -113,6 +113,12 @@ public interface ApiConstants extends FilterBeanConstants {
 
     String HEADER_SVC_NAME = "nop-svc-name";
 
+    String HEADER_TOPIC = "nop-topic";
+
+    String HEADER_EVENT_TIME = "nop-event-time";
+
+    String HEADER_PROCESS_TIME = "nop-process-time";
+
     /**
      * 业务对象上执行的方法
      */

@@ -33,11 +33,11 @@
         </prop>
         <prop name="eventHeaders" displayName="事件元数据" propId="4" i18n-en:displayName="Headers" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.Object" precision="4000"/>
+            <schema type="java.lang.String" precision="4000"/>
         </prop>
         <prop name="eventData" displayName="数据" propId="5" i18n-en:displayName="Data" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.Object" precision="4000"/>
+            <schema type="java.lang.String" precision="4000"/>
         </prop>
         <prop name="selection" displayName="字段选择" propId="6" i18n-en:displayName="Field Selections" queryable="true"
               sortable="true" insertable="true" updatable="true">

@@ -9,11 +9,14 @@ import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
+import io.nop.message.core.MessageCoreConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -115,6 +118,26 @@ public class LocalMessageService implements IMessageService {
                 return subscription;
         }
         return null;
+    }
+
+    public Set<String> getBroadcastTopics() {
+        Set<String> ret = new TreeSet<>();
+        for (String topic : consumers.keySet()) {
+            if (topic.startsWith(MessageCoreConstants.TOPIC_PREFIX_BROADCAST)) {
+                ret.add(topic);
+            }
+        }
+        return ret;
+    }
+
+    public Set<String> getNonBroadcastTopics() {
+        Set<String> ret = new TreeSet<>();
+        for (String topic : consumers.keySet()) {
+            if (!topic.startsWith(MessageCoreConstants.TOPIC_PREFIX_BROADCAST)) {
+                ret.add(topic);
+            }
+        }
+        return ret;
     }
 
     @Override

@@ -320,6 +320,7 @@
 /nop/core/xlib/biz!when.xlib
 /nop/core/xlib/biz-gen.xlib
 /nop/core/xlib/biz.xlib
+/nop/core/xlib/dsl-gen.xlib
 /nop/core/xlib/file.xlib
 /nop/core/xlib/filter.xlib
 /nop/core/xlib/meta-gen.xlib
@@ -854,6 +855,10 @@
 /nop/sys/model/NopSysSequence/NopSysSequence.xmeta
 /nop/sys/model/NopSysSequence/_NopSysSequence.xbiz
 /nop/sys/model/NopSysSequence/_NopSysSequence.xmeta
+/nop/sys/model/NopSysServiceInstance/NopSysServiceInstance.xbiz
+/nop/sys/model/NopSysServiceInstance/NopSysServiceInstance.xmeta
+/nop/sys/model/NopSysServiceInstance/_NopSysServiceInstance.xbiz
+/nop/sys/model/NopSysServiceInstance/_NopSysServiceInstance.xmeta
 /nop/sys/model/NopSysUserVariable/NopSysUserVariable.xbiz
 /nop/sys/model/NopSysUserVariable/NopSysUserVariable.xmeta
 /nop/sys/model/NopSysUserVariable/_NopSysUserVariable.xbiz
@@ -929,6 +934,11 @@
 /nop/sys/pages/NopSysSequence/_gen/_NopSysSequence.view.xml
 /nop/sys/pages/NopSysSequence/main.page.yaml
 /nop/sys/pages/NopSysSequence/picker.page.yaml
+/nop/sys/pages/NopSysServiceInstance/NopSysServiceInstance.lib.xjs
+/nop/sys/pages/NopSysServiceInstance/NopSysServiceInstance.view.xml
+/nop/sys/pages/NopSysServiceInstance/_gen/_NopSysServiceInstance.view.xml
+/nop/sys/pages/NopSysServiceInstance/main.page.yaml
+/nop/sys/pages/NopSysServiceInstance/picker.page.yaml
 /nop/sys/pages/NopSysUserVariable/NopSysUserVariable.lib.js
 /nop/sys/pages/NopSysUserVariable/NopSysUserVariable.lib.xjs
 /nop/sys/pages/NopSysUserVariable/NopSysUserVariable.view.xml

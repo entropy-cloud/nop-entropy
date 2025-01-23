@@ -79,6 +79,8 @@ public class TestDynCodeGen extends JunitBaseTestCase {
             codeGen.reloadModel();
         });
 
+      //  bizObjectManager.getBizObject("MyDynEntity_one");
+
         ormTemplate.runInSession(() -> {
 
             IEntityDao<NopDynEntity> dao = daoProvider.dao("MyDynEntity");

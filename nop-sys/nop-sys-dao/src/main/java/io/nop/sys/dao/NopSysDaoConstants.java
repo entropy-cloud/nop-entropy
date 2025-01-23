@@ -16,7 +16,5 @@ public interface NopSysDaoConstants extends _NopSysDaoConstants {
 
     String RESOURCE_GROUP_DEFAULT = "default";
 
-    String TOPIC_PREFIX_BROADCAST = "bro-";
-    String TOPIC_PREFIX_BATCH = "bat-";
-    String TOPIC_PREFIX_REPLY = "reply-";
+
 }
