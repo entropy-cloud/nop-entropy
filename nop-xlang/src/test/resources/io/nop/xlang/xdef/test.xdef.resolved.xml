@@ -74,8 +74,8 @@
                 <attr xdef:ref="/test/test.xdef#XplTagAttribute" xdef:ref-resolved="true" defaultValue="string"
                       deprecated="boolean" displayName="string" domain="var-name" implicit="boolean" mandatory="boolean"
                       name="!xml-name" optional="boolean=true" type="generic-type" var="var-name"
-                      xdef:allow-multiple="true" xdef:bean-class="io.nop.xlang.xpl.xlib.model.XplTagAttribute"
-                      xdef:bean-prop="attrs">
+                      xdef:allow-multiple="true" xdef:support-extends="true"
+                      xdef:bean-class="io.nop.xlang.xpl.xlib.model.XplTagAttribute" xdef:bean-prop="attrs">
                     <description xdef:ref="@7@/test/test.xdef"/>
                 </attr>
                 <description xdef:value="string"/>
@@ -84,23 +84,24 @@
 
             <!--对标签的参数进行校验-->
             <validator xdef:ref="/test/test-filter.xdef" xdef:ref-resolved="true" xdef:body-type="list"
-                       xdef:bean-class="io.nop.api.support.beans.TreeBean"
+                       xdef:support-extends="true" xdef:bean-class="io.nop.api.support.beans.TreeBean"
                        xdef:bean-body-type="java.util.List&lt;io.nop.api.support.beans.TreeBean&gt;"
                        xdef:bean-tag-prop="$type" xdef:bean-body-prop="$body">
                 <and xdef:ref="/test/test-filter.xdef#FilterCondition" xdef:ref-resolved="true"
                      xdef:id="@2@/test/test-filter.xdef" xdef:body-type="list" xdef:allow-multiple="true"
-                     xdef:bean-class="io.nop.api.support.beans.TreeBean"
+                     xdef:support-extends="true" xdef:bean-class="io.nop.api.support.beans.TreeBean"
                      xdef:bean-body-type="java.util.List&lt;io.nop.api.support.beans.TreeBean&gt;"
                      xdef:bean-tag-prop="$type" xdef:bean-body-prop="$body">
                     <and xdef:ref="@2@/test/test-filter.xdef"/>
 
                     <!--小于-->
                     <lt xdef:ref="/test/test-filter.xdef#SimpleFilterNode" xdef:ref-resolved="true" name="!string"
-                        value="number" xdef:allow-multiple="true" xdef:bean-class="io.nop.api.support.beans.TreeBean"
-                        xdef:bean-tag-prop="$type" xdef:id="@4@/test/test-filter.xdef"/>
+                        value="number" xdef:allow-multiple="true" xdef:support-extends="true"
+                        xdef:bean-class="io.nop.api.support.beans.TreeBean" xdef:bean-tag-prop="$type"
+                        xdef:id="@4@/test/test-filter.xdef"/>
                     <or xdef:ref="/test/test-filter.xdef#FilterCondition" xdef:ref-resolved="true"
                         xdef:id="@3@/test/test-filter.xdef" xdef:body-type="list" xdef:allow-multiple="true"
-                        xdef:bean-class="io.nop.api.support.beans.TreeBean"
+                        xdef:support-extends="true" xdef:bean-class="io.nop.api.support.beans.TreeBean"
                         xdef:bean-body-type="java.util.List&lt;io.nop.api.support.beans.TreeBean&gt;"
                         xdef:bean-tag-prop="$type" xdef:bean-body-prop="$body">
                         <and xdef:ref="@2@/test/test-filter.xdef"/>
@@ -110,10 +111,11 @@
                         <!--时间在指定范围之内-->
                         <timeBetween xdef:ref="/test/test-filter.xdef#SimpleFilterNode" xdef:ref-resolved="true"
                                      excludeMax="boolean" excludeMin="boolean" max="time" min="time" name="!string"
-                                     xdef:allow-multiple="true" xdef:bean-class="io.nop.api.support.beans.TreeBean"
-                                     xdef:bean-tag-prop="$type" xdef:id="@5@/test/test-filter.xdef"/>
+                                     xdef:allow-multiple="true" xdef:support-extends="true"
+                                     xdef:bean-class="io.nop.api.support.beans.TreeBean" xdef:bean-tag-prop="$type"
+                                     xdef:id="@5@/test/test-filter.xdef"/>
                         <xdef:unknown-tag xdef:ref="/test/test-filter.xdef#SimpleFilterNode" xdef:ref-resolved="true"
-                                          xdef:unknown-attr="any" xdef:allow-multiple="true"
+                                          xdef:unknown-attr="any" xdef:allow-multiple="true" xdef:support-extends="true"
                                           xdef:bean-class="io.nop.api.support.beans.TreeBean" xdef:bean-tag-prop="$type"
                                           xdef:id="@6@/test/test-filter.xdef"/>
                     </or>
