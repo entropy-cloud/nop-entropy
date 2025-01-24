@@ -516,6 +516,10 @@ public class FileHelper {
         return "file:" + (path.startsWith("/") ? "" : "/") + path;
     }
 
+    public static String buildFileUrl(String path) {
+        return "file:" + (path.startsWith("/") ? "" : "/") + path;
+    }
+
     public static String getJarEntryUrl(File file, String entryName) {
 
         return "jar:" + getFileUrl(file) + "!" + (entryName.startsWith("/") ? "" : "/") + entryName;
