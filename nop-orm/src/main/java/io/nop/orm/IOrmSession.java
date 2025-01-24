@@ -143,11 +143,25 @@ public interface IOrmSession extends AutoCloseable {
      */
     Object save(IOrmEntity entity);
 
-    Object saveDirectly(IOrmEntity entity);
+    default Object saveDirectly(IOrmEntity entity) {
+        return saveDirectly(entity, true);
+    }
 
-    void updateDirectly(IOrmEntity entity);
+    default void updateDirectly(IOrmEntity entity) {
+        updateDirectly(entity, true);
+    }
 
-    void deleteDirectly(IOrmEntity entity);
+    default void deleteDirectly(IOrmEntity entity) {
+        deleteDirectly(entity, true);
+    }
+
+    Object saveDirectly(IOrmEntity entity, boolean flushActionQueue);
+
+    void updateDirectly(IOrmEntity entity, boolean flushActionQueue);
+
+    void deleteDirectly(IOrmEntity entity, boolean flushActionQueue);
+
+    void flushActionQueue();
 
     /**
      * 重新从数据库中加载数据，放弃当前对象上的修改

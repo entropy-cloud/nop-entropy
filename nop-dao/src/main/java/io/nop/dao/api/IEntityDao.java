@@ -105,6 +105,8 @@ public interface IEntityDao<T extends IDaoEntity> {
 
     void updateEntityDirectly(T entity);
 
+    void updateEntitiesDirectly(Collection<T> entities);
+
     void deleteEntityDirectly(T entity);
 
     void saveOrUpdateEntity(T entity);

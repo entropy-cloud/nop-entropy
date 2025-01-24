@@ -316,6 +316,17 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
     }
 
     @Override
+    public void updateManyDirectly(Collection<? extends IOrmEntity> entities) {
+        runInSession(session -> {
+            for (IOrmEntity entity : entities) {
+                session.updateDirectly(entity, false);
+            }
+            session.flushActionQueue();
+            return null;
+        });
+    }
+
+    @Override
     public void deleteDirectly(IOrmEntity entity) {
         runInSession(session -> {
             session.deleteDirectly(entity);

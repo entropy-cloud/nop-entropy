@@ -490,7 +490,7 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     }
 
     @Override
-    public Object saveDirectly(IOrmEntity entity) {
+    public Object saveDirectly(IOrmEntity entity, boolean flushActionQueue) {
         checkValid();
         checkNotReadOnly();
 
@@ -510,13 +510,15 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
         entity.orm_markFullyLoaded();
 
         flushSave(entity);
-        this.batchActionQueue.flush();
+
+        if (flushActionQueue)
+            this.batchActionQueue.flush();
 
         return entity.get_id();
     }
 
     @Override
-    public void updateDirectly(IOrmEntity entity) {
+    public void updateDirectly(IOrmEntity entity, boolean flushActionQueue) {
         checkValid();
         checkNotReadOnly();
 
@@ -528,11 +530,12 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
             return;
 
         flushUpdate(entity);
-        this.batchActionQueue.flush();
+        if (flushActionQueue)
+            this.batchActionQueue.flush();
     }
 
     @Override
-    public void deleteDirectly(IOrmEntity entity) {
+    public void deleteDirectly(IOrmEntity entity, boolean flushActionQueue) {
         checkValid();
         checkNotReadOnly();
 
@@ -541,6 +544,13 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
             throw newError(ERR_ORM_UPDATE_ENTITY_NOT_MANAGED, entity);
 
         flushDelete(entity);
+
+        if (flushActionQueue)
+            this.batchActionQueue.flush();
+    }
+
+    @Override
+    public void flushActionQueue() {
         this.batchActionQueue.flush();
     }
 

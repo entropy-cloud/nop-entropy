@@ -33,8 +33,7 @@ public interface IOrmEntityDao<T extends IOrmEntity> extends IEntityDao<T> {
             return Collections.emptyList();
 
         entities.forEach(entity -> entity.orm_disableVersionCheckError(true));
-        batchUpdateEntities(entities);
-        flushSession();
+        updateEntitiesDirectly(entities);
         return entities.stream().filter(entity -> !entity.orm_readonly()).collect(Collectors.toList());
     }
 }

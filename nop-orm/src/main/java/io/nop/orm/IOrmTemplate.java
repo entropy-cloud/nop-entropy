@@ -125,6 +125,8 @@ public interface IOrmTemplate extends ISqlExecutor {
 
     void updateDirectly(IOrmEntity entity);
 
+    void updateManyDirectly(Collection<? extends IOrmEntity> entities);
+
     void deleteDirectly(IOrmEntity entity);
 
     boolean tryDelete(IOrmEntity entity);

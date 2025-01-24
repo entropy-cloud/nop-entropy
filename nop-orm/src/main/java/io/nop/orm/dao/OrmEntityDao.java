@@ -239,6 +239,15 @@ public class OrmEntityDao<T extends IOrmEntity> implements IOrmEntityDao<T> {
     }
 
     @Override
+    public void updateEntitiesDirectly(Collection<T> entities) {
+        for (T entity : entities) {
+            checkEntityNameMatch(entity);
+        }
+
+        orm().updateManyDirectly(entities);
+    }
+
+    @Override
     public void deleteEntityDirectly(T entity) {
         checkEntityNameMatch(entity);
         orm().deleteDirectly(entity);
