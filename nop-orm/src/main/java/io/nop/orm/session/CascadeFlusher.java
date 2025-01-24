@@ -188,6 +188,10 @@ public class CascadeFlusher {
 
     // 针对单个实体的修改生成sql语句，送入执行队列
     void internalFlush(IOrmEntity entity) {
+        // 只读实体不需要更新
+        if (entity.orm_readonly())
+            return;
+
         OrmEntityState state = entity.orm_state();
 
         if (state.isSaving()) {

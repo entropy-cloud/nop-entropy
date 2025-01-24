@@ -250,7 +250,7 @@ public interface IEntityDao<T extends IDaoEntity> {
 
     List<Object> selectFieldByQuery(QueryBean query);
 
-    default List<String> selectStringFieldByQuery(QueryBean query){
+    default List<String> selectStringFieldByQuery(QueryBean query) {
         return CollectionHelper.toStringList(selectFieldByQuery(query));
     }
 
