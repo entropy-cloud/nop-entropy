@@ -21,6 +21,7 @@
 /dict/core/std-domain.dict.yaml
 /dict/core/std-query-method.dict.yaml
 /dict/core/std-sql-type.dict.yaml
+/dict/core/sys-event-status.dict.yaml
 /dict/dyn/app-status.dict.yaml
 /dict/dyn/entity-store-type.dict.yaml
 /dict/dyn/function-type.dict.yaml
@@ -29,6 +30,7 @@
 /dict/orm/sql-kind.dict.yaml
 /dict/rpt/data-display-mode.dict.yaml
 /dict/rule/rule-type.dict.yaml
+/dict/sys/sys-event-status.dict.yaml
 /dict/web/page-schema-type.dict.yaml
 /dict/wf/wf-def-status.dict.yaml
 /dict/wf/wf-status.dict.yaml

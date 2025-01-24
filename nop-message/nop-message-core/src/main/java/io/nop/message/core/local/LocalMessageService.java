@@ -71,7 +71,7 @@ public class LocalMessageService implements IMessageService {
         }
     }
 
-    protected class ConsumeContext implements IMessageConsumeContext {
+    public class ConsumeContext implements IMessageConsumeContext {
         private final String topic;
 
         public ConsumeContext(String topic) {
@@ -161,10 +161,10 @@ public class LocalMessageService implements IMessageService {
         this.invokeMessageListener(topic, message, options);
     }
 
-    public void invokeMessageListener(String topic, Object message, MessageSendOptions options) {
+    public ConsumeContext invokeMessageListener(String topic, Object message, MessageSendOptions options) {
         List<Subscription> subscriptions = consumers.get(topic);
         if (subscriptions != null) {
-            IMessageConsumeContext context = new ConsumeContext(topic);
+            ConsumeContext context = new ConsumeContext(topic);
             for (Subscription subscription : subscriptions) {
                 if (subscription.suspended)
                     continue;
@@ -182,8 +182,10 @@ public class LocalMessageService implements IMessageService {
                     handleMessageResult(ret, topic, message, context);
                 }
             }
+            return context;
         } else {
             LOG.debug("nop.message.ignore-message-when-no-consumer:topic={},message={}", topic, message);
+            return null;
         }
     }
 

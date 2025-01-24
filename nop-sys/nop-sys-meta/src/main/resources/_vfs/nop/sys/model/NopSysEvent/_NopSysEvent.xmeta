@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
-      displayName="事件队列" i18n-en:displayName="Event Queue" xmlns:ui="ui" xmlns:orm="orm">
+      displayName="事件队列" i18n-en:displayName="System Event" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.sys.dao.entity.NopSysEvent</entityName>
 
@@ -49,7 +49,7 @@
         </prop>
         <prop name="eventStatus" displayName="事件状态" propId="8" i18n-en:displayName="Event Status" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.Integer"/>
+            <schema type="java.lang.Integer" dict="sys/sys-event-status"/>
         </prop>
         <prop name="processTime" displayName="处理时间" propId="9" i18n-en:displayName="Process Time" tagSet="clock"
               mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">

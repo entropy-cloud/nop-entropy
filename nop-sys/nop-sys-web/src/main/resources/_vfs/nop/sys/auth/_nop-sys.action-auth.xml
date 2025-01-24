@@ -73,7 +73,7 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopSysEvent-main" displayName="事件队列" orderNo="10016" i18n-en:displayName="Event Queue"
+                <resource id="NopSysEvent-main" displayName="事件队列" orderNo="10016" i18n-en:displayName="System Event"
                           icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
                           url="/nop/sys/pages/NopSysEvent/main.page.yaml">
                     <children>

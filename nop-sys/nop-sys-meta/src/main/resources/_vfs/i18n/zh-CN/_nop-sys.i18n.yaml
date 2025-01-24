@@ -104,6 +104,7 @@ prop:
       eventId: 事件ID
       eventName: 事件名称
       eventStatus: 事件状态
+      eventStatus_label: 事件状态
       eventTime: 事件时间
       eventTopic: 事件主题
       isBroadcast: 是否广播

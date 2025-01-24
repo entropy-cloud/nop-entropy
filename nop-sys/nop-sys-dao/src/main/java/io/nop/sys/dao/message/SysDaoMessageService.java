@@ -16,11 +16,17 @@ import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.service.LifeCycleSupport;
 import io.nop.commons.util.MathHelper;
+import io.nop.commons.util.retry.IRetryPolicy;
+import io.nop.commons.util.retry.RetryPolicy;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.message.core.local.LocalMessageService;
+import io.nop.orm.dao.IOrmEntityDao;
+import io.nop.sys.dao.NopSysDaoConstants;
 import io.nop.sys.dao.entity.NopSysEvent;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -33,8 +39,11 @@ import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 public class SysDaoMessageService extends LifeCycleSupport implements IMessageService {
+    static final Logger LOG = LoggerFactory.getLogger(SysDaoMessageService.class);
+
     private IDaoProvider daoProvider;
 
     private IScheduledExecutor timer;
@@ -47,11 +56,16 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
 
     private int startGap = 5000;
 
+    private IRetryPolicy<SysDaoMessageService> retryPolicy = new RetryPolicy<>();
+
     private Timestamp startTime;
 
-    private Future<?> checkFuture;
+    private Future<?> checkBroadcastFuture;
+    private Future<?> checkNonBroadcastFuture;
 
     private NopSysEvent lastBroadcastEvent;
+
+    private long minProcessDelay = 10000;
 
     private LocalMessageService localService = new LocalMessageService() {
         @Override
@@ -59,6 +73,14 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
             SysDaoMessageService.this.send(topic, message, options);
         }
     };
+
+    public void setRetryPolicy(IRetryPolicy<SysDaoMessageService> retryPolicy) {
+        this.retryPolicy = retryPolicy;
+    }
+
+    public void setMinProcessDelay(long minProcessDelay) {
+        this.minProcessDelay = minProcessDelay;
+    }
 
     public void setFetchSize(int fetchSize) {
         this.fetchSize = fetchSize;
@@ -96,14 +118,86 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         IEstimatedClock clock = dao().getDbEstimatedClock();
         startTime = new Timestamp(clock.getMinCurrentTimeMillis() - startGap);
 
-        checkFuture = timer.executeOn(executor).scheduleWithFixedDelay(this::processBroadcastEvent,
+        checkBroadcastFuture = timer.executeOn(executor).scheduleWithFixedDelay(this::processBroadcastEvent,
+                checkInterval.toMillis(), checkInterval.toMillis(), TimeUnit.MILLISECONDS);
+
+        checkNonBroadcastFuture = timer.executeOn(executor).scheduleWithFixedDelay(this::processNonBroadcastEvent,
                 checkInterval.toMillis(), checkInterval.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     @Override
     public void doStop() {
-        if (checkFuture != null)
-            checkFuture.cancel(false);
+        if (checkBroadcastFuture != null)
+            checkBroadcastFuture.cancel(false);
+        if (checkNonBroadcastFuture != null)
+            checkNonBroadcastFuture.cancel(false);
+    }
+
+    protected void processNonBroadcastEvent() {
+        do {
+            List<NopSysEvent> events = fetchNonBroadcastEvents();
+            if (events.isEmpty())
+                break;
+
+            List<NopSysEvent> updated = updateScheduleTime(events);
+            for (NopSysEvent event : updated) {
+                processEvent(event);
+            }
+        } while (true);
+    }
+
+    public List<NopSysEvent> updateScheduleTime(List<NopSysEvent> events) {
+        IOrmEntityDao<NopSysEvent> dao = dao();
+        IEstimatedClock clock = dao.getDbEstimatedClock();
+
+        for (NopSysEvent event : events) {
+            long delay = getRetryDelay(null, event);
+            // 最少需要等待一段时间，避免重复执行
+            delay = Math.max(minProcessDelay, delay);
+            event.setScheduleTime(new Timestamp(clock.getMaxCurrentTimeMillis() + delay));
+            event.setProcessTime(new Timestamp(clock.getMaxCurrentTimeMillis()));
+        }
+
+        // 并发更新时可能只有部分记录会成功。通过version字段实现乐观锁
+        return dao.tryUpdateManyWithVersionCheck(events);
+    }
+
+    protected void processEvent(NopSysEvent event) {
+        doProcessEvent(event, e -> {
+            localService.invokeMessageListener(e.getEventTopic(), e.toApiRequest(), null);
+        });
+    }
+
+    public void doProcessEvent(NopSysEvent event, Consumer<NopSysEvent> action) {
+        IEntityDao<NopSysEvent> dao = dao();
+        try {
+            action.accept(event);
+            event.setEventStatus(NopSysDaoConstants.SYS_EVENT_STATUS_PROCESSED);
+            dao.updateEntityDirectly(event);
+        } catch (Exception e) {
+            LOG.error("nop.err.sys.process-event-fail:", e);
+            try {
+                handleProcessEventError(dao, event, e);
+            } catch (Exception e2) {
+                LOG.error("nop.err.sys.handle-process-event-error-fail:", e2);
+            }
+        }
+    }
+
+    protected void handleProcessEventError(IEntityDao<NopSysEvent> dao, NopSysEvent event, Throwable exception) {
+        long delay = getRetryDelay(exception, event);
+        if (delay < 0) {
+            event.setEventStatus(NopSysDaoConstants.SYS_EVENT_STATUS_FAILED);
+        } else {
+            event.setScheduleTime(new Timestamp(dao.getDbEstimatedClock().getMaxCurrentTimeMillis() + delay));
+            event.incRetryTimes();
+        }
+        dao.updateEntityDirectly(event);
+    }
+
+    protected long getRetryDelay(Throwable exception, NopSysEvent event) {
+        int count = event.getRetryTimes() == null ? 0 : event.getRetryTimes();
+        return retryPolicy.getRetryDelay(exception, count, this);
     }
 
     protected void processBroadcastEvent() {
@@ -130,7 +224,7 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         query.addFilter(FilterBeans.in(NopSysEvent.PROP_NAME_eventTopic, topics));
         query.addFilter(FilterBeans.gt(NopSysEvent.PROP_NAME_eventTime, startTime));
         query.setFilter(FilterBeans.eq(NopSysEvent.PROP_NAME_isBroadcast, true));
-        query.addOrderField(NopSysEvent.PROP_NAME_eventId, true);
+        query.addOrderField(NopSysEvent.PROP_NAME_eventId, false);
 
         List<NopSysEvent> list = dao.findNext(lastBroadcastEvent, query.getFilter(), query.getOrderBy(), fetchSize);
         if (!list.isEmpty()) {
@@ -139,12 +233,30 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         return list;
     }
 
+    protected List<NopSysEvent> fetchNonBroadcastEvents() {
+        Set<String> topics = localService.getNonBroadcastTopics();
+        if (topics.isEmpty())
+            return Collections.emptyList();
+
+        // 按照eventId从小到大处理
+        IEntityDao<NopSysEvent> dao = dao();
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.in(NopSysEvent.PROP_NAME_eventTopic, topics));
+        query.setFilter(FilterBeans.eq(NopSysEvent.PROP_NAME_isBroadcast, false));
+        query.addFilter(FilterBeans.eq(NopSysEvent.PROP_NAME_eventStatus, NopSysDaoConstants.SYS_EVENT_STATUS_WAITING));
+        query.addOrderField(NopSysEvent.PROP_NAME_processTime, false);
+        query.setLimit(fetchSize);
+
+        List<NopSysEvent> list = dao.findPageByQuery(query);
+        return list;
+    }
+
     protected Set<String> getBroadcastTopics() {
         return localService.getBroadcastTopics();
     }
 
-    protected IEntityDao<NopSysEvent> dao() {
-        return daoProvider.daoFor(NopSysEvent.class);
+    protected IOrmEntityDao<NopSysEvent> dao() {
+        return (IOrmEntityDao<NopSysEvent>) daoProvider.daoFor(NopSysEvent.class);
     }
 
 

@@ -9,6 +9,15 @@
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
 
+    <dicts>
+        <dict label="事件状态" name="core/sys-event-status" valueType="int" i18n-en:label="Sys Event Status">
+            <option code="WAITING" label="待处理" value="0"/>
+            <option code="PROCESSED" label="已处理" value="10"/>
+            <option code="EXPIRED" description="已超时" label="已过期" value="20"/>
+            <option code="FAILED" description="经过多次尝试后仍然处理失败" label="已失败" value="30"/>
+        </dict>
+    </dicts>
+
     <domains>
         <domain name="userName" precision="50" stdSqlType="VARCHAR"/>
         <domain name="image" precision="100" stdDomain="file" stdSqlType="VARCHAR"/>
@@ -488,7 +497,7 @@
         <entity className="io.nop.sys.dao.entity.NopSysEvent" createTimeProp="createTime" createrProp="createdBy"
                 displayName="事件队列" name="io.nop.sys.dao.entity.NopSysEvent" registerShortName="true"
                 tableName="nop_sys_event" updateTimeProp="updateTime" updaterProp="updatedBy" versionProp="version"
-                i18n-en:displayName="Event Queue">
+                i18n-en:displayName="System Event">
             <columns>
                 <column code="EVENT_ID" displayName="事件ID" mandatory="true" name="eventId" primary="true" propId="1"
                         stdDataType="long" stdSqlType="BIGINT" tagSet="seq-default" i18n-en:displayName="Event ID"/>
@@ -505,7 +514,8 @@
                 <column code="EVENT_TIME" displayName="事件时间" mandatory="true" name="eventTime" propId="7"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Event Time"/>
                 <column code="EVENT_STATUS" displayName="事件状态" mandatory="true" name="eventStatus" propId="8"
-                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Event Status"/>
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Event Status"
+                        ext:dict="sys/sys-event-status"/>
                 <column code="PROCESS_TIME" comment="将处理时间设置为未来时间可以实现延迟发送" displayName="处理时间" mandatory="true"
                         name="processTime" propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock"
                         i18n-en:displayName="Process Time"/>

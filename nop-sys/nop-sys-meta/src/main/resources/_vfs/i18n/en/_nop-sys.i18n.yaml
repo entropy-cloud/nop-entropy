@@ -5,7 +5,7 @@ entity:
     NopSysCodeRule: Code Rule
     NopSysDict: Dictionary
     NopSysDictOption: Dictionay Item
-    NopSysEvent: Event Queue
+    NopSysEvent: System Event
     NopSysExtField: Extension Field
     NopSysI18n: I18n Message
     NopSysLock: Lock
@@ -102,6 +102,7 @@ prop:
       selection: Field Selections
       eventTime: Event Time
       eventStatus: Event Status
+      eventStatus_label: null
       processTime: Process Time
       scheduleTime: Schedule Time
       isBroadcast: Is Broadcast

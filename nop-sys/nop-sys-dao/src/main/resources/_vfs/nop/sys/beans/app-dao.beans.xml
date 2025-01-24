@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc"
-       xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans
-        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
+
     <import resource="_dao.beans.xml"/>
 
     <bean id="io.nop.sys.dao.dict.SysDictLoader" ioc:type="@bean:id" ioc:before="nopBizObjectManager"/>
@@ -22,11 +20,17 @@
         </property>
     </bean>
 
-    <bean id="nopDaoResourceLockManager" class="io.nop.sys.dao.lock.SysDaoResourceLockManager" ioc:default="true"/>
+    <bean id="nopSysDaoResourceLockManager" class="io.nop.sys.dao.lock.SysDaoResourceLockManager" ioc:default="true"/>
 
-    <bean id="nopDaoLeaderElector" class="io.nop.sys.dao.elector.SysDaoLeaderElector" ioc:default="true">
+    <bean id="nopSysDaoLeaderElector" class="io.nop.sys.dao.elector.SysDaoLeaderElector" ioc:default="true">
         <ioc:condition>
             <if-property name="nop.cluster.leader-elector.enable-sys-dao-elector"/>
+        </ioc:condition>
+    </bean>
+
+    <bean id="nopSysDaoMessageService" class="io.nop.sys.dao.message.SysDaoMessageService" ioc:default="true">
+        <ioc:condition>
+            <if-property name="nop.cluster.message-service.enable-sys-dao-message-service"/>
         </ioc:condition>
     </bean>
 </beans>

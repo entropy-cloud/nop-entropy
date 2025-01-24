@@ -15,6 +15,7 @@ import static io.nop.core.lang.json.JsonTool.parseMap;
 import static io.nop.message.core.MessageCoreConstants.TOPIC_PREFIX_BROADCAST;
 
 public class SysEventHelper {
+
     public static ApiRequest<Map<String, Object>> fromSysEvent(NopSysEvent event) {
         ApiRequest<Map<String, Object>> request = new ApiRequest<>();
         request.setSelection(FieldSelectionBeanParser.fromText(null, event.getSelection()));

@@ -12,6 +12,7 @@ import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.context.ContextProvider;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.dict.DictProvider;
@@ -20,13 +21,14 @@ import io.nop.core.dict.IDictProvider;
 import io.nop.core.i18n.I18nMessageManager;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.sys.dao.NopSysDaoConstants;
 import io.nop.sys.dao.entity.NopSysDict;
 import io.nop.sys.dao.entity.NopSysDictOption;
-
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -78,8 +80,13 @@ public class SysDictLoader implements IDictLoader {
 
     @Override
     public boolean existsDict(String dictName) {
+        IOrmEntityDao<NopSysDict> dao = (IOrmEntityDao<NopSysDict>) daoProvider.daoFor(NopSysDict.class);
+        // 系统启动时会调用到这里，跳过检查
+        if (dao.getEntityModel().isUseTenant() && ContextProvider.currentTenantId() == null)
+            return true;
+
         QueryBean query = new QueryBean();
         query.setFilter(FilterBeans.eq(NopSysDict.PROP_NAME_dictName, dictName));
-        return daoProvider.daoFor(NopSysDict.class).existsByQuery(query);
+        return dao.existsByQuery(query);
     }
 }
