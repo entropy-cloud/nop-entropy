@@ -1,0 +1,23 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 事件状态
+locale: zh-CN
+valueType: int
+description: 
+options:
+
+  - label: 待处理
+    value: 0
+    description: 
+  
+  - label: 已处理
+    value: 10
+    description: 
+  
+  - label: 已过期
+    value: 20
+    description: 已超时
+  
+  - label: 已失败
+    value: 30
+    description: 经过多次尝试后仍然处理失败
+  

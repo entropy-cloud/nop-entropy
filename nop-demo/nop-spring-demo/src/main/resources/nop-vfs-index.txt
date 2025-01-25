@@ -20,8 +20,10 @@
 /dict/core/std-domain.dict.yaml
 /dict/core/std-query-method.dict.yaml
 /dict/core/std-sql-type.dict.yaml
+/dict/core/sys-event-status.dict.yaml
 /dict/orm/sql-kind.dict.yaml
 /dict/rpt/data-display-mode.dict.yaml
+/dict/sys/sys-event-status.dict.yaml
 /dict/web/page-schema-type.dict.yaml
 /i18n/en/_nop-auth-web.i18n.yaml
 /i18n/en/_nop-auth.i18n.yaml

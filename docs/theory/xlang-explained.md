@@ -29,7 +29,7 @@ UIOTOS在前端运行时框架中专门针对属性继承编写了不少代码�
 {
   "component": "MyComponent",
   "version" : "1.0",
-  "properties": { 
+  "properties": {
      "a": 1, // 直接设置组件属性
    },
    "overwrite": [
@@ -39,6 +39,8 @@ UIOTOS在前端运行时框架中专门针对属性继承编写了不少代码�
 ```
 
 基本操作模式是在编辑器中推拽一个组件之后，如果发现组件有些细节需要调整，可以进入组件定制模式，在可视化设计器中对组件进行微调。**调整过程中的操作步骤被自动录制下来，作为overwrite保存在页面文件中**。这个方案可以任意调整组件结构，比UIOTOS的方案适应性更强，但是记录操作动作会比较冗长，多个动作也难以压缩成一个精简的最终结果（相当于没有利用结合律进行化简）。
+
+> 根据可逆计算理论，A=0+A，全量是差量的一个特例，我们可以用统一的形式来定义全量和差量，这样差量的差量就也是一个普通的差量，可以实现更复杂的逻辑推理。使用overwrite这种动作模式来表达差量是不合适的。
 
 无论是上面的哪种方案在编辑器和前端运行时框架里都要加入差量概念相关的处理代码。但是如果使用XLang语言作为底层模型的表达语言，则可以把差量计算完全压缩到编译期来执行，运行时引擎只需要知道普通组件结构即可，不需要有任何差量分解、合并的知识。具体做法是通过`x:extends`来实现组件继承。
 
@@ -81,11 +83,11 @@ UIOTOS在前端运行时框架中专门针对属性继承编写了不少代码�
 
         for each genNode in genNodes
             baseNode = new DeltaMerger().merge(baseNode, genNode);
-        node = new DeltaMerger().merge(baseNode,node);    
+        node = new DeltaMerger().merge(baseNode,node);
 
     processPostExtends(node);
     return node;
- } 
+ }
 ```
 
 `DslNodeLoader.loadDeltaModel("comp:MyComponent/1.0.0")`返回的XNode是最终合并后的节点，其中已经不包含任何x名字空间的属性和子节点。
@@ -151,10 +153,10 @@ public class MyComponent {
      <c:include src="config/services.beans.xml" />
 
      <beans>
-        <myns:customBean id="customBean" customProperty="customValue" 
+        <myns:customBean id="customBean" customProperty="customValue"
                       xpl:lib="/example/myns.xlib" />
-     </beans>  
-   </x:gen-extends>  
+     </beans>
+   </x:gen-extends>
 
    <bean id="parentBean" class="com.example.ParentClass">
         <property name="commonProperty" value="commonValue"/>
@@ -182,7 +184,7 @@ public class MyComponent {
 * `x:gen-extends`段中通过Xpl自定义标签的功能可以模拟Spring2.0的自定义名字空间机制。只不过Xpl标签的做法是代码生成，无论标签函数的执行逻辑多么复杂，只要它能生成我们期望的bean配置定义即可。比如上面的`<myns:customBean>`可能实际会生成多个bean的定义。真正在运行时起作用的是标签函数的生成结果。`x:gen-extends`本身是在编译期执行。
 
 ```xml
- <myns:customBean id="customBean" customProperty="customValue" 
+ <myns:customBean id="customBean" customProperty="customValue"
                       xpl:lib="/example/myns.xlib" />
 
 实际展开成如下两个Bean的定义：
@@ -230,14 +232,14 @@ extend type User {
 一个通用的模型加载器可以看作是具有如下类型定义：
 
 ```
-    Loader :: Path -> Model
+Loader :: Path -> Model
 ```
 
 对于一种通用设计，我们需要意识到一件事情，所谓的代码编写并不仅仅是为了应对眼前的需求，而是需要同时考虑到未来的需求变化，需要考虑到系统在时空中的演化。 换句话说，编程所面向的不是当前的、唯一的世界，而是**所有可能的世界**。在形式上，我们可以引入一个Possible算子来描述这件事情。
 
 ```
-    Loader :: Possible Path -> Possible Model
-    Possible Path = deltaPath + stdPath
+Loader :: Possible Path -> Possible Model
+Possible Path = deltaPath + stdPath
 ```
 
 stdPath指模型文件所对应的标准路径，而deltaPath指对已有的模型文件进行定制时所使用的差量定制路径。举个例子，在base产品中我们内置了一个业务处理流程main.wf.xml，在针对客户A进行定制时，我们需要使用一个不同的处理流程，但是我们并不想修改base产品中的代码。此时，我们可以增加一个delta差量模型文件`/_delta/a/main.wf.xml`，它表示针对客户a定制的main.wf.xml，Loader会自动识别这个文件的存在，并自动使用这个文件，而所有已经存在的业务代码都不需要被修改。
@@ -245,7 +247,7 @@ stdPath指模型文件所对应的标准路径，而deltaPath指对已有的模�
 如果我们只是想对原有的模型进行微调，而不是要完全取代原有模型，则可以使用`x:extends`继承机制来继承原有模型。XLang中的DeltaLoader的执行逻辑在数学层面上由下面的公式描述
 
 ```
-Loader<Possible Path> = Loader<deltaPath + stdPath> 
+Loader<Possible Path> = Loader<deltaPath + stdPath>
                       = Loader<deltaPath> x-extends Loader<stdPath>
                       = DeltaModel x-extends Model
                       = Possible Model

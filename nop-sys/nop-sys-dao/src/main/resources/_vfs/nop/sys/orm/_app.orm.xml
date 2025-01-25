@@ -515,7 +515,7 @@
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Event Time"/>
                 <column code="EVENT_STATUS" displayName="事件状态" mandatory="true" name="eventStatus" propId="8"
                         stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Event Status"
-                        ext:dict="sys/sys-event-status"/>
+                        ext:dict="core/sys-event-status"/>
                 <column code="PROCESS_TIME" comment="将处理时间设置为未来时间可以实现延迟发送" displayName="处理时间" mandatory="true"
                         name="processTime" propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock"
                         i18n-en:displayName="Process Time"/>
