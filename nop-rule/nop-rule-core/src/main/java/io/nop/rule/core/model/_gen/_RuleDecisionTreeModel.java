@@ -60,7 +60,7 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
     
     /**
      *  
-     * xml name: outputs
+     * xml name: output
      * 
      */
     private KeyedList<io.nop.rule.core.model.RuleOutputValueModel> _outputs = KeyedList.emptyList();
@@ -214,7 +214,7 @@ public abstract class _RuleDecisionTreeModel extends io.nop.core.resource.compon
     
     /**
      * 
-     * xml name: outputs
+     * xml name: output
      *  
      */
     

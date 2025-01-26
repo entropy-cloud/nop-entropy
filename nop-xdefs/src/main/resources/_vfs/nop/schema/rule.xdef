@@ -1,5 +1,6 @@
-<rule displayName="string" ruleVersion="long" x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-      xdef:name="RuleModel"
+<rule displayName="string" ruleName="string" ruleVersion="long" x:schema="/nop/schema/xdef.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef"
+      xdef:name="RuleModel" xdef:model-name-prop="ruleName" xdef:model-version-prop="ruleVersion"
       xmlns:xdef="/nop/schema/xdef.xdef" xdef:bean-package="io.nop.rule.core.model">
 
     <description xdef:value="string"/>
@@ -16,6 +17,8 @@
 
     <!--
     @label 对当前判断条件的描述信息
+    @multiMatch: 是否允许匹配多个分支，默认为false，即只允许匹配一个分支
+    @leafIndex: 记录决策树的叶子节点在所有叶子节点中的顺序号
     -->
     <xdef:define xdef:name="RuleDecisionTreeModel" id="string" label="string" multiMatch="!boolean=false"
                  leafIndex="!int=0">
@@ -29,26 +32,21 @@
         <!-- 当前判断分支所对应的业务描述 -->
         <description xdef:value="string"/>
 
-        <outputs xdef:body-type="list" xdef:key-attr="name">
-            <output name="!string" xdef:ref="RuleOutputValueModel"/>
-        </outputs>
+        <output name="!var-name" xdef:ref="RuleOutputValueModel" xdef:unique-attr="name"/>
 
     </xdef:define>
 
-    <inputs xdef:body-type="list" xdef:key-attr="name">
-        <input name="!var-name" xdef:ref="schema/var-define.xdef" computed="!boolean=false"
-               mandatory="!boolean=false" xdef:name="RuleInputDefineModel"/>
-    </inputs>
+    <input name="!var-name" xdef:ref="schema/var-define.xdef" computed="!boolean=false"
+           mandatory="!boolean=false" xdef:name="RuleInputDefineModel" xdef:unique-attr="name"/>
 
-    <outputs xdef:body-type="list" xdef:key-attr="name">
-        <!--
-        @aggregate 如果存在多个同名的输出时的汇总方式：max,min, sum等
-        @useWeight: 是否启用权重配置。如果启用，则存在变量名__weight的变量，类型为Double
-        -->
-        <output name="!var-name" xdef:ref="schema/var-define.xdef" mandatory="!boolean=false"
-                aggregate="enum:io.nop.rule.core.model.RuleAggregateMethod" useWeight="!boolean=false"
-                xdef:name="RuleOutputDefineModel"/>
-    </outputs>
+
+    <!--
+    @aggregate 如果存在多个同名的输出时的汇总方式：max,min, sum等
+    @useWeight: 是否启用权重配置。如果启用，则存在变量名__weight的变量，类型为Double
+    -->
+    <output name="!var-name" xdef:ref="schema/var-define.xdef" mandatory="!boolean=false"
+            aggregate="enum:io.nop.rule.core.model.RuleAggregateMethod" useWeight="!boolean=false"
+            xdef:name="RuleOutputDefineModel" xdef:unique-attr="name"/>
 
     <decisionMatrix xdef:name="RuleDecisionMatrixModel">
         <rowDecider xdef:ref="RuleDecisionTreeModel" xdef:mandatory="true"/>
@@ -56,11 +54,9 @@
 
         <cells xdef:body-type="list" xdef:key-attr="pos">
             <cell pos="!cell-pos" xdef:name="RuleTableCellModel">
-                <outputs xdef:body-type="list" xdef:key-attr="name">
-                    <output name="!string" xdef:name="RuleOutputValueModel">
-                        <valueExpr xdef:value="xpl"/>
-                    </output>
-                </outputs>
+                <output name="!string" xdef:name="RuleOutputValueModel" xdef:unique-attr="name">
+                    <valueExpr xdef:value="xpl"/>
+                </output>
             </cell>
         </cells>
     </decisionMatrix>

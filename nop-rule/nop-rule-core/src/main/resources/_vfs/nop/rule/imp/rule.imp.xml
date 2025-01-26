@@ -40,6 +40,18 @@
                     <schema stdDomain="json"/>
                 </field>
 
+                <field name="decisionTree.multiMatch" displayName="匹配多分支">
+                    <schema stdDomain="boolean"/>
+                </field>
+
+                <field name="decisionMatrix.rowDecider.multiMatch" displayName="匹配多行">
+                    <schema stdDomain="boolean"/>
+                </field>
+
+                <field name="decisionMatrix.colDecider.multiMatch" displayName="匹配多列">
+                    <schema stdDomain="boolean"/>
+                </field>
+
                 <field name="inputs" displayName="输入变量" list="true">
                     <fields>
                         <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">

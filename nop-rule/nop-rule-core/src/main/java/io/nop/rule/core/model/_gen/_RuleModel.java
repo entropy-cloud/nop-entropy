@@ -60,17 +60,24 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
     
     /**
      *  
-     * xml name: inputs
+     * xml name: input
      * 
      */
     private KeyedList<io.nop.rule.core.model.RuleInputDefineModel> _inputs = KeyedList.emptyList();
     
     /**
      *  
-     * xml name: outputs
+     * xml name: output
      * 
      */
     private KeyedList<io.nop.rule.core.model.RuleOutputDefineModel> _outputs = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: ruleName
+     * 
+     */
+    private java.lang.String _ruleName ;
     
     /**
      *  
@@ -195,7 +202,7 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
     
     /**
      * 
-     * xml name: inputs
+     * xml name: input
      *  
      */
     
@@ -240,7 +247,7 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
     
     /**
      * 
-     * xml name: outputs
+     * xml name: output
      *  
      */
     
@@ -282,6 +289,25 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
     public boolean hasOutputs(){
         return !this._outputs.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: ruleName
+     *  
+     */
+    
+    public java.lang.String getRuleName(){
+      return _ruleName;
+    }
+
+    
+    public void setRuleName(java.lang.String value){
+        checkAllowChange();
+        
+        this._ruleName = value;
+           
+    }
+
     
     /**
      * 
@@ -333,6 +359,7 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("inputs",this.getInputs());
         out.putNotNull("outputs",this.getOutputs());
+        out.putNotNull("ruleName",this.getRuleName());
         out.putNotNull("ruleVersion",this.getRuleVersion());
     }
 
@@ -353,6 +380,7 @@ public abstract class _RuleModel extends io.nop.core.resource.component.Abstract
         instance.setDisplayName(this.getDisplayName());
         instance.setInputs(this.getInputs());
         instance.setOutputs(this.getOutputs());
+        instance.setRuleName(this.getRuleName());
         instance.setRuleVersion(this.getRuleVersion());
     }
 
