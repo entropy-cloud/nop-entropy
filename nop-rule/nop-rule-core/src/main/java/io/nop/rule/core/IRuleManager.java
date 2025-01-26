@@ -15,20 +15,22 @@ import java.util.Map;
 
 public interface IRuleManager {
 
-    IRuleRuntime newRuntime(ICache<Object,Object> cache, IEvalScope scope);
+    IRuleRuntime newRuntime(ICache<Object, Object> cache, IEvalScope scope);
 
     IRuleRuntime newRuntime();
 
     IExecutableRule getRule(String ruleName, Long ruleVersion);
 
+    IExecutableRule loadRuleFromPath(String path);
+
+    /**
+     * 根据规则名和版本号映射到 /nop/rule/{ruleName}/v{ruleVersion}.rule.xml模型文件
+     */
     RuleModel getRuleModel(String ruleName, Long ruleVersion);
 
-    Map<String, Object> executeRule(String ruleName, Long ruleVersion, IRuleRuntime ruleRt);
+    RuleModel loadRuleModelFromPath(String path);
 
-    default Object chooseByRule(String ruleName, Long ruleVersion, IRuleRuntime ruleRt) {
-        Map<String, Object> outputs = executeRule(ruleName, ruleVersion, ruleRt);
-        if (outputs == null || !ruleRt.isRuleMatch())
-            return null;
-        return outputs.get(RuleConstants.VAR_RESULT);
+    default Map<String, Object> executeRule(String ruleName, Long ruleVersion, IRuleRuntime ruleRt) {
+        return getRule(ruleName, ruleVersion).executeForOutputs(ruleRt);
     }
 }

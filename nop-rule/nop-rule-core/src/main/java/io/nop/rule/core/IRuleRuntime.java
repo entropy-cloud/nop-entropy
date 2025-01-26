@@ -61,6 +61,10 @@ public interface IRuleRuntime extends IEvalContext {
 
     Map<String, Object> getOutputs();
 
+    default Object getOutput(String name) {
+        return getOutputs().get(name);
+    }
+
     void setOutput(String name, Object value);
 
     void clearOutputs();

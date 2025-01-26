@@ -70,4 +70,7 @@ public interface RuleErrors {
 
     ErrorCode ERR_RULE_AGGREGATE_WEIGHT_SIZE_NOT_MATCH =
             define("nop.err.rule.aggregate-weight-size-not-match", "权重列表长度与输出列表长度不一致", ARG_RULE_NAME, ARG_OUTPUT_NAME);
+
+    ErrorCode ERR_RULE_OUTPUT_VAR_NOT_ALLOW_EMPTY =
+            define("nop.err.rule.output-var-not-allow-empty", "输出变量不允许为空:name={varName},displayName={displayName}", ARG_VAR_NAME, ARG_DISPLAY_NAME);
 }

@@ -10,21 +10,23 @@ package io.nop.rule.core.model.compile;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
+import io.nop.commons.collections.KeyedList;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.SeqEvalAction;
 import io.nop.core.model.table.CellPosition;
 import io.nop.rule.core.IExecutableRule;
-import io.nop.rule.core.execute.NormalizeOutputExecutableRule;
-import io.nop.rule.core.execute.NormalizeInputExecutableRule;
 import io.nop.rule.core.execute.DecoratedExecutableRule;
 import io.nop.rule.core.execute.ExecutableMatrixRule;
 import io.nop.rule.core.execute.ExecutableRule;
+import io.nop.rule.core.execute.NormalizeInputExecutableRule;
+import io.nop.rule.core.execute.NormalizeOutputExecutableRule;
 import io.nop.rule.core.execute.RuleDecider;
 import io.nop.rule.core.execute.RuleOutputAction;
 import io.nop.rule.core.model.RuleDecisionMatrixModel;
 import io.nop.rule.core.model.RuleDecisionTreeModel;
+import io.nop.rule.core.model.RuleInputDefineModel;
 import io.nop.rule.core.model.RuleModel;
 import io.nop.rule.core.model.RuleOutputValueModel;
 import io.nop.rule.core.model.RuleTableCellModel;
@@ -55,13 +57,14 @@ public class RuleModelCompiler {
 
         rule = new NormalizeOutputExecutableRule(ruleModel.getOutputs(), rule);
 
-        rule = new NormalizeInputExecutableRule(ruleModel.getInputs(), rule);
+        rule = new NormalizeInputExecutableRule(ruleModel.getLocation(), KeyedList.fromList(ruleModel.getInputs(), RuleInputDefineModel::getName), rule);
 
         if (ruleModel.getBeforeExecute() != null || ruleModel.getAfterExecute() != null) {
             rule = new DecoratedExecutableRule(ruleModel.getBeforeExecute(),
                     rule, ruleModel.getAfterExecute());
         }
 
+        rule = new MainExecutableRule(ruleModel.getLocation(), ruleModel.getRuleName(), ruleModel.getRuleVersion(), rule);
         ruleModel.setExecutableRule(rule);
         return rule;
     }

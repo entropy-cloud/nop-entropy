@@ -11,8 +11,10 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.MathHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.utils.Underscore;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.rule.core.IExecutableRule;
 import io.nop.rule.core.IRuleRuntime;
 import io.nop.rule.core.model.RuleAggregateMethod;
@@ -23,8 +25,11 @@ import java.util.Collections;
 import java.util.List;
 
 import static io.nop.rule.api.RuleApiErrors.ARG_RULE_NAME;
+import static io.nop.rule.core.RuleErrors.ARG_DISPLAY_NAME;
 import static io.nop.rule.core.RuleErrors.ARG_OUTPUT_NAME;
+import static io.nop.rule.core.RuleErrors.ARG_VAR_NAME;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_AGGREGATE_WEIGHT_SIZE_NOT_MATCH;
+import static io.nop.rule.core.RuleErrors.ERR_RULE_OUTPUT_VAR_NOT_ALLOW_EMPTY;
 
 public class NormalizeOutputExecutableRule implements IExecutableRule {
     private final IExecutableRule rule;
@@ -41,6 +46,18 @@ public class NormalizeOutputExecutableRule implements IExecutableRule {
         if (b) {
             for (RuleOutputDefineModel output : outputs) {
                 aggOutput(output, ruleRt);
+            }
+        }
+
+        for (RuleOutputDefineModel output : outputs) {
+            Object value = ruleRt.getOutput(output.getName());
+            if (StringHelper.isEmptyObject(value) && output.isMandatory())
+                throw new NopException(ERR_RULE_OUTPUT_VAR_NOT_ALLOW_EMPTY).source(output).param(ARG_RULE_NAME, ruleRt.getRuleName())
+                        .param(ARG_VAR_NAME, output.getName()).param(ARG_DISPLAY_NAME, output.getDisplayName());
+
+            if (value != null && output.getType() != null) {
+                value = BeanTool.castBeanToType(value, output.getType());
+                ruleRt.setOutput(output.getName(), value);
             }
         }
         return b;
