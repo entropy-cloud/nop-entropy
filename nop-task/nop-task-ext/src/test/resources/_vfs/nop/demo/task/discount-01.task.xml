@@ -1,0 +1,37 @@
+<task version="1" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <xpl name="book_discount_1">
+            <when><![CDATA[
+                order.getOriginalPrice() < 100
+            ]]></when>
+            <source>
+                order.setRealPrice(order.getOriginalPrice());
+                logInfo("没有优惠");
+            </source>
+        </xpl>
+
+        <xpl name="book_discount_4">
+            <when><![CDATA[
+                order.getOriginalPrice() >= 300
+            ]]></when>
+            <source>
+                order.setRealPrice(order.getOriginalPrice() - 100);
+                logInfo("优惠100元");
+            </source>
+        </xpl>
+
+        <xpl name="book_discount_2">
+            <when><![CDATA[
+               order.getOriginalPrice() >= 100 && order.getOriginalPrice() < 200
+            ]]></when>
+            <source>
+                order.setRealPrice(order.getOriginalPrice() - 20);
+                logInfo("优惠20元");
+            </source>
+        </xpl>
+    </steps>
+
+    <output name="realPrice">
+        <source>order.realPrice</source>
+    </output>
+</task>

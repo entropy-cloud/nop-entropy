@@ -1,0 +1,33 @@
+<rule ruleVersion="1" x:schema="/nop/schema/rule.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <input name="order" mandatory="true"/>
+    <output name="discount" mandatory="true" type="Double"/>
+
+    <decisionTree>
+        <children>
+            <child id="discount-1" label="价格小于100">
+                <predicate>
+                    <lt name="order.originalPrice" value="100" />
+                </predicate>
+                <output name="discount">
+                    <valueExpr>0</valueExpr>
+                </output>
+            </child>
+
+            <child id="discount-4" label="价格大于300">
+                <predicate>
+                    <ge name="order.originalPrice" value="300" />
+                </predicate>
+
+                <output name="discount">
+                    <valueExpr>100</valueExpr>
+                </output>
+            </child>
+
+            <child id="discount-2">
+                <output name="discount">
+                    <valueExpr>20</valueExpr>
+                </output>
+            </child>
+        </children>
+    </decisionTree>
+</rule>
