@@ -1,0 +1,14 @@
+<task x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" version="!int"
+      xmlns:xdef="/nop/schema/xdef.xdef">
+    <steps xdef:body-type="list" xdef:key-attr="name">
+        <xpl name="!var-name">
+            <when xdef:value="xpl-predicate"/>
+            <source xdef:value="xpl"/>
+        </xpl>
+    </steps>
+
+    <output name="!var-name" xdef:unique-attr="name">
+        <source xdef:value="xpl"/>
+    </output>
+
+</task>

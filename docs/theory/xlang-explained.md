@@ -339,3 +339,11 @@ public class NopMybatisSessionFactoryCustomizer implements SqlSessionFactoryBean
 * 通过XLang提供的DslNodeLoader加载XML的文件的时候，会根据根节点上的`x:schema`属性读取到对应的XDef元模型，然后按照元模型规范定义实现节点的Delta合并。
 
 * 合并完成之后得到一个XNode节点，可以将它转换为XML的DOM节点，这里直接序列化为XML，送入MyBatis的工厂bean。MyBatis本身不需要做任何改造，只是为它增加了一种新的获取mapper文件的方式而已。
+
+## 4. XLang语言的差量计算和Delta机制在提高可扩展性和定制化的同时，是否会引入额外的性能开销？
+
+首先，XLang实现DSL的差量合并和Delta定制时，主要是在模型加载时刻通过统一`ResourceComponentManager.loadComponentModel`函数进行，在这个过程中实现了模型缓存、模型编译依赖追踪（依赖文件变化时自动使得模型缓存失效）。
+
+在开发阶段通过延迟加载、即时编译、并行加载等技术可以减少系统初始化时间。
+
+对于正式发布版本，可以通过maven打包工具在编译期执行合并，最终生成合并后的模型文件到`_delta`目录下，并在模型根节点上标注`x:validated="true"`。运行时会优先加载`_delta`目录下的模型文件（这个文件是最终合并后的结果），并且因为已经标注为模型已验证，会自动跳过合并过程，所以再复杂的差量合并逻辑也不会影响运行时性能。
