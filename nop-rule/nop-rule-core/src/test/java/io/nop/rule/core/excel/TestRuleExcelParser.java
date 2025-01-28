@@ -51,14 +51,14 @@ public class TestRuleExcelParser extends BaseTestCase {
     @Test
     public void testExecuteDecisionTree() {
         IRuleManager ruleManager = getRuleManager();
-        IRuleRuntime ruleRt = ruleManager.newRuntime();
+        IRuleRuntime ruleRt = ruleManager.newRuleRuntime();
         ruleRt.setInput("season", "Winter");
         ruleRt.setInput("guestCount", 4);
         Map<String, Object> output = ruleManager.executeRule("test/test-table", null, ruleRt);
         System.out.println(JsonTool.serialize(ruleRt.getLogMessages(), true));
         assertEquals("Roastbeef", output.get("dish"));
 
-        ruleRt = ruleManager.newRuntime();
+        ruleRt = ruleManager.newRuleRuntime();
         ruleRt.setInput("season", "Summer");
         ruleRt.setInput("guestCount", 4);
         output = ruleManager.executeRule("test/test-table", null, ruleRt);
@@ -68,7 +68,7 @@ public class TestRuleExcelParser extends BaseTestCase {
     @Test
     public void testExecuteDecisionMatrix() {
         IRuleManager ruleManager = getRuleManager();
-        IRuleRuntime ruleRt = ruleManager.newRuntime();
+        IRuleRuntime ruleRt = ruleManager.newRuleRuntime();
         ruleRt.setCollectLogMessage(true);
         ruleRt.setInput("是否有房", true);
         ruleRt.setInput("是否已婚", "已婚");

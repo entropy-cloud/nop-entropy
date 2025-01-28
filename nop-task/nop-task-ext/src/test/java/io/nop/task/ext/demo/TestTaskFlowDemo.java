@@ -104,7 +104,7 @@ public class TestTaskFlowDemo {
         BookOrder bookOrder = new BookOrder();
         bookOrder.setOriginalPrice(500.0);
 
-        IRuleRuntime ruleRt = ruleManager.newRuntime();
+        IRuleRuntime ruleRt = ruleManager.newRuleRuntime();
         ruleRt.setInput("order", bookOrder);
         ruleRt.setCollectLogMessage(true);
 
@@ -119,11 +119,27 @@ public class TestTaskFlowDemo {
         BookOrder bookOrder = new BookOrder();
         bookOrder.setOriginalPrice(500.0);
 
-        IRuleRuntime ruleRt = ruleManager.newRuntime();
+        IRuleRuntime ruleRt = ruleManager.newRuleRuntime();
         ruleRt.setInput("order", bookOrder);
 
         IExecutableRule rule = ruleManager.loadRuleFromPath("/nop/demo/rule/discount.rule.xlsx");
         Map<String, Object> outputs = rule.executeForOutputs(ruleRt);
         assertEquals(100.0, outputs.get("discount"));
+    }
+
+    @Test
+    public void testDiscountTaskRule() {
+        ITask task = taskFlowManager.loadTaskFromPath("/nop/demo/task/discount-rule.task.xml");
+        ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
+
+        BookOrder bookOrder = new BookOrder();
+        bookOrder.setOriginalPrice(500.0);
+
+        taskRt.setInput("order", bookOrder);
+
+        Map<String, Object> outputs = task.execute(taskRt).syncGetOutputs();
+        assertEquals(400.0, outputs.get("realPrice"));
+
+        assertEquals(400.0, bookOrder.getRealPrice());
     }
 }

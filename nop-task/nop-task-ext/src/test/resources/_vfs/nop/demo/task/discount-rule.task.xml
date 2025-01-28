@@ -1,0 +1,19 @@
+<task version="1" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:rule="rule" xmlns:xpl="xpl" xmlns:c="c">
+    <steps>
+        <xpl name="calcDiscount">
+            <source>
+               <rule:Execute ruleModelPath="/nop/demo/rule/discount.rule.xlsx"
+                             inputs="${{order}}" xpl:return="outputs"
+                             xpl:lib="/nop/rule/xlib/rule.xlib" />
+               <c:script>
+                    order.setRealPrice(order.originalPrice - outputs.discount);
+               </c:script>
+            </source>
+        </xpl>
+    </steps>
+
+    <output name="realPrice">
+        <source>order.realPrice</source>
+    </output>
+</task>

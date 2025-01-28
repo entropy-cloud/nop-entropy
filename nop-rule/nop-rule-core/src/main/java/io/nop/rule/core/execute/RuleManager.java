@@ -7,8 +7,7 @@
  */
 package io.nop.rule.core.execute;
 
-import io.nop.commons.cache.ICache;
-import io.nop.commons.cache.MapCache;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.rule.core.IExecutableRule;
@@ -22,13 +21,13 @@ import io.nop.xlang.api.XLangCompileTool;
 public class RuleManager implements IRuleManager {
 
     @Override
-    public IRuleRuntime newRuntime(ICache<Object, Object> cache, IEvalScope scope) {
-        return new RuleRuntime(cache, scope);
+    public IRuleRuntime newRuleRuntime(IServiceContext svcCtx, IEvalScope scope) {
+        return new RuleRuntime(svcCtx, scope);
     }
 
     @Override
-    public IRuleRuntime newRuntime() {
-        return newRuntime(new MapCache<>("rule-rt-cache", false), XLang.newEvalScope());
+    public IRuleRuntime newRuleRuntime() {
+        return newRuleRuntime(null, XLang.newEvalScope());
     }
 
     @Override

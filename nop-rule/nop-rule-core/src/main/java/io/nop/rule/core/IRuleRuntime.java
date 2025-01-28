@@ -7,9 +7,11 @@
  */
 package io.nop.rule.core;
 
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.cache.ICache;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.rule.api.beans.RuleLogMessageBean;
 
@@ -18,6 +20,10 @@ import java.util.List;
 import java.util.Map;
 
 public interface IRuleRuntime extends IEvalContext {
+    IServiceContext getSvcCtx();
+
+    IContext getContext();
+
     String getRuleName();
 
     void setRuleName(String ruleName);

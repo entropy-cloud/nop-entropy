@@ -59,7 +59,7 @@ public class RuleServiceImpl implements RuleServiceSpi {
     @Override
     public RuleResultBean executeRule(@RequestBean RuleRequestBean request,
                                       FieldSelectionBean selection, IServiceContext ctx) {
-        IRuleRuntime ruleRt = ruleManager.newRuntime(ctx.getCache(), ctx.getEvalScope());
+        IRuleRuntime ruleRt = ruleManager.newRuleRuntime(ctx, ctx.getEvalScope());
         ruleRt.setInputs(request.getInputs());
         ruleRt.setRuleName(request.getRuleName());
         ruleRt.setRuleVersion(request.getRuleVersion());

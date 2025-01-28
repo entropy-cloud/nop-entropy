@@ -1,0 +1,28 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:xpl="xpl"
+>
+
+    <tags>
+
+        <Execute>
+            <attr name="ruleModelPath" stdDomain="v-path" optional="true" />
+            <attr name="ruleName" type="String" optional="true"/>
+            <attr name="ruleVersion" type="Long" optional="true"/>
+            <attr name="inputs" type="Map" optional="true" />
+
+            <attr name="svcCtx" type="io.nop.core.context.IServiceContext" implicit="true" optional="true"/>
+
+            <source><![CDATA[
+                const ruleManager = inject('nopRuleManager');
+                const rule = ruleModelPath? ruleManager.loadRuleFromPath(ruleModelPath) :
+                            ruleManager.getRule(ruleName,ruleVersion);
+
+                const ruleRt = ruleManager.newRuleRuntime(svcCtx, $scope);
+                if(inputs != null){
+                    ruleRt.setInputs(inputs);
+                }
+                return rule.executeForOutputs(ruleRt);
+            ]]></source>
+        </Execute>
+
+    </tags>
+</lib>

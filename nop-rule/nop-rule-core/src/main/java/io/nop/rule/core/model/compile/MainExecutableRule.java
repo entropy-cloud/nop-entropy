@@ -26,15 +26,15 @@ public class MainExecutableRule implements IExecutableRule, ISourceLocationGette
 
     @Override
     public boolean execute(IRuleRuntime ruleRt) {
-        if (ruleName != null)
+        if (ruleRt.getRuleName() == null)
             ruleRt.setRuleName(ruleName);
-        if (ruleVersion != null)
+        if (ruleRt.getRuleVersion() == null)
             ruleRt.setRuleVersion(ruleVersion);
 
         try {
             return rule.execute(ruleRt);
         } catch (NopException e) {
-            e.addXplStack("executeRule:ruleName=" + ruleName + ",ruleVersion=" + ruleVersion);
+            e.addXplStack("executeRule:ruleName=" + ruleRt.getRuleName() + ",ruleVersion=" + ruleRt.getRuleVersion());
             throw e;
         }
     }

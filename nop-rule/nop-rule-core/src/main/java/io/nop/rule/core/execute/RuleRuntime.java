@@ -7,8 +7,14 @@
  */
 package io.nop.rule.core.execute;
 
+import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.cache.ICache;
+import io.nop.commons.cache.MapCache;
+import io.nop.commons.util.CollectionHelper;
+import io.nop.core.CoreConstants;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.unittest.VarCollector;
 import io.nop.rule.api.beans.RuleLogMessageBean;
@@ -27,6 +33,8 @@ import java.util.Map;
 public class RuleRuntime implements IRuleRuntime {
     static final Logger LOG = LoggerFactory.getLogger(RuleRuntime.class);
 
+    private final IServiceContext svcCtx;
+    private final IContext context;
     private final ICache<Object,Object> cache;
     private final IEvalScope scope;
 
@@ -47,10 +55,31 @@ public class RuleRuntime implements IRuleRuntime {
 
     private Throwable exception;
 
-    public RuleRuntime(ICache<Object,Object> cache, IEvalScope scope) {
-        this.cache = cache;
-        this.scope = scope == null ? XLang.newEvalScope() : scope.newChildScope();
+    public RuleRuntime(IServiceContext svcCtx, IEvalScope scope) {
+        this.svcCtx = svcCtx;
+        if (scope == null) {
+            scope = svcCtx != null ? svcCtx.getEvalScope().newChildScope(true, true)
+                    : XLang.newEvalScope(CollectionHelper.newConcurrentMap(4));
+        } else {
+            scope = scope.newChildScope(true, true);
+        }
+        // taskRt可能会被多线程访问，所以这里scope线程安全
+        this.scope = scope;
+        this.scope.setLocalValue(CoreConstants.VAR_SVC_CTX, svcCtx);
         this.scope.setLocalValue(RuleConstants.VAR_RULE_RT, this);
+        this.context = svcCtx == null ? ContextProvider.getOrCreateContext() : svcCtx.getContext();
+        
+        this.cache = svcCtx == null ? new MapCache<>("rule-rt-cache", false) : svcCtx.getCache();
+    }
+
+    @Override
+    public IContext getContext(){
+        return context;
+    }
+
+    @Override
+    public IServiceContext getSvcCtx() {
+        return svcCtx;
     }
 
     @Override

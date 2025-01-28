@@ -7,7 +7,7 @@
  */
 package io.nop.rule.core;
 
-import io.nop.commons.cache.ICache;
+import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.rule.core.model.RuleModel;
 
@@ -15,9 +15,9 @@ import java.util.Map;
 
 public interface IRuleManager {
 
-    IRuleRuntime newRuntime(ICache<Object, Object> cache, IEvalScope scope);
+    IRuleRuntime newRuleRuntime(IServiceContext svcCtx, IEvalScope scope);
 
-    IRuleRuntime newRuntime();
+    IRuleRuntime newRuleRuntime();
 
     IExecutableRule getRule(String ruleName, Long ruleVersion);
 
