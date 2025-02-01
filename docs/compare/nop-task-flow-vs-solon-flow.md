@@ -48,7 +48,7 @@ nodes:
 
 ```javascript
  @Test
- public void testDiscount()  
+ public void testDiscount()
     FlowEngine flowEngine = FlowEngine.newInstance();
     flowEngine.load(Chain.parseByUri("classpath:flow/bookDiscount.yml"));
 
@@ -62,7 +62,7 @@ nodes:
 
     //价格变了，省了100块
     assert bookOrder.getRealPrice() == 400;
-} 
+}
 ```
 
 **NopTaskFlow的核心（nop-task-core模块）虽然只有3000行左右的代码，但是它是一个非常完整的逻辑编排引擎，支持异步处理、超时重试、断点重提等高级功能**，所以用NopTaskFlow可以很容易的实现solon-flow所演示的功能。
@@ -180,7 +180,7 @@ steps:
 可逆计算理论强调同一个信息可以具有多种表达形式(Representaion)，这些表达形式因为信息等价，所以可以自由的进行可逆转换。比如说，所谓的可视化设计可以看作是DSL模型的一种可视化展现形式，而DSL代码文本是模型信息的文本表达形式。之所以能够进行可视化设计，原因就在于可视化表象和文本表象之间可以相互转换。
 
 ```
-可视化表象 = Designer(文本表象),   文本表象 = Serializer(可视化表象)  
+可视化表象 = Designer(文本表象),   文本表象 = Serializer(可视化表象)
 ```
 
 利用Nop平台内置的机制和可逆性的可复合性，从字段级别的多重表象可以自动推导得到对象级别的多重表象，从而自动实现模型对象的可视化编辑。比如说，对于solon-flow而言，如果要开发一个可视化设计器，需要专门针对solon-flow的语法去设计并实现这个设计器，但是在Nop平台中，我们可以根据元模型定义自动生成一个专用于逻辑编排的可视化设计器，并不需要针对逻辑编排引擎去编写设计器。
@@ -278,6 +278,8 @@ steps:
 
 在Nop平台中，我们还可以将Excel模型导入到数据库中，通过Web页面来在线编辑、调整规则，并可以在线调试。
 
+关于NopRule的详细介绍，参见[采用Excel作为可视化设计器的开源规则引擎 NopRule](https://mp.weixin.qq.com/s/zJvovUG2f4mjB5CbrlX6RA)
+
 ## 四. 模型嵌套
 
 Nop平台与所有其他平台、框架的一个本质性区别在于，它并不是孤立的去研发某个底层引擎，而是一次性抽象完成所有引擎的底层技术架构，所有的引擎都共享同样的XLang语言和可逆计算支持。使用XLang定义的DSL语言不需要自己去考虑扩展性问题（也不用设计相关语法），而且也不需要考虑多个DSL如何无缝集成在一起使用的问题。
@@ -342,3 +344,18 @@ Nop平台与所有其他平台、框架的一个本质性区别在于，它并�
 ```
 
 可以直接指定ruleModelPath，也可以指定ruleName和ruleVersion，然后动态确定规则模型对象（从虚拟文件内系统中加载，没有找到则尝试在数据库中加载）。
+
+Nop平台并不只是提供单一功能的DSL，而是一系列DSL组成的所谓DSL森林。关于DSL森林的详细介绍，可以参见[Nop如何克服DSL只能应用于特定领域的限制?](https://mp.weixin.qq.com/s/6TOVbqHFmiFIqoXxQrRkYg),
+更详细的示例参见[为什么SpringBatch是一个糟糕的设计？](https://mp.weixin.qq.com/s/1F2Mkz99ihiw3_juYXrTFw)。
+
+
+基于可逆计算理论设计的低代码平台NopPlatform已开源：
+
+- gitee: [canonical-entropy/nop-entropy](https://gitee.com/canonical-entropy/nop-entropy)
+- github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
+- gitcode:[canonical-entropy/nop-entropy](https://gitcode.com/canonical-entropy/nop-entropy)
+- 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
+- [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV14u411T715/)
+- 官网国际站: [https://nop-platform.github.io/](https://nop-platform.github.io/)
+- 网友Crazydan Studio建立的Nop开发实践分享网站: [https://nop.crazydan.io/](https://nop.crazydan.io/)
+
