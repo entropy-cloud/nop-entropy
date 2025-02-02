@@ -33,7 +33,7 @@ public class TestXmlOrmComponent {
     @Test
     public void testProp() {
         XmlOrmComponent comp = new XmlOrmComponent();
-        comp.setNormalizedXml("<rule><inputs><input name='a' mandatory='true' /></inputs></rule>");
+        comp.setNormalizedXml("<rule><input name='a' mandatory='true' /><input name='c' mandatory='false' /></rule>");
 
         List<Map<String, Object>> value = (List<Map<String, Object>>) comp.getChildValue("/nop/schema/rule.xdef", "inputs");
         System.out.println(JsonTool.serialize(value, true));
@@ -44,9 +44,8 @@ public class TestXmlOrmComponent {
 
         String xml = comp.getNormalizedXml();
         assertEquals("<rule>\n" +
-                "    <inputs>\n" +
-                "        <input name=\"b\" mandatory=\"true\" displayName=\"xx\"/>\n" +
-                "    </inputs>\n" +
+                "    <input name=\"b\" mandatory=\"true\" displayName=\"xx\"/>\n" +
+                "    <input name=\"c\"/>\n" +
                 "</rule>", xml);
     }
 }

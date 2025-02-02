@@ -847,6 +847,18 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return null;
     }
 
+    public int childIndexByTag(String tagName) {
+        if (children.isEmpty())
+            return -1;
+
+        for (int i = 0, n = getChildCount(); i < n; i++) {
+            XNode child = children.get(i);
+            if (child.getTagName().equals(tagName))
+                return i;
+        }
+        return -1;
+    }
+
     public XNode childByAttr(String attrName, Object attrValue) {
         if (children.isEmpty())
             return null;
@@ -1359,10 +1371,32 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     }
 
     public void removeChildrenByTag(String tagName) {
+        checkNotReadOnly();
         if (children.isEmpty())
             return;
 
         children.removeIf(node -> node.getTagName().equals(tagName));
+    }
+
+    public void replaceChildrenByTag(String tagName, Collection<XNode> children) {
+        if (children == null || children.isEmpty()) {
+            removeChildrenByTag(tagName);
+        } else {
+            int index = childIndexByTag(tagName);
+            if (index < 0) {
+                this.appendChildren(children);
+            } else {
+                for (int i = index + 1, n = getChildCount(); i < n; i++) {
+                    XNode child = this.children.get(i);
+                    if (child.getTagName().equals(tagName)) {
+                        this.children.remove(i);
+                        i--;
+                        n--;
+                    }
+                }
+                this.replaceChildren(index, children);
+            }
+        }
     }
 
     public boolean removeChild(XNode child) {

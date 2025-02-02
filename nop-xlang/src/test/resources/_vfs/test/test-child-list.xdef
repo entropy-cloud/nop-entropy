@@ -1,0 +1,8 @@
+<rule x:schema="/nop/schema/xdef.xdef"
+      xmlns:x="/nop/schema/xdsl.xdef"
+
+      xmlns:xdef="/nop/schema/xdef.xdef" >
+
+    <input name="!var-name" xdef:name="RuleInputDefineModel" xdef:unique-attr="name"/>
+
+</rule>

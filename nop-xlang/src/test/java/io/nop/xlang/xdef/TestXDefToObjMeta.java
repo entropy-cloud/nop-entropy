@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestXDefToObjMeta {
     @BeforeAll
@@ -41,5 +42,12 @@ public class TestXDefToObjMeta {
         IObjMeta objMeta = SchemaLoader.loadXMeta("/test/test_ext.xdef");
         IObjPropMeta propMeta = objMeta.getProp("filter");
         assertEquals("xml", propMeta.prop_get("graphql:mapper"));
+    }
+
+    @Test
+    public void testXDefChildList() {
+        IObjMeta objMeta = SchemaLoader.loadXMeta("/test/test-child-list.xdef");
+        IObjPropMeta propMeta = objMeta.getProp("inputs");
+        assertNotNull(propMeta);
     }
 }

@@ -14,6 +14,8 @@ import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.XDefKeys;
 import io.nop.xlang.xdef.impl._gen._XDefNode;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -24,6 +26,7 @@ public class XDefNode extends _XDefNode implements IXDefNode {
     private boolean refResolved;
 
     private boolean explicitDefine;
+    private Map<String, IXDefNode> childrenByPropName;
 
     public String toString() {
         return getClass().getSimpleName() + "[tagName=" + getTagName() + ",loc=" + getLocation() + "]";
@@ -98,6 +101,25 @@ public class XDefNode extends _XDefNode implements IXDefNode {
 
     public void setExplicitDefine(boolean explicitDefine) {
         this.explicitDefine = explicitDefine;
+    }
+
+    @Override
+    public IXDefNode getChildByPropName(String propName) {
+        if (childrenByPropName == null) {
+            if (!hasChild()) {
+                this.childrenByPropName = Collections.emptyMap();
+            } else {
+                Map<String, IXDefNode> map = new HashMap<>();
+                for (IXDefNode defNode : getChildren().values()) {
+                    String name = defNode.getXdefBeanProp();
+                    if(name == null)
+                        name = StringHelper.xmlNameToPropName(defNode.getTagName());
+                    map.put(name, defNode);
+                }
+                this.childrenByPropName = map;
+            }
+        }
+        return childrenByPropName.get(propName);
     }
 
     @Override

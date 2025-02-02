@@ -273,6 +273,10 @@ public interface IObjPropMeta
 
     IEvalAction getSetter();
 
+    default boolean isVirtualListNode() {
+        return getXmlName() != null && getXmlName().equals(getChildXmlName());
+    }
+
     //String getObjMeta();
 
     XNode toNode(Map<ISchemaNode, XNode> nodeRefs);

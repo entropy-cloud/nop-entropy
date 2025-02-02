@@ -8,15 +8,12 @@
 package io.nop.orm.component;
 
 import io.nop.commons.util.StringHelper;
-import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
-import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
-import io.nop.xlang.xdsl.DslModelHelper;
-import io.nop.xlang.xdsl.json.DslModelToXNodeTransformer;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjPropMeta;
+import io.nop.xlang.xmeta.ObjXmlValueHelper;
 import io.nop.xlang.xmeta.SchemaLoader;
 
 import static io.nop.core.CoreConstants.DUMMY_TAG_NAME;
@@ -146,18 +143,8 @@ public class XmlOrmComponent extends AbstractOrmComponent {
     }
 
     public Object getChildValue(String xdefPath, String childName) {
-        XNode node = getNode();
-        if (node == null)
-            return null;
-
-        XNode inputsNode = node.childByTag(childName);
-        if (inputsNode == null)
-            return null;
-
         IXDefinition objDef = SchemaLoader.loadXDefinition(xdefPath);
-        IXDefNode defNode = objDef.getChild(childName);
-
-        return JsonTool.serializeToJson(DslModelHelper.dslNodeToJson(defNode, inputsNode));
+        return ObjXmlValueHelper.getChildValueForDef(getNode(), objDef, childName);
     }
 
     public void setChildValue(String xdefPath, String childName, Object value) {
@@ -165,18 +152,11 @@ public class XmlOrmComponent extends AbstractOrmComponent {
 
         IObjMeta objMeta = SchemaLoader.loadXMeta(xdefPath);
         IObjPropMeta propMeta = objMeta.getProp(childName);
-        XNode list = new DslModelToXNodeTransformer(objMeta).transformValue(propMeta, value);
-        XNode node = makeNode(objMeta.getXmlName());
-        if (list != null) {
-            XNode inputsNode = node.childByTag(childName);
-            if (inputsNode == null) {
-                node.appendChild(list);
-            } else {
-                inputsNode.replaceBy(list);
-            }
-        } else {
-            node.removeChildByTag(childName);
+        if (propMeta == null) {
+            throw new IllegalArgumentException("nop.err.invalid-child-name:" + childName);
         }
+        String xmlName = objMeta.getXmlName();
+        ObjXmlValueHelper.setChildValueForDef(makeNode(xmlName), propMeta, childName, value);
     }
 
     @Override

@@ -63,6 +63,8 @@ public interface IXDefNode extends IComponentModel, IFreezable {
         return child;
     }
 
+    IXDefNode getChildByPropName(String propName);
+
     default boolean hasAttr() {
         return !getAttributes().isEmpty() || getXdefUnknownAttr() != null;
     }
