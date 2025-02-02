@@ -49,7 +49,7 @@ public class RuleModelCompiler {
 
     public IExecutableRule compileRule(RuleModel ruleModel) {
         IExecutableRule rule;
-        if (ruleModel.getDecisionTree() != null) {
+        if (ruleModel.getDecisionTree() != null && ruleModel.getDecisionTree().hasChildren()) {
             rule = compileTree(ruleModel.getDecisionTree());
         } else {
             rule = compileMatrix(ruleModel.getDecisionMatrix());

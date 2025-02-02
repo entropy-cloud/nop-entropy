@@ -80,14 +80,14 @@ public class TestRuleExcelParser extends BaseTestCase {
 
         Map<String, Object> output = ruleManager.executeRule("test/test-matrix", null, ruleRt);
         System.out.println(JsonTool.serialize(ruleRt.getLogMessages(), true));
-        assertEquals(9, output.get("result"));
+        assertEquals(9.0, output.get("result"));
 
         baseInfo.put("age", 50);
         ruleRt.setInput("是否已婚", "未婚");
         ruleRt.clearOutputs();
         output = ruleManager.executeRule("test/test-matrix", null, ruleRt);
         assertEquals("A", output.get("type"));
-        assertEquals(14, output.get("result"));
+        assertEquals(14.0, output.get("result"));
     }
 
     private IRuleManager getRuleManager() {
