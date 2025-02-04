@@ -1,61 +1,6 @@
 {
-  "data": {
-    "logMessages": [
-      {
-        "logTime": "@var:rule-log-time",
-        "message": "MISMATCH",
-        "ruleNodeId": "A3",
-        "ruleNodeLabel": "<20"
-      },
-      {
-        "logTime": "@var:rule-log-time_1",
-        "message": "MISMATCH",
-        "ruleNodeId": "A5",
-        "ruleNodeLabel": "<30"
-      },
-      {
-        "logTime": "@var:rule-log-time_2",
-        "message": "MATCH",
-        "ruleNodeId": "A6",
-        "ruleNodeLabel": ">=30"
-      },
-      {
-        "logTime": "@var:rule-log-time_3",
-        "message": "MATCH",
-        "ruleNodeId": "B6",
-        "ruleNodeLabel": "-"
-      },
-      {
-        "logTime": "@var:rule-log-time_4",
-        "message": "MISMATCH",
-        "ruleNodeId": "C1",
-        "ruleNodeLabel": "有房"
-      },
-      {
-        "logTime": "@var:rule-log-time_5",
-        "message": "MATCH",
-        "ruleNodeId": "F1",
-        "ruleNodeLabel": "无房"
-      },
-      {
-        "logTime": "@var:rule-log-time_6",
-        "message": "MISMATCH",
-        "ruleNodeId": "F2",
-        "ruleNodeLabel": "已婚"
-      },
-      {
-        "logTime": "@var:rule-log-time_7",
-        "message": "MATCH",
-        "ruleNodeId": "G2",
-        "ruleNodeLabel": "未婚"
-      }
-    ],
-    "outputs": {
-      "result": 16
-    },
-    "ruleMatch": true,
-    "ruleName": "testMatrix",
-    "ruleVersion": 1
-  },
-  "status": 0
+  "bizFatal": false,
+  "code": "nop.err.rule.output-var-not-allow-empty",
+  "msg": "输出变量不允许为空:name=type,displayName=类型",
+  "status": -1
 }

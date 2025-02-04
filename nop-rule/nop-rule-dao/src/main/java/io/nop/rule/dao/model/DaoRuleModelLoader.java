@@ -117,14 +117,14 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
             return null;
 
         XNode node = XNodeParser.instance().parseFromText(null, entity.getModelText());
-        XNode inputsNode = node.childByTag("inputs");
-        if (inputsNode == null || !inputsNode.hasChild()) {
+        List<XNode> inputsNode = node.childrenByTag("input");
+        if (inputsNode.isEmpty()) {
             return null;
         }
 
         XNode schemaNode = XNode.make("schema");
         XNode propsNode = schemaNode.makeChild("props");
-        for (XNode inputNode : inputsNode.getChildren()) {
+        for (XNode inputNode : inputsNode) {
             XNode propNode = XNode.make("prop");
             propNode.setLocation(inputNode.getLocation());
             propNode.setAttr("name", inputNode.getAttr("name"));
@@ -188,7 +188,6 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
 
             Map<String, Object> outputs = (Map<String, Object>) JsonTool.parseNonStrict(node.getOutputs());
             if (outputs != null) {
-                XNode outputsNode = child.makeChild("outputs");
                 for (Map.Entry<String, Object> entry : outputs.entrySet()) {
                     String name = entry.getKey();
                     XNode exprNode = toExprNode(entry.getValue());
@@ -198,7 +197,7 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
                         exprNode.setTagName("valueExpr");
                         outputNode.appendChild(exprNode);
                     }
-                    outputsNode.appendChild(outputNode);
+                    child.appendChild(outputNode);
                 }
             }
 

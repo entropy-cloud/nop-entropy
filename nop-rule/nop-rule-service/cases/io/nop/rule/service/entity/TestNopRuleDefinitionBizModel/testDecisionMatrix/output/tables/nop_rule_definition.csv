@@ -3,119 +3,87 @@ A,@var:NopRuleDefinition@ruleId,testMatrix,1,Test Matrix,default,MATX,,"<rule di
     <decisionMatrix>
         <cells>
             <cell pos=""A1"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>1</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>1</valueExpr>
+                </output>
             </cell>
             <cell pos=""B1"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>2</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>2</valueExpr>
+                </output>
             </cell>
             <cell pos=""C1"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>3</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>3</valueExpr>
+                </output>
             </cell>
             <cell pos=""D1"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>4</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>4</valueExpr>
+                </output>
             </cell>
             <cell pos=""A2"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>5</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>5</valueExpr>
+                </output>
             </cell>
             <cell pos=""B2"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>6</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>6</valueExpr>
+                </output>
             </cell>
             <cell pos=""C2"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>7</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>7</valueExpr>
+                </output>
             </cell>
             <cell pos=""D2"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>8</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>8</valueExpr>
+                </output>
             </cell>
             <cell pos=""A3"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>9</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>9</valueExpr>
+                </output>
             </cell>
             <cell pos=""B3"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>10</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>10</valueExpr>
+                </output>
             </cell>
             <cell pos=""C3"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>11</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>11</valueExpr>
+                </output>
             </cell>
             <cell pos=""D3"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>12</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>12</valueExpr>
+                </output>
             </cell>
             <cell pos=""A4"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>13</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>13</valueExpr>
+                </output>
             </cell>
             <cell pos=""B4"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>14</valueExpr>
-                    </output>
-                    <output name=""type"">
-                        <valueExpr> 'A'</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>14</valueExpr>
+                </output>
+                <output name=""type"">
+                    <valueExpr> 'A'</valueExpr>
+                </output>
             </cell>
             <cell pos=""C4"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>15</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>15</valueExpr>
+                </output>
             </cell>
             <cell pos=""D4"">
-                <outputs>
-                    <output name=""result"">
-                        <valueExpr>16</valueExpr>
-                    </output>
-                </outputs>
+                <output name=""result"">
+                    <valueExpr>16</valueExpr>
+                </output>
             </cell>
         </cells>
         <colDecider>
@@ -202,37 +170,33 @@ A,@var:NopRuleDefinition@ruleId,testMatrix,1,Test Matrix,default,MATX,,"<rule di
             </children>
         </rowDecider>
     </decisionMatrix>
-    <inputs>
-        <input displayName=""是否有房"" mandatory=""true"" name=""是否有房"" type=""Boolean"" ext:level=""0"">
-            <schema/>
-        </input>
-        <input displayName=""是否已婚"" mandatory=""true"" name=""是否已婚"" type=""String"" ext:level=""0"">
-            <schema/>
-        </input>
-        <input displayName=""基础信息"" mandatory=""true"" name=""baseInfo"" type=""Object"" ext:level=""0"">
-            <schema implementsTypes="""">
-                <props>
-                    <prop displayName=""年龄"" mandatory=""true"" name=""age"" type=""Integer"" ext:level=""1""
-                          i18n-en:displayName=""Age"">
-                        <schema type=""Integer""/>
-                    </prop>
-                    <prop displayName=""性别"" mandatory=""true"" name=""gender"" type=""Integer"" ext:level=""1"">
-                        <schema type=""Integer""/>
-                    </prop>
-                </props>
-            </schema>
-        </input>
-        <input computed=""true"" displayName=""性别"" mandatory=""true"" name=""gender"" type=""Integer"" ext:level=""0"">
-            <defaultExpr>baseInfo.gender</defaultExpr>
-            <schema dict=""auth/gender""/>
-        </input>
-    </inputs>
-    <outputs>
-        <output displayName=""分数"" mandatory=""true"" name=""result"" type=""Double"" ext:level=""0"">
-            <schema/>
-        </output>
-        <output displayName=""类型"" mandatory=""true"" name=""type"" type=""String"" ext:level=""0"">
-            <schema/>
-        </output>
-    </outputs>
+    <input displayName=""是否有房"" mandatory=""true"" name=""是否有房"" type=""Boolean"" ext:level=""0"">
+        <schema/>
+    </input>
+    <input displayName=""是否已婚"" mandatory=""true"" name=""是否已婚"" type=""String"" ext:level=""0"">
+        <schema/>
+    </input>
+    <input displayName=""基础信息"" mandatory=""true"" name=""baseInfo"" type=""Object"" ext:level=""0"">
+        <schema implementsTypes="""">
+            <props>
+                <prop displayName=""年龄"" mandatory=""true"" name=""age"" type=""Integer"" ext:level=""1""
+                      i18n-en:displayName=""Age"">
+                    <schema type=""Integer""/>
+                </prop>
+                <prop displayName=""性别"" mandatory=""true"" name=""gender"" type=""Integer"" ext:level=""1"">
+                    <schema type=""Integer""/>
+                </prop>
+            </props>
+        </schema>
+    </input>
+    <input computed=""true"" displayName=""性别"" mandatory=""true"" name=""gender"" type=""Integer"" ext:level=""0"">
+        <defaultExpr>baseInfo.gender</defaultExpr>
+        <schema dict=""auth/gender""/>
+    </input>
+    <output displayName=""分数"" mandatory=""true"" name=""result"" type=""Double"" ext:level=""0"">
+        <schema/>
+    </output>
+    <output displayName=""类型"" mandatory=""true"" name=""type"" type=""String"" ext:level=""0"">
+        <schema/>
+    </output>
 </rule>",1,0,autotest-ref,*,autotest-ref,*,

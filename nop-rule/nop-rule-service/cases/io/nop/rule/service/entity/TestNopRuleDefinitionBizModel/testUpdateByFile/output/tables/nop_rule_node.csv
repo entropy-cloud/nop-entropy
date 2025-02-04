@@ -1,24 +1,24 @@
 _chgType,SID,RULE_ID,LABEL,SORT_NO,PREDICATE,OUTPUTS,PARENT_ID,IS_LEAF,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
-A,@var:NopRuleNode@sid_4,@var:NopRuleDefinition@ruleId,Spring,3,"{""$type"":""eq"",""name"":""season"",""value"":""Spring""}",,,false,1,autotest-ref,*,autotest-ref,*,
-A,@var:NopRuleNode@sid_3,@var:NopRuleDefinition@ruleId,<= 8,1,"{""$type"":""le"",""name"":""guestCount"",""value"":8}","{
-  ""dish"": ""\""Roastbeef\""""
-}",@var:NopRuleNode@sid_2,true,0,autotest-ref,*,autotest-ref,*,
-A,@var:NopRuleNode@sid_7,@var:NopRuleDefinition@ruleId,"in [""Fall"",""Winter"",""Spring""]",4,"{""$type"":""in"",""name"":""season"",""value"":[""Fall"",""Winter"",""Spring""]}",,,false,1,autotest-ref,*,autotest-ref,*,
-A,@var:NopRuleNode@sid,@var:NopRuleDefinition@ruleId,Fall,1,"{""$type"":""eq"",""name"":""season"",""value"":""Fall""}",,,false,1,autotest-ref,*,autotest-ref,*,
-A,@var:NopRuleNode@sid_10,@var:NopRuleDefinition@ruleId,-,1,"{""$type"":""alwaysTrue""}","{
-  ""dish"": ""\""Light Salad and nice Steak\""""
-}",@var:NopRuleNode@sid_9,true,0,autotest-ref,*,autotest-ref,*,
+A,@var:NopRuleNode@sid_9,@var:NopRuleDefinition@ruleId,Summer,5,"{""$type"":""eq"",""name"":""season"",""value"":""Summer""}",,,false,1,autotest-ref,*,autotest-ref,*,
 A,@var:NopRuleNode@sid_1,@var:NopRuleDefinition@ruleId,<= 8,1,"{""$type"":""le"",""name"":""guestCount"",""value"":8}","{
   ""dish"": ""\""Spareribs\""""
 }",@var:NopRuleNode@sid,true,0,autotest-ref,*,autotest-ref,*,
+A,@var:NopRuleNode@sid_7,@var:NopRuleDefinition@ruleId,"in [""Fall"",""Winter"",""Spring""]",4,"{""$type"":""in"",""name"":""season"",""value"":[""Fall"",""Winter"",""Spring""]}",,,false,1,autotest-ref,*,autotest-ref,*,
+A,@var:NopRuleNode@sid_10,@var:NopRuleDefinition@ruleId,-,1,"{""$type"":""alwaysTrue""}","{
+  ""dish"": ""\""Light Salad and nice Steak\""""
+}",@var:NopRuleNode@sid_9,true,0,autotest-ref,*,autotest-ref,*,
+A,@var:NopRuleNode@sid_2,@var:NopRuleDefinition@ruleId,Winter,2,"{""$type"":""eq"",""name"":""season"",""value"":""Winter""}",,,false,1,autotest-ref,*,autotest-ref,*,
+A,@var:NopRuleNode@sid,@var:NopRuleDefinition@ruleId,Fall,1,"{""$type"":""eq"",""name"":""season"",""value"":""Fall""}",,,false,1,autotest-ref,*,autotest-ref,*,
 A,@var:NopRuleNode@sid_6,@var:NopRuleDefinition@ruleId,<=8 and >= 5,2,"{""$type"":""and"",""$body"":[{""$type"":""le"",""name"":""guestCount"",""value"":8},{""$type"":""ge"",""name"":""guestCount"",""value"":5}]}","{
   ""dish"": ""\""Steak\""""
 }",@var:NopRuleNode@sid_4,true,0,autotest-ref,*,autotest-ref,*,
-A,@var:NopRuleNode@sid_2,@var:NopRuleDefinition@ruleId,Winter,2,"{""$type"":""eq"",""name"":""season"",""value"":""Winter""}",,,false,1,autotest-ref,*,autotest-ref,*,
-A,@var:NopRuleNode@sid_5,@var:NopRuleDefinition@ruleId,<= 4,1,"{""$type"":""le"",""name"":""guestCount"",""value"":4}","{
-  ""dish"": ""\""Dry Aged Gourmet Steak\""""
-}",@var:NopRuleNode@sid_4,true,0,autotest-ref,*,autotest-ref,*,
-A,@var:NopRuleNode@sid_9,@var:NopRuleDefinition@ruleId,Summer,5,"{""$type"":""eq"",""name"":""season"",""value"":""Summer""}",,,false,1,autotest-ref,*,autotest-ref,*,
+A,@var:NopRuleNode@sid_3,@var:NopRuleDefinition@ruleId,<= 8,1,"{""$type"":""le"",""name"":""guestCount"",""value"":8}","{
+  ""dish"": ""\""Roastbeef\""""
+}",@var:NopRuleNode@sid_2,true,0,autotest-ref,*,autotest-ref,*,
 A,@var:NopRuleNode@sid_8,@var:NopRuleDefinition@ruleId,> 8,1,"{""$type"":""gt"",""name"":""guestCount"",""value"":8}","{
   ""dish"": ""\""Stew\""""
 }",@var:NopRuleNode@sid_7,true,0,autotest-ref,*,autotest-ref,*,
+A,@var:NopRuleNode@sid_5,@var:NopRuleDefinition@ruleId,<= 4,1,"{""$type"":""le"",""name"":""guestCount"",""value"":4}","{
+  ""dish"": ""\""Dry Aged Gourmet Steak\""""
+}",@var:NopRuleNode@sid_4,true,0,autotest-ref,*,autotest-ref,*,
+A,@var:NopRuleNode@sid_4,@var:NopRuleDefinition@ruleId,Spring,3,"{""$type"":""eq"",""name"":""season"",""value"":""Spring""}",,,false,1,autotest-ref,*,autotest-ref,*,

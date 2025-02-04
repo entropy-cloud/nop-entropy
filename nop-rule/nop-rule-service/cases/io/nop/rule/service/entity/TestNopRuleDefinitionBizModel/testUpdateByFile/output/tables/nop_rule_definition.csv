@@ -1,16 +1,16 @@
 _chgType,RULE_ID,RULE_NAME,RULE_VERSION,DISPLAY_NAME,RULE_GROUP,RULE_TYPE,DESCRIPTION,MODEL_TEXT,STATUS,VERSION,CREATED_BY,CREATE_TIME,UPDATED_BY,UPDATE_TIME,REMARK
 A,@var:NopRuleDefinition@ruleId,test,1,Test Tree,default,TREE,,"<rule displayName=""测试规则"" x:schema=""/nop/schema/rule.xdef"" xmlns:x=""/nop/schema/xdsl.xdef"">
-    <inputs>
-        <input displayName=""季度"" mandatory=""true"" name=""season"" type=""String"" ext:level=""0"">
-            <schema/>
-        </input>
-        <input displayName=""客人数"" mandatory=""true"" name=""guestCount"" type=""Integer"" ext:level=""0"">
-            <schema/>
-        </input>
-    </inputs>
-    <outputs>
-        <output displayName=""食物"" mandatory=""true"" name=""dish"" type=""String"" ext:level=""0"">
-            <schema/>
-        </output>
-    </outputs>
+    <decisionMatrix>
+        <colDecider/>
+        <rowDecider/>
+    </decisionMatrix>
+    <input displayName=""季度"" mandatory=""true"" name=""season"" type=""String"" ext:level=""0"">
+        <schema/>
+    </input>
+    <input displayName=""客人数"" mandatory=""true"" name=""guestCount"" type=""Integer"" ext:level=""0"">
+        <schema/>
+    </input>
+    <output displayName=""食物"" mandatory=""true"" name=""dish"" type=""String"" ext:level=""0"">
+        <schema/>
+    </output>
 </rule>",1,0,autotest-ref,*,autotest-ref,*,
