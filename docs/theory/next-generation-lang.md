@@ -40,8 +40,10 @@
 ### 二、**意图导向编程（Intent-Oriented Programming）**
 
 - **创新点**：
+  
   1. 显式分离**程序意图**（What）和**实现细节**（How）
   2. 内置自然语言注释层与机器可解析的意图标记（如`@optimize_for_latency`）
+
 - **案例**：
   
   ```plaintext
@@ -49,6 +51,7 @@
   #constraint: 输入规模可能达到10^6级别
   [AI生成或推荐的实现代码]
   ```
+
 - **解决问题**：让AI更精准理解需求，减少"代码正确但不符合意图"的错误
 
 ---
@@ -77,13 +80,16 @@
 ### 四、**概率化编程原语（Probabilistic Primitives）**
 
 - **创新点**：
+  
   - 原生支持概率分布类型（如`Gaussian(μ=0, σ=1)`）
   - 内置贝叶斯推理引擎
+
 - **应用场景**：
   
   ```python
   sensor_data ~ Normal(mean=ground_truth, sd=0.1)  # 自动生成概率模型
   ```
+
 - **解决问题**：简化机器学习模型的实现，使AI能直接操作概率语义
 
 ---
@@ -91,14 +97,17 @@
 ### 五、**自省与可解释性增强**
 
 - **创新点**：
+  
   1. 代码执行过程自动生成解释轨迹（Explanation Trace）
   2. 决策链的因果标记（`becauseof`关键字）
+
 - **示例**：
   
   ```python
   if x > threshold:  # @becauseof(input_statistics.summary())
       trigger_alert()
   ```
+
 - **解决问题**：解决AI生成代码的"黑箱"问题，增强调试和审计能力
 
 ---
@@ -115,8 +124,10 @@
 ### 七、**伦理约束内嵌（Ethical Constraints as First-Class Citizen）**
 
 - **创新点**：
+  
   - 类型系统扩展支持伦理属性（如`PersonalData @encrypted`）
   - 资源访问的合规性验证前置
+
 - **示例**：
   
   ```python
@@ -124,6 +135,7 @@
     @Fairness(metric=demographic_parity):
     # 代码逻辑
   ```
+
 - **解决问题**：在语言层面确保AI生成代码符合伦理规范
 
 ---
@@ -342,7 +354,7 @@
   - **草图识别**：绘制UI草图即时生成前端框架代码
   - **AR编程辅助**：通过Hololens等设备三维可视化数据流
 - **技术栈整合**：
-  
+
 ```mermaid
 graph LR
   A[语音输入] --> B(意图识别引擎)
