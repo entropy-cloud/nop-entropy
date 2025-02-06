@@ -372,23 +372,23 @@ nop.core.dict.return-normalized-label配置成false
 ### 24. CrudBizModel中的save跟update这两个方法有什么区别？
 
 update必须具有id属性，表示修改操作。而save是新增操作，转化为insert语句。
-save\_update是只要有id就识别为修改操作，否则识别为新增操作。
+`save_update`是只要有id就识别为修改操作，否则识别为新增操作。
 
 ### 25. action-auth.xml 也能控制 graphql action的权限，Auth 注解和 xbiz 也能控制，这个该怎么选择，如果互相冲突以哪个为准呢
 
-Nop平台采用的是多层叠加的设计，也就是说 整体逻辑 = 基础逻辑 + Delta定制逻辑，定制性强的层会覆盖变化性较低的层。xbiz中定义的内容会覆盖Java中定义的内容。xmeta中的定义优先级最高。
+Nop平台采用的是多层叠加的设计，也就是说 `整体逻辑 = 基础逻辑 + Delta定制逻辑`，定制性强的层会覆盖变化性较低的层。xbiz中定义的内容会覆盖Java中定义的内容。xmeta中的定义优先级最高。
 
-action-auth.xml并不能控制权限，它能定义给一组权限起一个便于管理的分组名称。具体的权限名还是服务方法上定义的。
-action-auth.xml可以配置缺省的角色和permission之间的绑定关系。而后台的AuthMeta本质上是配置permission和服务函数之间的绑定关系，只是有时为了方便也可以直接指定role和服务函数之间的绑定关系。如果同时指定，实际上是同时限制的
+`action-auth.xml`并不能控制权限，它能定义给一组权限起一个便于管理的分组名称。具体的权限名还是服务方法上定义的。
+`action-auth.xml`可以配置缺省的角色和permission之间的绑定关系。而后台的AuthMeta本质上是配置permission和服务函数之间的绑定关系，只是有时为了方便也可以直接指定role和服务函数之间的绑定关系。如果同时指定，实际上是同时限制的
 
 ### 26. 通过Delta定制如何处理多对多关联？
 
-问题：在 delta.orm.xlxs 中定制 NopAuthUser 时，对于 many-to-many 关系，比如用户和商户多对多，因为要在 NopAuthUser 中生成商户相关的 java 属性，又要在商户这边生成用户相关的 Java 属性。这种情况下，中间关联表是要在 auth delta excel 中定义，还是在应用模块的 excel 中定义呢？
+问题：在 `delta.orm.xlsx` 中定制 NopAuthUser 时，对于 `many-to-many` 关系，比如用户和商户多对多，因为要在 NopAuthUser 中生成商户相关的 java 属性，又要在商户这边生成用户相关的 Java 属性。这种情况下，中间关联表是要在 auth delta excel 中定义，还是在应用模块的 excel 中定义呢？
 回答：建议是在自己的业务模型中增加多对多关联表，将用户表标记为not-gen，作为外部表引用。这样不会自动为NopAuthUserEx生成多对多相关的帮助函数，这个可以手工自行添加。
 
 ### 27. nop-ooxml-xlsx模块与Java的poi库有什么区别？
 
-poi很大，最少有10几M，而且很慢。nop-ooxml-xlsx是利用Nop平台自己实现的XML解析器来解析xlsx文件，它的底层没有使用POI库，
+poi很大，最少有10几M，而且很慢。`nop-ooxml-xlsx`是利用Nop平台自己实现的XML解析器来解析xlsx文件，它的底层没有使用POI库，
 比POI快很多，内存消耗也小很多，但是支持的功能不多，只支持目前report开发中用到的xlsx特性。
 
 ### 28. Excel模型中updateTime等系统约定的特殊字段能改成自己定义的名称吗？比如updateTime修改为updatedAt
@@ -402,10 +402,10 @@ poi很大，最少有10几M，而且很慢。nop-ooxml-xlsx是利用Nop平台自
 
 ### 30. 除了主动运行gen命令，还有什么时候能生成代码？
 
-每个DSL文件都支持x:gen-extends和x:post-extends子节点，这些段就相当于是内嵌在DSL中的generator。
+每个DSL文件都支持`x:gen-extends`和`x:post-extends`子节点，这些段就相当于是内嵌在DSL中的generator。
 
 * push模式：mvn install触发precompile目录下的xgen，执行代码生成
-* pull模式: x:gen-extends，加载模型的时候触发代码生成段，执行代码生成
+* pull模式: `x:gen-extends`，加载模型的时候触发代码生成段，执行代码生成
 
 ### 31. NopORM中的querySpace概念是什么意思？
 
@@ -420,7 +420,7 @@ IContext主要是提供异步上下文，并包含一些最简单的全局信息
 一般情况下一个请求过来，会创建一个IContext，绑定到某个执行任务线程，然后GraphQL引擎创建IServiceContext，并引用了先前的IContext，带上了更多的信息。因此对于一个请求来讲，会有一个IServiceContext以及一个IContext。
 
 ### 33. EQL查询语言不支持`cast(value as date)`这种语法怎么办
-可以直接用date(field)函数。具体有哪些函数，可以去看dialect.xml中函数的定义，还可以定制dialect.xml来增加函数定义。通过template函数可以将函数定义转换为特定的SQL语法。
+可以直接用`date(field)`函数。具体有哪些函数，可以去看`dialect.xml`中函数的定义，还可以定制`dialect.xml`来增加函数定义。通过template函数可以将函数定义转换为特定的SQL语法。
 
 ### 34. 主键id必须要设置seq标签吗 现在插入的id数据怎么保证连续
 主键id如果不设置seq，则需要自己手工设置。如果设置了seq标签，可以根据`nop_sys_sequence`表中的配置来顺序生成，每个实体对应一条记录，如果没有找到对应记录，会生成随机id。
@@ -484,6 +484,13 @@ logInfo函数的第一个参数是模板消息字符串，使用slf4j日志框�
 ```javascript
 logInfo("data: {}",data);
 ```
+
+## 41. 在`_delta`目录下定义了已经有的view文件 是按照覆盖的逻辑还是合并的
+覆盖，需要在根节点上标记`x:extends="super"`才会合并。DSL文件具有自说明性，只要查看DSL文件本身就知道它的XDef元模型以及它所继承的基础模型。
+
+## 42. 如果有多个定制的情况是按照什么顺序进行合并。比如NopAuthUser视图文件，首先是在nop内置的，经过层层的个性化，中间框架定制 ->产品定制->衍生产品定制
+Nop平台通过统一的虚拟文件系统来统一管理所有DSL文件。在虚拟文件系统中，可以定义多个平级的delta目录，然后通过`nop.core.vfs.delta-layer-ids`配置来指定这些Delta层之间的覆盖关系。
+比如 `nop.core.vfs.delta-layer-ids=deploy,product`表示`_delta/deploy`目录下的文件覆盖`_delta/product`目录下的，然后再覆盖非Delta目录下的同名文件。
 
 ## 部署问题
 

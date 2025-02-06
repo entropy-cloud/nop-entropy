@@ -61,7 +61,6 @@ public class TenantAwareResourceLoadingCache<V> implements IResourceLoadingCache
         if (!ResourceTenantManager.supportTenant(path))
             return shareCache;
 
-        ResourceTenantManager.instance().useTenant(tenantId);
         return tenantCaches.get(tenantId);
     }
 

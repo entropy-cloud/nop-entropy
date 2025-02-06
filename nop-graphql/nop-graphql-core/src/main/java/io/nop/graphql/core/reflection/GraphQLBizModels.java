@@ -53,30 +53,11 @@ public class GraphQLBizModels {
 
     private void findBizResources() {
         for (IResource resource : ModuleManager.instance().findModuleResources(false, "model", ".xbiz")) {
-            String fileName = resource.getName();
-            if (fileName.startsWith("_"))
-                continue;
-
-            // 例如: /nop/auth/model/NopAuthDept/NopAuthDept.xbiz
-            int count = StringHelper.countChar(resource.getStdPath(), '/');
-            if (count != 5)
-                continue;
-
-            String bizObjName = fileName.substring(0, fileName.length() - ".xbiz".length());
-            makeBizModel(bizObjName).setBizPath(resource.getStdPath());
+            discoverBiz(bizModels, resource);
         }
 
-        for (IResource resource : ModuleManager.instance().findModuleResources(false,"model", ".xmeta")) {
-            String fileName = resource.getName();
-            if (fileName.startsWith("_"))
-                continue;
-
-            int count = StringHelper.countChar(resource.getStdPath(), '/');
-            if (count != 5)
-                continue;
-
-            String bizObjName = fileName.substring(0, fileName.length() - ".xmeta".length());
-            makeBizModel(bizObjName).setMetaPath(resource.getStdPath());
+        for (IResource resource : ModuleManager.instance().findModuleResources(false, "model", ".xmeta")) {
+            discoverMeta(bizModels, resource);
         }
     }
 
@@ -84,7 +65,43 @@ public class GraphQLBizModels {
         return bizModels.get(bizObjName);
     }
 
-    public GraphQLBizModel makeBizModel(String bizObjName) {
+    public static void discoverBizModel(Map<String, GraphQLBizModel> bizModels, IResource resource) {
+        String fileName = resource.getName();
+        if (fileName.endsWith(".xmeta")) {
+            discoverMeta(bizModels, resource);
+        } else if (fileName.endsWith(".xbiz")) {
+            discoverBiz(bizModels, resource);
+        }
+    }
+
+    private static void discoverBiz(Map<String, GraphQLBizModel> bizModels, IResource resource) {
+        String fileName = resource.getName();
+        if (fileName.startsWith("_"))
+            return;
+
+        // 例如: /nop/auth/model/NopAuthDept/NopAuthDept.xbiz
+        int count = StringHelper.countChar(resource.getStdPath(), '/');
+        if (count != 5)
+            return;
+
+        String bizObjName = fileName.substring(0, fileName.length() - ".xbiz".length());
+        makeBizModel(bizModels, bizObjName).setBizPath(resource.getStdPath());
+    }
+
+    private static void discoverMeta(Map<String, GraphQLBizModel> bizModels, IResource resource) {
+        String fileName = resource.getName();
+        if (fileName.startsWith("_"))
+            return;
+
+        int count = StringHelper.countChar(resource.getStdPath(), '/');
+        if (count != 5)
+            return;
+
+        String bizObjName = fileName.substring(0, fileName.length() - ".xmeta".length());
+        makeBizModel(bizModels, bizObjName).setMetaPath(resource.getStdPath());
+    }
+
+    private static GraphQLBizModel makeBizModel(Map<String, GraphQLBizModel> bizModels, String bizObjName) {
         return bizModels.computeIfAbsent(bizObjName, k -> new GraphQLBizModel(bizObjName));
     }
 

@@ -88,7 +88,6 @@ public class HazelcastCache<K, V> extends JavaxCache<K, V> {
         return cache.putIfAbsentAsync(key, value);
     }
 
-
     @Override
     public CompletionStage<Void> removeAsync(K key) {
         Function<Object, Void> f = object -> null;

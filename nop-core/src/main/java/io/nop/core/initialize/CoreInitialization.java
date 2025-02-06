@@ -191,7 +191,7 @@ public class CoreInitialization {
             ReflectionManager.instance().clearCache();
             GlobalCacheRegistry.instance().clearAllCache();
         } finally {
-            ResourceTenantManager.instance().reset();
+            ResourceTenantManager.instance().clearAllTenants();
             initializerRunning = false;
         }
     }

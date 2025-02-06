@@ -13,6 +13,7 @@ import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.PageBean;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.biz.api.IBizObject;
 import io.nop.biz.impl.BizObjectManager;
 import io.nop.commons.type.StdSqlType;
 import io.nop.core.module.ModuleManager;
@@ -64,7 +65,6 @@ public class TestDynCodeGen extends JunitBaseTestCase {
         super.init(testInfo);
         VirtualFileSystem.instance().updateInMemoryLayer(null);
         ModuleManager.instance().updateDynamicModules(null);
-        ResourceTenantManager.instance().reset();
         bizObjectManager.clearCache();
     }
 
@@ -79,7 +79,8 @@ public class TestDynCodeGen extends JunitBaseTestCase {
             codeGen.reloadModel();
         });
 
-      //  bizObjectManager.getBizObject("MyDynEntity_one");
+        IBizObject bizObj = bizObjectManager.getBizObject("MyDynEntity_one");
+        assertEquals("MyDynEntity_one", bizObj.getBizObjName());
 
         ormTemplate.runInSession(() -> {
 

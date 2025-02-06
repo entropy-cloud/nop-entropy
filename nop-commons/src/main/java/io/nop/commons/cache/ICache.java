@@ -11,8 +11,10 @@ import io.nop.api.core.config.IConfigRefreshable;
 import io.nop.commons.collections.IAsyncMap;
 
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -76,6 +78,12 @@ public interface ICache<K, V> extends IAsyncCache<K, V>, IAsyncMap<K, V>, IConfi
     }
 
     void remove(K key);
+
+    default Set<K> getAllKeys() {
+        Set<K> keys = new LinkedHashSet<>();
+        forEachEntry((k, v) -> keys.add(k));
+        return keys;
+    }
 
     default boolean remove(K key, V object) {
         V value = getIfPresent(key);

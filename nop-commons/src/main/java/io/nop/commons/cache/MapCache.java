@@ -8,12 +8,14 @@
 package io.nop.commons.cache;
 
 import io.nop.api.core.util.FutureHelper;
-
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
+
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -207,6 +209,11 @@ public class MapCache<K, V> implements ICache<K, V> {
     @Override
     public CompletionStage<Void> forEachEntryAsync(BiConsumer<? super K, ? super V> consumer) {
         return FutureHelper.futureRun(() -> forEachEntry(consumer));
+    }
+
+    @Override
+    public Set<K> getAllKeys() {
+        return new LinkedHashSet<>(map.keySet());
     }
 
     @Override

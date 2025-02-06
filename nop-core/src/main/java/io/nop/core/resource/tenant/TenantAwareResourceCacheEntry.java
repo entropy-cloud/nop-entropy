@@ -42,7 +42,6 @@ public class TenantAwareResourceCacheEntry<V> implements IResourceCacheEntry<V> 
         if (StringHelper.isEmpty(tenantId)) {
             return shareCache;
         }
-        ResourceTenantManager.instance().useTenant(tenantId);
         return tenantCaches.get(tenantId);
     }
 

@@ -3,19 +3,14 @@ package io.nop.core.resource.tenant;
 import io.nop.api.core.annotations.core.GlobalInstance;
 import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
-import io.nop.api.core.util.ICancellable;
 import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.lang.ICreationListener;
-import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.module.ModuleManager;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.IResourceStore;
 import io.nop.core.resource.ResourceConstants;
 import io.nop.core.resource.ResourceHelper;
-import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.cache.CacheEntryManagement;
 import io.nop.core.resource.cache.IResourceCacheEntry;
 import io.nop.core.resource.cache.IResourceLoadingCache;
@@ -30,14 +25,8 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import static io.nop.core.CoreConfigs.CFG_TENANT_RESOURCE_DISABLED_PATHS;
@@ -96,74 +85,9 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
         }
     }
 
-    private final Map<String, TenantInitialization> tenantInitializations = new ConcurrentHashMap<>();
-
-    private final List<IResourceTenantInitializer> tenantInitializers = new CopyOnWriteArrayList<>();
-
-    private final Map<String, IResourceStore> tenantStores = new ConcurrentHashMap<>();
+    private ITenantResourceProvider tenantResourceProvider;
 
     private ITenantModuleDiscovery tenantModuleDiscovery;
-
-    class TenantInitialization {
-        private final String tenantId;
-
-        ICancellable cleanup;
-        final AtomicInteger state = new AtomicInteger();
-        final CompletableFuture<Void> ready = new CompletableFuture<>();
-
-        public TenantInitialization(String tenantId) {
-            this.tenantId = tenantId;
-        }
-
-        public void cancel() {
-            if (cleanup != null)
-                cleanup.cancel();
-        }
-
-        public void init() {
-            Boolean b = s_initializingTenant.get();
-            if (Boolean.TRUE.equals(b))
-                return;
-
-            if (state.compareAndSet(0, 1)) {
-                s_initializingTenant.set(true);
-                Cancellable cancellable = new Cancellable();
-                try {
-                    for (IResourceTenantInitializer initializer : tenantInitializers) {
-                        cancellable.appendOnCancelTask(initializer.initializeTenant(tenantId));
-                    }
-                    this.cleanup = cancellable;
-                    ready.complete(null);
-                } catch (Exception e) {
-                    LOG.error("nop.err.tenant-init-error", e);
-                    ready.completeExceptionally(e);
-                    cancellable.cancel();
-                    throw NopException.adapt(e);
-                } finally {
-                    s_initializingTenant.set(false);
-                }
-            } else {
-                try {
-                    FutureHelper.getFromFuture(ready);
-                } catch (Exception e) {
-                    LOG.info("nop.ignore-tenant-init-error");
-                }
-            }
-        }
-
-        public void awaitReady() {
-            init();
-            FutureHelper.syncGet(ready);
-        }
-    }
-
-    public void addTenantInitializer(IResourceTenantInitializer tenantInitializer) {
-        this.tenantInitializers.add(tenantInitializer);
-    }
-
-    public void removeTenantInitializer(IResourceTenantInitializer tenantInitializer) {
-        this.tenantInitializers.remove(tenantInitializer);
-    }
 
     public ITenantModuleDiscovery getTenantModuleDiscovery() {
         return tenantModuleDiscovery;
@@ -171,6 +95,14 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
 
     public void setTenantModuleDiscovery(ITenantModuleDiscovery tenantModuleDiscovery) {
         this.tenantModuleDiscovery = tenantModuleDiscovery;
+    }
+
+    public ITenantResourceProvider getTenantResourceProvider() {
+        return tenantResourceProvider;
+    }
+
+    public void setTenantResourceProvider(ITenantResourceProvider tenantResourceProvider) {
+        this.tenantResourceProvider = tenantResourceProvider;
     }
 
     public boolean isSupportTenant(String resourcePath) {
@@ -203,25 +135,20 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
         return !moduleName.startsWith("nop-");
     }
 
-    public void reset() {
-        tenantInitializations.clear();
-    }
-
-    public boolean isTenantUsed(String tenantId) {
-        return tenantInitializations.containsKey(tenantId);
-    }
-
     public Set<String> getUsedTenants() {
-        return new TreeSet<>(tenantInitializations.keySet());
+        ITenantResourceProvider provider = this.tenantResourceProvider;
+        if (provider == null)
+            return Collections.emptySet();
+        return new TreeSet<>(provider.getUsedTenantIds());
     }
 
     /**
      * 销毁租户所占用的资源
      */
     public void clearForTenant(String tenantId) {
-        TenantInitialization cleanup = tenantInitializations.remove(tenantId);
-        if (cleanup != null)
-            cleanup.cancel();
+        ITenantResourceProvider provider = this.tenantResourceProvider;
+        if (provider != null)
+            provider.clearForTenant(tenantId);
         GlobalCacheRegistry.instance().clearForTenant(tenantId);
     }
 
@@ -229,19 +156,6 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
         for (String tenantId : getUsedTenants()) {
             clearForTenant(tenantId);
         }
-    }
-
-    /**
-     * 第一次执行时会自动触发租户的初始化函数
-     */
-    public void useTenant(String tenantId) {
-        TenantInitialization tenant = tenantInitializations.computeIfAbsent(tenantId, TenantInitialization::new);
-        tenant.init();
-    }
-
-    public void awaitTenantReady(String tenantId) {
-        TenantInitialization tenant = tenantInitializations.computeIfAbsent(tenantId, TenantInitialization::new);
-        tenant.awaitReady();
     }
 
     public <V> IResourceLoadingCache<V> makeLoadingCache(String name,
@@ -286,13 +200,9 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
         if (!isEnableTenantResource())
             throw new NopException(ERR_RESOURCE_STORE_NOT_SUPPORT_TENANT_DELTA);
 
-        useTenant(tenantId);
-        return tenantStores.get(tenantId);
-    }
-
-    public void updateTenantResourceStore(String tenantId, IResourceStore store) {
-        if (!isEnableTenantResource())
-            throw new NopException(ERR_RESOURCE_STORE_NOT_SUPPORT_TENANT_DELTA);
-        tenantStores.put(tenantId, store);
+        ITenantResourceProvider provider = getTenantResourceProvider();
+        if (provider == null)
+            return null;
+        return provider.getTenantResourceStore(tenantId);
     }
 }

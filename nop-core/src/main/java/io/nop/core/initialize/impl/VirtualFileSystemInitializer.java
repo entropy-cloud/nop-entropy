@@ -43,6 +43,6 @@ public class VirtualFileSystemInitializer implements ICoreInitializer {
             ModuleManager.instance().clear();
         }
 
-        ResourceTenantManager.instance().reset();
+        ResourceTenantManager.instance().clearAllTenants();
     }
 }

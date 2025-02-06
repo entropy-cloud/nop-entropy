@@ -10,15 +10,16 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.module.ModuleModel;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.IResourceStore;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.store.InMemoryResourceStore;
 import io.nop.core.resource.store.ResourceStoreHelper;
-import io.nop.core.resource.tenant.ResourceTenantManager;
 import io.nop.dyn.dao.entity.NopDynEntityMeta;
 import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.dyn.dao.model.DynEntityMetaToOrmModel;
 import io.nop.graphql.core.reflection.GraphQLBizModel;
+import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.model.OrmModel;
 import io.nop.xlang.api.XLang;
@@ -26,10 +27,8 @@ import io.nop.xlang.api.XplModel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -50,6 +49,11 @@ public class InMemoryCodeCache {
 
     private final List<IDynamicBizModelProvider.ChangeListener> changeListeners = new CopyOnWriteArrayList<>();
 
+    /**
+     * 将所有模块的资源文件合并在一起
+     */
+    private IResourceStore mergedStore;
+
     public Map<String, InMemoryResourceStore> getModuleCoreStores() {
         return moduleCoreStores;
     }
@@ -67,6 +71,7 @@ public class InMemoryCodeCache {
     }
 
     public void clear() {
+        mergedStore = null;
         moduleCoreStores.clear();
         moduleWebStores.clear();
         dynBizModels.clear();
@@ -74,6 +79,10 @@ public class InMemoryCodeCache {
 
     public boolean isEmpty() {
         return moduleCoreStores.isEmpty() && moduleWebStores.isEmpty() && dynBizModels.isEmpty();
+    }
+
+    public IResourceStore getMergedStore() {
+        return mergedStore;
     }
 
     public synchronized void generateForModule(boolean genWebFiles, boolean formatCode,
@@ -126,45 +135,45 @@ public class InMemoryCodeCache {
 
         InMemoryResourceStore store = genModuleCoreFiles(formatGenCode, module, ormModel);
 
-        genModuleBizModels(module);
+        //    genModuleBizModels(module);
 
-        String moduleName = module.getModuleName();
-        ModuleModel moduleModel = new ModuleModel();
-        moduleModel.setModuleName(moduleName);
-
-        enabledModules.put(moduleName, moduleModel);
+//        String moduleName = module.getModuleName();
+//        ModuleModel moduleModel = new ModuleModel();
+//        moduleModel.setModuleName(moduleName);
+//
+//        enabledModules.put(moduleName, moduleModel);
         return store;
     }
 
-    protected void genModuleBizModels(NopDynModule module) {
-        Set<String> oldNames = new HashSet<>(dynBizModels.keySet());
-
-        String moduleName = module.getModuleName();
-        String modulePath = module.getModuleName().replace('-', '/');
-        for (NopDynEntityMeta entityMeta : module.getEntityMetas()) {
-            String bizObjName = entityMeta.getBizObjName();
-            GraphQLBizModel bizModel = new GraphQLBizModel(bizObjName);
-            bizModel.setModuleName(moduleName);
-            String bizPath = "/" + modulePath + "/model/" + bizObjName + "/" + bizObjName + ".xbiz";
-            bizModel.setBizPath(bizPath);
-
-            if (entityMeta.getEntityModel() != null) {
-                String metaPath = "/" + modulePath + "/model/" + bizObjName + "/" + bizObjName + ".xmeta";
-                bizModel.setMetaPath(metaPath);
-            }
-
-            dynBizModels.put(bizObjName, bizModel);
-        }
-
-        for (String bizObjName : dynBizModels.keySet()) {
-            this.changeListeners.forEach(listener -> listener.onBizObjChanged(bizObjName));
-        }
-
-        for (String oldName : oldNames) {
-            if (!dynBizModels.containsKey(oldName))
-                this.changeListeners.forEach(listener -> listener.onBizObjRemoved(oldName));
-        }
-    }
+//    protected void genModuleBizModels(NopDynModule module) {
+//        Set<String> oldNames = new HashSet<>(dynBizModels.keySet());
+//
+//        String moduleName = module.getModuleName();
+//        String modulePath = module.getModuleName().replace('-', '/');
+//        for (NopDynEntityMeta entityMeta : module.getEntityMetas()) {
+//            String bizObjName = entityMeta.getBizObjName();
+//            GraphQLBizModel bizModel = new GraphQLBizModel(bizObjName);
+//            bizModel.setModuleName(moduleName);
+//            String bizPath = "/" + modulePath + "/model/" + bizObjName + "/" + bizObjName + ".xbiz";
+//            bizModel.setBizPath(bizPath);
+//
+//            if (entityMeta.getEntityModel() != null) {
+//                String metaPath = "/" + modulePath + "/model/" + bizObjName + "/" + bizObjName + ".xmeta";
+//                bizModel.setMetaPath(metaPath);
+//            }
+//
+//            dynBizModels.put(bizObjName, bizModel);
+//        }
+//
+//        for (String bizObjName : dynBizModels.keySet()) {
+//            this.changeListeners.forEach(listener -> listener.onBizObjChanged(bizObjName));
+//        }
+//
+//        for (String oldName : oldNames) {
+//            if (!dynBizModels.containsKey(oldName))
+//                this.changeListeners.forEach(listener -> listener.onBizObjRemoved(oldName));
+//        }
+//    }
 
     protected InMemoryResourceStore genModuleCoreFiles(boolean formatGenCode, NopDynModule dynModule, OrmModel ormModel) {
         String moduleName = dynModule.getModuleName();
@@ -281,17 +290,33 @@ public class InMemoryCodeCache {
             dynModules.put(moduleName, ModuleModel.forModuleName(moduleName));
         });
 
-        if (tenantId != null) {
-            ResourceTenantManager.instance().updateTenantResourceStore(tenantId, merged);
-        } else {
+        this.mergedStore = merged;
+        Map<String, GraphQLBizModel> bizModels = findBizModels(merged);
+        this.dynBizModels.putAll(bizModels);
+        this.dynBizModels.keySet().retainAll(bizModels.keySet());
+
+        if (tenantId == null) {
             VirtualFileSystem.instance().updateInMemoryLayer(merged);
             ModuleManager.instance().updateDynamicModules(dynModules);
         }
+
+        this.enabledModules.putAll(dynModules);
+        this.enabledModules.keySet().retainAll(dynModules.keySet());
 
         ormSessionFactory.reloadModel();
 
         if (AppConfig.isDebugMode()) {
             ResourceStoreHelper.dumpStore(merged, "/");
         }
+    }
+
+    Map<String, GraphQLBizModel> findBizModels(IResourceStore store) {
+        List<IResource> resources = store.findAll("/*/*/model/*/*");
+
+        Map<String, GraphQLBizModel> bizModels = new HashMap<>();
+        for (IResource resource : resources) {
+            GraphQLBizModels.discoverBizModel(bizModels, resource);
+        }
+        return bizModels;
     }
 }

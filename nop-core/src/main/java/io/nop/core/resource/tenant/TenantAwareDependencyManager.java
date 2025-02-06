@@ -43,7 +43,7 @@ public class TenantAwareDependencyManager implements IResourceDependencyManager 
         if (StringHelper.isEmpty(tenantId)) {
             return shareCache;
         }
-        ResourceTenantManager.instance().useTenant(tenantId);
+
         return tenantCaches.get(tenantId);
     }
 

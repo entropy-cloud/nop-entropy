@@ -21,11 +21,11 @@ import io.nop.commons.lang.IDestroyable;
 import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.commons.util.DestroyHelper;
 import io.nop.commons.util.StringHelper;
+import jakarta.annotation.Nullable;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.Nullable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -246,7 +246,7 @@ public class LocalCache<K, V> implements ICache<K, V>, IConfigRefreshable, IDest
     }
 
     public void clear() {
-        LOG.info("nop.cache.clear:cacheName={}",getName());
+        LOG.info("nop.cache.clear:cacheName={}", getName());
         cache.invalidateAll();
     }
 
