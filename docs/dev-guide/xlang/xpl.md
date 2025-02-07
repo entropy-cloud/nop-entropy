@@ -517,6 +517,8 @@ XPL内置了一些通用属性，所有标签都可以指定这些属性。xpl�
   </biz:WhenAdmin>
 ```
 
+Xpl语言所内置的所有属性，完整定义在[xpl.xdef](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-xdefs/src/main/resources/_vfs/nop/schema/xpl.xdef)文件中
+
 ## 装饰器decorator
 
 任何标签都支持名为`<xpl:decorator>`的装饰子节点, 它可以将嵌套结构变换为线性结构。
@@ -599,3 +601,26 @@ XLang内置了一些特殊的名字空间，比如x,xpl等，它们会在编译�
 
 XLang.getTagAction可以根据标签库路径和标签名获得xpl标签，然后通过IEvalScope传入标签参树。TagAction提供了generateText, invoke等多种函数，分别用于输出文本和作为函数调用返回执行值。
 
+## 常见问题
+
+### 1. 如何输出表达式`${a}`，而不是执行表达式
+
+```xml
+<control value="${'$'}{a}" />
+```
+
+### 2. 如何输出带名字空间的节点，比如`<a:b/>`
+
+```xml
+<c:unit xpl:is="${'a:b'+''}" />
+```
+
+> 直接写`${'a:b'}`或者`a:b`会被作为标签解析，必须是动态表达式才会在运行时输出
+
+另外如果设置了`xpl:allowUnknownTag`，则会自动忽略所有未知的标签。
+
+```xml
+<a:b xpl:allowUnknownTag="true" />
+```
+
+如果设置了`xpl:ignoreTag="true"`则会忽略所有标签，而不仅仅是未知的标签。

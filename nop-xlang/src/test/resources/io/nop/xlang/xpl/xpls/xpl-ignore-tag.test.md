@@ -26,3 +26,17 @@
     <biz:Validator xpl:lib="a.xlib"/>
 </_>
 ````
+
+## 3. 使用`xpl:is`动态输出标签名
+
+```xpl
+<c:unit xpl:is="${'c:for' + ''}" xpl:outputMode="xml" />
+```
+
+* outputMode: xml
+* output:
+
+```
+
+<c:for/>
+```

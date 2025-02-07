@@ -385,6 +385,7 @@
 
         <GenModelFromExcel outputMode="node">
             <attr name="path" stdDomain="v-path" />
+            <attr name="markDelta" stdDomain="boolean" optional="true"/>
 
             <source>
                 <c:script><![CDATA[
@@ -403,6 +404,9 @@
                     ormNode.setAttr('xmlns:ui','ui');
                     ormNode.prependBodyXml(`<x:post-extends x:override="replace"><orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib" /></x:post-extends>`);
 
+                    if(markDelta){
+                        ormNode.makeChild("entities").forEachChild(child=>child.addTagSet('delta'));
+                    }
                     $out.appendChild(ormNode);
                 ]]></c:script>
             </source>

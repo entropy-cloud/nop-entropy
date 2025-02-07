@@ -5,6 +5,6 @@
     <x:gen-extends>
         <!-- 根据orm.xlsx自动生成orm.xml，可以直接进行可视化编辑，并且立刻起效 -->
         <orm-gen:GenModelFromExcel path="demo.orm.xlsx" xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
-        <orm-gen:GenModelFromExcel path="demo-delta.orm.xlsx" xpl:lib="/nop/orm/xlib/orm-gen.xlib" />
+        <orm-gen:GenModelFromExcel path="demo-delta.orm.xlsx" xpl:lib="/nop/orm/xlib/orm-gen.xlib" markDelta="true" />
     </x:gen-extends>
 </orm>
