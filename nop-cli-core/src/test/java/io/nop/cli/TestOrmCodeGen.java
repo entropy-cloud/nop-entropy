@@ -15,6 +15,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.tpl.ITemplateOutput;
+import io.nop.core.resource.tpl.TemplateGenPath;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.orm.model.OrmColumnModel;
@@ -34,6 +35,9 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.wildfly.common.Assert.assertTrue;
 
 public class TestOrmCodeGen extends BaseTestCase {
     @BeforeAll
@@ -100,5 +104,23 @@ public class TestOrmCodeGen extends BaseTestCase {
         renderers.put("xlsx", new XlsxReportRendererFactory());
         reportEngine.setRenderers(renderers);
         return reportEngine;
+    }
+
+    @Test
+    public void testPath(){
+         String path = "{!model.tagSet.@no-web}{model.tagSet.@delta}";
+        TemplateGenPath genPath = new TemplateGenPath();
+        genPath.push("a");
+        genPath.resolveTop(XLang.newEvalScope());
+
+        genPath.push(path);
+        IEvalScope scope = XLang.newEvalScope();
+        OrmEntityModel table = new OrmEntityModel();
+        table.addTag("delta");
+        scope.setLocalValue("model", table);
+
+        boolean result = genPath.resolveTop(scope);
+        assertTrue(result);
+        assertEquals("a",genPath.getTargetPath());
     }
 }

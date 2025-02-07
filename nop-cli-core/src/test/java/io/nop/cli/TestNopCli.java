@@ -116,4 +116,15 @@ public class TestNopCli extends BaseTestCase {
         assertEquals(0, ret);
         System.getProperties().remove(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName());
     }
+
+    @Test
+    public void testFile(){
+        CoreInitialization.destroy();
+        String[] args = new String[]{"gen", "../nop-cli/demo/_vfs/app/demo/orm/app.orm.xml",
+                "-t", "/nop/templates/orm","-o","target"};
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        int ret = app.run(args);
+        assertEquals(0, ret);
+    }
 }

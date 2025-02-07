@@ -112,7 +112,7 @@ public interface CoreConstants extends ResourceConstants {
     String FILTER_TAG_NAME = "filter";
     String ATTR_ID = "id";
     String ATTR_NAME = "name";
-    String ATTR_TAGS = "tags";
+    String ATTR_TAG_SET = "tagSet";
     String ATTR_CLASS = "class";
     String ATTR_STYLE = "style";
     String ATTR_V_ID = "v:id";

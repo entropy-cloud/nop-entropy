@@ -17,6 +17,7 @@ import jakarta.annotation.Nonnull;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -101,8 +102,8 @@ public class BeanToolImpl implements IBeanTool {
         if (propName.charAt(0) == '@') {
             // 针对csv-set的一个特殊语法。 tagSet.@published等价于 tagSet.contains('published')
             Class<?> clazz = bean.getClass();
-            if (clazz == LinkedHashSet.class || clazz == HashSet.class) {
-                return ((Set) bean).contains(propName.substring(1));
+            if (Collection.class.isAssignableFrom(clazz)) {
+                return ((Collection<?>) bean).contains(propName.substring(1));
             }
         }
         return getBeanModel(bean).getProperty(bean, propName, scope);

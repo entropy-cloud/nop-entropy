@@ -7,6 +7,7 @@
  */
 package io.nop.core.lang.xml;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.ApiConstants;
 import io.nop.api.core.annotations.graphql.GraphQLMap;
 import io.nop.api.core.beans.ITreeBean;
@@ -21,6 +22,7 @@ import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.ISourceLocationSetter;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.functional.IEqualsChecker;
+import io.nop.commons.lang.ITagSetSupport;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
@@ -76,6 +78,7 @@ import static io.nop.commons.util.objects.ValueWithLocation.NULL_VALUE;
 import static io.nop.core.CoreConstants.ATTR_CLASS;
 import static io.nop.core.CoreConstants.ATTR_ID;
 import static io.nop.core.CoreConstants.ATTR_NAME;
+import static io.nop.core.CoreConstants.ATTR_TAG_SET;
 import static io.nop.core.CoreConstants.ATTR_V_ID;
 import static io.nop.core.CoreConstants.DUMMY_TAG_NAME;
 import static io.nop.core.CoreConstants.TEXT_TAG_NAME;
@@ -100,7 +103,7 @@ import static io.nop.core.CoreErrors.ERR_XNODE_IS_READONLY;
  */
 @GraphQLMap
 public class XNode implements Serializable, ISourceLocationGetter, ISourceLocationSetter, ITreeBean, ITreeStructure,
-        ICloneable, IJsonSerializable, IFreezable {
+        ICloneable, IJsonSerializable, IFreezable, ITagSetSupport {
     private static final long serialVersionUID = -8460236455991070110L;
 
     static final Logger LOG = LoggerFactory.getLogger(XNode.class);
@@ -574,6 +577,20 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         if (value == null || value.isEmpty())
             throw newAttrError(ERR_XML_ATTR_IS_EMPTY, name);
         return value;
+    }
+
+    public void addTagSet(String tagSet) {
+        addAttrCsvSet(ATTR_TAG_SET, tagSet);
+    }
+
+    public void removeTagSet(String tagSet) {
+        this.removeAttrCsvSet(ATTR_TAG_SET, tagSet);
+    }
+
+    @JsonIgnore
+    @Override
+    public Set<String> getTagSet() {
+        return attrCsvSet(ATTR_TAG_SET);
     }
 
     protected NopException newAttrError(ErrorCode err, String attrName) {

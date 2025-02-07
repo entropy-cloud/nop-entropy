@@ -26,6 +26,8 @@ import io.nop.core.reflect.hook.IPropSetMissingHook;
 import io.nop.core.unittest.BaseTestCase;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +35,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestBeanTool extends BaseTestCase {
+    @Test
+    public void testTagSet(){
+        String expr = "a.@data";
+        List<String> a = new ArrayList<>();
+        a.add("data");
+        Map<String, Object> map = new HashMap<>();
+        map.put("a", a);
+        assertEquals(true, BeanTool.getComplexProperty(map, expr));
+    }
     @Test
     public void testBeanCopier() {
         String str = "{a:1,b:[1,2,3],c:'3',map:{x:{a:'a1'}}}";
