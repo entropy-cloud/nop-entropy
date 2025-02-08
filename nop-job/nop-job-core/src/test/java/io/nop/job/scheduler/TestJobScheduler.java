@@ -56,7 +56,7 @@ public class TestJobScheduler {
         trigger.setRepeatInterval(10);
         trigger.setRepeatFixedDelay(true);
         job.setTriggerSpec(trigger);
-        scheduler.addJob(job, true, true);
+        scheduler.addJob(job, true);
         try {
             Thread.sleep(200);
         } catch (Exception e) {
@@ -67,7 +67,7 @@ public class TestJobScheduler {
 
         assertEquals(true, scheduler.fireNow("test"));
 
-        scheduler.startJob("test");
+        scheduler.resumeJob("test");
 
         try {
             Thread.sleep(2000);
@@ -82,7 +82,7 @@ public class TestJobScheduler {
         job2.setTriggerSpec(trigger);
         job2.setJobName("test");
         job2.setJobGroup("test");
-        scheduler.addJob(job2, true, true);
+        scheduler.addJob(job2, true);
 
         try {
             Thread.sleep(100);

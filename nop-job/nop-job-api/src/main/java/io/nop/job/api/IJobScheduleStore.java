@@ -20,7 +20,16 @@ public interface IJobScheduleStore {
 
     ITriggerState loadTriggerState(String jobName);
 
+    JobDetail loadJobDetail(String jobName);
+
+    /**
+     * 保存触发器状态
+     *
+     * @param state 触发器状态
+     */
     void saveTriggerState(ITriggerState state);
 
     void removeTriggerState(ITriggerState state);
+
+    boolean shouldScheduleNext(ITriggerState state);
 }

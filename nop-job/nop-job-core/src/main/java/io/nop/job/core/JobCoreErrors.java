@@ -18,6 +18,9 @@ public interface JobCoreErrors {
     String ARG_CRON_EXPR = "cronExpr";
     String ARG_JOB_NAME = "jobName";
 
+    String ARG_EPOCH = "epoch";
+    String ARG_CURRENT_EPOCH = "currentEpoch";
+
     ErrorCode ERR_JOB_TRIGGER_LOOP_COUNT_EXCEED_LIMIT = define("nop.err.job.trigger.loop-count-exceed-limit",
             "计算下一次触发时间时似乎陷入死循环，循环次数超过最大限制", ARG_LOOP_COUNT);
 
@@ -38,4 +41,6 @@ public interface JobCoreErrors {
 
     ErrorCode ERR_JOB_DEACTIVATED_SCHEDULER_NOT_ALLOW_OPERATION = define(
             "nop.err.job.deactivated-scheduler-not-allow-operation", "处于失活状态的调度器不允许执行操作");
+
+    ErrorCode ERR_JOB_SCHEDULER_EPOCH_EXPIRED = define("nop.err.job.scheduler-epoch-expired", "调度器epoch已过期，不允许执行操作");
 }

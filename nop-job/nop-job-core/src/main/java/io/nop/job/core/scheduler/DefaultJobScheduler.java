@@ -26,10 +26,10 @@ import io.nop.job.core.ITriggerExecutor;
 import io.nop.job.core.trigger.OnceTrigger;
 import io.nop.job.core.trigger.TriggerBuilder;
 import io.nop.job.core.trigger.TriggerContextImpl;
+import jakarta.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jakarta.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -38,10 +38,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import static io.nop.job.api.JobApiErrors.ARG_JOB_NAME;
+import static io.nop.job.core.JobCoreErrors.ARG_CURRENT_EPOCH;
+import static io.nop.job.core.JobCoreErrors.ARG_EPOCH;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_ALREADY_EXISTS;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_DEACTIVATED_SCHEDULER_NOT_ALLOW_OPERATION;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_EMPTY_INVOKER_NAME;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_INVALID_JOB_NAME;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_SCHEDULER_EPOCH_EXPIRED;
 
 public class DefaultJobScheduler implements IJobScheduler {
     static final Logger LOG = LoggerFactory.getLogger(DefaultJobScheduler.class);
@@ -75,7 +78,17 @@ public class DefaultJobScheduler implements IJobScheduler {
         this.jobStore = jobStore;
     }
 
+    @Override
     public void activate(long epoch) {
+        if (this.epoch < epoch) {
+            throw new NopException(ERR_JOB_SCHEDULER_EPOCH_EXPIRED).param(ARG_EPOCH, epoch).param(ARG_CURRENT_EPOCH, epoch);
+        }
+
+        if (this.epoch == epoch) {
+            if (!this.deactivated)
+                return;
+        }
+
         deactivate();
         this.epoch = epoch;
 
@@ -92,6 +105,7 @@ public class DefaultJobScheduler implements IJobScheduler {
         }
     }
 
+    @Override
     public void deactivate() {
         deactivated = true;
         ICancellable cancelFetch = this.cancelFetch;
@@ -125,7 +139,7 @@ public class DefaultJobScheduler implements IJobScheduler {
 //    }
 
     @Override
-    public List<String> getAllJobNames() {
+    public List<String> getJobNames() {
         return new ArrayList<>(jobs.keySet());
     }
 
@@ -141,7 +155,7 @@ public class DefaultJobScheduler implements IJobScheduler {
     }
 
     @Override
-    public void addJob(JobSpec spec, boolean allowUpdate, boolean startJob) {
+    public void addJob(JobSpec spec, boolean allowUpdate) {
         checkActivated();
         LOG.info("nop.job.add-job:jobName={},epoch={}", spec.getJobName(), epoch);
 
@@ -168,7 +182,7 @@ public class DefaultJobScheduler implements IJobScheduler {
                 }
             }
         } else {
-            updateJob(execution, resolved, true, startJob);
+            updateJob(execution, resolved, true);
         }
     }
 
@@ -191,11 +205,10 @@ public class DefaultJobScheduler implements IJobScheduler {
                 execution = oldExec;
             }
         }
-        updateJob(execution, resolved, true, false);
+        updateJob(execution, resolved, true);
     }
 
-    private void updateJob(JobExecution execution, ResolvedJobSpec resolved, boolean allowUpdate,
-                           boolean forceStartJob) {
+    private void updateJob(JobExecution execution, ResolvedJobSpec resolved, boolean allowUpdate) {
         String jobName = resolved.getJobName();
         JobSpec spec = resolved.getJobSpec();
 
@@ -217,7 +230,7 @@ public class DefaultJobScheduler implements IJobScheduler {
             boolean active = execution.getTriggerStatus().isActive();
             execution.pauseTrigger().thenRun(() -> {
                 synchronized (execution) { //NOSONAR
-                    if (forceStartJob || active) {
+                    if (active) {
                         if (!execution.getTriggerStatus().isDone()) {
                             startTrigger(execution);
                         }
@@ -307,7 +320,7 @@ public class DefaultJobScheduler implements IJobScheduler {
     }
 
     @Override
-    public boolean startJob(String jobName) {
+    public boolean resumeJob(String jobName) {
         checkActivated();
 
         LOG.info("nop.job.start-job:jobName={},epoch={}", jobName, epoch);

@@ -7,9 +7,6 @@
  */
 package io.nop.job.api;
 
-import io.nop.api.core.annotations.biz.BizMutation;
-import io.nop.api.core.annotations.biz.BizObjName;
-import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.job.api.spec.JobSpec;
@@ -23,13 +20,10 @@ import java.util.Set;
 import static io.nop.job.api.JobApiErrors.ARG_JOB_NAME;
 import static io.nop.job.api.JobApiErrors.ERR_JOB_UNKNOWN_JOB;
 
-@BizObjName("JobScheduler")
 public interface IJobScheduler {
 
-    @BizQuery
-    List<String> getAllJobNames();
+    List<String> getJobNames();
 
-    @BizQuery
     @Nullable
     JobDetail getJobDetail(@Name("jobName") String jobName);
 
@@ -38,7 +32,6 @@ public interface IJobScheduler {
      *
      * @param ignoreUnknown 当jobName对应的任务不存在时是否抛出异常
      */
-    @BizQuery
     default List<JobDetail> getJobDetails(@Name("jobNames") Set<String> jobNames,
                                           @Name("ignoreUnknown") boolean ignoreUnknown) {
         List<JobDetail> ret = new ArrayList<>(jobNames.size());
@@ -57,27 +50,21 @@ public interface IJobScheduler {
     /**
      * 加入任务，并自动启动trigger
      */
-    @BizMutation
     void addJob(@Name("jobSpec") JobSpec spec,
-                @Name("allowUpdate") boolean allowUpdate,
-                @Name("startTrigger") boolean startTrigger);
+                @Name("allowUpdate") boolean allowUpdate);
 
-    @BizMutation
     default void addJobs(@Name("specs") Collection<JobSpec> specs,
-                         @Name("allowUpdate") boolean allowUpdate,
-                         @Name("startTrigger") boolean startTrigger) {
+                         @Name("allowUpdate") boolean allowUpdate) {
         for (JobSpec spec : specs) {
-            addJob(spec, allowUpdate, startTrigger);
+            addJob(spec, allowUpdate);
         }
     }
 
     /**
      * 删除任务。如果任务当前处于运行状态，则会先取消任务
      */
-    @BizMutation
     boolean removeJob(@Name("jobName") String jobName);
 
-    @BizMutation
     default boolean removeJobs(@Name("jobNames") Collection<String> jobNames) {
         if (jobNames == null)
             return false;
@@ -90,49 +77,42 @@ public interface IJobScheduler {
         return b;
     }
 
-    @BizMutation
     default boolean clearJobs() {
-        return removeJobs(getAllJobNames());
+        return removeJobs(getJobNames());
     }
 
     /**
      * 获取job当前状态。如果没有找到已注册的job，则返回null
      */
     @Nullable
-    @BizQuery
     TriggerStatus getTriggerStatus(@Name("jobName") String jobName);
 
     /**
      * 启动已经注册的任务
      */
-    @BizQuery
-    boolean startJob(@Name("jobName") String jobName);
+    boolean resumeJob(@Name("jobName") String jobName);
 
-    @BizQuery
-    default boolean startJobs(@Name("jobNames") Collection<String> jobNames) {
+    default boolean resumeJobs(@Name("jobNames") Collection<String> jobNames) {
         if (jobNames == null)
             return false;
 
         boolean b = false;
         for (String jobName : jobNames) {
-            if (startJob(jobName))
+            if (resumeJob(jobName))
                 b = true;
         }
         return b;
     }
 
-    @BizQuery
-    default boolean startAllJobs() {
-        return startJobs(getAllJobNames());
+    default boolean resumeAllJobs() {
+        return resumeJobs(getJobNames());
     }
 
     /**
      * 暂停任务。但是任务仍然保存在调度器中，并没有被删除
      */
-    @BizQuery
     boolean pauseJob(@Name("jobName") String jobName);
 
-    @BizQuery
     default boolean pauseJobs(@Name("jobNames") Collection<String> jobNames) {
         if (jobNames == null)
             return false;
@@ -145,18 +125,15 @@ public interface IJobScheduler {
         return b;
     }
 
-    @BizMutation
     default boolean pauseAllJobs() {
-        return pauseJobs(getAllJobNames());
+        return pauseJobs(getJobNames());
     }
 
     /**
      * 取消任务。任务取消后会进入取消状态，不会被自动调度
      */
-    @BizMutation
     boolean cancelJob(@Name("jobName") String jobName);
 
-    @BizMutation
     default boolean cancelJobs(@Name("jobNames") Collection<String> jobNames) {
         if (jobNames == null)
             return false;
@@ -169,15 +146,13 @@ public interface IJobScheduler {
         return b;
     }
 
-    @BizMutation
     default boolean cancelAllJobs() {
-        return cancelJobs(getAllJobNames());
+        return cancelJobs(getJobNames());
     }
 
     /**
      * 手动触发一次任务。如果任务正在执行，则返回false。如果任务没有处于调度状态，则临时调度一次。 任何时刻同一个jobName对应的任务只会有一个实例在执行。
      */
-    @BizMutation
     boolean fireNow(@Name("jobName") String jobName);
 
     /**
