@@ -2274,7 +2274,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
 
     public boolean hasClass(String className) {
         String value = attrText(ATTR_CLASS);
-        return StringHelper.hasClass(value, className);
+        return StringHelper.hasCssClass(value, className);
     }
 
     /**

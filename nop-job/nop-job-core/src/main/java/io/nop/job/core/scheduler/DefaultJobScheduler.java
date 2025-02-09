@@ -201,6 +201,7 @@ public class DefaultJobScheduler implements IJobScheduler {
                 if (active) {
                     startTrigger(execution);
                 }
+                return;
             } else {
                 execution = oldExec;
             }

@@ -194,7 +194,7 @@ public class WebPageHelper {
         String value = (String) map.get(classNameKey);
         if (value == null) {
             value = className;
-        } else if (!StringHelper.hasClass(value, className)) {
+        } else if (!StringHelper.hasCssClass(value, className)) {
             value = className + " " + value;
         }
         map.put(classNameKey, value);

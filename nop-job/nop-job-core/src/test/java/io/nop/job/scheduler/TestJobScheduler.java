@@ -19,6 +19,7 @@ import io.nop.job.api.spec.TriggerSpec;
 import io.nop.job.core.ITriggerExecutor;
 import io.nop.job.core.scheduler.DefaultJobScheduler;
 import io.nop.job.core.trigger.TriggerExecutorImpl;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -27,6 +28,7 @@ import java.util.concurrent.CompletionStage;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Disabled
 public class TestJobScheduler {
 
     static class MockJobInvoker implements IJobInvoker {

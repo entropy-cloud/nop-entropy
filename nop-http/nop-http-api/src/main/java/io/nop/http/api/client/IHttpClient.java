@@ -25,6 +25,10 @@ public interface IHttpClient {
     CompletionStage<Void> downloadAsync(HttpRequest request, IHttpOutputFile targetFile, DownloadOptions options,
                                         ICancelToken cancelToken);
 
+    default void download(HttpRequest request, IHttpOutputFile targetFile, DownloadOptions options, ICancelToken cancelToken) {
+        FutureHelper.syncGet(downloadAsync(request, targetFile, options, cancelToken));
+    }
+
     CompletionStage<Void> uploadAsync(HttpRequest request, IHttpInputFile inputFile, UploadOptions options,
                                       ICancelToken cancelToken);
 }

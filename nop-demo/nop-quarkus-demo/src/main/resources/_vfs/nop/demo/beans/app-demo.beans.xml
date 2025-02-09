@@ -12,4 +12,6 @@
     <bean id="sendEmailInterceptor" class="io.nop.demo.interceptors.SendEmailInterceptor">
         <ioc:pointcut annotations="io.nop.demo.annotations.SendEmail"/>
     </bean>
+
+    <bean id="nopPluginCommand_default" class="io.nop.demo.plugin.DemoPluginCommand" />
 </beans>

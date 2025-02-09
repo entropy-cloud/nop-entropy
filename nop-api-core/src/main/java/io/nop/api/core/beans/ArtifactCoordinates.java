@@ -40,6 +40,18 @@ public final class ArtifactCoordinates {
         return groupId + ":" + artifactId + ":" + version;
     }
 
+    public String toPath() {
+        return groupId.replace('.', '/') + "/" + artifactId + "/" + version;
+    }
+
+    public String getJarFilePath() {
+        return groupId.replace('.', '/') + "/" + artifactId + "/" + version + "/" + artifactId + "-" + version + ".jar";
+    }
+
+    public String getSha256FilePath() {
+        return getJarFilePath() + ".sha256";
+    }
+
     @StaticFactoryMethod
     public static ArtifactCoordinates parse(String text) {
         int pos = text.indexOf(':');

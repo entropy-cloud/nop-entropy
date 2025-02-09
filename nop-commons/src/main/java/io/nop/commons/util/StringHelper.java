@@ -3382,7 +3382,7 @@ public class StringHelper extends ApiStringHelper {
      */
     // performance sensitive
     @Deterministic
-    public static boolean hasClass(String classAttr, String className) {
+    public static boolean hasCssClass(String classAttr, String className) {
         if (classAttr == null)
             return false;
 
@@ -3425,6 +3425,15 @@ public class StringHelper extends ApiStringHelper {
         }
 
         return false;
+    }
+
+    @Deterministic
+    public static boolean classInPackage(String className, String packageName) {
+        if (isEmpty(packageName))
+            return className.indexOf('.') < 0;
+        if (className.length() < packageName.length() + 1)
+            return false;
+        return className.charAt(packageName.length()) == '.' && className.startsWith(packageName);
     }
 
     @Deterministic
