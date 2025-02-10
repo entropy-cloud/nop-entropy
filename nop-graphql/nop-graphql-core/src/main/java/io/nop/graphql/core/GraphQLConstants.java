@@ -144,8 +144,13 @@ public interface GraphQLConstants {
 
     String QUERY_ORDER_BY_KEY = "query_orderBy";
 
+    String QUERY_PREFIX = "query_";
+    String FIELD_LEFT_JOIN_PROPS = "leftJoinProps";
+
     String PROP_ORDER_BY = "orderBy";
     String PROP_FILTER = "filter";
+    String FIELD_LIMIT = "limit";
+    String FIELD_OFFSET = "offset";
 
     String V_PREFIX = "v_";
 

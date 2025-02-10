@@ -19,9 +19,15 @@ QueryBean中增加了leftJoinProps集合属性，这里指定的属性会转换�
 翻译成EQL对象查询时会变为
 
 ```sql
-select o 
+select o
 from MyEntity o left join o.dept
 where o.dept.name = 'a'
+```
+
+前台查询时可以通过url传递参数
+
+```
+/r/NopAuthUser__findPage?query_leftJoinProps=dept,xxx
 ```
 
 ## 安全性控制

@@ -68,5 +68,6 @@
     <selection xdef:value="field-selection"/>
 
     <filter xdef:value="filter-bean" />
+    <orderBy xdef:ref="../query/order-by.xdef"/>
 
 </grid>

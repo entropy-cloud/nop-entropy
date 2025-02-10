@@ -166,6 +166,13 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: orderBy
+     * 
+     */
+    private KeyedList<io.nop.api.core.beans.query.OrderFieldBean> _orderBy = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: placeholder
      * 
      */
@@ -676,6 +683,51 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: orderBy
+     *  
+     */
+    
+    public java.util.List<io.nop.api.core.beans.query.OrderFieldBean> getOrderBy(){
+      return _orderBy;
+    }
+
+    
+    public void setOrderBy(java.util.List<io.nop.api.core.beans.query.OrderFieldBean> value){
+        checkAllowChange();
+        
+        this._orderBy = KeyedList.fromList(value, io.nop.api.core.beans.query.OrderFieldBean::getName);
+           
+    }
+
+    
+    public io.nop.api.core.beans.query.OrderFieldBean getField(String name){
+        return this._orderBy.getByKey(name);
+    }
+
+    public boolean hasField(String name){
+        return this._orderBy.containsKey(name);
+    }
+
+    public void addField(io.nop.api.core.beans.query.OrderFieldBean item) {
+        checkAllowChange();
+        java.util.List<io.nop.api.core.beans.query.OrderFieldBean> list = this.getOrderBy();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.api.core.beans.query.OrderFieldBean::getName);
+            setOrderBy(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_orderBy(){
+        return this._orderBy.keySet();
+    }
+
+    public boolean hasOrderBy(){
+        return !this._orderBy.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: placeholder
      *  
      */
@@ -916,6 +968,8 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
             
            this._initApi = io.nop.api.core.util.FreezeHelper.deepFreeze(this._initApi);
             
+           this._orderBy = io.nop.api.core.util.FreezeHelper.deepFreeze(this._orderBy);
+            
            this._saveOrderApi = io.nop.api.core.util.FreezeHelper.deepFreeze(this._saveOrderApi);
             
         }
@@ -946,6 +1000,7 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("itemCheckableOn",this.getItemCheckableOn());
         out.putNotNull("multiple",this.getMultiple());
         out.putNotNull("objMeta",this.getObjMeta());
+        out.putNotNull("orderBy",this.getOrderBy());
         out.putNotNull("placeholder",this.getPlaceholder());
         out.putNotNull("prefixRow",this.getPrefixRow());
         out.putNotNull("prefixRowClassName",this.getPrefixRowClassName());
@@ -990,6 +1045,7 @@ public abstract class _UiGridModel extends io.nop.core.resource.component.Abstra
         instance.setItemCheckableOn(this.getItemCheckableOn());
         instance.setMultiple(this.getMultiple());
         instance.setObjMeta(this.getObjMeta());
+        instance.setOrderBy(this.getOrderBy());
         instance.setPlaceholder(this.getPlaceholder());
         instance.setPrefixRow(this.getPrefixRow());
         instance.setPrefixRowClassName(this.getPrefixRowClassName());

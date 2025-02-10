@@ -227,6 +227,13 @@ NopGraphQL引擎返回的对象信息完全由XMeta来定义。如果一个属�
 
 需要注意的是，在parent属性上设置queryable并不会自动使得parent的所有属性都开放查询。必须逐个属性指定。
 
+## 属性映射mapToProp
+
+meta中配置`<prop name="xyz" mapToProp="abc.xyz">` 则前台看到的属性名就是`xyz`，而不是`abc.xyz`。
+mapToProp的含义是后台执行时将GraphQL请求中的字段名翻译为mapToProp对应的属性访问路径去获取数据。
+在view模型中使用的也是prop的name，而不是mapToProp。如果前台要直接使用`abc.xyz`，也需要在meta中配置`<prop name="abc.xyz">`，这种设计是出于安全性考虑，不直接允许访问关联对象
+
+
 ## 根据domain自动推定prop配置
 
 `meta-gen.xlib`的DefaultMetaPostExtends标签为所有模型驱动自动生成的meta增加了post-extends处理

@@ -76,11 +76,18 @@ public class GraphQLArgsHelper {
                 query.put(GraphQLConstants.PROP_ORDER_BY, orderBy);
                 continue;
             }
+
             if (name.startsWith("_"))
                 continue;
 
-            if (beanModel.getPropertyModel(name) != null) {
+            if (name.equals(GraphQLConstants.FIELD_LIMIT) || name.equals(GraphQLConstants.FIELD_OFFSET)) {
                 query.put(name, entry.getValue());
+            } else if (name.startsWith(GraphQLConstants.QUERY_PREFIX) && beanModel.getPropertyModel(name.substring(GraphQLConstants.QUERY_PREFIX.length())) != null) {
+                Object value = entry.getValue();
+                String key = name.substring(GraphQLConstants.QUERY_PREFIX.length());
+                if (key.equals(GraphQLConstants.FIELD_LEFT_JOIN_PROPS))
+                    value = ConvertHelper.toCsvList(value, NopException::new);
+                query.put(key, value);
             } else if (name.startsWith(GraphQLConstants.FILTER_PREFIX)) {
                 Map<String, Object> filter = GraphQLArgsHelper.getFilterMap(name, entry.getValue());
                 filters.add(filter);
