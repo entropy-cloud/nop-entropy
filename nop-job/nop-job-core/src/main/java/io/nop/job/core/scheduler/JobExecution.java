@@ -7,7 +7,6 @@
  */
 package io.nop.job.core.scheduler;
 
-import io.nop.api.core.util.FutureHelper;
 import io.nop.job.api.JobDetail;
 import io.nop.job.api.TriggerState;
 import io.nop.job.api.TriggerStatus;
@@ -16,19 +15,22 @@ import io.nop.job.core.ITriggerContext;
 import io.nop.job.core.ITriggerExecution;
 import io.nop.job.core.ITriggerExecutor;
 
-import java.util.concurrent.CompletionStage;
-
 class JobExecution {
     private ResolvedJobSpec jobSpec;
     private ITriggerContext triggerContext;
 
     private ITriggerExecution triggerExecution;
+    private boolean closed;
 
     public JobDetail toJobDetail() {
         JobDetail detail = new JobDetail();
         detail.setTriggerState(new TriggerState(triggerContext));
         detail.setJobSpec(jobSpec.getJobSpec());
         return detail;
+    }
+
+    public boolean isClosed() {
+        return closed;
     }
 
     public long getJobVersion() {
@@ -58,6 +60,12 @@ class JobExecution {
     }
 
     public void fireNow(ITriggerExecutor executor) {
+        ITriggerExecution trigger = this.triggerExecution;
+        if (trigger != null) {
+            trigger.fireNow();
+            return;
+        }
+
         ResolvedJobSpec jobSpec = this.jobSpec;
 
         ITriggerExecution execution = executor.execute(true, jobSpec.getTrigger(), createTriggerAction(),
@@ -75,22 +83,18 @@ class JobExecution {
         }
     }
 
-    public CompletionStage<Void> pauseTrigger() {
+    public void pauseTrigger() {
         ITriggerExecution execution = triggerExecution;
         if (execution != null) {
             execution.pause();
-            this.triggerExecution = null;
-            return execution.getFinishPromise();
-        } else {
-            return FutureHelper.success(null);
         }
     }
 
     public void deactivate() {
+        closed = true;
         ITriggerExecution execution = triggerExecution;
         if (execution != null) {
             execution.deactivate();
-            this.triggerExecution = null;
         }
     }
 
@@ -98,7 +102,6 @@ class JobExecution {
         ITriggerExecution execution = triggerExecution;
         if (execution != null) {
             execution.cancel();
-            this.triggerExecution = null;
         }
     }
 

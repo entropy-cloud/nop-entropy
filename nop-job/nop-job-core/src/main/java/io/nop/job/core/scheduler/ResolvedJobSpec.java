@@ -43,6 +43,10 @@ class ResolvedJobSpec {
         return jobSpec;
     }
 
+    public long getVersion() {
+        return jobSpec.getVersion();
+    }
+
     public IJobInvoker getJobInvoker() {
         return jobInvoker;
     }

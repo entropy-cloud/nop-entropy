@@ -29,7 +29,5 @@ public interface IJobScheduleStore {
      */
     void saveTriggerState(ITriggerState state);
 
-    void removeTriggerState(ITriggerState state);
-
-    boolean shouldScheduleNext(ITriggerState state);
+    void killAllTriggers();
 }
