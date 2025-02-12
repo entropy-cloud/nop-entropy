@@ -121,7 +121,7 @@ public class TestNopCli extends BaseTestCase {
     public void testFile(){
         CoreInitialization.destroy();
         String[] args = new String[]{"gen", "../nop-cli/demo/_vfs/app/demo/orm/app.orm.xml",
-                "-t", "/nop/templates/orm","-o","target"};
+                "-t", "/demo/templates/orm","-o","target/demo"};
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);
         int ret = app.run(args);
