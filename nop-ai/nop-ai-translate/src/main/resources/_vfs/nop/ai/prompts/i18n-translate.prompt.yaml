@@ -1,0 +1,5 @@
+template: >
+  检查并补全此i18n CSV文件，前两列是messageKey和中文列，它们需要保持不变，修正并补全后续的${toLang.$toCsvSet().$join('/')}的翻译。
+  确保翻译准确，严格保留列顺序和CSV格式
+   
+  ${content}

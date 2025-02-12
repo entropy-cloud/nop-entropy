@@ -8,5 +8,7 @@ public interface AiTranslateConstants {
 
     String VAR_FROM_LANG = "fromLang";
     String VAR_TO_LANG = "toLang";
+
+    String VAR_EXTRA_PROMPT = "extraPrompt";
     String VAR_TEXT = "text";
 }

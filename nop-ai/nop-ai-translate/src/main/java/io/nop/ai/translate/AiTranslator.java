@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
+import static io.nop.ai.translate.AiTranslateConstants.VAR_EXTRA_PROMPT;
 import static io.nop.ai.translate.AiTranslateConstants.VAR_FROM_LANG;
 import static io.nop.ai.translate.AiTranslateConstants.VAR_MODEL;
 import static io.nop.ai.translate.AiTranslateConstants.VAR_PROLOG;
@@ -28,6 +29,8 @@ public class AiTranslator {
     private final IChatSessionFactory factory;
     private String fromLang;
     private String toLang;
+
+    private String extraPrompt;
     private ITextSplitter textSplitter = SimpleTextSplitter.INSTANCE;
     private final IPromptTemplate promptTemplate;
     private int prologSize = 256;
@@ -51,6 +54,12 @@ public class AiTranslator {
     @PropertySetter
     public AiTranslator toLang(String toLang) {
         this.toLang = toLang;
+        return this;
+    }
+
+    @PropertySetter
+    public AiTranslator extraPrompt(String extraPrompt) {
+        this.extraPrompt = extraPrompt;
         return this;
     }
 
@@ -100,7 +109,7 @@ public class AiTranslator {
         try {
             String promptText = promptTemplate.generatePrompt(
                     Map.of(VAR_MODEL, factory.getModel(), VAR_PROLOG, prolog, VAR_TEXT, text,
-                            VAR_FROM_LANG, fromLang, VAR_TO_LANG, toLang));
+                            VAR_FROM_LANG, fromLang, VAR_TO_LANG, toLang, VAR_EXTRA_PROMPT, extraPrompt));
             Prompt prompt = session.newPrompt(false);
             prompt.addHumanMessage(promptText);
             return session.sendChatAsync(prompt, cancelToken).thenApply(this::getTranslatedText);
