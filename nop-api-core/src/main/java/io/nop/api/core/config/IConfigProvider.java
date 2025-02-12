@@ -30,6 +30,8 @@ public interface IConfigProvider {
 
     void assignConfigValue(String name, Object value);
 
+    Map<String, Object> getConfigValueForPrefix(String prefix);
+
     /**
      * 注册监听器。当配置发生变化时得到通知
      *

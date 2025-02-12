@@ -4,8 +4,10 @@ import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.config.IConfigReference;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.core.reflect.bean.BeanTool;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
 import java.util.Set;
 
 import static io.nop.core.CoreConfigs.CFG_INCLUDE_CURRENT_PROJECT_RESOURCES;
@@ -54,5 +56,9 @@ public class TestConfigProperties extends JunitBaseTestCase {
 //        assertTrue(v2.get());
 //
 //        assertTrue(!CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED.get());
+
+        Map<String, Object> values = AppConfig.getConfigProvider().getConfigValueForPrefix("test.");
+        assertEquals(1, values.size());
+        assertEquals("false", BeanTool.getComplexProperty(values,"test.a1.b"));
     }
 }

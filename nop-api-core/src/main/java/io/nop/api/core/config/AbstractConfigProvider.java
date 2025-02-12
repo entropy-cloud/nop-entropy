@@ -5,6 +5,7 @@ import io.nop.api.core.util.StaticValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public abstract class AbstractConfigProvider implements IConfigProvider {
@@ -83,6 +84,43 @@ public abstract class AbstractConfigProvider implements IConfigProvider {
         return (T) value;
     }
 
+    @Override
+    public Map<String, Object> getConfigValueForPrefix(String prefix) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        for (Map.Entry<String, DefaultConfigReference<?>> entry : usedRefs.entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith(prefix)) {
+                Object value = entry.getValue().get();
+                setIn(map, key, value);
+            }
+        }
+        return map;
+    }
+
+    protected void setIn(Map<String, Object> map, String key, Object value) {
+        int pos = key.indexOf('.');
+        if (pos < 0) {
+            map.put(key, value);
+        } else {
+            String prefix = key.substring(0, pos);
+            String postfix = key.substring(pos + 1);
+            Map<String, Object> subMap = makeSubMap(map, prefix);
+            setIn(subMap, postfix, value);
+        }
+    }
+
+    private Map<String, Object> makeSubMap(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value instanceof Map) {
+            return (Map<String, Object>) value;
+        }
+        if (value != null) {
+            LOG.warn("nop.config.key-conflict:key={},map={}", key, map);
+        }
+        Map<String, Object> subMap = new LinkedHashMap<>();
+        map.put(key, subMap);
+        return subMap;
+    }
 
     @Override
     public <T> IConfigReference<T> getConfigReference(String varName, Class<T> clazz, T defaultValue, SourceLocation loc) {
