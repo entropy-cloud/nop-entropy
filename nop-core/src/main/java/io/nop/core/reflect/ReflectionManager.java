@@ -22,6 +22,7 @@ import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.collections.ListFunctions;
+import io.nop.commons.collections.MapFunctions;
 import io.nop.commons.collections.SetFunctions;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.ClassHelper;
@@ -88,6 +89,7 @@ public class ReflectionManager implements IBeanModelManager, IGenericTypeBuilder
     static {
         _instance.registerHelperMethods(List.class, ListFunctions.class, null);
         _instance.registerHelperMethods(Set.class, SetFunctions.class, null);
+        _instance.registerHelperMethods(Map.class, MapFunctions.class, null);
         _instance.registerHelperMethods(Collection.class, SetFunctions.class, null);
         _instance.registerHelperMethods(String.class, StringHelper.class, "$");
         _instance.registerHelperMethods(LocalDate.class, DateHelper.class, "$");

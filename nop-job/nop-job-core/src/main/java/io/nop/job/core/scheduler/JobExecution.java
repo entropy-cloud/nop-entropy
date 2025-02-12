@@ -15,11 +15,16 @@ import io.nop.job.core.ITriggerContext;
 import io.nop.job.core.ITriggerExecution;
 import io.nop.job.core.ITriggerExecutor;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 class JobExecution {
     private ResolvedJobSpec jobSpec;
     private ITriggerContext triggerContext;
 
     private ITriggerExecution triggerExecution;
+    private final AtomicBoolean running = new AtomicBoolean(false);
+    private final AtomicBoolean scheduledTaskPending = new AtomicBoolean(false);
+
     private boolean closed;
 
     public JobDetail toJobDetail() {
