@@ -486,7 +486,8 @@ public class BeanDefinition implements IBeanDefinition {
 
             addInterceptors(bean, scope, container);
 
-            subscribeConfigChange(bean, scope, container);
+            if(this.isSingleton())
+                subscribeConfigChange(bean, scope, container);
 
             if (initMethod != null)
                 initMethod.invoke(bean, IEvalFunction.EMPTY_ARGS, DisabledEvalScope.INSTANCE);

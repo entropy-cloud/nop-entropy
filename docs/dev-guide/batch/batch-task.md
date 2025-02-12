@@ -156,6 +156,10 @@
 * `file-reader`和`file-writer`等支持resourceLocator配置，通过它可以定制资源路径到IResource资源对象的映射逻辑。缺省情况下使用ZipResourceLocator，
   它自动识别`/a.zip!/entryNameInZip.txt`这种形式，可以从zip或者jar文件中加载指定文件。
 
+## 异步Processor
+缺省情况下processor是同步执行，如果`batch.xml`的根节点上配置了`asyncProcessor=true`则表示启用异步处理，要求processor内部必须调用`batchChunkCtx.countDown()`来标记当前processor执行完毕。
+通过asyncProcessTimeout可以配置异步执行的等待时间，缺省为10分钟。
+
 ## 常见问题
 
 ### 1. 数据文件中有两列数据，属性名分别为 a, b。 现在我要将这个文件导入数据库的 T1, T2 表， 属性 a 对应 T1表的字段 c1，属性 b 对应 T2表的字段 c1。 这种场景的映射关系怎么处理？
@@ -184,19 +188,22 @@
 
 ```xml
 
-<processor name="process">
-  <source>
+<batch>
     ...
-    consume(result1);
-    consume(result2);
-  </source>
-</processor>
+    <processor name="process">
+        <source>
+            ...
+            consume(result1);
+            consume(result2);
+        </source>
+    </processor>
 
-<consumer name="saveResult1">
-<filter>
-  return item.name == 'result1';
-</filter>
+    <consumer name="saveResult1">
+        <filter>
+            return item.name == 'result1';
+        </filter>
 
-<file-writer filePath="result.csv"/>
-</consumer>
+        <file-writer filePath="result.csv"/>
+    </consumer>
+</batch>
 ```
