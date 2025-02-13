@@ -265,7 +265,7 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
             throw new NopException(ERR_XDEF_UNKNOWN_STD_DOMAIN).loc(loc).param(ARG_STD_DOMAIN, stdDomain);
 
         if (handler.supportXmlChild()) {
-            XNode node = handler.transformToNode(value);
+            XNode node = handler.transformToNode(loc, value);
             if (node != null) {
                 String xmlName = propMeta.getXmlName();
                 if (xmlName == null)

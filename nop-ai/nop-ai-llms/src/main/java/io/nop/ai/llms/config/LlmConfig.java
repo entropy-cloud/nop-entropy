@@ -31,6 +31,34 @@ public class LlmConfig implements Serializable {
 
     private boolean debug;
 
+    private String chatUrl = "/chat/completions";
+
+    /**
+     * 限制每秒请求次数
+     */
+    private double rateLimit = 100;
+
+    /**
+     * 请求失败后重试次数
+     */
+    private int retryTimes = 3;
+
+    public double getRateLimit() {
+        return rateLimit;
+    }
+
+    public void setRateLimit(double rateLimit) {
+        this.rateLimit = rateLimit;
+    }
+
+    public int getRetryTimes() {
+        return retryTimes;
+    }
+
+    public void setRetryTimes(int retryTimes) {
+        this.retryTimes = retryTimes;
+    }
+
     public boolean isDebug() {
         return debug;
     }
@@ -61,5 +89,13 @@ public class LlmConfig implements Serializable {
 
     public void setApiKey(String apiKey) {
         this.apiKey = apiKey;
+    }
+
+    public String getChatUrl() {
+        return chatUrl;
+    }
+
+    public void setChatUrl(String chatUrl) {
+        this.chatUrl = chatUrl;
     }
 }

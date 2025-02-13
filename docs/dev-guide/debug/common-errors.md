@@ -1,8 +1,8 @@
-# ³£ÓÃ´íÎó
+# å¸¸ç”¨é”™è¯¯
 
-## Ã»ÓĞsession
+## æ²¡æœ‰session
 
 ![](images/no-session-orm.png)
 
-Ê¹ÓÃ`@SingleSession`ºÍ`@Transactional`µÄ×¢½âµÄÀàĞèÒªÔÚmaven´ò°üµÄÊ±ºòÖ´ĞĞ´úÂëÉú³ÉÈÎÎñCodeGenTask¡£
-ËùÒÔĞèÒªÏÈÔËĞĞmvn compile -DskipTests£¬È»ºó²Å¿ÉÒÔÔÚIDEAÀïÆô¶¯µ÷ÊÔ¡£
+ä½¿ç”¨`@SingleSession`å’Œ`@Transactional`çš„æ³¨è§£çš„ç±»éœ€è¦åœ¨mavenæ‰“åŒ…çš„æ—¶å€™æ‰§è¡Œä»£ç ç”Ÿæˆä»»åŠ¡CodeGenTaskã€‚
+æ‰€ä»¥éœ€è¦å…ˆè¿è¡Œmvn compile -DskipTestsï¼Œç„¶åæ‰å¯ä»¥åœ¨IDEAé‡Œå¯åŠ¨è°ƒè¯•ã€‚

@@ -97,6 +97,7 @@ public class FileHelper {
         try {
             return Files.readString(file.toPath(), StringHelper.toCharset(encoding));
         } catch (Exception e) {
+            LOG.error("nop.file.read-text-fail:encoding={},file={}", encoding, file);
             throw NopException.adapt(e);
         }
     }

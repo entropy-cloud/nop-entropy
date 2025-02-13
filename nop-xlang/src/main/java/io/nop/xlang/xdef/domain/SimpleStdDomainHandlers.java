@@ -686,7 +686,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public XNode transformToNode(Object value) {
+        public XNode transformToNode(SourceLocation loc, Object value) {
             return XNode.fromValue(value);
         }
 
@@ -708,7 +708,7 @@ public class SimpleStdDomainHandlers {
 
         @Override
         public void validate(SourceLocation loc, String propName, Object value, IValidationErrorCollector collector) {
-            transformToNode(value);
+            transformToNode(loc, value);
         }
 
         @Override
@@ -779,8 +779,8 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public XNode transformToNode(Object value) {
-            XNode node = super.transformToNode(value);
+        public XNode transformToNode(SourceLocation loc, Object value) {
+            XNode node = super.transformToNode(loc, value);
             if (node != null)
                 node.addJsonPrefix();
             return node;

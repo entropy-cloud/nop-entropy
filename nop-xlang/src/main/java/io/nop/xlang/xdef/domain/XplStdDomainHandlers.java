@@ -167,7 +167,7 @@ public class XplStdDomainHandlers {
         }
 
         @Override
-        public XNode transformToNode(Object value) {
+        public XNode transformToNode(SourceLocation loc, Object value) {
             if (value instanceof IWithSourceCode) {
                 String source = ((IWithSourceCode) value).getSource();
                 if (StringHelper.maybeXml(source)) {
@@ -189,11 +189,18 @@ public class XplStdDomainHandlers {
 
             if (value instanceof String) {
                 String str = value.toString();
+
                 if (isSupportContentScript() && !str.startsWith("<")) {
                     XNode node = XNode.make(CoreConstants.DUMMY_TAG_NAME);
                     node.content(value);
                     return node;
                 }
+
+                if (StringHelper.isBlank(str))
+                    return null;
+
+                XNode node = XNodeParser.instance().forFragments(true).parseFromText(loc, str);
+                return node;
             }
             return XNode.fromValue(value);
         }

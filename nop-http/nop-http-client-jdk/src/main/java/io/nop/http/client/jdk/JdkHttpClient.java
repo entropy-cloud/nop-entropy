@@ -30,6 +30,8 @@ import io.nop.http.api.support.CompositeX509TrustManager;
 import io.nop.http.api.support.DefaultHttpResponse;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
@@ -61,6 +63,8 @@ import java.util.concurrent.CompletionStage;
 import static io.nop.http.api.HttpApiErrors.ERR_HTTP_CONNECT_FAIL;
 
 public class JdkHttpClient implements IHttpClient {
+    static final Logger LOG = LoggerFactory.getLogger(JdkHttpClient.class);
+
     private final HttpClientConfig config;
 
     private HttpClient client;
@@ -196,6 +200,7 @@ public class JdkHttpClient implements IHttpClient {
         if (e instanceof CompletionException) {
             e = e.getCause();
         }
+        LOG.debug("nop.err.http.error", e);
         if (e instanceof ConnectException)
             throw new NopConnectException(ERR_HTTP_CONNECT_FAIL);
         throw NopException.adapt(e);

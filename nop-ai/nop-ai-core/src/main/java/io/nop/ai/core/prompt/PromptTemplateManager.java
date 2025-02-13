@@ -1,6 +1,7 @@
 package io.nop.ai.core.prompt;
 
 import io.nop.ai.core.AiCoreConstants;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ResourceComponentManager;
 
 public class PromptTemplateManager implements IPromptTemplateManager {
@@ -20,6 +21,14 @@ public class PromptTemplateManager implements IPromptTemplateManager {
                 || promptName.endsWith(AiCoreConstants.POSTFIX_PROMPT_YAML))
             return promptName;
 
-        return "/nop/ai/prompts/" + model + "/" + promptName + AiCoreConstants.POSTFIX_PROMPT_YAML;
+        String modelName = normalizeModelNameForPath(model);
+        String path = "/nop/ai/prompts/" + modelName + "/" + promptName + AiCoreConstants.POSTFIX_PROMPT_YAML;
+        if (VirtualFileSystem.instance().getResource(path).exists())
+            return path;
+        return "/nop/ai/prompts/default/" + promptName + AiCoreConstants.POSTFIX_PROMPT_YAML;
+    }
+
+    String normalizeModelNameForPath(String model) {
+        return model.replace(':', '-');
     }
 }

@@ -24,6 +24,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,6 +32,7 @@ import java.util.function.BiFunction;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class FutureHelper {
     static final Logger LOG = LoggerFactory.getLogger(FutureHelper.class);
@@ -516,6 +518,24 @@ public class FutureHelper {
             future.whenComplete((ret, err) -> {
                 cancelToken.removeOnCancel(cancel);
             });
+        }
+    }
+
+    public static <T> CompletionStage<T> executeWithThrottling(Supplier<CompletionStage<T>> task, Semaphore limit) {
+        if (limit == null)
+            return task.get();
+
+        try {
+            limit.acquire();
+            return task.get().whenComplete((ret, err) -> {
+                limit.release();
+            });
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return reject(e);
+        } catch (RuntimeException e) {
+            limit.release();
+            throw e;
         }
     }
 }

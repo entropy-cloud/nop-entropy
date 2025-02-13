@@ -73,9 +73,16 @@ public class SimpleTextSplitter implements ITextSplitter {
         int size = 0;
         for (int i = index - 1; i >= 0; i--) {
             String line = parts.get(i);
+            if(line.isEmpty()) {
+                lines.add("");
+                continue;
+            }
+
             if (size + line.length() <= prologSize) {
                 lines.add(line);
                 size += line.length() + 1;
+                if(size >= prologSize)
+                    break;
             } else {
                 int diff = size + line.length() - prologSize;
                 lines.add(line.substring(line.length() - diff, line.length()));

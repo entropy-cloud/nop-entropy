@@ -9,9 +9,15 @@ import io.nop.ai.core.api.messages.Message;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.llms.config.LlmConfig;
 import io.nop.api.core.convert.ConvertHelper;
-import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
+import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
+import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.retry.IRetryPolicy;
+import io.nop.commons.util.retry.RetryHelper;
+import io.nop.commons.util.retry.RetryPolicy;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.http.api.client.IHttpResponse;
@@ -25,6 +31,8 @@ import java.util.concurrent.CompletionStage;
 public class DefaultChatSessionFactory implements IChatSessionFactory, IChatService {
     private LlmConfig llmConfig;
     private IHttpClient httpClient;
+    private IRateLimiter rateLimiter;
+    private IRetryPolicy<ChatOptions> retryPolicy;
 
     public void setLlmConfig(LlmConfig llmConfig) {
         this.llmConfig = llmConfig;
@@ -37,6 +45,22 @@ public class DefaultChatSessionFactory implements IChatSessionFactory, IChatServ
     @Override
     public String getModel() {
         return llmConfig.getModel();
+    }
+
+    synchronized IRateLimiter getRateLimiter() {
+        if (rateLimiter == null)
+            rateLimiter = new DefaultRateLimiter(llmConfig.getRateLimit());
+        return rateLimiter;
+    }
+
+    synchronized IRetryPolicy<ChatOptions> getRetryPolicy() {
+        if (retryPolicy == null)
+            retryPolicy = RetryPolicy.retryNTimes(llmConfig.getRetryTimes());
+        return retryPolicy;
+    }
+
+    IScheduledExecutor getRetryExecutor() {
+        return GlobalExecutors.globalTimer();
     }
 
     @Override
@@ -52,15 +76,23 @@ public class DefaultChatSessionFactory implements IChatSessionFactory, IChatServ
 
     @Override
     public CompletionStage<AiResultMessage> sendChatAsync(Prompt prompt, ChatOptions options, ICancelToken cancelToken) {
+        IRateLimiter rateLimiter = getRateLimiter();
+        return RetryHelper.retryExecute(() -> {
+            rateLimiter.tryAcquire();
+            return doSendChat(prompt, options, cancelToken);
+        }, getRetryPolicy(), getRetryExecutor(), options);
+    }
+
+    protected CompletionStage<AiResultMessage> doSendChat(Prompt prompt, ChatOptions options, ICancelToken cancelToken) {
         return httpClient.fetchAsync(buildHttpRequest(prompt, options), cancelToken).thenApply(this::parseResult);
     }
 
     protected HttpRequest buildHttpRequest(Prompt prompt, ChatOptions options) {
         String url = llmConfig.getBaseUrl();
-        url = StringHelper.appendPath(url, "chat/completions");
+        url = StringHelper.appendPath(url, llmConfig.getChatUrl());
         HttpRequest request = HttpRequest.post(url);
-        Guard.notEmpty(llmConfig.getApiKey(), "apiKey");
-        request.setBearerToken(llmConfig.getApiKey());
+        if (!StringHelper.isEmpty(llmConfig.getApiKey()))
+            request.setBearerToken(llmConfig.getApiKey());
         Map<String, Object> body = new HashMap<>();
         initBody(body, prompt);
         request.setBody(body);

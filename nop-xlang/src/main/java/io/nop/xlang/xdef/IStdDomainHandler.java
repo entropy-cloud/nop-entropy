@@ -60,7 +60,7 @@ public interface IStdDomainHandler {
         return value.toString();
     }
 
-    default XNode transformToNode(Object value) {
+    default XNode transformToNode(SourceLocation loc, Object value) {
         throw new UnsupportedOperationException("transformToNode:"+getName());
     }
 
