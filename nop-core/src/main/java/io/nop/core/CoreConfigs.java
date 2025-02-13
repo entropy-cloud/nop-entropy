@@ -228,4 +228,7 @@ public interface CoreConfigs {
 
     @Description("开发工程的根目录，子模块全部存放在此目录下")
     IConfigReference<String> CFG_DEV_ROOT_PATH = varRef(s_loc, "nop.core.dev-root-path", String.class, null);
+
+    @Description("资源不支持租户缓存")
+    IConfigReference<Set> CFG_RESOURCE_NOT_SUPPORT_TENANT_CACHE = varRef(s_loc, "nop.core.resource.not-support-tenant-cache", Set.class, null);
 }

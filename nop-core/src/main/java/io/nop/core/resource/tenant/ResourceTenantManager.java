@@ -6,6 +6,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.lang.ICreationListener;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.core.resource.IResourceStore;
@@ -29,6 +30,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Supplier;
 
+import static io.nop.core.CoreConfigs.CFG_RESOURCE_NOT_SUPPORT_TENANT_CACHE;
 import static io.nop.core.CoreConfigs.CFG_TENANT_RESOURCE_DISABLED_PATHS;
 import static io.nop.core.CoreConfigs.CFG_TENANT_RESOURCE_ENABLED;
 import static io.nop.core.CoreConfigs.CFG_TENANT_RESOURCE_ENABLED_PATHS;
@@ -131,8 +133,21 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
         String moduleName = ResourceHelper.getModuleName(resourcePath);
         if (StringHelper.isEmpty(moduleName))
             return false;
+
         // nop资源不支持租户缓存
-        return !moduleName.startsWith("nop-");
+         if(moduleName.startsWith("nop-")) {
+            return false;
+         }
+
+         // 从配置中获取不支持租户缓存的资源路径
+        Set<String> setPath = CFG_RESOURCE_NOT_SUPPORT_TENANT_CACHE.get();
+        if(!CollectionHelper.isEmpty(setPath)) {
+            for (String path : setPath) {
+                if (moduleName.startsWith(path))
+                    return false;
+            }
+        }
+        return true;
     }
 
     public Set<String> getUsedTenants() {
