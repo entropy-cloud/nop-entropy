@@ -13,7 +13,10 @@ import io.nop.commons.concurrent.executor.IScheduledExecutor;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public class RetryHelper {
     public static <T, C> T retryCall(Callable<T> task, IRetryPolicy<C> retryPolicy, C context) {
@@ -63,5 +66,16 @@ public class RetryHelper {
             });
             return null;
         }, delay, TimeUnit.MILLISECONDS);
+    }
+
+    public static <T> CompletionStage<T> retryNTimes(Supplier<CompletionStage<T>> task,
+                                                     Predicate<T> checkReady, int n) {
+        if (n <= 1)
+            return task.get();
+        return task.get().thenCompose(ret -> {
+            if (checkReady.test(ret))
+                return FutureHelper.success(ret);
+            return retryNTimes(task, checkReady, n - 1);
+        });
     }
 }

@@ -1,30 +1,38 @@
 package io.nop.ai.translate;
 
+import io.nop.ai.core.api.aggregator.IAiTextAggregator;
 import io.nop.ai.core.api.chat.ChatOptions;
 import io.nop.ai.core.api.chat.IChatSession;
 import io.nop.ai.core.api.chat.IChatSessionFactory;
 import io.nop.ai.core.api.messages.AiResultMessage;
 import io.nop.ai.core.api.messages.Prompt;
+import io.nop.ai.core.api.processor.IAiResultMessageProcessor;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
-import io.nop.ai.translate.support.SimpleTextSplitter;
+import io.nop.ai.translate.support.MarkdownSplitter;
 import io.nop.api.core.annotations.core.PropertySetter;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.retry.RetryHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.FileVisitResult;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Semaphore;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static io.nop.ai.translate.AiTranslateConstants.VAR_CONTENT;
 import static io.nop.ai.translate.AiTranslateConstants.VAR_EXTRA_PROMPT;
@@ -34,17 +42,23 @@ import static io.nop.ai.translate.AiTranslateConstants.VAR_PROLOG;
 import static io.nop.ai.translate.AiTranslateConstants.VAR_TO_LANG;
 
 public class AiTranslator {
+    static final Logger LOG = LoggerFactory.getLogger(AiTranslator.class);
+
     private final IChatSessionFactory factory;
     private String fromLang;
     private String toLang;
 
     private String extraPrompt;
-    private ITextSplitter textSplitter = SimpleTextSplitter.INSTANCE;
+    private ITextSplitter textSplitter = new MarkdownSplitter();
     private final IPromptTemplate promptTemplate;
     private int prologSize = 256;
     private int maxChunkSize = 4096;
     private Predicate<File> fileFilter;
     private int concurrencyLimit = 10;
+    private IAiResultMessageProcessor resultMessageProcessor;
+    private IAiTextAggregator textAggregator;
+
+    private TextBlockModifier textBlockModifier = new TextBlockModifier();
 
     public AiTranslator(IChatSessionFactory factory, IPromptTemplate promptTemplate) {
         this.factory = factory;
@@ -53,6 +67,46 @@ public class AiTranslator {
 
     public AiTranslator(IChatSessionFactory factory, IPromptTemplateManager promptTemplateManager, String promptName) {
         this(factory, promptTemplateManager.getPromptTemplate(factory.getModel(), promptName));
+    }
+
+    public String getFromLang() {
+        return fromLang;
+    }
+
+    public String getToLang() {
+        return toLang;
+    }
+
+    public String getExtraPrompt() {
+        return extraPrompt;
+    }
+
+    public ITextSplitter getTextSplitter() {
+        return textSplitter;
+    }
+
+    public IPromptTemplate getPromptTemplate() {
+        return promptTemplate;
+    }
+
+    public int getPrologSize() {
+        return prologSize;
+    }
+
+    public int getMaxChunkSize() {
+        return maxChunkSize;
+    }
+
+    public Predicate<File> getFileFilter() {
+        return fileFilter;
+    }
+
+    public int getConcurrencyLimit() {
+        return concurrencyLimit;
+    }
+
+    public IAiResultMessageProcessor getResultMessageProcessor() {
+        return resultMessageProcessor;
     }
 
     @PropertySetter
@@ -98,8 +152,30 @@ public class AiTranslator {
     }
 
     @PropertySetter
+    public AiTranslator resultMessageProcessor(IAiResultMessageProcessor resultMessageProcessor) {
+        this.resultMessageProcessor = resultMessageProcessor;
+        return this;
+    }
+
+    @PropertySetter
     public AiTranslator concurrencyLimit(int concurrencyLimit) {
         this.concurrencyLimit = concurrencyLimit;
+        return this;
+    }
+
+    public TextBlockModifier getTextBlockModifier() {
+        return textBlockModifier;
+    }
+
+    @PropertySetter
+    public AiTranslator textBlockModifier(TextBlockModifier textBlockModifier) {
+        this.textBlockModifier = textBlockModifier;
+        return this;
+    }
+
+    @PropertySetter
+    public AiTranslator textAggregator(IAiTextAggregator textAggregator) {
+        this.textAggregator = textAggregator;
         return this;
     }
 
@@ -114,9 +190,11 @@ public class AiTranslator {
 
         FileHelper.walk2(srcDir, targetDir, (f1, f2) -> {
             if (f1.isFile() && acceptSourceFile(f1) && acceptTargetFile(f2)) {
+                LOG.info("nop.ai.translate-file:path={}", FileHelper.getAbsolutePath(f1));
+
                 String text = FileHelper.readText(f1, null);
                 futures.add(translateAsync(text, cancelToken, limit).thenApply(ret -> {
-                    FileHelper.writeText(f2, text, null);
+                    FileHelper.writeText(f2, ret, null);
                     return null;
                 }));
             }
@@ -143,21 +221,43 @@ public class AiTranslator {
             List<CompletionStage<?>> promises = new ArrayList<>(chunks.size());
             for (ITextSplitter.SplitChunk chunk : chunks) {
                 promises.add(FutureHelper.executeWithThrottling(() ->
-                        doTranslateAsync(chunk.getProlog(), chunk.getContent(), cancelToken), limit));
+                        doTranslateWithModifierAsync(chunk.getProlog(), chunk.getContent(), cancelToken), limit));
             }
 
             return FutureHelper.waitAll(promises).thenApply(v -> {
-                StringBuilder sb = new StringBuilder();
-                for (CompletionStage<?> promise : promises) {
-                    String result = (String) FutureHelper.syncGet(promise);
-                    sb.append(result);
-                }
-                return sb.toString();
+                return aggregateResults(getResults(promises));
             });
         } else {
-            return FutureHelper.executeWithThrottling(()->
+            return FutureHelper.executeWithThrottling(() ->
                     doTranslateAsync(null, text, cancelToken), limit);
         }
+    }
+
+    List<String> getResults(List<CompletionStage<?>> promises) {
+        return promises.stream().map(promise -> (String) FutureHelper.syncGet(promise)).collect(Collectors.toList());
+    }
+
+    String aggregateResults(List<String> results) {
+        if (textAggregator != null)
+            return textAggregator.aggregate(results);
+
+        StringBuilder sb = new StringBuilder();
+        for (String result : results) {
+            sb.append(result);
+            sb.append("\n**********************************\n");
+        }
+        return sb.toString();
+    }
+
+    protected CompletionStage<String> doTranslateWithModifierAsync(String prolog, String text, ICancelToken cancelToken) {
+        // 将待翻译的文本放到特殊的字符串之间，然后在结果中要严格保持这两个字符串的匹配结构，通过这一特性来自动实现对返回格式的检查。
+        // qwen3b有时会直接把原文返回，并不会做翻译。有的时候又会多一些多余的响应。
+
+        String toTranslated = textBlockModifier.modifyContent(text);
+        return RetryHelper.retryNTimes(() -> doTranslateAsync(prolog, toTranslated, null)
+                                .thenApply(textBlockModifier::modifyResult),
+                        Objects::nonNull, 3)
+                .thenApply(ret -> Guard.notNull(ret, "invalid text"));
     }
 
     protected CompletionStage<String> doTranslateAsync(String prolog, String text, ICancelToken cancelToken) {
@@ -173,7 +273,11 @@ public class AiTranslator {
                             VAR_EXTRA_PROMPT, extraPrompt == null ? "" : extraPrompt));
             Prompt prompt = session.newPrompt(false);
             prompt.addHumanMessage(promptText);
-            return session.sendChatAsync(prompt, cancelToken).thenApply(this::getTranslatedText)
+
+            CompletionStage<AiResultMessage> future = session.sendChatAsync(prompt, cancelToken);
+            if (resultMessageProcessor != null)
+                future = future.thenCompose(ret -> resultMessageProcessor.processAsync(prompt, ret));
+            return future.thenApply(this::getTranslatedText)
                     .whenComplete((ret, err) -> IoHelper.safeCloseObject(session));
         } catch (Exception e) {
             IoHelper.safeCloseObject(session);

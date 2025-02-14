@@ -153,7 +153,9 @@ public class JdkHttpClient implements IHttpClient {
         if (method == null) {
             method = HttpApiConstants.METHOD_GET;
         }
-        builder.method(method, toBody(request.getDataType(), request.getBody()));
+        Object body = normalizeBody(request.getDataType(), request.getBody());
+
+        builder.method(method, toBodyPublisher(body));
         if (request.getHeaders() != null) {
             for (Map.Entry<String, Object> entry : request.getHeaders().entrySet()) {
                 Object value = entry.getValue();
@@ -186,7 +188,10 @@ public class JdkHttpClient implements IHttpClient {
 
         builder.uri(toURI(request.getUrlWithParams()));
 
-        CompletableFuture<HttpResponse<byte[]>> future = client.sendAsync(builder.build(),
+        java.net.http.HttpRequest req = builder.build();
+        logRequest(req,body);
+
+        CompletableFuture<HttpResponse<byte[]>> future = client.sendAsync(req,
                 HttpResponse.BodyHandlers.ofByteArray()).exceptionally(this::wrapError);
         if (cancelTokens != null) {
             cancelTokens.appendOnCancel(reason -> {
@@ -200,30 +205,54 @@ public class JdkHttpClient implements IHttpClient {
         if (e instanceof CompletionException) {
             e = e.getCause();
         }
-        LOG.debug("nop.err.http.error", e);
+        LOG.info("nop.err.http.error", e);
         if (e instanceof ConnectException)
             throw new NopConnectException(ERR_HTTP_CONNECT_FAIL);
         throw NopException.adapt(e);
+    }
+
+    private void logRequest(java.net.http.HttpRequest req, Object body) {
+        if (!LOG.isDebugEnabled())
+            return;
+
+        LOG.debug("http.request:method={},url={}", req.method(), req.uri());
+        HttpHeaders headers = req.headers();
+        headers.map().forEach((key, values) -> {
+            LOG.debug("Header: {} = {}", key, String.join(", ", values));
+        });
+
+        LOG.debug("Request body: {}", body);
+    }
+
+    Object normalizeBody(String dataType, Object body) {
+        if (body == null)
+            return BodyPublishers.noBody();
+
+        if (body instanceof String)
+            return body;
+
+        if (body instanceof byte[])
+            return BodyPublishers.ofByteArray((byte[]) body);
+
+        if (HttpApiConstants.DATA_TYPE_FORM.equals(dataType)) {
+            return StringHelper.encodeQuery((Map<String, Object>) body, StringHelper.ENCODING_UTF8);
+        } else if (HttpApiConstants.DATA_TYPE_MULTIPART.equals(dataType)) {
+            return toMultipart((Map<String, Object>) body);
+        }
+        return JSON.stringify(body);
     }
 
     URI toURI(String url) {
         return URI.create(url);
     }
 
-    java.net.http.HttpRequest.BodyPublisher toBody(String dataType, Object body) {
-        if (body == null)
-            return BodyPublishers.noBody();
+    java.net.http.HttpRequest.BodyPublisher toBodyPublisher(Object body) {
+        if (body instanceof java.net.http.HttpRequest.BodyPublisher)
+            return (java.net.http.HttpRequest.BodyPublisher) body;
+
         if (body instanceof String)
             return BodyPublishers.ofString(body.toString());
 
-        if (body instanceof byte[]) {
-            return BodyPublishers.ofByteArray((byte[]) body);
-        }
-        if (HttpApiConstants.DATA_TYPE_FORM.equals(dataType)) {
-            return BodyPublishers.ofString(StringHelper.encodeQuery((Map<String, Object>) body, StringHelper.ENCODING_UTF8));
-        } else if (HttpApiConstants.DATA_TYPE_MULTIPART.equals(dataType)) {
-            return toMultipart((Map<String, Object>) body);
-        }
         return BodyPublishers.ofString(JSON.stringify(body));
     }
 
@@ -265,6 +294,10 @@ public class JdkHttpClient implements IHttpClient {
             }
             ret.setContentType(parsed.getMimeType());
         }
+
+        if (LOG.isDebugEnabled())
+            LOG.debug("http.response:status={},body={}", response.statusCode(), ret.getBodyAsText());
+
         return ret;
     }
 

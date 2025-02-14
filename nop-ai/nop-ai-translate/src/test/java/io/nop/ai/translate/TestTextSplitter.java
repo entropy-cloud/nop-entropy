@@ -1,5 +1,6 @@
 package io.nop.ai.translate;
 
+import io.nop.ai.translate.support.MarkdownSplitter;
 import io.nop.ai.translate.support.SimpleTextSplitter;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.util.FileHelper;
@@ -22,17 +23,14 @@ public class TestTextSplitter extends JunitBaseTestCase {
 
         text = StringHelper.replace(text, "\r\n", "\n");
 
-        ITextSplitter splitter = SimpleTextSplitter.INSTANCE;
-        List<ITextSplitter.SplitChunk> chunks = splitter.split(text, 200, 4096);
+        ITextSplitter splitter = new MarkdownSplitter();
+        List<ITextSplitter.SplitChunk> chunks = splitter.split(text, 200, 2048);
         System.out.println(JsonTool.serialize(chunks, true));
 
         StringBuilder sb = new StringBuilder();
         chunks.forEach(chunk -> {
             System.out.println("**********************");
             System.out.println(chunk.getContent());
-
-            if (sb.length() > 0)
-                sb.append('\n');
             sb.append(chunk.getContent());
         });
         assertEquals(text, sb.toString());

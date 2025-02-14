@@ -9,6 +9,7 @@ import io.nop.ai.core.api.messages.Message;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.llms.config.LlmConfig;
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
@@ -21,6 +22,8 @@ import io.nop.commons.util.retry.RetryPolicy;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.http.api.client.IHttpResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,6 +32,8 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 public class DefaultChatSessionFactory implements IChatSessionFactory, IChatService {
+    static final Logger LOG = LoggerFactory.getLogger(DefaultChatSessionFactory.class);
+
     private LlmConfig llmConfig;
     private IHttpClient httpClient;
     private IRateLimiter rateLimiter;
@@ -138,6 +143,7 @@ public class DefaultChatSessionFactory implements IChatSessionFactory, IChatServ
 
         List<Message> msgs = prompt.toMessages();
         for (Message msg : msgs) {
+            logRequest(msg);
             messages.add(Map.of("content", msg.getMessageContent(), "role", getRole(msg)));
         }
     }
@@ -147,23 +153,43 @@ public class DefaultChatSessionFactory implements IChatSessionFactory, IChatServ
     }
 
     protected AiResultMessage parseResult(IHttpResponse response) {
-        Map<String, Object> result = response.getBodyAsBean(Map.class);
-        Map<String, Object> usage = (Map<String, Object>) result.get("usage");
-        List<Map<String, Object>> choices = (List<Map<String, Object>>) result.get("choices");
+        try {
+            Map<String, Object> result = response.getBodyAsBean(Map.class);
+            Map<String, Object> usage = (Map<String, Object>) result.get("usage");
+            List<Map<String, Object>> choices = (List<Map<String, Object>>) result.get("choices");
 
-        AiResultMessage ret = new AiResultMessage();
-        if (choices != null && !choices.isEmpty()) {
-            Map<String, Object> choice = choices.get(0);
-            Map<String, Object> message = (Map<String, Object>) choice.get("message");
-            ret.setFullContent((String) message.get("content"));
-        }
+            AiResultMessage ret = new AiResultMessage();
+            if (choices != null && !choices.isEmpty()) {
+                Map<String, Object> choice = choices.get(0);
+                Map<String, Object> message = (Map<String, Object>) choice.get("message");
+                ret.setContent((String) message.get("content"));
+                logResponse(message);
+            } else {
+                Map<String, Object> message = (Map<String, Object>) result.get("message");
+                ret.setContent((String) message.get("content"));
+                logResponse(message);
+            }
 
-        if (usage != null) {
-            ret.setCompletionTokens(ConvertHelper.toInt(usage.get("completion_tokens")));
-            ret.setPromptTokens(ConvertHelper.toInt(usage.get("prompt_tokens")));
-            ret.setTotalTokens(ConvertHelper.toInt(usage.get("total_tokens")));
+            if (usage != null) {
+                ret.setCompletionTokens(ConvertHelper.toInt(usage.get("completion_tokens")));
+                ret.setPromptTokens(ConvertHelper.toInt(usage.get("prompt_tokens")));
+                ret.setTotalTokens(ConvertHelper.toInt(usage.get("total_tokens")));
+            }
+            return ret;
+        } catch (Exception e) {
+            LOG.info("nop.ai.parse-result-fail", e);
+            throw NopException.adapt(e);
         }
-        return ret;
+    }
+
+    protected void logRequest(Message message) {
+        if (llmConfig.isLogMessage())
+            LOG.info("request:role={},content=\n{}", getRole(message), message.getMessageContent());
+    }
+
+    protected void logResponse(Map<String, Object> message) {
+        if (llmConfig.isLogMessage())
+            LOG.info("response:role={},content=\n{}", message.get("role"), message.get("content"));
     }
 
     @Override

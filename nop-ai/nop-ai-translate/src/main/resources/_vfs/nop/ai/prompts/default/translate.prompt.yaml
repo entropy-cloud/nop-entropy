@@ -1,36 +1,8 @@
 template: >
-  **任务：**
-  将以下${fromLang}技术文档翻译为清晰、准确且专业的${toLang}。确保翻译内容保留原意，符合技术术语标准，并适合国际读者。保留Markdown格式（如标题、列表、代码块、链接等）。
+  将以下${fromLang}技术文档翻译为清晰、准确且专业的${toLang}。保留markdown格式（如标题、列表、代码块、链接等）。
+  注意，输出结果只包含译文,不需要放到markdown代码块中，不需要纠正markdown语法错误。
   
-  **翻译要求：**
-  1. **语气：** 使用正式、专业的语气。
-  2. **术语：** 使用行业标准的技术术语。若某术语无直接对应英文，需提供描述性翻译。
-  3. **清晰度：** 确保句子易于理解，避免歧义。
-  4. **格式：** 保留原文的Markdown结构（如 `#` 用于标题，`*` 用于列表，``` 用于代码块）。
-  5. **一致性：** 全文术语和风格保持一致。
-  6. **文化适配：** 将文化特定的内容调整为全球读者易于理解的形式。
-  7. **保持代码结构:** 原文中的代码块、代码片段等内容，需要保持原有的程序语言。
+  待翻译的内容如下：  
   
-  **示例输入（中文）：**
-  ```markdown
-  # 安装指南  
-  1. 下载最新版本的软件包。
-  2. 解压文件到目标目录。
-  3. 运行 `setup.sh` 脚本以完成安装。
-  ```
-  
-  **示例输出（英文）：**
-  ```markdown
-  # Installation Guide  
-  1. Download the latest version of the software package.
-  2. Extract the files to the target directory.
-  3. Run the `setup.sh` script to complete the installation.
-  ```
-  
-  ${extraPrompt}
-  
-  **输入（${fromLang}）：**
   ${content}
-  
-  **输出（${toLang}）：**
     

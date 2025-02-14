@@ -605,8 +605,8 @@ public class TextScanner {
                             throw newError(ERR_SCAN_INVALID_ESCAPE_UNICODE).param(ARG_CUR, sValue);
                     }
                 }
-                if (sValue <= 255 && sValue >= 0)
-                    throw newError(ERR_SCAN_INVALID_ESCAPE_UNICODE).param(ARG_CUR, sValue);
+//                if (sValue <= 255 && sValue >= 0)
+//                    throw newError(ERR_SCAN_INVALID_ESCAPE_UNICODE).param(ARG_CUR, sValue);
                 return (char) sValue;
             default:
                 throw newError(ERR_SCAN_ILLEGAL_ESCAPE_CHAR).param(ARG_CUR, (char) cur);

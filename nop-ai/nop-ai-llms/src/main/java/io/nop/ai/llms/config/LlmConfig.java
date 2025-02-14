@@ -43,6 +43,16 @@ public class LlmConfig implements Serializable {
      */
     private int retryTimes = 3;
 
+    private boolean logMessage = true;
+
+    public boolean isLogMessage() {
+        return logMessage;
+    }
+
+    public void setLogMessage(boolean logMessage) {
+        this.logMessage = logMessage;
+    }
+
     public double getRateLimit() {
         return rateLimit;
     }

@@ -538,4 +538,16 @@ public class FutureHelper {
             throw e;
         }
     }
+
+    public static <T> T returnResult(T result, Throwable err) {
+        if (err != null)
+            throw NopException.adapt(err);
+        return result;
+    }
+
+    public static <T> CompletionStage<T> returnAsyncResult(T result, Throwable err) {
+        if (err != null)
+            return reject(err);
+        return success(result);
+    }
 }

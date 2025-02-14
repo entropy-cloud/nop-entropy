@@ -28,6 +28,7 @@ public class AiResultMessage extends AbstractTextMessage {
     private Integer completionTokens;
     private Integer totalTokens;
     private String fullContent;
+    private String think;
 
     public Integer getIndex() {
         return index;
@@ -87,9 +88,17 @@ public class AiResultMessage extends AbstractTextMessage {
         return AiCoreConstants.ROLE_ASSISTANT;
     }
 
+    public String getThink() {
+        return think;
+    }
+
+    public void setThink(String think) {
+        this.think = think;
+    }
+
     @Override
     public String toString() {
-        return "AiMessage{" +
+        return "AiResultMessage{" +
                 "index=" + index +
                 ", status=" + status +
                 ", totalTokens=" + totalTokens +
