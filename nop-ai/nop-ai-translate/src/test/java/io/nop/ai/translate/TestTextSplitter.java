@@ -1,7 +1,6 @@
 package io.nop.ai.translate;
 
 import io.nop.ai.translate.support.MarkdownSplitter;
-import io.nop.ai.translate.support.SimpleTextSplitter;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;

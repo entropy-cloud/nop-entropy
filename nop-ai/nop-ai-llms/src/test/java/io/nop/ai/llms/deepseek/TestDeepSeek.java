@@ -34,6 +34,10 @@ public class TestDeepSeek extends JunitBaseTestCase {
         llmConfig.setApiKey(System.getProperty("nop.ai.llm.deepseek.api-key"));
         llmConfig.setModel("deepseek-chat");
 
+        llmConfig.setBaseUrl("http://localhost:11434/");
+        llmConfig.setModel("deepseek-r1:8b");
+        llmConfig.setApiKey(null);
+        llmConfig.setChatUrl("/api/chat");
 
         DefaultChatSessionFactory factory = new DefaultChatSessionFactory();
         factory.setHttpClient(httpClient);

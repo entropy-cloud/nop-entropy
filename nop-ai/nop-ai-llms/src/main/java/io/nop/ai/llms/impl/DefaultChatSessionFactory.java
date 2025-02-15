@@ -175,10 +175,31 @@ public class DefaultChatSessionFactory implements IChatSessionFactory, IChatServ
                 ret.setPromptTokens(ConvertHelper.toInt(usage.get("prompt_tokens")));
                 ret.setTotalTokens(ConvertHelper.toInt(usage.get("total_tokens")));
             }
+
+            checkThink(ret);
             return ret;
         } catch (Exception e) {
             LOG.info("nop.ai.parse-result-fail", e);
             throw NopException.adapt(e);
+        }
+    }
+
+    void checkThink(AiResultMessage message) {
+        String content = message.getContent();
+        if (content != null) {
+            boolean bThink = content.startsWith("<think>\n");
+            if (bThink) {
+                int pos2 = content.indexOf("\n</think>\n");
+                if (pos2 > 0) {
+                    String think = content.substring("<think>\n".length(), pos2);
+                    message.setThink(think);
+                    pos2 += "\n</think>\n".length();
+                    if (pos2 < content.length() && content.charAt(pos2) == '\n')
+                        pos2++;
+
+                    message.setContent(content.substring(pos2));
+                }
+            }
         }
     }
 

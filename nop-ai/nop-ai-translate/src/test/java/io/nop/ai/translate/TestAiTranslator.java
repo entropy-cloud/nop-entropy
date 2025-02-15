@@ -39,6 +39,7 @@ public class TestAiTranslator extends JunitBaseTestCase {
         baseUrl = "http://localhost:11434/";
         model = "qwen2.5-coder:7b";
         model = "qwen2.5:3b";
+        model = "deepseek-r1:8b";
         chatUrl = "/api/chat";
 
         LlmConfig llmConfig = new LlmConfig();
@@ -65,7 +66,7 @@ public class TestAiTranslator extends JunitBaseTestCase {
     @Test
     public void testTranslateDir() {
         AiTranslator translator = new AiTranslator(factory, templateManager, "translate");
-        translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(1024);
+        translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(4096);
 
         File docsDir = new File(getModuleDir(), "../../docs");
         File docsEnDir = new File(docsDir.getParent(), "docs-en");

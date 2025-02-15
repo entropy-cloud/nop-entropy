@@ -7,6 +7,7 @@ import io.nop.ai.core.api.chat.IChatSessionFactory;
 import io.nop.ai.core.api.messages.AiResultMessage;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.api.processor.IAiResultMessageProcessor;
+import io.nop.ai.core.api.processor.IAiTextRewriter;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.ai.translate.support.MarkdownSplitter;
@@ -58,7 +59,7 @@ public class AiTranslator {
     private IAiResultMessageProcessor resultMessageProcessor;
     private IAiTextAggregator textAggregator;
 
-    private TextBlockModifier textBlockModifier = new TextBlockModifier();
+    private IAiTextRewriter textRewriter = new TranslateTextRewriter();
 
     public AiTranslator(IChatSessionFactory factory, IPromptTemplate promptTemplate) {
         this.factory = factory;
@@ -163,13 +164,13 @@ public class AiTranslator {
         return this;
     }
 
-    public TextBlockModifier getTextBlockModifier() {
-        return textBlockModifier;
+    public IAiTextRewriter getTextRewriter() {
+        return textRewriter;
     }
 
     @PropertySetter
-    public AiTranslator textBlockModifier(TextBlockModifier textBlockModifier) {
-        this.textBlockModifier = textBlockModifier;
+    public AiTranslator textProcessor(IAiTextRewriter textProcessor) {
+        this.textRewriter = textProcessor;
         return this;
     }
 
@@ -229,7 +230,7 @@ public class AiTranslator {
             });
         } else {
             return FutureHelper.executeWithThrottling(() ->
-                    doTranslateAsync(null, text, cancelToken), limit);
+                    doTranslateWithModifierAsync(null, text, cancelToken), limit);
         }
     }
 
@@ -253,11 +254,17 @@ public class AiTranslator {
         // 将待翻译的文本放到特殊的字符串之间，然后在结果中要严格保持这两个字符串的匹配结构，通过这一特性来自动实现对返回格式的检查。
         // qwen3b有时会直接把原文返回，并不会做翻译。有的时候又会多一些多余的响应。
 
-        String toTranslated = textBlockModifier.modifyContent(text);
+        String toTranslated = textRewriter == null ? text : textRewriter.rewriteRequestText(text);
         return RetryHelper.retryNTimes(() -> doTranslateAsync(prolog, toTranslated, null)
-                                .thenApply(textBlockModifier::modifyResult),
+                                .thenApply(ret -> {
+                                    return textRewriter == null ? ret : textRewriter.correctResponseText(ret);
+                                }),
                         Objects::nonNull, 3)
-                .thenApply(ret -> Guard.notNull(ret, "invalid text"));
+                .thenApply(ret -> Guard.notNull(ret, "invalid text"))
+                .exceptionally(err -> {
+                    LOG.error("nop.ai.translate-error", err);
+                    throw NopException.adapt(err);
+                });
     }
 
     protected CompletionStage<String> doTranslateAsync(String prolog, String text, ICancelToken cancelToken) {

@@ -10,6 +10,8 @@ package io.nop.commons.util.retry;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -19,6 +21,8 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class RetryHelper {
+    static final Logger LOG = LoggerFactory.getLogger(RetryHelper.class);
+
     public static <T, C> T retryCall(Callable<T> task, IRetryPolicy<C> retryPolicy, C context) {
         int retryTimes = 0;
         do {
@@ -75,6 +79,7 @@ public class RetryHelper {
         return task.get().thenCompose(ret -> {
             if (checkReady.test(ret))
                 return FutureHelper.success(ret);
+            LOG.info("nop.retry:times={}",n);
             return retryNTimes(task, checkReady, n - 1);
         });
     }
