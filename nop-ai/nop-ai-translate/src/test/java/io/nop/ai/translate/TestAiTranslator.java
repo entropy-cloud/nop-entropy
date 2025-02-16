@@ -43,6 +43,7 @@ public class TestAiTranslator extends JunitBaseTestCase {
         chatUrl = "/api/chat";
 
         LlmConfig llmConfig = new LlmConfig();
+        llmConfig.setMaxTokens(8000);
         llmConfig.setBaseUrl(baseUrl);
         llmConfig.setApiKey(System.getProperty("nop.ai.llm.deepseek.api-key"));
         llmConfig.setModel(model);
@@ -65,8 +66,10 @@ public class TestAiTranslator extends JunitBaseTestCase {
 
     @Test
     public void testTranslateDir() {
-        AiTranslator translator = new AiTranslator(factory, templateManager, "translate");
-        translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(4096);
+        AiTranslator translator = new AiTranslator(factory, templateManager, "translate2");
+        translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(2048);
+        translator.getChatOptions().setTemperature(0.6f);
+        translator.getChatOptions().setRequestTimeout(600*1000L);
 
         File docsDir = new File(getModuleDir(), "../../docs");
         File docsEnDir = new File(docsDir.getParent(), "docs-en");

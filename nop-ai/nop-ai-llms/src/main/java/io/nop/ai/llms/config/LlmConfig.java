@@ -45,6 +45,35 @@ public class LlmConfig implements Serializable {
 
     private boolean logMessage = true;
 
+    private Integer maxTokens;
+    private Float temperature;
+
+    private Long requestTimeout;
+
+    public Long getRequestTimeout() {
+        return requestTimeout;
+    }
+
+    public void setRequestTimeout(Long requestTimeout) {
+        this.requestTimeout = requestTimeout;
+    }
+
+    public Float getTemperature() {
+        return temperature;
+    }
+
+    public void setTemperature(Float temperature) {
+        this.temperature = temperature;
+    }
+
+    public Integer getMaxTokens() {
+        return maxTokens;
+    }
+
+    public void setMaxTokens(Integer maxTokens) {
+        this.maxTokens = maxTokens;
+    }
+
     public boolean isLogMessage() {
         return logMessage;
     }

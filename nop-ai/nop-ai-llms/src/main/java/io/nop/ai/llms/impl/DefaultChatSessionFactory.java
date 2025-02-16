@@ -98,10 +98,22 @@ public class DefaultChatSessionFactory implements IChatSessionFactory, IChatServ
         HttpRequest request = HttpRequest.post(url);
         if (!StringHelper.isEmpty(llmConfig.getApiKey()))
             request.setBearerToken(llmConfig.getApiKey());
+        initHeaders(request, options);
         Map<String, Object> body = new HashMap<>();
-        initBody(body, prompt);
+        initBody(body, prompt, options);
         request.setBody(body);
         return request;
+    }
+
+    protected void initHeaders(HttpRequest request, ChatOptions options) {
+        Long requestTimeout = llmConfig.getRequestTimeout();
+        if (options != null) {
+            if (options.getRequestTimeout() != null)
+                requestTimeout = options.getRequestTimeout();
+        }
+        if (requestTimeout != null) {
+            request.timeout(requestTimeout);
+        }
     }
 
     /**
@@ -134,18 +146,41 @@ public class DefaultChatSessionFactory implements IChatSessionFactory, IChatServ
      * "top_logprobs": null
      * }
      */
-    void initBody(Map<String, Object> body, Prompt prompt) {
+    void initBody(Map<String, Object> body, Prompt prompt, ChatOptions options) {
         body.put("model", llmConfig.getModel());
         body.put("stream", false);
         body.put("response_format", Map.of("type", "text"));
         List<Map<String, Object>> messages = new ArrayList<>();
         body.put("messages", messages);
 
+        setMaxTokens(body, options);
+        setTemperature(body, options);
+
         List<Message> msgs = prompt.toMessages();
         for (Message msg : msgs) {
             logRequest(msg);
             messages.add(Map.of("content", msg.getMessageContent(), "role", getRole(msg)));
         }
+    }
+
+    void setMaxTokens(Map<String, Object> body, ChatOptions options) {
+        Integer maxTokens = this.llmConfig.getMaxTokens();
+        if (options != null) {
+            if (options.getMaxTokens() != null)
+                maxTokens = options.getMaxTokens();
+        }
+        if (maxTokens != null)
+            body.put("max_tokens", maxTokens);
+    }
+
+    void setTemperature(Map<String, Object> body, ChatOptions options) {
+        Float temperature = this.llmConfig.getTemperature();
+        if (options != null) {
+            if (options.getTemperature() != null)
+                temperature = options.getTemperature();
+        }
+        if (temperature != null)
+            body.put("temperature", temperature);
     }
 
     protected String getRole(Message message) {

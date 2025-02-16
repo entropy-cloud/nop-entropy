@@ -9,4 +9,6 @@
     </vars>
 
     <template xdef:value="!xpl-text"/>
+
+    <processResultMessage xdef:value="xpl-fn:(resultMessage)=>void" />
 </prompt>

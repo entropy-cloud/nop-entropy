@@ -34,6 +34,8 @@ public class ChatOptions extends ExtensibleBean {
     private Integer maxTokens;
     private List<String> stop;
 
+    private Long requestTimeout;
+
     //============= 以下为coze支持的参数 =====
     private String botId;
 
@@ -42,6 +44,14 @@ public class ChatOptions extends ExtensibleBean {
     private String userId;
 
     private boolean stream;
+
+    public Long getRequestTimeout() {
+        return requestTimeout;
+    }
+
+    public void setRequestTimeout(Long requestTimeout) {
+        this.requestTimeout = requestTimeout;
+    }
 
     public String getSeed() {
         return seed;

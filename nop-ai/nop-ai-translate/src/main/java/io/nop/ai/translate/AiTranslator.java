@@ -56,8 +56,14 @@ public class AiTranslator {
     private int maxChunkSize = 4096;
     private Predicate<File> fileFilter;
     private int concurrencyLimit = 10;
+
+    /**
+     * 单次请求失败之后会自动重试，这里控制总的尝试次数。
+     */
+    private int tryTimesPerRequest = 3;
     private IAiResultMessageProcessor resultMessageProcessor;
     private IAiTextAggregator textAggregator;
+    private ChatOptions chatOptions = new ChatOptions();
 
     private IAiTextRewriter textRewriter = new TranslateTextRewriter();
 
@@ -68,6 +74,14 @@ public class AiTranslator {
 
     public AiTranslator(IChatSessionFactory factory, IPromptTemplateManager promptTemplateManager, String promptName) {
         this(factory, promptTemplateManager.getPromptTemplate(factory.getModel(), promptName));
+    }
+
+    public int getTryTimes(){
+        return tryTimesPerRequest;
+    }
+
+    public ChatOptions getChatOptions(){
+        return chatOptions;
     }
 
     public String getFromLang() {
@@ -108,6 +122,12 @@ public class AiTranslator {
 
     public IAiResultMessageProcessor getResultMessageProcessor() {
         return resultMessageProcessor;
+    }
+
+    @PropertySetter
+    public AiTranslator chatOptions(ChatOptions chatOptions) {
+        this.chatOptions = chatOptions;
+        return this;
     }
 
     @PropertySetter
@@ -177,6 +197,12 @@ public class AiTranslator {
     @PropertySetter
     public AiTranslator textAggregator(IAiTextAggregator textAggregator) {
         this.textAggregator = textAggregator;
+        return this;
+    }
+
+    @PropertySetter
+    public AiTranslator tryTimesPerRequest(int tryTimesPerRequest) {
+        this.tryTimesPerRequest = tryTimesPerRequest;
         return this;
     }
 
@@ -259,7 +285,7 @@ public class AiTranslator {
                                 .thenApply(ret -> {
                                     return textRewriter == null ? ret : textRewriter.correctResponseText(ret);
                                 }),
-                        Objects::nonNull, 3)
+                        Objects::nonNull, tryTimesPerRequest)
                 .thenApply(ret -> Guard.notNull(ret, "invalid text"))
                 .exceptionally(err -> {
                     LOG.error("nop.ai.translate-error", err);
@@ -271,8 +297,7 @@ public class AiTranslator {
         if (cancelToken != null && cancelToken.isCancelled())
             return FutureHelper.reject(new CancellationException("cancel-translate"));
 
-        ChatOptions options = new ChatOptions();
-        IChatSession session = factory.newSession(options);
+        IChatSession session = factory.newSession(chatOptions);
         try {
             String promptText = promptTemplate.generatePrompt(
                     Map.of(VAR_MODEL, factory.getModel(), VAR_PROLOG, prolog == null ? "" : prolog, VAR_CONTENT, text,
