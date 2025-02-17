@@ -74,7 +74,7 @@ public class RetryHelper {
 
     public static <T> CompletionStage<T> retryNTimes(Supplier<CompletionStage<T>> task,
                                                      Predicate<T> checkReady, int n) {
-        if (n <= 1)
+        if (n <= 0)
             return task.get();
         return task.get().thenCompose(ret -> {
             if (checkReady.test(ret))

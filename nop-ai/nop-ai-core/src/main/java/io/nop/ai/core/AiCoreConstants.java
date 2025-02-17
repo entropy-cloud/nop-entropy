@@ -21,4 +21,10 @@ public interface AiCoreConstants {
     String POSTFIX_PROMPT_YAML = ".prompt.yaml";
 
     String PROMPT_NAME_TRANSLATE = "translate";
+
+    String CONFIG_VAR_LLM_BASE_URL = "nop.ai.llm.{llmName}.base-url";
+
+    String CONFIG_VAR_LLM_API_KEY = "nop.ai.llm.{llmName}.api-key";
+
+    String PLACE_HOLDER_LLM_NAME = "{llmName}";
 }

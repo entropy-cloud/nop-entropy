@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
 
     <bean id="nopPromptTemplateManager" class="io.nop.ai.core.prompt.PromptTemplateManager" ioc:default="true"/>
+
+    <bean id="nopAiChatService" class="io.nop.ai.core.service.DefaultAiChatService" ioc:default="true"/>
 </beans>

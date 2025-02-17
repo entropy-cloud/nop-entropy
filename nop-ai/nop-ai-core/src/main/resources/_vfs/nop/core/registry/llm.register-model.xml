@@ -1,0 +1,8 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="llm">
+
+    <loaders>
+        <xdsl-loader fileType="llm.xml" schemaPath="/nop/schema/ai/llm.xdef"/>
+    </loaders>
+
+</model>

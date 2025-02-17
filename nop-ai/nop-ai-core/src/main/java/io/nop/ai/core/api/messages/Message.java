@@ -30,6 +30,6 @@ public abstract class Message extends Metadata {
 
     public abstract String getRole();
 
-    public abstract Object getMessageContent();
+    public abstract String getContent();
 
 }

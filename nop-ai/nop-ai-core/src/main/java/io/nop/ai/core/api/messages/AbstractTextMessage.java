@@ -10,9 +10,4 @@ public abstract class AbstractTextMessage extends Message {
     public void setContent(String content) {
         this.content = content;
     }
-
-    @Override
-    public Object getMessageContent() {
-        return getContent();
-    }
 }

@@ -27,6 +27,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.BooleanSupplier;
@@ -525,16 +526,21 @@ public class FutureHelper {
         if (limit == null)
             return task.get();
 
+        AtomicBoolean released = new AtomicBoolean(false);
         try {
             limit.acquire();
             return task.get().whenComplete((ret, err) -> {
+                released.set(true);
                 limit.release();
             });
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            if (!released.get())
+                limit.release();
             return reject(e);
         } catch (RuntimeException e) {
-            limit.release();
+            if (!released.get())
+                limit.release();
             throw e;
         }
     }

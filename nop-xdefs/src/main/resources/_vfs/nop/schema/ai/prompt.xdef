@@ -1,14 +1,31 @@
-<prompt xdef:name="PromptModel" xdef:bean-package="io.nop.ai.core.prompt"
+<prompt xdef:name="PromptModel" xdef:bean-package="io.nop.ai.core.model"
         x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-        xmlns:xdef="/nop/schema/xdef.xdef" temperature="double">
+        xmlns:xdef="/nop/schema/xdef.xdef"
+        displayName="string">
+
+    <description xdef:value="string"/>
+
+    <defaultChatOptions xdef:ref="chat-options.xdef"/>
 
     <vars xdef:body-type="list" xdef:key-attr="name">
-        <var name="!var-name" xdef:name="PromptVarModel">
+        <!--
+        声明模板中使用的变量信息。主要用于模板管理
+        -->
+        <var name="!var-name" displayName="string" xdef:name="PromptVarModel">
+            <schema xdef:ref="../schema/schema.xdef"/>
             <description xdef:value="string"/>
         </var>
     </vars>
 
+    <!--
+    通过xpl模板语言生成prompt，可以利用xpl的扩展能力实现Prompt的结构化抽象
+    -->
     <template xdef:value="!xpl-text"/>
 
-    <processResultMessage xdef:value="xpl-fn:(resultMessage)=>void" />
+    <!--
+    执行完AI模型调用后得到AiResultMessage对象，可以通过模板内置的后处理器对返回结果进行再加工。
+    这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
+    比如Prompt中可以额外增加一些特殊的标记提示，用于简化结果解析，在processResultMessage中自动识别这些标记并做处理。
+    -->
+    <processResultMessage xdef:value="xpl-fn:(resultMessage)=>void"/>
 </prompt>

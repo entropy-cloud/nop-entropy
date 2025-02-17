@@ -2,19 +2,46 @@ package io.nop.ai.core.api.messages;
 
 import io.nop.ai.core.api.support.Metadata;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
-public abstract class Prompt extends Metadata {
-    public abstract List<Message> toMessages();
+public class Prompt extends Metadata {
+    private List<Message> messages = Collections.emptyList();
 
-    public abstract void addMessage(Message message);
+    public static Prompt humanText(String text) {
+        Prompt prompt = new Prompt();
+        prompt.addHumanMessage(text);
+        return prompt;
+    }
 
-    public void addHumanMessage(String text){
+    public boolean isSingleMessage() {
+        return getMessages().size() == 1;
+    }
+
+    public List<Message> getMessages() {
+        return messages;
+    }
+
+    public void addMessage(Message message) {
+        if (this.messages.isEmpty())
+            this.messages = new ArrayList<>();
+        this.messages.add(message);
+    }
+
+    public void addHumanMessage(String text) {
         addMessage(new HumanMessage(text));
     }
 
-    public abstract void addMessages(Collection<Message> messages);
+    public void addMessages(Collection<Message> messages) {
+        if (messages.isEmpty()) {
+            this.messages = new ArrayList<>();
+        }
+        this.messages.addAll(messages);
+    }
 
-    public abstract void removeMessages(Collection<String> messageIds);
+    public void removeMessages(Collection<String> messageIds) {
+        messages.removeIf(msg -> messageIds.contains(msg.getMessageId()));
+    }
 }

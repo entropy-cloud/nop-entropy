@@ -1,3 +1,5 @@
 <c:script>
-codeGenerator.renderModel('/nop/schema/ai/prompt.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/ai/prompt.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/ai/chat-options.xdef','/nop/templates/xdsl', '/',$scope);
+    codeGenerator.renderModel('/nop/schema/ai/llm.xdef','/nop/templates/xdsl', '/',$scope);
 </c:script>

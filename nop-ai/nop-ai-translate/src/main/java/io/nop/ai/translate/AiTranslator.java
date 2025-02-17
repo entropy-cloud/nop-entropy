@@ -1,25 +1,20 @@
 package io.nop.ai.translate;
 
 import io.nop.ai.core.api.aggregator.IAiTextAggregator;
-import io.nop.ai.core.api.chat.ChatOptions;
-import io.nop.ai.core.api.chat.IChatSession;
-import io.nop.ai.core.api.chat.IChatSessionFactory;
+import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.messages.AiResultMessage;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.api.processor.IAiResultMessageProcessor;
 import io.nop.ai.core.api.processor.IAiTextRewriter;
+import io.nop.ai.core.commons.AiTool;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.ai.translate.support.MarkdownSplitter;
 import io.nop.api.core.annotations.core.PropertySetter;
-import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
-import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.FileHelper;
-import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.commons.util.retry.RetryHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,8 +23,6 @@ import java.nio.file.FileVisitResult;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Semaphore;
 import java.util.function.Predicate;
@@ -38,50 +31,36 @@ import java.util.stream.Collectors;
 import static io.nop.ai.translate.AiTranslateConstants.VAR_CONTENT;
 import static io.nop.ai.translate.AiTranslateConstants.VAR_EXTRA_PROMPT;
 import static io.nop.ai.translate.AiTranslateConstants.VAR_FROM_LANG;
-import static io.nop.ai.translate.AiTranslateConstants.VAR_MODEL;
 import static io.nop.ai.translate.AiTranslateConstants.VAR_PROLOG;
 import static io.nop.ai.translate.AiTranslateConstants.VAR_TO_LANG;
 
-public class AiTranslator {
+public class AiTranslator extends AiTool {
     static final Logger LOG = LoggerFactory.getLogger(AiTranslator.class);
 
-    private final IChatSessionFactory factory;
     private String fromLang;
     private String toLang;
 
     private String extraPrompt;
     private ITextSplitter textSplitter = new MarkdownSplitter();
-    private final IPromptTemplate promptTemplate;
     private int prologSize = 256;
     private int maxChunkSize = 4096;
     private Predicate<File> fileFilter;
     private int concurrencyLimit = 10;
+    private IAiTextRewriter textRewriter;
+    private IAiTextAggregator textAggregator;
 
     /**
-     * 单次请求失败之后会自动重试，这里控制总的尝试次数。
+     * 将prompt也保存到文件中，用于调试。
      */
-    private int tryTimesPerRequest = 3;
-    private IAiResultMessageProcessor resultMessageProcessor;
-    private IAiTextAggregator textAggregator;
-    private ChatOptions chatOptions = new ChatOptions();
+    private boolean savePrompt = false;
 
-    private IAiTextRewriter textRewriter = new TranslateTextRewriter();
-
-    public AiTranslator(IChatSessionFactory factory, IPromptTemplate promptTemplate) {
-        this.factory = factory;
-        this.promptTemplate = promptTemplate;
+    public AiTranslator(IAiChatService chatService, IPromptTemplate promptTemplate) {
+        super(chatService);
+        this.setPromptTemplate(promptTemplate);
     }
 
-    public AiTranslator(IChatSessionFactory factory, IPromptTemplateManager promptTemplateManager, String promptName) {
-        this(factory, promptTemplateManager.getPromptTemplate(factory.getModel(), promptName));
-    }
-
-    public int getTryTimes(){
-        return tryTimesPerRequest;
-    }
-
-    public ChatOptions getChatOptions(){
-        return chatOptions;
+    public AiTranslator(IAiChatService chatService, IPromptTemplateManager promptTemplateManager, String promptName) {
+        this(chatService, promptTemplateManager.getPromptTemplate(promptName));
     }
 
     public String getFromLang() {
@@ -100,10 +79,6 @@ public class AiTranslator {
         return textSplitter;
     }
 
-    public IPromptTemplate getPromptTemplate() {
-        return promptTemplate;
-    }
-
     public int getPrologSize() {
         return prologSize;
     }
@@ -118,16 +93,6 @@ public class AiTranslator {
 
     public int getConcurrencyLimit() {
         return concurrencyLimit;
-    }
-
-    public IAiResultMessageProcessor getResultMessageProcessor() {
-        return resultMessageProcessor;
-    }
-
-    @PropertySetter
-    public AiTranslator chatOptions(ChatOptions chatOptions) {
-        this.chatOptions = chatOptions;
-        return this;
     }
 
     @PropertySetter
@@ -172,9 +137,8 @@ public class AiTranslator {
         return this;
     }
 
-    @PropertySetter
     public AiTranslator resultMessageProcessor(IAiResultMessageProcessor resultMessageProcessor) {
-        this.resultMessageProcessor = resultMessageProcessor;
+        this.setResultMessageProcessor(resultMessageProcessor);
         return this;
     }
 
@@ -189,8 +153,8 @@ public class AiTranslator {
     }
 
     @PropertySetter
-    public AiTranslator textProcessor(IAiTextRewriter textProcessor) {
-        this.textRewriter = textProcessor;
+    public AiTranslator textRewriter(IAiTextRewriter textRewriter) {
+        this.textRewriter = textRewriter;
         return this;
     }
 
@@ -200,9 +164,8 @@ public class AiTranslator {
         return this;
     }
 
-    @PropertySetter
-    public AiTranslator tryTimesPerRequest(int tryTimesPerRequest) {
-        this.tryTimesPerRequest = tryTimesPerRequest;
+    public AiTranslator retryTimesPerRequest(int tryTimesPerRequest) {
+        this.setRetryTimesPerRequest(tryTimesPerRequest);
         return this;
     }
 
@@ -230,6 +193,20 @@ public class AiTranslator {
         return FutureHelper.waitAll(futures);
     }
 
+    public void translateFile(File srcFile, File targetFile, ICancelToken cancelToken, Semaphore limit) {
+        FutureHelper.syncGet(translateFileAsync(srcFile, targetFile, cancelToken, limit));
+    }
+
+    public CompletionStage<?> translateFileAsync(File srcFile, File targetFile, ICancelToken cancelToken, Semaphore limit) {
+        LOG.info("nop.ai.translate-file:path={}", FileHelper.getAbsolutePath(srcFile));
+
+        String text = FileHelper.readText(srcFile, null);
+        return translateAsync(text, cancelToken, limit).thenApply(ret -> {
+            FileHelper.writeText(targetFile, ret, null);
+            return null;
+        });
+    }
+
     protected boolean acceptSourceFile(File file) {
         if (fileFilter != null)
             return fileFilter.test(file);
@@ -248,7 +225,7 @@ public class AiTranslator {
             List<CompletionStage<?>> promises = new ArrayList<>(chunks.size());
             for (ITextSplitter.SplitChunk chunk : chunks) {
                 promises.add(FutureHelper.executeWithThrottling(() ->
-                        doTranslateWithModifierAsync(chunk.getProlog(), chunk.getContent(), cancelToken), limit));
+                        doTranslateAsync(chunk.getProlog(), chunk.getContent(), cancelToken), limit));
             }
 
             return FutureHelper.waitAll(promises).thenApply(v -> {
@@ -256,7 +233,7 @@ public class AiTranslator {
             });
         } else {
             return FutureHelper.executeWithThrottling(() ->
-                    doTranslateWithModifierAsync(null, text, cancelToken), limit);
+                    doTranslateAsync(null, text, cancelToken), limit);
         }
     }
 
@@ -276,48 +253,46 @@ public class AiTranslator {
         return sb.toString();
     }
 
-    protected CompletionStage<String> doTranslateWithModifierAsync(String prolog, String text, ICancelToken cancelToken) {
-        // 将待翻译的文本放到特殊的字符串之间，然后在结果中要严格保持这两个字符串的匹配结构，通过这一特性来自动实现对返回格式的检查。
-        // qwen3b有时会直接把原文返回，并不会做翻译。有的时候又会多一些多余的响应。
+    protected CompletionStage<String> doTranslateAsync(String prolog, String text, ICancelToken cancelToken) {
+        if (textRewriter != null)
+            text = textRewriter.rewriteRequestText(text);
 
-        String toTranslated = textRewriter == null ? text : textRewriter.rewriteRequestText(text);
-        return RetryHelper.retryNTimes(() -> doTranslateAsync(prolog, toTranslated, null)
-                                .thenApply(ret -> {
-                                    return textRewriter == null ? ret : textRewriter.correctResponseText(ret);
-                                }),
-                        Objects::nonNull, tryTimesPerRequest)
-                .thenApply(ret -> Guard.notNull(ret, "invalid text"))
-                .exceptionally(err -> {
-                    LOG.error("nop.ai.translate-error", err);
-                    throw NopException.adapt(err);
-                });
+        Map<String, Object> vars = Map.of(VAR_PROLOG, prolog == null ? "" : prolog, VAR_CONTENT, text,
+                VAR_FROM_LANG, fromLang, VAR_TO_LANG, toLang,
+                VAR_EXTRA_PROMPT, extraPrompt == null ? "" : extraPrompt);
+
+        return callAiAsync(vars, cancelToken).thenApply(this::getTranslatedText);
     }
 
-    protected CompletionStage<String> doTranslateAsync(String prolog, String text, ICancelToken cancelToken) {
-        if (cancelToken != null && cancelToken.isCancelled())
-            return FutureHelper.reject(new CancellationException("cancel-translate"));
-
-        IChatSession session = factory.newSession(chatOptions);
-        try {
-            String promptText = promptTemplate.generatePrompt(
-                    Map.of(VAR_MODEL, factory.getModel(), VAR_PROLOG, prolog == null ? "" : prolog, VAR_CONTENT, text,
-                            VAR_FROM_LANG, fromLang, VAR_TO_LANG, toLang,
-                            VAR_EXTRA_PROMPT, extraPrompt == null ? "" : extraPrompt));
-            Prompt prompt = session.newPrompt(false);
-            prompt.addHumanMessage(promptText);
-
-            CompletionStage<AiResultMessage> future = session.sendChatAsync(prompt, cancelToken);
-            if (resultMessageProcessor != null)
-                future = future.thenCompose(ret -> resultMessageProcessor.processAsync(prompt, ret));
-            return future.thenApply(this::getTranslatedText)
-                    .whenComplete((ret, err) -> IoHelper.safeCloseObject(session));
-        } catch (Exception e) {
-            IoHelper.safeCloseObject(session);
-            throw NopException.adapt(e);
+    @Override
+    protected AiResultMessage postProcess(AiResultMessage message) {
+        if (textRewriter != null) {
+            String text = textRewriter.correctResponseText(message.getContent());
+            message.setContent(text);
+            if (text == null) {
+                message.setInvalid(true);
+                return message;
+            }
         }
+        return message;
     }
 
     protected String getTranslatedText(AiResultMessage message) {
+        if (savePrompt) {
+            StringBuilder sb = new StringBuilder();
+            Prompt prompt = message.getPrompt();
+            sb.append("<[prompt]>\n");
+            sb.append(prompt.getMessages().get(0).getContent());
+            sb.append("</[prompt]>\n");
+
+            if (message.getThink() != null) {
+                sb.append("<think>\n");
+                sb.append(message.getThink());
+                sb.append("\n</think>\n");
+            }
+            sb.append(message.getContent());
+            return sb.toString();
+        }
         return message.getContent();
     }
 }

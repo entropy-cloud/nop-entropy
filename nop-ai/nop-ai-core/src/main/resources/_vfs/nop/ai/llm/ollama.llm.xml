@@ -1,0 +1,25 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     apiStyle="ollama">
+
+    <!--    <baseUrl>http://localhost:11434/</baseUrl>-->
+    <chatUrl>/api/chat</chatUrl>
+    <generateUrl>/api/generate</generateUrl>
+    <embedUrl>/api/embed</embedUrl>
+
+    <request seedPath="options.seed"
+             topKPath="options.top_k"
+             topPPath="options.top_p"
+             temperaturePath="options.temperature"
+             stopPath="options.stop"
+             maxTokensPath="options.num_predict"
+             contextLengthPath="options.num_ctx"
+    />
+
+    <response contentPath="message.content"
+              rolePath="message.role"
+              totalTokensPath="eval_count"
+              completionTokensPath="prompt_eval_count"
+              statusPath="done"
+    />
+
+</llm>

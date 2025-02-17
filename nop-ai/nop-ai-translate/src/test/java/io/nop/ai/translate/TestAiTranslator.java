@@ -1,10 +1,9 @@
 package io.nop.ai.translate;
 
-import io.nop.ai.core.api.chat.IChatSessionFactory;
+import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.ai.core.prompt.PromptTemplateManager;
-import io.nop.ai.llms.config.LlmConfig;
-import io.nop.ai.llms.impl.DefaultChatSessionFactory;
+import io.nop.ai.core.service.DefaultAiChatService;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.http.api.client.HttpClientConfig;
 import io.nop.http.client.jdk.JdkHttpClient;
@@ -20,7 +19,7 @@ import java.time.Duration;
 public class TestAiTranslator extends JunitBaseTestCase {
 
     JdkHttpClient httpClient;
-    IChatSessionFactory factory;
+    IAiChatService chatService;
 
     IPromptTemplateManager templateManager;
 
@@ -32,29 +31,12 @@ public class TestAiTranslator extends JunitBaseTestCase {
         this.httpClient = httpClient;
         httpClient.start();
 
-        String baseUrl = "https://api.deepseek.com/";
-        String model = "deepseek-chat";
-        String chatUrl = "/chat/completions";
+        setTestConfig("nop.ai.llm.ollama.base-url", "http://localhost:11434/");
 
-        baseUrl = "http://localhost:11434/";
-        model = "qwen2.5-coder:7b";
-        model = "qwen2.5:3b";
-        model = "deepseek-r1:8b";
-        chatUrl = "/api/chat";
+        DefaultAiChatService chatService = new DefaultAiChatService();
+        chatService.setHttpClient(httpClient);
 
-        LlmConfig llmConfig = new LlmConfig();
-        llmConfig.setMaxTokens(8000);
-        llmConfig.setBaseUrl(baseUrl);
-        llmConfig.setApiKey(System.getProperty("nop.ai.llm.deepseek.api-key"));
-        llmConfig.setModel(model);
-        llmConfig.setChatUrl(chatUrl);
-
-
-        DefaultChatSessionFactory factory = new DefaultChatSessionFactory();
-        factory.setHttpClient(httpClient);
-        factory.setLlmConfig(llmConfig);
-
-        this.factory = factory;
+        this.chatService = chatService;
 
         this.templateManager = new PromptTemplateManager();
     }
@@ -64,16 +46,34 @@ public class TestAiTranslator extends JunitBaseTestCase {
         httpClient.stop();
     }
 
+    File getDocsDir(){
+        return new File(getModuleDir(), "../../docs");
+    }
+
     @Test
     public void testTranslateDir() {
-        AiTranslator translator = new AiTranslator(factory, templateManager, "translate2");
-        translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(2048);
-        translator.getChatOptions().setTemperature(0.6f);
-        translator.getChatOptions().setRequestTimeout(600*1000L);
+        String model = "deepseek-r1:8b";
 
-        File docsDir = new File(getModuleDir(), "../../docs");
+        AiTranslator translator = new AiTranslator(chatService, templateManager, "translate2");
+        translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(2048);
+        translator.getChatOptions().setLlm("ollama");
+        translator.getChatOptions().setModel(model);
+        translator.getChatOptions().setTemperature(0.6f);
+        translator.getChatOptions().setRequestTimeout(600 * 1000L);
+        translator.getChatOptions().setContextLength(8096);
+
+        File docsDir = getDocsDir();
         File docsEnDir = new File(docsDir.getParent(), "docs-en");
 
         translator.translateDir(docsDir, docsEnDir, null);
+    }
+
+    @Test
+    public void compareDifferentConfig() {
+
+    }
+
+    void translateFile(File file, File targetFile) {
+
     }
 }

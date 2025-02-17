@@ -1,0 +1,191 @@
+package io.nop.ai.core.model._gen;
+
+import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
+import io.nop.core.lang.json.IJsonHandler;
+import io.nop.ai.core.model.LlmResponseModel;
+import io.nop.commons.util.ClassHelper;
+
+
+
+// tell cpd to start ignoring code - CPD-OFF
+/**
+ * generate from /nop/schema/ai/llm.xdef <p>
+ * 
+ */
+@SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
+    "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
+public abstract class _LlmResponseModel extends io.nop.core.resource.component.AbstractComponentModel {
+    
+    /**
+     *  
+     * xml name: completionTokensPath
+     * 
+     */
+    private java.lang.String _completionTokensPath ;
+    
+    /**
+     *  
+     * xml name: contentPath
+     * 
+     */
+    private java.lang.String _contentPath ;
+    
+    /**
+     *  
+     * xml name: rolePath
+     * 
+     */
+    private java.lang.String _rolePath ;
+    
+    /**
+     *  
+     * xml name: statusPath
+     * 
+     */
+    private java.lang.String _statusPath ;
+    
+    /**
+     *  
+     * xml name: totalTokensPath
+     * 
+     */
+    private java.lang.String _totalTokensPath ;
+    
+    /**
+     * 
+     * xml name: completionTokensPath
+     *  
+     */
+    
+    public java.lang.String getCompletionTokensPath(){
+      return _completionTokensPath;
+    }
+
+    
+    public void setCompletionTokensPath(java.lang.String value){
+        checkAllowChange();
+        
+        this._completionTokensPath = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: contentPath
+     *  
+     */
+    
+    public java.lang.String getContentPath(){
+      return _contentPath;
+    }
+
+    
+    public void setContentPath(java.lang.String value){
+        checkAllowChange();
+        
+        this._contentPath = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: rolePath
+     *  
+     */
+    
+    public java.lang.String getRolePath(){
+      return _rolePath;
+    }
+
+    
+    public void setRolePath(java.lang.String value){
+        checkAllowChange();
+        
+        this._rolePath = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: statusPath
+     *  
+     */
+    
+    public java.lang.String getStatusPath(){
+      return _statusPath;
+    }
+
+    
+    public void setStatusPath(java.lang.String value){
+        checkAllowChange();
+        
+        this._statusPath = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: totalTokensPath
+     *  
+     */
+    
+    public java.lang.String getTotalTokensPath(){
+      return _totalTokensPath;
+    }
+
+    
+    public void setTotalTokensPath(java.lang.String value){
+        checkAllowChange();
+        
+        this._totalTokensPath = value;
+           
+    }
+
+    
+
+    @Override
+    public void freeze(boolean cascade){
+        if(frozen()) return;
+        super.freeze(cascade);
+
+        if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
+        
+        }
+    }
+
+    @Override
+    protected void outputJson(IJsonHandler out){
+        super.outputJson(out);
+        
+        out.putNotNull("completionTokensPath",this.getCompletionTokensPath());
+        out.putNotNull("contentPath",this.getContentPath());
+        out.putNotNull("rolePath",this.getRolePath());
+        out.putNotNull("statusPath",this.getStatusPath());
+        out.putNotNull("totalTokensPath",this.getTotalTokensPath());
+    }
+
+    public LlmResponseModel cloneInstance(){
+        LlmResponseModel instance = newInstance();
+        this.copyTo(instance);
+        return instance;
+    }
+
+    protected void copyTo(LlmResponseModel instance){
+        super.copyTo(instance);
+        
+        instance.setCompletionTokensPath(this.getCompletionTokensPath());
+        instance.setContentPath(this.getContentPath());
+        instance.setRolePath(this.getRolePath());
+        instance.setStatusPath(this.getStatusPath());
+        instance.setTotalTokensPath(this.getTotalTokensPath());
+    }
+
+    protected LlmResponseModel newInstance(){
+        return (LlmResponseModel) ClassHelper.newInstance(getClass());
+    }
+}
+ // resume CPD analysis - CPD-ON

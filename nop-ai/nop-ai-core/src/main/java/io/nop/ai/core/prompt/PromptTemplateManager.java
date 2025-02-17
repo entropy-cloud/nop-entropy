@@ -1,34 +1,22 @@
 package io.nop.ai.core.prompt;
 
 import io.nop.ai.core.AiCoreConstants;
-import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ResourceComponentManager;
 
 public class PromptTemplateManager implements IPromptTemplateManager {
 
     @Override
-    public IPromptTemplate getPromptTemplate(String model, String promptName) {
-        String path = normalizePromptPath(model, promptName);
-        return (IPromptTemplate) ResourceComponentManager.instance().loadComponentModel(path);
+    public IPromptTemplate getPromptTemplate(String promptName) {
+        String path = normalizePromptPath(promptName);
+        return loadPromptTemplateFromPath(path);
     }
 
-    protected String normalizePromptPath(String model, String promptName) {
-        // 带有名字空间
-        if (promptName.indexOf(':') > 0)
-            return promptName;
-
-        if (promptName.endsWith(AiCoreConstants.POSTFIX_PROMPT_XML)
-                || promptName.endsWith(AiCoreConstants.POSTFIX_PROMPT_YAML))
-            return promptName;
-
-        String modelName = normalizeModelNameForPath(model);
-        String path = "/nop/ai/prompts/" + modelName + "/" + promptName + AiCoreConstants.POSTFIX_PROMPT_YAML;
-        if (VirtualFileSystem.instance().getResource(path).exists())
-            return path;
-        return "/nop/ai/prompts/default/" + promptName + AiCoreConstants.POSTFIX_PROMPT_YAML;
+    @Override
+    public IPromptTemplate loadPromptTemplateFromPath(String promptPath) {
+        return (IPromptTemplate) ResourceComponentManager.instance().loadComponentModel(promptPath);
     }
 
-    String normalizeModelNameForPath(String model) {
-        return model.replace(':', '-');
+    protected String normalizePromptPath(String promptName) {
+        return "/nop/ai/prompts/" + promptName + AiCoreConstants.POSTFIX_PROMPT_YAML;
     }
 }

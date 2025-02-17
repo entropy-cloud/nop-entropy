@@ -1,0 +1,21 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     apiStyle="openai">
+
+    <!--    <baseUrl>http://localhost:11434/</baseUrl>-->
+    <chatUrl>/chat/completions</chatUrl>
+
+    <request seedPath="options.seed"
+             topKPath="options.top_k"
+             topPPath="options.top_p"
+             temperaturePath="options.temperature"
+             stopPath="options.stop"
+    />
+
+    <response contentPath="choices.0.content"
+              rolePath="choices.0.role"
+              totalTokensPath="eval_count"
+              completionTokensPath="prompt_eval_count"
+              statusPath="done"
+    />
+
+</llm>

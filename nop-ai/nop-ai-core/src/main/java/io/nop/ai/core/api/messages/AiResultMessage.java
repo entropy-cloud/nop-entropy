@@ -16,19 +16,36 @@
 package io.nop.ai.core.api.messages;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.ai.core.AiCoreConstants;
 import io.nop.api.core.annotations.data.DataBean;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @DataBean
 public class AiResultMessage extends AbstractTextMessage {
+    private Prompt prompt;
 
     private Integer index;
     private MessageStatus status;
     private Integer promptTokens;
     private Integer completionTokens;
     private Integer totalTokens;
-    private String fullContent;
     private String think;
+
+    private Object parseData;
+    private Map<String, Object> attributes;
+
+    private boolean invalid;
+
+    public boolean isInvalid() {
+        return invalid;
+    }
+
+    public void setInvalid(boolean invalid) {
+        this.invalid = invalid;
+    }
 
     public Integer getIndex() {
         return index;
@@ -70,22 +87,18 @@ public class AiResultMessage extends AbstractTextMessage {
         this.totalTokens = totalTokens;
     }
 
-    public String getFullContent() {
-        return fullContent;
-    }
-
-    public void setFullContent(String fullContent) {
-        this.fullContent = fullContent;
-    }
-
-    @Override
-    public Object getMessageContent() {
-        return getFullContent();
-    }
-
     @Override
     public String getRole() {
         return AiCoreConstants.ROLE_ASSISTANT;
+    }
+
+    @JsonIgnore
+    public Prompt getPrompt() {
+        return prompt;
+    }
+
+    public void setPrompt(Prompt prompt) {
+        this.prompt = prompt;
     }
 
     public String getThink() {
@@ -96,13 +109,42 @@ public class AiResultMessage extends AbstractTextMessage {
         this.think = think;
     }
 
+    @JsonIgnore
+    public Object getParseData() {
+        return parseData;
+    }
+
+    public void setParseData(Object parseData) {
+        this.parseData = parseData;
+    }
+
+    @JsonIgnore
+    public Map<String, Object> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(Map<String, Object> attributes) {
+        this.attributes = attributes;
+    }
+
+    public Object getAttribute(String name) {
+        if (attributes == null)
+            return null;
+        return attributes.get(name);
+    }
+
+    public void setAttribute(String name, Object value) {
+        if (attributes == null)
+            attributes = new HashMap<>();
+        attributes.put(name, value);
+    }
+
     @Override
     public String toString() {
         return "AiResultMessage{" +
                 "index=" + index +
                 ", status=" + status +
                 ", totalTokens=" + totalTokens +
-                ", fullContent='" + fullContent + '\'' +
                 ", content='" + getContent() + '\'' +
                 ", metadataMap=" + metadataMap +
                 '}';
