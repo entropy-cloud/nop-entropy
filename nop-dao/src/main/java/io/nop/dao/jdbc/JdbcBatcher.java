@@ -12,6 +12,7 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.dialect.IDialect;
+import io.nop.dao.exceptions.JdbcException;
 import io.nop.dao.jdbc.impl.JdbcHelper;
 import io.nop.dao.metrics.IDaoMetrics;
 import org.slf4j.Logger;
@@ -163,6 +164,7 @@ public class JdbcBatcher {
                 Object meter = daoMetrics == null ? null : daoMetrics.beginBatchUpdate(sql);
                 int commandCount = commands.size();
                 PreparedStatement ps = conn.prepareStatement(sql);
+                JdbcException error = null;
                 try {
                     for (BatchCommand params : commands) {
                         setParams(ps, params);
@@ -177,6 +179,11 @@ public class JdbcBatcher {
                     }
 
                     commands.clear();
+
+                    // 如果是batch主动打开的transaction,它需要主动commit。setAutoCommit(true)不一定自动调用commit
+                    if (resetAutoCommit)
+                        conn.commit();
+
                     long diffTime = CoreMetrics.nanoTimeDiff(beginTime);
 
                     LOG.info("nop.jdbc.execute-batch-success:count={},usedTime={},sql={}", i,
@@ -184,9 +191,10 @@ public class JdbcBatcher {
 
                 } catch (BatchUpdateException e) {
                     SQLException cause = getCause(e);
+                    error = dialect.getSQLExceptionTranslator().translate(batchSql, cause);
 
                     long diffTime = CoreMetrics.nanoTimeDiff(beginTime);
-                    LOG.info("nop.jdbc.execute-batch-fail:usedTime={},sql={}", CoreMetrics.nanoToMillis(diffTime), sql);
+                    LOG.info("nop.jdbc.execute-batch-fail:usedTime={},sql={}", CoreMetrics.nanoToMillis(diffTime), sql, cause);
 
                     // 返回的数组个数可能小于批量命令数
                     int[] ret = e.getUpdateCounts();
@@ -213,15 +221,14 @@ public class JdbcBatcher {
                         conn.rollback();
 
                     if (stopOnError)
-                        throw cause;
+                        throw error;
+                } catch (SQLException ex2) {
+                    error = dialect.getSQLExceptionTranslator().translate(batchSql, ex2);
+                    throw error;
                 } finally {
                     if (daoMetrics != null)
-                        daoMetrics.endExecuteUpdate(meter, commandCount);
+                        daoMetrics.endBatchUpdate(batchSql.getText(), meter, commandCount, error);
                 }
-
-                // 如果是batch主动打开的transaction,它需要主动commit。setAutoCommit(true)不一定自动调用commit
-                if (resetAutoCommit)
-                    conn.commit();
             }
         } catch (SQLException e) {
             throw dialect.getSQLExceptionTranslator().translate(batchSql, e);
@@ -263,6 +270,7 @@ public class JdbcBatcher {
 
         Object meter = daoMetrics == null ? null : daoMetrics.beginBatchUpdate(sql);
         PreparedStatement ps = null;
+        JdbcException error = null;
         try {
             ps = conn.prepareStatement(sql);
             setParams(ps, params);
@@ -273,17 +281,18 @@ public class JdbcBatcher {
                     CoreMetrics.nanoToMillis(diffTime), sql);
             onSuccess(params, count);
         } catch (SQLException e) {
+            error = dialect.getSQLExceptionTranslator().translate(params.sql, e);
             params.onComplete(null, e);
 
             long diffTime = CoreMetrics.nanoTimeDiff(beginTime);
 
-            LOG.error("nop.jdbc.flush-execute-update-fail:usedTime={},sql={}", CoreMetrics.nanoToMillis(diffTime), sql);
+            LOG.error("nop.jdbc.flush-execute-update-fail:usedTime={},sql={}", CoreMetrics.nanoToMillis(diffTime), sql, error);
             if (stopOnError)
-                throw dialect.getSQLExceptionTranslator().translate(params.sql, e);
+                throw error;
         } finally {
             IoHelper.safeClose(ps);
             if (daoMetrics != null)
-                daoMetrics.endExecuteUpdate(meter, 1);
+                daoMetrics.endBatchUpdate(sql, meter, 1, error);
         }
     }
 

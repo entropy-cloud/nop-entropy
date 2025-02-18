@@ -166,4 +166,22 @@ public class HashHelper {
             return h.hashString(str, StringHelper.CHARSET_UTF8).asLong();
         };
     }
+
+    public static final long BASIC = 0xcbf29ce484222325L;
+    public static final long PRIME = 0x100000001b3L;
+
+    public static long fnv1a_64(String input) {
+        if (input == null) {
+            return 0;
+        }
+
+        long hash = BASIC;
+        for (int i = 0; i < input.length(); ++i) {
+            char c = input.charAt(i);
+            hash ^= c;
+            hash *= PRIME;
+        }
+
+        return hash;
+    }
 }

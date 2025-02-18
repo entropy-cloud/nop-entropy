@@ -13,6 +13,9 @@ import io.micrometer.core.instrument.Timer;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.core.lang.sql.SQL;
+import io.nop.core.stat.JdbcSqlStat;
+import io.nop.core.stat.JdbcStatManager;
+import io.nop.core.stat.StatementExecuteType;
 
 public class DaoMetricsImpl implements IDaoMetrics {
     private final MeterRegistry registry;
@@ -29,12 +32,14 @@ public class DaoMetricsImpl implements IDaoMetrics {
 
     private final Counter rowReadCount;
     private final Counter rowUpdateCount;
+    private final JdbcStatManager statManager;
 
     public DaoMetricsImpl() {
-        this(GlobalMeterRegistry.instance(), null);
+        this(GlobalMeterRegistry.instance(), JdbcStatManager.global(), null);
     }
 
-    public DaoMetricsImpl(MeterRegistry registry, String prefix) {
+    public DaoMetricsImpl(MeterRegistry registry, JdbcStatManager statManager, String prefix) {
+        this.statManager = statManager;
         this.registry = registry;
         this.prefix = prefix;
 
@@ -86,9 +91,22 @@ public class DaoMetricsImpl implements IDaoMetrics {
     }
 
     @Override
-    public void endQuery(Object meter, long readCount, boolean success) {
-        ((Timer.Sample) meter).stop(queryTimer);
+    public void endQuery(SQL sql, Object meter, long readCount, Exception error) {
+        long time = ((Timer.Sample) meter).stop(queryTimer);
         this.rowReadCount.increment(readCount);
+
+        if (sql != null && !sql.isEmpty()) {
+            JdbcSqlStat stat = statManager.getSqlStat(sql.getText());
+            stat.addExecuteTime(StatementExecuteType.ExecuteQuery, false, time);
+            if (readCount > 0)
+                stat.addFetchRowCount(readCount);
+
+            if (error == null) {
+                stat.incrementExecuteSuccessCount();
+            } else {
+                stat.error(error);
+            }
+        }
     }
 
     @Override
@@ -97,10 +115,25 @@ public class DaoMetricsImpl implements IDaoMetrics {
     }
 
     @Override
-    public void endExecuteUpdate(Object meter, long updateCount) {
-        ((Timer.Sample) meter).stop(updateTimer);
+    public void endExecuteUpdate(SQL sql, Object meter, long updateCount, Exception error) {
+        Timer.Sample sample = (Timer.Sample) meter;
+        long time = sample.stop(updateTimer);
         if (updateCount > 0) {
             this.rowUpdateCount.increment(updateCount);
+        }
+
+        if (sql != null && !sql.isEmpty()) {
+            JdbcSqlStat stat = statManager.getSqlStat(sql.getText());
+            stat.addExecuteTime(StatementExecuteType.ExecuteUpdate, false, time);
+            int delta = (int) updateCount;
+            if (delta > 0)
+                stat.addUpdateCount((int) updateCount);
+
+            if (error == null) {
+                stat.incrementExecuteSuccessCount();
+            } else {
+                stat.error(error);
+            }
         }
     }
 
@@ -110,9 +143,23 @@ public class DaoMetricsImpl implements IDaoMetrics {
     }
 
     @Override
-    public void endBatchUpdate(Object meter, long count) {
-        ((Timer.Sample) meter).stop(batchUpdateTimer);
+    public void endBatchUpdate(String sql, Object meter, long count, Exception error) {
+        long time = ((Timer.Sample) meter).stop(batchUpdateTimer);
         if (count > 0)
             this.rowUpdateCount.increment(count);
+
+        if (sql != null && !sql.isEmpty()) {
+            JdbcSqlStat stat = statManager.getSqlStat(sql);
+            stat.addExecuteTime(StatementExecuteType.ExecuteBatch, false, time);
+            int delta = (int) count;
+            if (delta > 0)
+                stat.addExecuteBatchCount(count);
+
+            if (error == null) {
+                stat.incrementExecuteSuccessCount();
+            } else {
+                stat.error(error);
+            }
+        }
     }
 }

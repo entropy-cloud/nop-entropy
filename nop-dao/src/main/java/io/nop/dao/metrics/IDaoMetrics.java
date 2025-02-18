@@ -9,6 +9,7 @@ package io.nop.dao.metrics;
 
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.core.lang.sql.SQL;
+import io.nop.dao.exceptions.JdbcException;
 import io.nop.dao.txn.ITransactionMetrics;
 
 public interface IDaoMetrics extends ITransactionMetrics {
@@ -24,19 +25,19 @@ public interface IDaoMetrics extends ITransactionMetrics {
      */
     Object beginQuery(SQL sql, LongRangeBean range);
 
-    void endQuery(Object meter, long readCount, boolean success);
+    void endQuery(SQL sql, Object meter, long readCount, Exception error);
 
     /**
      * Counter: nop.dao.query.execute-updates
      */
     Object beginExecuteUpdate(SQL sql);
 
-    void endExecuteUpdate(Object meter, long updateCount);
+    void endExecuteUpdate(SQL sql, Object meter, long updateCount, Exception error);
 
     /**
      * Counter: nop.dao.query.batch-updates
      */
     Object beginBatchUpdate(String sql);
 
-    void endBatchUpdate(Object meter, long count);
+    void endBatchUpdate(String sql, Object meter, long batchCount, Exception error);
 }

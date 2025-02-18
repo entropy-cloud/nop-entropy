@@ -252,8 +252,8 @@
                 <field name="columns" displayName="字段列表" list="true" keyProp="name">
                     <normalizeFieldsExpr>
                         if(!record.name){
-                            // id被保留为系统自动生成的主键名，因此不会作为字段名
-                            record.name = record.code.$colCodeToPropName()
+                        // id被保留为系统自动生成的主键名，因此不会作为字段名
+                        record.name = record.code.$colCodeToPropName()
                         }
                     </normalizeFieldsExpr>
                     <fields>
@@ -285,7 +285,7 @@
 
                         <field name="name" displayName="属性名"
                                xpt:formatExpr="cell.value == cell.rp?.ev?.code?.$colCodeToPropName()?'':cell.value">
-                            <schema stdDomain="var-name" />
+                            <schema stdDomain="var-name"/>
                         </field>
 
                         <field name="ui:show" displayName="显示">
@@ -430,7 +430,7 @@
                         </field>
 
                         <field name="refSet.keyProp" displayName="唯一标识">
-                            <schema stdDomain="string" />
+                            <schema stdDomain="string"/>
                         </field>
 
                         <field name="join" displayName="关联条件" list="true" mandatory="true">
@@ -571,6 +571,48 @@
 
                                 <field name="type" displayName="数据类型">
                                     <schema stdDomain="generic-type"/>
+                                </field>
+                            </fields>
+                        </field>
+                    </fields>
+                </field>
+
+                <field name="indexes" displayName="索引列表" list="true" keyProp="name">
+                    <fields>
+                        <field name="name" displayName="索引名" mandatory="true">
+                            <schema stdDomain="var-name"/>
+                        </field>
+
+                        <field name="unique" displayName="唯一索引">
+                            <schema stdDomain="boolean"/>
+                        </field>
+
+                        <field name="displayName" displayName="中文名">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="indexType" displayName="索引类型"/>
+
+                        <field name="i18n-en:displayName" displayName="英文名">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="comment" displayName="注释">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="tagSet" displayName="标签">
+                            <schema stdDomain="tag-set"/>
+                        </field>
+
+                        <field name="columns" displayName="索引列">
+                            <fields>
+                                <field name="name" displayName="列名" mandatory="true">
+                                    <schema stdDomain="var-name"/>
+                                </field>
+
+                                <field name="desc" displayName="是否降序">
+                                    <schema stdDomain="boolean"/>
                                 </field>
                             </fields>
                         </field>

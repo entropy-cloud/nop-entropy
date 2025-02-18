@@ -101,7 +101,6 @@
                   queryable="${rel.toOneRelation?true:null}"
                   ui:control="${rel['ui:control']}" ui:editGrid="${useGrid ? 'sub-grid-edit':null}"
                   ui:viewGrid="${useGrid ?'sub-grid-view':null}"
-                  defaultValue="${rel.singleColumnJoin?.leftPropModel?.defaultValue}"
                   ext:joinLeftProp="${rel.singleColumnJoin?.leftProp}"
                   ext:joinRightProp="${rel.singleColumnJoin?.rightProp}"
                   ext:joinRightDisplayProp="${rel.singleColumnJoin?.rightDisplayPropModel?.name}"

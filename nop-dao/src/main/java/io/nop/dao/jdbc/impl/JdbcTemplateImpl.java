@@ -248,7 +248,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
             } finally {
                 IoHelper.safeCloseObject(st);
                 if (daoMetrics != null) {
-                    daoMetrics.endExecuteUpdate(meter, count);
+                    daoMetrics.endExecuteUpdate(sql, meter, count, error);
                 }
             }
         });
@@ -264,7 +264,6 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
 
             ResultSet rs = null;
             long readCount = -1;
-            boolean success = false;
 
             Object meter = daoMetrics == null ? null : daoMetrics.beginQuery(sql, range);
             try {
@@ -285,7 +284,6 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
                     readCount = ds.getUpdateCount();
                 }
                 LOG.info("nop.jdbc.executeStatement:count={},name={}", readCount, sql.getName());
-                success = true;
                 return ret;
             } catch (SQLException e) {
                 error = dialect.getSQLExceptionTranslator().translate(sql, e);
@@ -297,7 +295,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
                 IoHelper.safeCloseObject(rs);
                 IoHelper.safeCloseObject(st);
                 if (daoMetrics != null) {
-                    daoMetrics.endQuery(meter, readCount, success);
+                    daoMetrics.endQuery(sql, meter, readCount, error);
                 }
             }
         });
@@ -319,7 +317,6 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
 
             ResultSet rs = null;
             long readCount = -1;
-            boolean success = false;
 
             Object meter = daoMetrics == null ? null : daoMetrics.beginQuery(pagedSql, range);
             try {
@@ -334,8 +331,6 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
                 T ret = callback.apply(ds);
 
                 readCount = ds.getReadCount();
-                LOG.info("nop.jdbc.executeQuery:count={},name={}", readCount, sql.getName());
-                success = true;
                 return ret;
             } catch (SQLException e) {
                 error = dialect.getSQLExceptionTranslator().translate(pagedSql, e);
@@ -347,7 +342,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
                 IoHelper.safeCloseObject(rs);
                 IoHelper.safeCloseObject(st);
                 if (daoMetrics != null) {
-                    daoMetrics.endQuery(meter, readCount, success);
+                    daoMetrics.endQuery(sql, meter, readCount, error);
                 }
             }
         });
