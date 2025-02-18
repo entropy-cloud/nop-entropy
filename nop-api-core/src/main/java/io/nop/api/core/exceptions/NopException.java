@@ -35,6 +35,7 @@ public class NopException extends RuntimeException implements IException {
     private final long seq = s_seq.incrementAndGet();
 
     private boolean bizFatal;
+    private boolean notRollback;
 
     private int status;
     private final Map<String, Object> params = new HashMap<>();
@@ -62,6 +63,31 @@ public class NopException extends RuntimeException implements IException {
 
     public NopException(String errorCode, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
         super(errorCode, cause, enableSuppression, writableStackTrace);
+    }
+
+    /**
+     * 事务中发生此异常时是否需要回滚。ORM也会检查异常，如果需要回滚会自动清空OrmSession
+     */
+    public static boolean shouldRollback(Throwable e) {
+        if(e == null)
+            return false;
+
+        if (e instanceof NopException)
+            return !((NopException) e).isNotRollback();
+        return true;
+    }
+
+    public boolean isNotRollback() {
+        return notRollback;
+    }
+
+    public void setNotRollback(boolean notRollback) {
+        this.notRollback = notRollback;
+    }
+
+    public NopException notRollback(boolean notRollback) {
+        this.notRollback = notRollback;
+        return this;
     }
 
     public boolean isAlreadyTraced() {

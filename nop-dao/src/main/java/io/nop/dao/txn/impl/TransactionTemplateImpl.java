@@ -193,7 +193,7 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
             future = FutureHelper.reject(e);
         }
         return completeAsyncOnContext(future, (ret, err) -> {
-            if (err != null) {
+            if (NopException.shouldRollback(err)) {
                 // 出错时总是执行rollback，确保数据库资源得到释放
                 return rollbackTransactionAsync(state, err).whenComplete((a, b) -> {
                     throw NopException.adapt(err);
@@ -202,7 +202,7 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
                 return commitTransactionAsync(state).exceptionally(err2 -> {
                     rollbackTransaction(state, err2);
                     throw NopException.adapt(err2);
-                }).thenApply(v -> ret);
+                }).thenApply(v -> FutureHelper.returnResult(ret, err));
             }
         }).whenComplete((ret, err) -> {
             cleanupTransaction(state);
@@ -213,12 +213,22 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
     public <T> T runInTransaction(String txnGroup, TransactionPropagation propagation, Function<ITransaction, T> task) {
         TxnState state = openTransaction(txnGroup, propagation);
 
+        boolean executed = false;
         try {
             T result = task.apply(state.txn);
+            executed = true;
             commitTransaction(state);
             return result;
         } catch (Exception e) {
-            rollbackTransaction(state, e);
+            if (executed || NopException.shouldRollback(e)) {
+                rollbackTransaction(state, e);
+            } else {
+                try {
+                    commitTransaction(state);
+                } catch (Exception e2) {
+                    rollbackTransaction(state, e2);
+                }
+            }
             throw NopException.adapt(e);
         } finally {
             cleanupTransaction(state);
