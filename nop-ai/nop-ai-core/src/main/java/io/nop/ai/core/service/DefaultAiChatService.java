@@ -304,13 +304,13 @@ public class DefaultAiChatService implements IAiChatService {
         String content = getString(result, responseModel.getContentPath());
         ret.setContent(content);
 
-        if(CFG_AI_SERVICE_LOG_MESSAGE.get()){
-            logResponse(Map.of("role","","content", content));
-        }
-
         ret.setTotalTokens(getInteger(result, responseModel.getTotalTokensPath()));
         ret.setCompletionTokens(getInteger(result, responseModel.getCompletionTokensPath()));
         ret.setStatus(getMessageStatus(result, responseModel.getStatusPath()));
+
+        if (CFG_AI_SERVICE_LOG_MESSAGE.get()) {
+            logResponse(ret);
+        }
     }
 
     protected MessageStatus getMessageStatus(Map<String, Object> body, String propPath) {
@@ -356,8 +356,9 @@ public class DefaultAiChatService implements IAiChatService {
         LOG.info("request:role={},content=\n{}", getRole(message), message.getContent());
     }
 
-    protected void logResponse(Map<String, Object> message) {
-        LOG.info("response:role={},content=\n{}", message.get("role"), message.get("content"));
+    protected void logResponse(AiResultMessage message) {
+        LOG.info("response:totalTokens={},completionTokens={},content=\n{}",
+                message.getTotalTokens(), message.getCompletionTokens(), message.getContent());
     }
 
     @Override

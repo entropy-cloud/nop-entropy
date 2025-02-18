@@ -63,6 +63,14 @@ public class AiTranslator extends AiTool {
         this(chatService, promptTemplateManager.getPromptTemplate(promptName));
     }
 
+    public boolean isSavePrompt() {
+        return savePrompt;
+    }
+
+    public void setSavePrompt(boolean savePrompt) {
+        this.savePrompt = savePrompt;
+    }
+
     public String getFromLang() {
         return fromLang;
     }

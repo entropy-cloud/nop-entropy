@@ -178,7 +178,7 @@ chat-options.xdef的定义如下：
 10. 32B可以识别YAML格式的元模型，但是template有时没有正确生成。
 11. `deepseek-r1:8b-32k`在本机运行可以识别JSON格式的元模型，并正确生成。
 12. 7B理解var-name存在困难。
-13. 14B模型占用13G的GPU内存。8B-32k占用10G。而8B占用8G左右。
+13. 14B模型占用13G的GPU内存，14B-4K占用10.7G内存, 14B-32K占用16G内存。8B-32k占用10G。而8B占用8G左右。
 14. 14B模型可以正确生成template，也可以识别var-name，不能稳定识别xdef:ref定义。
 
 ```
