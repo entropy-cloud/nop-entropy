@@ -1,0 +1,20 @@
+description: |
+  1. 如果没有[EndOfData]标记，deepseek-r1:14b对于某些截断的文本的处理会出现问题，输出的think部分为空，且输出结果被异常中断。
+  2. qwen2.5:7b模型有时会增加额外的内容或者出现格式混乱，通过识别[EndOfTranslation]可以自动排除这些情况。
+  3. deepseek-r1:8b有时并没有翻译，而是直接输出原文（虽然think部分是正确的），但是此时一般会用markdown块包裹，导致最后一行一般不是[EndOfTranslation]。
+  4. 对于不完整的markdown，输出结果有可能会自行增加标题，很难通过提示词禁止这种行为
+
+template: |
+  将以下${fromLang}技术文档的片段翻译为${toLang}，要求
+  1. 保持原有Markdown格式，包括标题、列表和代码块。
+  2. 准确翻译技术术语和代码片段，同时保持其结构和缩进。
+  3. 去除原文末尾的[EndOfData]
+  4. 仅输出英文译文，且输出译文后额外输出一行[EndOfTranslation]
+
+  待翻译的内容如下：
+  
+  ${content.trim()}
+  [EndOfData]
+
+processResultMessage: |
+  resultMessage.checkAndRemoveEndLine("[EndOfTranslation]");

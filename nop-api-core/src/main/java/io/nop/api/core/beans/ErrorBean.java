@@ -14,6 +14,7 @@ import io.nop.api.core.ApiConstants;
 import io.nop.api.core.annotations.core.LazyLoad;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.meta.PropMeta;
+import io.nop.api.core.exceptions.NopRebuildException;
 import io.nop.api.core.util.ICloneable;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
@@ -56,6 +57,9 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
         this.errorCode = errorCode;
     }
 
+    public void rethrow() {
+        throw NopRebuildException.rebuild(this);
+    }
 
     @Override
     public ErrorBean cloneInstance() {

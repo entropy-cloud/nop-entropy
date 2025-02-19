@@ -47,6 +47,7 @@
     <response xdef:name="LlmResponseModel" xdef:mandatory="true"
               rolePath="prop-path"
               contentPath="!prop-path"
+              promptTokensPath="prop-path"
               totalTokensPath="prop-path"
               completionTokensPath="prop-path"
               statusPath="prop-path"

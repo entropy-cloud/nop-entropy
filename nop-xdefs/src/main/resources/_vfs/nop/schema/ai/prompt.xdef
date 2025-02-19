@@ -11,7 +11,7 @@
         <!--
         声明模板中使用的变量信息。主要用于模板管理
         -->
-        <var name="!var-name" displayName="string" xdef:name="PromptVarModel">
+        <var name="!var-name" displayName="string" xdef:name="PromptVarModel" optional="!boolean=false">
             <schema xdef:ref="../schema/schema.xdef"/>
             <description xdef:value="string"/>
         </var>

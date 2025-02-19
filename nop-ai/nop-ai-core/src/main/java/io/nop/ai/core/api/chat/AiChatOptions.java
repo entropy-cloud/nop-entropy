@@ -12,21 +12,6 @@ import io.nop.api.core.beans.ExtensibleBean;
 import java.util.List;
 
 public class AiChatOptions extends ExtensibleBean {
-    private IAiChatProgressListener progressListener;
-
-    public AiChatOptions progressListener(IAiChatProgressListener progressListener) {
-        this.setProgressListener(progressListener);
-        return this;
-    }
-
-    public IAiChatProgressListener getProgressListener() {
-        return progressListener;
-    }
-
-    public void setProgressListener(IAiChatProgressListener progressListener) {
-        this.progressListener = progressListener;
-    }
-
     private String llm;
     private String model;
     private String seed;

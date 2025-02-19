@@ -19,13 +19,13 @@ import io.nop.ai.core.AiCoreConstants;
 import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
-public class HumanMessage extends AbstractTextMessage {
+public class AiUserMessage extends AbstractTextMessage {
     private String imageUrl;
 
-    public HumanMessage() {
+    public AiUserMessage() {
     }
 
-    public HumanMessage(String content) {
+    public AiUserMessage(String content) {
         setContent(content);
     }
 

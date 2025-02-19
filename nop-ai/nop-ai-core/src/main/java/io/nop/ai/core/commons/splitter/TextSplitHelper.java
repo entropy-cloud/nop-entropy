@@ -1,4 +1,4 @@
-package io.nop.ai.translate.support;
+package io.nop.ai.core.commons.splitter;
 
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;

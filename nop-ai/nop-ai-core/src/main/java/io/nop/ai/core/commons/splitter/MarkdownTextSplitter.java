@@ -1,16 +1,14 @@
-package io.nop.ai.translate.support;
+package io.nop.ai.core.commons.splitter;
 
 import java.util.List;
-
-import static io.nop.ai.translate.support.TextSplitHelper.getProlog;
 
 /**
  * 将文本切分为多个分块，每个分块的大小不超过maxContentSize。切分过程中尽量保持code block和table的完整性，不把它们切分到多个不同的分块中。
  */
-public class MarkdownSplitter extends SimpleTextSplitter {
+public class MarkdownTextSplitter extends SimpleTextSplitter {
 
     @Override
-    protected int collectOneChunk(List<String> parts, int index, int prologSize, int maxContentSize,
+    protected int collectOneChunk(List<String> parts, int index, int maxContentSize,
                                   List<SplitChunk> chunks) {
         StringBuilder sb = new StringBuilder();
         for (int i = index, n = parts.size(); i < n; i++) {
@@ -38,16 +36,16 @@ public class MarkdownSplitter extends SimpleTextSplitter {
             if (sb.length() + line.length() <= maxContentSize) {
                 sb.append(line).append('\n');
             } else if (sb.length() > 0) {
-                chunks.add(new SplitChunk(getProlog(parts, index, prologSize), sb.toString()));
+                chunks.add(new SplitChunk("text", sb.toString()));
                 sb.setLength(0);
                 return i;
             } else {
-                chunks.add(new SplitChunk(getProlog(parts, index, prologSize), line));
+                chunks.add(new SplitChunk("text", line));
                 return i;
             }
         }
         if (sb.length() > 0) {
-            chunks.add(new SplitChunk(getProlog(parts, index, prologSize), sb.toString()));
+            chunks.add(new SplitChunk("text", sb.toString()));
         }
         return -1;
     }

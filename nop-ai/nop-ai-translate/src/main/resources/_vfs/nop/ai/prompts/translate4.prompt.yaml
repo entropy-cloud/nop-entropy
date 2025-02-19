@@ -1,0 +1,17 @@
+description:
+  如果没有[EndOfData]标记，deepseek-r1:14b对于某些截断的文本的处理会出现问题，输出的think部分为空，且输出结果被异常中断
+
+template: |
+  将以下${fromLang}技术文档的片段翻译为${toLang}，要求
+  1. 保持原有Markdown格式，包括标题、列表和代码块。
+  2. 准确翻译技术术语和代码片段，同时保持其结构和缩进。
+  3. 因为是文档片段，所以头尾可能缺失一些文字。要求必须保持原文中的Markdown层次，避免修改标题或列表的结构。
+  4. 仅输出${toLang}译文，将最后一行的[数据结束]翻译为[EndOfData]
+
+  待翻译的内容如下：
+  
+  ${content}
+  [数据结束]
+
+processResultMessage: |
+  resultMessage.checkAndRemoveEndLine("[EndOfData]");

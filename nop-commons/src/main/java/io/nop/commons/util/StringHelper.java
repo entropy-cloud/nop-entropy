@@ -4485,4 +4485,24 @@ public class StringHelper extends ApiStringHelper {
         int hash = HashHelper.murmur3_32(str);
         return MathHelper.toShortHash(hash);
     }
+
+    @Deterministic
+    public static boolean containsChinese(String str) {
+        if (str == null || str.isEmpty()) {
+            return false;
+        }
+
+        for (int i = 0; i < str.length(); i++) {
+            char ch = str.charAt(i);
+            if (isChineseCharacter(ch)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isChineseCharacter(char ch) {
+        // 中文字符范围大致从 \u4e00 到 \u9fff
+        return ch >= '\u4e00' && ch <= '\u9fff';
+    }
 }

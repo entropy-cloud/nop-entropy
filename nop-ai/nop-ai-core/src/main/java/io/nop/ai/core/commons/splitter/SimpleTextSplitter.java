@@ -1,17 +1,14 @@
-package io.nop.ai.translate.support;
+package io.nop.ai.core.commons.splitter;
 
-import io.nop.ai.translate.ITextSplitter;
 import io.nop.commons.util.StringHelper;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.nop.ai.translate.support.TextSplitHelper.getProlog;
-
-public class SimpleTextSplitter implements ITextSplitter {
+public class SimpleTextSplitter implements IAiTextSplitter {
 
     @Override
-    public List<SplitChunk> split(String text, int prologSize, int maxContentSize) {
+    public List<SplitChunk> split(String text, int maxContentSize) {
         if (text.length() <= maxContentSize)
             return List.of(new SplitChunk(null, text));
 
@@ -25,12 +22,12 @@ public class SimpleTextSplitter implements ITextSplitter {
 
         int index = 0;
         do {
-            index = collectOneChunk(parts, index, prologSize, maxContentSize, ret);
+            index = collectOneChunk(parts, index, maxContentSize, ret);
         } while (index > 0);
         return ret;
     }
 
-    protected int collectOneChunk(List<String> parts, int index, int prologSize, int maxContentSize,
+    protected int collectOneChunk(List<String> parts, int index, int maxContentSize,
                                   List<SplitChunk> chunks) {
         StringBuilder sb = new StringBuilder();
         for (int i = index, n = parts.size(); i < n; i++) {
@@ -38,19 +35,19 @@ public class SimpleTextSplitter implements ITextSplitter {
             if (sb.length() + line.length() <= maxContentSize) {
                 sb.append(line).append('\n');
             } else if (sb.length() > 0) {
-                chunks.add(new SplitChunk(getProlog(parts, index, prologSize), sb.toString()));
+                chunks.add(new SplitChunk("text", sb.toString()));
                 sb.setLength(0);
                 return i;
             } else {
                 // 一行太长，直接分隔。
                 String part = getPart(line, maxContentSize);
                 parts.set(i, line.substring(part.length() + 1));
-                chunks.add(new SplitChunk(getProlog(parts, index, prologSize), part));
+                chunks.add(new SplitChunk("text", part));
                 return i;
             }
         }
         if (sb.length() > 0) {
-            chunks.add(new SplitChunk(getProlog(parts, index, prologSize), sb.toString()));
+            chunks.add(new SplitChunk("text", sb.toString()));
         }
         return -1;
     }

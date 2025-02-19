@@ -180,9 +180,10 @@ chat-options.xdef的定义如下：
 12. 7B理解var-name存在困难。
 13. 14B模型占用13G的GPU内存，14B-4K占用10.7G内存, 14B-32K占用16G内存。8B-32k占用10G。而8B占用8G左右。
 14. 14B模型可以正确生成template，也可以识别var-name，不能稳定识别xdef:ref定义。
+15. 14B模型在我的机器上用temperature=0.6运行翻译功能，对于某个较长的内容，会出现think段为空，且输出被截断
 
 ```
- You are a professional translator. 
+ You are a professional translator.
 	Translate the following Chinese text to natural English while:
 	1. Maintaining original terminology
 	2. Preserving contextual nuances

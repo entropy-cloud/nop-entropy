@@ -34,6 +34,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class FutureHelper {
     static final Logger LOG = LoggerFactory.getLogger(FutureHelper.class);
@@ -284,6 +285,10 @@ public class FutureHelper {
             return syncGet((CompletionStage<?>) result);
         }
         return result;
+    }
+
+    public static <T> List<T> getResults(Collection<?> results) {
+        return (List<T>) results.stream().map(FutureHelper::getResult).collect(Collectors.toList());
     }
 
     public static void cancel(CompletionStage<?> result) {

@@ -2,7 +2,7 @@ package io.nop.ai.core.service;
 
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.chat.IAiChatSession;
-import io.nop.ai.core.api.messages.Message;
+import io.nop.ai.core.api.messages.AiMessage;
 import io.nop.ai.core.api.messages.Prompt;
 
 import java.util.ArrayList;
@@ -14,7 +14,7 @@ public abstract class AbstractAiChatSession implements IAiChatSession {
     private String sessionId;
     private AiChatOptions chatOptions;
 
-    private List<Message> messages = Collections.emptyList();
+    private List<AiMessage> messages = Collections.emptyList();
 
     public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
@@ -34,7 +34,7 @@ public abstract class AbstractAiChatSession implements IAiChatSession {
     }
 
     @Override
-    public List<Message> getActiveHistoryMessages() {
+    public List<AiMessage> getActiveHistoryMessages() {
         return messages;
     }
 
@@ -45,14 +45,14 @@ public abstract class AbstractAiChatSession implements IAiChatSession {
     }
 
     @Override
-    public void addMessages(Collection<Message> messages) {
+    public void addMessages(Collection<AiMessage> messages) {
         if (this.messages.isEmpty())
             this.messages = new ArrayList<>();
         this.messages.addAll(messages);
     }
 
     @Override
-    public void addMessage(Message message) {
+    public void addMessage(AiMessage message) {
         if (this.messages.isEmpty())
             this.messages = new ArrayList<>();
         this.messages.add(message);

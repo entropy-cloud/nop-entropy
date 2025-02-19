@@ -15,21 +15,21 @@
  */
 package io.nop.ai.core.api.messages;
 
-import io.nop.ai.core.api.support.Metadata;
+import io.nop.ai.core.AiCoreConstants;
+import io.nop.api.core.annotations.data.DataBean;
 
-public abstract class Message extends Metadata {
-    private String messageId;
+@DataBean
+public class AiSystemMessage extends AbstractTextMessage {
 
-    public String getMessageId() {
-        return messageId;
+    public AiSystemMessage() {
     }
 
-    public void setMessageId(String messageId) {
-        this.messageId = messageId;
+    public AiSystemMessage(String content) {
+        this.setContent(content);
     }
 
-    public abstract String getRole();
-
-    public abstract String getContent();
-
+    @Override
+    public String getRole() {
+        return AiCoreConstants.ROLE_SYSTEM;
+    }
 }

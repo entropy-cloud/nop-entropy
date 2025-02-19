@@ -39,6 +39,13 @@ public abstract class _PromptVarModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: optional
+     * 
+     */
+    private boolean _optional  = false;
+    
+    /**
+     *  
      * xml name: schema
      * schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
      * Map对应props配置,  List对应item配置, Union对应oneOf配置
@@ -104,6 +111,25 @@ public abstract class _PromptVarModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: optional
+     *  
+     */
+    
+    public boolean isOptional(){
+      return _optional;
+    }
+
+    
+    public void setOptional(boolean value){
+        checkAllowChange();
+        
+        this._optional = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: schema
      *  schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
      * Map对应props配置,  List对应item配置, Union对应oneOf配置
@@ -142,6 +168,7 @@ public abstract class _PromptVarModel extends io.nop.core.resource.component.Abs
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("name",this.getName());
+        out.putNotNull("optional",this.isOptional());
         out.putNotNull("schema",this.getSchema());
     }
 
@@ -157,6 +184,7 @@ public abstract class _PromptVarModel extends io.nop.core.resource.component.Abs
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
         instance.setName(this.getName());
+        instance.setOptional(this.isOptional());
         instance.setSchema(this.getSchema());
     }
 

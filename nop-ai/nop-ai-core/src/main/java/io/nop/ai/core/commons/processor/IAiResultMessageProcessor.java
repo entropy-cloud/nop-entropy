@@ -1,19 +1,19 @@
-package io.nop.ai.core.api.processor;
+package io.nop.ai.core.commons.processor;
 
 import io.nop.ai.core.api.messages.AiResultMessage;
-import io.nop.ai.core.api.messages.Prompt;
 import io.nop.api.core.util.FutureHelper;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
+@FunctionalInterface
 public interface IAiResultMessageProcessor {
 
-    default AiResultMessage process(Prompt prompt, AiResultMessage message) {
-        return FutureHelper.syncGet(processAsync(prompt, message));
+    default AiResultMessage process(AiResultMessage message) {
+        return FutureHelper.syncGet(processAsync(message));
     }
 
-    CompletionStage<AiResultMessage> processAsync(Prompt prompt, AiResultMessage message);
+    CompletionStage<AiResultMessage> processAsync(AiResultMessage message);
 
     default IAiResultMessageProcessor next(IAiResultMessageProcessor processor) {
         return new ChainAiMessageProcessor(this, processor);

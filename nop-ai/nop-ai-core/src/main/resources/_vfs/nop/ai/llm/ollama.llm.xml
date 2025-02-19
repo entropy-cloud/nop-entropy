@@ -17,8 +17,8 @@
 
     <response contentPath="message.content"
               rolePath="message.role"
-              totalTokensPath="eval_count"
-              completionTokensPath="prompt_eval_count"
+              promptTokensPath="prompt_eval_count"
+              completionTokensPath="eval_count"
               statusPath="done"
     />
 

@@ -11,4 +11,6 @@ public interface AiTranslateConstants {
 
     String VAR_EXTRA_PROMPT = "extraPrompt";
     String VAR_CONTENT = "content";
+
+    String VAR_TRANSLATED_TEXT = "translatedText";
 }

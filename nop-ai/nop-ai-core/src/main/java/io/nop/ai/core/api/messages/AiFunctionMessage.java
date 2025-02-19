@@ -17,9 +17,9 @@ package io.nop.ai.core.api.messages;
 
 import java.util.Map;
 
-public class FunctionMessage extends AiResultMessage {
+public class AiFunctionMessage extends AiResultMessage {
 
-    public FunctionMessage() {
+    public AiFunctionMessage() {
     }
 
     private String functionName;

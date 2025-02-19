@@ -4,7 +4,7 @@ import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.chat.IAiChatSession;
 import io.nop.ai.core.api.messages.AiResultMessage;
-import io.nop.ai.core.api.messages.Message;
+import io.nop.ai.core.api.messages.AiMessage;
 import io.nop.ai.core.api.messages.MessageStatus;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.model.LlmModel;
@@ -126,7 +126,7 @@ public class DefaultAiChatService implements IAiChatService {
                                                           ICancelToken cancelToken) {
         boolean logMessage = CFG_AI_SERVICE_LOG_MESSAGE.get();
         if (logMessage) {
-            for (Message message : prompt.getMessages()) {
+            for (AiMessage message : prompt.getMessages()) {
                 logRequest(message);
             }
         }
@@ -240,8 +240,8 @@ public class DefaultAiChatService implements IAiChatService {
 
         setOptions(llmModel, body, options);
 
-        List<Message> msgs = prompt.getMessages();
-        for (Message msg : msgs) {
+        List<AiMessage> msgs = prompt.getMessages();
+        for (AiMessage msg : msgs) {
             messages.add(Map.of("content", msg.getContent(), "role", getRole(msg)));
         }
     }
@@ -278,7 +278,7 @@ public class DefaultAiChatService implements IAiChatService {
             BeanTool.setComplexProperty(body, propPath, value);
     }
 
-    protected String getRole(Message message) {
+    protected String getRole(AiMessage message) {
         return message.getRole();
     }
 
@@ -304,6 +304,7 @@ public class DefaultAiChatService implements IAiChatService {
         String content = getString(result, responseModel.getContentPath());
         ret.setContent(content);
 
+        ret.setPromptTokens(getInteger(result, responseModel.getPromptTokensPath()));
         ret.setTotalTokens(getInteger(result, responseModel.getTotalTokensPath()));
         ret.setCompletionTokens(getInteger(result, responseModel.getCompletionTokensPath()));
         ret.setStatus(getMessageStatus(result, responseModel.getStatusPath()));
@@ -352,13 +353,13 @@ public class DefaultAiChatService implements IAiChatService {
         }
     }
 
-    protected void logRequest(Message message) {
+    protected void logRequest(AiMessage message) {
         LOG.info("request:role={},content=\n{}", getRole(message), message.getContent());
     }
 
     protected void logResponse(AiResultMessage message) {
-        LOG.info("response:totalTokens={},completionTokens={},content=\n{}",
-                message.getTotalTokens(), message.getCompletionTokens(), message.getContent());
+        LOG.info("response:promptTokens={},completionTokens={},content=\n{}",
+                message.getPromptTokens(), message.getCompletionTokens(), message.getContent());
     }
 
     @Override

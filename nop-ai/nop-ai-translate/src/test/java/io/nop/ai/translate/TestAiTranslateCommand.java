@@ -4,6 +4,7 @@ import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.ai.core.prompt.PromptTemplateManager;
 import io.nop.ai.core.service.DefaultAiChatService;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.http.api.client.HttpClientConfig;
 import io.nop.http.client.jdk.JdkHttpClient;
@@ -18,7 +19,7 @@ import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 
 @Disabled
-public class TestAiTranslator extends JunitBaseTestCase {
+public class TestAiTranslateCommand extends JunitBaseTestCase {
 
     JdkHttpClient httpClient;
     IAiChatService chatService;
@@ -56,7 +57,7 @@ public class TestAiTranslator extends JunitBaseTestCase {
     public void testTranslateDir() {
         String model = "deepseek-r1:14b";
 
-        AiTranslator translator = new AiTranslator(chatService, templateManager, "translate2");
+        AiTranslateCommand translator = new AiTranslateCommand(chatService, templateManager, "translate2");
         translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(3200);
         translator.getChatOptions().setLlm("ollama");
         translator.getChatOptions().setModel(model);
@@ -70,22 +71,26 @@ public class TestAiTranslator extends JunitBaseTestCase {
         translator.translateDir(docsDir, docsEnDir, null);
     }
 
-    void translateFile(String model, Consumer<AiTranslator> config) {
-        AiTranslator translator = new AiTranslator(chatService, templateManager, "translate2");
+    void translateFile(String model, Consumer<AiTranslateCommand> config) {
+        String promptName = "translate3";
+        int contextLength = 4096;
+        AiTranslateCommand translator = new AiTranslateCommand(chatService, templateManager, promptName);
         translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(3200);
         translator.getChatOptions().setLlm("ollama");
         translator.getChatOptions().setModel(model);
         translator.getChatOptions().setTemperature(0.6f);
         translator.getChatOptions().setRequestTimeout(600 * 1000L);
-        translator.getChatOptions().setContextLength(8192);
-        translator.setSavePrompt(true);
+        translator.getChatOptions().setContextLength(contextLength);
+        //translator.getChatOptions().setMaxTokens(4096);
+        translator.setDebug(true);
 
         config.accept(translator);
 
         File docsDir = getDocsDir();
 
         File srcFile = new File(docsDir, "compare/nop-vs-apijson.md");
-        String normalizedName = model.replace(':', '-') + '-' + translator.getChatOptions().getContextLength();
+        String normalizedName = model.replace(':', '-') + '-' + CoreMetrics.currentTimeMillis() + "-" + promptName
+                + "-" + translator.getChatOptions().getContextLength() + "," + translator.getChatOptions().getTemperature();
         File targetFile = getTargetFile("translated/" + normalizedName + ".md");
         targetFile.delete();
         translator.translateFile(srcFile, targetFile, null, new Semaphore(1));
@@ -111,5 +116,23 @@ public class TestAiTranslator extends JunitBaseTestCase {
     @Test
     public void testDeepSeek14B() {
         translateFile("deepseek-r1:14b", translator -> translator.getChatOptions().setContextLength(4096));
+    }
+
+    @Test
+    public void testFixTranslate() {
+        translateFile("deepseek-r1:14b", translator -> {
+            translator.getChatOptions().setContextLength(4096);
+            AiCheckTranslationCommand checkTool = newCheckTool();
+            checkTool.getChatOptions().setContextLength(4096);
+            translator.checkTranslationTool(checkTool);
+            translator.needFixChecker(msg -> {
+                return true; //StringHelper.containsChinese(msg.getContent());
+            });
+        });
+    }
+
+    AiCheckTranslationCommand newCheckTool() {
+        AiCheckTranslationCommand tool = new AiCheckTranslationCommand(chatService, templateManager, "check-translation");
+        return tool;
     }
 }

@@ -11,6 +11,9 @@ public interface AiCoreErrors {
 
     String ARG_PROP_PATH = "propPath";
 
+    String ARG_EXPECTED = "expected";
+    String ARG_LINE = "line";
+
     ErrorCode ERR_AI_SERVICE_NO_DEFAULT_LLMS =
             define("nop.err.ai.service.no-default-llms", "没有指定调用的大语言模型，也没有配置nop.ai.service.default-llm来指定缺省的大语言模型");
 
@@ -22,4 +25,10 @@ public interface AiCoreErrors {
 
     ErrorCode ERR_AI_SERVICE_HTTP_ERROR =
             define("nop.err.ai.service.http-error", "大语言模型{llmName}调用失败，HTTP状态码={httpStatus}", ARG_LLM_NAME, ARG_HTTP_STATUS);
+
+    ErrorCode ERR_AI_RESULT_IS_EMPTY =
+            define("nop.err.ai.service.result-is-empty", "大语言模型返回的结果为空");
+
+    ErrorCode ERR_AI_RESULT_INVALID_END_LINE =
+            define("nop.err.ai.service.result-invalid-end-line", "大语言模型返回的结果行没有符合预期模式", ARG_EXPECTED, ARG_LINE);
 }

@@ -32,6 +32,13 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: promptTokensPath
+     * 
+     */
+    private java.lang.String _promptTokensPath ;
+    
+    /**
+     *  
      * xml name: rolePath
      * 
      */
@@ -85,6 +92,25 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._contentPath = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: promptTokensPath
+     *  
+     */
+    
+    public java.lang.String getPromptTokensPath(){
+      return _promptTokensPath;
+    }
+
+    
+    public void setPromptTokensPath(java.lang.String value){
+        checkAllowChange();
+        
+        this._promptTokensPath = value;
            
     }
 
@@ -163,6 +189,7 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
         
         out.putNotNull("completionTokensPath",this.getCompletionTokensPath());
         out.putNotNull("contentPath",this.getContentPath());
+        out.putNotNull("promptTokensPath",this.getPromptTokensPath());
         out.putNotNull("rolePath",this.getRolePath());
         out.putNotNull("statusPath",this.getStatusPath());
         out.putNotNull("totalTokensPath",this.getTotalTokensPath());
@@ -179,6 +206,7 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
         
         instance.setCompletionTokensPath(this.getCompletionTokensPath());
         instance.setContentPath(this.getContentPath());
+        instance.setPromptTokensPath(this.getPromptTokensPath());
         instance.setRolePath(this.getRolePath());
         instance.setStatusPath(this.getStatusPath());
         instance.setTotalTokensPath(this.getTotalTokensPath());
