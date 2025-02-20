@@ -26,6 +26,8 @@ import static io.nop.graphql.core.GraphQLErrors.ARG_EXPECTED_TYPE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_INVALID_ARG_TYPE;
 
 public interface IDataFetchingEnvironment {
+    String getOperationName();
+
     Object getRoot();
 
     Object getSource();

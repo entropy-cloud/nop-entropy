@@ -17,8 +17,18 @@
 * `nop.ioc.app-beans-container.concurrent-start`设置为true, 则启动时在线程池上执行bean容器的初始化操作，不阻塞主线程
 
 ## 优化应用运行时性能
+
 * `nop.debug` 设置为false， 就不会在dump目录下产生输出
 * `nop.core.component.resource-cache.check-changed`设置为false,则不会检查资源文件是否有变化，不会自动更新缓存的解析结果。
 * 将日志级别设置为info，减少日志输出
 
+## 查看统计信息
 
+通过prometheus度量对外暴露了Metrics信息。在quarks框架下使用`/q/metrics`
+查看统计信息。在springboot框架下，使用`/actuator/prometheus`查看统计信息。
+
+通过stat链接来查看Nop平台内部的细粒度的统计信息
+
+1. `/r/DevStat__jdbcSqlStats` 查看每一个sql语句的执行时间、执行次数以及时间范围分布
+2. `/r/DevStat__rpcServerStats` 查看每一个后台服务函数的执行时间、执行次数，以及时间范围分布
+3. `/r/DevStat__rpcClientStats` 查看每一个rpc客户端调用的执行时间、执行次数，以及时间范围分布

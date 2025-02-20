@@ -29,6 +29,17 @@ public interface CoreConfigs {
     String CFG_COMPONENT_RESOURCE_CACHE_NAMED_REFRESH_MIN_INTERVAL = "nop.core.component.resource-cache.{name}.refresh-min-interval";
     String CFG_COMPONENT_RESOURCE_CACHE_NAMED_TIMEOUT = "nop.core.component.resource-cache.{name}.timeout";
 
+    @Description("SQL统计条目缓存的最大数量")
+    IConfigReference<Integer> CFG_CORE_STAT_SQL_CACHE_MAX_SIZE = varRef(s_loc, "nop.core.stat.sql-cache-max-size", Integer.class, 1000);
+
+    @Description("RPC客户端调用统计缓存的最大数量")
+    IConfigReference<Integer> CFG_CORE_STAT_RPC_CLIENT_CACHE_MAX_SIZE = varRef(s_loc, "nop.core.stat.rpc-client-cache-max-size",
+            Integer.class, 3000);
+
+    @Description("RPC服务端调用统计缓存的最大数量")
+    IConfigReference<Integer> CFG_CORE_STAT_RPC_SERVER_CACHE_MAX_SIZE = varRef(s_loc, "nop.core.stat.rpc-server-cache-max-size",
+            Integer.class, 10000);
+
     @Description("是否启用命令行支持")
     IConfigReference<Boolean> CFG_CORE_NOP_COMMAND_EXECUTOR_ENABLED = varRef(s_loc, "nop.core.nop-command-executor.enabled",
             Boolean.class, true);

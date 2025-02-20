@@ -76,6 +76,8 @@
 /i18n/zh-CN/nop-web.i18n.yaml
 /i18n/zh-CN/nop-wf.i18n.yaml
 /nop/ai/beans/ai-defaults.beans.xml
+/nop/ai/llm/default.llm.xml
+/nop/ai/llm/ollama.llm.xml
 /nop/aop/nop-api-core.annotations
 /nop/aop/nop-quarkus-demo.annotations
 /nop/auth/_module
@@ -304,6 +306,7 @@
 /nop/core/registry/gateway.register-model.xml
 /nop/core/registry/graph-designer.register-model.xml
 /nop/core/registry/imp.register-model.xml
+/nop/core/registry/llm.register-model.xml
 /nop/core/registry/orm.register-model.xml
 /nop/core/registry/prompt.register-model.xml
 /nop/core/registry/rule.register-model.xml
@@ -719,7 +722,9 @@
 /nop/rule/pages/RuleService/executeRule.page.yaml
 /nop/rule/pages/RuleService/getRuleMeta.page.yaml
 /nop/rule/pages/RuleService/main.page.yaml
+/nop/rule/xlib/rule.xlib
 /nop/schema/action-auth.xdef
+/nop/schema/ai/chat-options.xdef
 /nop/schema/ai/llm.xdef
 /nop/schema/ai/prompt.xdef
 /nop/schema/api.xdef

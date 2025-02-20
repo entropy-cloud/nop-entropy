@@ -73,6 +73,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         env.setSelection(operation);
         env.setOpRequest(operation.getOpRequest());
         env.setSelectionBean(context.getFieldSelection().getField(operation.getAliasOrName()));
+        env.setOperationName(operation.getName());
 
         Object meter = graphQLHook == null ? null : graphQLHook.beginExecute(context);
 
@@ -258,6 +259,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
                 continue;
             }
             opEnv.setSelectionBean(selectionBean);
+            opEnv.setOperationName(fieldSelection.getName());
 
             CompletionStage<OperationResult> future = invokeOperationOrTry(opEnv);
             actions.add(() -> {

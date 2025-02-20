@@ -216,7 +216,7 @@ public final class JdbcSqlStat implements Comparable<JdbcSqlStat> {
 
     public JdbcSqlStat(String sql) {
         this.sql = sql;
-        this.id = JdbcStatManager.createStatId();
+        this.id = GlobalStatManager.createStatId();
     }
 
     public String getLastSlowParameters() {
@@ -455,6 +455,7 @@ public final class JdbcSqlStat implements Comparable<JdbcSqlStat> {
         val.setId(id);
         val.setName(name);
         val.setFile(file);
+        val.setSql(sql);
         val.setExecuteLastStartTime(executeLastStartTime);
         if (reset) {
             executeLastStartTime = 0;

@@ -11,6 +11,9 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 import io.nop.commons.metrics.GlobalMeterRegistry;
+import io.nop.core.stat.GlobalStatManager;
+import io.nop.core.stat.IRpcServerStatManager;
+import io.nop.core.stat.RpcServerStat;
 import io.nop.graphql.core.IDataFetchingEnvironment;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.IGraphQLHook;
@@ -33,12 +36,15 @@ public class MetricsGraphQLHook implements IGraphQLHook {
 
     private final Timer dataFetchFailureTimer;
 
+    private final IRpcServerStatManager statManager;
+
     public MetricsGraphQLHook() {
-        this(GlobalMeterRegistry.instance(), "nop");
+        this(GlobalMeterRegistry.instance(), GlobalStatManager.instance(), "nop");
     }
 
-    public MetricsGraphQLHook(MeterRegistry registry, String prefix) {
+    public MetricsGraphQLHook(MeterRegistry registry, IRpcServerStatManager statManager, String prefix) {
         this.registry = registry;
+        this.statManager = statManager;
         this.prefix = prefix;
 
         Tag statusSuccessTag = Tag.of("status", "SUCCESS");
@@ -75,12 +81,26 @@ public class MetricsGraphQLHook implements IGraphQLHook {
 
     @Override
     public Object beginInvoke(IDataFetchingEnvironment env) {
+        RpcServerStat stat = statManager.getRpcServerStat(env.getOperationName());
+        stat.incrementRunningCount();
+
         return Timer.start(registry);
     }
 
     @Override
     public void endInvoke(Object meter, Throwable exception, IDataFetchingEnvironment env) {
-        ((Timer.Sample) meter).stop(exception == null ? invokeSuccessTimer : invokeFailureTimer);
+        long duration = ((Timer.Sample) meter).stop(exception == null ? invokeSuccessTimer : invokeFailureTimer);
+
+        RpcServerStat stat = statManager.getRpcServerStat(env.getOperationName());
+
+        stat.addExecuteTime(duration);
+        stat.decrementRunningCount();
+
+        if (exception != null) {
+            stat.error(exception);
+        } else {
+            stat.incrementExecuteSuccessCount();
+        }
     }
 
     @Override

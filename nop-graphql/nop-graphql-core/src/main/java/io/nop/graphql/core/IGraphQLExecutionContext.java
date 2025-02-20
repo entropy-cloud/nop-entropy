@@ -44,6 +44,10 @@ public interface IGraphQLExecutionContext {
 
     GraphQLOperation getOperation();
 
+    default String getOperationName() {
+        return getOperation().getName();
+    }
+
     void setOperation(GraphQLOperation operation);
 
     ParsedGraphQLRequest getRequest();
@@ -118,19 +122,19 @@ public interface IGraphQLExecutionContext {
         return getServiceContext().getEvalScope();
     }
 
-    default void cancel(String reason){
+    default void cancel(String reason) {
         getServiceContext().cancel(reason);
     }
 
-    default IActionAuthChecker getActionAuthChecker(){
+    default IActionAuthChecker getActionAuthChecker() {
         return getServiceContext().getActionAuthChecker();
     }
 
-    default IDataAuthChecker getDataAuthChecker(){
+    default IDataAuthChecker getDataAuthChecker() {
         return getServiceContext().getDataAuthChecker();
     }
 
-    default IUserContext getUserContext(){
+    default IUserContext getUserContext() {
         return getServiceContext().getUserContext();
     }
 }

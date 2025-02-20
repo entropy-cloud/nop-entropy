@@ -13,8 +13,9 @@ import io.micrometer.core.instrument.Timer;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.core.lang.sql.SQL;
+import io.nop.core.stat.IJdbcStatManager;
 import io.nop.core.stat.JdbcSqlStat;
-import io.nop.core.stat.JdbcStatManager;
+import io.nop.core.stat.GlobalStatManager;
 import io.nop.core.stat.StatementExecuteType;
 
 public class DaoMetricsImpl implements IDaoMetrics {
@@ -32,13 +33,13 @@ public class DaoMetricsImpl implements IDaoMetrics {
 
     private final Counter rowReadCount;
     private final Counter rowUpdateCount;
-    private final JdbcStatManager statManager;
+    private final IJdbcStatManager statManager;
 
     public DaoMetricsImpl() {
-        this(GlobalMeterRegistry.instance(), JdbcStatManager.global(), null);
+        this(GlobalMeterRegistry.instance(), GlobalStatManager.instance(), null);
     }
 
-    public DaoMetricsImpl(MeterRegistry registry, JdbcStatManager statManager, String prefix) {
+    public DaoMetricsImpl(MeterRegistry registry, IJdbcStatManager statManager, String prefix) {
         this.statManager = statManager;
         this.registry = registry;
         this.prefix = prefix;
@@ -96,7 +97,7 @@ public class DaoMetricsImpl implements IDaoMetrics {
         this.rowReadCount.increment(readCount);
 
         if (sql != null && !sql.isEmpty()) {
-            JdbcSqlStat stat = statManager.getSqlStat(sql.getText());
+            JdbcSqlStat stat = statManager.getJdbcSqlStat(sql.getText());
             stat.addExecuteTime(StatementExecuteType.ExecuteQuery, false, time);
             if (readCount > 0)
                 stat.addFetchRowCount(readCount);
@@ -123,7 +124,7 @@ public class DaoMetricsImpl implements IDaoMetrics {
         }
 
         if (sql != null && !sql.isEmpty()) {
-            JdbcSqlStat stat = statManager.getSqlStat(sql.getText());
+            JdbcSqlStat stat = statManager.getJdbcSqlStat(sql.getText());
             stat.addExecuteTime(StatementExecuteType.ExecuteUpdate, false, time);
             int delta = (int) updateCount;
             if (delta > 0)
@@ -149,7 +150,7 @@ public class DaoMetricsImpl implements IDaoMetrics {
             this.rowUpdateCount.increment(count);
 
         if (sql != null && !sql.isEmpty()) {
-            JdbcSqlStat stat = statManager.getSqlStat(sql);
+            JdbcSqlStat stat = statManager.getJdbcSqlStat(sql);
             stat.addExecuteTime(StatementExecuteType.ExecuteBatch, false, time);
             int delta = (int) count;
             if (delta > 0)

@@ -6,7 +6,7 @@ import io.nop.api.core.beans.ErrorBean;
 @DataBean
 public class JdbcSqlStatValue {
     private long id;
-
+    private String sql;
     private String dataSource;
     private long executeLastStartTime;
 
@@ -145,6 +145,18 @@ public class JdbcSqlStatValue {
         };
     }
 
+    public long getExecuteAvgTime() {
+        long totalTime = getExecuteSpanNanoTotal();
+        long totalCount = getExecuteCount();
+        if (totalCount == 0)
+            return 0;
+        return totalTime / totalCount;
+    }
+
+    public long getExecuteCount() {
+        return getExecuteErrorCount() + getExecuteSuccessCount();
+    }
+
     public long getResultSetHoldTimeMilis() {
         return getResultSetHoldTimeNano() / (1000 * 1000);
     }
@@ -159,6 +171,14 @@ public class JdbcSqlStatValue {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public String getSql() {
+        return sql;
+    }
+
+    public void setSql(String sql) {
+        this.sql = sql;
     }
 
     public String getDataSource() {

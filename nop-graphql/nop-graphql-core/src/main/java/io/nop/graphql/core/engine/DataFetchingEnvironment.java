@@ -18,6 +18,8 @@ import io.nop.graphql.core.ast.GraphQLFieldSelection;
 public class DataFetchingEnvironment implements IDataFetchingEnvironment {
     private Object root;
     private Object source;
+
+    private String operationName;
     private GraphQLFieldSelection selection;
 
     private FieldSelectionBean selectionBean;
@@ -26,6 +28,15 @@ public class DataFetchingEnvironment implements IDataFetchingEnvironment {
     private Object opRequest;
 
     private boolean async;
+
+    @Override
+    public String getOperationName() {
+        return operationName;
+    }
+
+    public void setOperationName(String operationName) {
+        this.operationName = operationName;
+    }
 
     @Override
     public Object getOpRequest() {
@@ -62,6 +73,7 @@ public class DataFetchingEnvironment implements IDataFetchingEnvironment {
         env.setRoot(root);
         env.setExecutionContext(context);
         env.setSelectionBean(null);
+        env.setOperationName(operationName);
         // env.setDepth(getDepth());
         return env;
     }

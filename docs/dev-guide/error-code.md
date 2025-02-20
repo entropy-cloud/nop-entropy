@@ -61,3 +61,8 @@ ApiResponse的结构类似SmartAdmin中ResponseDTO。response = headers + status
 ```
 "nop.err.my-error?myParam=xx" : "异常消息A"
 ```
+
+6. 异常消息定制
+异常码对应的异常消息可以通过i18n文件进行定制。例如在 `/i18n/zh-CN/error.i18n.yaml`文件中为每个错误码指定对应的错误消息，它会替代错误码定义时所使用的缺省消息。
+I18nMessageManager会自动读取`_vfs/i18n/`目录下所有的不以下划线为前缀的`i18n.yaml`文件。Nop平台并没有约定一定要在`error.i18n.yaml`中定制错误消息，这里的名称是自定义的。
+

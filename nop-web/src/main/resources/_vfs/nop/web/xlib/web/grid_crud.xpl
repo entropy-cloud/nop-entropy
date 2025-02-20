@@ -75,6 +75,7 @@
 
         <filter xpl:if="filterForm and !pageModel.autoGenerateFilter" id="crud-filter"
                 xpl:attrs="xpl('thisLib:FormDefaultAttrs',filterForm)" mode="${filterForm.layoutMode || 'horizontal'}">
+            <data xpl:attrs="filterForm.data" xpl:if="filterForm.data"/>
             <thisLib:GenFormBody formModel="${filterForm}" objMeta="${objMeta}"/>
             <actions j:list="true">
                 <reset label="@i18n:common.reset" id="reset-button"/>

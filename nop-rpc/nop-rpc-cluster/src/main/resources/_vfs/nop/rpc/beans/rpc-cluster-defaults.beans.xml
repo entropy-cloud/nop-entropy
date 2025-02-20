@@ -108,6 +108,9 @@
         <property name="serviceClass" value="@bean:type"/>
     </bean>
 
+    <bean id="nopRpcServiceInterceptor_stat"
+          class="io.nop.rpc.core.interceptors.StatRpcServiceInterceptor"/>
+
     <bean id="nopRpcServiceInterceptor_log"
           class="io.nop.rpc.core.interceptors.LogRpcServiceInterceptor"/>
 
@@ -115,6 +118,7 @@
           class="io.nop.rpc.core.interceptors.ClientContextRpcServiceInterceptor"/>
 
     <util:list id="nopRpcServiceInterceptors">
+        <ref bean="nopRpcServiceInterceptor_stat"/>
         <ref bean="nopRpcServiceInterceptor_log"/>
         <ref bean="nopRpcServiceInterceptor_clientContext"/>
     </util:list>
