@@ -35,7 +35,7 @@
     -->
     <crud xpl:is="${pageModel.type == 'picker'? 'pickerSchema': 'crud'}" name="${pageModel.table.name || 'crud-grid'}"
           xpl:attrs="xpl('thisLib:GridDefaultAttrs', gridModel)" autoFillHeight="${pageModel.table.autoFillHeight}"
-          syncLocation="@:false" pickerMode="${pageModel.table.pickerMode}"
+          syncLocation="@:false" pickerMode="${pageModel.table.pickerMode}" defaultParams="${pageModel.defaultParams}"
           maxItemSelectionLength="${pageModel.table.maxItemSelectionLength}"
           multiple="${pageModel.table.multiple ?? gridModel.multiple}" footable="${gridModel.containsBreakpoint()}"
     >
@@ -53,6 +53,7 @@
             <thisLib:GenActions actions="${pageModel.listActions?.filter(a=>!a.batch)}" genScope="${genScope}"/>
             <bulkActions id="bulkActions"/>
             <columns-toggler align="right" id="columns-toggler"/>
+            <reload align="right" id="reload" />
             <!--                <pagination align="right"/>-->
         </headerToolbar>
 
