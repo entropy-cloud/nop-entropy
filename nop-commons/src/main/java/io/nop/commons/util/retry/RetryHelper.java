@@ -17,8 +17,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 public class RetryHelper {
     static final Logger LOG = LoggerFactory.getLogger(RetryHelper.class);
@@ -72,15 +72,20 @@ public class RetryHelper {
         }, delay, TimeUnit.MILLISECONDS);
     }
 
-    public static <T> CompletionStage<T> retryNTimes(Supplier<CompletionStage<T>> task,
+    public static <T> CompletionStage<T> retryNTimes(Function<Integer, CompletionStage<T>> task,
                                                      Predicate<T> checkReady, int n) {
-        if (n <= 0)
-            return task.get();
-        return task.get().thenCompose(ret -> {
+        return _retryNTimes(task, checkReady, 0, n);
+    }
+
+    static <T> CompletionStage<T> _retryNTimes(Function<Integer, CompletionStage<T>> task,
+                                               Predicate<T> checkReady, int index, int n) {
+        if (index >= n)
+            return task.apply(index);
+        return task.apply(index).thenCompose(ret -> {
             if (checkReady.test(ret))
                 return FutureHelper.success(ret);
-            LOG.info("nop.retry:times={}",n);
-            return retryNTimes(task, checkReady, n - 1);
+            LOG.info("nop.retry:times={},maxTimes={}", index, n);
+            return _retryNTimes(task, checkReady, index + 1, n);
         });
     }
 }

@@ -55,15 +55,16 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
 
     @Test
     public void testTranslateDir() {
-        String model = "deepseek-r1:14b";
+        String model = "deepseek-r1:8b";
 
-        AiTranslateCommand translator = new AiTranslateCommand(chatService, templateManager, "translate2");
+        AiTranslateCommand translator = new AiTranslateCommand(chatService, templateManager, "translate3");
         translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(3200);
         translator.getChatOptions().setLlm("ollama");
         translator.getChatOptions().setModel(model);
         translator.getChatOptions().setTemperature(0.6f);
         translator.getChatOptions().setRequestTimeout(600 * 1000L);
         translator.getChatOptions().setContextLength(4096);
+        translator.setDebug(true);
 
         File docsDir = getDocsDir();
         File docsEnDir = new File(docsDir.getParent(), "docs-en");

@@ -10,13 +10,22 @@ import java.util.List;
 import java.util.Map;
 
 public class Prompt extends Metadata {
+    private Float temperature;
     private Map<String, Object> variables;
     private List<AiMessage> messages = Collections.emptyList();
 
-    public static Prompt humanText(String text) {
+    public static Prompt userText(String text) {
         Prompt prompt = new Prompt();
         prompt.addUserMessage(text);
         return prompt;
+    }
+
+    public Float getTemperature() {
+        return temperature;
+    }
+
+    public void setTemperature(Float temperature) {
+        this.temperature = temperature;
     }
 
     public Object getVariable(String name) {

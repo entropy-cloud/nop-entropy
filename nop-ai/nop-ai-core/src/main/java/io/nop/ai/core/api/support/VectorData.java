@@ -15,7 +15,6 @@
  */
 package io.nop.ai.core.api.support;
 
-import io.nop.ai.core.api.support.Metadata;
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.util.Arrays;

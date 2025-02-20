@@ -17,7 +17,7 @@ package io.nop.ai.core.api.document;
 
 import io.nop.ai.core.api.support.VectorData;
 
-public class Document extends VectorData {
+public class AiDocument extends VectorData {
 
     /**
      * Document ID
@@ -30,10 +30,10 @@ public class Document extends VectorData {
     private String content;
 
 
-    public Document() {
+    public AiDocument() {
     }
 
-    public Document(String content) {
+    public AiDocument(String content) {
         this.content = content;
     }
 
@@ -53,8 +53,8 @@ public class Document extends VectorData {
         this.content = content;
     }
 
-    public static Document of(String content){
-        Document document = new Document();
+    public static AiDocument of(String content){
+        AiDocument document = new AiDocument();
         document.setContent(content);
         return document;
     }

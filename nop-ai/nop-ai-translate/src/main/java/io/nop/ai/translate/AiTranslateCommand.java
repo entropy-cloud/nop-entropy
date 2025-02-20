@@ -2,7 +2,7 @@ package io.nop.ai.translate;
 
 import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.messages.AiResultMessage;
-import io.nop.ai.core.commons.AiCommand;
+import io.nop.ai.core.command.AiCommand;
 import io.nop.ai.core.commons.aggregator.IAiTextAggregator;
 import io.nop.ai.core.commons.processor.IAiResultMessageChecker;
 import io.nop.ai.core.commons.processor.IAiResultMessageProcessor;
@@ -14,6 +14,7 @@ import io.nop.api.core.annotations.core.PropertySetter;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.api.core.util.ResolvedPromise;
+import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.retry.RetryHelper;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Semaphore;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -228,10 +230,22 @@ public class AiTranslateCommand extends AiCommand {
         if (textSplitter != null && text.length() > maxChunkSize) {
             List<IAiTextSplitter.SplitChunk> chunks = textSplitter.split(text, maxChunkSize);
 
+            Cancellable cancellable = new Cancellable();
+            Consumer<String> cleanup = cancellable::cancel;
+            if (cancelToken != null) {
+                cancelToken.appendOnCancel(cleanup);
+            }
             List<CompletionStage<AiResultMessage>> promises = new ArrayList<>(chunks.size());
             for (IAiTextSplitter.SplitChunk chunk : chunks) {
                 promises.add(FutureHelper.executeWithThrottling(() ->
-                        translateTextAsync(chunk.getContent(), cancelToken), limit));
+                        translateTextAsync(chunk.getContent(), cancelToken), limit).whenComplete((r, e) -> {
+                    if (cancelToken != null)
+                        cancelToken.removeOnCancel(cleanup);
+
+                    // 一个文本片段翻译失败之后放弃整个长文本的翻译
+                    if (e != null)
+                        cancellable.cancel();
+                }));
             }
 
             return FutureHelper.waitAll(promises).thenApply(v -> {
@@ -248,14 +262,14 @@ public class AiTranslateCommand extends AiCommand {
         if (textAggregator != null) {
             text = textAggregator.aggregate(messages);
         } else {
-            text = messages.stream().map(AiResultMessage::getContent).collect(Collectors.joining("\n"));
+            text = messages.stream().map(AiResultMessage::getContent).collect(Collectors.joining("\n\n"));
         }
         return new AggregateText(messages, text);
     }
 
     public CompletionStage<AiResultMessage> translateTextAsync(String text, ICancelToken cancelToken) {
         if (checkTranslationTool != null) {
-            return RetryHelper.retryNTimes(() -> {
+            return RetryHelper.retryNTimes(index -> {
                         return doTranslateTextAsync(text, cancelToken).thenCompose(ret -> {
                             if (!ret.isValid())
                                 return ResolvedPromise.success(ret);

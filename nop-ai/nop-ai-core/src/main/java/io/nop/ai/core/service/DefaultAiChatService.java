@@ -3,8 +3,8 @@ package io.nop.ai.core.service;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.chat.IAiChatSession;
-import io.nop.ai.core.api.messages.AiResultMessage;
 import io.nop.ai.core.api.messages.AiMessage;
+import io.nop.ai.core.api.messages.AiResultMessage;
 import io.nop.ai.core.api.messages.MessageStatus;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.model.LlmModel;
@@ -238,7 +238,7 @@ public class DefaultAiChatService implements IAiChatService {
         List<Map<String, Object>> messages = new ArrayList<>();
         body.put("messages", messages);
 
-        setOptions(llmModel, body, options);
+        setOptions(llmModel, body, prompt, options);
 
         List<AiMessage> msgs = prompt.getMessages();
         for (AiMessage msg : msgs) {
@@ -256,14 +256,18 @@ public class DefaultAiChatService implements IAiChatService {
         return model;
     }
 
-    protected void setOptions(LlmModel llmModel, Map<String, Object> body, AiChatOptions options) {
+    protected void setOptions(LlmModel llmModel, Map<String, Object> body, Prompt prompt, AiChatOptions options) {
         LlmRequestModel requestModel = llmModel.getRequest();
         if (requestModel == null)
             return;
 
         setIfNotNull(body, requestModel.getSeedPath(), options.getSeed());
         setIfNotNull(body, requestModel.getMaxTokensPath(), options.getMaxTokens());
-        setIfNotNull(body, requestModel.getTemperaturePath(), options.getTemperature());
+        if (prompt.getTemperature() != null) {
+            setIfNotNull(body, requestModel.getTemperaturePath(), prompt.getTemperature());
+        } else {
+            setIfNotNull(body, requestModel.getTemperaturePath(), options.getTemperature());
+        }
         setIfNotNull(body, requestModel.getTopPPath(), options.getTopP());
         setIfNotNull(body, requestModel.getTopKPath(), options.getTopK());
         setIfNotNull(body, requestModel.getStopPath(), options.getStop());

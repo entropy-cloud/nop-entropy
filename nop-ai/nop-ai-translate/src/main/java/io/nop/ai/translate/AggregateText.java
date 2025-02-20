@@ -1,9 +1,12 @@
 package io.nop.ai.translate;
 
 import io.nop.ai.core.api.messages.AiResultMessage;
+import io.nop.ai.core.commons.debug.DebugMessageHelper;
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.util.List;
+
+import static io.nop.ai.core.commons.debug.DebugMessageHelper.collectDebugText;
 
 @DataBean
 public class AggregateText {
@@ -25,8 +28,10 @@ public class AggregateText {
     public String getDebugText() {
         StringBuilder sb = new StringBuilder();
         for (AiResultMessage message : messages) {
-            message.collectDebugText(sb);
-            sb.append("\n*****************************\n");
+            collectDebugText(sb, message);
+            sb.append("\n");
+            sb.append(DebugMessageHelper.MESSAGE_SEPARATOR);
+            sb.append("\n");
         }
         return sb.toString();
     }

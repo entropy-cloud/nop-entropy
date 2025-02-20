@@ -1,5 +1,7 @@
 package io.nop.ai.core.commons.splitter;
 
+import io.nop.commons.util.StringHelper;
+
 import java.util.List;
 
 /**
@@ -14,7 +16,7 @@ public class MarkdownTextSplitter extends SimpleTextSplitter {
         for (int i = index, n = parts.size(); i < n; i++) {
             String line = parts.get(i);
             if (isCodeBlockStart(line)) {
-                int end = findCodeBlockEnd(parts, i + 1);
+                int end = findCodeBlockEnd(parts, i);
                 if (end > 0) {
                     // 确定是code block
                     i = tryAddBlock(sb, parts, i, end, maxContentSize, chunks);
@@ -23,7 +25,7 @@ public class MarkdownTextSplitter extends SimpleTextSplitter {
                     continue;
                 }
             } else if (isTableBlockStart(line)) {
-                int end = findTableBlockEnd(parts, i + 1);
+                int end = findTableBlockEnd(parts, i);
                 if (end > 0) {
                     // 确定是table block
                     i = tryAddBlock(sb, parts, i, end, maxContentSize, chunks);
@@ -51,12 +53,15 @@ public class MarkdownTextSplitter extends SimpleTextSplitter {
     }
 
     boolean isCodeBlockStart(String line) {
-        return line.startsWith("```");
+        return StringHelper.trimLeft(line).startsWith("```");
     }
 
     int findCodeBlockEnd(List<String> parts, int index) {
-        for (int i = index, n = parts.size(); i < n; i++) {
-            if (parts.get(i).startsWith("```"))
+        String first = parts.get(index);
+        int blankCount = first.indexOf("```");
+        String codeBlockEnd = StringHelper.repeat(" ", blankCount) + "```";
+        for (int i = index + 1, n = parts.size(); i < n; i++) {
+            if (parts.get(i).startsWith(codeBlockEnd))
                 return i + 1;
         }
         return -1;
@@ -70,7 +75,7 @@ public class MarkdownTextSplitter extends SimpleTextSplitter {
     }
 
     int findTableBlockEnd(List<String> parts, int index) {
-        for (int i = index, n = parts.size(); i < n; i++) {
+        for (int i = index + 1, n = parts.size(); i < n; i++) {
             if (!isTableBlockStart(parts.get(i))) {
                 return i;
             }

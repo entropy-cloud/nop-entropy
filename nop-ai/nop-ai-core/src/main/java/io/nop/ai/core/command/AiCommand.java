@@ -1,4 +1,4 @@
-package io.nop.ai.core.commons;
+package io.nop.ai.core.command;
 
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.chat.IAiChatService;
@@ -20,7 +20,7 @@ public class AiCommand {
     private final IAiChatService chatService;
     private IPromptTemplate promptTemplate;
     private IAiResultMessageProcessor resultMessageProcessor;
-    private int retryTimesPerRequest = 2;
+    private int retryTimesPerRequest = 4;
     private AiChatOptions chatOptions = new AiChatOptions();
 
     public AiCommand(IAiChatService chatService) {
@@ -69,8 +69,19 @@ public class AiCommand {
 
         Prompt prompt = newPrompt(vars);
 
-        return RetryHelper.retryNTimes(() -> callAiOnceAsync(prompt, cancelToken),
+        return RetryHelper.retryNTimes((index) -> {
+                    adjustTemperature(prompt, index);
+                    return callAiOnceAsync(prompt, cancelToken);
+                },
                 AiResultMessage::isValid, retryTimesPerRequest);
+    }
+
+    protected void adjustTemperature(Prompt prompt, int index) {
+        if (index == 1) {
+            prompt.setTemperature(0f);
+        } else if (index > 0) {
+            prompt.setTemperature((float) (0.6f + ((1.2 - 0.6) * index) / retryTimesPerRequest));
+        }
     }
 
     public CompletionStage<AiResultMessage> callAiOnceAsync(Prompt prompt, ICancelToken cancelToken) {
@@ -95,7 +106,7 @@ public class AiCommand {
 
         String promptText = promptTemplate.generatePrompt(vars);
         Guard.notEmpty(promptText, "promptText");
-        return Prompt.humanText(promptText);
+        return Prompt.userText(promptText);
     }
 
     protected void checkPromptVars(Map<String, Object> vars) {

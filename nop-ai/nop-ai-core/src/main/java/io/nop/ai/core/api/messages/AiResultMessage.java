@@ -32,6 +32,7 @@ import static io.nop.ai.core.AiCoreErrors.ARG_EXPECTED;
 import static io.nop.ai.core.AiCoreErrors.ARG_LINE;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_INVALID_END_LINE;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
+import static io.nop.ai.core.commons.debug.DebugMessageHelper.collectDebugText;
 
 @DataBean
 public class AiResultMessage extends AbstractTextMessage {
@@ -167,21 +168,8 @@ public class AiResultMessage extends AbstractTextMessage {
 
     public String toDebugText() {
         StringBuilder sb = new StringBuilder();
-        collectDebugText(sb);
+        collectDebugText(sb, this);
         return sb.toString();
-    }
-
-    public void collectDebugText(StringBuilder sb) {
-        sb.append("<[prompt]>\n");
-        sb.append(prompt.getMessages().get(0).getContent());
-        sb.append("</[prompt]>\n");
-
-        if (getThink() != null) {
-            sb.append("<think>\n");
-            sb.append(getThink());
-            sb.append("\n</think>\n");
-        }
-        sb.append(getContent());
     }
 
     /**

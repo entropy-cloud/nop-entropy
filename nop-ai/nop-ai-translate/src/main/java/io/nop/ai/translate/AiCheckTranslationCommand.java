@@ -2,7 +2,7 @@ package io.nop.ai.translate;
 
 import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.messages.AiResultMessage;
-import io.nop.ai.core.commons.AiCommand;
+import io.nop.ai.core.command.AiCommand;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.api.core.util.ICancelToken;
