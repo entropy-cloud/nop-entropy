@@ -15,47 +15,50 @@
  */
 package io.nop.ai.core.api.support;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
 public abstract class Metadata implements Serializable {
 
-    protected Map<String, Object> metadataMap;
+    protected Map<String, Object> metadata;
 
     public Object getMetadata(String key) {
-        return metadataMap != null ? metadataMap.get(key) : null;
+        return metadata != null ? metadata.get(key) : null;
     }
 
     public void addMetadata(String key, Object value) {
-        if (metadataMap == null) {
-            metadataMap = new HashMap<>();
+        if (metadata == null) {
+            metadata = new HashMap<>();
         }
-        metadataMap.put(key, value);
+        metadata.put(key, value);
     }
 
     public void addMetadata(Map<String, Object> metadata) {
         if (metadata == null || metadata.isEmpty()) {
             return;
         }
-        if (metadataMap == null) {
-            metadataMap = new HashMap<>();
+        if (this.metadata == null) {
+            this.metadata = new HashMap<>();
         }
-        metadataMap.putAll(metadata);
+        this.metadata.putAll(metadata);
     }
 
     public Object removeMetadata(String key) {
-        if (this.metadataMap == null) {
+        if (this.metadata == null) {
             return null;
         }
-        return this.metadataMap.remove(key);
+        return this.metadata.remove(key);
     }
 
-    public Map<String, Object> getMetadataMap() {
-        return metadataMap;
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public Map<String, Object> getMetadata() {
+        return metadata;
     }
 
-    public void setMetadataMap(Map<String, Object> metadatas) {
-        this.metadataMap = metadatas;
+    public void setMetadata(Map<String, Object> metadatas) {
+        this.metadata = metadatas;
     }
 }

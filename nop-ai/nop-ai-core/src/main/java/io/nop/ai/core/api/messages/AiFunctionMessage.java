@@ -15,15 +15,17 @@
  */
 package io.nop.ai.core.api.messages;
 
+import io.nop.ai.core.AiCoreConstants;
+
 import java.util.Map;
 
-public class AiFunctionMessage extends AiResultMessage {
+public class AiFunctionMessage extends AbstractTextMessage {
 
     public AiFunctionMessage() {
     }
 
     private String functionName;
-    private Map<String,Object> args;
+    private Map<String, Object> args;
 
     public String getFunctionName() {
         return functionName;
@@ -42,12 +44,17 @@ public class AiFunctionMessage extends AiResultMessage {
     }
 
     @Override
+    public String getRole() {
+        return AiCoreConstants.ROLE_TOOL;
+    }
+
+    @Override
     public String toString() {
         return "FunctionMessage{" +
-            "functionName='" + functionName + '\'' +
-            ", args=" + args +
-            ", content='" + getContent() + '\'' +
-            ", metadataMap=" + metadataMap +
-            '}';
+                "functionName='" + functionName + '\'' +
+                ", args=" + args +
+                ", content='" + getContent() + '\'' +
+                ", metadataMap=" + getMetadata() +
+                '}';
     }
 }

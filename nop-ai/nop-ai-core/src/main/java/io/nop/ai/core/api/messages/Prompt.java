@@ -54,10 +54,18 @@ public class Prompt extends Metadata {
         return messages;
     }
 
+    public AiMessage getLastMessage() {
+        return messages.get(messages.size() - 1);
+    }
+
     public void addMessage(AiMessage message) {
         if (this.messages.isEmpty())
             this.messages = new ArrayList<>();
         this.messages.add(message);
+    }
+
+    public void addSystemMessage(String text) {
+        addMessage(new AiSystemMessage(text));
     }
 
     public void addUserMessage(String text) {

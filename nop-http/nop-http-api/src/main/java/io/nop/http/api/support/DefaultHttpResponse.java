@@ -8,6 +8,7 @@
 package io.nop.http.api.support;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.json.JSON;
 import io.nop.http.api.client.IHttpResponse;
 
 import java.nio.charset.StandardCharsets;
@@ -20,6 +21,7 @@ public class DefaultHttpResponse implements IHttpResponse {
     private String contentType;
     private byte[] bodyAsBytes;
     private String bodyAsText;
+    private Object body;
 
     public void setHttpStatus(int httpStatus) {
         this.httpStatus = httpStatus;
@@ -99,5 +101,22 @@ public class DefaultHttpResponse implements IHttpResponse {
 
     public void setBodyAsText(String bodyAsText) {
         this.bodyAsText = bodyAsText;
+    }
+
+    @Override
+    public <T> T getBodyAsBean(Class<T> beanClass) {
+        if (body != null && beanClass.isAssignableFrom(body.getClass()))
+            return (T) body;
+
+        T bean = (T) JSON.parseToBean(null, getBodyAsText(), beanClass);
+        this.body = bean;
+        return bean;
+    }
+
+    @Override
+    public Object getBody() {
+        if (body == null)
+            body = getBodyAsBean(Map.class);
+        return body;
     }
 }

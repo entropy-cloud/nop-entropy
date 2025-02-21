@@ -16,5 +16,5 @@ template: |
   ${content.trim()}
   [EndOfData]
 
-processResultMessage: |
-  resultMessage.checkAndRemoveEndLine("[EndOfData]");
+processChatResponse: |
+  chatResponse.checkAndRemoveEndLine("[EndOfData]");

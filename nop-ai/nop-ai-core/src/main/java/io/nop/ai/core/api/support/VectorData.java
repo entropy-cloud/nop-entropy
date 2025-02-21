@@ -36,7 +36,7 @@ public class VectorData extends Metadata {
     @Override
     public String toString() {
         return "VectorData{" +
-                "metadataMap=" + metadataMap +
+                "metadataMap=" + metadata +
                 ", vector=" + Arrays.toString(vector) +
                 '}';
     }

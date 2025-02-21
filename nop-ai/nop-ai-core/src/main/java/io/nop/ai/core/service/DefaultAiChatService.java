@@ -4,7 +4,7 @@ import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.chat.IAiChatSession;
 import io.nop.ai.core.api.messages.AiMessage;
-import io.nop.ai.core.api.messages.AiResultMessage;
+import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.api.messages.MessageStatus;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.model.LlmModel;
@@ -107,7 +107,7 @@ public class DefaultAiChatService implements IAiChatService {
     }
 
     @Override
-    public CompletionStage<AiResultMessage> sendChatAsync(Prompt prompt, AiChatOptions options, ICancelToken cancelToken) {
+    public CompletionStage<AiChatResponse> sendChatAsync(Prompt prompt, AiChatOptions options, ICancelToken cancelToken) {
         Guard.notNull(options, "chatOptions");
 
         String llmName = getLlmName(options);
@@ -120,10 +120,10 @@ public class DefaultAiChatService implements IAiChatService {
         return doSendChat(llmName, llmModel, prompt, options, cancelToken);
     }
 
-    protected CompletionStage<AiResultMessage> doSendChat(String llmName,
-                                                          LlmModel llmModel,
-                                                          Prompt prompt, AiChatOptions options,
-                                                          ICancelToken cancelToken) {
+    protected CompletionStage<AiChatResponse> doSendChat(String llmName,
+                                                         LlmModel llmModel,
+                                                         Prompt prompt, AiChatOptions options,
+                                                         ICancelToken cancelToken) {
         boolean logMessage = CFG_AI_SERVICE_LOG_MESSAGE.get();
         if (logMessage) {
             for (AiMessage message : prompt.getMessages()) {
@@ -135,8 +135,8 @@ public class DefaultAiChatService implements IAiChatService {
 
         IEvalScope scope = XLang.newEvalScope();
 
-        if (llmModel.getBuildRequest() != null) {
-            llmModel.getBuildRequest().call3(null, request, prompt, options, scope);
+        if (llmModel.getBuildHttpRequest() != null) {
+            llmModel.getBuildHttpRequest().call3(null, request, prompt, options, scope);
         }
 
         return httpClient.fetchAsync(request, cancelToken).thenApply(
@@ -147,11 +147,11 @@ public class DefaultAiChatService implements IAiChatService {
 
                     Map<String, Object> response = res.getBodyAsBean(Map.class);
 
-                    AiResultMessage resultMessage = parseHttpResponse(llmName, llmModel, response, prompt, options);
-                    if (llmModel.getParseResponse() != null) {
-                        llmModel.getParseResponse().call3(null, response, resultMessage, options, scope);
+                    AiChatResponse chatResponse = parseHttpResponse(llmName, llmModel, response, prompt, options);
+                    if (llmModel.getParseHttpResponse() != null) {
+                        llmModel.getParseHttpResponse().call3(null, response, chatResponse, options, scope);
                     }
-                    return resultMessage;
+                    return chatResponse;
                 });
     }
 
@@ -286,12 +286,12 @@ public class DefaultAiChatService implements IAiChatService {
         return message.getRole();
     }
 
-    protected AiResultMessage parseHttpResponse(String llmName, LlmModel llmModel,
-                                                Map<String, Object> response, Prompt prompt,
-                                                AiChatOptions options) {
+    protected AiChatResponse parseHttpResponse(String llmName, LlmModel llmModel,
+                                               Map<String, Object> response, Prompt prompt,
+                                               AiChatOptions options) {
 
         try {
-            AiResultMessage ret = new AiResultMessage();
+            AiChatResponse ret = new AiChatResponse();
             parseToResult(ret, llmModel, response);
             checkThink(ret);
             return ret;
@@ -301,7 +301,7 @@ public class DefaultAiChatService implements IAiChatService {
         }
     }
 
-    protected void parseToResult(AiResultMessage ret, LlmModel llmModel,
+    protected void parseToResult(AiChatResponse ret, LlmModel llmModel,
                                  Map<String, Object> result) {
         LlmResponseModel responseModel = llmModel.getResponse();
 
@@ -338,7 +338,7 @@ public class DefaultAiChatService implements IAiChatService {
                 err -> new NopException(err).param(ARG_PROP_PATH, path));
     }
 
-    protected void checkThink(AiResultMessage message) {
+    protected void checkThink(AiChatResponse message) {
         String content = message.getContent();
         if (content != null) {
             boolean bThink = content.startsWith("<think>\n");
@@ -361,9 +361,9 @@ public class DefaultAiChatService implements IAiChatService {
         LOG.info("request:role={},content=\n{}", getRole(message), message.getContent());
     }
 
-    protected void logResponse(AiResultMessage message) {
+    protected void logResponse(AiChatResponse response) {
         LOG.info("response:promptTokens={},completionTokens={},content=\n{}",
-                message.getPromptTokens(), message.getCompletionTokens(), message.getContent());
+                response.getPromptTokens(), response.getCompletionTokens(), response.getContent());
     }
 
     @Override

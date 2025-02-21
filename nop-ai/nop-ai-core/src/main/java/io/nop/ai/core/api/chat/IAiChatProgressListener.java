@@ -7,8 +7,8 @@
  */
 package io.nop.ai.core.api.chat;
 
-import io.nop.ai.core.api.messages.AiResultMessage;
+import io.nop.ai.core.api.messages.AiChatResponse;
 
 public interface IAiChatProgressListener {
-    void onReceiveMessage(AiResultMessage message);
+    void onReceiveMessage(AiChatResponse message);
 }

@@ -23,9 +23,9 @@
     <template xdef:value="!xpl-text"/>
 
     <!--
-    执行完AI模型调用后得到AiResultMessage对象，可以通过模板内置的后处理器对返回结果进行再加工。
+    执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
     这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
-    比如Prompt中可以额外增加一些特殊的标记提示，用于简化结果解析，在processResultMessage中自动识别这些标记并做处理。
+    比如Prompt中可以额外增加一些特殊的标记提示，用于简化结果解析，在processChatResponse中自动识别这些标记并做处理。
     -->
-    <processResultMessage xdef:value="xpl-fn:(resultMessage)=>void"/>
+    <processChatResponse xdef:value="xpl-fn:(chatResponse)=>void"/>
 </prompt>

@@ -1,16 +1,16 @@
 package io.nop.ai.core.commons.debug;
 
-import io.nop.ai.core.api.messages.AiResultMessage;
+import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.api.messages.Prompt;
 
 public class DebugMessageHelper {
     public static final String MESSAGE_SEPARATOR = "#**********************************#";
 
-    public static void collectDebugText(StringBuilder sb, AiResultMessage message) {
+    public static void collectDebugText(StringBuilder sb, AiChatResponse message) {
         Prompt prompt = message.getPrompt();
         if (prompt != null) {
             sb.append("<[prompt]>\n");
-            sb.append(prompt.getMessages().get(0).getContent());
+            sb.append(prompt.getLastMessage().getContent());
             sb.append("</[prompt]>\n");
         }
 
@@ -23,6 +23,6 @@ public class DebugMessageHelper {
 
         String content = message.getContent();
         if (content != null)
-            sb.append(message);
+            sb.append(content);
     }
 }

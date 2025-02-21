@@ -1,0 +1,4 @@
+FROM deepseek-r1:8b
+
+PARAMETER num_ctx 8192
+PARAMETER num_predict -1

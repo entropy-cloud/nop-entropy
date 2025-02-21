@@ -18,15 +18,25 @@ package io.nop.ai.core.api.messages;
 import io.nop.ai.core.AiCoreConstants;
 import io.nop.api.core.annotations.data.DataBean;
 
+import java.util.List;
+
 @DataBean
 public class AiUserMessage extends AbstractTextMessage {
-    private String imageUrl;
+    private List<String> images;
 
     public AiUserMessage() {
     }
 
     public AiUserMessage(String content) {
         setContent(content);
+    }
+
+    public List<String> getImages() {
+        return images;
+    }
+
+    public void setImages(List<String> images) {
+        this.images = images;
     }
 
     @Override

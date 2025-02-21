@@ -1,7 +1,7 @@
 package io.nop.ai.core.prompt;
 
 import io.nop.ai.core.api.chat.AiChatOptions;
-import io.nop.ai.core.api.messages.AiResultMessage;
+import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.model.PromptVarModel;
 
 import java.util.List;
@@ -14,5 +14,5 @@ public interface IPromptTemplate {
 
     String generatePrompt(Map<String, Object> vars);
 
-    void processResultMessage(AiResultMessage resultMessage);
+    void processChatResponse(AiChatResponse chatResponse);
 }

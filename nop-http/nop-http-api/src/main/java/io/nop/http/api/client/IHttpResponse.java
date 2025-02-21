@@ -7,7 +7,6 @@
  */
 package io.nop.http.api.client;
 
-import io.nop.api.core.json.JSON;
 import io.nop.http.api.IHttpHeaders;
 
 public interface IHttpResponse extends IHttpHeaders {
@@ -21,7 +20,7 @@ public interface IHttpResponse extends IHttpHeaders {
 
     String getBodyAsText();
 
-    default <T> T getBodyAsBean(Class<T> beanClass) {
-        return (T) JSON.parseToBean(null, getBodyAsText(), beanClass);
-    }
+    <T> T getBodyAsBean(Class<T> beanClass);
+
+    Object getBody();
 }

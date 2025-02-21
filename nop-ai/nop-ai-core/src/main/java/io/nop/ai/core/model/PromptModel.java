@@ -1,7 +1,7 @@
 package io.nop.ai.core.model;
 
 import io.nop.ai.core.api.chat.AiChatOptions;
-import io.nop.ai.core.api.messages.AiResultMessage;
+import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.model._gen._PromptModel;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.core.lang.eval.IEvalFunction;
@@ -22,10 +22,10 @@ public class PromptModel extends _PromptModel implements IPromptTemplate {
     }
 
     @Override
-    public void processResultMessage(AiResultMessage resultMessage) {
-        IEvalFunction fn = this.getProcessResultMessage();
+    public void processChatResponse(AiChatResponse chatResponse) {
+        IEvalFunction fn = this.getProcessChatResponse();
         if (fn != null)
-            fn.call1(null, resultMessage, XLang.newEvalScope());
+            fn.call1(null, chatResponse, XLang.newEvalScope());
     }
 
     @Override

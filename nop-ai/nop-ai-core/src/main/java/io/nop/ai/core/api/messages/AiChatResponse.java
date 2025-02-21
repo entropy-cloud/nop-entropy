@@ -17,13 +17,10 @@ package io.nop.ai.core.api.messages;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.nop.ai.core.AiCoreConstants;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,23 +32,80 @@ import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
 import static io.nop.ai.core.commons.debug.DebugMessageHelper.collectDebugText;
 
 @DataBean
-public class AiResultMessage extends AbstractTextMessage {
-    static final Logger LOG = LoggerFactory.getLogger(AiResultMessage.class);
+public class AiChatResponse {
 
     private Prompt prompt;
 
     private Integer index;
     private MessageStatus status;
+
+    private AiAssistantMessage message;
+
     private Integer promptTokens;
     private Integer completionTokens;
     private Integer totalTokens;
-    private String think;
 
     private Object parseData;
     private Map<String, Object> attributes;
 
     private boolean invalid;
     private ErrorBean invalidReason;
+
+    public AiChatResponse() {
+        this.message = new AiAssistantMessage();
+    }
+
+    public AiChatResponse(AiAssistantMessage message) {
+        this.message = message;
+    }
+
+    public String getContent() {
+        return message.getContent();
+    }
+
+    public void setContent(String content) {
+        this.message.setContent(content);
+    }
+
+    public String getThink() {
+        return message.getThink();
+    }
+
+    public void setThink(String think) {
+        this.message.setThink(think);
+    }
+
+    public Integer getPromptTokens() {
+        return promptTokens;
+    }
+
+    public void setPromptTokens(Integer promptTokens) {
+        this.promptTokens = promptTokens;
+    }
+
+    public Integer getCompletionTokens() {
+        return completionTokens;
+    }
+
+    public void setCompletionTokens(Integer completionTokens) {
+        this.completionTokens = completionTokens;
+    }
+
+    public Integer getTotalTokens() {
+        return totalTokens;
+    }
+
+    public void setTotalTokens(Integer totalTokens) {
+        this.totalTokens = totalTokens;
+    }
+
+    public AiAssistantMessage getMessage() {
+        return message;
+    }
+
+    public void setMessage(AiAssistantMessage message) {
+        this.message = message;
+    }
 
     public boolean isInvalid() {
         return invalid;
@@ -90,35 +144,6 @@ public class AiResultMessage extends AbstractTextMessage {
         this.status = status;
     }
 
-    public Integer getPromptTokens() {
-        return promptTokens;
-    }
-
-    public void setPromptTokens(Integer promptTokens) {
-        this.promptTokens = promptTokens;
-    }
-
-    public Integer getCompletionTokens() {
-        return completionTokens;
-    }
-
-    public void setCompletionTokens(Integer completionTokens) {
-        this.completionTokens = completionTokens;
-    }
-
-    public Integer getTotalTokens() {
-        return totalTokens;
-    }
-
-    public void setTotalTokens(Integer totalTokens) {
-        this.totalTokens = totalTokens;
-    }
-
-    @Override
-    public String getRole() {
-        return AiCoreConstants.ROLE_ASSISTANT;
-    }
-
     @JsonIgnore
     public Prompt getPrompt() {
         return prompt;
@@ -126,14 +151,6 @@ public class AiResultMessage extends AbstractTextMessage {
 
     public void setPrompt(Prompt prompt) {
         this.prompt = prompt;
-    }
-
-    public String getThink() {
-        return think;
-    }
-
-    public void setThink(String think) {
-        this.think = think;
     }
 
     @JsonIgnore
@@ -206,12 +223,11 @@ public class AiResultMessage extends AbstractTextMessage {
 
     @Override
     public String toString() {
-        return "AiResultMessage{" +
+        return "AiChatResponse{" +
                 "index=" + index +
                 ", status=" + status +
-                ", totalTokens=" + totalTokens +
-                ", content='" + getContent() + '\'' +
-                ", metadataMap=" + metadataMap +
+                ", completionTokens=" + getCompletionTokens() +
+                ", content='" + getContent() +
                 '}';
     }
 }

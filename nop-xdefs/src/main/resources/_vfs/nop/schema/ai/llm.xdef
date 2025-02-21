@@ -50,11 +50,12 @@
               promptTokensPath="prop-path"
               totalTokensPath="prop-path"
               completionTokensPath="prop-path"
+              errorPath="prop-path"
               statusPath="prop-path"
     />
 
-    <buildRequest xdef:value="xpl-fn:(request,prompt,chatOptions)=>void"/>
+    <buildHttpRequest xdef:value="xpl-fn:(httpRequest,prompt,chatOptions)=>void"/>
 
-    <parseResponse xdef:value="xpl-fn:(response,resultMessage, chatOptions)=>void"/>
+    <parseHttpResponse xdef:value="xpl-fn:(httpResponse,chatResponse, chatOptions)=>void"/>
 
 </llm>

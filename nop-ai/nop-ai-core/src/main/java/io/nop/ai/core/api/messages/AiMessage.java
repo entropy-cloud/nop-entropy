@@ -15,8 +15,15 @@
  */
 package io.nop.ai.core.api.messages;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.nop.ai.core.api.support.Metadata;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "role")
+@JsonSubTypes({@JsonSubTypes.Type(value = AiUserMessage.class, name = "user"),
+        @JsonSubTypes.Type(value = AiAssistantMessage.class, name = "assistant"),
+        @JsonSubTypes.Type(value = AiSystemMessage.class, name = "system"),
+})
 public abstract class AiMessage extends Metadata {
     private String messageId;
 

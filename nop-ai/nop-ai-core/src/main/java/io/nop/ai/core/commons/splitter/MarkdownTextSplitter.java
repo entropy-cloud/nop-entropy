@@ -99,7 +99,7 @@ public class MarkdownTextSplitter extends SimpleTextSplitter {
         }
 
         // block本身超长
-        addBlock(sb, parts, index, end, maxContentSize, chunks);
+        addBlock(sb, parts, index, end, Math.min(maxContentSize * 2, 4096), chunks);
         return end - 1;
     }
 

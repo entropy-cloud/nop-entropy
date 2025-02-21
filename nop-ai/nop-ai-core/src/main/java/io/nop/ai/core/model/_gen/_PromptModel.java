@@ -39,12 +39,12 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
-     * xml name: processResultMessage
-     * 执行完AI模型调用后得到AiResultMessage对象，可以通过模板内置的后处理器对返回结果进行再加工。
+     * xml name: processChatResponse
+     * 执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
      * 这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
-     * 比如Prompt中可以额外增加一些特殊的标记提示，用于简化结果解析，在processResultMessage中自动识别这些标记并做处理。
+     * 比如Prompt中可以额外增加一些特殊的标记提示，用于简化结果解析，在processChatResponse中自动识别这些标记并做处理。
      */
-    private io.nop.core.lang.eval.IEvalFunction _processResultMessage ;
+    private io.nop.core.lang.eval.IEvalFunction _processChatResponse ;
     
     /**
      *  
@@ -119,21 +119,21 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
-     * xml name: processResultMessage
-     *  执行完AI模型调用后得到AiResultMessage对象，可以通过模板内置的后处理器对返回结果进行再加工。
+     * xml name: processChatResponse
+     *  执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
      * 这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
-     * 比如Prompt中可以额外增加一些特殊的标记提示，用于简化结果解析，在processResultMessage中自动识别这些标记并做处理。
+     * 比如Prompt中可以额外增加一些特殊的标记提示，用于简化结果解析，在processChatResponse中自动识别这些标记并做处理。
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getProcessResultMessage(){
-      return _processResultMessage;
+    public io.nop.core.lang.eval.IEvalFunction getProcessChatResponse(){
+      return _processChatResponse;
     }
 
     
-    public void setProcessResultMessage(io.nop.core.lang.eval.IEvalFunction value){
+    public void setProcessChatResponse(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._processResultMessage = value;
+        this._processChatResponse = value;
            
     }
 
@@ -224,7 +224,7 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("defaultChatOptions",this.getDefaultChatOptions());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
-        out.putNotNull("processResultMessage",this.getProcessResultMessage());
+        out.putNotNull("processChatResponse",this.getProcessChatResponse());
         out.putNotNull("template",this.getTemplate());
         out.putNotNull("vars",this.getVars());
     }
@@ -241,7 +241,7 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
         instance.setDefaultChatOptions(this.getDefaultChatOptions());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
-        instance.setProcessResultMessage(this.getProcessResultMessage());
+        instance.setProcessChatResponse(this.getProcessChatResponse());
         instance.setTemplate(this.getTemplate());
         instance.setVars(this.getVars());
     }

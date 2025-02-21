@@ -58,7 +58,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         String model = "deepseek-r1:8b";
 
         AiTranslateCommand translator = new AiTranslateCommand(chatService, templateManager, "translate3");
-        translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(3200);
+        translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(2048);
         translator.getChatOptions().setLlm("ollama");
         translator.getChatOptions().setModel(model);
         translator.getChatOptions().setTemperature(0.6f);
@@ -76,7 +76,8 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         String promptName = "translate3";
         int contextLength = 4096;
         AiTranslateCommand translator = new AiTranslateCommand(chatService, templateManager, promptName);
-        translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(3200);
+        translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(2048);
+        translator.setReturnExceptionAsResponse(true);
         translator.getChatOptions().setLlm("ollama");
         translator.getChatOptions().setModel(model);
         translator.getChatOptions().setTemperature(0.6f);

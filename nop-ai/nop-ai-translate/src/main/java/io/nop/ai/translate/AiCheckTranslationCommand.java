@@ -1,7 +1,7 @@
 package io.nop.ai.translate;
 
 import io.nop.ai.core.api.chat.IAiChatService;
-import io.nop.ai.core.api.messages.AiResultMessage;
+import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.command.AiCommand;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
@@ -55,11 +55,11 @@ public class AiCheckTranslationCommand extends AiCommand {
         return this;
     }
 
-    public CompletionStage<AiResultMessage> fixTranslationAsync(String sourceText, String translatedText, ICancelToken cancelToken) {
+    public CompletionStage<AiChatResponse> fixTranslationAsync(String sourceText, String translatedText, ICancelToken cancelToken) {
         return executeAsync(sourceText, translatedText, cancelToken);
     }
 
-    public CompletionStage<AiResultMessage> executeAsync(String sourceText, String translatedText, ICancelToken cancelToken) {
+    public CompletionStage<AiChatResponse> executeAsync(String sourceText, String translatedText, ICancelToken cancelToken) {
         Map<String, Object> vars = Map.of(VAR_CONTENT, sourceText,
                 VAR_TO_LANG, toLang, VAR_FROM_LANG, fromLang,
                 VAR_TRANSLATED_TEXT, translatedText == null ? "" : translatedText);

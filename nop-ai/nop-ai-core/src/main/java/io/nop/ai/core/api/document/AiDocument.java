@@ -64,7 +64,7 @@ public class AiDocument extends VectorData {
         return "Document{" +
             "id=" + id +
             ", content='" + content + '\'' +
-            ", metadataMap=" + metadataMap +
+            ", metadataMap=" + metadata +
             '}';
     }
 }

@@ -13,5 +13,5 @@ template: |
   ${content}
   [数据结束]
 
-processResultMessage: |
-  resultMessage.checkAndRemoveEndLine("[EndOfData]");
+processChatResponse: |
+  chatResponse.checkAndRemoveEndLine("[EndOfData]");

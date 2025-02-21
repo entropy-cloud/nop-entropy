@@ -2,26 +2,34 @@ package io.nop.ai.core.command;
 
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.chat.IAiChatService;
-import io.nop.ai.core.api.messages.AiResultMessage;
+import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.api.messages.Prompt;
-import io.nop.ai.core.commons.processor.IAiResultMessageProcessor;
+import io.nop.ai.core.commons.processor.IAiChatResponseProcessor;
 import io.nop.ai.core.model.PromptVarModel;
 import io.nop.ai.core.prompt.IPromptTemplate;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.retry.RetryHelper;
+import io.nop.core.exceptions.ErrorMessageManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionStage;
 
 public class AiCommand {
+    static final Logger LOG = LoggerFactory.getLogger(AiCommand.class);
+
     private final IAiChatService chatService;
     private IPromptTemplate promptTemplate;
-    private IAiResultMessageProcessor resultMessageProcessor;
+    private IAiChatResponseProcessor chatResponseProcessor;
     private int retryTimesPerRequest = 4;
     private AiChatOptions chatOptions = new AiChatOptions();
+
+    private boolean returnExceptionAsResponse;
 
     public AiCommand(IAiChatService chatService) {
         this.chatService = chatService;
@@ -39,12 +47,12 @@ public class AiCommand {
         this.promptTemplate = promptTemplate;
     }
 
-    public IAiResultMessageProcessor getResultMessageProcessor() {
-        return resultMessageProcessor;
+    public IAiChatResponseProcessor getChatResponseProcessor() {
+        return chatResponseProcessor;
     }
 
-    public void setResultMessageProcessor(IAiResultMessageProcessor resultMessageProcessor) {
-        this.resultMessageProcessor = resultMessageProcessor;
+    public void setChatResponseProcessor(IAiChatResponseProcessor chatResponseProcessor) {
+        this.chatResponseProcessor = chatResponseProcessor;
     }
 
     public int getRetryTimesPerRequest() {
@@ -63,17 +71,22 @@ public class AiCommand {
         this.chatOptions = chatOptions;
     }
 
-    public CompletionStage<AiResultMessage> callAiAsync(Map<String, Object> vars, ICancelToken cancelToken) {
-        if (cancelToken != null && cancelToken.isCancelled())
-            return FutureHelper.reject(new CancellationException("cancel-call-ai"));
+    public boolean isReturnExceptionAsResponse() {
+        return returnExceptionAsResponse;
+    }
 
+    public void setReturnExceptionAsResponse(boolean returnExceptionAsResponse) {
+        this.returnExceptionAsResponse = returnExceptionAsResponse;
+    }
+
+    public CompletionStage<AiChatResponse> callAiAsync(Map<String, Object> vars, ICancelToken cancelToken) {
         Prompt prompt = newPrompt(vars);
 
         return RetryHelper.retryNTimes((index) -> {
                     adjustTemperature(prompt, index);
                     return callAiOnceAsync(prompt, cancelToken);
                 },
-                AiResultMessage::isValid, retryTimesPerRequest);
+                AiChatResponse::isValid, retryTimesPerRequest);
     }
 
     protected void adjustTemperature(Prompt prompt, int index) {
@@ -84,20 +97,40 @@ public class AiCommand {
         }
     }
 
-    public CompletionStage<AiResultMessage> callAiOnceAsync(Prompt prompt, ICancelToken cancelToken) {
-        CompletionStage<AiResultMessage> future = chatService.sendChatAsync(prompt, chatOptions, cancelToken).thenApply(ret -> {
+    public CompletionStage<AiChatResponse> callAiOnceAsync(Prompt prompt, ICancelToken cancelToken) {
+        if (cancelToken != null && cancelToken.isCancelled()) {
+            LOG.info("nop.ai.cancel-call-ai");
+            return FutureHelper.reject(new CancellationException("cancel-call-ai"));
+        }
+
+        CompletionStage<AiChatResponse> future = chatService.sendChatAsync(prompt, chatOptions, cancelToken).thenApply(ret -> {
             ret.setPrompt(prompt);
-            promptTemplate.processResultMessage(ret);
+            promptTemplate.processChatResponse(ret);
             return ret;
         });
 
-        if (resultMessageProcessor != null)
-            future = future.thenCompose(ret -> resultMessageProcessor.processAsync(ret));
+        if (chatResponseProcessor != null)
+            future = future.thenCompose(ret -> chatResponseProcessor.processAsync(ret));
 
-        return future.thenApply(this::postProcess);
+        future = FutureHelper.thenCompleteAsync(future.thenApply(this::postProcess), (r, err) -> {
+            if (err != null) {
+                if (returnExceptionAsResponse) {
+                    AiChatResponse response = new AiChatResponse();
+                    response.setPrompt(prompt);
+                    response.setInvalid(true);
+                    response.setContent("<AI-ERROR>:" + ErrorMessageManager.instance()
+                            .buildErrorMessage(null, err, false, false, true).getDescription());
+                    return response;
+                } else {
+                    throw NopException.adapt(err);
+                }
+            }
+            return r;
+        });
+        return future;
     }
 
-    protected AiResultMessage postProcess(AiResultMessage ret) {
+    protected AiChatResponse postProcess(AiChatResponse ret) {
         return ret;
     }
 

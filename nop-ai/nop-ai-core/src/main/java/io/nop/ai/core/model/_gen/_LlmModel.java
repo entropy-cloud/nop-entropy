@@ -32,10 +32,10 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
-     * xml name: buildRequest
+     * xml name: buildHttpRequest
      * 
      */
-    private io.nop.core.lang.eval.IEvalFunction _buildRequest ;
+    private io.nop.core.lang.eval.IEvalFunction _buildHttpRequest ;
     
     /**
      *  
@@ -81,10 +81,10 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
-     * xml name: parseResponse
+     * xml name: parseHttpResponse
      * 
      */
-    private io.nop.core.lang.eval.IEvalFunction _parseResponse ;
+    private io.nop.core.lang.eval.IEvalFunction _parseHttpResponse ;
     
     /**
      *  
@@ -154,19 +154,19 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     
     /**
      * 
-     * xml name: buildRequest
+     * xml name: buildHttpRequest
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getBuildRequest(){
-      return _buildRequest;
+    public io.nop.core.lang.eval.IEvalFunction getBuildHttpRequest(){
+      return _buildHttpRequest;
     }
 
     
-    public void setBuildRequest(io.nop.core.lang.eval.IEvalFunction value){
+    public void setBuildHttpRequest(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._buildRequest = value;
+        this._buildHttpRequest = value;
            
     }
 
@@ -287,19 +287,19 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     
     /**
      * 
-     * xml name: parseResponse
+     * xml name: parseHttpResponse
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getParseResponse(){
-      return _parseResponse;
+    public io.nop.core.lang.eval.IEvalFunction getParseHttpResponse(){
+      return _parseHttpResponse;
     }
 
     
-    public void setParseResponse(io.nop.core.lang.eval.IEvalFunction value){
+    public void setParseHttpResponse(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._parseResponse = value;
+        this._parseHttpResponse = value;
            
     }
 
@@ -401,14 +401,14 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
         
         out.putNotNull("apiStyle",this.getApiStyle());
         out.putNotNull("baseUrl",this.getBaseUrl());
-        out.putNotNull("buildRequest",this.getBuildRequest());
+        out.putNotNull("buildHttpRequest",this.getBuildHttpRequest());
         out.putNotNull("chatUrl",this.getChatUrl());
         out.putNotNull("defaultModel",this.getDefaultModel());
         out.putNotNull("defaultRequestTimeout",this.getDefaultRequestTimeout());
         out.putNotNull("embedUrl",this.getEmbedUrl());
         out.putNotNull("generateUrl",this.getGenerateUrl());
         out.putNotNull("logMessage",this.isLogMessage());
-        out.putNotNull("parseResponse",this.getParseResponse());
+        out.putNotNull("parseHttpResponse",this.getParseHttpResponse());
         out.putNotNull("rateLimit",this.getRateLimit());
         out.putNotNull("request",this.getRequest());
         out.putNotNull("response",this.getResponse());
@@ -426,14 +426,14 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
         
         instance.setApiStyle(this.getApiStyle());
         instance.setBaseUrl(this.getBaseUrl());
-        instance.setBuildRequest(this.getBuildRequest());
+        instance.setBuildHttpRequest(this.getBuildHttpRequest());
         instance.setChatUrl(this.getChatUrl());
         instance.setDefaultModel(this.getDefaultModel());
         instance.setDefaultRequestTimeout(this.getDefaultRequestTimeout());
         instance.setEmbedUrl(this.getEmbedUrl());
         instance.setGenerateUrl(this.getGenerateUrl());
         instance.setLogMessage(this.isLogMessage());
-        instance.setParseResponse(this.getParseResponse());
+        instance.setParseHttpResponse(this.getParseHttpResponse());
         instance.setRateLimit(this.getRateLimit());
         instance.setRequest(this.getRequest());
         instance.setResponse(this.getResponse());

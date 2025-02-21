@@ -1,25 +1,25 @@
 package io.nop.ai.core.commons.processor;
 
-import io.nop.ai.core.api.messages.AiResultMessage;
+import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.api.core.util.FutureHelper;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 @FunctionalInterface
-public interface IAiResultMessageProcessor {
+public interface IAiChatResponseProcessor {
 
-    default AiResultMessage process(AiResultMessage message) {
+    default AiChatResponse process(AiChatResponse message) {
         return FutureHelper.syncGet(processAsync(message));
     }
 
-    CompletionStage<AiResultMessage> processAsync(AiResultMessage message);
+    CompletionStage<AiChatResponse> processAsync(AiChatResponse message);
 
-    default IAiResultMessageProcessor next(IAiResultMessageProcessor processor) {
-        return new ChainAiMessageProcessor(this, processor);
+    default IAiChatResponseProcessor next(IAiChatResponseProcessor processor) {
+        return new ChainAiChatResponseProcessor(this, processor);
     }
 
-    static IAiResultMessageProcessor buildPipeline(List<IAiResultMessageProcessor> processors) {
+    static IAiChatResponseProcessor buildPipeline(List<IAiChatResponseProcessor> processors) {
         if (processors.isEmpty())
             return null;
         if (processors.size() == 1)
