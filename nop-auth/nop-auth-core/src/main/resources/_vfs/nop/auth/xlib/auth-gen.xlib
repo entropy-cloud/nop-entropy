@@ -2,7 +2,7 @@
 
 <lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <tags>
-        <GenFromModules outputMode="node">
+        <GenDataAuthFromModules outputMode="node">
             <attr name="excludeModuleNames" optional="true" stdDomain="csv-set" displayName="排除的模块列表">
             </attr>
 
@@ -30,6 +30,36 @@
 
                 <data-auth xdsl:extends="${_.join(moduleAuthFiles,',')}"/>
             </source>
-        </GenFromModules>
+        </GenDataAuthFromModules>
+
+        <GenActionAuthFromModules outputMode="node">
+            <attr name="excludeModuleNames" optional="true" stdDomain="csv-set" displayName="排除的模块列表">
+            </attr>
+
+            <description>
+                收集所有模块中的操作权限配置文件，自动引入。可以通过配置排除一些模块，忽略这些模块中的权限配置文件
+            </description>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.core.module.ModuleManager;
+                    import io.nop.core.resource.VirtualFileSystem;
+
+                    const moduleAuthFiles = [];
+                    ModuleManager.instance().enabledModules.forEach(module=>{
+                        const moduleId = module.moduleId
+                        const moduleName = module.moduleName
+                        if(!excludeModuleNames?.contains(moduleName)){
+                            const path = '/' + moduleId + '/auth/' + moduleName + '.action-auth.xml';
+                            const resource = VirtualFileSystem.instance().getResource(path);
+                            if(resource.exists())
+                              moduleAuthFiles.push(path)
+                        }
+                    });
+                ]]></c:script>
+
+                <auth xdsl:extends="${_.join(moduleAuthFiles,',')}"/>
+            </source>
+        </GenActionAuthFromModules>
     </tags>
 </lib>

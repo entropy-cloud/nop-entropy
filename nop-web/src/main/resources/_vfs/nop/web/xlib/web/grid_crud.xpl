@@ -86,7 +86,7 @@
         <thisLib:AutoGenerateFilter pageModel="${pageModel}"/>
 
         <columns j:list="true">
-            <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${genScope.fixedProps}"
+            <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${genScope.ignoreCols}"
                                  filterForm="${pageModel.autoGenerateFilter ? filterForm:null}"/>
             <operation label="@i18n:common.operation" id="operation" width="${pageModel.table?.operationSize || 140}"
                        toggled="@:true" fixed="right" labelClassName="text-center"

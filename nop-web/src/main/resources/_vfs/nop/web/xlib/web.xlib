@@ -78,7 +78,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
-            <attr name="fixedProps" implicit="true" optional="true"/>
+            <attr name="ignoreCols" implicit="true" optional="true" stdDomain="csv-set"/>
 
             <source>
                 <crud xpl:attrs="xpl('thisLib:GridDefaultAttrs', gridModel)"
@@ -92,7 +92,7 @@
 
 
                     <columns j:list="true">
-                        <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" fixedProps="${fixedProps}"/>
+                        <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${ignoreCols}"/>
                     </columns>
                 </crud>
             </source>
@@ -345,7 +345,7 @@
             <attr name="bizObjName" implicit="true"/>
             <attr name="i18nRoot" implicit="true"/>
             <attr name="controlLib" implicit="true"/>
-            <attr name="fixedProps" implicit="true" optional="true"/>
+            <attr name="fixedProps" implicit="true" optional="true" stdDomain="csv-set"/>
 
             <source>
                 <c:script><![CDATA[
