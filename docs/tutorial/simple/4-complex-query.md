@@ -137,10 +137,12 @@ Nop平台中服务函数的返回值并不会被直接序列化为JSON返回到�
 * 通过bizObjName属性指定关联的子表实体对象。
 * 并不需要当前实体和关联实体在ORM层面存在关联关系。通过`<graphql:filter>`可以增加关联查询条件。`@prop-ref:`
   前缀表示从当前实体上获取属性值用于关联查询。
-* 对于启用逻辑删除的实体，缺省情况下所有查询都会自动追加逻辑删除过滤条件。如果希望改变这一行为，可以在prop上标记 `graphql:disableLogicalDelete=true`
-，这样关联查询时会跳过逻辑删除过滤条件。
+* 对于启用逻辑删除的实体，缺省情况下所有查询都会自动追加逻辑删除过滤条件。如果希望改变这一行为，可以在prop上标记
+  `graphql:disableLogicalDelete=true`
+  ，这样关联查询时会跳过逻辑删除过滤条件。
 
-例如，如果希望返回子表的条目数，可以采用`graphql:queryMethod="findCount"`的配置，或者使用`graphql:queryMethod="findPage"`，调用的时候使用`xxx{total}`，从返回的PageBean中获取total属性
+例如，如果希望返回子表的条目数，可以采用`graphql:queryMethod="findCount"`的配置，或者使用`graphql:queryMethod="findPage"`
+，调用的时候使用`xxx{total}`，从返回的PageBean中获取total属性
 
 如果存在ORM层面的关联属性，则上面的配置可以简化
 
@@ -312,3 +314,11 @@ public List<Map<String,Object>> findGroupData(@Name("offset") int offset){
 ```
 
 更复杂的主子表关联查询，参见[mdx-query.md](../../dev-guide/orm/mdx-query.md)
+
+### 查询条件中指定字段排序顺序
+
+可以采用类似SQL排序条件的语法指定query_orderBy参数，在QueryBeanArgsNormalizer中会识别这个参数，然后规范化为query对象的orderBy属性，并解析为`List<OrderByBean>`结构。
+
+```
+query_orderBy=name asc, status desc
+```

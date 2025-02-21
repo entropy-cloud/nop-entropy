@@ -27,15 +27,19 @@ ollatel提供了简易的Ollama控制界面。
 在命令行中通过`ollama pull deepseek-r1:8b`下载deepseek模型。
 
 ### 修改输入和输出的最大token数
-ollama缺省的输入上下文长度是2048，对于比较长的输入提示来说会出现数据被截断的问题。可以创建一个名为`deepseek-32k.txt`的文件，其中增加num_ctx参数的配置
+ollama缺省的输入上下文长度是2048，对于比较长的输入提示来说会出现数据被截断的问题。
+可以在调用的时候传递`num_ctx`参数，也可以创建一个名为`deepseek-8b-8k.txt`的文件，其中增加num_ctx参数的配置
 
 ```
 FROM deepseek-r1:8b
 
-PARAMETER num_ctx 32768
+PARAMETER num_ctx 8192
 PARAMETER num_predict -1
 ```
 
-然后执行 `ollama create deepseek-r1:8b-32k -f deepseek-32k.txt`来创建一个名为`deepseek-r1:8b-32k`的新的模型。
+然后执行 `ollama create deepseek-r1:8b-8k -f deepseek-8b-8k.txt`来创建一个名为`deepseek-r1:8b-8k`的新的模型。
+
+扩大上下文长度后会导致运行时内存消耗变大。
+
 
 
