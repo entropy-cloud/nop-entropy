@@ -18,3 +18,5 @@ template: |
 
 processChatResponse: |
   chatResponse.checkAndRemoveEndLine("[EndOfData]");
+  if(chatResponse.content?.$countChinese() > 10)
+     chatResponse.invalid = true;

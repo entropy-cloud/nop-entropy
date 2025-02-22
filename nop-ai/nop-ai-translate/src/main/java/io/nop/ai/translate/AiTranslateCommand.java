@@ -2,6 +2,7 @@ package io.nop.ai.translate;
 
 import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.command.AiCommand;
 import io.nop.ai.core.commons.aggregator.IAiTextAggregator;
 import io.nop.ai.core.commons.processor.IAiChatResponseChecker;
@@ -286,6 +287,14 @@ public class AiTranslateCommand extends AiCommand {
     protected CompletionStage<AiChatResponse> doTranslateTextAsync(String text, ICancelToken cancelToken) {
         Map<String, Object> vars = Map.of(VAR_CONTENT, text,
                 VAR_FROM_LANG, fromLang, VAR_TO_LANG, toLang);
+
+        if(StringHelper.isBlank(text)){
+            AiChatResponse response = new AiChatResponse();
+            Prompt prompt = newPrompt(vars);
+            response.setPrompt(prompt);
+            response.setContent(text);
+            return FutureHelper.success(response);
+        }
 
         return callAiAsync(vars, cancelToken);
     }

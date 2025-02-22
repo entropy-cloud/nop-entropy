@@ -4494,15 +4494,31 @@ public class StringHelper extends ApiStringHelper {
 
         for (int i = 0; i < str.length(); i++) {
             char ch = str.charAt(i);
-            if (isChineseCharacter(ch)) {
+            if (isChineseChar(ch)) {
                 return true;
             }
         }
         return false;
     }
 
-    private static boolean isChineseCharacter(char ch) {
-        // 中文字符范围大致从 \u4e00 到 \u9fff
-        return ch >= '\u4e00' && ch <= '\u9fff';
+    public static boolean isChineseChar(char c) {
+        // 判断基本汉字和扩展 A 区（可自行扩展其他区）
+        return (c >= '\u4E00' && c <= '\u9FFF') ||
+                (c >= '\u3400' && c <= '\u4DBF');
+    }
+
+    public static int countChinese(String text) {
+        if (text == null || text.isEmpty())
+            return 0;
+
+        int count = 0;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            // 判断基本汉字和扩展 A 区（可自行扩展其他区）
+            if (isChineseChar(c)) {
+                count++;
+            }
+        }
+        return count;
     }
 }
