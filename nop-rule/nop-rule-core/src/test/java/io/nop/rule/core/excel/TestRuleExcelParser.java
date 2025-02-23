@@ -90,6 +90,23 @@ public class TestRuleExcelParser extends BaseTestCase {
         assertEquals(14.0, output.get("result"));
     }
 
+    @Test
+    public void testRuleFunction() {
+        IRuleManager ruleManager = getRuleManager();
+        IRuleRuntime ruleRt = ruleManager.newRuleRuntime();
+        ruleRt.setInput("season", "Winter");
+        ruleRt.setInput("guestCount", 4);
+        Map<String, Object> output = ruleManager.executeRule("test/test-rule-function", null, ruleRt);
+        System.out.println(JsonTool.serialize(ruleRt.getLogMessages(), true));
+        assertEquals("Roastbeef", output.get("dish"));
+
+        ruleRt = ruleManager.newRuleRuntime();
+        ruleRt.setInput("season", "Summer");
+        ruleRt.setInput("guestCount", 4);
+        output = ruleManager.executeRule("test/test-rule-function", null, ruleRt);
+        assertEquals("Stew Light Salad and nice Steak", output.get("dish"));
+    }
+
     private IRuleManager getRuleManager() {
         return new RuleManager();
     }

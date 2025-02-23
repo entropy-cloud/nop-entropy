@@ -125,6 +125,13 @@ Excel规则模型必须包含两个Sheet，其中Rule表单配置决策规则，
 
 7. 支持所有XScript中注册的全局函数
 
+## 规则匹配后自动执行函数
+有时我们希望Rule表达式匹配后，通过一个复杂的函数来动态生成输出变量。此时可以在输出变量栏中调用自定义函数。在【Config】这个Sheet中可以定义函数。
+
+![](images/rule-output-var.png)
+
+![](images/rule-define-function.png)
+
 ## 2.3 决策表配置
 
 决策表的配置示例可以参见 [decision-tree.rule.xlsx](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-rule/nop-rule-service/cases/io/nop/rule/service/entity/TestNopRuleDefinitionBizModel/testImport/input/decision-tree.rule.xlsx)
