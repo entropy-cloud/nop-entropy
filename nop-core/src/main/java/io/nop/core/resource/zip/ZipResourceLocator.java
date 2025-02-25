@@ -1,14 +1,11 @@
 package io.nop.core.resource.zip;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.util.FileHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceLocator;
 import io.nop.core.resource.VirtualFileSystem;
-import io.nop.core.resource.impl.URLResource;
 
 import java.io.File;
-import java.net.URI;
 
 import static io.nop.core.CoreErrors.ARG_RESOURCE;
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
@@ -19,6 +16,7 @@ public class ZipResourceLocator implements IResourceLocator {
 
     static final String JAR_FILE_PREFIX = "jar:";
     static final String ZIP_FILE_SEPARATOR = "!/";
+    static final String ENCODING_PARAM = "?encoding=";
 
     private IResourceLocator baseLocator;
 
@@ -37,8 +35,17 @@ public class ZipResourceLocator implements IResourceLocator {
         try {
             IResourceLocator baseLocator = getBaseLocator();
 
-            if (path.startsWith(JAR_FILE_PREFIX))
-                return new URLResource(path, new URI(path).toURL());
+            String encoding = null;
+
+            int pos0 = path.indexOf(ENCODING_PARAM);
+            if (pos0 > 0) {
+                encoding = path.substring(pos0 + ENCODING_PARAM.length());
+                path = path.substring(0, pos0);
+            }
+
+            if (path.startsWith(JAR_FILE_PREFIX)) {
+                path = path.substring(JAR_FILE_PREFIX.length());
+            }
 
             int pos = path.indexOf(ZIP_FILE_SEPARATOR);
             if (pos < 0)
@@ -51,8 +58,7 @@ public class ZipResourceLocator implements IResourceLocator {
                 throw new NopException(ERR_RESOURCE_NOT_FILE)
                         .param(ARG_RESOURCE, resource).param(ARG_RESOURCE_PATH, resource.getPath());
 
-            String jarUrl = FileHelper.getJarEntryUrl(file, entryName);
-            return new URLResource(path, new URI(jarUrl).toURL());
+            return new AutoCloseZipEntryResource(path, file, entryName, encoding);
         } catch (Exception e) {
             throw NopException.adapt(e);
         }

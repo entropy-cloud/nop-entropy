@@ -43,4 +43,13 @@ public class TestZipResource extends BaseTestCase {
         IResource entryResource = locator.getResource(resource.getPath() + "!/a.txt");
         assertEquals("ass", entryResource.readText());
     }
+
+    @Test
+    public void testZipResourceLocatorWithEncoding() {
+        ZipResourceLocator locator = ZipResourceLocator.INSTANCE;
+        IResource resource = attachmentResource("a.zip");
+        IResource entryResource = locator.getResource(resource.getPath() + "!/a.txt?encoding=GBK");
+        assertEquals(3, entryResource.length());
+        assertEquals("ass", entryResource.readText());
+    }
 }
