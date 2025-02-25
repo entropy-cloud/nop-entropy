@@ -95,7 +95,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
                 + "-" + translator.getChatOptions().getContextLength() + "," + translator.getChatOptions().getTemperature();
         File targetFile = getTargetFile("translated/" + normalizedName + ".md");
         targetFile.delete();
-        translator.translateFile(srcFile, targetFile, null, new Semaphore(1));
+        translator.translateFile(srcFile, targetFile, null, null, new Semaphore(1));
     }
 
     @Test

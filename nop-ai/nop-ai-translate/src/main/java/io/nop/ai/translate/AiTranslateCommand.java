@@ -57,6 +57,7 @@ public class AiTranslateCommand extends AiCommand {
      * 将prompt和对应的结果保存到debug文件中
      */
     private boolean debug = false;
+    private File debugDir;
 
     public AiTranslateCommand(IAiChatService chatService, IPromptTemplate promptTemplate) {
         super(chatService);
@@ -98,6 +99,12 @@ public class AiTranslateCommand extends AiCommand {
 
     public int getConcurrencyLimit() {
         return concurrencyLimit;
+    }
+
+    @PropertySetter
+    public AiTranslateCommand debugDir(File debugDir) {
+        this.debugDir = debugDir;
+        return this;
     }
 
     @PropertySetter
@@ -177,9 +184,13 @@ public class AiTranslateCommand extends AiCommand {
 
         Semaphore limit = new Semaphore(concurrencyLimit);
 
+        String path = srcDir.getAbsolutePath();
+        File debugDir = this.debugDir != null ? this.debugDir
+                : new File(targetDir.getParentFile(), targetDir.getName() + "-debug");
         FileHelper.walk2(srcDir, targetDir, (srcFile, targetFile) -> {
             if (srcFile.isFile() && acceptSourceFile(srcFile) && acceptTargetFile(targetFile)) {
-                CompletionStage<?> future = translateFileAsync(srcFile, targetFile, cancelToken, limit);
+                File debugFile = new File(debugDir, srcFile.getAbsolutePath().substring(path.length()));
+                CompletionStage<?> future = translateFileAsync(srcFile, targetFile, debugFile, cancelToken, limit);
                 futures.add(future);
             }
             return FileVisitResult.CONTINUE;
@@ -187,26 +198,25 @@ public class AiTranslateCommand extends AiCommand {
         return FutureHelper.waitAll(futures);
     }
 
-    public void translateFile(File srcFile, File targetFile, ICancelToken cancelToken, Semaphore limit) {
-        FutureHelper.syncGet(translateFileAsync(srcFile, targetFile, cancelToken, limit));
+    public void translateFile(File srcFile, File targetFile, File debugFile,
+                              ICancelToken cancelToken, Semaphore limit) {
+        FutureHelper.syncGet(translateFileAsync(srcFile, targetFile, debugFile,
+                cancelToken, limit));
     }
 
-    public CompletionStage<?> translateFileAsync(File srcFile, File targetFile, ICancelToken cancelToken, Semaphore limit) {
+    public CompletionStage<?> translateFileAsync(File srcFile, File targetFile, File debugFile,
+                                                 ICancelToken cancelToken, Semaphore limit) {
         LOG.info("nop.ai.translate-file:path={}", FileHelper.getAbsolutePath(srcFile));
 
         String text = FileHelper.readText(srcFile, null);
         return translateLongTextAsync(text, cancelToken, limit).thenApply(ret -> {
-            if (debug)
-                FileHelper.writeText(getDebugFile(targetFile), ret.getDebugText(), null);
+            if (debug && debugFile != null)
+                FileHelper.writeText(debugFile, ret.getDebugText(), null);
 
             if (ret.isAllValid())
                 FileHelper.writeText(targetFile, ret.getText(), null);
             return null;
         });
-    }
-
-    protected File getDebugFile(File targetFile) {
-        return new File(targetFile.getParentFile(), targetFile.getName() + ".debug." + StringHelper.fileExt(targetFile.getName()));
     }
 
     protected boolean acceptSourceFile(File file) {
@@ -288,7 +298,7 @@ public class AiTranslateCommand extends AiCommand {
         Map<String, Object> vars = Map.of(VAR_CONTENT, text,
                 VAR_FROM_LANG, fromLang, VAR_TO_LANG, toLang);
 
-        if(StringHelper.isBlank(text)){
+        if (StringHelper.isBlank(text)) {
             AiChatResponse response = new AiChatResponse();
             Prompt prompt = newPrompt(vars);
             response.setPrompt(prompt);
