@@ -8,6 +8,7 @@
 package io.nop.search.api;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.beans.TreeBean;
 
 @DataBean
 public class SearchRequest {
@@ -16,6 +17,8 @@ public class SearchRequest {
     private String query;
 
     private int limit;
+
+    private TreeBean filter;
 
     public String getTopic() {
         return topic;
@@ -39,5 +42,13 @@ public class SearchRequest {
 
     public void setLimit(int limit) {
         this.limit = limit;
+    }
+
+    public TreeBean getFilter() {
+        return filter;
+    }
+
+    public void setFilter(TreeBean filter) {
+        this.filter = filter;
     }
 }
