@@ -155,6 +155,8 @@
 * `loader/consumer`等都支持bean配置，可以直接指定IoC中的bean来实现加载器和处理器等。
 * `file-reader`和`file-writer`等支持resourceLocator配置，通过它可以定制资源路径到IResource资源对象的映射逻辑。缺省情况下使用ZipResourceLocator，
   它自动识别`/a.zip!/entryNameInZip.txt`这种形式，可以从zip或者jar文件中加载指定文件。
+* Windows操作系统上压缩的zip文件会缺省使用GBK这种编码，而在Linux操作系统中会缺省使用UTF-8。因此在windows上产生的zip文件如果有中文文件名，则在linux操作系统中可能读取报错。此时可以通过如下url形式指定encoding
+`/a.zip!/entryNameInZip.txt?encoding=GBK`。
 
 ## 异步Processor
 缺省情况下processor是同步执行，如果`batch.xml`的根节点上配置了`asyncProcessor=true`则表示启用异步处理，要求processor内部必须调用`batchChunkCtx.countDown()`来标记当前processor执行完毕。
