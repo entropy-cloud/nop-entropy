@@ -476,8 +476,9 @@ public class ClassModelBuilder extends MethodModelBuilder {
             for (IFunctionModel method : superModel.getStaticMethods()) {
                 MethodModelCollection mc = getStaticMethodCollection(method.getName());
                 if (mc.getExactMatchMethod(method.getArgRawTypes()) == null) {
-                    method = fixTypeParameter(classType, (FunctionModel) method, true);
-                    mc.addMethod(method);
+                    IFunctionModel resolvedMethod = fixTypeParameter(classType, (FunctionModel) method, true);
+                    if(resolvedMethod == method || mc.getExactMatchMethod(resolvedMethod.getArgRawTypes()) == null)
+                        mc.addMethod(resolvedMethod);
                 }
             }
 
@@ -488,8 +489,9 @@ public class ClassModelBuilder extends MethodModelBuilder {
                 MethodModelCollection mc = getMethodCollection(method.getName());
                 IFunctionModel fn = mc.getExactMatchMethod(method.getArgRawTypes());
                 if (fn == null) {
-                    method = fixTypeParameter(classType, (FunctionModel) method, true);
-                    mc.addMethod(method);
+                    IFunctionModel resolvedMethod = fixTypeParameter(classType, (FunctionModel) method, true);
+                    if(resolvedMethod == method || mc.getExactMatchMethod(resolvedMethod.getArgRawTypes()) == null)
+                        mc.addMethod(resolvedMethod);
                 } else {
                     inheritAnnotations((FunctionModel) fn, method);
                 }
@@ -512,8 +514,9 @@ public class ClassModelBuilder extends MethodModelBuilder {
                 MethodModelCollection mc = getMethodCollection(method.getName());
                 IFunctionModel fn = mc.getExactMatchMethod(method.getArgRawTypes());
                 if (fn == null) {
-                    method = fixTypeParameter(classType, (FunctionModel) method, true);
-                    mc.addMethod(method);
+                    IFunctionModel resolvedMethod = fixTypeParameter(classType, (FunctionModel) method, true);
+                    if(resolvedMethod == method || mc.getExactMatchMethod(resolvedMethod.getArgRawTypes()) == null)
+                        mc.addMethod(resolvedMethod);
                 } else {
                     inheritAnnotations((FunctionModel) fn, method);
                 }

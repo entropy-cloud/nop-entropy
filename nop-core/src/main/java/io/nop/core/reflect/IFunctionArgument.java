@@ -17,6 +17,10 @@ public interface IFunctionArgument extends IAnnotatedElement {
 
     IFunctionArgument cloneInstance();
 
+    default boolean hasGenericType() {
+        return !getType().getTypeParameters().isEmpty();
+    }
+
     default Class<?> getRawClass() {
         return getType().getRawClass();
     }

@@ -61,6 +61,12 @@ public class NopAuthRoleBizModel extends CrudBizModel<NopAuthRole> {
     }
 
     @BizAction
+    @Override
+    protected void defaultPrepareDelete(@Name("entity") NopAuthRole entity, IServiceContext context) {
+        super.defaultPrepareDelete(entity, context);
+    }
+
+    @BizAction
     protected void checkAllowEdit(@Name("role") NopAuthRole role, IServiceContext context) {
         if (role.getRoleId().startsWith(AuthCoreConstants.NOP_ROLE_PREFIX))
             throw new NopException(ERR_AUTH_NOT_ALLOW_EDIT_INTERNAL_ROLE)

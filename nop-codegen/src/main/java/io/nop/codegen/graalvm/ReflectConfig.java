@@ -25,7 +25,8 @@ public class ReflectConfig {
     }
 
     public void setClassList(List<ReflectClass> classList) {
-        this.classList = KeyedList.fromList(classList, ReflectClass::getName);
+        this.classList = new KeyedList<>(ReflectClass::getName);
+        this.classList.addAll(classList);
     }
 
     public void addClass(ReflectClass clazz) {
