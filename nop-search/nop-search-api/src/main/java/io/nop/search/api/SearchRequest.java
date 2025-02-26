@@ -18,6 +18,8 @@ public class SearchRequest {
 
     private int limit;
 
+    private double similarityThreshold;
+
     private TreeBean filter;
 
     public String getTopic() {
@@ -42,6 +44,14 @@ public class SearchRequest {
 
     public void setLimit(int limit) {
         this.limit = limit;
+    }
+
+    public double getSimilarityThreshold() {
+        return similarityThreshold;
+    }
+
+    public void setSimilarityThreshold(double similarityThreshold) {
+        this.similarityThreshold = similarityThreshold;
     }
 
     public TreeBean getFilter() {
