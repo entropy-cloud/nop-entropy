@@ -37,6 +37,10 @@
 * 可以通过`nop.profile.parent`来指定多个active的profile，它们的优先级为从左到右。例如`nop.profile=dev`, `nop.profile.parent=mysql,nacos`，则
 对应于如下加载顺序 `application-dev.yaml -> application-mysql.yaml -> application-nacos.yaml -> application.yaml`。
 
+## 扩展ConfigStarter
+* `ConfigStarter.registerInstance`可以注册ConfigStarter的派生类，在CoreInitialization执行之前可以注册扩展的ConfigStarter。
+* 也可以不扩展ConfigStarter，而是增加IConfigSourceLoader的实现类来实现扩展。ConfigStarter通过JDK的ServiceLoader机制加载所有的IConfigSourceLoader。
+
 ## 远程配置中心
 `nop-config`模块仅仅是提供配置的基础框架和接口，具体的远程配置中心支持需要引入相应的实现包。例如使用nacos需要引入`nop-cluster-nacos`包。
 
