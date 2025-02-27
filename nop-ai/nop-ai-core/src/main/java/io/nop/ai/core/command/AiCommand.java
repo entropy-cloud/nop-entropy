@@ -26,7 +26,7 @@ public class AiCommand {
     private final IAiChatService chatService;
     private IPromptTemplate promptTemplate;
     private IAiChatResponseProcessor chatResponseProcessor;
-    private int retryTimesPerRequest = 4;
+    private int retryTimesPerRequest = 3;
     private AiChatOptions chatOptions = new AiChatOptions();
 
     private boolean returnExceptionAsResponse;

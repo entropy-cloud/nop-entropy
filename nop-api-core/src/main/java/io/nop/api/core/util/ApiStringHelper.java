@@ -187,6 +187,32 @@ public class ApiStringHelper {
     }
 
     @Deterministic
+    public static List<String> splitBy(String str, String sep) {
+        if (str == null)
+            return null;
+        if (str.length() == 0)
+            return Collections.emptyList();
+        int pos2 = str.indexOf(sep);
+        if (pos2 < 0)
+            return Collections.singletonList(str);
+        List<String> ret = new ArrayList<>();
+        ret.add(str.substring(0, pos2));
+
+        int len = 1;
+        int pos1 = pos2 + len;
+        do {
+            pos2 = str.indexOf(sep, pos1);
+            if (pos2 < 0)
+                break;
+            ret.add(str.substring(pos1, pos2));
+            pos1 = pos2 + len;
+        } while (true);
+        ret.add(str.substring(pos1));
+
+        return ret;
+    }
+
+    @Deterministic
     public static List<String> stripedSplit(String str, char sep) {
         return stripedSplit(str, sep, false);
     }

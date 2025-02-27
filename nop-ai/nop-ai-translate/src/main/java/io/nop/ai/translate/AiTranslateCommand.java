@@ -5,6 +5,7 @@ import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.command.AiCommand;
 import io.nop.ai.core.commons.aggregator.IAiTextAggregator;
+import io.nop.ai.core.commons.debug.DebugMessageHelper;
 import io.nop.ai.core.commons.processor.IAiChatResponseChecker;
 import io.nop.ai.core.commons.processor.IAiChatResponseProcessor;
 import io.nop.ai.core.commons.splitter.IAiTextSplitter;
@@ -58,6 +59,7 @@ public class AiTranslateCommand extends AiCommand {
      */
     private boolean debug = false;
     private File debugDir;
+    private boolean recoverMode = false;
 
     public AiTranslateCommand(IAiChatService chatService, IPromptTemplate promptTemplate) {
         super(chatService);
@@ -104,6 +106,12 @@ public class AiTranslateCommand extends AiCommand {
     @PropertySetter
     public AiTranslateCommand debugDir(File debugDir) {
         this.debugDir = debugDir;
+        return this;
+    }
+
+    @PropertySetter
+    public AiTranslateCommand recoverMode(boolean recoverMode) {
+        this.recoverMode = recoverMode;
         return this;
     }
 
@@ -208,6 +216,10 @@ public class AiTranslateCommand extends AiCommand {
                                                  ICancelToken cancelToken, Semaphore limit) {
         LOG.info("nop.ai.translate-file:path={}", FileHelper.getAbsolutePath(srcFile));
 
+        if (recoverMode && debugFile != null && debugFile.exists()) {
+            return recoverFromDebugFileAsync(debugFile, cancelToken, limit);
+        }
+
         String text = FileHelper.readText(srcFile, null);
         return translateLongTextAsync(text, cancelToken, limit).thenApply(ret -> {
             if (debug && debugFile != null)
@@ -216,6 +228,40 @@ public class AiTranslateCommand extends AiCommand {
             if (ret.isAllValid())
                 FileHelper.writeText(targetFile, ret.getText(), null);
             return null;
+        });
+    }
+
+    public CompletionStage<?> recoverFromDebugFileAsync(File debugFile,
+                                                        ICancelToken cancelToken, Semaphore limit) {
+        LOG.info("nop.ai.translate-file-with-recover-mode:debugFile={}", FileHelper.getAbsolutePath(debugFile));
+
+        List<AiChatResponse> messages = DebugMessageHelper.parseDebugFile(debugFile);
+
+        Cancellable cancellable = new Cancellable();
+        Consumer<String> cleanup = cancellable::cancel;
+        if (cancelToken != null) {
+            cancelToken.appendOnCancel(cleanup);
+        }
+        List<CompletionStage<AiChatResponse>> promises = new ArrayList<>(messages.size());
+        for (AiChatResponse message : messages) {
+            if (message.isValid()) {
+                promises.add(FutureHelper.success(message));
+                continue;
+            }
+
+            CompletionStage<AiChatResponse> promise = FutureHelper.executeWithThrottling(() ->
+                    translateTextAsync(message.getPrompt().getLastMessage().getContent(), cancellable), limit);
+
+            promises.add(promise);
+        }
+
+        CompletionStage<AggregateText> ret = FutureHelper.thenCompleteAsync(FutureHelper.waitAll(promises), (v, e) -> {
+            return aggregateResults(getResults(promises));
+        });
+
+        return ret.whenComplete((r, e) -> {
+            if (cancelToken != null)
+                cancelToken.removeOnCancel(cleanup);
         });
     }
 

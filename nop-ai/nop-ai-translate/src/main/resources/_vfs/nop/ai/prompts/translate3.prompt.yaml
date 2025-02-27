@@ -18,5 +18,5 @@ template: |
 
 processChatResponse: |
   chatResponse.checkAndRemoveEndLine("[EndOfData]");
-  if(chatResponse.content?.$countChinese() > 15)
+  if(chatResponse.content?.$countChinese() > 50)
      chatResponse.invalid = true;

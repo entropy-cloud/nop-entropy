@@ -32,6 +32,13 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: errorPath
+     * 
+     */
+    private java.lang.String _errorPath ;
+    
+    /**
+     *  
      * xml name: promptTokensPath
      * 
      */
@@ -92,6 +99,25 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._contentPath = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: errorPath
+     *  
+     */
+    
+    public java.lang.String getErrorPath(){
+      return _errorPath;
+    }
+
+    
+    public void setErrorPath(java.lang.String value){
+        checkAllowChange();
+        
+        this._errorPath = value;
            
     }
 
@@ -189,6 +215,7 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
         
         out.putNotNull("completionTokensPath",this.getCompletionTokensPath());
         out.putNotNull("contentPath",this.getContentPath());
+        out.putNotNull("errorPath",this.getErrorPath());
         out.putNotNull("promptTokensPath",this.getPromptTokensPath());
         out.putNotNull("rolePath",this.getRolePath());
         out.putNotNull("statusPath",this.getStatusPath());
@@ -206,6 +233,7 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
         
         instance.setCompletionTokensPath(this.getCompletionTokensPath());
         instance.setContentPath(this.getContentPath());
+        instance.setErrorPath(this.getErrorPath());
         instance.setPromptTokensPath(this.getPromptTokensPath());
         instance.setRolePath(this.getRolePath());
         instance.setStatusPath(this.getStatusPath());
