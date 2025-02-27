@@ -529,6 +529,7 @@ public class ResourceHelper {
         InputStream is = null;
         try {
             if (supportZip && isZipFile(resource)) {
+                is = resource.getInputStream();
                 is = new GZIPInputStream(is, CFG_IO_DEFAULT_BUF_SIZE.get());
                 return new InputStreamReader(is, encoding);
             } else {

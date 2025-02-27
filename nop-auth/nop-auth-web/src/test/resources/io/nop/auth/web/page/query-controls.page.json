@@ -549,6 +549,11 @@
                   "type": "columns-toggler",
                   "align": "right",
                   "id": "columns-toggler"
+                },
+                {
+                  "type": "reload",
+                  "align": "right",
+                  "id": "reload"
                 }
               ],
               "footerToolbar": [
@@ -684,6 +689,11 @@
                   "type": "columns-toggler",
                   "align": "right",
                   "id": "columns-toggler"
+                },
+                {
+                  "type": "reload",
+                  "align": "right",
+                  "id": "reload"
                 }
               ],
               "footerToolbar": [

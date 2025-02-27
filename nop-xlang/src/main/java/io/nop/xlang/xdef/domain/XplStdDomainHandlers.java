@@ -199,7 +199,7 @@ public class XplStdDomainHandlers {
                 if (StringHelper.isBlank(str))
                     return null;
 
-                XNode node = XNodeParser.instance().forFragments(true).parseFromText(loc, str);
+                XNode node = XNodeParser.instance().parseFromText(loc, str);
                 return node;
             }
             return XNode.fromValue(value);

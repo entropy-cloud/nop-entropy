@@ -246,7 +246,15 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
             case child: {
                 XNode valueNode = parseXmlBody(propMeta, loc, value);
                 if (valueNode != null) {
-                    node.appendChild(valueNode);
+                    if(valueNode.isDummyNode()){
+                        if(node.hasChild() || valueNode.hasChild()){
+                            node.appendChildren(valueNode.detachChildren());
+                        }else{
+                            node.content(valueNode.content());
+                        }
+                    }else {
+                        node.appendChild(valueNode);
+                    }
                 } else {
                     addChild(node, propMeta, value);
                 }

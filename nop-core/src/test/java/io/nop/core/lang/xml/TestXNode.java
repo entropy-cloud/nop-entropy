@@ -8,7 +8,6 @@
 package io.nop.core.lang.xml;
 
 import io.nop.api.core.beans.TreeBean;
-import io.nop.api.core.json.JSON;
 import io.nop.commons.text.CDataText;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.parse.XNodeParser;
@@ -306,5 +305,13 @@ public class TestXNode {
         Object json = node.toJsonObject();
         System.out.println(JsonTool.stringify(json));
         assertEquals("{\"$type\":\"and\",\"$body\":[{\"$type\":\"gt\",\"name\":\"status\",\"value\":2}]}", JsonTool.stringify(json));
+    }
+
+    @Test
+    public void testXNodeValue() {
+        String text = " <_>\n s\n</_> ";
+        XNode node = XNode.fromValue(text);
+        assertTrue(!node.hasChild());
+        assertEquals("\n s\n", node.contentText());
     }
 }
