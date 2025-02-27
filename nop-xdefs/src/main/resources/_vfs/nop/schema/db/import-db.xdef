@@ -4,7 +4,7 @@
 -->
 <import-db x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
            xmlns:xdef="/nop/schema/xdef.xdef"
-           threadCount="!int=0" batchSize="!int=0"
+           threadCount="!int=0" batchSize="!int=0" concurrencyPerTable="int"
            schemaPattern="string" tableNamePattern="string" importAllTables="!boolean=true"
            xdef:name="ImportDbConfig" xdef:bean-package="io.nop.dbtool.exp.config"
            checkKeyFields="!boolean=true"
@@ -15,13 +15,15 @@
 
     <excludeTableNames xdef:value="csv-set"/>
 
+    <checkImportable xdef:value="xpl-fn:(table)=>boolean"/>
+
     <tables xdef:body-type="list" xdef:key-attr="name">
         <!--
         @format 导入文件的后缀名
         @importAllFields 导入所有字段，不仅仅是fields指定的字段
         @allowUpdate 导入的时候如果根据keyFields查询到的记录已存在，在更新行。如果不设置或者设置为false，则数据重复时会忽略该行
         -->
-        <table name="!string" from="string" format="string" xdef:name="ImportTableConfig"
+        <table name="!string" from="string" format="string" xdef:name="ImportTableConfig" concurrency="int"
                importAllFields="!boolean=true" allowUpdate="boolean">
 
             <!-- 用于指定记录对应的唯一键 -->

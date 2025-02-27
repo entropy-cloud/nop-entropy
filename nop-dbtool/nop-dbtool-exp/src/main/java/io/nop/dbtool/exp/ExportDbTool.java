@@ -7,6 +7,7 @@
  */
 package io.nop.dbtool.exp;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.BatchTaskBuilder;
@@ -21,6 +22,7 @@ import io.nop.batch.core.impl.BatchTaskContextImpl;
 import io.nop.batch.jdbc.consumer.GenInsertSqlRecordIO;
 import io.nop.batch.jdbc.loader.JdbcBatchLoaderProvider;
 import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.SyncThreadPoolExecutor;
 import io.nop.commons.util.StringHelper;
@@ -40,6 +42,7 @@ import io.nop.dbtool.exp.config.JdbcConnectionConfig;
 import io.nop.dbtool.exp.config.TableFieldConfig;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.OrmEntityModel;
+import io.nop.xlang.api.XLang;
 
 import javax.sql.DataSource;
 import java.io.File;
@@ -110,12 +113,22 @@ public class ExportDbTool {
             List<CompletableFuture<?>> futures = new ArrayList<>();
 
             for (ExportTableConfig tableConfig : config.getTables()) {
+                if (!isExportable(tableConfig))
+                    continue;
+
                 futures.add(executor.submit(() -> runTask(tableConfig, dataSource), null));
             }
             FutureHelper.getFromFuture(FutureHelper.waitAll(futures));
         } finally {
             executor.destroy();
         }
+    }
+
+    private boolean isExportable(ExportTableConfig tableConfig) {
+        if (config.getCheckExportable() == null)
+            return true;
+        return ConvertHelper.toTruthy(config.getCheckExportable()
+                .call1(null, tableConfig, XLang.newEvalScope()));
     }
 
     private void readTableMetas() {
@@ -199,11 +212,24 @@ public class ExportDbTool {
         builder.processor(newProcessor(tableConfig));
         builder.consumer(newConsumer(tableConfig));
 
+        int concurrency = getConcurrency(tableConfig);
+        builder.concurrency(concurrency);
+        if (concurrency > 1)
+            builder.executor(GlobalExecutors.cachedThreadPool());
+
         IBatchTaskContext context = new BatchTaskContextImpl();
         if (args != null)
             context.getEvalScope().setLocalValues(args);
         IBatchTask task = builder.buildTask();
         task.execute(context);
+    }
+
+    protected int getConcurrency(ExportTableConfig tableConfig) {
+        if (tableConfig.getConcurrency() != null)
+            return tableConfig.getConcurrency();
+        if (config.getConcurrencyPerTable() != null)
+            return config.getConcurrencyPerTable();
+        return 1;
     }
 
     private IBatchProcessorProvider<Map<String, Object>, Map<String, Object>> newProcessor(ExportTableConfig tableConfig) {

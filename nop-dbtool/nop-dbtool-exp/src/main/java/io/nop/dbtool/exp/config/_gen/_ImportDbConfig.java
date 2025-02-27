@@ -25,10 +25,24 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: checkImportable
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _checkImportable ;
+    
+    /**
+     *  
      * xml name: checkKeyFields
      * 导入时是否根据keyFields设置检查记录是否已存在。如果存在，则可以选择更新或者忽略
      */
     private boolean _checkKeyFields  = true;
+    
+    /**
+     *  
+     * xml name: concurrencyPerTable
+     * 
+     */
+    private java.lang.Integer _concurrencyPerTable ;
     
     /**
      *  
@@ -107,6 +121,25 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: checkImportable
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getCheckImportable(){
+      return _checkImportable;
+    }
+
+    
+    public void setCheckImportable(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._checkImportable = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: checkKeyFields
      *  导入时是否根据keyFields设置检查记录是否已存在。如果存在，则可以选择更新或者忽略
      */
@@ -120,6 +153,25 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._checkKeyFields = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: concurrencyPerTable
+     *  
+     */
+    
+    public java.lang.Integer getConcurrencyPerTable(){
+      return _concurrencyPerTable;
+    }
+
+    
+    public void setConcurrencyPerTable(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._concurrencyPerTable = value;
            
     }
 
@@ -322,7 +374,9 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
         super.outputJson(out);
         
         out.putNotNull("batchSize",this.getBatchSize());
+        out.putNotNull("checkImportable",this.getCheckImportable());
         out.putNotNull("checkKeyFields",this.isCheckKeyFields());
+        out.putNotNull("concurrencyPerTable",this.getConcurrencyPerTable());
         out.putNotNull("excludeTableNames",this.getExcludeTableNames());
         out.putNotNull("importAllTables",this.isImportAllTables());
         out.putNotNull("inputDir",this.getInputDir());
@@ -343,7 +397,9 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
         super.copyTo(instance);
         
         instance.setBatchSize(this.getBatchSize());
+        instance.setCheckImportable(this.getCheckImportable());
         instance.setCheckKeyFields(this.isCheckKeyFields());
+        instance.setConcurrencyPerTable(this.getConcurrencyPerTable());
         instance.setExcludeTableNames(this.getExcludeTableNames());
         instance.setImportAllTables(this.isImportAllTables());
         instance.setInputDir(this.getInputDir());

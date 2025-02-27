@@ -25,6 +25,20 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: checkExportable
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _checkExportable ;
+    
+    /**
+     *  
+     * xml name: concurrencyPerTable
+     * 
+     */
+    private java.lang.Integer _concurrencyPerTable ;
+    
+    /**
+     *  
      * xml name: excludeTableNames
      * 排除某些表不导出
      */
@@ -108,6 +122,44 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._batchSize = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: checkExportable
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getCheckExportable(){
+      return _checkExportable;
+    }
+
+    
+    public void setCheckExportable(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._checkExportable = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: concurrencyPerTable
+     *  
+     */
+    
+    public java.lang.Integer getConcurrencyPerTable(){
+      return _concurrencyPerTable;
+    }
+
+    
+    public void setConcurrencyPerTable(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._concurrencyPerTable = value;
            
     }
 
@@ -348,6 +400,8 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
         super.outputJson(out);
         
         out.putNotNull("batchSize",this.getBatchSize());
+        out.putNotNull("checkExportable",this.getCheckExportable());
+        out.putNotNull("concurrencyPerTable",this.getConcurrencyPerTable());
         out.putNotNull("excludeTableNames",this.getExcludeTableNames());
         out.putNotNull("exportAllTables",this.isExportAllTables());
         out.putNotNull("exportFormats",this.getExportFormats());
@@ -370,6 +424,8 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
         super.copyTo(instance);
         
         instance.setBatchSize(this.getBatchSize());
+        instance.setCheckExportable(this.getCheckExportable());
+        instance.setConcurrencyPerTable(this.getConcurrencyPerTable());
         instance.setExcludeTableNames(this.getExcludeTableNames());
         instance.setExportAllTables(this.isExportAllTables());
         instance.setExportFormats(this.getExportFormats());

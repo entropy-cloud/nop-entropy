@@ -13,6 +13,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.PropPath;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -115,6 +116,14 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
     List<? extends IColumnModel> getPkColumns();
 
     List<String> getPkColumnNames();
+
+    default List<String> getPkColumnCodes() {
+        List<? extends IColumnModel> cols = getPkColumns();
+        if (cols == null)
+            return Collections.emptyList();
+
+        return cols.stream().map(IColumnModel::getCode).collect(Collectors.toList());
+    }
 
     List<? extends IColumnModel> getColumns();
 

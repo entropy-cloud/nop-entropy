@@ -25,6 +25,13 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: concurrency
+     * 
+     */
+    private java.lang.Integer _concurrency ;
+    
+    /**
+     *  
      * xml name: fields
      * 
      */
@@ -94,6 +101,25 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
         checkAllowChange();
         
         this._allowUpdate = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: concurrency
+     *  
+     */
+    
+    public java.lang.Integer getConcurrency(){
+      return _concurrency;
+    }
+
+    
+    public void setConcurrency(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._concurrency = value;
            
     }
 
@@ -294,6 +320,7 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
         super.outputJson(out);
         
         out.putNotNull("allowUpdate",this.getAllowUpdate());
+        out.putNotNull("concurrency",this.getConcurrency());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("filter",this.getFilter());
         out.putNotNull("format",this.getFormat());
@@ -314,6 +341,7 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
         super.copyTo(instance);
         
         instance.setAllowUpdate(this.getAllowUpdate());
+        instance.setConcurrency(this.getConcurrency());
         instance.setFields(this.getFields());
         instance.setFilter(this.getFilter());
         instance.setFormat(this.getFormat());

@@ -1,5 +1,6 @@
 package io.nop.dbtool.exp.config;
 
+import io.nop.dao.jdbc.datasource.DataSourceConfig;
 import io.nop.dao.jdbc.datasource.SimpleDataSource;
 import io.nop.dbtool.exp.config._gen._JdbcConnectionConfig;
 
@@ -18,5 +19,17 @@ public class JdbcConnectionConfig extends _JdbcConnectionConfig {
         ds.setPassword(getPassword());
         ds.setDriverClassName(getDriverClassName().trim());
         return ds;
+    }
+
+    public DataSourceConfig toDataSourceConfig() {
+        DataSourceConfig config = new DataSourceConfig();
+        config.setJdbcUrl(getJdbcUrl().trim());
+        config.setUsername(getUsername());
+        config.setPassword(getPassword());
+        config.setDriverClassName(getDriverClassName().trim());
+        if (getMaxConnections() != null) {
+            config.setMaxSize(getMaxConnections());
+        }
+        return config;
     }
 }

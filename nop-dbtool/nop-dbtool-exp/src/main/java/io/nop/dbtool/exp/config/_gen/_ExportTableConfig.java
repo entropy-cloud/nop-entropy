@@ -18,6 +18,13 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: concurrency
+     * 
+     */
+    private java.lang.Integer _concurrency ;
+    
+    /**
+     *  
      * xml name: exportAllFields
      * 如果设置为true，则导出表中所有字段，即使在fields段中没有定义。否则只导出指定的字段
      */
@@ -64,6 +71,25 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
      * 导出数据时可以对行进行变换，input对应于来源行，output对应于转换后的行
      */
     private io.nop.core.lang.eval.IEvalAction _transformExpr ;
+    
+    /**
+     * 
+     * xml name: concurrency
+     *  
+     */
+    
+    public java.lang.Integer getConcurrency(){
+      return _concurrency;
+    }
+
+    
+    public void setConcurrency(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._concurrency = value;
+           
+    }
+
     
     /**
      * 
@@ -241,6 +267,7 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("concurrency",this.getConcurrency());
         out.putNotNull("exportAllFields",this.isExportAllFields());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("filter",this.getFilter());
@@ -259,6 +286,7 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
     protected void copyTo(ExportTableConfig instance){
         super.copyTo(instance);
         
+        instance.setConcurrency(this.getConcurrency());
         instance.setExportAllFields(this.isExportAllFields());
         instance.setFields(this.getFields());
         instance.setFilter(this.getFilter());

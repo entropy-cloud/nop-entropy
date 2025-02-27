@@ -139,6 +139,18 @@ java -jar nop-cli.jar repackage -i=app -o=my-tool.jar
 
 repackage指令将根据输入目录下的`_vfs`目录以及`application.yaml`、`bootstrap.yaml`文件，把它们打包到当前`nop-cli.jar`包中，输出一个新的可执行的jar包。
 
+## 数据库导入导出
+
+```
+java -jar nop-cl.jar export-db test.export-db.xml -o=data
+```
+根据`export-db.xml`中的配置，将数据库中的数据导出到data目录下，可以选择导出为csv或者sql格式。导出时可以执行字段重命名，值的变换等操作。可以选择只导出部分字段。
+
+```
+java -jar nop-cl.jar import-db test.import-db.xml -i=data
+```
+从data目录下导入数据到指定数据库中，导入时可以按照keyFields去重，并可以选择是否允许更新，还是只允许插入。导入时可以进行字段重命名和值的变换。可以选择只导入部分字段。
+
 ## 常见问题
 
 1. 如何调整日志输出级别

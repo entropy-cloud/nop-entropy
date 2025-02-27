@@ -41,6 +41,13 @@
         </ioc:condition>
     </bean>
 
+    <bean id="nopDataSourceFactory" ioc:default="true"
+          class="io.nop.dao.jdbc.datasource.HikariDataSourceFactory">
+        <ioc:condition>
+            <on-class>com.zaxxer.hikari.HikariDataSource</on-class>
+        </ioc:condition>
+    </bean>
+
     <!--
     数据源通用的配置使用nop.datasource.max-size等，而hikari独特的配置可以使用nop.datasource.hikari.xx
     -->

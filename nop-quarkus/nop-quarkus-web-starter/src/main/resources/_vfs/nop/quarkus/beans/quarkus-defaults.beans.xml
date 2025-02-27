@@ -7,6 +7,12 @@
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd"
 >
 
+    <bean id="nopDataSourceFactory" class="io.nop.quarkus.core.dao.AgroalDataSourceFactory">
+        <ioc:condition>
+            <missing-class>com.zaxxer.hikari.HikariDataSource</missing-class>
+        </ioc:condition>
+    </bean>
+
     <bean id="io.nop.quarkus.core.dao.AgroalDataSourceFactoryBean" ioc:type="@bean:id" name="nopDataSource"
           feature:off="nop.datasource.disabled || nop.dao.use-parent-data-source">
         <ioc:condition>
@@ -23,8 +29,8 @@
                 <property name="username" value="${nop.datasource.username}"/>
                 <property name="password" value="${nop.datasource.password:}"/>
                 <property name="connectionTimeout" value="@cfg:nop.datasource.connection-timeout|10000"/>
-                <property name="idleTimeout" value="@cfg:nop.datasource.idle-timeout|600000" />
-                <property name="maxLifetime" value="@cfg:nop.datasource.max-lifetime|3600000" />
+                <property name="idleTimeout" value="@cfg:nop.datasource.idle-timeout|600000"/>
+                <property name="maxLifetime" value="@cfg:nop.datasource.max-lifetime|3600000"/>
             </bean>
         </property>
     </bean>

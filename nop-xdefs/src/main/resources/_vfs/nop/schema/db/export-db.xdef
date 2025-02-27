@@ -7,10 +7,10 @@
 <export-db x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
            xmlns:xdef="/nop/schema/xdef.xdef"
 
-           threadCount="!int=0" batchSize="!int=0"
+           threadCount="!int=0" batchSize="!int=0" concurrencyPerTable="int"
            schemaPattern="string" tableNamePattern="string" exportAllTables="!boolean=false"
            xdef:name="ExportDbConfig" xdef:bean-package="io.nop.dbtool.exp.config"
-           exportFormats="csv-set"  fetchSize="int"
+           exportFormats="csv-set" fetchSize="int"
 >
     <jdbc-connection xdef:ref="jdbc-connection.xdef" xdef:support-extends="true"/>
 
@@ -19,13 +19,15 @@
     <!-- 排除某些表不导出 -->
     <excludeTableNames xdef:value="csv-set"/>
 
+    <checkExportable xdef:value="xpl-fn:(table)=>boolean"/>
+
     <tables xdef:body-type="list" xdef:key-attr="name">
         <!--
         @name 导出到文件中的目标表名。所有的表名应该只使用小写字符。
         @from 来源表名，如果不指定，与name相同。
         @exportAllFields 如果设置为true，则导出表中所有字段，即使在fields段中没有定义。否则只导出指定的字段
         -->
-        <table name="!string" from="string"
+        <table name="!string" from="string"  concurrency="int"
                xdef:name="ExportTableConfig" exportAllFields="!boolean=true">
 
             <!-- 可以根据过滤条件只导出部分数据 -->

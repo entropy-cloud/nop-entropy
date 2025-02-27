@@ -24,9 +24,11 @@ import io.nop.batch.jdbc.consumer.JdbcInsertBatchConsumer;
 import io.nop.batch.jdbc.consumer.JdbcKeyDuplicateFilter;
 import io.nop.batch.jdbc.consumer.JdbcUpdateBatchConsumer;
 import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.SyncThreadPoolExecutor;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceLoader;
@@ -37,6 +39,8 @@ import io.nop.core.resource.record.csv.CsvResourceRecordIO;
 import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.IJdbcTemplate;
+import io.nop.dao.jdbc.datasource.DataSourceConfig;
+import io.nop.dao.jdbc.datasource.HikariDataSourceFactory;
 import io.nop.dao.jdbc.impl.JdbcFactory;
 import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dbtool.core.DataBaseMeta;
@@ -48,15 +52,22 @@ import io.nop.dbtool.exp.config.JdbcConnectionConfig;
 import io.nop.dbtool.exp.config.TableFieldConfig;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.OrmEntityModel;
+import io.nop.xlang.api.XLang;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.io.File;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class ImportDbTool {
+    static final Logger LOG = LoggerFactory.getLogger(ImportDbTool.class);
+
     private ImportDbConfig config;
     private Map<String, Object> args;
 
@@ -87,13 +98,23 @@ public class ImportDbTool {
 
     public void syncConfigWithDb() {
         JdbcConnectionConfig conn = config.getJdbcConnection();
-        this.dataSource = conn.buildDataSource();
+        this.dataSource = buildDataSource(conn);
         if (conn.getDialect() == null) {
             this.dialect = DialectManager.instance().getDialectForDataSource(dataSource);
         } else {
             this.dialect = DialectManager.instance().getDialect(conn.getDialect());
         }
         readTableMetas();
+    }
+
+    protected DataSource buildDataSource(JdbcConnectionConfig conn) {
+        if (config.getConcurrencyPerTable() != null || config.getThreadCount() > 0) {
+            DataSourceConfig config = conn.toDataSourceConfig();
+            config.setIdleTimeout(Duration.of(10, ChronoUnit.SECONDS));
+            return new HikariDataSourceFactory().newDataSource(config);
+        } else {
+            return conn.buildDataSource();
+        }
     }
 
     private void readTableMetas() {
@@ -132,7 +153,7 @@ public class ImportDbTool {
         if (old == null) {
             ImportTableConfig tableConfig = new ImportTableConfig();
             tableConfig.setName(name);
-            tableConfig.setKeyFields(table.getPkColumnNames());
+            tableConfig.setKeyFields(table.getPkColumnCodes());
             for (IColumnModel col : table.getColumns()) {
                 TableFieldConfig field = new TableFieldConfig();
                 field.setName(col.getCode());
@@ -144,6 +165,9 @@ public class ImportDbTool {
         } else {
             if (!old.isImportAllFields())
                 return;
+
+            if (old.getKeyFields() == null)
+                old.setKeyFields(table.getPkColumnCodes());
 
             for (IColumnModel col : table.getColumns()) {
                 if (old.hasField(col.getCode()))
@@ -176,12 +200,30 @@ public class ImportDbTool {
 
             List<CompletableFuture<?>> futures = new ArrayList<>();
             for (ImportTableConfig tableConfig : config.getTables()) {
+                if (!isImportable(tableConfig))
+                    continue;
                 futures.add(executor.submit(() -> runTask(tableConfig, dataSource), null));
             }
             FutureHelper.getFromFuture(FutureHelper.waitAll(futures));
         } finally {
             executor.destroy();
+            IoHelper.safeClose(dataSource);
         }
+    }
+
+    private boolean isImportable(ImportTableConfig tableConfig) {
+        if (config.getCheckImportable() == null)
+            return true;
+        return ConvertHelper.toTruthy(config.getCheckImportable()
+                .call1(null, tableConfig, XLang.newEvalScope()));
+    }
+
+    protected int getConcurrency(ImportTableConfig tableConfig) {
+        if (tableConfig.getConcurrency() != null)
+            return tableConfig.getConcurrency();
+        if (config.getConcurrencyPerTable() != null)
+            return config.getConcurrencyPerTable();
+        return 1;
     }
 
     private void runTask(ImportTableConfig tableConfig, DataSource ds) {
@@ -190,6 +232,12 @@ public class ImportDbTool {
         if (loader == null) {
             return;
         }
+
+        int concurrency = getConcurrency(tableConfig);
+        builder.concurrency(concurrency);
+
+        if (concurrency > 1)
+            builder.executor(GlobalExecutors.cachedThreadPool());
 
         IJdbcTemplate jdbc = JdbcFactory.newJdbcTemplateFor(ds);
 
@@ -251,13 +299,27 @@ public class ImportDbTool {
 
         String resourcePath = from + '.' + format;
 
-        IResource resource = inputResourceLoader.getResource(resourcePath);
-        if (!resource.exists())
+        IResource resource = getResource(resourcePath);
+        if (!resource.exists()) {
+            LOG.info("nop.import.ignore-table-since-no-data-file:file={}", resourcePath);
             return null;
+        }
 
         CsvResourceRecordIO<Map<String, Object>> recordIO = new CsvResourceRecordIO<>();
         recordIO.setRecordType(Map.class);
         return newResourceLoader(recordIO, tableConfig, resourcePath);
+    }
+
+    protected IResource getResource(String resourcePath) {
+        IResource resource = inputResourceLoader.getResource(resourcePath);
+        if (!resource.exists()) {
+            if (resourcePath.endsWith(".csv")) {
+                IResource gzResource = inputResourceLoader.getResource(resourcePath + ".gz");
+                if (gzResource.exists())
+                    return gzResource;
+            }
+        }
+        return resource;
     }
 
     private IBatchConsumerProvider<Map<String, Object>> newConsumer(ImportTableConfig tableConfig,

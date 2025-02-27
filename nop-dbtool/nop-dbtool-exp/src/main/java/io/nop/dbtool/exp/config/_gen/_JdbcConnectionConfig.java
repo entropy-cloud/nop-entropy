@@ -46,6 +46,13 @@ public abstract class _JdbcConnectionConfig extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: maxConnections
+     * 
+     */
+    private java.lang.Integer _maxConnections ;
+    
+    /**
+     *  
      * xml name: password
      * 
      */
@@ -136,6 +143,25 @@ public abstract class _JdbcConnectionConfig extends io.nop.core.resource.compone
     
     /**
      * 
+     * xml name: maxConnections
+     *  
+     */
+    
+    public java.lang.Integer getMaxConnections(){
+      return _maxConnections;
+    }
+
+    
+    public void setMaxConnections(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._maxConnections = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: password
      *  
      */
@@ -191,6 +217,7 @@ public abstract class _JdbcConnectionConfig extends io.nop.core.resource.compone
         out.putNotNull("dialect",this.getDialect());
         out.putNotNull("driverClassName",this.getDriverClassName());
         out.putNotNull("jdbcUrl",this.getJdbcUrl());
+        out.putNotNull("maxConnections",this.getMaxConnections());
         out.putNotNull("password",this.getPassword());
         out.putNotNull("username",this.getUsername());
     }
@@ -208,6 +235,7 @@ public abstract class _JdbcConnectionConfig extends io.nop.core.resource.compone
         instance.setDialect(this.getDialect());
         instance.setDriverClassName(this.getDriverClassName());
         instance.setJdbcUrl(this.getJdbcUrl());
+        instance.setMaxConnections(this.getMaxConnections());
         instance.setPassword(this.getPassword());
         instance.setUsername(this.getUsername());
     }
