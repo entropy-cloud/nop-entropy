@@ -202,7 +202,7 @@ public class XplStdDomainHandlers {
                 // xpl模板不能保证只有单个节点
                 XNode node = XNodeParser.instance().forFragments(true).parseFromText(loc, str);
                 if (node.getChildCount() == 1) {
-                    return node.child(0);
+                    return node.child(0).detach();
                 }
                 return node;
             }
