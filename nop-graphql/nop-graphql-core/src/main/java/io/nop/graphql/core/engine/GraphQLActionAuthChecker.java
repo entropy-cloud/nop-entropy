@@ -24,6 +24,7 @@ import io.nop.graphql.core.ast.GraphQLSelectionSet;
 import static io.nop.auth.api.AuthApiErrors.ARG_OBJ_TYPE_NAME;
 import static io.nop.auth.api.AuthApiErrors.ARG_PERMISSION;
 import static io.nop.auth.api.AuthApiErrors.ARG_ROLES;
+import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_USER_CONTEXT;
 
 public class GraphQLActionAuthChecker {
     // static final Logger LOG = LoggerFactory.getLogger(GraphQLActionAuthChecker.class);
@@ -31,9 +32,7 @@ public class GraphQLActionAuthChecker {
     public static GraphQLActionAuthChecker INSTANCE = new GraphQLActionAuthChecker();
 
     public void check(IGraphQLExecutionContext context) {
-        IUserContext userContext = context.getUserContext();
-        if (userContext == null)
-            return;
+        // 在这里不判断UserContext是否为null。 checkAuth内部再进行判断。只有public的operation才允许userContext为null
 
         IActionAuthChecker checker = context.getActionAuthChecker();
         if (checker == null)
@@ -52,12 +51,12 @@ public class GraphQLActionAuthChecker {
 
             checkAuth(objTypeName, selection, checker, context.getServiceContext(), true);
 
-            checkSelectionSet(selection.getSelectionSet(), subSelection, checker, userContext, context);
+            checkSelectionSet(selection.getSelectionSet(), subSelection, checker, context);
         }
     }
 
     void checkSelectionSet(GraphQLSelectionSet selectionSet, FieldSelectionBean selectionBean,
-                           IActionAuthChecker checker, IUserContext userContext, IGraphQLExecutionContext context) {
+                           IActionAuthChecker checker, IGraphQLExecutionContext context) {
         if (selectionSet == null)
             return;
 
@@ -67,7 +66,7 @@ public class GraphQLActionAuthChecker {
             if (selection instanceof GraphQLFragmentSelection) {
                 GraphQLFragmentSelection fragmentSelection = (GraphQLFragmentSelection) selection;
                 checkSelectionSet(fragmentSelection.getResolvedFragment().getSelectionSet(), selectionBean, checker,
-                        userContext, context);
+                        context);
             } else {
                 GraphQLFieldSelection fieldSelection = (GraphQLFieldSelection) selection;
                 FieldSelectionBean subSelection = selectionBean.getField(fieldSelection.getAliasOrName());
@@ -75,7 +74,7 @@ public class GraphQLActionAuthChecker {
                     continue;
 
                 if (checkAuth(objTypeName, fieldSelection, checker, context.getServiceContext(), false)) {
-                    checkSelectionSet(fieldSelection.getSelectionSet(), subSelection, checker, userContext, context);
+                    checkSelectionSet(fieldSelection.getSelectionSet(), subSelection, checker, context);
                 } else {
                     selectionBean.removeField(fieldSelection.getAliasOrName());
                 }
@@ -95,7 +94,9 @@ public class GraphQLActionAuthChecker {
 
         IUserContext userContext = context.getUserContext();
         if (userContext == null)
-            throw new IllegalStateException("nop.err.auth.no-user-context");
+            throw new NopException(ERR_AUTH_NO_USER_CONTEXT)
+                    .param(AuthApiErrors.ARG_ACTION_NAME, fieldName)
+                    .param(ARG_OBJ_TYPE_NAME, objTypeName);
 
         if (action) {
             throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION)

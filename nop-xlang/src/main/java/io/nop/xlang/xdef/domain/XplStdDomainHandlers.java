@@ -199,7 +199,11 @@ public class XplStdDomainHandlers {
                 if (StringHelper.isBlank(str))
                     return null;
 
-                XNode node = XNodeParser.instance().parseFromText(loc, str);
+                // xpl模板不能保证只有单个节点
+                XNode node = XNodeParser.instance().forFragments(true).parseFromText(loc, str);
+                if (node.getChildCount() == 1) {
+                    return node.child(0);
+                }
                 return node;
             }
             return XNode.fromValue(value);

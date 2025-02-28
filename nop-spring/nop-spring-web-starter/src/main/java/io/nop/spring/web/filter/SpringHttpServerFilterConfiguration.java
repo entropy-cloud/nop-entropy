@@ -72,34 +72,43 @@ public class SpringHttpServerFilterConfiguration {
         return appFilter;
     }
 
+    class NopHttpServerFilter extends OncePerRequestFilter {
+        private final boolean sys;
+
+        public NopHttpServerFilter(boolean sys) {
+            this.sys = sys;
+        }
+
+        @Override
+        protected String getFilterName() {
+            return "nop-web-filter-" + (sys ? "sys" : "app");
+        }
+
+        @Override
+        protected void doFilterInternal(@Nonnull HttpServletRequest request,
+                                        @Nonnull HttpServletResponse response,
+                                        @Nonnull FilterChain filterChain) throws ServletException, IOException {
+            List<IHttpServerFilter> serverFilters = getFilters(sys);
+
+            if (serverFilters.isEmpty()) {
+                filterChain.doFilter(request, response);
+            } else {
+                IHttpServerContext ctx = new ServletHttpServerContext(request,
+                        response);
+                HttpServerHelper.runWithFilters(serverFilters, ctx, () -> {
+                    return FutureHelper.futureCall(() -> {
+                        filterChain.doFilter(request, response);
+                        return null;
+                    });
+                });
+            }
+
+        }
+    }
+
     FilterRegistrationBean<Filter> createFilter(boolean sys, int filterOrder) {
         FilterRegistrationBean<Filter> bean = new FilterRegistrationBean<>();
-        bean.setFilter(new OncePerRequestFilter() {
-            @Override
-            protected String getFilterName() {
-                return "nop-web-filter-" + (sys ? "sys" : "app");
-            }
-
-            @Override
-            protected void doFilterInternal(@Nonnull HttpServletRequest request,
-                                            @Nonnull HttpServletResponse response,
-                                            @Nonnull FilterChain filterChain) throws ServletException, IOException {
-                List<IHttpServerFilter> serverFilters = getFilters(sys);
-
-                if (serverFilters.isEmpty()) {
-                    filterChain.doFilter(request, response);
-                } else {
-                    IHttpServerContext ctx = new ServletHttpServerContext(request,
-                            response);
-                    HttpServerHelper.runWithFilters(serverFilters, ctx, () -> {
-                        return FutureHelper.futureCall(() -> {
-                            filterChain.doFilter(request, response);
-                            return null;
-                        });
-                    });
-                }
-            }
-        });
+        bean.setFilter(new NopHttpServerFilter(sys));
 
         // 设置优先级为正常，系统可以在前面增加过滤器？
         bean.setOrder(filterOrder);
