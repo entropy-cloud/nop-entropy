@@ -261,8 +261,10 @@ public class BatchTask<S> implements IBatchTask {
         Object meter = metrics == null ? null : metrics.beginChunk();
 
         long beginTime = CoreMetrics.currentTimeMillis();
-        LOG.info("nop.batch.process-chunk-begin:taskName={},taskId={},taskKey={},threadIndex={}",
-                context.getTaskName(), context.getTaskId(), context.getTaskKey(), threadIndex);
+        LOG.info("nop.batch.process-chunk-begin:taskName={},taskId={},taskKey={},threadIndex={},processCount={}.skipCount={},retryCount={},completeCount={},completedIndex={}",
+                context.getTaskName(), context.getTaskId(), context.getTaskKey(), threadIndex,
+                context.getProcessItemCount(), context.getSkipItemCount(), context.getRetryItemCount(),
+                context.getCompleteItemCount(), context.getCompletedIndex());
 
         boolean syncCount = false;
         ProcessResult result;
@@ -307,8 +309,10 @@ public class BatchTask<S> implements IBatchTask {
             throw e;
         } finally {
             long endTime = CoreMetrics.currentTimeMillis();
-            LOG.info("nop.batch.process-chunk-end:taskName={},taskId={},taskKey={},threadIndex={},usedTime={}", context.getTaskName(),
-                    context.getTaskId(), context.getTaskKey(), threadIndex, endTime - beginTime);
+            LOG.info("nop.batch.process-chunk-end:taskName={},taskId={},taskKey={},threadIndex={},usedTime={},processCount={}.skipCount={},retryCount={},completeCount={},completedIndex={}", context.getTaskName(),
+                    context.getTaskId(), context.getTaskKey(), threadIndex, endTime - beginTime,
+                    context.getProcessItemCount(), context.getCompleteItemCount(), context.getRetryItemCount(),
+                    context.getCompleteItemCount(), context.getCompletedIndex());
 
             if (metrics != null)
                 metrics.endChunk(meter, success);

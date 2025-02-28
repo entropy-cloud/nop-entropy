@@ -379,7 +379,7 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
 
         // 保存处理历史，避免重复处理
         if (historyStore != null)
-            consumer = new WithHistoryBatchConsumer<>(historyStore, consumer, historyConsumer.setup(context));
+            consumer = new WithHistoryBatchConsumer<>(historyStore, consumer, historyConsumer == null ? null : historyConsumer.setup(context));
 
         // 在process和consume阶段打开事务
         if (batchTransactionScope == BatchTransactionScope.process && transactionalInvoker != null) {

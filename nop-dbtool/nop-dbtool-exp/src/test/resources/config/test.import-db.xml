@@ -1,0 +1,17 @@
+<import-db x:schema="/nop/schema/db/import-db.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+           threadCount="4" importAllTables="false" concurrencyPerTable="1">
+
+    <jdbc-connection
+            username="nop" password="nop-test">
+        <driverClassName>com.mysql.cj.jdbc.Driver</driverClassName>
+        <jdbcUrl><![CDATA[
+			jdbc:mysql://127.0.0.1:3306/ry-vue?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC
+		]]></jdbcUrl>
+    </jdbc-connection>
+
+    <tables>
+        <table name="sys_menu" importAllFields="true" allowUpdate="false">
+            <keyFields>MENU_ID</keyFields>
+        </table>
+    </tables>
+</import-db>

@@ -74,6 +74,13 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: maxSkipCount
+     * 
+     */
+    private java.lang.Integer _maxSkipCount ;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -266,6 +273,25 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     
     /**
      * 
+     * xml name: maxSkipCount
+     *  
+     */
+    
+    public java.lang.Integer getMaxSkipCount(){
+      return _maxSkipCount;
+    }
+
+    
+    public void setMaxSkipCount(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._maxSkipCount = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: name
      *  
      */
@@ -327,6 +353,7 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
         out.putNotNull("from",this.getFrom());
         out.putNotNull("importAllFields",this.isImportAllFields());
         out.putNotNull("keyFields",this.getKeyFields());
+        out.putNotNull("maxSkipCount",this.getMaxSkipCount());
         out.putNotNull("name",this.getName());
         out.putNotNull("transformExpr",this.getTransformExpr());
     }
@@ -348,6 +375,7 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
         instance.setFrom(this.getFrom());
         instance.setImportAllFields(this.isImportAllFields());
         instance.setKeyFields(this.getKeyFields());
+        instance.setMaxSkipCount(this.getMaxSkipCount());
         instance.setName(this.getName());
         instance.setTransformExpr(this.getTransformExpr());
     }

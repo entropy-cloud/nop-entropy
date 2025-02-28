@@ -1,0 +1,21 @@
+<export-db x:schema="/nop/schema/db/export-db.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+           threadCount="4" exportFormats="csv.gz">
+
+    <jdbc-connection
+            username="nop" password="nop-test">
+        <driverClassName>com.mysql.cj.jdbc.Driver</driverClassName>
+        <jdbcUrl><![CDATA[
+			jdbc:mysql://127.0.0.1:3306/ry-vue?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC
+		]]></jdbcUrl>
+    </jdbc-connection>
+
+    <tables>
+        <table name="sys_role">
+        </table>
+
+        <table name="sys_user"/>
+
+        <table name="sys_menu"/>
+
+    </tables>
+</export-db>

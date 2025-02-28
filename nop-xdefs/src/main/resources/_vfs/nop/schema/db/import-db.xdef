@@ -24,7 +24,7 @@
         @allowUpdate 导入的时候如果根据keyFields查询到的记录已存在，在更新行。如果不设置或者设置为false，则数据重复时会忽略该行
         -->
         <table name="!string" from="string" format="string" xdef:name="ImportTableConfig" concurrency="int"
-               importAllFields="!boolean=true" allowUpdate="boolean">
+               importAllFields="!boolean=true" allowUpdate="boolean" maxSkipCount="int">
 
             <!-- 用于指定记录对应的唯一键 -->
             <keyFields xdef:value="csv-list"/>

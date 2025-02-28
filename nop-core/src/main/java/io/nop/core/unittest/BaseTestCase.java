@@ -326,6 +326,10 @@ public class BaseTestCase {
         return new File(getSrcDir(), "test/resources");
     }
 
+    public File getTestResourceFile(String fileName) {
+        return new File(getTestResourcesDir(), fileName);
+    }
+
     public IResource testResource(String name) {
         // String path = StringHelper.filePath(getClass().getName().replace('.', '/'));
         File file = new File(getTestResourcesDir(), name);

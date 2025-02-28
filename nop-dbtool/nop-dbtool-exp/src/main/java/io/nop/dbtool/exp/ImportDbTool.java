@@ -10,6 +10,7 @@ package io.nop.dbtool.exp;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
+import io.nop.batch.core.BatchSkipPolicy;
 import io.nop.batch.core.BatchTaskBuilder;
 import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchLoaderProvider;
@@ -75,9 +76,14 @@ public class ImportDbTool {
 
     private IDialect dialect;
     private DataSource dataSource;
+    private boolean needClose;
 
     public void setConfig(ImportDbConfig config) {
         this.config = config;
+    }
+
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
     public ImportDbConfig getConfig() {
@@ -98,7 +104,10 @@ public class ImportDbTool {
 
     public void syncConfigWithDb() {
         JdbcConnectionConfig conn = config.getJdbcConnection();
-        this.dataSource = buildDataSource(conn);
+        if (this.dataSource == null) {
+            this.needClose = true;
+            this.dataSource = buildDataSource(conn);
+        }
         if (conn.getDialect() == null) {
             this.dialect = DialectManager.instance().getDialectForDataSource(dataSource);
         } else {
@@ -197,7 +206,6 @@ public class ImportDbTool {
         }
 
         try {
-
             List<CompletableFuture<?>> futures = new ArrayList<>();
             for (ImportTableConfig tableConfig : config.getTables()) {
                 if (!isImportable(tableConfig))
@@ -207,7 +215,10 @@ public class ImportDbTool {
             FutureHelper.getFromFuture(FutureHelper.waitAll(futures));
         } finally {
             executor.destroy();
-            IoHelper.safeClose(dataSource);
+            if (needClose) {
+                IoHelper.safeClose(dataSource);
+                dataSource = null;
+            }
         }
     }
 
@@ -245,6 +256,9 @@ public class ImportDbTool {
         if (config.getBatchSize() > 0)
             builder.batchSize(config.getBatchSize());
 
+        if (tableConfig.getMaxSkipCount() != null)
+            builder.skipPolicy(new BatchSkipPolicy().maxSkipCount(tableConfig.getMaxSkipCount()));
+
         builder.processor(newProcessor(tableConfig));
         Map<String, IDataParameterBinder> binders = getColBinders(tableConfig.getFields());
         IBatchConsumerProvider<Map<String, Object>> consumer = newConsumer(tableConfig, jdbc, binders);
@@ -266,6 +280,7 @@ public class ImportDbTool {
         builder.consumer(consumer);
 
         IBatchTaskContext context = new BatchTaskContextImpl();
+        context.setTaskName(tableConfig.getName());
         if (args != null)
             context.getEvalScope().setLocalValues(args);
 
@@ -294,7 +309,6 @@ public class ImportDbTool {
         String format = tableConfig.getFormat();
         if (format == null) {
             format = "csv";
-            tableConfig.setFormat(format);
         }
 
         String resourcePath = from + '.' + format;
@@ -307,7 +321,7 @@ public class ImportDbTool {
 
         CsvResourceRecordIO<Map<String, Object>> recordIO = new CsvResourceRecordIO<>();
         recordIO.setRecordType(Map.class);
-        return newResourceLoader(recordIO, tableConfig, resourcePath);
+        return newResourceLoader(recordIO, tableConfig, resource.getName());
     }
 
     protected IResource getResource(String resourcePath) {
