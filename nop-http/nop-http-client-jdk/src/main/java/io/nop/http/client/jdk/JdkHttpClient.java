@@ -24,6 +24,7 @@ import io.nop.http.api.client.IHttpClient;
 import io.nop.http.api.client.IHttpInputFile;
 import io.nop.http.api.client.IHttpOutputFile;
 import io.nop.http.api.client.IHttpResponse;
+import io.nop.http.api.client.IServerEventResponse;
 import io.nop.http.api.client.UploadOptions;
 import io.nop.http.api.contenttype.ContentType;
 import io.nop.http.api.support.CompositeX509TrustManager;
@@ -39,7 +40,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
@@ -52,13 +52,12 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 
 import static io.nop.http.api.HttpApiErrors.ERR_HTTP_CONNECT_FAIL;
 
@@ -67,6 +66,9 @@ public class JdkHttpClient implements IHttpClient {
 
     private final HttpClientConfig config;
 
+    /**
+     * HttpClient 内部会自动管理连接池，复用连接以减少开销。
+     */
     private HttpClient client;
     private IThreadPoolExecutor executor;
 
@@ -81,7 +83,7 @@ public class JdkHttpClient implements IHttpClient {
     @PostConstruct
     public void start() {
         HttpClient.Builder builder = HttpClient.newBuilder()
-                .version(config.isHttp2() ? HttpClient.Version.HTTP_1_1 : HttpClient.Version.HTTP_2)
+                .version(config.isHttp2() ? HttpClient.Version.HTTP_2 : HttpClient.Version.HTTP_1_1)
                 .followRedirects(config.isFollowRedirects() ? HttpClient.Redirect.NORMAL : HttpClient.Redirect.NEVER);
 
         if (config.getConnectTimeout() != null) {
@@ -95,7 +97,7 @@ public class JdkHttpClient implements IHttpClient {
         if (config.getExecutor() != null) {
             builder.executor(config.getExecutor());
         } else if (config.getThreadPoolSize() > 0) {
-            executor = DefaultThreadPoolExecutor.newExecutor(config.getThreadName(), config.getThreadPoolSize(), 10);
+            executor = DefaultThreadPoolExecutor.newExecutor(config.getThreadName(), config.getThreadPoolSize(), config.getThreadQueueSize());
             builder.executor(executor);
         }
 
@@ -148,6 +150,19 @@ public class JdkHttpClient implements IHttpClient {
 
     @Override
     public CompletionStage<IHttpResponse> fetchAsync(HttpRequest request, ICancelToken cancelTokens) {
+        java.net.http.HttpRequest req = toJdkHttpRequest(request);
+
+        CompletableFuture<HttpResponse<byte[]>> future = client.sendAsync(req,
+                HttpResponse.BodyHandlers.ofByteArray()).exceptionally(this::wrapError);
+        if (cancelTokens != null) {
+            cancelTokens.appendOnCancel(reason -> {
+                future.cancel(false);
+            });
+        }
+        return future.thenApply(this::toHttpResponse);
+    }
+
+    protected java.net.http.HttpRequest toJdkHttpRequest(HttpRequest request) {
         java.net.http.HttpRequest.Builder builder = java.net.http.HttpRequest.newBuilder();
         String method = request.getMethod();
         if (method == null) {
@@ -189,26 +204,15 @@ public class JdkHttpClient implements IHttpClient {
         builder.uri(toURI(request.getUrlWithParams()));
 
         java.net.http.HttpRequest req = builder.build();
-        logRequest(req,body);
-
-        CompletableFuture<HttpResponse<byte[]>> future = client.sendAsync(req,
-                HttpResponse.BodyHandlers.ofByteArray()).exceptionally(this::wrapError);
-        if (cancelTokens != null) {
-            cancelTokens.appendOnCancel(reason -> {
-                future.cancel(false);
-            });
-        }
-        return future.thenApply(this::toHttpResponse);
+        logRequest(req, body);
+        return req;
     }
 
     public HttpResponse<byte[]> wrapError(Throwable e) {
-        if (e instanceof CompletionException) {
-            e = e.getCause();
-        }
-        LOG.info("nop.err.http.error", e);
-        if (e instanceof ConnectException)
-            throw new NopConnectException(ERR_HTTP_CONNECT_FAIL);
-        throw NopException.adapt(e);
+        RuntimeException exp = JdkHttpClientHelper.wrapException(e);
+
+        LOG.info("nop.err.http.error", exp);
+        throw exp;
     }
 
     private void logRequest(java.net.http.HttpRequest req, Object body) {
@@ -302,12 +306,12 @@ public class JdkHttpClient implements IHttpClient {
     }
 
     Map<String, String> toMap(HttpHeaders headers) {
-        Map<String, String> ret = new HashMap<>();
-        for (String name : headers.map().keySet()) {
-            Optional<String> value = headers.firstValue(name);
-            value.ifPresent(s -> ret.put(name, s));
-        }
-        return ret;
+        return JdkHttpClientHelper.getHeaders(headers);
+    }
+
+    @Override
+    public Flow.Publisher<IServerEventResponse> fetchServerEventFlow(HttpRequest request, ICancelToken cancelToken) {
+        return new ServerEventPublisher(client, toJdkHttpRequest(request), cancelToken);
     }
 
     @Override

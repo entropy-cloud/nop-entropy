@@ -11,6 +11,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 
 /**
  * k8s的java sdk使用了okhttp。aliyun sdk使用了apache httpcomponent。
@@ -20,6 +21,10 @@ public interface IHttpClient {
 
     default IHttpResponse fetch(HttpRequest request, ICancelToken cancelToken) {
         return FutureHelper.syncGet(fetchAsync(request, cancelToken));
+    }
+
+    default Flow.Publisher<IServerEventResponse> fetchServerEventFlow(HttpRequest request, ICancelToken cancelToken) {
+        throw new UnsupportedOperationException();
     }
 
     CompletionStage<Void> downloadAsync(HttpRequest request, IHttpOutputFile targetFile, DownloadOptions options,

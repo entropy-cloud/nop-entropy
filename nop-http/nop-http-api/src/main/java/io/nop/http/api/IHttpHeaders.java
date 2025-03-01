@@ -18,7 +18,10 @@ public interface IHttpHeaders {
 
     Map<String, String> getHeaders();
 
-    String getHeader(String name);
+    default String getHeader(String name) {
+        Map<String, String> headers = getHeaders();
+        return headers.get(name);
+    }
 
     default Long getHeaderAsLong(String name) {
         return ConvertHelper.toLong(getHeader(name), err -> new NopException(err).param(ARG_HEADER, name));

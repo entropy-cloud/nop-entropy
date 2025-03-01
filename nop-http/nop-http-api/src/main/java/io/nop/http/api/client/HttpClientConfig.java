@@ -67,6 +67,7 @@ public class HttpClientConfig {
 
     private String threadName = "nop-http-client";
     private int threadPoolSize;
+    private int threadQueueSize = 10;
     private Executor executor;
 
     public int getIoThreadCount() {
@@ -91,6 +92,14 @@ public class HttpClientConfig {
 
     public void setThreadPoolSize(int threadPoolSize) {
         this.threadPoolSize = threadPoolSize;
+    }
+
+    public int getThreadQueueSize() {
+        return threadQueueSize;
+    }
+
+    public void setThreadQueueSize(int threadQueueSize) {
+        this.threadQueueSize = threadQueueSize;
     }
 
     public Executor getExecutor() {
