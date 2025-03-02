@@ -20,6 +20,7 @@
               promptTokensPath="prompt_eval_count"
               completionTokensPath="eval_count"
               statusPath="done"
+              errorPath="error"
     />
 
 </llm>

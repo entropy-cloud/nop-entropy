@@ -527,6 +527,15 @@ public class FutureHelper {
         }
     }
 
+    public static void bindCancelToken(ICancelToken cancelToken, Consumer<String> cleanup, CompletionStage<?> promise) {
+        if (cancelToken != null) {
+            cancelToken.appendOnCancel(cleanup);
+            promise.whenComplete((ret, err) -> {
+                cancelToken.removeOnCancel(cleanup);
+            });
+        }
+    }
+
     public static <T> CompletionStage<T> executeWithThrottling(Supplier<CompletionStage<T>> task, Semaphore limit) {
         if (limit == null)
             return task.get();
@@ -560,5 +569,13 @@ public class FutureHelper {
         if (err != null)
             return reject(err);
         return success(result);
+    }
+
+    public static <T> ResolvedPromise<T> safeInvoke(Callable<T> task) {
+        try {
+            return ResolvedPromise.success(task.call());
+        } catch (Exception e) {
+            return ResolvedPromise.exception(e);
+        }
     }
 }

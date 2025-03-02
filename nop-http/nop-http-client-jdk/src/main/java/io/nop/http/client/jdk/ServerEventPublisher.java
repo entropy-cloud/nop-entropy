@@ -1,10 +1,14 @@
 package io.nop.http.client.jdk;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.api.core.util.ResolvedPromise;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
+import io.nop.commons.util.IoHelper;
 import io.nop.http.api.client.DefaultServerEventResponse;
 import io.nop.http.api.client.IServerEventResponse;
+import io.nop.http.api.utils.HttpHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +23,11 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Flow;
-import java.util.function.Consumer;
+
+import static io.nop.http.api.HttpApiErrors.ARG_BODY;
+import static io.nop.http.api.HttpApiErrors.ARG_EXCEPTION;
+import static io.nop.http.api.HttpApiErrors.ARG_HTTP_STATUS;
+import static io.nop.http.api.HttpApiErrors.ERR_HTTP_RESPONSE_ERROR;
 
 public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse> {
     static final Logger LOG = LoggerFactory.getLogger(ServerEventPublisher.class);
@@ -54,8 +62,6 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
         private long demand;
         private CompletableFuture<HttpResponse<InputStream>> future;
 
-        private Consumer<String> onCancel = this::cleanup;
-
         ServerEventSubscription(
                 Flow.Subscriber<? super IServerEventResponse> subscriber
         ) {
@@ -87,14 +93,10 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
         }
 
         private void startRequest() {
-            // 注册取消回调
-            if (cancelToken != null)
-                cancelToken.appendOnCancel(onCancel);
-
             // 发送异步HTTP请求
             future = client.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream());
 
-            future.whenComplete((response, ex) -> {
+            CompletableFuture<?> promise = future.whenComplete((response, ex) -> {
                 if (ex != null) {
                     subscriber.onError(wrapException(ex));
                     return;
@@ -102,6 +104,9 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
 
                 processResponse(response);
             });
+
+            FutureHelper.bindCancelToken(cancelToken, this::cleanup, promise);
+
         }
 
         private void processResponse(HttpResponse<InputStream> response) {
@@ -110,6 +115,14 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
             InputStream in = response.body();
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+
+            if (!HttpHelper.isOk(status)) {
+                ResolvedPromise<String> result = FutureHelper.safeInvoke(() -> IoHelper.readText(reader));
+                throw new NopException(ERR_HTTP_RESPONSE_ERROR)
+                        .param(ARG_HTTP_STATUS, status)
+                        .param(ARG_BODY, result.getResult())
+                        .param(ARG_EXCEPTION, result.getException());
+            }
 
             executor().execute(() -> {
                 if (isCancelled)
@@ -132,9 +145,6 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
                     subscriber.onComplete();
                 } catch (Exception e) {
                     if (!isCancelled) subscriber.onError(wrapException(e));
-                } finally {
-                    if (cancelToken != null)
-                        cancelToken.removeOnCancel(onCancel);
                 }
             });
         }
