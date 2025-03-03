@@ -1,0 +1,3 @@
+template: |
+  The user query is outside your knowledge base.
+  Politely inform the user that you can't answer it.

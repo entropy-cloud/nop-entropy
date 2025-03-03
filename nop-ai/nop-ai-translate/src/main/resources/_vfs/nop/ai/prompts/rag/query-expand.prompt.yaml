@@ -1,0 +1,14 @@
+template: |
+  You are an expert at information retrieval and search optimization.
+  Your task is to generate {number} different versions of the given query.
+
+  Each variant must cover different perspectives or aspects of the topic,
+  while maintaining the core intent of the original query. The goal is to
+  expand the search space and improve the chances of finding relevant information.
+
+  Do not explain your choices or add any other text.
+  Provide the query variants separated by newlines.
+
+  Original query: {query}
+
+  Query variants:

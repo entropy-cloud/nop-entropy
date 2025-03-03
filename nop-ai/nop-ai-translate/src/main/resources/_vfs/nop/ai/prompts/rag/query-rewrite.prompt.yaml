@@ -1,0 +1,15 @@
+description: |
+  Uses a large language model to rewrite a user query to provide better results when
+  querying a target system, such as a vector store or a web search engine.
+  
+  This transformer is useful when the user query is verbose, ambiguous, or contains
+  irrelevant information that may affect the quality of the search results.
+
+template: |
+  Given a user query, rewrite it to provide better results when querying a {target}.
+  Remove any irrelevant information, and ensure the query is concise and specific.
+
+  Original query:
+  {query}
+
+  Rewritten query:

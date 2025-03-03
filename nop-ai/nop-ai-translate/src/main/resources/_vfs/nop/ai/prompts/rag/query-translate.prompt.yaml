@@ -1,0 +1,9 @@
+template: |
+  Given a user query, translate it to {targetLanguage}.
+  If the query is already in {targetLanguage}, return it unchanged.
+  If you don't know the language of the query, return it unchanged.
+  Do not add explanations nor any other text.
+
+  Original query: {query}
+
+  Translated query:

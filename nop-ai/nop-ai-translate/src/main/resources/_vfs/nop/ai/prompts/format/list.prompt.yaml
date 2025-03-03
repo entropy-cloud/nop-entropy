@@ -1,0 +1,3 @@
+template: |
+  Respond with only a list of comma-separated values, without any leading or trailing text.
+  Example format: foo, bar, baz

@@ -1,0 +1,12 @@
+template: |
+  Given the following conversation history and a follow-up query, your task is to synthesize
+  a concise, standalone query that incorporates the context from the history.
+  Ensure the standalone query is clear, specific, and maintains the user's intent.
+
+  Conversation history:
+  {history}
+
+  Follow-up query:
+  {query}
+
+  Standalone query:

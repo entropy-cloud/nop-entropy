@@ -17,7 +17,10 @@ package io.nop.ai.core.api.messages;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import io.nop.ai.core.api.support.Media;
 import io.nop.ai.core.api.support.Metadata;
+
+import java.util.List;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "role")
 @JsonSubTypes({@JsonSubTypes.Type(value = AiUserMessage.class, name = "user"),
@@ -26,6 +29,8 @@ import io.nop.ai.core.api.support.Metadata;
 })
 public abstract class AiMessage extends Metadata {
     private String messageId;
+
+    private List<Media> media;
 
     public String getMessageId() {
         return messageId;
@@ -39,4 +44,11 @@ public abstract class AiMessage extends Metadata {
 
     public abstract String getContent();
 
+    public List<Media> getMedia() {
+        return media;
+    }
+
+    public void setMedia(List<Media> media) {
+        this.media = media;
+    }
 }
