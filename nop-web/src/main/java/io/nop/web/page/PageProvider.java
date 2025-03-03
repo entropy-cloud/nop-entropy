@@ -13,12 +13,14 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.concurrent.executor.ExecutorHelper;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.i18n.I18nMessageManager;
@@ -40,6 +42,7 @@ import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.web.WebConstants;
+import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdsl.DslModelParser;
 import io.nop.xlang.xdsl.json.XJsonLoader;
 import io.nop.xlang.xmeta.IObjMeta;
@@ -52,9 +55,11 @@ import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
 
@@ -174,6 +179,68 @@ public class PageProvider extends ResourceWithHistoryProvider {
         });
     }
 
+    public void renderPagesTo(PageRenderOptions options, File targetDir) {
+        int threadCount = options.getThreadCount();
+
+        String moduleId = options.getModuleId();
+        if (StringHelper.isEmpty(moduleId))
+            moduleId = "";
+
+        String pattern = options.getPattern();
+        if (StringHelper.isEmpty(pattern))
+            pattern = "pages/*/*.page.yaml";
+
+        Semaphore semaphore = threadCount > 1 ? new Semaphore(threadCount) : null;
+        Executor executor = GlobalExecutors.globalWorker();
+
+        List<CompletableFuture<?>> futures = new ArrayList<>();
+
+        List<IResource> pageFiles = VirtualFileSystem.instance().findAll("/" + moduleId, pattern);
+        for (IResource resource : pageFiles) {
+            if (threadCount > 1) {
+                CompletableFuture<Void> future = ExecutorHelper.throttleExecute(executor, semaphore, () -> {
+                    renderPageTo(resource, options, targetDir);
+                });
+                futures.add(future);
+            } else {
+                renderPageTo(resource, options, targetDir);
+            }
+        }
+        FutureHelper.syncGet(FutureHelper.waitAll(futures));
+    }
+
+    protected void renderPageTo(IResource resource, PageRenderOptions options, File targetDir) {
+        String path = resource.getPath();
+        path = StringHelper.replaceFileExt(path, "json");
+        File file = new File(targetDir, path);
+        Map<String, Object> json = renderPage(resource, options);
+        FileHelper.writeText(file, JsonTool.serialize(json, true), null);
+    }
+
+    protected Map<String, Object> renderPage(IResource resource, PageRenderOptions options) {
+        String locale = options.getLocale();
+        ValueResolverCompilerRegistry resolverRegistry = registry;
+        if (!options.isUseResolver()) {
+            resolverRegistry = null;
+        } else {
+            if (!options.isResolveI18n()) {
+                resolverRegistry = resolverRegistry.copy();
+                resolverRegistry.removeResolverCompiler("i18n");
+            }
+        }
+        PageModel pageModel = loadPage(resource, locale, resolverRegistry, options.isResolveI18n());
+        Map<String, Object> data = pageModel.getData();
+        if (options.isTransformPermissions() && rolePermissionMapping != null) {
+            data = (Map<String, Object>) JsonTransformHelper.transform(data, this::transformPermissions,
+                    this::hasXuiAuth);
+        }
+
+        if (options.getPostProcess() != null) {
+            options.getPostProcess().call1(null, data, XLang.newEvalScope());
+        }
+        return data;
+    }
+
     public Map<String, Object> getPage(String path, String locale) {
         locale = I18nMessageManager.instance().normalizeLocale(locale);
 
@@ -197,7 +264,7 @@ public class PageProvider extends ResourceWithHistoryProvider {
         Set<String> roles = rolePermissionMapping.getRolesWithPermission(permissions);
         Set<String> oldRoles = ConvertHelper.toCsvSet(map.get(WebConstants.ATTR_XUI_ROLES));
         Set<String> merged = CollectionHelper.mergeSet(roles, oldRoles);
-        map.put(WebConstants.ATTR_XUI_ROLES, StringHelper.join(merged,","));
+        map.put(WebConstants.ATTR_XUI_ROLES, StringHelper.join(merged, ","));
         return map;
     }
 
@@ -209,19 +276,18 @@ public class PageProvider extends ResourceWithHistoryProvider {
         int pos = localeAndPath.indexOf('|');
         String locale = localeAndPath.substring(0, pos);
         String path = localeAndPath.substring(pos + 1);
-        return loadPage(path, locale, true);
+        IResource resource = VirtualFileSystem.instance().getResource(path);
+        return loadPage(resource, locale, registry, true);
     }
 
-    private PageModel loadPage(String path, String locale, boolean useResolver) {
+    protected PageModel loadPage(IResource resource, String locale, ValueResolverCompilerRegistry resolverRegistry, boolean resolveI18n) {
         IContext context = ContextProvider.getOrCreateContext();
         String oldLocale = context.getLocale();
         context.setLocale(locale);
         try {
-            IResource resource = VirtualFileSystem.instance().getResource(path);
-
             ResourceComponentManager.instance().traceDepends(resource.getPath());
 
-            DeltaJsonOptions options = XJsonLoader.newOptions(useResolver ? registry : null);
+            DeltaJsonOptions options = XJsonLoader.newOptions(resolverRegistry);
             options.setNormalizeI18nKey(true);
             options.setCleanDelta(true);
 
@@ -230,7 +296,7 @@ public class PageProvider extends ResourceWithHistoryProvider {
             // 删除null值和空集合，简化最终的Page结构
             WebPageHelper.removeNullEntry(map);
             WebPageHelper.normalizeXuiImport(map);
-            WebPageHelper.fixPage(map, locale, useResolver);
+            WebPageHelper.fixPage(map, locale, resolveI18n);
 
             SourceLocation loc = SourceLocation.fromPath(resource.getPath());
             return new PageModel(loc, map);
@@ -244,7 +310,8 @@ public class PageProvider extends ResourceWithHistoryProvider {
      */
     public Map<String, Object> getPageSource(String path) {
         String locale = I18nMessageManager.instance().getDefaultLocale();
-        PageModel page = loadPage(path, locale, false);
+        IResource resource = VirtualFileSystem.instance().getResource(path);
+        PageModel page = loadPage(resource, locale, null, false);
         // 为方便前台的编辑器，i18n作为一个可选特性出现
         JsonI18nHelper.bindExprToI18nKey(page.getData());
         return page.getData();

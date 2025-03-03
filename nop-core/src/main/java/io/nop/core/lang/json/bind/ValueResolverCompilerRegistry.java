@@ -31,6 +31,12 @@ public class ValueResolverCompilerRegistry {
         DEFAULT.addResolverCompiler("empty", EmptyTextResolver::compile);
     }
 
+    public ValueResolverCompilerRegistry copy() {
+        ValueResolverCompilerRegistry registry = new ValueResolverCompilerRegistry();
+        registry.resolvers.putAll(resolvers);
+        return registry;
+    }
+
     public IValueResolverCompiler getResolverCompiler(String type) {
         return resolvers.get(type);
     }
@@ -41,5 +47,9 @@ public class ValueResolverCompilerRegistry {
 
     public void removeResolverCompiler(String type, IValueResolverCompiler resolver) {
         resolvers.remove(type, resolver);
+    }
+
+    public void removeResolverCompiler(String type) {
+        resolvers.remove(type);
     }
 }

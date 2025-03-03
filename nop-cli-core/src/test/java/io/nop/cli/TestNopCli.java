@@ -12,6 +12,7 @@ import io.nop.commons.util.FileHelper;
 import io.nop.core.CoreConfigs;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
+import io.nop.web.page.PageProvider;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Disabled;
@@ -126,5 +127,21 @@ public class TestNopCli extends BaseTestCase {
         app.setFactory(factory);
         int ret = app.run(args);
         assertEquals(0, ret);
+    }
+
+    @Test
+    public void testRenderPages(){
+        CoreInitialization.destroy();
+        String[] args = new String[]{"run", "../nop-cli/demo/scripts/render-pages.xrun",
+                "-i", "{moduleId:'app/demo'}","-o","target/demo"};
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        int ret = app.run(args);
+        assertEquals(0, ret);
+
+        File file = getTargetFile("demo/app/demo/pages/Demo/main.page.json");
+        String text = FileHelper.readText(file, null);
+        assertTrue(text.contains("\"name\": \"b\""));
+        assertTrue(text.contains("\"name\": \"a\""));
     }
 }

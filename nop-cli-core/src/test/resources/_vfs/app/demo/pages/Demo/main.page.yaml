@@ -1,0 +1,10 @@
+x:gen-extends: |
+  <page title="aa">
+    <body>
+      <button name="a" />
+    </body>
+  </page>
+
+body:
+  - type: button
+    name: b

@@ -237,18 +237,25 @@ public class ExecutorHelper {
         return future;
     }
 
-    public static void throttleExecute(Executor executor, Semaphore semaphore, Runnable task) {
+    public static CompletableFuture<Void> throttleExecute(Executor executor, Semaphore semaphore, Runnable task) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
         semaphore.acquireUninterruptibly();
         try {
             executor.execute(() -> {
                 try {
                     task.run();
+                    future.complete(null);
+                } catch (Exception e) {
+                    future.completeExceptionally(e);
                 } finally {
                     semaphore.release();
                 }
             });
         } catch (Exception e) {
             semaphore.release();
+            future.completeExceptionally(e);
         }
+        return future;
     }
 }

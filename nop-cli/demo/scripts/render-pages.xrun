@@ -1,0 +1,14 @@
+<c:script>
+import io.nop.web.page.PageProvider;
+import java.io.File;
+
+const pageProvider = new PageProvider();
+const options = {
+   moduleId: moduleId,
+   resolveI18n: true,
+   useResolver: true,
+   threadCount: 4
+};
+
+pageProvider.renderPagesTo(options, outputDir);
+</c:script>

@@ -27,4 +27,10 @@ public class NopWrapException extends NopException {
     public boolean isWrapException() {
         return true;
     }
+
+    @Override
+    protected void appendInfo(StringBuilder sb) {
+        if (getCause() != this)
+            sb.append(",cause=").append(getCause());
+    }
 }

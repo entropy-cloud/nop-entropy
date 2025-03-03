@@ -45,6 +45,10 @@ public class CliRunCommand implements Callable<Integer> {
 
     @CommandLine.Option(names = {"-i", "--input"}, description = "输入参数")
     String input;
+
+    @CommandLine.Option(names = {"-o", "--output"}, description = "输出目录")
+    File outputDir;
+
     @CommandLine.Option(names = {"-t", "--interval"}, description = "循环运行的时间间隔")
     int interval;
 
@@ -61,6 +65,12 @@ public class CliRunCommand implements Callable<Integer> {
             if (map != null)
                 globalState.putAll(map);
         }
+
+        File output = outputDir;
+        if (output == null)
+            output = FileHelper.currentDir();
+
+        globalState.put("outputDir", output);
 
         runTasks(globalState);
 
