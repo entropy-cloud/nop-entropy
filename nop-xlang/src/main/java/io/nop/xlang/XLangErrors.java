@@ -168,6 +168,8 @@ public interface XLangErrors {
 
     String ARG_ERR_MSG = "errMsg";
 
+    String ARG_CODE = "code";
+
     ErrorCode ERR_EXPR_PARSE_NOT_END_PROPERLY = define("nop.err.xlang.expr.not-end-properly", "解析失败，表达式没有正常结束");
 
     ErrorCode ERR_EXPR_UNSUPPORTED_OP = define("nop.err.xlang.expr.unsupported-op", "不支持的运算符:{op}", ARG_OP);

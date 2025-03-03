@@ -49,6 +49,7 @@ public class TestApacheHttpClient {
     public void testServerEvent() throws Exception {
 
         HttpClientConfig config = new HttpClientConfig();
+        // ollama不支持http2连接
         config.setHttp2(false);
         ApacheHttpClient client = new ApacheHttpClient(config);
         client.start();

@@ -31,6 +31,9 @@ public class NopDynFunctionMetaBizModel extends CrudBizModel<NopDynFunctionMeta>
     protected void afterEntityChange(@Name("entity") NopDynFunctionMeta entity, IServiceContext context, @Name("action") String action) {
         super.afterEntityChange(entity, context, action);
 
+        entity.validateSource();
+
+        entity.getEntityMeta().getFunctionMetas().add(entity);
         codeGen.generateBizModel(entity.getEntityMeta());
     }
 }

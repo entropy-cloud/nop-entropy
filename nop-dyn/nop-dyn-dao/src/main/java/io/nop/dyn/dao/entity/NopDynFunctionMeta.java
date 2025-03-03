@@ -13,8 +13,11 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.dyn.dao.NopDynDaoConstants;
 import io.nop.dyn.dao.entity._gen._NopDynFunctionMeta;
+import io.nop.xlang.api.XLang;
+import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdsl.json.DslModelToXNodeTransformer;
 import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.IObjSchema;
@@ -41,6 +44,16 @@ public class NopDynFunctionMeta extends _NopDynFunctionMeta {
             return source;
         }
         return StringHelper.escapeXml(source);
+    }
+
+    public void validateSource(){
+        String sourceXml = getSourceXml();
+        if(StringHelper.isBlank(sourceXml))
+            return;
+
+        XNode node = XNodeParser.instance().forFragments(true).parseFromText(null, sourceXml);
+        XLangCompileTool tool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
+        tool.compileTagBody(node);
     }
 
     private String buildScriptSource() {
@@ -72,11 +85,11 @@ public class NopDynFunctionMeta extends _NopDynFunctionMeta {
     }
 
     public XNode getFuncMetaNode() {
-        String funcMeta = getFuncMeta();
-        if (StringHelper.isEmpty(funcMeta))
+        // 这里不能直接使用getFuncMeta()。新增实体的时候component上的值还没有更新到实体属性上
+        Map<String,Object> map = getFuncMetaComponent().get_jsonMap();
+        if(map == null)
             return null;
 
-        Map<String, Object> map = (Map<String, Object>) JsonTool.parse(funcMeta);
         map.put("type", getFunctionType());
 
         IObjMeta objMeta = SchemaLoader.loadXMeta(NopDynDaoConstants.XDEF_BIZ);

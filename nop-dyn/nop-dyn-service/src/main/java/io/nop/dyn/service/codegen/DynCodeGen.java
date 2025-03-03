@@ -16,6 +16,7 @@ import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.module.ModuleModel;
+import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceStore;
 import io.nop.core.resource.tenant.ITenantModuleDiscovery;
 import io.nop.core.resource.tenant.ITenantResourceProvider;
@@ -148,6 +149,7 @@ public class DynCodeGen implements ITenantResourceProvider, IDynamicBizModelProv
 
     @Override
     public IResourceStore getTenantResourceStore(String tenantId) {
+
         return getTenantCodeCache(tenantId).getMergedStore();
     }
 
@@ -189,8 +191,15 @@ public class DynCodeGen implements ITenantResourceProvider, IDynamicBizModelProv
 
     }
 
-    public synchronized void generateBizModel(NopDynEntityMeta module) {
-        getCodeCache().generateBizModel(module);
+    public void generateBizModel(NopDynEntityMeta entityMeta) {
+        generateBizModel(entityMeta, true);
+    }
+
+    public synchronized void generateBizModel(NopDynEntityMeta entityMeta, boolean syncFile) {
+        InMemoryCodeCache codeCache = getCodeCache();
+        IResource resource = codeCache.generateBizModel(entityMeta);
+        if (resource != null && syncFile)
+            codeCache.syncBizModel(entityMeta.getBizObjName(), resource);
     }
 
     protected void generateForAllModules(InMemoryCodeCache cache) {

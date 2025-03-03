@@ -12,13 +12,13 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IOrdered;
 import io.nop.core.reflect.IFunctionModel;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
-import io.nop.graphql.core.ast.GraphQLFieldSelection;
 import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.fetcher.BeanMethodAction;
-
 import jakarta.annotation.Priority;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,6 +34,7 @@ import static io.nop.graphql.core.GraphQLErrors.ARG_PATH_B;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_DUPLICATED_LOADER;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_DUPLICATE_ACTION;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_MULTI_BIZ_FILE_FOR_BIZ_OBJ;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_MULTI_META_FILE_FOR_BIZ_OBJ;
 
 @DataBean
 public class GraphQLBizModel {
@@ -79,8 +80,10 @@ public class GraphQLBizModel {
     }
 
     public void setMetaPath(String metaPath) {
+        metaPath = ResourceHelper.getStdPath(metaPath);
+
         if (this.metaPath != null && !this.metaPath.equals(metaPath))
-            throw new NopException(ERR_GRAPHQL_MULTI_BIZ_FILE_FOR_BIZ_OBJ)
+            throw new NopException(ERR_GRAPHQL_MULTI_META_FILE_FOR_BIZ_OBJ)
                     .param(ARG_BIZ_OBJ_NAME, bizObjName)
                     .param(ARG_PATH_A, this.metaPath)
                     .param(ARG_PATH_B, metaPath);
@@ -92,6 +95,8 @@ public class GraphQLBizModel {
     }
 
     public void setBizPath(String bizPath) {
+        bizPath = ResourceHelper.getStdPath(bizPath);
+        
         if (this.bizPath != null && !this.bizPath.equals(bizPath))
             throw new NopException(ERR_GRAPHQL_MULTI_BIZ_FILE_FOR_BIZ_OBJ)
                     .param(ARG_BIZ_OBJ_NAME, bizObjName)
@@ -267,7 +272,7 @@ public class GraphQLBizModel {
 
     public void mergeLoaderTo(GraphQLObjectDefinition objDef, boolean force) {
         for (GraphQLFieldDefinition fieldDef : this.loaders.values()) {
-            objDef.mergeField(fieldDef,force);
+            objDef.mergeField(fieldDef, force);
         }
     }
 
@@ -276,9 +281,9 @@ public class GraphQLBizModel {
             return getQueryAction(action);
         } else if (opType == GraphQLOperationType.mutation) {
             return getMutationAction(action);
-        }else{
+        } else {
             GraphQLFieldDefinition field = getQueryAction(action);
-            if(field == null)
+            if (field == null)
                 field = getMutationAction(action);
             return field;
         }

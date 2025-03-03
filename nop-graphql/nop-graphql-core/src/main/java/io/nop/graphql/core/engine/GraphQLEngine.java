@@ -19,6 +19,7 @@ import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.cache.GlobalCacheRegistry;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.commons.util.StringHelper;
@@ -52,6 +53,7 @@ import io.nop.graphql.core.utils.GraphQLTypeHelper;
 import io.nop.rpc.api.flowcontrol.IFlowControlRunner;
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,6 +96,8 @@ public class GraphQLEngine implements IGraphQLEngine {
     // 不能直接缓存GraphQLDocument。因为xbiz文件有可能动态更新，所以缓存需要监听资源文件的变化
     private final LocalCache<String, ResourceCacheEntryWithLoader<GraphQLDocument>> documentCache;
 
+    private boolean registerCache;
+
     private GraphQLSchema builtinSchema;
 
     private IGraphQLSchemaLoader schemaLoader;
@@ -119,6 +123,10 @@ public class GraphQLEngine implements IGraphQLEngine {
                 "graphql-parse-cache", newConfig(GraphQLConfigs.CFG_GRAPHQL_QUERY_PARSE_CACHE_SIZE.get()).useMetrics()
                         .expireAfterWrite(GraphQLConfigs.CFG_GRAPHQL_QUERY_PARSE_CACHE_TIMEOUT.get()),
                 this::parseDocumentWithLoader);
+    }
+
+    public void setRegisterCache(boolean registerCache) {
+        this.registerCache = registerCache;
     }
 
     public void clearCache() {
@@ -194,10 +202,19 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     @PostConstruct
     public void init() {
+        if (registerCache)
+            GlobalCacheRegistry.instance().register(documentCache);
+
         // 装载系统内置的schema定义
         this.builtinSchema = new BuiltinSchemaLoader(schemaLoader, CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED.get())
                 .load();
         LOG.info("graphql-builtin-types:types={},introspection={}", builtinSchema.getTypes().keySet(), CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED.get());
+    }
+
+    @PreDestroy
+    public void destroy() {
+        if (registerCache)
+            GlobalCacheRegistry.instance().unregister(documentCache);
     }
 
     private GraphQLDocument parseOperationFromText(String text) {
@@ -318,14 +335,14 @@ public class GraphQLEngine implements IGraphQLEngine {
     public IGraphQLExecutionContext newGraphQLContextFromContext(IServiceContext ctx) {
         GraphQLExecutionContext context = new GraphQLExecutionContext(ctx);
 
-        if (enableActionAuth){
-            if (context.getActionAuthChecker() == null){
+        if (enableActionAuth) {
+            if (context.getActionAuthChecker() == null) {
                 context.setActionAuthChecker(actionAuthChecker);
             }
         }
 
-        if (enableDataAuth){
-            if (context.getDataAuthChecker() == null){
+        if (enableDataAuth) {
+            if (context.getDataAuthChecker() == null) {
                 context.setDataAuthChecker(dataAuthChecker);
             }
         }
@@ -403,8 +420,8 @@ public class GraphQLEngine implements IGraphQLEngine {
     }
 
     public GraphQLFieldSelection initForReturnType(IGraphQLExecutionContext context,
-                                                    GraphQLOperationType operationType, String operationName, Object request,
-                                                    GraphQLType returnType, FieldSelectionBean selectionBean) {
+                                                   GraphQLOperationType operationType, String operationName, Object request,
+                                                   GraphQLType returnType, FieldSelectionBean selectionBean) {
         GraphQLDocument doc = new GraphQLDocument();
         GraphQLFieldSelection selection = doc.addOperation(operationType, operationName, request);
         if (operationName.equals(SYS_OPERATION_FETCH_RESULTS)) {
@@ -491,7 +508,7 @@ public class GraphQLEngine implements IGraphQLEngine {
                 return ret;
             }).exceptionally(err -> {
                 ApiResponse<?> ret = buildRpcResponse(null, err, context);
-                return (ApiResponse)ret;
+                return (ApiResponse) ret;
             });
         } catch (Exception e) {
             ApiResponse<?> ret = buildRpcResponse(null, e, context);

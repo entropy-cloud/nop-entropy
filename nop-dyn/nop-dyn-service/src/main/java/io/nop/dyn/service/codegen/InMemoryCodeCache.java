@@ -52,7 +52,7 @@ public class InMemoryCodeCache {
     /**
      * 将所有模块的资源文件合并在一起
      */
-    private IResourceStore mergedStore;
+    private InMemoryResourceStore mergedStore;
 
     public Map<String, InMemoryResourceStore> getModuleCoreStores() {
         return moduleCoreStores;
@@ -246,7 +246,7 @@ public class InMemoryCodeCache {
         moduleWebStores.put(module.getModuleName(), store);
     }
 
-    public synchronized void generateBizModel(NopDynEntityMeta entityMeta) {
+    public synchronized IResource generateBizModel(NopDynEntityMeta entityMeta) {
         String moduleName = entityMeta.getModule().getModuleName();
         String moduleId = ResourceHelper.getModuleIdFromModuleName(moduleName);
         String bizObjName = entityMeta.getBizObjName();
@@ -254,7 +254,7 @@ public class InMemoryCodeCache {
         InMemoryResourceStore coreStore = moduleCoreStores.get(moduleName);
         // 如果模块未发布，则直接返回
         if (coreStore == null) {
-            return;
+            return null;
         }
 
         String bizTpl = "/nop/templates/dyn/{moduleId}/model/{entityMeta.bizObjName}/{entityMeta.bizObjName}.xbiz.xgen";
@@ -267,7 +267,7 @@ public class InMemoryCodeCache {
         scope.setLocalValue("moduleId", moduleId);
         scope.setLocalValue("moduleName", moduleName);
 
-        IResource resource = coreStore.getResource(getTargetPath(bizPath));
+        IResource resource = coreStore.makeResource(getTargetPath(bizPath));
         String text = xplModel.generateText(scope);
 
         if (!resource.exists() || !resource.readText().equals(text)) {
@@ -276,6 +276,20 @@ public class InMemoryCodeCache {
                 ResourceHelper.dumpResource(resource, text);
             }
         }
+
+        return resource;
+    }
+
+    public void syncBizModel(String bizObjName, IResource resource) {
+        String bizPath = resource.getPath();
+        GraphQLBizModel bizModel = new GraphQLBizModel(bizObjName);
+        bizModel.setBizPath(bizPath);
+        GraphQLBizModel oldBizModel = dynBizModels.putIfAbsent(bizObjName, bizModel);
+        if (oldBizModel != null)
+            oldBizModel.setBizPath(bizPath);
+
+        if (mergedStore != null && mergedStore.getResource(resource.getPath()) != resource)
+            mergedStore.addResource(resource);
     }
 
     public synchronized void reloadModel(IOrmSessionFactory ormSessionFactory,
@@ -311,7 +325,8 @@ public class InMemoryCodeCache {
     }
 
     Map<String, GraphQLBizModel> findBizModels(IResourceStore store) {
-        List<IResource> resources = store.findAll("/*/*/model/*/*");
+        List<IResource> resources = tenantId != null ? store.findAll("/_tenant/*/*/*/model/*/*")
+                : store.findAll("/*/*/model/*/*");
 
         Map<String, GraphQLBizModel> bizModels = new HashMap<>();
         for (IResource resource : resources) {

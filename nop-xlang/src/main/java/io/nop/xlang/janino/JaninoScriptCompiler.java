@@ -14,16 +14,21 @@ import io.nop.xlang.script.IScriptCompiler;
 import io.nop.xlang.script.ScriptCompilerRegistry;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.janino.ScriptEvaluator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
 
+import static io.nop.xlang.XLangErrors.ARG_CODE;
 import static io.nop.xlang.XLangErrors.ARG_ERR_MSG;
 import static io.nop.xlang.XLangErrors.ERR_SCRIPT_COMPILE_ERROR;
 import static io.nop.xlang.expr.ExprConstants.SYS_VAR_SCOPE;
 
 public class JaninoScriptCompiler implements IScriptCompiler {
+    static final Logger LOG = LoggerFactory.getLogger(JaninoScriptCompiler.class);
+
     static final String LANG_JAVA = "java";
 
     static final JaninoScriptCompiler INSTANCE = new JaninoScriptCompiler();
@@ -61,8 +66,10 @@ public class JaninoScriptCompiler implements IScriptCompiler {
             paramTypes[i] = args.get(i - 1).getRawClass();
         }
         evaluator.setParameters(paramNames, paramTypes);
+        String code = buildCode(text, returnType);
+        LOG.info("nop.java.compile:code={}", code);
+
         try {
-            String code = buildCode(text, returnType);
             evaluator.cook("JaninoScript.java", code);
             Method method = evaluator.getMethod();
             IEvalFunction invoker = new MethodInvoker(method);
@@ -72,7 +79,8 @@ public class JaninoScriptCompiler implements IScriptCompiler {
                     loc.offset(e.getLocation().getLineNumber() - 1, e.getLocation().getColumnNumber());
             String errMsg = e.getMessage();
             throw new NopException(ERR_SCRIPT_COMPILE_ERROR, e).loc(errorLoc)
-                    .param(ARG_ERR_MSG, errMsg);
+                    .param(ARG_ERR_MSG, errMsg)
+                    .param(ARG_CODE, code);
         }
     }
 

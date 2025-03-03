@@ -135,13 +135,13 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
             return false;
 
         // nop资源不支持租户缓存
-         if(moduleName.startsWith("nop-")) {
+        if (moduleName.startsWith("nop-")) {
             return false;
-         }
+        }
 
-         // 从配置中获取不支持租户缓存的资源路径
+        // 从配置中获取不支持租户缓存的资源路径
         Set<String> setPath = CFG_RESOURCE_NOT_SUPPORT_TENANT_CACHE.get();
-        if(!CollectionHelper.isEmpty(setPath)) {
+        if (!CollectionHelper.isEmpty(setPath)) {
             for (String path : setPath) {
                 if (moduleName.startsWith(path))
                     return false;
@@ -214,6 +214,9 @@ public class ResourceTenantManager implements ITenantResourceStoreSupplier {
     public IResourceStore getTenantResourceStore(String tenantId) {
         if (!isEnableTenantResource())
             throw new NopException(ERR_RESOURCE_STORE_NOT_SUPPORT_TENANT_DELTA);
+
+        if (isInitializingTenant())
+            return null;
 
         ITenantResourceProvider provider = getTenantResourceProvider();
         if (provider == null)

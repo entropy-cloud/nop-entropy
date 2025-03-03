@@ -1713,6 +1713,13 @@
         ]
       },
       {
+        "name": "defaultPrepareDelete",
+        "parameterTypes": [
+          "io.nop.auth.dao.entity.NopAuthRole",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
         "name": "defaultPrepareSave",
         "parameterTypes": [
           "io.nop.biz.crud.EntityData",
@@ -6743,6 +6750,12 @@
       {
         "name": "newSSLContext",
         "parameterTypes": []
+      },
+      {
+        "name": "toJdkHttpRequest",
+        "parameterTypes": [
+          "io.nop.http.api.client.HttpRequest"
+        ]
       }
     ],
     "name": "io.nop.http.client.jdk.JdkHttpClient"
@@ -8983,6 +8996,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.orm.utils.SingleSessionFunctionInvoker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.quarkus.core.dao.AgroalDataSourceFactory"
   },
   {
     "allDeclaredConstructors": true,
@@ -13482,5 +13505,15 @@
     "fields": [],
     "methods": [],
     "name": "java.util.Set"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "java.util.TreeMap"
   }
 ]
