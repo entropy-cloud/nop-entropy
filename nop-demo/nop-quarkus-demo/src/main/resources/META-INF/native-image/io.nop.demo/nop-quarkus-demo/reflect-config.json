@@ -10694,6 +10694,30 @@
     "fields": [],
     "methods": [
       {
+        "name": "loadPage",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "java.lang.String",
+          "io.nop.core.lang.json.bind.ValueResolverCompilerRegistry",
+          "boolean"
+        ]
+      },
+      {
+        "name": "renderPage",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "io.nop.web.page.PageRenderOptions"
+        ]
+      },
+      {
+        "name": "renderPageTo",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "io.nop.web.page.PageRenderOptions",
+          "java.io.File"
+        ]
+      },
+      {
         "name": "transformPermissions",
         "parameterTypes": [
           "java.lang.Object"

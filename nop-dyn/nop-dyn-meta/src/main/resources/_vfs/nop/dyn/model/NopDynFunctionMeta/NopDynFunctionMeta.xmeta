@@ -2,6 +2,10 @@
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopDynFunctionMeta.xmeta">
 
     <props>
+        <prop name="scriptLang">
+            <schema dict="dyn/script-lang"/>
+        </prop>
+
         <prop name="funcMetaComponent" internal="true" />
 
         <prop name="args" mapToProp="funcMetaComponent.args" displayName="参数定义" graphql:type="[Map]" insertable="true" updatable="true"/>

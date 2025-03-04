@@ -26,6 +26,7 @@ import io.nop.xlang.ast.definition.ResolvedFuncDefinition;
 import io.nop.xlang.xdsl.XDslParseHelper;
 import io.nop.xlang.xpl.IXplCompiler;
 import io.nop.xlang.xpl.IXplTagCompiler;
+import io.nop.xlang.xpl.XplConstants;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,7 +56,7 @@ public class ScriptTagCompiler implements IXplTagCompiler {
 
         String source = node.contentText();
         String lang = literal == null ? null : literal.getStringValue();
-        if (StringHelper.isEmpty(lang)) {
+        if (StringHelper.isEmpty(lang) || lang.equals(XplConstants.LANG_XPL)) {
             try {
                 Program prog = cp.parseFullExpr(node.content().getLocation(), source, scope);
                 if (prog == null)

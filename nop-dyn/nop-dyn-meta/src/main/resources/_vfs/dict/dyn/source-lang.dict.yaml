@@ -1,0 +1,13 @@
+label: 脚本语言
+locale: zh-CN
+valueType: string
+description:
+options:
+
+  - label: XPL
+    value: xpl
+    description:
+
+  - label: Java
+    value: java
+    description:

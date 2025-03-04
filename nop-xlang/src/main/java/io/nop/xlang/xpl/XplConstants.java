@@ -161,6 +161,8 @@ public interface XplConstants {
 
     String LANG_NAME = "lang";
 
+    String LANG_XPL = "xpl";
+
     String ARGS_NAME = "args";
     String RETURN_TYPE_NAME = "returnType";
 
