@@ -21,7 +21,6 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.record.IResourceRecordInputProvider;
 import io.nop.dataset.record.IRecordInput;
 import io.nop.dataset.record.IRowNumberRecord;
-import io.nop.dataset.record.impl.RowNumberRecordInput;
 
 import java.util.Iterator;
 import java.util.List;
@@ -59,7 +58,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
      */
     long skipCount;
 
-    int maxProcessingItems = 10000;
+    int maxProcessingItems = 100000;
 
     /**
      * 是否确保返回的记录实现{@link IRowNumberRecord}接口，并设置rowNumber为当前读取记录条目数，从1开始
@@ -138,7 +137,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         LoaderState<S> state = newLoaderState(context);
         return (batchSize, ctx) -> {
             ctx.onAfterComplete(err -> onChunkEnd(ctx, err, state));
-            return load(batchSize, state);
+            return load(batchSize, state, ctx);
         };
     }
 
@@ -168,10 +167,6 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
             Long maxCount = ConvertHelper.toLong(maxCountExpr.invoke(context));
             if (maxCount != null)
                 input = input.limit(maxCount);
-        }
-
-        if (recordRowNumber) {
-            input = new RowNumberRecordInput<>(input);
         }
 
         state.input = input;
@@ -213,11 +208,11 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
     }
 
     public synchronized void onChunkEnd(IBatchChunkContext context, Throwable exception, LoaderState<S> state) {
-        if (saveState) {
+        if (state.processingItems != null) {
             // 多个chunk有可能被并行处理，所以可能会乱序完成
             if (context.getChunkItems() != null) {
                 for (Object item : context.getChunkItems()) {
-                    long rowNumber = getRowNumber(item);
+                    long rowNumber = getRowNumber(item, context);
                     if (rowNumber > 0) {
                         state.processingItems.put(rowNumber, true);
                     }
@@ -238,21 +233,34 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
             }
 
             // 如果处理阶段异常，则不会保存到状态变量中，这样下次处理的时候仍然会处理到这些记录
-            if (completedRow > 0 && exception != null) {
+            if (completedRow > 0 && exception == null) {
                 context.getTaskContext().setCompletedIndex(completedRow);
             }
         }
     }
 
-    synchronized List<S> load(int batchSize, LoaderState<S> state) {
+    synchronized List<S> load(int batchSize, LoaderState<S> state, IBatchChunkContext chunkCtx) {
+        long readCount = state.input.getReadCount();
+
         List<S> items = loadItems(batchSize, state);
-        if (saveState) {
+        if (saveState || recordRowNumber) {
             for (S item : items) {
-                long rowNumber = getRowNumber(item);
-                if (rowNumber > 0)
+                long rowNumber = ++readCount;
+                if (item instanceof IRowNumberRecord) {
+                    IRowNumberRecord record = (IRowNumberRecord) item;
+                    if (record.getRecordRowNumber() > 0) {
+                        rowNumber = record.getRecordRowNumber();
+                    } else {
+                        ((IRowNumberRecord) item).setRecordRowNumber(rowNumber);
+                    }
+                } else {
+                    chunkCtx.setRowNumber(item, rowNumber);
+                }
+
+                if (state.processingItems != null)
                     state.processingItems.put(rowNumber, false);
             }
-            if (state.processingItems.size() > maxProcessingItems)
+            if (state.processingItems != null && state.processingItems.size() > maxProcessingItems)
                 throw new NopException(ERR_BATCH_TOO_MANY_PROCESSING_ITEMS)
                         .param(ARG_ITEM_COUNT, state.processingItems.size()).param(ARG_READ_COUNT, state.input.getReadCount())
                         .param(ARG_RESOURCE_PATH, getResourcePath());
@@ -273,10 +281,10 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         return state.input.readFiltered(batchSize, item -> filter.accept(item, state.context));
     }
 
-    private long getRowNumber(Object item) {
+    private long getRowNumber(Object item, IBatchChunkContext chunkCtx) {
         if (item instanceof IRowNumberRecord) {
             return ((IRowNumberRecord) item).getRecordRowNumber();
         }
-        return -1L;
+        return chunkCtx.getRowNumber(item);
     }
 }

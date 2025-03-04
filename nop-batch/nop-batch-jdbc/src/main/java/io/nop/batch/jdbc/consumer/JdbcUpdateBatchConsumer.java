@@ -50,6 +50,7 @@ public class JdbcUpdateBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
 
         jdbcTemplate.runWithConnection(sql, conn -> {
             JdbcBatcher batcher = new JdbcBatcher(conn, dialect, jdbcTemplate.getDaoMetrics());
+            batcher.setForceTxn(true);
             for (S item : items) {
                 SQL itemSql = buildSql(item);
                 batcher.addCommand(itemSql, false, null);

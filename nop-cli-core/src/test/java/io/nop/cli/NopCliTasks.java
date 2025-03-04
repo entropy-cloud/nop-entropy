@@ -113,7 +113,7 @@ public class NopCliTasks {
     @Test
     public void testImportDb() {
         String[] args = new String[]{"import-db", "../nop-cli/demo/test.import-db.xml",
-                "-i", "target/data"
+                "-i", "target/data", "-s=target/data/test.state.json"
         };
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);

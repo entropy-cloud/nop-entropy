@@ -155,6 +155,12 @@ java -jar nop-cl.jar import-db test.import-db.xml -i=data
 
 从data目录下导入数据到指定数据库中，导入时可以按照keyFields去重，并可以选择是否允许更新，还是只允许插入。导入时可以进行字段重命名和值的变换。可以选择只导入部分字段。
 
+可以通过指定`-s`参数来保存导入状态。
+
+```
+java -jar nop-cl.jar import-db test.import-db.xml -i=data -s=import-status.json
+```
+
 ## 根据`page.yaml`文件生成页面json文件
 
 ```
@@ -182,7 +188,8 @@ run指令可以用于执行xpl脚本文件，`render-pages.xrun`脚本中调用P
 </c:script>
 ```
 
-renderPagesTo函数会遍历`_vfs/{moduleId}/pages/*/*.page.yaml`文件，并执行模板渲染。在`page.yaml`中可以通过`<web:GenPage>`等标签来引入View模型。
+renderPagesTo函数会遍历`_vfs/{moduleId}/pages/*/*.page.yaml`文件，并执行模板渲染。在`page.yaml`中可以通过`<web:GenPage>`
+等标签来引入View模型。
 
 ## 常见问题
 

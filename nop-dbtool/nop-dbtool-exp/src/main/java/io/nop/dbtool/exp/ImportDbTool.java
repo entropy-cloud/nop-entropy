@@ -51,6 +51,7 @@ import io.nop.dbtool.exp.config.ImportDbConfig;
 import io.nop.dbtool.exp.config.ImportTableConfig;
 import io.nop.dbtool.exp.config.JdbcConnectionConfig;
 import io.nop.dbtool.exp.config.TableFieldConfig;
+import io.nop.dbtool.exp.state.ImportTaskStateStore;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.OrmEntityModel;
 import io.nop.xlang.api.XLang;
@@ -70,13 +71,20 @@ public class ImportDbTool {
     static final Logger LOG = LoggerFactory.getLogger(ImportDbTool.class);
 
     private ImportDbConfig config;
+    private File stateFile;
     private Map<String, Object> args;
 
     private IResourceLoader inputResourceLoader;
 
+    private ImportTaskStateStore stateStore;
+
     private IDialect dialect;
     private DataSource dataSource;
     private boolean needClose;
+
+    public void setStateFile(File stateFile) {
+        this.stateFile = stateFile;
+    }
 
     public void setConfig(ImportDbConfig config) {
         this.config = config;
@@ -194,6 +202,14 @@ public class ImportDbTool {
     public void execute() {
         Guard.notEmpty(config.getJdbcConnection(), "jdbc-connection");
 
+        if (stateFile != null) {
+            stateStore = new ImportTaskStateStore(stateFile);
+            if (stateStore.isCompleted()) {
+                LOG.info("nop.import-db.completed");
+                return;
+            }
+        }
+
         syncConfigWithDb();
 
         this.inputResourceLoader = new FileResource(new File(config.getInputDir()));
@@ -213,6 +229,9 @@ public class ImportDbTool {
                 futures.add(executor.submit(() -> runTask(tableConfig, dataSource), null));
             }
             FutureHelper.getFromFuture(FutureHelper.waitAll(futures));
+
+            if (stateStore != null)
+                stateStore.complete();
         } finally {
             executor.destroy();
             if (needClose) {
@@ -263,7 +282,6 @@ public class ImportDbTool {
         Map<String, IDataParameterBinder> binders = getColBinders(tableConfig.getFields());
         IBatchConsumerProvider<Map<String, Object>> consumer = newConsumer(tableConfig, jdbc, binders);
 
-
         if (config.isCheckKeyFields() && tableConfig.getKeyFields() != null) {
             Map<String, IDataParameterBinder> colBinders = getColBinders(tableConfig.getKeyFieldConfigs());
 
@@ -278,6 +296,9 @@ public class ImportDbTool {
         }
 
         builder.consumer(consumer);
+
+        if (stateStore != null)
+            builder.stateStore(stateStore.getTableStore(tableConfig.getName()));
 
         IBatchTaskContext context = new BatchTaskContextImpl();
         context.setTaskName(tableConfig.getName());
@@ -350,6 +371,9 @@ public class ImportDbTool {
         loader.setRecordIO(recordIO);
         loader.setResourcePath(resourcePath);
         loader.setResourceLocator(inputResourceLoader);
+
+        if (stateStore != null)
+            loader.setSaveState(true);
 
         if (tableConfig.getFilter() != null) {
             IBatchRecordFilter<S, IBatchTaskContext> filter = (record, ctx) ->

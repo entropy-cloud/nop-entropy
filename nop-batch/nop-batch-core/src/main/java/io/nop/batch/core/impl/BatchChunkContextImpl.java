@@ -14,7 +14,9 @@ import io.nop.core.context.ExecutionContextImpl;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
@@ -30,6 +32,8 @@ public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatc
     private int processCount;
 
     private CountDownLatch latch;
+
+    private Map<Object, Long> rowNumberMap;
 
     public BatchChunkContextImpl(IBatchTaskContext context) {
         super(context.getEvalScope());
@@ -142,5 +146,20 @@ public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatc
     @Override
     public void countDown() {
         latch.countDown();
+    }
+
+    @Override
+    public long getRowNumber(Object item) {
+        if (rowNumberMap == null)
+            return -1L;
+        Long value = rowNumberMap.get(item);
+        return value == null ? -1L : value;
+    }
+
+    @Override
+    public void setRowNumber(Object item, long rowNumber) {
+        if (rowNumberMap == null)
+            rowNumberMap = new IdentityHashMap<>();
+        rowNumberMap.put(item, rowNumber);
     }
 }

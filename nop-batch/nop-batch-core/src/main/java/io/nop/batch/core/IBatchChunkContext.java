@@ -93,4 +93,8 @@ public interface IBatchChunkContext extends IExecutionContext {
     CountDownLatch getChunkLatch();
 
     void countDown();
+
+    long getRowNumber(Object item);
+
+    void setRowNumber(Object item, long rowNumber);
 }

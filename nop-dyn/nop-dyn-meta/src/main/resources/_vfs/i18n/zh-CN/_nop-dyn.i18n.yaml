@@ -209,6 +209,7 @@ prop:
       returnGqlType: GraphQL返回类型
       returnType: 返回类型
       scriptLang: 脚本语言
+      scriptLang_label: 脚本语言
       source: 源码
       status: 状态
       status_label: 状态

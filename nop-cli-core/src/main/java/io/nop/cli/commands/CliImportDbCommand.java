@@ -31,6 +31,9 @@ public class CliImportDbCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-a", "--args"}, description = "输入参数")
     String args;
 
+    @CommandLine.Option(names = {"-s", "--state"}, description = "状态文件路径")
+    File stateFile;
+
     @CommandLine.Parameters(description = "配置文件路径")
     String configPath;
 
@@ -50,6 +53,8 @@ public class CliImportDbCommand implements Callable<Integer> {
 
         ImportDbTool tool = new ImportDbTool();
         tool.setConfig(config);
+        tool.setStateFile(stateFile);
+
         if (args != null)
             tool.setArgs((Map<String, Object>) JsonTool.parseNonStrict(null, args));
         tool.execute();

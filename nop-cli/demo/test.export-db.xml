@@ -4,17 +4,20 @@
     <jdbc-connection x:extends="jdbc-connection.xml"/>
 
     <tables>
-        <table name="user" from="nop_auth_user">
-            <fields>
-                <field name="ID" from="USER_ID"/>
-            </fields>
-        </table>
+        <table name="demo_card" />
+        <table name="demo_account" />
 
-        <table name="session" from="nop_auth_session" exportAllFields="false">
-            <fields>
-                <field name="ID" from="SESSION_ID"/>
-                <field name="USER_NAME"/>
-            </fields>
-        </table>
+<!--        <table name="user" from="nop_auth_user">-->
+<!--            <fields>-->
+<!--                <field name="ID" from="USER_ID"/>-->
+<!--            </fields>-->
+<!--        </table>-->
+
+<!--        <table name="session" from="nop_auth_session" exportAllFields="false">-->
+<!--            <fields>-->
+<!--                <field name="ID" from="SESSION_ID"/>-->
+<!--                <field name="USER_NAME"/>-->
+<!--            </fields>-->
+<!--        </table>-->
     </tables>
 </export-db>

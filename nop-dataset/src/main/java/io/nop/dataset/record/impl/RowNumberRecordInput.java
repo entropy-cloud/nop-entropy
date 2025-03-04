@@ -67,7 +67,7 @@ public class RowNumberRecordInput<T> extends DelegateRecordInput<T> {
         }
     }
 
-    private T adapt(T record, long readCount) {
+    protected T adapt(T record, long readCount) {
         if (record instanceof IRowNumberRecord) {
             ((IRowNumberRecord) record).setRecordRowNumber(readCount);
         } else {

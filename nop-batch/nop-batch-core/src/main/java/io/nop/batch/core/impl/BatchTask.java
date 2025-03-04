@@ -311,7 +311,7 @@ public class BatchTask<S> implements IBatchTask {
             long endTime = CoreMetrics.currentTimeMillis();
             LOG.info("nop.batch.process-chunk-end:taskName={},taskId={},taskKey={},threadIndex={},usedTime={},processCount={}.skipCount={},retryCount={},completeCount={},completedIndex={}", context.getTaskName(),
                     context.getTaskId(), context.getTaskKey(), threadIndex, endTime - beginTime,
-                    context.getProcessItemCount(), context.getCompleteItemCount(), context.getRetryItemCount(),
+                    context.getProcessItemCount(), context.getSkipItemCount(), context.getRetryItemCount(),
                     context.getCompleteItemCount(), context.getCompletedIndex());
 
             if (metrics != null)

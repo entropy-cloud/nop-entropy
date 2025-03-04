@@ -47,6 +47,8 @@ public class JdbcInsertBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
 
         jdbcTemplate.runWithConnection(sql, conn -> {
             JdbcBatcher batcher = new JdbcBatcher(conn, dialect, jdbcTemplate.getDaoMetrics());
+            // 开启事务可以提高性能
+            batcher.setForceTxn(true);
             for (S item : items) {
                 SQL insert = buildInsert(item);
                 batcher.addCommand(insert, false, null);

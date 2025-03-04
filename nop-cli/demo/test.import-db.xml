@@ -1,22 +1,25 @@
 <import-db x:schema="/nop/schema/db/import-db.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-           threadCount="4" importAllTables="false" >
+           threadCount="4" importAllTables="false" batchSize="5000">
 
     <jdbc-connection x:extends="jdbc-connection.xml"/>
 
     <excludeTableNames>nop_auth_session</excludeTableNames>
 
     <tables>
-        <table name="nop_auth_user" from="user" importAllFields="true" allowUpdate="true">
-            <keyFields>USER_ID</keyFields>
-            <fields>
-                <field name="USER_ID" from="ID"/>
-            </fields>
-        </table>
+        <!--        <table name="nop_auth_user" from="user" importAllFields="true" allowUpdate="true">-->
+        <!--            <keyFields>USER_ID</keyFields>-->
+        <!--            <fields>-->
+        <!--                <field name="USER_ID" from="ID"/>-->
+        <!--            </fields>-->
+        <!--        </table>-->
 
-        <table name="nop_auth_session" from="session">
-            <fields>
-                <field name="SID" from="ID"/>
-            </fields>
-        </table>
+        <!--        <table name="nop_auth_session" from="session">-->
+        <!--            <fields>-->
+        <!--                <field name="SID" from="ID"/>-->
+        <!--            </fields>-->
+        <!--        </table>-->
+
+        <table name="demo_card" importAllFields="true" allowUpdate="false"/>
+        <table name="demo_account" importAllFields="true" allowUpdate="false"/>
     </tables>
 </import-db>
