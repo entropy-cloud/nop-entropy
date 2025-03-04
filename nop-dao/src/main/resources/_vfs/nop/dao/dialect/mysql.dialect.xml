@@ -2,7 +2,7 @@
 
 <dialect x:extends="default.dialect.xml,geo-support.dialect.xml,window-expr-support.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
          xmlns:x="/nop/schema/xdsl.xdef"
-         maxStringSize="1048576" maxBytesSize="1048576"
+         maxStringSize="1048576" maxBytesSize="1048576" streamingFetchSize="-2147483648"
          defaultNullsFirst="true"
 >
 

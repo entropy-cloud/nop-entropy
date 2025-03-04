@@ -88,6 +88,13 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: streaming
+     * 
+     */
+    private boolean _streaming  = true;
+    
+    /**
+     *  
      * xml name: tableNamePattern
      * 查找数据库中所有表名满足模式要求的表，例如nop_%会匹配nop_auth_user等表。
      */
@@ -299,6 +306,25 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: streaming
+     *  
+     */
+    
+    public boolean isStreaming(){
+      return _streaming;
+    }
+
+    
+    public void setStreaming(boolean value){
+        checkAllowChange();
+        
+        this._streaming = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: tableNamePattern
      *  查找数据库中所有表名满足模式要求的表，例如nop_%会匹配nop_auth_user等表。
      */
@@ -409,6 +435,7 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
         out.putNotNull("jdbcConnection",this.getJdbcConnection());
         out.putNotNull("outputDir",this.getOutputDir());
         out.putNotNull("schemaPattern",this.getSchemaPattern());
+        out.putNotNull("streaming",this.isStreaming());
         out.putNotNull("tableNamePattern",this.getTableNamePattern());
         out.putNotNull("tables",this.getTables());
         out.putNotNull("threadCount",this.getThreadCount());
@@ -433,6 +460,7 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
         instance.setJdbcConnection(this.getJdbcConnection());
         instance.setOutputDir(this.getOutputDir());
         instance.setSchemaPattern(this.getSchemaPattern());
+        instance.setStreaming(this.isStreaming());
         instance.setTableNamePattern(this.getTableNamePattern());
         instance.setTables(this.getTables());
         instance.setThreadCount(this.getThreadCount());

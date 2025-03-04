@@ -26,6 +26,7 @@ import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.SyncThreadPoolExecutor;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResourceLoader;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.impl.FileResource;
@@ -43,6 +44,8 @@ import io.nop.dbtool.exp.config.TableFieldConfig;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.OrmEntityModel;
 import io.nop.xlang.api.XLang;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.io.File;
@@ -55,6 +58,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class ExportDbTool {
+    static final Logger LOG = LoggerFactory.getLogger(ExportDbTool.class);
+
     private ExportDbConfig config;
     private Map<String, Object> args;
 
@@ -93,6 +98,8 @@ public class ExportDbTool {
             this.dialect = DialectManager.instance().getDialect(conn.getDialect());
         }
         readTableMetas();
+
+        LOG.info("nop.export-db.config=\n{}", JsonTool.serialize(config,true));
     }
 
     public void execute() {
@@ -207,6 +214,7 @@ public class ExportDbTool {
 
     private void runTask(ExportTableConfig tableConfig, DataSource ds) {
         BatchTaskBuilder builder = new BatchTaskBuilder();
+        builder.taskName(tableConfig.getName());
         builder.loader(newLoader(tableConfig, ds));
         builder.batchSize(config.getBatchSize());
         builder.processor(newProcessor(tableConfig));
@@ -239,6 +247,7 @@ public class ExportDbTool {
     private IBatchLoaderProvider<Map<String, Object>> newLoader(ExportTableConfig tableConfig,
                                                                 DataSource ds) {
         JdbcBatchLoaderProvider<Map<String, Object>> loader = new JdbcBatchLoaderProvider<>();
+        loader.setStreaming(config.isStreaming());
         loader.setJdbcTemplate(JdbcFactory.newJdbcTemplateFor(ds));
         loader.setSqlGenerator(ctx -> tableConfig.buildSQL(config.getFetchSize(), ctx));
         return loader;
