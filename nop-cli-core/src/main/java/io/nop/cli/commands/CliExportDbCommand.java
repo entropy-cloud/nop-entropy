@@ -32,6 +32,8 @@ public class CliExportDbCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-a", "--args"}, description = "输入参数")
     String args;
 
+    @CommandLine.Option(names = {"-s", "--state"}, description = "状态文件路径")
+    File stateFile;
     @CommandLine.Parameters(description = "配置文件路径")
     String configPath;
 
@@ -50,6 +52,7 @@ public class CliExportDbCommand implements Callable<Integer> {
             config.setOutputDir(new File("data").getAbsolutePath());
 
         ExportDbTool tool = new ExportDbTool();
+        tool.setStateFile(stateFile);
         tool.setConfig(config);
         if (args != null)
             tool.setArgs((Map<String, Object>) JsonTool.parseNonStrict(null, args));

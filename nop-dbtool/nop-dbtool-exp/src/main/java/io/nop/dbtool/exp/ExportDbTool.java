@@ -41,6 +41,7 @@ import io.nop.dbtool.exp.config.ExportDbConfig;
 import io.nop.dbtool.exp.config.ExportTableConfig;
 import io.nop.dbtool.exp.config.JdbcConnectionConfig;
 import io.nop.dbtool.exp.config.TableFieldConfig;
+import io.nop.dbtool.exp.state.EtlTaskStateStore;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.OrmEntityModel;
 import io.nop.xlang.api.XLang;
@@ -69,6 +70,10 @@ public class ExportDbTool {
 
     private DataSource dataSource;
 
+    private File stateFile;
+
+    private EtlTaskStateStore stateStore;
+
     public void setConfig(ExportDbConfig config) {
         this.config = config;
     }
@@ -79,6 +84,14 @@ public class ExportDbTool {
 
     public void setArgs(Map<String, Object> args) {
         this.args = args;
+    }
+
+    public File getStateFile() {
+        return stateFile;
+    }
+
+    public void setStateFile(File stateFile) {
+        this.stateFile = stateFile;
     }
 
     public ExportDbConfig getConfig() {
@@ -99,13 +112,21 @@ public class ExportDbTool {
         }
         readTableMetas();
 
-        LOG.info("nop.export-db.config=\n{}", JsonTool.serialize(config,true));
+        LOG.info("nop.export-db.config=\n{}", JsonTool.serialize(config, true));
     }
 
     public void execute() {
         Guard.notEmpty(config.getJdbcConnection(), "jdbc-connection");
 
         syncConfigWithDb();
+
+        if (stateFile != null) {
+            stateStore = new EtlTaskStateStore(stateFile);
+            if (stateStore.isCompleted()) {
+                LOG.info("nop.export-db.skip-since-already-completed");
+                return;
+            }
+        }
 
         this.outputResourceLoader = new FileResource(new File(config.getOutputDir()));
 
@@ -123,9 +144,20 @@ public class ExportDbTool {
                 if (!isExportable(tableConfig))
                     continue;
 
+                if (stateStore != null && stateStore.isTableCompleted(tableConfig.getName())) {
+                    LOG.info("nop.export-db.skip-table-when-already-completed:tableName={}", tableConfig.getName());
+                    continue;
+                }
+
+                if (stateStore != null)
+                    stateStore.resetTableState(tableConfig.getName());
+
                 futures.add(executor.submit(() -> runTask(tableConfig, dataSource), null));
             }
             FutureHelper.getFromFuture(FutureHelper.waitAll(futures));
+
+            if (stateStore != null)
+                stateStore.complete();
         } finally {
             executor.destroy();
         }
@@ -225,10 +257,20 @@ public class ExportDbTool {
         if (concurrency > 1)
             builder.executor(GlobalExecutors.cachedThreadPool());
 
+        if (stateStore != null)
+            builder.stateStore(stateStore.getTableStore(tableConfig.getName()));
+
         IBatchTaskContext context = new BatchTaskContextImpl();
         if (args != null)
             context.getEvalScope().setLocalValues(args);
         IBatchTask task = builder.buildTask();
+
+
+        LOG.info("nop.export-db.begin-export-table:tableName={}", tableConfig.getName());
+        context.onAfterComplete(err -> {
+            LOG.info("nop.export-db.end-export-table:tableName={}", tableConfig.getName());
+        });
+
         task.execute(context);
     }
 

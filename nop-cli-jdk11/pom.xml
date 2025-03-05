@@ -32,10 +32,10 @@
                     <artifactId>quarkus-picocli</artifactId>
                     <groupId>io.quarkus</groupId>
                 </exclusion>
-                <exclusion>
-                    <artifactId>ojdbc8</artifactId>
-                    <groupId>com.oracle.ojdbc</groupId>
-                </exclusion>
+<!--                <exclusion>-->
+<!--                    <artifactId>ojdbc8</artifactId>-->
+<!--                    <groupId>com.oracle.ojdbc</groupId>-->
+<!--                </exclusion>-->
                 <exclusion>
                     <artifactId>nop-quarkus-core-starter</artifactId>
                     <groupId>io.github.entropy-cloud</groupId>

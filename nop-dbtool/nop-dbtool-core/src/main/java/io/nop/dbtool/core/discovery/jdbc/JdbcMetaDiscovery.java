@@ -11,12 +11,14 @@ import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.Pair;
+import io.nop.core.lang.xml.XNode;
 import io.nop.dao.dialect.DialectManager;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.dialect.SQLDataType;
 import io.nop.dao.dialect.model.SqlDataTypeModel;
 import io.nop.dbtool.core.DataBaseMeta;
 import io.nop.dbtool.core.TableSchemaMeta;
+import io.nop.orm.OrmConstants;
 import io.nop.orm.model.OrmColumnModel;
 import io.nop.orm.model.OrmEntityModel;
 import io.nop.orm.model.OrmIndexColumnModel;
@@ -24,6 +26,7 @@ import io.nop.orm.model.OrmIndexModel;
 import io.nop.orm.model.OrmJoinOnModel;
 import io.nop.orm.model.OrmToOneReferenceModel;
 import io.nop.orm.model.OrmUniqueKeyModel;
+import io.nop.xlang.xdsl.DslModelHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +54,12 @@ public class JdbcMetaDiscovery {
     private String packageName = "app";
     private boolean commentAsDisplayName = true;
 
+    private boolean includeRelations = true;
+
+    private boolean includeIndexes = true;
+
+    private boolean includeUniqueKeys = true;
+
     public static JdbcMetaDiscovery forDataSource(DataSource dataSource) {
         return new JdbcMetaDiscovery(dataSource, null);
     }
@@ -65,6 +74,21 @@ public class JdbcMetaDiscovery {
         this.dialect = dataSource != null
                 ? DialectManager.instance().getDialectForDataSource(dataSource)
                 : DialectManager.instance().getDialectForConnection(connection);
+    }
+
+    public JdbcMetaDiscovery includeRelations(boolean includeRelations) {
+        this.includeRelations = includeRelations;
+        return this;
+    }
+
+    public JdbcMetaDiscovery includeIndexes(boolean includeIndexes) {
+        this.includeIndexes = includeIndexes;
+        return this;
+    }
+
+    public JdbcMetaDiscovery includeUniqueKeys(boolean includeUniqueKeys) {
+        this.includeUniqueKeys = includeUniqueKeys;
+        return this;
     }
 
     public JdbcMetaDiscovery basePackageName(String packageName) {
@@ -114,11 +138,21 @@ public class JdbcMetaDiscovery {
             initSchemas(meta, conn.getMetaData());
             discoverTables(meta, metaData, catalog, schemaPattern, tablePattern);
 
-            discoverRelations(metaData, meta, catalog, schemaPattern);
-            discoverIndexes(metaData, meta, catalog, schemaPattern);
-            discoverUniqueKeys(metaData, meta, catalog, schemaPattern);
+            if (includeRelations)
+                discoverRelations(metaData, meta, catalog, schemaPattern);
+
+            if (includeIndexes)
+                discoverIndexes(metaData, meta, catalog, schemaPattern);
+
+            if (includeUniqueKeys)
+                discoverUniqueKeys(metaData, meta, catalog, schemaPattern);
 
             meta.init();
+
+            if (LOG.isDebugEnabled()) {
+                XNode node = DslModelHelper.dslModelToXNode(OrmConstants.XDSL_SCHEMA_ORM, meta.getOrmModel());
+                node.dump("discover-from-jdbc-meta");
+            }
             return meta;
         } catch (SQLException e) {
             throw dialect.getSQLExceptionTranslator().translate("sql-discovery", e);
@@ -285,6 +319,8 @@ public class JdbcMetaDiscovery {
                     col.setStdSqlType(dataType.getStdSqlType());
                     col.setStdDataType(dataType.getStdSqlType().getStdDataType());
                 }
+
+                col.setSqlType(typeName);
 
                 if (col.getStdSqlType().isAllowPrecision()) {
                     col.setPrecision(sqlDataType.getPrecision());

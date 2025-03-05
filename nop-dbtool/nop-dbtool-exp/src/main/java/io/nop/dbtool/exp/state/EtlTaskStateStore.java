@@ -11,27 +11,39 @@ import java.io.File;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ImportTaskStateStore {
+public class EtlTaskStateStore {
     private final File stateFile;
-    private final Map<String, IBatchStateStore> tableStores = new ConcurrentHashMap<>();
+    private final Map<String, EtlTableStateStore> tableStores = new ConcurrentHashMap<>();
 
-    private ImportTaskState taskState;
+    private EtlTaskState taskState;
     private long saveTime;
 
-    public ImportTaskStateStore(File stateFile) {
+    public EtlTaskStateStore(File stateFile) {
         this.stateFile = stateFile;
 
         if (stateFile.length() > 0) {
-            taskState = JsonTool.parseBeanFromResource(new FileResource(stateFile), ImportTaskState.class);
+            taskState = JsonTool.parseBeanFromResource(new FileResource(stateFile), EtlTaskState.class);
         } else {
-            taskState = new ImportTaskState();
+            taskState = new EtlTaskState();
         }
 
         saveTime = CoreMetrics.currentTimeMillis();
     }
 
+    public void reset() {
+        taskState = new EtlTaskState();
+    }
+
     public boolean isCompleted() {
         return taskState.isCompleted();
+    }
+
+    public synchronized boolean isTableCompleted(String tableName) {
+        return taskState.makeTableState(tableName).isCompleted();
+    }
+
+    public synchronized void resetTableState(String tableName) {
+        taskState.resetTableState(tableName);
     }
 
     public synchronized void complete() {
@@ -40,13 +52,13 @@ public class ImportTaskStateStore {
     }
 
     public IBatchStateStore getTableStore(String tableName) {
-        return tableStores.computeIfAbsent(tableName, k -> new ImportTableStateStore(tableName));
+        return tableStores.computeIfAbsent(tableName, k -> new EtlTableStateStore(tableName));
     }
 
-    class ImportTableStateStore implements IBatchStateStore {
+    class EtlTableStateStore implements IBatchStateStore {
         private final String tableName;
 
-        public ImportTableStateStore(String tableName) {
+        public EtlTableStateStore(String tableName) {
             this.tableName = tableName;
         }
 
@@ -59,10 +71,14 @@ public class ImportTaskStateStore {
         public void saveTaskState(boolean complete, Throwable ex, IBatchTaskContext context) {
             saveTableState(tableName, complete, context);
         }
+
+        public boolean isCompleted() {
+            return taskState.makeTableState(tableName).isCompleted();
+        }
     }
 
     synchronized void loadTableState(String tableName, IBatchTaskContext context) {
-        ImportTableState state = taskState.makeTableState(tableName);
+        EtlTableState state = taskState.makeTableState(tableName);
         if (state.getCompletedCount() > 0) {
             context.setCompleteItemCount(state.getCompletedCount());
         }
@@ -79,13 +95,13 @@ public class ImportTaskStateStore {
     }
 
     synchronized void saveTableState(String tableName, boolean complete, IBatchTaskContext context) {
-        ImportTableState state = taskState.makeTableState(tableName);
+        EtlTableState state = taskState.makeTableState(tableName);
         long newCount = context.getCompleteItemCount() - state.getCompletedCount();
         long now = CoreMetrics.currentTimeMillis();
         long diffTime = now - saveTime;
         saveTime = now;
 
-        state.setSpeed(newCount / (diffTime / 1000.0));
+        state.setSpeed(diffTime == 0 ? -1 : newCount / (diffTime / 1000.0));
 
         state.setCompletedCount(context.getCompleteItemCount());
         state.setCompletedIndex(context.getCompletedIndex());

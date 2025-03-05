@@ -3,7 +3,7 @@ package io.nop.dbtool.exp.state;
 import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
-public class ImportTableState {
+public class EtlTableState {
     private boolean completed;
     private long completedIndex;
     private long skipCount;

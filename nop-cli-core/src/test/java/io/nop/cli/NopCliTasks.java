@@ -103,7 +103,7 @@ public class NopCliTasks {
     @Test
     public void testExportDb() {
         String[] args = new String[]{"export-db", "../nop-cli/demo/test.export-db.xml",
-                "-o", "target/data"
+                "-o", "target/data", "-s=target/data/test-export.state.json"
         };
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);
@@ -113,7 +113,7 @@ public class NopCliTasks {
     @Test
     public void testImportDb() {
         String[] args = new String[]{"import-db", "../nop-cli/demo/test.import-db.xml",
-                "-i", "target/data", "-s=target/data/test.state.json"
+                "-i", "target/data", "-s=target/data/test-import.state.json"
         };
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);

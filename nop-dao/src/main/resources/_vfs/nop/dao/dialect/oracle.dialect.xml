@@ -178,5 +178,6 @@
         -->
         <sqlDataType name="BOOLEAN" code="CHAR(1)" stdSqlType="BOOLEAN"/>
         <sqlDataType name="JSON" stdSqlType="JSON"/>
+        <sqlDataType name="TIMESTAMP(6)" stdSqlType="TIMESTAMP"/>
     </sqlDataTypes>
 </dialect>

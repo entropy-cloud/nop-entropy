@@ -31,6 +31,7 @@ import io.nop.commons.concurrent.executor.SyncThreadPoolExecutor;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceLoader;
 import io.nop.core.resource.component.ResourceComponentManager;
@@ -51,7 +52,7 @@ import io.nop.dbtool.exp.config.ImportDbConfig;
 import io.nop.dbtool.exp.config.ImportTableConfig;
 import io.nop.dbtool.exp.config.JdbcConnectionConfig;
 import io.nop.dbtool.exp.config.TableFieldConfig;
-import io.nop.dbtool.exp.state.ImportTaskStateStore;
+import io.nop.dbtool.exp.state.EtlTaskStateStore;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.OrmEntityModel;
 import io.nop.xlang.api.XLang;
@@ -76,7 +77,7 @@ public class ImportDbTool {
 
     private IResourceLoader inputResourceLoader;
 
-    private ImportTaskStateStore stateStore;
+    private EtlTaskStateStore stateStore;
 
     private IDialect dialect;
     private DataSource dataSource;
@@ -122,6 +123,8 @@ public class ImportDbTool {
             this.dialect = DialectManager.instance().getDialect(conn.getDialect());
         }
         readTableMetas();
+
+        LOG.info("nop.import-db.config=\n{}", JsonTool.serialize(config, true));
     }
 
     protected DataSource buildDataSource(JdbcConnectionConfig conn) {
@@ -147,6 +150,7 @@ public class ImportDbTool {
             String tableNamePattern = config.getTableNamePattern();
 
             DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(dataSource)
+                    .includeRelations(false).includeUniqueKeys(false).includeIndexes(false)
                     .discover(conn.getCatalog(), config.getSchemaPattern(), tableNamePattern);
 
             for (OrmEntityModel table : meta.getTables().values()) {
@@ -203,9 +207,9 @@ public class ImportDbTool {
         Guard.notEmpty(config.getJdbcConnection(), "jdbc-connection");
 
         if (stateFile != null) {
-            stateStore = new ImportTaskStateStore(stateFile);
+            stateStore = new EtlTaskStateStore(stateFile);
             if (stateStore.isCompleted()) {
-                LOG.info("nop.import-db.completed");
+                LOG.info("nop.import-db.skip-since-already-completed");
                 return;
             }
         }
@@ -226,6 +230,11 @@ public class ImportDbTool {
             for (ImportTableConfig tableConfig : config.getTables()) {
                 if (!isImportable(tableConfig))
                     continue;
+
+                if (stateStore != null && stateStore.isTableCompleted(tableConfig.getName())) {
+                    LOG.info("nop.import-db.skip-table-when-already-completed:tableName={}", tableConfig.getName());
+                    continue;
+                }
                 futures.add(executor.submit(() -> runTask(tableConfig, dataSource), null));
             }
             FutureHelper.getFromFuture(FutureHelper.waitAll(futures));
@@ -306,6 +315,12 @@ public class ImportDbTool {
             context.getEvalScope().setLocalValues(args);
 
         IBatchTask task = builder.buildTask();
+
+        LOG.info("nop.import-db.begin-import-table:tableName={}", tableConfig.getName());
+        context.onAfterComplete(err -> {
+            LOG.info("nop.import-db.end-import-table:tableName={}", tableConfig.getName());
+        });
+
         task.execute(context);
     }
 
