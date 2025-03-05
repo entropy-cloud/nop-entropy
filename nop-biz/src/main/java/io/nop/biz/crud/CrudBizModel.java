@@ -352,13 +352,11 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         }
 
         IObjMeta objMeta = getThisObj().getObjMeta();
-        int maxPageSize = CFG_GRAPHQL_MAX_PAGE_SIZE.get();
+        int maxPageSize = getMaxPageSize();
         if (objMeta != null) {
             if (objMeta.getFilter() != null) {
                 query.addFilter(objMeta.getFilter().cloneInstance());
             }
-            maxPageSize = ConvertHelper.toPrimitiveInt(objMeta.prop_get(BizConstants.EXT_MAX_PAGE_SIZE), maxPageSize,
-                    NopException::new);
 
             if (objMeta.getOrderBy() != null) {
                 query.addOrderBy(objMeta.getOrderBy());
@@ -366,7 +364,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         }
 
         if (query.getLimit() <= 0) {
-            query.setLimit(CFG_GRAPHQL_DEFAULT_PAGE_SIZE.get());
+            query.setLimit(maxPageSize);
         }
 
         if (query.getLimit() > maxPageSize) {
@@ -387,6 +385,17 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         BizQueryHelper.transformMapToProp(query, objMeta);
         BizExprHelper.resolveBizExpr(query.getFilter(), context);
         return query;
+    }
+
+    public int getMaxPageSize() {
+        int maxPageSize = CFG_GRAPHQL_MAX_PAGE_SIZE.get();
+        IObjMeta objMeta = getThisObj().getObjMeta();
+        if (objMeta != null) {
+            Integer objMaxPageSize = ConvertHelper.toInt(objMeta.prop_get(BizConstants.EXT_MAX_PAGE_SIZE), NopException::new);
+            if (objMaxPageSize != null && objMaxPageSize > maxPageSize)
+                maxPageSize = objMaxPageSize;
+        }
+        return maxPageSize;
     }
 
     protected void checkAllowQuery(QueryBean query, IObjMeta objMeta) {
@@ -1347,7 +1356,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         DictBean dict = new DictBean();
         dict.setNormalized(true);
         QueryBean query = new QueryBean();
-        query.setLimit(CFG_GRAPHQL_MAX_PAGE_SIZE.get());
+        query.setLimit(getMaxPageSize());
         PageBean<T> pageBean = findPage(query, FieldSelectionBean.fromProp(GraphQLConstants.FIELD_ITEMS), context);
         List<DictOptionBean> options = new ArrayList<>(pageBean.getItems().size());
 
@@ -1393,9 +1402,6 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                                IServiceContext context) {
         if (query == null)
             query = new QueryBean();
-
-        if (query.getLimit() <= 0)
-            query.setLimit(CFG_GRAPHQL_MAX_PAGE_SIZE.get());
 
         query = prepareFindPageQuery(query, authObjName, METHOD_FIND_LIST, prepareQuery, context);
         return doFindListByQueryDirectly(query, context);
@@ -1670,9 +1676,6 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     ) {
         if (query == null)
             query = new QueryBean();
-
-        if (query.getLimit() <= 0)
-            query.setLimit(CFG_GRAPHQL_MAX_PAGE_SIZE.get());
 
         query = prepareFindPageQuery(query, authObjName, METHOD_FIND_TREE_PAGE, prepareQuery, context);
 

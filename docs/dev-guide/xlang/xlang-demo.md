@@ -90,17 +90,17 @@ return MyHelper.myMethod(a);
 ```
 <c:script>
   let list = [1,2,3];
-  let result = xpl `<c:for var='x` items="${list}">
-                      <my:MyTag x="${x}" />
-                    </c:for>`;
+  let result = xpl `<c:script>
+                      let a = 1;
+                      return a;
+                    </c:script>`;
 </c:script>
 ```
 
-在xpl模板表达式中，可以通过`${list}`来表示获取到上下文环境中的变量。
-
-> 在XLang语言的设计中，我们没有选择使用jsx语法来嵌入模板语言，而是扩展了JavaScript中的模板字符串机制，将模板字符串和宏函数机制结合在一起。
-> xpl是一个宏函数，在编译期它会自动解析它的参数得到Expression抽象语法树节点，然后插入到当前脚本的编译结果中。这一设计类似于C#语言中的LinQ机制，
-> 但它更为通用，可以支持嵌入任意语法。例如 xpath `/a/b[@a="3"]` 可以表示嵌入xpath语法，xpath是一个宏函数，它在编译期会自动解析它的参数得到XPath对象。
+* 在XLang语言的设计中，我们没有选择使用jsx语法来嵌入模板语言，而是扩展了JavaScript中的模板字符串机制，将模板字符串和宏函数机制结合在一起。
+* xpl是一个宏函数，在编译期它会自动解析它的参数得到Expression抽象语法树节点，然后插入到当前脚本的编译结果中。这一设计类似于C#语言中的LinQ机制，
+但它更为通用，可以支持嵌入任意语法。例如 xpath `/a/b[@a="3"]` 可以表示嵌入xpath语法，xpath是一个宏函数，它在编译期会自动解析它的参数得到XPath对象。
+* 每个xpl标签相当于是一个函数，它具有返回值，可以赋值给变量。
 
 ## xpl函数调用标签
 
