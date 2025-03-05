@@ -161,7 +161,9 @@ public class SiteCacheDataBuilder {
         for (String resourceId : new HashSet<>(resourceToRoles.keySet())) {
             Set<String> roles = resourceToRoles.get(resourceId);
             SiteResourceBean resource = entryMap.get(resourceId);
-            cascadeResourceToRoles(resource, roles);
+            if (resource != null) {
+               cascadeResourceToRoles(resource, roles);
+            }
         }
 
         Map<String, Set<String>> permissionToRoles = new HashMap<>();
