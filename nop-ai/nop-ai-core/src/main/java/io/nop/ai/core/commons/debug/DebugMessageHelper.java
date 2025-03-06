@@ -67,6 +67,8 @@ public class DebugMessageHelper {
     }
 
     static AiChatResponse parseMessage(String text) {
+        text = StringHelper.replace(text, "\r\n", "\n");
+
         AiChatResponse res = new AiChatResponse();
 
         int pos = 0;
@@ -78,19 +80,30 @@ public class DebugMessageHelper {
         }
 
         if (text.startsWith(EXCEPTION_BEGIN, pos)) {
-            pos = text.indexOf(EXCEPTION_END, pos + EXCEPTION_BEGIN.length());
-            String errorInfo = text.substring(pos + EXCEPTION_BEGIN.length(), pos);
-            ErrorBean error = (ErrorBean) JsonTool.parseBeanFromText(errorInfo, ErrorBean.class);
-            res.setInvalidReason(error);
-            res.setInvalid(true);
-            pos += EXCEPTION_END.length();
+            int pos2 = text.indexOf(EXCEPTION_END, pos + EXCEPTION_BEGIN.length());
+            if (pos2 > 0) {
+                String errorInfo = text.substring(pos + EXCEPTION_BEGIN.length(), pos2);
+                try {
+                    ErrorBean error = (ErrorBean) JsonTool.parseBeanFromText(errorInfo, ErrorBean.class);
+                    res.setInvalidReason(error);
+                } catch (Exception e) {
+                    ErrorBean error = new ErrorBean();
+                    error.setDescription(errorInfo);
+                    res.setInvalidReason(error);
+                }
+
+                res.setInvalid(true);
+                pos = pos2 + EXCEPTION_END.length();
+            }
         }
 
         if (text.startsWith(THINK_BEGIN, pos)) {
-            pos = text.indexOf(THINK_END, pos + THINK_BEGIN.length());
-            String think = text.substring(pos + THINK_BEGIN.length(), pos);
-            res.setThink(think);
-            pos += THINK_END.length();
+            int pos2 = text.indexOf(THINK_END, pos + THINK_BEGIN.length());
+            if (pos2 > 0) {
+                String think = text.substring(pos + THINK_BEGIN.length(), pos2);
+                res.setThink(think);
+                pos = pos2 + THINK_END.length();
+            }
         }
 
         String content = text.substring(pos);
