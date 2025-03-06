@@ -477,7 +477,7 @@ public class ClassModelBuilder extends MethodModelBuilder {
                 MethodModelCollection mc = getStaticMethodCollection(method.getName());
                 if (mc.getExactMatchMethod(method.getArgRawTypes()) == null) {
                     IFunctionModel resolvedMethod = fixTypeParameter(classType, (FunctionModel) method, true);
-                    if(resolvedMethod == method || mc.getExactMatchMethod(resolvedMethod.getArgRawTypes()) == null)
+                    if (resolvedMethod == method || mc.getExactMatchMethod(resolvedMethod.getArgRawTypes()) == null)
                         mc.addMethod(resolvedMethod);
                 }
             }
@@ -490,8 +490,16 @@ public class ClassModelBuilder extends MethodModelBuilder {
                 IFunctionModel fn = mc.getExactMatchMethod(method.getArgRawTypes());
                 if (fn == null) {
                     IFunctionModel resolvedMethod = fixTypeParameter(classType, (FunctionModel) method, true);
-                    if(resolvedMethod == method || mc.getExactMatchMethod(resolvedMethod.getArgRawTypes()) == null)
+                    if (resolvedMethod == method) {
                         mc.addMethod(resolvedMethod);
+                    } else {
+                        IFunctionModel overrideFn = mc.getExactMatchMethod(resolvedMethod.getArgRawTypes());
+                        if (overrideFn == null) {
+                            mc.addMethod(resolvedMethod);
+                        } else {
+                            inheritAnnotations((FunctionModel) overrideFn, method);
+                        }
+                    }
                 } else {
                     inheritAnnotations((FunctionModel) fn, method);
                 }
@@ -515,8 +523,16 @@ public class ClassModelBuilder extends MethodModelBuilder {
                 IFunctionModel fn = mc.getExactMatchMethod(method.getArgRawTypes());
                 if (fn == null) {
                     IFunctionModel resolvedMethod = fixTypeParameter(classType, (FunctionModel) method, true);
-                    if(resolvedMethod == method || mc.getExactMatchMethod(resolvedMethod.getArgRawTypes()) == null)
+                    if (resolvedMethod == method) {
                         mc.addMethod(resolvedMethod);
+                    } else {
+                        IFunctionModel overrideFn = mc.getExactMatchMethod(resolvedMethod.getArgRawTypes());
+                        if (overrideFn == null) {
+                            mc.addMethod(resolvedMethod);
+                        } else {
+                            inheritAnnotations((FunctionModel) overrideFn, method);
+                        }
+                    }
                 } else {
                     inheritAnnotations((FunctionModel) fn, method);
                 }
