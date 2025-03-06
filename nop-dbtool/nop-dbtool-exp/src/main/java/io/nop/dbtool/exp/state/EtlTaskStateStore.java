@@ -1,6 +1,5 @@
 package io.nop.dbtool.exp.state;
 
-import io.nop.api.core.time.CoreMetrics;
 import io.nop.batch.core.IBatchStateStore;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.commons.util.FileHelper;
@@ -16,7 +15,6 @@ public class EtlTaskStateStore {
     private final Map<String, EtlTableStateStore> tableStores = new ConcurrentHashMap<>();
 
     private EtlTaskState taskState;
-    private long saveTime;
 
     public EtlTaskStateStore(File stateFile) {
         this.stateFile = stateFile;
@@ -24,10 +22,10 @@ public class EtlTaskStateStore {
         if (stateFile.length() > 0) {
             taskState = JsonTool.parseBeanFromResource(new FileResource(stateFile), EtlTaskState.class);
         } else {
-            taskState = new EtlTaskState();
+            taskState = EtlTaskState.create();
         }
 
-        saveTime = CoreMetrics.currentTimeMillis();
+        taskState.start();
     }
 
     public void reset() {
@@ -97,11 +95,7 @@ public class EtlTaskStateStore {
     synchronized void saveTableState(String tableName, boolean complete, IBatchTaskContext context) {
         EtlTableState state = taskState.makeTableState(tableName);
         long newCount = context.getCompleteItemCount() - state.getCompletedCount();
-        long now = CoreMetrics.currentTimeMillis();
-        long diffTime = now - saveTime;
-        saveTime = now;
-
-        state.setSpeed(diffTime == 0 ? -1 : newCount / (diffTime / 1000.0));
+        state.save(newCount);
 
         state.setCompletedCount(context.getCompleteItemCount());
         state.setCompletedIndex(context.getCompletedIndex());

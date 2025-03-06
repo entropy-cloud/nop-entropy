@@ -1,7 +1,7 @@
 <import-db x:schema="/nop/schema/db/import-db.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-           threadCount="4" importAllTables="false" batchSize="5000">
+           threadCount="4" importAllTables="false" batchSize="2000" concurrencyPerTable="10">
 
-    <jdbc-connection x:extends="jdbc-connection.xml"/>
+    <jdbc-connection x:extends="jdbc-connection.xml" maxConnections="100" />
 
     <excludeTableNames>nop_auth_session</excludeTableNames>
 
