@@ -65,6 +65,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         translator.getChatOptions().setRequestTimeout(600 * 1000L);
         translator.getChatOptions().setContextLength(4096);
         translator.setDebug(true);
+        translator.recoverMode(true);
 
         File docsDir = getDocsDir();
         File docsEnDir = new File(docsDir.getParent(), "docs-en");

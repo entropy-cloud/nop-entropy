@@ -53,7 +53,7 @@ public class AiDocument extends VectorData {
         this.content = content;
     }
 
-    public static AiDocument of(String content){
+    public static AiDocument fromText(String content) {
         AiDocument document = new AiDocument();
         document.setContent(content);
         return document;
@@ -62,9 +62,9 @@ public class AiDocument extends VectorData {
     @Override
     public String toString() {
         return "Document{" +
-            "id=" + id +
-            ", content='" + content + '\'' +
-            ", metadataMap=" + metadata +
-            '}';
+                "id=" + id +
+                ", content='" + content + '\'' +
+                ", metadataMap=" + metadata +
+                '}';
     }
 }

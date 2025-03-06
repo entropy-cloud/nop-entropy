@@ -1,0 +1,6 @@
+template: |
+  This is an {source_lang} to {target_lang} translation, please provide the {target_lang} translation for this text. 
+  Do not provide any explanations or text apart from the translation.
+  {source_lang}: {source_text}
+
+  {target_lang}:

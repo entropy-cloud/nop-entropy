@@ -8,7 +8,7 @@ import java.util.concurrent.CompletionStage;
 public interface IMcpClient {
     List<ToolSpecification> listTools();
 
-    String executeTool(ToolResponse toolRequest);
+    CallToolResult executeTool(ToolResponse toolRequest);
 
-    CompletionStage<String> executeToolAsync(ToolResponse toolRequest);
+    CompletionStage<CallToolResult> executeToolAsync(ToolResponse toolRequest);
 }

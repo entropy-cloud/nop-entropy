@@ -280,27 +280,20 @@ public class AiTranslateCommand extends AiCommand {
         if (textSplitter != null && text.length() > maxChunkSize) {
             List<IAiTextSplitter.SplitChunk> chunks = textSplitter.split(text, maxChunkSize);
 
-            Cancellable cancellable = new Cancellable();
-            Consumer<String> cleanup = cancellable::cancel;
-            if (cancelToken != null) {
-                cancelToken.appendOnCancel(cleanup);
-            }
             List<CompletionStage<AiChatResponse>> promises = new ArrayList<>(chunks.size());
             for (IAiTextSplitter.SplitChunk chunk : chunks) {
                 CompletionStage<AiChatResponse> promise = FutureHelper.executeWithThrottling(() ->
-                        translateTextAsync(chunk.getContent(), cancellable), limit);
+                        translateTextAsync(chunk.getContent(), cancelToken), limit);
 
                 promises.add(promise);
             }
+
 
             CompletionStage<AggregateText> ret = FutureHelper.thenCompleteAsync(FutureHelper.waitAll(promises), (v, e) -> {
                 return aggregateResults(getResults(promises));
             });
 
-            return ret.whenComplete((r, e) -> {
-                if (cancelToken != null)
-                    cancelToken.removeOnCancel(cleanup);
-            });
+            return ret;
 
         } else {
             return FutureHelper.executeWithThrottling(() ->
