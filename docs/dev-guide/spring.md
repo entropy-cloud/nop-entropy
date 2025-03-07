@@ -33,6 +33,10 @@
 3. Spring容器中无法直接使用Nop平台管理的bean，需要使用 BeanContainer.getBeanByType(IDaoProvider.class)等方法来获取
 4. Nop平台和Spring共用application.yaml配置文件，Nop平台的配置格式参见 [config.md](config.md)
 
+## 仅使用NopReport报表引擎
+如果仅需要使用NopReport报表引擎，可以在nop-spring-core-starter的基础上再引入nop-report-core模块。
+具体示例参见nop-spring-report-demo模块。
+
 ## 仅使用NopOrm来访问数据库
 
 如果仅需要使用NopOrm平台提供的ORM引擎，可以在nop-spring-core-starter的基础上再引入nop-orm模块
@@ -49,7 +53,7 @@
         <groupId>io.github.entropy-cloud</groupId>
         <artifactId>nop-sys-dao</artifactId>
     </dependency>
-</dependencies>  
+</dependencies>
 ```
 
 如果需要使用NopSysSequence表来统一管理sequence，或者需要扩展字段支持，则可以引入nop-sys-dao模块。
@@ -81,7 +85,7 @@ nop.dao.use-parent-transaction-factory=true
         <groupId>io.github.entropy-cloud</groupId>
         <artifactId>nop-spring-web-starter</artifactId>
     </dependency>
-</dependencies>    
+</dependencies>
 ```
 
 如果需要引入orm支持，则引入nop-spring-web-orm-starter，它会自动引入nop-orm，从而引入数据源配置，必须在application.yaml中配置nop.datasource.jdbc-url等参数，或者配置nop.orm.use-parent-data-source=true

@@ -11,7 +11,9 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.resource.IFile;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.impl.FileResource;
 
+import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.function.Predicate;
@@ -45,6 +47,10 @@ public interface IZipTool {
             IoHelper.safeClose(is);
             throw NopException.adapt(e);
         }
+    }
+
+    default IZipInput getZipInputForFile(File file, ZipOptions options) {
+        return getZipInput(new FileResource(file), options);
     }
 
     default void unzipToDir(IResource zipFile, IFile dir) {

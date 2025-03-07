@@ -9,8 +9,10 @@ package io.nop.core.resource.zip;
 
 import io.nop.api.core.util.ProcessResult;
 import io.nop.core.resource.IFile;
+import io.nop.core.resource.impl.FileResource;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.BiFunction;
@@ -28,6 +30,10 @@ public interface IZipInput extends Closeable {
 
     default void unzipToDir(IFile dir) throws IOException {
         unzipToDir(dir, null);
+    }
+
+    default void unzipToLocalDir(File dir, Predicate<ZipEntry> filter) throws IOException {
+        unzipToDir(new FileResource(dir), filter);
     }
 
     void unzip(BiFunction<ZipEntry, InputStream, ProcessResult> processor) throws IOException;
