@@ -10,6 +10,7 @@ public class EtlTableState {
     private long skipCount;
     private long completedCount;
     private long processedCount;
+    private long errorCount;
     private double speed;
 
     private long totalRunTime;
@@ -32,6 +33,14 @@ public class EtlTableState {
         lastCompleteCount = count;
         lastRunTime = diff;
         lastSaveTime = now;
+    }
+
+    public long getErrorCount() {
+        return errorCount;
+    }
+
+    public void setErrorCount(long errorCount) {
+        this.errorCount = errorCount;
     }
 
     public long getLastCompleteCount() {

@@ -7,14 +7,9 @@
  */
 package io.nop.batch.core.consumer;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.BatchSkipPolicy;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
-import io.nop.batch.core.IBatchTaskMetrics;
-import io.nop.batch.core.exceptions.BatchCancelException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 
@@ -22,7 +17,6 @@ import java.util.Collection;
  * 消费失败之后允许忽略skipCount条记录。
  */
 public class SkipBatchConsumer<R> implements IBatchConsumer<R> {
-    static final Logger LOG = LoggerFactory.getLogger(SkipBatchConsumer.class);
 
     private final IBatchConsumer<R> consumer;
     private final BatchSkipPolicy skipPolicy;
@@ -34,24 +28,6 @@ public class SkipBatchConsumer<R> implements IBatchConsumer<R> {
 
     @Override
     public void consume(Collection<R> items, IBatchChunkContext context) {
-        IBatchTaskMetrics metrics = context.getTaskContext().getMetrics();
-        try {
-            consumer.consume(items, context);
-        } catch (BatchCancelException e) {
-            throw e;
-        } catch (Throwable e) {
-            if (skipPolicy.shouldSkip(e, context.getTaskContext().getSkipItemCount(), context)) {
-                int count = context.getChunkItems().size() - context.getCompletedItemCount();
-                LOG.info("nop.batch.skip-error:skipCount={},totalSkipCount={}", count,
-                        context.getTaskContext().getSkipItemCount(), e);
-
-                if (metrics != null) {
-                    metrics.skipError(count);
-                }
-                context.getTaskContext().incSkipItemCount(count);
-            } else {
-                throw NopException.adapt(e);
-            }
-        }
+        SkipConsumeHelper.consumeWithSkipPolicy(skipPolicy, consumer, items, context);
     }
 }

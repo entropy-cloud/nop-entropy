@@ -137,6 +137,12 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void incProcessItemCount(int count);
 
+    long getErrorCount();
+
+    void setErrorCount(long errorCount);
+
+    void incErrorCount(int count);
+
     void onTaskBegin(Runnable action);
 
     void onChunkBegin(Consumer<IBatchChunkContext> action);

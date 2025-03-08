@@ -6,6 +6,7 @@ import io.nop.api.core.beans.query.QueryBean;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.orm.support.OrmBatchHelper;
+import io.nop.commons.mutable.MutableInt;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmEntity;
@@ -62,6 +63,9 @@ public class OrmBatchConsumer<S extends IOrmEntity, R> implements IBatchConsumer
             keyMap.put(getKey(item), item);
         }
 
+        MutableInt insertCount = new MutableInt();
+        MutableInt updateCount = new MutableInt();
+
         Map<Object, S> map;
         if (useIdAsKey) {
             map = dao.batchGetEntityMapByIds(keyMap.keySet());
@@ -87,6 +91,7 @@ public class OrmBatchConsumer<S extends IOrmEntity, R> implements IBatchConsumer
 
                 OrmBatchHelper.assignEntity(entity, item);
                 dao.updateEntity(entity);
+                updateCount.incrementAndGet();
             } else {
                 if (!allowInsert)
                     return;
@@ -94,6 +99,7 @@ public class OrmBatchConsumer<S extends IOrmEntity, R> implements IBatchConsumer
                 S newEntity = dao.newEntity();
                 OrmBatchHelper.assignEntity(newEntity, item);
                 dao.saveEntity(newEntity);
+                insertCount.incrementAndGet();
             }
         });
     }

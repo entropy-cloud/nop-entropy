@@ -1,7 +1,15 @@
 <export-db x:schema="/nop/schema/db/export-db.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-           threadCount="4" exportFormats="csv,sql">
+           threadCount="4" exportFormats="csv.gz" streaming="true" batchSize="5000">
 
-    <jdbc-connection x:extends="jdbc-connection.xml"/>
+    <jdbc-connection x:schema="/nop/schema/db/jdbc-connection.xdef"
+                     username="nop" password="nop-test"
+                     catalog="dev"
+    >
+        <driverClassName>com.mysql.cj.jdbc.Driver</driverClassName>
+        <jdbcUrl><![CDATA[
+        jdbc:mysql://127.0.0.1:3306/dev?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC
+    ]]></jdbcUrl>
+    </jdbc-connection>
 
     <tables>
         <table name="demo_card" />

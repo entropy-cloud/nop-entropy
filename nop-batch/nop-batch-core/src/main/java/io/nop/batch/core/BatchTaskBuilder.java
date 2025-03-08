@@ -12,11 +12,14 @@ import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 import io.nop.batch.core.IBatchLoaderProvider.IBatchLoader;
 import io.nop.batch.core.IBatchProcessorProvider.IBatchProcessor;
+import io.nop.batch.core.consumer.AddCompletedBatchConsumer;
 import io.nop.batch.core.consumer.BatchProcessorConsumer;
 import io.nop.batch.core.consumer.EmptyBatchConsumer;
 import io.nop.batch.core.consumer.InvokerBatchConsumer;
 import io.nop.batch.core.consumer.RateLimitConsumer;
-import io.nop.batch.core.consumer.RetryBatchConsumer;
+import io.nop.batch.core.consumer.RetryAllBatchConsumer;
+import io.nop.batch.core.consumer.RetryOneByOneBatchConsumer;
+import io.nop.batch.core.consumer.SingleModeBatchConsumer;
 import io.nop.batch.core.consumer.SkipBatchConsumer;
 import io.nop.batch.core.consumer.WithHistoryBatchConsumer;
 import io.nop.batch.core.impl.BatchTask;
@@ -386,16 +389,30 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
             consumer = new InvokerBatchConsumer<>(transactionalInvoker, consumer);
         }
 
+        // 事务提交后就可以标记记录为完成，调用context.addCompletedItems(items)
+        if (batchTransactionScope != BatchTransactionScope.chunk)
+            consumer = new AddCompletedBatchConsumer<>(consumer);
+
         // 限制消费速度
         if (rateLimit > 0)
             consumer = new RateLimitConsumer<>(consumer, new DefaultRateLimiter(rateLimit));
 
-        // 一般情况下事务scope为process或者consume，因此retry是在事务之外执行
-        // 这里需要RetryBatchConsumer中自动设置addCompletedItems
-        consumer = new RetryBatchConsumer<>(consumer, retryPolicy, retryOneByOne, singleMode, snapshotBuilder);
+        // singleMode为true，则针对单个记录执行consumer
+        if (singleMode)
+            consumer = new SingleModeBatchConsumer<>(consumer);
 
-        // retry失败后，如果错误记录数在一定范围之内，则可以忽略异常继续处理。
-        if (skipPolicy != null) {
+        // 一般情况下事务scope为process或者consume，因此retry是在事务之外执行.
+        if (retryPolicy != null) {
+            if (retryOneByOne) {
+                // skip检查在retry之后执行
+                consumer = new RetryOneByOneBatchConsumer<>(consumer, retryPolicy, snapshotBuilder, skipPolicy);
+            } else {
+                consumer = new RetryAllBatchConsumer<>(consumer, retryPolicy, snapshotBuilder);
+            }
+        }
+
+        // retry失败后，如果错误记录数在一定范围之内，则可以忽略异常继续处理。retryOneByOne的时候已经执行过skipPolicy这里就不再需要处理
+        if (skipPolicy != null && !retryOneByOne) {
             consumer = new SkipBatchConsumer<>(consumer, skipPolicy);
         }
 

@@ -8,10 +8,19 @@ import java.util.List;
 @DataBean
 public class BizEntityImportResponseBean {
     private long errorCount;
+    private long processCount;
     private long insertCount;
     private long updateCount;
 
     private List<ErrorBean> errors;
+
+    public long getProcessCount() {
+        return processCount;
+    }
+
+    public void setProcessCount(long processCount) {
+        this.processCount = processCount;
+    }
 
     public long getErrorCount() {
         return errorCount;

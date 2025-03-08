@@ -90,6 +90,9 @@ public class EtlTaskStateStore {
 
         if (state.getSkipCount() > 0)
             context.setSkipItemCount(state.getSkipCount());
+
+        if (state.getErrorCount() > 0)
+            context.setErrorCount(state.getErrorCount());
     }
 
     synchronized void saveTableState(String tableName, boolean complete, IBatchTaskContext context) {
@@ -102,6 +105,7 @@ public class EtlTaskStateStore {
         state.setProcessedCount(context.getProcessItemCount());
         state.setSkipCount(context.getSkipItemCount());
         state.setCompleted(complete);
+        state.setErrorCount(context.getErrorCount());
 
         FileHelper.writeText(stateFile, JsonTool.serialize(taskState, true), null);
     }

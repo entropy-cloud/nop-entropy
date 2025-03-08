@@ -11,11 +11,21 @@ import io.nop.core.reflect.hook.IPropGetMissingHook;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * 每个工作流实例都对应一个全局变量集合
  */
 public interface IVarSet extends IPropGetMissingHook {
+    default Map<String, Object> toMap() {
+        Map<String, Object> ret = new TreeMap<>();
+        for (String varName : getVarNames()) {
+            Object value = getVar(varName);
+            ret.put(varName, value);
+        }
+        return ret;
+    }
+
     @Override
     default Object prop_get(String propName) {
         return getVar(propName);

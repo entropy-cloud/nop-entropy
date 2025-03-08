@@ -1,7 +1,16 @@
 <import-db x:schema="/nop/schema/db/import-db.xdef" xmlns:x="/nop/schema/xdsl.xdef"
            threadCount="4" importAllTables="false" batchSize="2000" concurrencyPerTable="10">
 
-    <jdbc-connection x:extends="jdbc-connection.xml" maxConnections="100" />
+    <jdbc-connection x:schema="/nop/schema/db/jdbc-connection.xdef"
+                     username="nop" password="nop-test"
+                     catalog="dev" maxConnections="100"
+    >
+        <driverClassName>com.mysql.cj.jdbc.Driver</driverClassName>
+        <jdbcUrl><![CDATA[
+        jdbc:mysql://127.0.0.1:3306/dev?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC
+    ]]></jdbcUrl>
+    </jdbc-connection>
+
 
     <excludeTableNames>nop_auth_session</excludeTableNames>
 
@@ -19,7 +28,7 @@
         <!--            </fields>-->
         <!--        </table>-->
 
-        <table name="demo_card" importAllFields="true" allowUpdate="false"/>
-        <table name="demo_account" importAllFields="true" allowUpdate="false"/>
+        <table name="demo_card_new" from="demo_card" importAllFields="true" allowUpdate="false"/>
+        <table name="demo_account_new" from="demo_account" importAllFields="true" allowUpdate="false"/>
     </tables>
 </import-db>
