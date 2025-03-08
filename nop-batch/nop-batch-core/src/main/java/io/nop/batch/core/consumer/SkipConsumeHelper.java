@@ -24,6 +24,7 @@ public class SkipConsumeHelper {
         }
 
         IBatchTaskMetrics metrics = context.getTaskContext().getMetrics();
+        int completedCount = context.getCompletedItemCount();
         try {
             // 内部有可能根据retryPolicy进行重试
             consumer.consume(items, context);
@@ -31,7 +32,7 @@ public class SkipConsumeHelper {
             throw e;
         } catch (Throwable e) {
             if (skipPolicy.shouldSkip(e, context.getTaskContext().getSkipItemCount(), context)) {
-                int count = context.getChunkItems().size() - context.getCompletedItemCount();
+                int count = items.size() - context.getCompletedItemCount() + completedCount;
                 LOG.info("nop.batch.skip-error:skipCount={},totalSkipCount={}", count,
                         context.getTaskContext().getSkipItemCount(), e);
 

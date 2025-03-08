@@ -27,7 +27,7 @@ public class RetryOneByOneBatchConsumer<R> extends AbstractRetryBatchConsumer<R>
         for (R item : items) {
             List<R> retryItems = Collections.singletonList(item);
             SkipConsumeHelper.consumeWithSkipPolicy(skipPolicy, (list, ctx) -> {
-                RetryConsumeHelper.retryConsume(retryPolicy, consumer, snapshot, items, context);
+                RetryConsumeHelper.retryConsume(retryPolicy, consumer, snapshot, list, ctx);
             }, retryItems, context);
         }
     }

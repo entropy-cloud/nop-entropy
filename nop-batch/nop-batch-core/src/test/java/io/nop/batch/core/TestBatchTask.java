@@ -42,7 +42,7 @@ public class TestBatchTask {
 
         MockLoader loader = new MockLoader();
         MockConsumer consumer = new MockConsumer();
-        builder.loader(loader).consumer(consumer).concurrency(10).executor(GlobalExecutors.cachedThreadPool());
+        builder.loader(loader).consumer(consumer).concurrency(1).executor(GlobalExecutors.cachedThreadPool());
         builder.processor(new MockProcessor());
         builder.skipPolicy(new BatchSkipPolicy().maxSkipCount(10000));
         builder.retryOneByOne(true).retryPolicy(RetryPolicy.retryNTimes(3));

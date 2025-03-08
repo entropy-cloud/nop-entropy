@@ -41,7 +41,7 @@ public class RetryConsumeHelper {
         Collection<R> retryItems = items;
         do {
             try {
-                context.getTaskContext().fireChunkTryBegin(items, context);
+                context.getTaskContext().fireChunkTryBegin(retryItems, context);
                 consumer.consume(retryItems, context);
                 context.getTaskContext().fireChunkTryEnd(context, null);
                 return;
