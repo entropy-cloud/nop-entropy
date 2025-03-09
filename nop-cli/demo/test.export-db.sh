@@ -1,0 +1,1 @@
+./cli.sh export-db test.export-db.xml -o=target/data -s=target/data/test-export.status.json

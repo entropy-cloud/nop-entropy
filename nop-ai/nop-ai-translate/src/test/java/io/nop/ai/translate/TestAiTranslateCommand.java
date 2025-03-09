@@ -6,6 +6,8 @@ import io.nop.ai.core.prompt.PromptTemplateManager;
 import io.nop.ai.core.service.DefaultAiChatService;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.commons.util.FileHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.http.api.client.HttpClientConfig;
 import io.nop.http.client.jdk.JdkHttpClient;
 import org.junit.jupiter.api.AfterEach;
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.nio.file.FileVisitResult;
 import java.time.Duration;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
@@ -71,6 +74,25 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         File docsEnDir = new File(docsDir.getParent(), "docs-en");
 
         translator.translateDir(docsDir, docsEnDir, null);
+    }
+
+    @Test
+    public void moveDebugFile() {
+        File docsDir = getDocsDir();
+        File docsEnDir = new File(docsDir.getParentFile(), "docs-en");
+        File docsEnDebugDir = new File(docsDir.getParentFile(), "docs-en-debug");
+
+        FileHelper.walk2(docsEnDir, docsEnDebugDir, (f1, f2) -> {
+            if (f1.getName().endsWith(".debug.md")) {
+                File targetFile = new File(f2.getParentFile(), StringHelper.removeEnd(f1.getName(),".debug.md"));
+                if (!targetFile.exists()) {
+                    System.out.println("move file:" + targetFile);
+                    FileHelper.copyFile(f1, targetFile);
+                }
+                f1.delete();
+            }
+            return FileVisitResult.CONTINUE;
+        });
     }
 
     void translateFile(String model, Consumer<AiTranslateCommand> config) {

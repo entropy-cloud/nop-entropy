@@ -216,12 +216,15 @@ public class AiTranslateCommand extends AiCommand {
                                                  ICancelToken cancelToken, Semaphore limit) {
         LOG.info("nop.ai.translate-file:path={}", FileHelper.getAbsolutePath(srcFile));
 
+        CompletionStage<AggregateText> promise;
         if (recoverMode && debugFile != null && debugFile.exists()) {
-            return recoverFromDebugFileAsync(debugFile, cancelToken, limit);
+            promise = recoverFromDebugFileAsync(debugFile, cancelToken, limit);
+        } else {
+            String text = FileHelper.readText(srcFile, null);
+            promise = translateLongTextAsync(text, cancelToken, limit);
         }
 
-        String text = FileHelper.readText(srcFile, null);
-        return translateLongTextAsync(text, cancelToken, limit).thenApply(ret -> {
+        return promise.thenApply(ret -> {
             if (debug && debugFile != null)
                 FileHelper.writeText(debugFile, ret.getDebugText(), null);
 
@@ -231,8 +234,8 @@ public class AiTranslateCommand extends AiCommand {
         });
     }
 
-    public CompletionStage<?> recoverFromDebugFileAsync(File debugFile,
-                                                        ICancelToken cancelToken, Semaphore limit) {
+    public CompletionStage<AggregateText> recoverFromDebugFileAsync(File debugFile,
+                                                                    ICancelToken cancelToken, Semaphore limit) {
         LOG.info("nop.ai.translate-file-with-recover-mode:debugFile={}", FileHelper.getAbsolutePath(debugFile));
 
         List<AiChatResponse> messages = DebugMessageHelper.parseDebugFile(debugFile);

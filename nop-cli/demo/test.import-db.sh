@@ -1,0 +1,1 @@
+./cli.sh import-db test.import-db.xml -i=target/data -s=target/data/test-import.status.json

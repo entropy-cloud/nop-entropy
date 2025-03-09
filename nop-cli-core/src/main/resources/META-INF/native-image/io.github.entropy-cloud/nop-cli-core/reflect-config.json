@@ -17363,6 +17363,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.ioc.model.BeanRefValue"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "addDepend",
@@ -18332,6 +18342,33 @@
       }
     ],
     "name": "io.nop.ioc.model._gen._BeanPropertyModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.ioc.model.BeanRefValue"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.ioc.model._gen._BeanRefValue"
   },
   {
     "allDeclaredConstructors": true,
@@ -27971,6 +28008,159 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "editEnabled"
+      },
+      {
+        "allowWrite": true,
+        "name": "pageProvider"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.web.biz.PageProviderBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "editEnabled"
+      },
+      {
+        "allowWrite": true,
+        "name": "jsProvider"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.web.biz.SystemJsProviderBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "loadDynamicCss",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.web.page.DynamicCssLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.web.page.DynamicJsLoader"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "cssLoader"
+      },
+      {
+        "allowWrite": true,
+        "name": "jsLoader"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.web.page.DynamicWebFileProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "loadPage",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "java.lang.String",
+          "io.nop.core.lang.json.bind.ValueResolverCompilerRegistry",
+          "boolean"
+        ]
+      },
+      {
+        "name": "renderPage",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "io.nop.web.page.PageRenderOptions"
+        ]
+      },
+      {
+        "name": "renderPageTo",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "io.nop.web.page.PageRenderOptions",
+          "java.io.File"
+        ]
+      },
+      {
+        "name": "transformPermissions",
+        "parameterTypes": [
+          "java.lang.Object"
+        ]
+      }
+    ],
+    "name": "io.nop.web.page.PageProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.web.page.PageRenderOptions"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "withHistorySupport",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "java.util.function.Function"
+        ]
+      }
+    ],
+    "name": "io.nop.web.page.ResourceWithHistoryProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [
       {
@@ -31019,6 +31209,16 @@
       }
     ],
     "name": "io.nop.xlang.xpl.xlib._gen._XplTagSlotArg"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xui.initialize.XuiCoreInitializer"
   },
   {
     "allDeclaredConstructors": true,
