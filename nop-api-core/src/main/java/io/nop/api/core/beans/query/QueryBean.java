@@ -7,6 +7,7 @@
  */
 package io.nop.api.core.beans.query;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.ApiConstants;
 import io.nop.api.core.annotations.data.DataBean;
@@ -142,6 +143,23 @@ public class QueryBean implements Serializable, ICloneable {
 
     public void setFields(List<QueryFieldBean> fields) {
         this.fields = fields;
+    }
+
+    @JsonIgnore
+    public List<String> getFieldNames() {
+        if (fields == null)
+            return null;
+        return fields.stream().map(QueryFieldBean::getName).collect(Collectors.toList());
+    }
+
+    public void setFieldNames(List<String> fieldNames) {
+        if (fieldNames == null || fieldNames.isEmpty()) {
+            this.fields = null;
+        } else {
+            for (String fieldName : fieldNames) {
+                addField(QueryFieldBean.forField(fieldName));
+            }
+        }
     }
 
     public QueryBean addField(QueryFieldBean field) {

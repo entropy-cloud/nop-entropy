@@ -290,6 +290,33 @@ IOrmEntityFileStore提供了copyFile函数，可以根据指定fileId复制一�
 1.  `IOrmEntityFileStore.changePublic(fileId, true)`设置文件允许被公开访问
 2. 设置`nop.auth.download-file-public=true`，或者定制`auth-service.beans.xml`中的nopAuthFilterConfig，允许公开访问`/f/download/*`
 
+## 文件下载
+上面介绍的做法是将上传的文件统一保存在IFileStore中（缺省对应于DaoResourceFileStore，使用nop_file_record表来记录文件的存储位置信息）。
+但是如果只是要实现文件下载功能，无论它存储在那里，并不需要使用`/f/download/`链接，可以直接在自己的业务BizModel中实现。
+
+```java
+@BizModel("ReportDemo")
+public class ReportDemoBizModel{
+  @BizQuery
+  public WebContentBean download(@Name("reportName") String reportName, @Name("renderType") String renderType){
+    File tempFile = ...;
+
+    // 如果下载使用了临时文件，则需要自动清理
+    GlobalExecutors.globalTimer().schedule(() -> {
+      tempFile.delete();
+      return null;
+    }, 30, TimeUnit.MINUTES);
+
+     return new WebContentBean("application/octet-stream",
+                    tempFile, fileName);
+  }
+}
+```
+
+Nop平台的下载功能并不使用`response.write`这种调用，而是返回WebContentBean对象，其中包含资源文件和下载文件名等信息，由外部不同的框架负责适配下载逻辑。
+
+在前台通过`/p/ReportDemo__download`这种链接来实现下载。`/p/`调用与一般的`/r/`调用的区别在于它直接返回结果，而不是将BizModel的返回值包装为ApiResponse对象。
+
 ## 配置变量
 
 * nop.file.store-dir

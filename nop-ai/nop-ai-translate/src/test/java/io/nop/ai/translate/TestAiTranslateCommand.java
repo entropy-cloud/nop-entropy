@@ -1,6 +1,8 @@
 package io.nop.ai.translate;
 
 import io.nop.ai.core.api.chat.IAiChatService;
+import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.commons.debug.DebugMessageHelper;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.ai.core.prompt.PromptTemplateManager;
 import io.nop.ai.core.service.DefaultAiChatService;
@@ -18,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.nio.file.FileVisitResult;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 
@@ -59,14 +62,19 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
     @Test
     public void testTranslateDir() {
         String model = "deepseek-r1:8b";
+        model = "deepseek-r1:14b";
+        model = "llama3.1:8b";
+        model = "phi4";
+        String promptName = "translate";
 
-        AiTranslateCommand translator = new AiTranslateCommand(chatService, templateManager, "translate3");
+        AiTranslateCommand translator = new AiTranslateCommand(chatService, templateManager, promptName);
         translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(2048);
         translator.getChatOptions().setLlm("ollama");
         translator.getChatOptions().setModel(model);
         translator.getChatOptions().setTemperature(0.6f);
         translator.getChatOptions().setRequestTimeout(600 * 1000L);
-        translator.getChatOptions().setContextLength(4096);
+        translator.getChatOptions().setContextLength(8192);
+        //translator.getChatOptions().setMaxTokens(4096);
         translator.setDebug(true);
         translator.recoverMode(true);
 
@@ -84,12 +92,27 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
 
         FileHelper.walk2(docsEnDir, docsEnDebugDir, (f1, f2) -> {
             if (f1.getName().endsWith(".debug.md")) {
-                File targetFile = new File(f2.getParentFile(), StringHelper.removeEnd(f1.getName(),".debug.md"));
+                File targetFile = new File(f2.getParentFile(), StringHelper.removeEnd(f1.getName(), ".debug.md"));
                 if (!targetFile.exists()) {
                     System.out.println("move file:" + targetFile);
                     FileHelper.copyFile(f1, targetFile);
                 }
                 f1.delete();
+            }
+            return FileVisitResult.CONTINUE;
+        });
+    }
+
+    @Test
+    public void removeExtraExt() {
+        File docsDir = getDocsDir();
+        File docsEnDir = new File(docsDir.getParentFile(), "docs-en");
+        File docsEnDebugDir = new File(docsDir.getParentFile(), "docs-en-debug");
+
+        FileHelper.walk(docsEnDebugDir, f1 -> {
+            if (f1.getName().endsWith(".md.md")) {
+                File newFile = new File(f1.getParentFile(), StringHelper.removeEnd(f1.getName(), ".md"));
+                f1.renameTo(newFile);
             }
             return FileVisitResult.CONTINUE;
         });
@@ -119,6 +142,54 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         File targetFile = getTargetFile("translated/" + normalizedName + ".md");
         targetFile.delete();
         translator.translateFile(srcFile, targetFile, null, null, new Semaphore(1));
+    }
+
+    @Test
+    public void testDebugFile() {
+        File docsDir = getDocsDir();
+        File docsEnDebugDir = new File(docsDir.getParentFile(), "docs-en-debug");
+
+        File file = new File(docsEnDebugDir, "theory/why-xlang-is-innovative.md");
+        List<AiChatResponse> responses = DebugMessageHelper.parseDebugFile(file);
+        for (AiChatResponse response : responses) {
+            System.out.println(response.getContent());
+        }
+    }
+
+    @Test
+    public void removeErrorFiles() {
+        File docsDir = getDocsDir();
+        File docsEnDir = new File(docsDir.getParentFile(), "docs-en");
+        File docsEnDebugDir = new File(docsDir.getParentFile(), "docs-en-debug");
+
+        FileHelper.walk2(docsEnDir, docsEnDebugDir, (f1, f2) -> {
+            if (!f1.isFile())
+                return FileVisitResult.CONTINUE;
+
+            String text1 = FileHelper.readText(f1, null);
+            boolean error = false;
+            if (StringHelper.countChinese(text1) > 50) {
+                error = true;
+            }
+
+            if (f2.exists()) {
+                String text = FileHelper.readText(f2, null);
+                if (text.startsWith(DebugMessageHelper.PROMPT_BEGIN + DebugMessageHelper.PROMPT_BEGIN)) {
+                    error = true;
+                }
+                if(text.indexOf("AiChatResponse(") > 0){
+                    error = true;
+                }
+            }
+
+            if (error) {
+                System.out.println("remove-error:" + FileHelper.getAbsolutePath(f1));
+                f1.delete();
+                f2.delete();
+            }
+
+            return FileVisitResult.CONTINUE;
+        });
     }
 
     @Test

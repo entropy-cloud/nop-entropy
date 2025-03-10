@@ -31,4 +31,7 @@ public interface AiCoreErrors {
 
     ErrorCode ERR_AI_RESULT_INVALID_END_LINE =
             define("nop.err.ai.service.result-invalid-end-line", "大语言模型返回的结果行没有符合预期模式", ARG_EXPECTED, ARG_LINE);
+
+    ErrorCode ERR_AI_RESULT_NO_EXPECTED_PART =
+            define("nop.err.ai.service.result-no-expected-part", "大语言模型返回的结果没有符合预期模式, 缺少内容：{expected}", ARG_EXPECTED);
 }

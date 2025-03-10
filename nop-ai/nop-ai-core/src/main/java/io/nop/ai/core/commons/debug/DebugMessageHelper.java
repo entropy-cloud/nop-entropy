@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DebugMessageHelper {
-    public static final String MESSAGE_SEPARATOR = "#**********************************#";
+    public static final String MESSAGE_SEPARATOR = "\n#**********************************#\n";
 
     public static final String PROMPT_BEGIN = "<[prompt]>\n";
     public static final String PROMPT_END = "\n</[prompt]>\n";
@@ -74,7 +74,9 @@ public class DebugMessageHelper {
         int pos = 0;
         if (text.startsWith(PROMPT_BEGIN)) {
             pos = text.indexOf(PROMPT_END);
-            String prompt = text.substring(0, pos);
+            String prompt = text.substring(PROMPT_BEGIN.length(), pos);
+            if(prompt.startsWith(PROMPT_BEGIN))
+                prompt = prompt.substring(PROMPT_BEGIN.length());
             res.setPrompt(Prompt.userText(prompt));
             pos += PROMPT_END.length();
         }

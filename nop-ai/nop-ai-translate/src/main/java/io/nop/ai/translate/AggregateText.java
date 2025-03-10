@@ -37,9 +37,7 @@ public class AggregateText {
         StringBuilder sb = new StringBuilder();
         for (AiChatResponse message : messages) {
             collectDebugText(sb, message);
-            sb.append("\n");
             sb.append(DebugMessageHelper.MESSAGE_SEPARATOR);
-            sb.append("\n");
         }
         return sb.toString();
     }

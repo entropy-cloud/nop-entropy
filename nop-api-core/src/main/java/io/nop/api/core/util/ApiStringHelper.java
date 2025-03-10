@@ -198,7 +198,7 @@ public class ApiStringHelper {
         List<String> ret = new ArrayList<>();
         ret.add(str.substring(0, pos2));
 
-        int len = 1;
+        int len = sep.length();
         int pos1 = pos2 + len;
         do {
             pos2 = str.indexOf(sep, pos1);

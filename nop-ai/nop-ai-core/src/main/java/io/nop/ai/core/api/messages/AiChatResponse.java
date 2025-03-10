@@ -19,7 +19,6 @@ package io.nop.ai.core.api.messages;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ErrorBean;
-import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 
 import java.util.HashMap;
@@ -29,6 +28,7 @@ import static io.nop.ai.core.AiCoreErrors.ARG_EXPECTED;
 import static io.nop.ai.core.AiCoreErrors.ARG_LINE;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_INVALID_END_LINE;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_NO_EXPECTED_PART;
 import static io.nop.ai.core.commons.debug.DebugMessageHelper.collectDebugText;
 
 @DataBean
@@ -196,8 +196,11 @@ public class AiChatResponse {
      */
     public void checkAndRemoveEndLine(String expected) {
         String content = getContent();
-        if (StringHelper.isEmpty(content))
-            throw new NopException(ERR_AI_RESULT_IS_EMPTY);
+        if (StringHelper.isEmpty(content)) {
+            invalidReason = new ErrorBean(ERR_AI_RESULT_IS_EMPTY.getErrorCode());
+            setInvalid(true);
+            return;
+        }
         int pos = content.lastIndexOf('\n');
         if (pos == content.length() - 1) {
             pos = content.lastIndexOf('\n', pos - 1);
@@ -219,6 +222,41 @@ public class AiChatResponse {
         }
 
         setContent(content.substring(0, pos));
+    }
+
+    public void checkInBlock(String blockBegin, String blockEnd, boolean optionalBegin) {
+        String content = getContent();
+        if (StringHelper.isEmpty(content)) {
+            invalidReason = new ErrorBean(ERR_AI_RESULT_IS_EMPTY.getErrorCode());
+            setInvalid(true);
+            return;
+        }
+
+        int pos = content.indexOf(blockBegin);
+        if (pos < 0) {
+            if (!optionalBegin) {
+                invalidReason = new ErrorBean(ERR_AI_RESULT_NO_EXPECTED_PART.getErrorCode())
+                        .param(ARG_EXPECTED, blockBegin);
+                setInvalid(true);
+                return;
+            }
+        }
+
+        if (pos < 0) {
+            pos = 0;
+        } else {
+            pos += blockBegin.length();
+        }
+
+        int pos2 = content.lastIndexOf(blockEnd);
+        if (pos2 < 0) {
+            invalidReason = new ErrorBean(ERR_AI_RESULT_NO_EXPECTED_PART.getErrorCode())
+                    .param(ARG_EXPECTED, blockEnd);
+            setInvalid(true);
+            return;
+        }
+
+        setContent(content.substring(pos + blockBegin.length(), pos2));
     }
 
     @Override

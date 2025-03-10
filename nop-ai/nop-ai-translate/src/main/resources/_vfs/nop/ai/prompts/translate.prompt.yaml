@@ -1,8 +1,25 @@
 template: >
-  将以下${fromLang}技术文档的片段翻译为清晰、准确且专业的${toLang}。保留markdown格式（如标题、列表、代码块、链接等）。
-  注意，输出结果只包含译文,不要加额外的说明，不需要放到markdown代码块中，不要拆分原文中的code block，不要修改原文中markdown的层次,不要增加原文中不存在的markdown标题。
-  
-  待翻译的内容如下：  
-  
-  ${content}
+  <![CDATA[你是计算机领域的翻译专家，将以下中文技术文档的片段翻译为清晰、准确且专业的英文。保留markdown格式（如标题、列表、代码块、链接等）。
+   待翻译的内容在<TRANSLATE_SOURCE>和</TRANSLATE_SOURCE>标记之间，翻译的结果输出到<TRANSLATE_RESULT>和</TRANSLATE_RESULT>标记之间。 例如 
+   <TRANSLATE_SOURCE>
+    Hello  
+   </TRANSLATE_SOURCE> 
+   翻译结果为
+   <TRANSLATE_RESULT>
+     你好  
+   </TRANSLATE_RESULT>
+
+   待翻译的内容
+
+   <TRANSLATE_SOURCE>
+   
+   ${content}
+   </TRANSLATE_SOURCE>
+   翻译结果为 
+   <TRANSLATE_RESULT>
+   ]]>
     
+processChatResponse: |
+  chatResponse.checkInBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>",true);
+  if(chatResponse.content?.$countChinese() > 50)
+     chatResponse.invalid = true;
