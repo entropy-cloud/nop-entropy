@@ -207,6 +207,10 @@
                     </valueExpr>
                 </field>
 
+                <field name="tableView" displayName="是否视图">
+                    <schema stdDomain="boolean"/>
+                </field>
+
                 <field name="className" displayName="类名">
                     <schema stdDomain="class-name"/>
                     <valueExpr>
