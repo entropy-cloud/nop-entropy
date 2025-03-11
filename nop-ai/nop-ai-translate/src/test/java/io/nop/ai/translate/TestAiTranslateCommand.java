@@ -7,6 +7,7 @@ import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.ai.core.prompt.PromptTemplateManager;
 import io.nop.ai.core.service.DefaultAiChatService;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
@@ -64,7 +65,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         String model = "deepseek-r1:8b";
         model = "deepseek-r1:14b";
         model = "llama3.1:8b";
-        model = "phi4";
+        //model = "phi4";
         String promptName = "translate";
 
         AiTranslateCommand translator = new AiTranslateCommand(chatService, templateManager, promptName);
@@ -82,6 +83,48 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         File docsEnDir = new File(docsDir.getParent(), "docs-en");
 
         translator.translateDir(docsDir, docsEnDir, null);
+    }
+
+    @Test
+    public void testTranslateResult() {
+        File file = getTargetFile("test-classes/data/translate-result0.md");
+        String text = FileHelper.readText(file, null);
+        AiChatResponse response = new AiChatResponse();
+        response.setContent(text);
+        response.checkInBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>", true);
+    }
+
+    @Test
+    public void checkTranslation() {
+        File docsDir = getDocsDir();
+        File docsEnDir = new File(docsDir.getParentFile(), "docs-en-x");
+        File docsEnDebugDir = new File(docsDir.getParentFile(), "docs-en-debug-x");
+
+        String model = "llama3.1:8b";
+        model = "deepseek-r1:8b";
+
+        AiCheckTranslationCommand check = new AiCheckTranslationCommand(chatService, templateManager,"translate/improve");
+        check.fromLang("中文").toLang("英文");
+        check.getChatOptions().setLlm("ollama");
+        check.getChatOptions().setModel(model);
+        check.getChatOptions().setTemperature(0.6f);
+        check.getChatOptions().setRequestTimeout(600 * 1000L);
+        check.getChatOptions().setContextLength(8192);
+
+        FileHelper.walk2(docsEnDir, docsEnDebugDir, (f1, f2) -> {
+            if (f2.getName().endsWith(".md") && f2.exists()) {
+                List<AiChatResponse> messages = DebugMessageHelper.parseDebugFile(f2);
+                for (AiChatResponse message : messages) {
+                    String text = message.getBlockFromPrompt("待翻译的内容如下：\n","\n[EndOfData]");
+                    if(text != null){
+                        String translated = message.getContent();
+                        AiChatResponse response = FutureHelper.syncGet(check.fixTranslationAsync(text, translated,null));
+                        System.out.println(response.getContent());
+                    }
+                }
+            }
+            return FileVisitResult.CONTINUE;
+        });
     }
 
     @Test
@@ -159,8 +202,8 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
     @Test
     public void removeErrorFiles() {
         File docsDir = getDocsDir();
-        File docsEnDir = new File(docsDir.getParentFile(), "docs-en");
-        File docsEnDebugDir = new File(docsDir.getParentFile(), "docs-en-debug");
+        File docsEnDir = new File(docsDir.getParentFile(), "docs-en-x");
+        File docsEnDebugDir = new File(docsDir.getParentFile(), "docs-en-debug-x");
 
         FileHelper.walk2(docsEnDir, docsEnDebugDir, (f1, f2) -> {
             if (!f1.isFile())
@@ -177,7 +220,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
                 if (text.startsWith(DebugMessageHelper.PROMPT_BEGIN + DebugMessageHelper.PROMPT_BEGIN)) {
                     error = true;
                 }
-                if(text.indexOf("AiChatResponse(") > 0){
+                if (text.indexOf("AiChatResponse{") > 0) {
                     error = true;
                 }
             }

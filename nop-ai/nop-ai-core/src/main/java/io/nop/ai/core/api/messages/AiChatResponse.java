@@ -67,6 +67,22 @@ public class AiChatResponse {
         this.message.setContent(content);
     }
 
+    public String getBlockFromPrompt(String blockBegin, String blockEnd) {
+        if (prompt == null)
+            return null;
+
+        String message = prompt.getLastMessage().getContent();
+        if (message == null)
+            return null;
+
+        int pos = message.indexOf(blockBegin);
+        int pos2 = message.lastIndexOf(blockEnd);
+        if (pos < 0 || pos2 < 0)
+            return null;
+
+        return message.substring(pos + blockBegin.length(), pos2);
+    }
+
     public String getThink() {
         return message.getThink();
     }
@@ -256,7 +272,7 @@ public class AiChatResponse {
             return;
         }
 
-        setContent(content.substring(pos + blockBegin.length(), pos2));
+        setContent(content.substring(pos, pos2));
     }
 
     @Override
