@@ -42,6 +42,7 @@
     -->
     <dialog page="!name-or-v-path" height="string" width="string" size="string" closeOnEsc="boolean"
             closeOnOutside="boolean" showCloseButton="boolean" noActions="boolean"
+            title="string"
             xdef:name="UiDialogModel">
         <data xdef:value="xjson"/>
 

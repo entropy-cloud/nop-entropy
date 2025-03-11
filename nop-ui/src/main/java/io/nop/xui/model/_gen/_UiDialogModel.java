@@ -81,6 +81,13 @@ public abstract class _UiDialogModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: title
+     * 
+     */
+    private java.lang.String _title ;
+    
+    /**
+     *  
      * xml name: width
      * 
      */
@@ -271,6 +278,25 @@ public abstract class _UiDialogModel extends io.nop.core.resource.component.Abst
     
     /**
      * 
+     * xml name: title
+     *  
+     */
+    
+    public java.lang.String getTitle(){
+      return _title;
+    }
+
+    
+    public void setTitle(java.lang.String value){
+        checkAllowChange();
+        
+        this._title = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: width
      *  
      */
@@ -314,6 +340,7 @@ public abstract class _UiDialogModel extends io.nop.core.resource.component.Abst
         out.putNotNull("page",this.getPage());
         out.putNotNull("showCloseButton",this.getShowCloseButton());
         out.putNotNull("size",this.getSize());
+        out.putNotNull("title",this.getTitle());
         out.putNotNull("width",this.getWidth());
     }
 
@@ -335,6 +362,7 @@ public abstract class _UiDialogModel extends io.nop.core.resource.component.Abst
         instance.setPage(this.getPage());
         instance.setShowCloseButton(this.getShowCloseButton());
         instance.setSize(this.getSize());
+        instance.setTitle(this.getTitle());
         instance.setWidth(this.getWidth());
     }
 

@@ -36,12 +36,12 @@ NopGraphQL的定位是作为后端服务函数的一种通用分解、派发机�
   @BizQuery
   public PageBean<NopAuthUser> findPage(@Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context){
           PageBean<NopAuthUser> pageBean = new PageBean();
-          if(selection != null && !selection.hasField("total")){ 
+          if(selection != null && !selection.hasField("total")){
                long total = dao.countByQuery(query);
               pageBean.setTotal(total);
           }
           ....
-  }  
+  }
 ```
 
 如果前端不要求返回total，则可以跳过total属性的计算
@@ -74,6 +74,17 @@ NopGraphQL的定位是作为后端服务函数的一种通用分解、派发机�
 当我们通过`@BizLoader`机制为NopAuthUser类型增加了动态属性roles之后，所有返回结果中涉及到NopAuthUser的地方都自动增加了roles属性。DataLoader所提供的知识通过NopGraphQL引擎的作用，自动的与我们手工编写的get/findList等函数组合在一起。
 
 在NopGraphQL中，我们还可以通过额外的xmeta元模型文件来独立的控制每个字段的权限、转换和验证逻辑等，从而简化以及标准化服务函数的实现。
+
+NopORM返回的实体对象上支持实体级别的缓存机制。
+
+```javascript
+@BizLoader
+public Strin getFieldA(@ContextSOurce NopAuthUser entity){
+  return ((ExtFields)entity.computeIfAbsent("extFields", k-> loadExtFields(entity))).getFieldA();
+}
+```
+
+比如说我们要一次性计算多个扩展字段的值，就可以统一加载，然后每个BizLoader都返回缓存的单个属性。GraphQL中并没有一次性返回多个字段的机制。但是通过延迟加载我们可以避免多次调用loader。
 
 ## 3. GraphQL的选择能力是DDD中聚合根概念的有益补充
 
