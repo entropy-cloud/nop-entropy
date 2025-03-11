@@ -58,6 +58,8 @@ public class JdbcUpdateBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
             batcher.flush();
             return null;
         });
+
+        context.getTaskContext().incUpdateCount(items.size());
     }
 
     SQL buildSql(S record) {

@@ -143,6 +143,24 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void incErrorCount(int count);
 
+    long getInsertCount();
+
+    void setInsertCount(long insertCount);
+
+    long getUpdateCount();
+
+    void setUpdateCount(long updateCount);
+
+    long getDeleteCount();
+
+    void setDeleteCount(long deleteCount);
+
+    void incInsertCount(int count);
+
+    void incUpdateCount(int count);
+
+    void incDeleteCount(int count);
+
     void onTaskBegin(Runnable action);
 
     void onChunkBegin(Consumer<IBatchChunkContext> action);

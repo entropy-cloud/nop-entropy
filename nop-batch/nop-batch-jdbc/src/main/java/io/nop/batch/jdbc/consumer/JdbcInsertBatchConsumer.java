@@ -56,6 +56,8 @@ public class JdbcInsertBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
             batcher.flush();
             return null;
         });
+
+        context.getTaskContext().incInsertCount(items.size());
     }
 
     SQL buildInsert(S record) {

@@ -59,6 +59,9 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private final AtomicLong loadRetryCount = new AtomicLong();
     private final AtomicLong loadSkipCount = new AtomicLong();
     private final AtomicLong errorCount = new AtomicLong();
+    private final AtomicLong insertCount = new AtomicLong();
+    private final AtomicLong updateCount = new AtomicLong();
+    private final AtomicLong deleteCount = new AtomicLong();
 
     private volatile long completedIndex;
 
@@ -307,6 +310,51 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     @Override
     public void incErrorCount(int count) {
         this.errorCount.addAndGet(count);
+    }
+
+    @Override
+    public long getInsertCount() {
+        return insertCount.get();
+    }
+
+    @Override
+    public void setInsertCount(long insertCount) {
+        this.insertCount.set(insertCount);
+    }
+
+    @Override
+    public long getUpdateCount() {
+        return updateCount.get();
+    }
+
+    @Override
+    public void setUpdateCount(long updateCount) {
+        this.updateCount.set(updateCount);
+    }
+
+    @Override
+    public long getDeleteCount() {
+        return deleteCount.get();
+    }
+
+    @Override
+    public void setDeleteCount(long deleteCount) {
+        this.deleteCount.set(deleteCount);
+    }
+
+    @Override
+    public void incInsertCount(int count) {
+        this.insertCount.addAndGet(count);
+    }
+
+    @Override
+    public void incUpdateCount(int count) {
+        this.updateCount.addAndGet(count);
+    }
+
+    @Override
+    public void incDeleteCount(int count) {
+        this.deleteCount.addAndGet(count);
     }
 
     @Override

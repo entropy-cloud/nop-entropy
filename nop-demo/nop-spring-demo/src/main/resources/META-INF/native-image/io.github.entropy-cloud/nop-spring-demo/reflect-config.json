@@ -33771,6 +33771,12 @@
         ]
       },
       {
+        "name": "toJdkHttpRequest",
+        "parameterTypes": [
+          "io.nop.http.api.client.HttpRequest"
+        ]
+      },
+      {
         "name": "toMap",
         "parameterTypes": [
           "java.net.http.HttpHeaders"
@@ -48329,6 +48335,15 @@
         "parameterTypes": []
       },
       {
+        "name": "loadPage",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "java.lang.String",
+          "io.nop.core.lang.json.bind.ValueResolverCompilerRegistry",
+          "boolean"
+        ]
+      },
+      {
         "name": "parseViewModel",
         "parameterTypes": [
           "java.lang.String"
@@ -48341,6 +48356,21 @@
       {
         "name": "registerXView",
         "parameterTypes": []
+      },
+      {
+        "name": "renderPage",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "io.nop.web.page.PageRenderOptions"
+        ]
+      },
+      {
+        "name": "renderPageTo",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource",
+          "io.nop.web.page.PageRenderOptions",
+          "java.io.File"
+        ]
       },
       {
         "name": "savePageSource",

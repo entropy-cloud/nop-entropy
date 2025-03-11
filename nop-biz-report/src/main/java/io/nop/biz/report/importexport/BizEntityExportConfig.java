@@ -1,17 +1,18 @@
 package io.nop.biz.report.importexport;
 
 import io.nop.api.core.annotations.data.DataBean;
-import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.beans.TreeBean;
 
 import java.util.List;
 
 @DataBean
 public class BizEntityExportConfig {
-    private QueryBean queryBean;
+    private TreeBean filter;
+    private long maxCount;
     private String exportFormat;
-    private boolean exportAll;
     private String exportFileName;
-    private List<String> keyPropNames;
+    private List<String> exportFieldNames;
+    private List<String> exportFieldLabels;
 
     public String getExportFormat() {
         return exportFormat;
@@ -21,20 +22,20 @@ public class BizEntityExportConfig {
         this.exportFormat = exportFormat;
     }
 
-    public boolean isExportAll() {
-        return exportAll;
+    public long getMaxCount() {
+        return maxCount;
     }
 
-    public void setExportAll(boolean exportAll) {
-        this.exportAll = exportAll;
+    public void setMaxCount(long maxCount) {
+        this.maxCount = maxCount;
     }
 
-    public QueryBean getQueryBean() {
-        return queryBean;
+    public TreeBean getFilter() {
+        return filter;
     }
 
-    public void setQueryBean(QueryBean queryBean) {
-        this.queryBean = queryBean;
+    public void setFilter(TreeBean filter) {
+        this.filter = filter;
     }
 
     public String getExportFileName() {
@@ -45,11 +46,19 @@ public class BizEntityExportConfig {
         this.exportFileName = exportFileName;
     }
 
-    public List<String> getKeyPropNames() {
-        return keyPropNames;
+    public List<String> getExportFieldNames() {
+        return exportFieldNames;
     }
 
-    public void setKeyPropNames(List<String> keyPropNames) {
-        this.keyPropNames = keyPropNames;
+    public void setExportFieldNames(List<String> exportFieldNames) {
+        this.exportFieldNames = exportFieldNames;
+    }
+
+    public List<String> getExportFieldLabels() {
+        return exportFieldLabels;
+    }
+
+    public void setExportFieldLabels(List<String> exportFieldLabels) {
+        this.exportFieldLabels = exportFieldLabels;
     }
 }

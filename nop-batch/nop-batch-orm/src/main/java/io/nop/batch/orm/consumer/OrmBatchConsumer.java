@@ -102,6 +102,9 @@ public class OrmBatchConsumer<S extends IOrmEntity, R> implements IBatchConsumer
                 insertCount.incrementAndGet();
             }
         });
+
+        context.getTaskContext().incUpdateCount(updateCount.get());
+        context.getTaskContext().incInsertCount(insertCount.get());
     }
 
     private void appendFilter(QueryBean query, Map<Object, R> keyMap) {
