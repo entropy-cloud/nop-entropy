@@ -15,7 +15,7 @@ import java.io.Serializable;
 import java.util.List;
 
 @DataBean
-public final class PageBean<T> implements Serializable {
+public class PageBean<T> implements Serializable {
 
     private static final long serialVersionUID = 511496891406307402L;
     private List<T> items;
