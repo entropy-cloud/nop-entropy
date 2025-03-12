@@ -13,9 +13,7 @@ template: |
   
   评估原翻译的质量，输出时采用如下格式：
   <SCORE>1-10的分数</SCORE>
-  <IMPROVED_TRANSLATION>改进后的翻译</IMPROVED_TRANSLATION>
   ]]>
 
 processChatResponse: |
   chatResponse.parseNumberBlock("score", "<SCORE>", "</SCORE>");
-  chatResponse.parseContentBlock("<IMPROVED_TRANSLATION>\n", "\n</IMPROVED_TRANSLATION>");

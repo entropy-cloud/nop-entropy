@@ -7,6 +7,7 @@ import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.commons.processor.IAiChatResponseProcessor;
 import io.nop.ai.core.model.PromptVarModel;
 import io.nop.ai.core.prompt.IPromptTemplate;
+import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
@@ -20,6 +21,8 @@ import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionStage;
 
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
+
 public class AiCommand {
     static final Logger LOG = LoggerFactory.getLogger(AiCommand.class);
 
@@ -29,7 +32,7 @@ public class AiCommand {
     private int retryTimesPerRequest = 3;
     private AiChatOptions chatOptions = new AiChatOptions();
 
-    private boolean returnExceptionAsResponse;
+    private boolean returnExceptionAsResponse = true;
 
     public AiCommand(IAiChatService chatService) {
         this.chatService = chatService;
@@ -118,12 +121,15 @@ public class AiCommand {
                     AiChatResponse response = new AiChatResponse();
                     response.setPrompt(prompt);
                     response.setInvalid(true);
-                    response.setContent("<AI-ERROR>:" + ErrorMessageManager.instance()
-                            .buildErrorMessage(null, err, false, false, true).getDescription());
+                    response.setInvalidReason(ErrorMessageManager.instance()
+                            .buildErrorMessage(null, err, false, false, true));
                     return response;
                 } else {
                     throw NopException.adapt(err);
                 }
+            } else if (r.isEmpty() && !r.isInvalid()) {
+                r.setInvalid(true);
+                r.setInvalidReason(new ErrorBean(ERR_AI_RESULT_IS_EMPTY.getErrorCode()));
             }
             return r;
         });

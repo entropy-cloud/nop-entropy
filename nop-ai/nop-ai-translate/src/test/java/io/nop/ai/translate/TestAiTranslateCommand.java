@@ -63,8 +63,8 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
     @Test
     public void testTranslateDir() {
         String model = "deepseek-r1:8b";
-        model = "deepseek-r1:14b";
-        model = "llama3.1:8b";
+       // model = "deepseek-r1:14b";
+       // model = "llama3.1:8b";
         //model = "phi4";
         String promptName = "translate";
 
@@ -91,14 +91,14 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         String text = FileHelper.readText(file, null);
         AiChatResponse response = new AiChatResponse();
         response.setContent(text);
-        response.checkInBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>", true);
+        response.parseContentBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>", true);
     }
 
     @Test
     public void checkTranslation() {
         File docsDir = getDocsDir();
-        File docsEnDir = new File(docsDir.getParentFile(), "docs-en-x");
-        File docsEnDebugDir = new File(docsDir.getParentFile(), "docs-en-debug-x");
+        File docsEnDir = new File(docsDir.getParentFile(), "docs-en");
+        File docsEnDebugDir = new File(docsDir.getParentFile(), "docs-en-debug");
 
         String model = "llama3.1:8b";
         model = "deepseek-r1:8b";
@@ -116,6 +116,9 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
                 List<AiChatResponse> messages = DebugMessageHelper.parseDebugFile(f2);
                 for (AiChatResponse message : messages) {
                     String text = message.getBlockFromPrompt("待翻译的内容如下：\n","\n[EndOfData]");
+                    if(text == null){
+                        text = message.getBlockFromPrompt("<TRANSLATE_RESULT>\n","\n</TRANSLATE_RESULT>");
+                    }
                     if(text != null){
                         String translated = message.getContent();
                         AiChatResponse response = FutureHelper.syncGet(check.fixTranslationAsync(text, translated,null));

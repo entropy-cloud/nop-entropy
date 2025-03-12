@@ -20,6 +20,6 @@ template: >
    ]]>
     
 processChatResponse: |
-  chatResponse.checkInBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>",true);
+  chatResponse.parseContentBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>",true);
   if(chatResponse.content?.$countChinese() > 50)
      chatResponse.invalid = true;

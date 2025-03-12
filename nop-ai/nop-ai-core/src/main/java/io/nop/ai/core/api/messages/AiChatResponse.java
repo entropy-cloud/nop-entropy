@@ -26,7 +26,10 @@ import java.util.Map;
 
 import static io.nop.ai.core.AiCoreErrors.ARG_EXPECTED;
 import static io.nop.ai.core.AiCoreErrors.ARG_LINE;
+import static io.nop.ai.core.AiCoreErrors.ARG_NAME;
+import static io.nop.ai.core.AiCoreErrors.ARG_VALUE;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_INVALID_END_LINE;
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_INVALID_NUMBER;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_NO_EXPECTED_PART;
 import static io.nop.ai.core.commons.debug.DebugMessageHelper.collectDebugText;
@@ -45,7 +48,7 @@ public class AiChatResponse {
     private Integer completionTokens;
     private Integer totalTokens;
 
-    private Object parseData;
+    private Map<String, Object> parsedValues;
     private Map<String, Object> attributes;
 
     private boolean invalid;
@@ -65,6 +68,10 @@ public class AiChatResponse {
 
     public void setContent(String content) {
         this.message.setContent(content);
+    }
+
+    public boolean isEmpty() {
+        return StringHelper.isEmpty(getContent()) && parsedValues == null;
     }
 
     public String getBlockFromPrompt(String blockBegin, String blockEnd) {
@@ -169,13 +176,24 @@ public class AiChatResponse {
         this.prompt = prompt;
     }
 
-    @JsonIgnore
-    public Object getParseData() {
-        return parseData;
+    public Map<String, Object> getParsedValues() {
+        return parsedValues;
     }
 
-    public void setParseData(Object parseData) {
-        this.parseData = parseData;
+    public void setParsedValues(Map<String, Object> parsedValues) {
+        this.parsedValues = parsedValues;
+    }
+
+    public Object getParsedValue(String name) {
+        if (parsedValues == null)
+            return null;
+        return parsedValues.get(name);
+    }
+
+    public void setParsedValue(String name, Object value) {
+        if (parsedValues == null)
+            parsedValues = new HashMap<>();
+        parsedValues.put(name, value);
     }
 
     @JsonIgnore
@@ -240,12 +258,16 @@ public class AiChatResponse {
         setContent(content.substring(0, pos));
     }
 
-    public void checkInBlock(String blockBegin, String blockEnd, boolean optionalBegin) {
+    public String requireBlock(String blockBegin, String blockEnd) {
+        return requireBlock(blockBegin, blockEnd, false);
+    }
+
+    public String requireBlock(String blockBegin, String blockEnd, boolean optionalBegin) {
         String content = getContent();
         if (StringHelper.isEmpty(content)) {
             invalidReason = new ErrorBean(ERR_AI_RESULT_IS_EMPTY.getErrorCode());
             setInvalid(true);
-            return;
+            return null;
         }
 
         int pos = content.indexOf(blockBegin);
@@ -254,7 +276,7 @@ public class AiChatResponse {
                 invalidReason = new ErrorBean(ERR_AI_RESULT_NO_EXPECTED_PART.getErrorCode())
                         .param(ARG_EXPECTED, blockBegin);
                 setInvalid(true);
-                return;
+                return null;
             }
         }
 
@@ -269,10 +291,45 @@ public class AiChatResponse {
             invalidReason = new ErrorBean(ERR_AI_RESULT_NO_EXPECTED_PART.getErrorCode())
                     .param(ARG_EXPECTED, blockEnd);
             setInvalid(true);
-            return;
+            return null;
         }
+        return content.substring(pos, pos2);
+    }
 
-        setContent(content.substring(pos, pos2));
+    public Number requireNumberBlock(String name, String blockBegin, String blockEnd) {
+        String block = requireBlock(blockBegin, blockEnd);
+        if (block == null)
+            return null;
+        Number num = StringHelper.tryParseNumber(block);
+        if (num == null) {
+            setInvalid(true);
+            invalidReason = new ErrorBean(ERR_AI_RESULT_INVALID_NUMBER.getErrorCode())
+                    .param(ARG_NAME, name)
+                    .param(ARG_VALUE, block);
+            return null;
+        }
+        return num;
+    }
+
+    public Object parseBlock(String name, String blockBegin, String blockEnd) {
+        Object value = requireBlock(blockBegin, blockEnd);
+        if (value != null)
+            setParsedValue(name, value);
+        return value;
+    }
+
+    public Object parseNumberBlock(String name, String blockBegin, String blockEnd) {
+        Number value = requireNumberBlock(name, blockBegin, blockEnd);
+        if (value != null)
+            setParsedValue(name, value);
+        return value;
+    }
+
+    public String parseContentBlock(String blockBegin, String blockEnd, boolean optionalBegin) {
+        String content = requireBlock(blockBegin, blockEnd, optionalBegin);
+        if (content != null)
+            setContent(content);
+        return content;
     }
 
     @Override

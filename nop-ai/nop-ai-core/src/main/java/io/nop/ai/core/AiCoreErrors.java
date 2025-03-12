@@ -14,6 +14,9 @@ public interface AiCoreErrors {
     String ARG_EXPECTED = "expected";
     String ARG_LINE = "line";
 
+    String ARG_NAME = "name";
+    String ARG_VALUE = "value";
+
     ErrorCode ERR_AI_SERVICE_NO_DEFAULT_LLMS =
             define("nop.err.ai.service.no-default-llms", "没有指定调用的大语言模型，也没有配置nop.ai.service.default-llm来指定缺省的大语言模型");
 
@@ -34,4 +37,7 @@ public interface AiCoreErrors {
 
     ErrorCode ERR_AI_RESULT_NO_EXPECTED_PART =
             define("nop.err.ai.service.result-no-expected-part", "大语言模型返回的结果没有符合预期模式, 缺少内容：{expected}", ARG_EXPECTED);
+
+    ErrorCode ERR_AI_RESULT_INVALID_NUMBER =
+            define("nop.err.ai.service.result-invalid-number", "大语言模型返回的结果不是数字:name={name},value={name}", ARG_NAME, ARG_VALUE);
 }
