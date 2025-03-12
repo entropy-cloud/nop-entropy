@@ -8,26 +8,23 @@
 package io.nop.task.step;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.core.CoreErrors;
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.core.reflect.IClassModel;
-import io.nop.core.reflect.IFunctionModel;
-import io.nop.core.reflect.ReflectionManager;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
+import io.nop.xlang.exec.ObjFunctionHandle;
 import jakarta.annotation.Nonnull;
 
 import java.util.List;
-
-import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
-import static io.nop.core.CoreErrors.ARG_COUNT;
-import static io.nop.core.CoreErrors.ARG_METHOD_NAME;
 
 public class InvokeTaskStep extends AbstractTaskStep {
     private String beanName;
     private String methodName;
 
     private List<String> argNames;
+
+    // 缓存反射方法的查询结果
+    private final ObjFunctionHandle funcHandle = new ObjFunctionHandle();
 
     public void setBeanName(String beanName) {
         this.beanName = beanName;
@@ -51,14 +48,8 @@ public class InvokeTaskStep extends AbstractTaskStep {
             args[i] = scope.getValue(argNames.get(i));
         }
 
-        IClassModel classModel = ReflectionManager.instance().getClassModel(bean.getClass());
-        IFunctionModel method = classModel.getMethod(methodName, args.length);
-        if (method == null)
-            throw new NopException(CoreErrors.ERR_REFLECT_NO_METHOD_FOR_GIVEN_NAME_AND_ARG_COUNT)
-                    .param(ARG_CLASS_NAME, classModel.getClassName())
-                    .param(ARG_METHOD_NAME, methodName)
-                    .param(ARG_COUNT, args.length);
-
+        IEvalFunction method = funcHandle.getFunctionForObj(bean, methodName,
+                errorCode -> new NopException(errorCode).loc(getLocation()), args);
         Object returnValue = method.invoke(bean, args, scope);
         return makeReturn(returnValue);
     }
