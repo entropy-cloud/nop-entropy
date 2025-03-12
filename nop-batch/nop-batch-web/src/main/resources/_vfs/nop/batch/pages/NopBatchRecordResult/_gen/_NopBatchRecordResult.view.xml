@@ -36,6 +36,18 @@
                 <!--错误堆栈-->
                 <col id="errorStack" sortable="true"/>
 
+                <!--记录信息-->
+                <col id="recordInfo" sortable="true"/>
+
+                <!--重试次数-->
+                <col id="retryCount" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--批次大小-->
+                <col id="batchSize" mandatory="true" ui:number="true" sortable="true"/>
+
+                <!--处理状态-->
+                <col id="handleStatus" mandatory="true" ui:number="true" sortable="true"/>
+
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
 
@@ -58,6 +70,8 @@
  batchTaskId[主键] recordKey[记录唯一键]
  resultStatus[返回状态码] resultCode[返回码]
  resultMsg[返回消息] errorStack[错误堆栈]
+ recordInfo[记录信息] retryCount[重试次数]
+ batchSize[批次大小] handleStatus[处理状态]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
 </layout>
@@ -65,12 +79,11 @@
         <form id="add" editMode="add" title="新增-批处理记录结果" i18n-en:title="Add Batch Record Result" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-批处理记录结果" i18n-en:title="Edit Batch Record Result">
             <layout>
- batchTaskId[主键]
- recordKey[记录唯一键]
- resultStatus[返回状态码]
- resultCode[返回码]
- resultMsg[返回消息]
- errorStack[错误堆栈]
+ batchTaskId[主键] recordKey[记录唯一键]
+ resultStatus[返回状态码] resultCode[返回码]
+ resultMsg[返回消息] errorStack[错误堆栈]
+ recordInfo[记录信息] retryCount[重试次数]
+ batchSize[批次大小] handleStatus[处理状态]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

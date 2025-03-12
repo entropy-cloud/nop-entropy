@@ -13,6 +13,7 @@ import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchMetaProvider;
 import io.nop.batch.core.IBatchProcessorProvider;
 import io.nop.batch.core.IBatchRecordFilter;
+import io.nop.batch.core.IBatchRecordHistoryStore;
 import io.nop.batch.core.IBatchRecordSnapshotBuilder;
 import io.nop.batch.core.IBatchStateStore;
 import io.nop.batch.core.IBatchTaskBuilder;
@@ -23,11 +24,13 @@ import io.nop.batch.core.consumer.ResourceRecordConsumerProvider;
 import io.nop.batch.core.consumer.SplitBatchConsumer;
 import io.nop.batch.core.consumer.TransformedBatchConsumerProvider;
 import io.nop.batch.core.filter.EvalBatchRecordFilter;
+import io.nop.batch.core.history.IBatchHistoryStoreBuilder;
 import io.nop.batch.core.loader.PostProcessBatchLoaderProvider;
 import io.nop.batch.core.processor.FilterBatchProcessor;
 import io.nop.batch.core.processor.MultiBatchProcessorProvider;
 import io.nop.batch.dsl.model.BatchConsumerModel;
 import io.nop.batch.dsl.model.BatchGeneratorModel;
+import io.nop.batch.dsl.model.BatchHistoryStoreModel;
 import io.nop.batch.dsl.model.BatchListenersModel;
 import io.nop.batch.dsl.model.BatchLoaderDispatcherModel;
 import io.nop.batch.dsl.model.BatchLoaderModel;
@@ -39,6 +42,7 @@ import io.nop.batch.orm.support.OrmBatchRecordSnapshotBuilder;
 import io.nop.commons.collections.OrderByComparator;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.util.MathHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalFunction;
@@ -62,7 +66,9 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 
 import static io.nop.batch.dsl.BatchDslErrors.ARG_BATCH_TASK_NAME;
+import static io.nop.batch.dsl.BatchDslErrors.ARG_BEAN_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ARG_PROCESSOR_NAME;
+import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_INVALID_HISTORY_STORE_BEAN;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_NO_LOADER;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_PROCESSOR_IS_NULL;
 import static io.nop.batch.dsl.manager.FileBatchSupport.newExcelReader;
@@ -85,11 +91,14 @@ public class ModelBasedBatchTaskBuilderFactory {
     private final INamedSqlBuilder sqlLibManager;
     private final IBatchStateStore stateStore;
 
+    private final IBatchHistoryStoreBuilder historyStoreBuilder;
+
     public ModelBasedBatchTaskBuilderFactory(BatchTaskModel batchTaskModel,
                                              IBatchStateStore stateStore,
                                              ITransactionTemplate transactionTemplate,
                                              IOrmTemplate ormTemplate, IJdbcTemplate jdbcTemplate,
-                                             IDaoProvider daoProvider, INamedSqlBuilder sqlLibManager) {
+                                             IDaoProvider daoProvider, INamedSqlBuilder sqlLibManager,
+                                             IBatchHistoryStoreBuilder historyStoreBuilder) {
         this.batchTaskName = batchTaskModel.getTaskName();
         this.stateStore = stateStore;
         this.batchTaskModel = batchTaskModel;
@@ -98,6 +107,8 @@ public class ModelBasedBatchTaskBuilderFactory {
         this.jdbcTemplate = jdbcTemplate;
         this.daoProvider = daoProvider;
         this.sqlLibManager = sqlLibManager;
+        this.historyStoreBuilder = historyStoreBuilder;
+        ;
     }
 
     public IBatchTaskBuilder newTaskBuilder(IBeanProvider beanContainer) {
@@ -192,6 +203,8 @@ public class ModelBasedBatchTaskBuilderFactory {
                     .param(ARG_BATCH_TASK_NAME, batchTaskName);
         builder.loader(loader);
 
+        addHistoryStore(builder, beanContainer);
+
         if (batchTaskModel.getLoader().getDispatcher() != null) {
             builder.dispatchConfig(buildDispatchConfig(batchTaskModel.getLoader().getDispatcher(), beanContainer));
         }
@@ -254,6 +267,36 @@ public class ModelBasedBatchTaskBuilderFactory {
                 }
                 builder.consumer(MultiBatchConsumerProvider.fromList(writers));
             }
+        }
+    }
+
+    private void addHistoryStore(BatchTaskBuilder<Object, Object> builder, IBeanProvider beanContainer) {
+        if (batchTaskModel.getHistoryStore() == null)
+            return;
+
+        BatchHistoryStoreModel model = batchTaskModel.getHistoryStore();
+        String beanName = model.getBean();
+        IBatchHistoryStoreBuilder storeBuilder = this.historyStoreBuilder;
+
+        if (!StringHelper.isEmpty(beanName)) {
+            Object bean = beanContainer.getBean(beanName);
+            if (bean instanceof IBatchRecordHistoryStore<?>) {
+                builder.historyStore((IBatchRecordHistoryStore<Object>) bean);
+                return;
+            }
+
+            if (bean instanceof IBatchHistoryStoreBuilder) {
+                storeBuilder = (IBatchHistoryStoreBuilder) bean;
+            } else {
+                throw new NopException(ERR_BATCH_TASK_INVALID_HISTORY_STORE_BEAN)
+                        .source(model)
+                        .param(ARG_BEAN_NAME, beanName);
+            }
+        }
+
+        if (storeBuilder != null) {
+            IBatchRecordHistoryStore<Object> store = storeBuilder.newHistoryStore(model);
+            builder.historyStore(store);
         }
     }
 

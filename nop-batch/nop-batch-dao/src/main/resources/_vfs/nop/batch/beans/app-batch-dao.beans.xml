@@ -7,4 +7,6 @@
     <import resource="_dao.beans.xml"/>
 
     <bean id="nopDaoBatchStateStore" class="io.nop.batch.dao.store.DaoBatchStateStore"/>
+
+    <bean id="nopDaoBatchHistoryStoreBuilder" class="io.nop.batch.dao.history.DaoBatchHistoryStoreBuilder"/>
 </beans>

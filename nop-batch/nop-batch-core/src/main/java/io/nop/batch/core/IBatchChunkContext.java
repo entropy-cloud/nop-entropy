@@ -78,15 +78,22 @@ public interface IBatchChunkContext extends IExecutionContext {
     }
 
     /**
+     * 是否单条执行。如果是单条执行，则不会因为其他条目的失败导致回滚
+     */
+    boolean isSingleMode();
+
+    void setSingleMode(boolean singleMode);
+
+    /**
      * 是否是重试执行。第一次执行时retrying=false，如果chunk的第一次执行失败，逐条重试的时候retrying为true。
      */
     default boolean isRetrying() {
         return getRetryCount() > 0;
     }
 
-    boolean isSingleMode();
-
-    void setSingleMode(boolean singleMode);
+    default boolean isSingleItem() {
+        return getChunkItems().size() == 1;
+    }
 
     void initChunkLatch(CountDownLatch latch);
 

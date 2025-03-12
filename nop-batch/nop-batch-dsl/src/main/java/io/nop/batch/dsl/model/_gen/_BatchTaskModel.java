@@ -67,6 +67,13 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
     
     /**
      *  
+     * xml name: historyStore
+     * 
+     */
+    private io.nop.batch.dsl.model.BatchHistoryStoreModel _historyStore ;
+    
+    /**
+     *  
      * xml name: inputSorter
      * 
      */
@@ -361,6 +368,25 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
         checkAllowChange();
         
         this._executor = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: historyStore
+     *  
+     */
+    
+    public io.nop.batch.dsl.model.BatchHistoryStoreModel getHistoryStore(){
+      return _historyStore;
+    }
+
+    
+    public void setHistoryStore(io.nop.batch.dsl.model.BatchHistoryStoreModel value){
+        checkAllowChange();
+        
+        this._historyStore = value;
            
     }
 
@@ -808,6 +834,8 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
         
            this._consumers = io.nop.api.core.util.FreezeHelper.deepFreeze(this._consumers);
             
+           this._historyStore = io.nop.api.core.util.FreezeHelper.deepFreeze(this._historyStore);
+            
            this._inputSorter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._inputSorter);
             
            this._loadRetryPolicy = io.nop.api.core.util.FreezeHelper.deepFreeze(this._loadRetryPolicy);
@@ -836,6 +864,7 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
         out.putNotNull("concurrency",this.getConcurrency());
         out.putNotNull("consumers",this.getConsumers());
         out.putNotNull("executor",this.getExecutor());
+        out.putNotNull("historyStore",this.getHistoryStore());
         out.putNotNull("inputSorter",this.getInputSorter());
         out.putNotNull("jitterRatio",this.getJitterRatio());
         out.putNotNull("loadRetryPolicy",this.getLoadRetryPolicy());
@@ -874,6 +903,7 @@ public abstract class _BatchTaskModel extends io.nop.batch.dsl.model.BatchListen
         instance.setConcurrency(this.getConcurrency());
         instance.setConsumers(this.getConsumers());
         instance.setExecutor(this.getExecutor());
+        instance.setHistoryStore(this.getHistoryStore());
         instance.setInputSorter(this.getInputSorter());
         instance.setJitterRatio(this.getJitterRatio());
         instance.setLoadRetryPolicy(this.getLoadRetryPolicy());

@@ -77,6 +77,10 @@ CREATE TABLE nop_batch_record_result(
   RESULT_CODE VARCHAR2(100)  ,
   RESULT_MSG VARCHAR2(500)  ,
   ERROR_STACK VARCHAR2(4000)  ,
+  RECORD_INFO VARCHAR2(2000)  ,
+  RETRY_COUNT INTEGER NOT NULL ,
+  BATCH_SIZE INTEGER NOT NULL ,
+  HANDLE_STATUS INTEGER NOT NULL ,
   VERSION NUMBER(20) NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -223,6 +227,14 @@ CREATE TABLE nop_batch_record_result(
       COMMENT ON COLUMN nop_batch_record_result.RESULT_MSG IS '返回消息';
                     
       COMMENT ON COLUMN nop_batch_record_result.ERROR_STACK IS '错误堆栈';
+                    
+      COMMENT ON COLUMN nop_batch_record_result.RECORD_INFO IS '记录信息';
+                    
+      COMMENT ON COLUMN nop_batch_record_result.RETRY_COUNT IS '重试次数';
+                    
+      COMMENT ON COLUMN nop_batch_record_result.BATCH_SIZE IS '批次大小';
+                    
+      COMMENT ON COLUMN nop_batch_record_result.HANDLE_STATUS IS '处理状态';
                     
       COMMENT ON COLUMN nop_batch_record_result.VERSION IS '数据版本';
                     

@@ -5,6 +5,7 @@ import io.nop.api.core.ioc.IBeanProvider;
 import io.nop.batch.core.IBatchStateStore;
 import io.nop.batch.core.IBatchTask;
 import io.nop.batch.core.IBatchTaskContext;
+import io.nop.batch.core.history.IBatchHistoryStoreBuilder;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
 import io.nop.batch.core.manager.IBatchTaskManager;
 import io.nop.batch.dsl.BatchDslConstants;
@@ -43,6 +44,8 @@ public class BatchTaskManagerImpl implements IBatchTaskManager {
 
     private ISqlLibManager sqlLibManager;
 
+    private IBatchHistoryStoreBuilder historyStoreBuilder;
+
     @Inject
     public void setOrmTemplate(IOrmTemplate ormTemplate) {
         this.ormTemplate = ormTemplate;
@@ -69,6 +72,11 @@ public class BatchTaskManagerImpl implements IBatchTaskManager {
     }
 
     @Inject
+    public void setHistoryStoreBuilder(@Nullable IBatchHistoryStoreBuilder historyStoreBuilder) {
+        this.historyStoreBuilder = historyStoreBuilder;
+    }
+
+    @Inject
     public void setSqlLibManager(ISqlLibManager sqlLibManager) {
         this.sqlLibManager = sqlLibManager;
     }
@@ -82,7 +90,7 @@ public class BatchTaskManagerImpl implements IBatchTaskManager {
     public IBatchTask newBatchTask(String batchTaskName, Long batchTaskVersion, IBeanProvider beanProvider) {
         BatchTaskModel taskModel = loadBatchTaskModel(batchTaskName, batchTaskVersion);
         return new ModelBasedBatchTaskBuilderFactory(taskModel, stateStore, transactionTemplate,
-                ormTemplate, jdbcTemplate, daoProvider, sqlLibManager).newTaskBuilder(beanProvider).buildTask();
+                ormTemplate, jdbcTemplate, daoProvider, sqlLibManager, historyStoreBuilder).newTaskBuilder(beanProvider).buildTask();
     }
 
     @Override
@@ -96,7 +104,7 @@ public class BatchTaskManagerImpl implements IBatchTaskManager {
                 throw new NopException(ERR_BATCH_TASK_NAME_EMPTY).source(node);
 
             return new ModelBasedBatchTaskBuilderFactory(taskModel, stateStore, transactionTemplate,
-                    ormTemplate, jdbcTemplate, daoProvider, sqlLibManager).newTaskBuilder(beanProvider).buildTask();
+                    ormTemplate, jdbcTemplate, daoProvider, sqlLibManager, historyStoreBuilder).newTaskBuilder(beanProvider).buildTask();
         } finally {
             compileTool.allowUnregisteredScopeVar(allowUnregisteredVar);
         }

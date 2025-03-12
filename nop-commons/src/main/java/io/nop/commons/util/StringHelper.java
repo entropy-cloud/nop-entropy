@@ -1558,6 +1558,28 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
+    public static Number tryParseNumber(String val) {
+        if (val == null || val.isEmpty())
+            return null;
+
+        int pos = 0, n = val.length();
+        if (val.charAt(0) == '-')
+            pos++;
+
+        for (; pos < n; pos++) {
+            char ch = val.charAt(pos);
+            if (!isDigit(ch) && ch != '.' && ch != 'e' && ch != 'E')
+                break;
+        }
+
+        try {
+            return parseNumber(val.substring(0, pos));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Deterministic
     public static boolean isAllChar(String str, char c) {
         if (str == null || str.length() <= 0)
             return false;

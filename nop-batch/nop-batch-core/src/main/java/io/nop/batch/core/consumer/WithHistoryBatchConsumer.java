@@ -61,7 +61,12 @@ public class WithHistoryBatchConsumer<R> implements IBatchConsumer<R> {
             historyStore.saveProcessed(filtered, null, context);
             context.addCompletedItems(filtered);
         } else {
+            // 全部记录都被过滤，没有需要处理的记录
             context.addCompletedItems(items);
+            
+            if (historyConsumer != null) {
+                historyConsumer.consume(items, context);
+            }
         }
     }
 }

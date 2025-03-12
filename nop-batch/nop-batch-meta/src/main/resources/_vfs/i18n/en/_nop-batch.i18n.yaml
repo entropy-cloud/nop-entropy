@@ -29,6 +29,10 @@ prop:
       resultCode: Result Code
       resultMsg: Result Message
       errorStack: Error Stack
+      recordInfo: Record Info
+      retryCount: Retry Count
+      batchSize: Batch Size
+      handleStatus: Handle Status
       version: Version
       createdBy: Created By
       createTime: Create Time

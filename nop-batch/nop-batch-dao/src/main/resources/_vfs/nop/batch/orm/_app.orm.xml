@@ -199,18 +199,27 @@
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Result Message"/>
                 <column code="ERROR_STACK" displayName="错误堆栈" name="errorStack" precision="4000" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Error Stack"/>
-                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="7"
+                <column code="RECORD_INFO" comment="除了key之外的其他信息，一般用JSON格式保存" displayName="记录信息" name="recordInfo"
+                        precision="2000" propId="7" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Record Info"/>
+                <column code="RETRY_COUNT" comment="第一次执行时重试次数为0" displayName="重试次数" mandatory="true" name="retryCount"
+                        propId="8" stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Retry Count"/>
+                <column code="BATCH_SIZE" displayName="批次大小" mandatory="true" name="batchSize" propId="9"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Batch Size"/>
+                <column code="HANDLE_STATUS" displayName="处理状态" mandatory="true" name="handleStatus" propId="10"
+                        stdDataType="int" stdSqlType="INTEGER" i18n-en:displayName="Handle Status"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="11"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version" ui:show="X"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
-                        precision="50" propId="8" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Created By"/>
                 <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true" name="createTime"
-                        propId="9" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
+                        propId="13" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Create Time"/>
                 <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
-                        precision="50" propId="10" stdDataType="string" stdSqlType="VARCHAR"
+                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="Updated By"/>
                 <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true" name="updateTime"
-                        propId="11" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
+                        propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
             </columns>
             <comment>记录每条记录的处理结果，可以用于幂等处理，避免重复处理同一条记录</comment>
             <relations>

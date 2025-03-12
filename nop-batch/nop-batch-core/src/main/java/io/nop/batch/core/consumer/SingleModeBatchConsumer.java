@@ -15,10 +15,11 @@ public class SingleModeBatchConsumer<R> implements IBatchConsumer<R> {
 
     @Override
     public void consume(Collection<R> items, IBatchChunkContext context) {
+        boolean singleMode = context.isSingleMode();
         context.setSingleMode(true);
         for (R item : items) {
             consumer.consume(Collections.singletonList(item), context);
         }
-        context.setSingleMode(false);
+        context.setSingleMode(singleMode);
     }
 }

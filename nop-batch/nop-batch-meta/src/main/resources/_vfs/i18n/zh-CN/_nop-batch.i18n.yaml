@@ -23,14 +23,18 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopBatchRecordResult:
+      batchSize: 批次大小
       batchTaskId: 主键
       createTime: 创建时间
       createdBy: 创建人
       errorStack: 错误堆栈
+      handleStatus: 处理状态
+      recordInfo: 记录信息
       recordKey: 记录唯一键
       resultCode: 返回码
       resultMsg: 返回消息
       resultStatus: 返回状态码
+      retryCount: 重试次数
       task: 批处理任务
       updateTime: 修改时间
       updatedBy: 修改人

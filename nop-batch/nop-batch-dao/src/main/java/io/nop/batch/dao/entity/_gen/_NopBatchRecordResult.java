@@ -44,28 +44,44 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     public static final String PROP_NAME_errorStack = "errorStack";
     public static final int PROP_ID_errorStack = 6;
     
+    /* 记录信息: RECORD_INFO VARCHAR */
+    public static final String PROP_NAME_recordInfo = "recordInfo";
+    public static final int PROP_ID_recordInfo = 7;
+    
+    /* 重试次数: RETRY_COUNT INTEGER */
+    public static final String PROP_NAME_retryCount = "retryCount";
+    public static final int PROP_ID_retryCount = 8;
+    
+    /* 批次大小: BATCH_SIZE INTEGER */
+    public static final String PROP_NAME_batchSize = "batchSize";
+    public static final int PROP_ID_batchSize = 9;
+    
+    /* 处理状态: HANDLE_STATUS INTEGER */
+    public static final String PROP_NAME_handleStatus = "handleStatus";
+    public static final int PROP_ID_handleStatus = 10;
+    
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 7;
+    public static final int PROP_ID_version = 11;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 8;
+    public static final int PROP_ID_createdBy = 12;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 9;
+    public static final int PROP_ID_createTime = 13;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 10;
+    public static final int PROP_ID_updatedBy = 14;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 11;
+    public static final int PROP_ID_updateTime = 15;
     
 
-    private static int _PROP_ID_BOUND = 12;
+    private static int _PROP_ID_BOUND = 16;
 
     
     /* relation: 批处理任务 */
@@ -75,7 +91,7 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_batchTaskId,PROP_NAME_recordKey);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_batchTaskId,PROP_ID_recordKey};
 
-    private static final String[] PROP_ID_TO_NAME = new String[12];
+    private static final String[] PROP_ID_TO_NAME = new String[16];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -96,6 +112,18 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_errorStack] = PROP_NAME_errorStack;
           PROP_NAME_TO_ID.put(PROP_NAME_errorStack, PROP_ID_errorStack);
+      
+          PROP_ID_TO_NAME[PROP_ID_recordInfo] = PROP_NAME_recordInfo;
+          PROP_NAME_TO_ID.put(PROP_NAME_recordInfo, PROP_ID_recordInfo);
+      
+          PROP_ID_TO_NAME[PROP_ID_retryCount] = PROP_NAME_retryCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_retryCount, PROP_ID_retryCount);
+      
+          PROP_ID_TO_NAME[PROP_ID_batchSize] = PROP_NAME_batchSize;
+          PROP_NAME_TO_ID.put(PROP_NAME_batchSize, PROP_ID_batchSize);
+      
+          PROP_ID_TO_NAME[PROP_ID_handleStatus] = PROP_NAME_handleStatus;
+          PROP_NAME_TO_ID.put(PROP_NAME_handleStatus, PROP_ID_handleStatus);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -132,6 +160,18 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
     
     /* 错误堆栈: ERROR_STACK */
     private java.lang.String _errorStack;
+    
+    /* 记录信息: RECORD_INFO */
+    private java.lang.String _recordInfo;
+    
+    /* 重试次数: RETRY_COUNT */
+    private java.lang.Integer _retryCount;
+    
+    /* 批次大小: BATCH_SIZE */
+    private java.lang.Integer _batchSize;
+    
+    /* 处理状态: HANDLE_STATUS */
+    private java.lang.Integer _handleStatus;
     
     /* 数据版本: VERSION */
     private java.lang.Long _version;
@@ -240,6 +280,18 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
             case PROP_ID_errorStack:
                return getErrorStack();
         
+            case PROP_ID_recordInfo:
+               return getRecordInfo();
+        
+            case PROP_ID_retryCount:
+               return getRetryCount();
+        
+            case PROP_ID_batchSize:
+               return getBatchSize();
+        
+            case PROP_ID_handleStatus:
+               return getHandleStatus();
+        
             case PROP_ID_version:
                return getVersion();
         
@@ -323,6 +375,46 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_errorStack));
                }
                setErrorStack(typedValue);
+               break;
+            }
+        
+            case PROP_ID_recordInfo:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_recordInfo));
+               }
+               setRecordInfo(typedValue);
+               break;
+            }
+        
+            case PROP_ID_retryCount:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_retryCount));
+               }
+               setRetryCount(typedValue);
+               break;
+            }
+        
+            case PROP_ID_batchSize:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_batchSize));
+               }
+               setBatchSize(typedValue);
+               break;
+            }
+        
+            case PROP_ID_handleStatus:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_handleStatus));
+               }
+               setHandleStatus(typedValue);
                break;
             }
         
@@ -423,6 +515,34 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
             case PROP_ID_errorStack:{
                onInitProp(propId);
                this._errorStack = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_recordInfo:{
+               onInitProp(propId);
+               this._recordInfo = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_retryCount:{
+               onInitProp(propId);
+               this._retryCount = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_batchSize:{
+               onInitProp(propId);
+               this._batchSize = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_handleStatus:{
+               onInitProp(propId);
+               this._handleStatus = (java.lang.Integer)value;
                
                break;
             }
@@ -578,6 +698,82 @@ public class _NopBatchRecordResult extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_errorStack,value)){
             this._errorStack = value;
             internalClearRefs(PROP_ID_errorStack);
+            
+        }
+    }
+    
+    /**
+     * 记录信息: RECORD_INFO
+     */
+    public final java.lang.String getRecordInfo(){
+         onPropGet(PROP_ID_recordInfo);
+         return _recordInfo;
+    }
+
+    /**
+     * 记录信息: RECORD_INFO
+     */
+    public final void setRecordInfo(java.lang.String value){
+        if(onPropSet(PROP_ID_recordInfo,value)){
+            this._recordInfo = value;
+            internalClearRefs(PROP_ID_recordInfo);
+            
+        }
+    }
+    
+    /**
+     * 重试次数: RETRY_COUNT
+     */
+    public final java.lang.Integer getRetryCount(){
+         onPropGet(PROP_ID_retryCount);
+         return _retryCount;
+    }
+
+    /**
+     * 重试次数: RETRY_COUNT
+     */
+    public final void setRetryCount(java.lang.Integer value){
+        if(onPropSet(PROP_ID_retryCount,value)){
+            this._retryCount = value;
+            internalClearRefs(PROP_ID_retryCount);
+            
+        }
+    }
+    
+    /**
+     * 批次大小: BATCH_SIZE
+     */
+    public final java.lang.Integer getBatchSize(){
+         onPropGet(PROP_ID_batchSize);
+         return _batchSize;
+    }
+
+    /**
+     * 批次大小: BATCH_SIZE
+     */
+    public final void setBatchSize(java.lang.Integer value){
+        if(onPropSet(PROP_ID_batchSize,value)){
+            this._batchSize = value;
+            internalClearRefs(PROP_ID_batchSize);
+            
+        }
+    }
+    
+    /**
+     * 处理状态: HANDLE_STATUS
+     */
+    public final java.lang.Integer getHandleStatus(){
+         onPropGet(PROP_ID_handleStatus);
+         return _handleStatus;
+    }
+
+    /**
+     * 处理状态: HANDLE_STATUS
+     */
+    public final void setHandleStatus(java.lang.Integer value){
+        if(onPropSet(PROP_ID_handleStatus,value)){
+            this._handleStatus = value;
+            internalClearRefs(PROP_ID_handleStatus);
             
         }
     }

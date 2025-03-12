@@ -20,6 +20,17 @@
     <!-- taskKey用于区分taskName相同的不同执行实例。同样的taskName+taskKey只允许执行一次 -->
     <taskKeyExpr xdef:value="xpl-fn:(batchTaskCtx)=>string"/>
 
+    <!--
+    @onlySaveLastError 如果为true，则只保存最后一次执行失败的信息，否则保存所有执行失败的信息
+    @recordKeyExpr 用于生成记录的唯一标识，用于判断记录是否已经处理过。如果recordKeyExpr为空，则认为所有记录都是新的。
+    @recordInfoExpr 用于生成记录的附加信息，用于在历史记录表中保存。
+    -->
+    <historyStore bean="bean-name" xdef:name="BatchHistoryStoreModel"
+                  onlySaveLastError="!boolean=false">
+        <recordKeyExpr xdef:value="xpl-fn:(record)=>string"/>
+        <recordInfoExpr xdef:value="xpl-fn:(record)=>any"/>
+    </historyStore>
+
     <retryPolicy maxRetryCount="int" retryDelay="int" maxRetryDelay="int" xdef:name="BatchRetryPolicyModel"
                  exponentialDelay="boolean=true" jitterRatio="double=0.3">
         <exceptionFilter xdef:value="xpl-fn:(err)=>boolean"/>

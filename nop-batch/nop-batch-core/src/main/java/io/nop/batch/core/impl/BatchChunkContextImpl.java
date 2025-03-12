@@ -26,10 +26,10 @@ public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatc
     private Set<Object> completedItems;
     private int retryCount;
     private int loadRetryCount;
-    private boolean singleMode = true;
     private int threadIndex;
     private int concurrency;
     private int processCount;
+    private boolean singleMode;
 
     private CountDownLatch latch;
 
@@ -96,6 +96,15 @@ public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatc
     }
 
     @Override
+    public boolean isSingleMode() {
+        return singleMode;
+    }
+
+    public void setSingleMode(boolean singleMode) {
+        this.singleMode = singleMode;
+    }
+
+    @Override
     public int getLoadRetryCount() {
         return loadRetryCount;
     }
@@ -125,14 +134,6 @@ public class BatchChunkContextImpl extends ExecutionContextImpl implements IBatc
         this.processCount = processCount;
     }
 
-    @Override
-    public boolean isSingleMode() {
-        return singleMode;
-    }
-
-    public void setSingleMode(boolean singleMode) {
-        this.singleMode = singleMode;
-    }
 
     @Override
     public void initChunkLatch(CountDownLatch latch) {

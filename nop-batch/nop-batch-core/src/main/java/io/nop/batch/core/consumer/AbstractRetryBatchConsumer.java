@@ -31,6 +31,8 @@ public abstract class AbstractRetryBatchConsumer<R> implements IBatchConsumer<R>
     public void consume(Collection<R> items, IBatchChunkContext context) {
         IBatchRecordSnapshotBuilder.ISnapshot<R> snapshot =
                 snapshotBuilder == null ? null : snapshotBuilder.buildSnapshot(items, context);
+
+        context.setSingleMode(items.size() == 1);
         try {
             consumer.consume(items, context);
         } catch (BatchCancelException e) {
@@ -62,6 +64,8 @@ public abstract class AbstractRetryBatchConsumer<R> implements IBatchConsumer<R>
                     snapshot.onError(e2);
                 throw NopException.adapt(e);
             }
+        } finally {
+            context.setSingleMode(false);
         }
     }
 
