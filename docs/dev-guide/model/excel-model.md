@@ -75,6 +75,8 @@ public interface _AppMallDaoConstants {
 表名会直接按照驼峰规则映射为GraphQL中的对象名，所以表名原则上需要全局唯一（不同模块之间的表名不应该冲突）。建议每个模块具有自己特殊的表名前缀，比如`litemall_xxx`,`nop_wf_xxx`等。
 Nop平台内置的表名都具有前缀`nop_`。
 
+Excel模型对于每个表可以增加一个【是否视图】字段的配置，如果配置为true，则生成sql的时候会跳过。
+
 ## 数据表标签
 
 * `dict`：标记为字典表，其他地方可以通过`obj/{objName}`来将该表的数据作为字典表来使用

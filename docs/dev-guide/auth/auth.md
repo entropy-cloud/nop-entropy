@@ -84,6 +84,10 @@ NopAuthResource按照siteId进行组织，缺省使用siteId=MAIN作为主站点
 
 * 通过`nop.auth.site-map.static-config-path`配置指定其他的`action-auth.xml`文件，缺省会使用`main.action.xml`
 
+* SiteMapProviderImpl中缓存了siteId到SiteMapBean的映射。缓存的SiteMapBean是该站点的所有菜单项。另外有一个SiteMapData缓存，它包含菜单项对应的角色id集合等信息。
+当用户登录后获取菜单时，通过SiteMapProviderImpl.filterAllowedMenu函数结合SiteMap缓存和SiteCacheData缓存，以及传入的用户角色集合过滤掉用户没有权限的菜单项, 返回一个针对该用户的SiteMapBean。
+* Nop平台中一个用户可以具有多个角色。
+
 ### 后台Action
 
 在action函数上通过`@Auth`注解来指定需要对应的`permissions`或者允许访问的`roles`。如果不指定，则按照是否是`@BizQuery`
