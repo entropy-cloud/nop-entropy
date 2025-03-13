@@ -13,6 +13,7 @@ import io.nop.api.core.annotations.meta.PropMeta;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 @DataBean
 public class PageBean<T> implements Serializable {
@@ -27,6 +28,8 @@ public class PageBean<T> implements Serializable {
     private Boolean hasNext;
     private String prevCursor;
     private String nextCursor;
+
+    private Map<String, Object> extData;
 
     @PropMeta(propId = 1)
     public long getOffset() {
@@ -124,4 +127,13 @@ public class PageBean<T> implements Serializable {
         this.prevCursor = prevCursor;
     }
 
+    @PropMeta(propId = 11)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Map<String, Object> getExtData() {
+        return extData;
+    }
+
+    public void setExtData(Map<String, Object> extData) {
+        this.extData = extData;
+    }
 }
