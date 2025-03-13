@@ -8,6 +8,7 @@
 package io.nop.core.resource;
 
 import io.nop.api.core.ApiConstants;
+import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.convert.IByteArrayView;
 import io.nop.api.core.exceptions.NopException;
@@ -190,7 +191,7 @@ public class ResourceHelper {
         }
     }
 
-    public static String getPathNamespace(String path) {
+    public static String getPathNamespace(@Name("path") String path) {
         int pos = path.indexOf(':');
         if (pos < 0)
             return null;

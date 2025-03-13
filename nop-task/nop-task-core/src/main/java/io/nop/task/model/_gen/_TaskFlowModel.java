@@ -67,6 +67,13 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
     
     /**
      *  
+     * xml name: import
+     * 
+     */
+    private KeyedList<io.nop.task.model.TaskImportModel> _imports = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: restartable
      * 
      */
@@ -221,6 +228,51 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
     
     /**
      * 
+     * xml name: import
+     *  
+     */
+    
+    public java.util.List<io.nop.task.model.TaskImportModel> getImports(){
+      return _imports;
+    }
+
+    
+    public void setImports(java.util.List<io.nop.task.model.TaskImportModel> value){
+        checkAllowChange();
+        
+        this._imports = KeyedList.fromList(value, io.nop.task.model.TaskImportModel::getAs);
+           
+    }
+
+    
+    public io.nop.task.model.TaskImportModel getImport(String name){
+        return this._imports.getByKey(name);
+    }
+
+    public boolean hasImport(String name){
+        return this._imports.containsKey(name);
+    }
+
+    public void addImport(io.nop.task.model.TaskImportModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.task.model.TaskImportModel> list = this.getImports();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.task.model.TaskImportModel::getAs);
+            setImports(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_imports(){
+        return this._imports.keySet();
+    }
+
+    public boolean hasImports(){
+        return !this._imports.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: restartable
      *  
      */
@@ -288,6 +340,8 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
             
            this._beans = io.nop.api.core.util.FreezeHelper.deepFreeze(this._beans);
             
+           this._imports = io.nop.api.core.util.FreezeHelper.deepFreeze(this._imports);
+            
         }
     }
 
@@ -302,6 +356,7 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
         out.putNotNull("enterSteps",this.getEnterSteps());
         out.putNotNull("exitSteps",this.getExitSteps());
         out.putNotNull("graphMode",this.isGraphMode());
+        out.putNotNull("imports",this.getImports());
         out.putNotNull("restartable",this.isRestartable());
         out.putNotNull("useParentBeanContainer",this.isUseParentBeanContainer());
         out.putNotNull("version",this.getVersion());
@@ -323,6 +378,7 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
         instance.setEnterSteps(this.getEnterSteps());
         instance.setExitSteps(this.getExitSteps());
         instance.setGraphMode(this.isGraphMode());
+        instance.setImports(this.getImports());
         instance.setRestartable(this.isRestartable());
         instance.setUseParentBeanContainer(this.isUseParentBeanContainer());
         instance.setVersion(this.getVersion());

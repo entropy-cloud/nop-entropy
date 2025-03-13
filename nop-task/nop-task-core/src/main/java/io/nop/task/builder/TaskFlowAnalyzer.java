@@ -3,6 +3,7 @@ package io.nop.task.builder;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.task.model.IGraphTaskStepModel;
 import io.nop.task.model.TaskFlowModel;
+import io.nop.task.model.TaskInputModel;
 import io.nop.task.model.TaskStepModel;
 import io.nop.task.model.TaskStepsModel;
 
@@ -19,6 +20,7 @@ public class TaskFlowAnalyzer {
     public void analyze(TaskFlowModel flowModel) {
         forEachStep(flowModel, TaskStepModel::normalize);
         forEachStep(flowModel, stepModel -> {
+
             checkStepRef(stepModel);
 
             if (Boolean.TRUE.equals(flowModel.getDefaultUseParentScope()))

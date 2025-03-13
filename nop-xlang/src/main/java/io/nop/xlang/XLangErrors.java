@@ -170,6 +170,8 @@ public interface XLangErrors {
 
     String ARG_CODE = "code";
 
+    String ARG_METHOD_REF = "methodRef";
+
     ErrorCode ERR_EXPR_PARSE_NOT_END_PROPERLY = define("nop.err.xlang.expr.not-end-properly", "解析失败，表达式没有正常结束");
 
     ErrorCode ERR_EXPR_UNSUPPORTED_OP = define("nop.err.xlang.expr.unsupported-op", "不支持的运算符:{op}", ARG_OP);
@@ -214,6 +216,8 @@ public interface XLangErrors {
             "变量名[{token}]不允许为关键字", ARG_TOKEN);
 
     ErrorCode ERR_EXPR_NOT_EXECUTABLE = define("nop.err.xlang.expr.not-executable", "不是可执行的表达式");
+
+    ErrorCode ERR_XLANG_INVALID_METHOD_REF = define("nop.err.xlang.invalid-method-ref", "非法的方法引用:{methodRef}", ARG_METHOD_REF);
 
     ErrorCode ERR_XLANG_INVALID_PARSE_TREE = define("nop.err.xlang.invalid-parse-tree", "非法的解析树结构", ARG_TOKEN);
 

@@ -88,6 +88,13 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     private io.nop.core.type.IGenericType _type ;
     
     /**
+     *  
+     * xml name: value
+     * 
+     */
+    private java.lang.String _value ;
+    
+    /**
      * 
      * xml name: description
      *  
@@ -278,6 +285,25 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     }
 
     
+    /**
+     * 
+     * xml name: value
+     *  
+     */
+    
+    public java.lang.String getValue(){
+      return _value;
+    }
+
+    
+    public void setValue(java.lang.String value){
+        checkAllowChange();
+        
+        this._value = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -305,6 +331,7 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         out.putNotNull("schema",this.getSchema());
         out.putNotNull("source",this.getSource());
         out.putNotNull("type",this.getType());
+        out.putNotNull("value",this.getValue());
     }
 
     public TaskInputModel cloneInstance(){
@@ -326,6 +353,7 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         instance.setSchema(this.getSchema());
         instance.setSource(this.getSource());
         instance.setType(this.getType());
+        instance.setValue(this.getValue());
     }
 
     protected TaskInputModel newInstance(){

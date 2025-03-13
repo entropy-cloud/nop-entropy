@@ -132,6 +132,8 @@ public interface TaskConstants {
 
     String STEP_TYPE_TASK = "task";
 
+    String STEP_TYPE_INVOKE_STATIC = "invoke-static";
+
     String STEP_TYPE_CALL_STEP = "call-step";
 
     String STEP_TYPE_CALL_TASK = "call-task";

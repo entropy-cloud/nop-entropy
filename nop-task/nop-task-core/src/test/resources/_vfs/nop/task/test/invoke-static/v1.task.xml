@@ -1,0 +1,16 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <import as="ResourceHelper" class="io.nop.core.resource.ResourceHelper"/>
+
+    <steps>
+        <invoke-static name="test" method="ResourceHelper::getPathNamespace">
+            <input name="path" value="dev:/test.txt"/>
+        </invoke-static>
+    </steps>
+
+    <output name="RESULT">
+        <source>
+            return RESULT == 'dev' ? 'OK' : 'FAIL'
+        </source>
+    </output>
+</task>

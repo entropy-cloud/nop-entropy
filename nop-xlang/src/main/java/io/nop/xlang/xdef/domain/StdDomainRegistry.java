@@ -122,6 +122,7 @@ public class StdDomainRegistry {
 
         registerStdDomainHandler(new SimpleStdDomainHandlers.IntRangeType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.LongRangeType());
+        registerStdDomainHandler(new SimpleStdDomainHandlers.MethodRefType());
 
         for (int i = 0; i <= StdDataType.DURATION.ordinal(); i++) {
             StdDataType type = StdDataType.values()[i];

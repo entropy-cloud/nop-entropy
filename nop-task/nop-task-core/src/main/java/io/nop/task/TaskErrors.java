@@ -46,6 +46,13 @@ public interface TaskErrors {
 
     String ARG_INPUT_NAME = "inputName";
 
+    String ARG_METHOD_REF = "methodRef";
+
+    String ARG_METHOD_NAME = "methodName";
+
+    String ARG_CLASS_NAME = "className";
+    String ARG_ARG_COUNT = "argCount";
+
     ErrorCode ERR_TASK_STEP_NOT_RESTARTABLE = define("nop.err.task.step.not-restartable",
             "步骤[{stepName}]不允许多次执行", ARG_TASK_NAME, ARG_STEP_NAME);
 
@@ -128,4 +135,11 @@ public interface TaskErrors {
 
     ErrorCode ERR_TASK_MANDATORY_INPUT_NOT_ALLOW_EMPTY = define("nop.err.task.mandatory-input-not-allow-empty",
             "步骤[{stepPath}]的输入[{input}]不允许为空", ARG_STEP_PATH, ARG_INPUT_NAME);
+
+    ErrorCode ERR_TASK_UNRESOLVED_METHOD_OWNER = define("nop.err.task.unresolved-method-owner",
+            "方法引用[{methodRef}]使用了未定义的类", ARG_METHOD_REF);
+
+    ErrorCode ERR_TASK_STATIC_METHOD_NOT_FOUND =
+            define("nop.err.task.static-method-not-found", "类[{className}]中没有找到静态方法[{methodName}({argCount})]",
+                    ARG_CLASS_NAME, ARG_METHOD_NAME);
 }

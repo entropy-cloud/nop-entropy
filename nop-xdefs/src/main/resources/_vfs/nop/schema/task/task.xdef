@@ -14,6 +14,8 @@
       xdef:name="TaskFlowModel" xdef:bean-package="io.nop.task.model" xmlns:graphql="graphql"
       xdef:ref="TaskStepsModel" xdef:model-name-prop="name" xdef:model-version-prop="version"
 >
+    <import as="!var-name" class="!class-name" xdef:name="TaskImportModel" xdef:unique-attr="as"/>
+
     <!--
     设置task的访问权限
     -->
@@ -43,7 +45,7 @@
         @persist [是否持久化保存] 标记为persist的变量会自动保存，支持中断后恢复执行
         -->
         <input name="!var-name" displayName="string" xdef:name="TaskInputModel"
-               type="generic-type" mandatory="!boolean=false" role="string"
+               type="generic-type" mandatory="!boolean=false" role="string" value="string"
                xdef:unique-attr="name" persist="!boolean=true" fromTaskScope="!boolean=false">
             <description xdef:value="string"/>
             <schema xdef:ref="../schema/schema.xdef"/>
@@ -225,6 +227,9 @@
             <invoke name="!var-name" bean="!bean-name" method="!var-name" xdef:ref="TaskStepModel" returnAs="var-name"
                     xdef:name="InvokeTaskStepModel">
             </invoke>
+
+            <invoke-static name="!var-name" method="!method-ref" xdef:ref="TaskStepModel"
+                           returnAs="var-name" xdef:name="InvokeStaticTaskStepModel"/>
 
             <!--
             类似于for循环语句，不断执行body

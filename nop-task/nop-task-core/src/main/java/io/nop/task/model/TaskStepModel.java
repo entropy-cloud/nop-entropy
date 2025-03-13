@@ -69,6 +69,6 @@ public abstract class TaskStepModel extends _TaskStepModel {
     }
 
     public void normalize() {
-
+        getInputs().forEach(TaskInputModel::normalize);
     }
 }

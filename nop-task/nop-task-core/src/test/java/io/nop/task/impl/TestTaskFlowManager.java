@@ -84,6 +84,13 @@ public class TestTaskFlowManager extends AbstractTaskTestCase {
     }
 
     @Test
+    public void testInvokeStatic() {
+        BeanContainer.registerInstance(new MockBeanContainer());
+        runTask("test/invoke-static");
+    }
+
+
+    @Test
     public void testSimple01() {
         BeanContainer.registerInstance(new MockBeanContainer());
         runTask("test/simple-01");

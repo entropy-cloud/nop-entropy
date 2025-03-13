@@ -23,6 +23,8 @@ public class ChooseTaskStepModel extends _ChooseTaskStepModel {
 
     @Override
     public void normalize() {
+        super.normalize();
+
         int i = 0;
         for (TaskChooseCaseModel caseModel : this.getCases()) {
             i++;

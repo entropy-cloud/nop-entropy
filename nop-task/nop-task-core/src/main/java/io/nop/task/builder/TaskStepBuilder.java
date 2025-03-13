@@ -2,8 +2,8 @@ package io.nop.task.builder;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;
-import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepExecution;
 import io.nop.task.TaskConstants;
@@ -18,6 +18,7 @@ import io.nop.task.model.ForkTaskStepModel;
 import io.nop.task.model.GraphTaskStepModel;
 import io.nop.task.model.IGraphTaskStepModel;
 import io.nop.task.model.IfTaskStepModel;
+import io.nop.task.model.InvokeStaticTaskStepModel;
 import io.nop.task.model.InvokeTaskStepModel;
 import io.nop.task.model.LoopNTaskStepModel;
 import io.nop.task.model.LoopTaskStepModel;
@@ -47,6 +48,7 @@ import io.nop.task.step.ForkNTaskStep;
 import io.nop.task.step.ForkTaskStep;
 import io.nop.task.step.GraphTaskStep;
 import io.nop.task.step.IfTaskStep;
+import io.nop.task.step.InvokeStaticTaskStep;
 import io.nop.task.step.InvokeTaskStep;
 import io.nop.task.step.LoopNTaskStep;
 import io.nop.task.step.LoopTaskStep;
@@ -141,6 +143,9 @@ public class TaskStepBuilder implements ITaskStepBuilder {
                 break;
             case TaskConstants.STEP_TYPE_INVOKE:
                 step = buildInvokeStep((InvokeTaskStepModel) stepModel);
+                break;
+            case TaskConstants.STEP_TYPE_INVOKE_STATIC:
+                step = buildInvokeStaticStep((InvokeStaticTaskStepModel) stepModel);
                 break;
             case TaskConstants.STEP_TYPE_SIMPLE:
                 step = buildSimpleStep((SimpleTaskStepModel) stepModel);
@@ -354,6 +359,15 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         ret.setArgNames(stepModel.getInputs().stream().map(TaskInputModel::getName).collect(Collectors.toList()));
         ret.setBeanName(stepModel.getBean());
         ret.setMethodName(stepModel.getMethod());
+        ret.setReturnAs(stepModel.getReturnAs());
+        return ret;
+    }
+
+    private InvokeStaticTaskStep buildInvokeStaticStep(InvokeStaticTaskStepModel stepModel) {
+        InvokeStaticTaskStep ret = new InvokeStaticTaskStep();
+        ret.setArgNames(stepModel.getInputs().stream().map(TaskInputModel::getName).collect(Collectors.toList()));
+        IEvalFunction method = stepModel.getResolvedMethod();
+        ret.setMethod(method);
         ret.setReturnAs(stepModel.getReturnAs());
         return ret;
     }

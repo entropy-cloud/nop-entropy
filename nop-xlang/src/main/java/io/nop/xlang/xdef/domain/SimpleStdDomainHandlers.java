@@ -45,6 +45,7 @@ import io.nop.core.type.utils.GenericTypeHelper;
 import io.nop.core.type.utils.TypeReference;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.api.XLangCompileTool;
+import io.nop.xlang.expr.MethodRef;
 import io.nop.xlang.expr.flags.FlagsExprParser;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IStdDomainOptions;
@@ -392,6 +393,29 @@ public class SimpleStdDomainHandlers {
         @Override
         protected boolean isValid(String text) {
             return StringHelper.isValidFileType(text);
+        }
+    }
+
+    public static class MethodRefType extends SimpleStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_METHOD_REF;
+        }
+
+        @Override
+        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+            return ReflectionManager.instance().buildRawType(MethodRef.class);
+        }
+
+        @Override
+        public boolean isFixedType() {
+            return true;
+        }
+
+        @Override
+        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+                                XLangCompileTool cp) {
+            return MethodRef.parse(value.toString());
         }
     }
 
