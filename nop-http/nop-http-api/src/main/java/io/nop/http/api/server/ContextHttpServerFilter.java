@@ -69,8 +69,8 @@ public class ContextHttpServerFilter implements IHttpServerFilter {
 
         if (ApiStringHelper.isEmpty(traceId)) {
             traceId = UUID.randomUUID().toString();
-            ctx.setTraceId(traceId);
         }
+        ctx.setTraceId(traceId);
 
         if (expireTime > 0)
             ctx.setCallExpireTime(expireTime);
