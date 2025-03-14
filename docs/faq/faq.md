@@ -474,6 +474,8 @@ public MyUserPageBean findAll(){
 class MyUserPageBean extends MyPageBean<User>{}
 ```
 
+如果只是想在已有的PageBean基础上扩展信息，可以使用`PageBean.setExtData`方法。
+
 ### 40. logInfo没有打印出数据
 
 ```javascript

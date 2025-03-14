@@ -180,8 +180,8 @@ public class DialectImpl implements IDialect {
     }
 
     @Override
-    public SqlDataTypeModel getNativeType(String sqlTypeName) {
-        return sqlDataTypeMapping.getNativeType(sqlTypeName);
+    public SqlDataTypeModel getNativeType(String sqlTypeName, boolean ignoreUnknown) {
+        return sqlDataTypeMapping.getNativeType(sqlTypeName, ignoreUnknown);
     }
 
     @Override

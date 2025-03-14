@@ -13,10 +13,10 @@ import io.nop.dbtool.core.discovery.jdbc.JdbcMetaDiscovery;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.model.OrmModel;
 import io.nop.xlang.xdsl.DslModelHelper;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import jakarta.inject.Inject;
 import javax.sql.DataSource;
 import java.util.List;
 
@@ -30,11 +30,12 @@ public class TestJdbcMetaDiscovery extends JunitBaseTestCase {
     public void testDiscovery() {
         JdbcMetaDiscovery discovery = JdbcMetaDiscovery.forDataSource(dataSource);
         List<String> catalogs = discovery.getCatalogs();
-        System.out.println("catalogs="+catalogs);
+        System.out.println("catalogs=" + catalogs);
 
         DataBaseMeta meta = discovery.discover("datart", null, "%");
 
         OrmModel model = meta.getOrmModel();
         DslModelHelper.dslModelToXNode(OrmConstants.XDSL_SCHEMA_ORM, model).dump();
     }
+
 }

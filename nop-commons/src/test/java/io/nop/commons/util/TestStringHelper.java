@@ -38,6 +38,15 @@ public class TestStringHelper {
     }
 
     @Test
+    public void testColCodeToPropName() {
+        String colCode = "a_b_c";
+        String propName = StringHelper.colCodeToPropName(colCode);
+        assertEquals("ABC", propName);
+
+        assertEquals("testData", StringHelper.colCodeToPropName("test_data"));
+    }
+
+    @Test
     public void testDupEscape() {
         assertEquals("a~~b", StringHelper.encodeDupEscape("a~b", '~'));
         assertEquals("a~b", StringHelper.decodeDupEscape("a~~b", '~'));

@@ -3,6 +3,7 @@
 @exportAllTables 如果设置为true，则导出所有满足tableNamePattern的表。否则以tables配置的表为准，只导出指定的表
 @exportFormats 导出文件格式，可以是csv, csv.gz和sql
 @fetchSize 设置jdbc底层连接使用的fetchSize。MySQL数据库要求fetchSize设置为一个特殊值来启用流数据读取模式
+@schemaPattern ORACLE数据库需要指定具体Schema，但是MySQL指定的是Catalog
 -->
 <export-db x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
            xmlns:xdef="/nop/schema/xdef.xdef" streaming="!boolean=true"

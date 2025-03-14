@@ -120,4 +120,14 @@ public class DemoAuthBizModel {
                     SQL.begin().querySpace(dandan).sql(createSql).end());
         }
     }
+
+    @BizQuery
+    public MyPageBean findPage() {
+        MyPageBean pageBean = new MyPageBean();
+        ItemData data = new ItemData();
+        data.setName("test");
+        pageBean.setItems(Arrays.asList(data));
+        pageBean.setAll(20);
+        return pageBean;
+    }
 }

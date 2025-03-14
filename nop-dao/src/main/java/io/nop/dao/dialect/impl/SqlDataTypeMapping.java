@@ -62,8 +62,15 @@ public class SqlDataTypeMapping {
     }
 
     public SqlDataTypeModel getNativeType(String sqlTypeName) {
+        return getNativeType(sqlTypeName, false);
+    }
+
+    public SqlDataTypeModel getNativeType(String sqlTypeName, boolean ignoreUnknown) {
         SqlDataTypeModel type = nativeTypes.get(sqlTypeName.toUpperCase(Locale.ENGLISH));
         if (type == null) {
+            if (ignoreUnknown)
+                return null;
+            
             throw new NopException(ERR_DIALECT_DATA_TYPE_NOT_SUPPORTED).param(ARG_DATA_TYPE, sqlTypeName)
                     .param(ARG_ALLOWED_TYPES, nativeTypes.keySet());
         }

@@ -34,7 +34,11 @@ public interface IDialect extends IComponentModel {
 
     DialectModel getDialectModel();
 
-    SqlDataTypeModel getNativeType(String sqlTypeName);
+    default SqlDataTypeModel getNativeType(String sqlTypeName) {
+        return getNativeType(sqlTypeName, false);
+    }
+
+    SqlDataTypeModel getNativeType(String sqlTypeName, boolean ignoreUnknown);
 
     SQLDataType stdToNativeSqlType(StdSqlType sqlType, int precision, int scale);
 
@@ -115,11 +119,11 @@ public interface IDialect extends IComponentModel {
         return "update";
     }
 
-    default  String getIntersectKeyword(){
+    default String getIntersectKeyword() {
         return "intersect";
     }
 
-    default  String getExceptKeyword(){
+    default String getExceptKeyword() {
         return "except";
     }
 

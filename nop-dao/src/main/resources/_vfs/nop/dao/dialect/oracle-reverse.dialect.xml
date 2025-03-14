@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<dialect x:extends="oracle.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+         xmlns:x="/nop/schema/xdsl.xdef"
+>
+    <sqlDataTypes>
+        <sqlDataType name="DATE" stdSqlType="DATETIME"/>
+    </sqlDataTypes>
+</dialect>

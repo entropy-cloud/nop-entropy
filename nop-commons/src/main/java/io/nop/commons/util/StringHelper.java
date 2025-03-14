@@ -1755,7 +1755,7 @@ public class StringHelper extends ApiStringHelper {
         if ("class".equalsIgnoreCase(str)) {
             return CommonConstants.PROP_CLASS_NAME;
         }
-        return camelCase(str, false);
+        return beanPropName(camelCase(str, true));
     }
 
     @Deterministic

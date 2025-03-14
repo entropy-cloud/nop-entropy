@@ -60,6 +60,8 @@ public class JdbcMetaDiscovery {
 
     private boolean includeUniqueKeys = true;
 
+    private boolean ignoreUnknownType = false;
+
     public static JdbcMetaDiscovery forDataSource(DataSource dataSource) {
         return new JdbcMetaDiscovery(dataSource, null);
     }
@@ -74,6 +76,11 @@ public class JdbcMetaDiscovery {
         this.dialect = dataSource != null
                 ? DialectManager.instance().getDialectForDataSource(dataSource)
                 : DialectManager.instance().getDialectForConnection(connection);
+    }
+
+    public JdbcMetaDiscovery ignoreUnknownType(boolean ignoreUnknownType){
+        this.ignoreUnknownType = ignoreUnknownType;
+        return this;
     }
 
     public JdbcMetaDiscovery includeRelations(boolean includeRelations) {
@@ -116,6 +123,26 @@ public class JdbcMetaDiscovery {
             while (rs.next()) {
                 String catalogName = rs.getString("TABLE_CAT");
                 ret.add(catalogName);
+            }
+            return ret;
+        } catch (SQLException e) {
+            throw dialect.getSQLExceptionTranslator().translate("sql-discovery", e);
+        } finally {
+            closeConnection(conn);
+        }
+    }
+
+    public List<String> getSchemas() {
+        Connection conn = null;
+        try {
+            conn = getConnection();
+
+            DatabaseMetaData metaData = conn.getMetaData();
+            ResultSet rs = metaData.getSchemas();
+            List<String> ret = new ArrayList<>();
+            while (rs.next()) {
+                String schemaName = rs.getString("TABLE_SCHEM");
+                ret.add(schemaName);
             }
             return ret;
         } catch (SQLException e) {
@@ -307,7 +334,7 @@ public class JdbcMetaDiscovery {
                     }
                 }
 
-                SqlDataTypeModel dataType = dialect.getNativeType(typeName);
+                SqlDataTypeModel dataType = dialect.getNativeType(typeName,ignoreUnknownType);
                 SQLDataType sqlDataType;
                 if (dataType == null) {
                     StdSqlType stdSqlType = StdSqlType.fromJdbcType(jdbcType);
