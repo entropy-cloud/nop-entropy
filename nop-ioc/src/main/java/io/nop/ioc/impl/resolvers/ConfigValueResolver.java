@@ -69,7 +69,14 @@ public class ConfigValueResolver implements IBeanPropValueResolver {
     public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope) {
         int n = configVars.size();
         for (int i = 0; i < n; i++) {
-            Object value = container.getConfigValue(configVars.get(i));
+            String configVar = configVars.get(i);
+            Object value;
+            if (configVar.endsWith(".*")) {
+                value = container.getConfigValueWithPrefix(configVar.substring(0, configVar.length() - 2));
+            } else {
+                value = container.getConfigValue(configVar);
+            }
+
             if (!StringHelper.isEmptyObject(value))
                 return value;
         }
@@ -78,14 +85,17 @@ public class ConfigValueResolver implements IBeanPropValueResolver {
             throw new NopException(ERR_IOC_EMPTY_CONFIG_VAR).param(ARG_CONFIG_VARS, configVars);
         }
 
-        if (n > 0) {
-            Class clazz = defaultValue == null ? String.class : defaultValue.getClass();
-            String varName = configVars.get(n-1);
-            // 调用getConfigReference会在configProvider中注册配置变量
-            Object value = container.getConfigProvider().getConfigReference(varName, clazz, defaultValue, location).get();
-            if(value == null)
-                value = defaultValue;
-            return value;
+        if (n > 1) {
+            String varName = configVars.get(n - 1);
+            if(!varName.endsWith(".*")) {
+                Class clazz = defaultValue == null ? String.class : defaultValue.getClass();
+
+                // 调用getConfigReference会在configProvider中注册配置变量
+                Object value = container.getConfigProvider().getConfigReference(varName, clazz, defaultValue, location).get();
+                if (value == null)
+                    value = defaultValue;
+                return value;
+            }
         }
 
         return defaultValue;

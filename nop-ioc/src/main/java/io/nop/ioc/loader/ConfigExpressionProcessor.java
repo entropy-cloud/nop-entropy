@@ -95,10 +95,10 @@ public class ConfigExpressionProcessor {
                 return value;
             } else {
                 String defaultValue = sc.nextUntil('}', false).trim().toString();
-                return new ConfigValueResolver(sc.location(),false, configVars, false, defaultValue);
+                return new ConfigValueResolver(sc.location(), false, configVars, false, defaultValue);
             }
         } else {
-            return new ConfigValueResolver(sc.location(),false, configVars, true, null);
+            return new ConfigValueResolver(sc.location(), false, configVars, true, null);
         }
     }
 
@@ -136,7 +136,11 @@ public class ConfigExpressionProcessor {
                     .param(ARG_TRACE, bean.getTrace()).param(ARG_PROP_NAME, propName).param(ARG_VALUE, value);
         } else if (value.startsWith(IocConstants.PREFIX_CFG) || value.startsWith(IocConstants.PREFIX_R_CFG)) {
             boolean reactive = value.startsWith(IocConstants.PREFIX_R_CFG);
-            value = value.substring(IocConstants.PREFIX_CFG.length());
+            if (reactive) {
+                value = value.substring(IocConstants.PREFIX_R_CFG.length());
+            } else {
+                value = value.substring(IocConstants.PREFIX_CFG.length());
+            }
             int pos = value.lastIndexOf('|');
             String defaultValue = null;
             if (pos > 0) {
@@ -144,7 +148,7 @@ public class ConfigExpressionProcessor {
                 value = value.substring(0, pos).trim();
             }
             List<String> configVars = StringHelper.stripedSplit(value, ',');
-            return new ConfigValueResolver(loc,reactive, configVars, defaultValue == null, defaultValue);
+            return new ConfigValueResolver(loc, reactive, configVars, defaultValue == null, defaultValue);
         } else {
             throw new NopException(ERR_IOC_INVALID_BIND_EXPR).source(bean).param(ARG_BEAN_NAME, bean.getId())
                     .param(ARG_TRACE, bean.getTrace()).param(ARG_PROP_NAME, propName).param(ARG_EXPR, value);

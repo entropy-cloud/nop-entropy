@@ -575,33 +575,32 @@ public class BeanDefinitionBuilder {
     }
 
     void autowireProps(BeanDefinition bean, IClassModel classModel) {
-        for (IFunctionModel method : classModel.getMethods()) {
-            if (method.getArgCount() == 1) {
-                String propName = method.getName();
-                boolean bSet = false;
-                if (propName.startsWith("set")) {
-                    propName = StringHelper.beanPropName(propName.substring("set".length()));
-                    bSet = true;
+        io.nop.core.reflect.bean.IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(classModel.getRawClass());
+
+        for (IBeanPropertyModel propModel : beanModel.getPropertyModels().values()) {
+            if (!propModel.isWritable())
+                continue;
+
+            String propName = propModel.getName();
+
+            // 如果已经明确指定注入属性，则忽略autowire配置
+            if (bean.getProp(propName) != null)
+                continue;
+
+            BeanInjectInfo injectInfo = introspection.getPropertyInject(propModel);
+            if (injectInfo != null) {
+                SourceLocation loc = bean.getLocation();
+                IBeanPropValueResolver resolver = buildInjectResolver(bean, loc, propName, injectInfo, injectInfo.isIgnoreDepends());
+
+                // optional的情况下有可能找不到autowire的bean
+                if (resolver != null) {
+                    IPropertySetter setter = propModel.getSetter();
+                    bean.addProp(propName, new BeanProperty(loc, setter, propModel.getType().getRawClass(), resolver, true, false));
                 }
-
-                // 如果已经明确指定注入属性，则忽略autowire配置
-                if (bean.getProp(propName) != null)
-                    continue;
-
-                BeanInjectInfo injectInfo = introspection.getPropertyInject(propName, method);
-                if (injectInfo != null) {
-                    SourceLocation loc = bean.getLocation();
-                    IBeanPropValueResolver resolver = buildInjectResolver(bean, loc, propName, injectInfo, injectInfo.isIgnoreDepends());
-
-                    // optional的情况下有可能找不到autowire的bean
-                    if (resolver != null) {
-                        IPropertySetter setter = new FunctionSpecializedPropertySetter(method);
-                        bean.addProp(propName, new BeanProperty(loc, setter, method.getArgs().get(0).getRawClass(), resolver, true, false));
-                    }
-                } else if (bSet) {
-                    autowireConfigVar(bean, classModel, propName);
-                }
+            } else {
+                autowireConfigVar(bean, propModel);
             }
+
         }
 
         for (IFieldModel field : classModel.getFields().values()) {
@@ -627,15 +626,13 @@ public class BeanDefinitionBuilder {
         }
     }
 
-    private void autowireConfigVar(BeanDefinition bean, IClassModel classModel, String propName) {
+    private void autowireConfigVar(BeanDefinition bean, IBeanPropertyModel propModel) {
         String configPrefix = bean.getBeanModel().getIocConfigPrefix();
         if (configPrefix != null) {
-            IBeanPropertyModel propModel = classModel.getBeanModel().getPropertyModel(propName);
-            if (propModel == null)
-                return;
             IBeanPropValueResolver resolver = ConfigPropHelper.buildConfigVarResolver(propModel,
-                    bean.getLocation(), configPrefix, introspection);
+                    bean.getLocation(), configPrefix, bean.getBeanModel().isIocAutoRefresh(), introspection);
             if (resolver != null) {
+                String propName = propModel.getName();
                 bean.addProp(propName, new BeanProperty(null, propModel.getSetter(),
                         propModel.getRawClass(), resolver, true, true));
             }

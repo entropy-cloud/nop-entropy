@@ -13,6 +13,7 @@ import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFieldModel;
 import io.nop.core.reflect.IFunctionArgument;
 import io.nop.core.reflect.IFunctionModel;
+import io.nop.core.reflect.bean.IBeanPropertyModel;
 import io.nop.core.type.IGenericType;
 
 import java.util.function.Function;
@@ -34,6 +35,8 @@ public interface IBeanClassIntrospection {
     BeanInjectInfo getArgumentInject(IFunctionArgument argModel);
 
     BeanInjectInfo getPropertyInject(String propName, IFunctionModel propModel);
+
+    BeanInjectInfo getPropertyInject(IBeanPropertyModel propModel);
 
     BeanInjectInfo getFieldInject(IFieldModel fieldModel);
 }

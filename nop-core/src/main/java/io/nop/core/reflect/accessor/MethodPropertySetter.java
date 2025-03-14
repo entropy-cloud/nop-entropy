@@ -20,6 +20,10 @@ public class MethodPropertySetter implements ISpecializedPropertySetter, IAnnota
         this.method = method;
     }
 
+    public IFunctionModel getMethod() {
+        return method;
+    }
+
     @Override
     public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
         return method.getAnnotation(annotationClass);

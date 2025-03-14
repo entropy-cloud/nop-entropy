@@ -73,6 +73,8 @@ public interface IocErrors {
 
     String ARG_CONFIG_VARS = "configVars";
 
+    String ARG_CONFIG_PREFIX = "configPrefix";
+
     ErrorCode ERR_IOC_SCOPE_ALREADY_EXISTS = define("nop.err.ioc.scope-already-exists", "scope[{scope}]已经存在",
             ARG_SCOPE);
 
@@ -165,6 +167,9 @@ public interface IocErrors {
 
     ErrorCode ERR_IOC_EMPTY_CONFIG_VAR = define("nop.err.ioc.empty-config-var", "配置[{configVars}]的值为空",
             ARG_CONFIG_VARS);
+
+    ErrorCode ERR_IOC_NO_CONFIG_WITH_PREFIX = define("nop.err.ioc.no-config-with-prefix", "没有以[{configPrefix}]为前缀的配置项",
+            ARG_CONFIG_PREFIX);
 
     ErrorCode ERR_IOC_INVALID_BIND_EXPR = define("nop.err.ioc.invalid-bind-expr", "未定义的表达式[{expr}]类型", ARG_BEAN_NAME,
             ARG_EXPR);

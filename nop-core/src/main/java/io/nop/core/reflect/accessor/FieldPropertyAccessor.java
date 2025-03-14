@@ -10,26 +10,57 @@ package io.nop.core.reflect.accessor;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ReflectionHelper;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.reflect.IAnnotatedElement;
 import io.nop.core.reflect.IAnnotationSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
-public class FieldPropertyAccessor implements ISpecializedPropertyGetter, ISpecializedPropertySetter, IAnnotationSupport {
+public class FieldPropertyAccessor implements ISpecializedPropertyGetter, ISpecializedPropertySetter,
+        IAnnotationSupport, IAnnotatedElement {
     static final Logger LOG = LoggerFactory.getLogger(FieldPropertyAccessor.class);
 
     private final Field field;
+    private Map<String, Annotation> annotations;
 
     public FieldPropertyAccessor(Field field) {
         this.field = field;
         ReflectionHelper.makeAccessible(field);
     }
 
+    public Field getField() {
+        return field;
+    }
+
     @Override
     public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
         return field.getAnnotation(annotationClass);
+    }
+
+    @Override
+    public Collection<Annotation> getAnnotations() {
+        return makeAnnotations().values();
+    }
+
+    @Override
+    public Annotation getAnnotationByName(String annotationClass) {
+        return makeAnnotations().get(annotationClass);
+    }
+
+    private Map<String, Annotation> makeAnnotations() {
+        if (annotations == null) {
+            if (annotations == null)
+                annotations = new HashMap<>();
+            for (Annotation ann : field.getAnnotations()) {
+                annotations.put(ann.annotationType().getCanonicalName(), ann);
+            }
+        }
+        return annotations;
     }
 
     @Override

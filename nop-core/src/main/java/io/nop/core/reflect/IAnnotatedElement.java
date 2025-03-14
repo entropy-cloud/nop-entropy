@@ -13,7 +13,7 @@ import io.nop.core.reflect.impl.AnnotationData;
 import java.lang.annotation.Annotation;
 import java.util.Collection;
 
-public interface IAnnotatedElement {
+public interface IAnnotatedElement extends IAnnotationSupport{
     Collection<Annotation> getAnnotations();
 
     default boolean isAnnotationPresent(Class<? extends Annotation> annotationClass) {

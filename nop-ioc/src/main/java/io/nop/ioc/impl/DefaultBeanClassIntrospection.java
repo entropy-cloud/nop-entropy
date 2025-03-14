@@ -21,9 +21,15 @@ import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFieldModel;
 import io.nop.core.reflect.IFunctionArgument;
 import io.nop.core.reflect.IFunctionModel;
+import io.nop.core.reflect.IPropertyGetter;
+import io.nop.core.reflect.IPropertySetter;
 import io.nop.core.reflect.ReflectionManager;
+import io.nop.core.reflect.accessor.FieldPropertyAccessor;
+import io.nop.core.reflect.accessor.MethodPropertySetter;
+import io.nop.core.reflect.bean.IBeanPropertyModel;
 import io.nop.core.reflect.impl.AnnotationData;
 import io.nop.core.reflect.impl.ClassLoaderRawTypeResolver;
+import io.nop.core.reflect.impl.FieldModel;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.type.IGenericType;
@@ -172,6 +178,19 @@ public class DefaultBeanClassIntrospection implements IBeanClassIntrospection {
     public BeanInjectInfo getPropertyInject(String propName, IFunctionModel propModel) {
         IFunctionArgument argModel = propModel.getArgs().get(0);
         return getInjectInfo(propName, argModel.getType(), propModel, argModel);
+    }
+
+    @Override
+    public BeanInjectInfo getPropertyInject(IBeanPropertyModel propertyModel) {
+        IPropertySetter propSetter = propertyModel.getSetter();
+        if (propSetter instanceof MethodPropertySetter) {
+            MethodPropertySetter setter = (MethodPropertySetter) propSetter;
+            return getPropertyInject(propertyModel.getName(), setter.getMethod());
+        } else if(propSetter instanceof FieldPropertyAccessor){
+            FieldPropertyAccessor fieldAccessor = (FieldPropertyAccessor) propSetter;
+            return getInjectInfo(propertyModel.getName(),propertyModel.getType(),fieldAccessor,null);
+        }
+        return null;
     }
 
     @Override

@@ -28,6 +28,10 @@ public interface IBeanContainerImplementor extends IBeanContainer, ILifeCycle {
 
     Object getConfigValue(String varName);
 
+    default Map<String, Object> getConfigValueWithPrefix(String prefix) {
+        return getConfigProvider().getConfigValueForPrefix(prefix);
+    }
+
     IConfigProvider getConfigProvider();
 
     void refreshConfig(String beanId);

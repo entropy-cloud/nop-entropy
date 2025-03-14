@@ -1,5 +1,6 @@
 package io.nop.api.core.config;
 
+import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.util.StaticValue;
 import org.slf4j.Logger;
@@ -89,13 +90,14 @@ public abstract class AbstractConfigProvider implements IConfigProvider {
         Map<String, Object> map = new LinkedHashMap<>();
         for (Map.Entry<String, DefaultConfigReference<?>> entry : usedRefs.entrySet()) {
             String key = entry.getKey();
-            if (key.startsWith(prefix)) {
+            if (ApiStringHelper.startsWithConfigPrefix(key, prefix)) {
                 Object value = entry.getValue().get();
                 setIn(map, key, value);
             }
         }
         return map;
     }
+
 
     protected void setIn(Map<String, Object> map, String key, Object value) {
         int pos = key.indexOf('.');

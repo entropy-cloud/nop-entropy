@@ -57,7 +57,7 @@ public class TestConfigProperties extends JunitBaseTestCase {
 //
 //        assertTrue(!CFG_GRAPHQL_SCHEMA_INTROSPECTION_ENABLED.get());
 
-        Map<String, Object> values = AppConfig.getConfigProvider().getConfigValueForPrefix("test.");
+        Map<String, Object> values = AppConfig.getConfigProvider().getConfigValueForPrefix("test");
         assertEquals(1, values.size());
         assertEquals("false", BeanTool.getComplexProperty(values,"test.a1.b"));
     }

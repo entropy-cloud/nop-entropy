@@ -675,4 +675,14 @@ public class ApiStringHelper {
         return s;
     }
 
+    public static boolean startsWithConfigPrefix(String key, String prefix) {
+        if (key == null)
+            return false;
+
+        if (key.length() <= prefix.length() + 1)
+            return false;
+
+        return key.startsWith(prefix) && key.charAt(prefix.length()) == '.';
+    }
+
 }
