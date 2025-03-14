@@ -9,7 +9,7 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nop-http-oauth</artifactId>
+    <artifactId>nop-http-client-oauth</artifactId>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

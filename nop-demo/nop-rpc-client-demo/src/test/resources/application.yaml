@@ -1,0 +1,10 @@
+nop:
+  debug: true
+
+  http:
+    client:
+      auth-configs:
+        http-clients:
+          auth1:
+            urlPattern: http://localhost:9090.*
+            oauthProvider: auth1

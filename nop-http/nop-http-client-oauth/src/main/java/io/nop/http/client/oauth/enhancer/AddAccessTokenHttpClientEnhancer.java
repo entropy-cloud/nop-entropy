@@ -1,4 +1,4 @@
-package io.nop.http.oauth.enhancer;
+package io.nop.http.client.oauth.enhancer;
 
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.oauth.Oauth2TokenResponseBean;
@@ -12,19 +12,19 @@ import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
 import io.nop.http.api.client.IHttpClientEnhancer;
 import io.nop.http.api.support.DelegateHttpClient;
-import io.nop.http.oauth.HttpClientAuthConfig;
-import io.nop.http.oauth.HttpClientAuthConfigs;
-import io.nop.http.oauth.OauthProviderConfig;
+import io.nop.http.client.oauth.HttpClientAuthConfig;
+import io.nop.http.client.oauth.HttpClientAuthConfigs;
+import io.nop.http.client.oauth.OauthProviderConfig;
 
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.http.api.HttpApiConstants.CONTENT_TYPE_FORM_URLENCODED;
-import static io.nop.http.oauth.HttpOauthConfigs.DEFAULT_EXPIRE_GAP;
-import static io.nop.http.oauth.HttpOauthErrors.ARG_PROVIDER;
-import static io.nop.http.oauth.HttpOauthErrors.ERR_HTTP_OAUTH_NO_USER_CONTEXT;
-import static io.nop.http.oauth.HttpOauthErrors.ERR_HTTP_OAUTH_UNKNOWN_PROVIDER;
+import static io.nop.http.client.oauth.HttpOauthConfigs.DEFAULT_EXPIRE_GAP;
+import static io.nop.http.client.oauth.HttpOauthErrors.ARG_PROVIDER;
+import static io.nop.http.client.oauth.HttpOauthErrors.ERR_HTTP_OAUTH_NO_USER_CONTEXT;
+import static io.nop.http.client.oauth.HttpOauthErrors.ERR_HTTP_OAUTH_UNKNOWN_PROVIDER;
 
 public class AddAccessTokenHttpClientEnhancer implements IHttpClientEnhancer {
 
@@ -45,6 +45,10 @@ public class AddAccessTokenHttpClientEnhancer implements IHttpClientEnhancer {
 
         public EnhancedClient(IHttpClient httpClient) {
             super(httpClient);
+        }
+
+        public HttpClientAuthConfigs getAuthConfigs() {
+            return authConfigs;
         }
 
         @Override

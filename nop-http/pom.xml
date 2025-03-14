@@ -14,7 +14,7 @@
 
     <modules>
         <module>nop-http-api</module>
-        <module>nop-http-oauth</module>
+        <module>nop-http-client-oauth</module>
         <module>nop-http-client-okhttp</module>
         <module>nop-http-client-apache</module>
         <module>nop-http-client-jdk</module>

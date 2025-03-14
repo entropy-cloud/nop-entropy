@@ -82,7 +82,7 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     /**
      *  
      * xml name: schemaPattern
-     * 
+     * ORACLE数据库需要指定具体Schema，但是MySQL指定的是Catalog
      */
     private java.lang.String _schemaPattern ;
     
@@ -288,7 +288,7 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: schemaPattern
-     *  
+     *  ORACLE数据库需要指定具体Schema，但是MySQL指定的是Catalog
      */
     
     public java.lang.String getSchemaPattern(){

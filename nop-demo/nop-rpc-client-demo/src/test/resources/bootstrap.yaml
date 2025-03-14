@@ -1,0 +1,15 @@
+nop:
+  config:
+    nacos:
+      enabled: false
+
+  application:
+    name: demo
+
+  cluster:
+    discovery:
+      nacos:
+        enabled: false
+
+    registration:
+      enabled: false

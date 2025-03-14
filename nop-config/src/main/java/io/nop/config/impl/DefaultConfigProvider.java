@@ -15,6 +15,7 @@ import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.config.IConfigValue;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.util.StaticValue;
 import io.nop.commons.util.StringHelper;
@@ -64,6 +65,20 @@ public class DefaultConfigProvider extends AbstractConfigProvider {
 
     public DefaultConfigProvider(IConfigSource configSource, IConfigValueEnhancer configValueEnhancer) {
         this(configSource, configValueEnhancer, new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
+    }
+
+    @Override
+    protected void collectUnusedValues(Map<String, Object> map, String prefix) {
+        for (Map.Entry<String, DefaultConfigReference<?>> entry : configRefs.entrySet()) {
+            String key = entry.getKey();
+            if (map.containsKey(key))
+                continue;
+
+            if (ApiStringHelper.startsWithConfigPrefix(key, prefix)) {
+                Object value = getConfigRef(key).get();
+                setIn(map, key.substring(prefix.length() + 1), value);
+            }
+        }
     }
 
     @Override

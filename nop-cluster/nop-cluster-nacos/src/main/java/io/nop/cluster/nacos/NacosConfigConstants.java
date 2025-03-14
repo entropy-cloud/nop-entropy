@@ -20,4 +20,5 @@ public interface NacosConfigConstants {
 
     String CFG_NACOS_NAMESPACE = "nop.config.nacos.namespace";
 
+    String CFG_CONFIG_NACOS_ENABLED = "nop.config.nacos.enabled";
 }

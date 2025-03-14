@@ -4,7 +4,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
 
-    <bean id="nopNamingService" class="io.nop.cluster.nacos.NacosNamingService">
+    <bean id="nopNamingService" class="io.nop.cluster.nacos.NacosNamingService" ioc:default="true">
         <ioc:condition>
             <if-property name="nop.cluster.discovery.nacos.enabled" enableIfMissing="true"/>
         </ioc:condition>

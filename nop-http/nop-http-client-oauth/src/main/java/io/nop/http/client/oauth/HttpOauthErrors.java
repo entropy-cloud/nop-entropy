@@ -1,4 +1,4 @@
-package io.nop.http.oauth;
+package io.nop.http.client.oauth;
 
 import io.nop.api.core.exceptions.ErrorCode;
 

@@ -88,16 +88,32 @@ public abstract class AbstractConfigProvider implements IConfigProvider {
     @Override
     public Map<String, Object> getConfigValueForPrefix(String prefix) {
         Map<String, Object> map = new LinkedHashMap<>();
+        collectUsedRefs(map, prefix);
+        collectUnusedValues(map, prefix);
+        return map;
+    }
+
+    protected void collectUsedRefs(Map<String, Object> map, String prefix) {
         for (Map.Entry<String, DefaultConfigReference<?>> entry : usedRefs.entrySet()) {
             String key = entry.getKey();
             if (ApiStringHelper.startsWithConfigPrefix(key, prefix)) {
                 Object value = entry.getValue().get();
-                setIn(map, key, value);
+                setIn(map, key.substring(prefix.length() + 1), value);
             }
         }
-        return map;
     }
 
+    protected void collectUnusedValues(Map<String, Object> map, String prefix) {
+        for (Map.Entry<String, StaticValue<?>> entry : staticValues.entrySet()) {
+            String key = entry.getKey();
+            if (!map.containsKey(key)) {
+                if (ApiStringHelper.startsWithConfigPrefix(key, prefix)) {
+                    Object value = entry.getValue().get();
+                    setIn(map, key.substring(prefix.length() + 1), value);
+                }
+            }
+        }
+    }
 
     protected void setIn(Map<String, Object> map, String key, Object value) {
         int pos = key.indexOf('.');

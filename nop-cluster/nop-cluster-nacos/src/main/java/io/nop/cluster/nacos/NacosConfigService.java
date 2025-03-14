@@ -36,6 +36,7 @@ import java.io.File;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
+import static io.nop.cluster.nacos.NacosConfigConstants.CFG_CONFIG_NACOS_ENABLED;
 import static io.nop.cluster.nacos.NacosConfigConstants.CFG_NACOS_GROUP;
 import static io.nop.cluster.nacos.NacosConfigConstants.CFG_NACOS_NAMESPACE;
 import static io.nop.cluster.nacos.NacosConfigConstants.CFG_NACOS_PASSWORD;
@@ -52,6 +53,14 @@ public class NacosConfigService implements IConfigService, IDynamicTextConfigLoa
     private ConfigService configService;
     private String group;
     private long timeout = 5000;
+
+    private boolean enabled;
+
+    @Override
+    public boolean isEnabled() {
+        boolean enabled = ConvertHelper.toPrimitiveBoolean(AppConfig.var(CFG_CONFIG_NACOS_ENABLED, true));
+        return enabled;
+    }
 
     @Override
     public void start() {

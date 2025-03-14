@@ -9,6 +9,10 @@ RPC框架的设计原理，参见[rpc-design.md](rpc-design.md)
 
 Nop平台提供了一套基于过滤器的拦截机制，可以在请求处理前后进行拦截处理。filter的使用参见[web-filter.md](web-filter.md)
 
+## 身份认证
+
+通过HttpClient调用PRC服务时需要设置accessToken，参见[rpc-auth.md](rpc-auth.md)
+
 ## Feign集成
 将NopRPC与Spring的Feign框架集成在一起使用，参见[feign.md](feign.md)
 

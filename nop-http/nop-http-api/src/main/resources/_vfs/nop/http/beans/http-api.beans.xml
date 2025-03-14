@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc">
+
+
+    <bean id="nopHttpClient" ioc:default="true" ioc:type="io.nop.http.api.client.IHttpClient"
+          class="io.nop.http.api.support.DefaultHttpClientFactory">
+        <ioc:condition>
+            <on-bean>nopRawHttpClient</on-bean>
+        </ioc:condition>
+        <property name="httpClient" ref="nopRawHttpClient"/>
+
+        <property name="httpClientEnhancers">
+            <ioc:collect-beans name-prefix="nopHttpClientEnhancer_"/>
+        </property>
+    </bean>
+
+    <ioc:config id="nopHttpClientConfig"
+                class="io.nop.http.api.client.HttpClientConfig" ioc:config-prefix="nop.http.client"/>
+
+</beans>

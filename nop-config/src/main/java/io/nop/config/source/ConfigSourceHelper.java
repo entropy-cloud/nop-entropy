@@ -49,7 +49,7 @@ public class ConfigSourceHelper {
             SourceLocation valueLoc = getLocation(map, loc, (String) key);
 
             String name = (String) key;
-            name = StringHelper.normalizeConfigVar(name);
+            //name = StringHelper.normalizeConfigVar(name);
 
             if (prefix != null) {
                 name = prefix + '.' + name;

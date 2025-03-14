@@ -18,6 +18,10 @@ public interface IConfigService {
         return getClass().getName();
     }
 
+    default boolean isEnabled() {
+        return true;
+    }
+
     void start();
 
     void stop();

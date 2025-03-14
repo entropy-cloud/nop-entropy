@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc">
+
+
+    <bean id="nopHttpClientEnhancer_oauth" ioc:sort-order="10"
+          class="io.nop.http.client.oauth.enhancer.AddAccessTokenHttpClientEnhancer">
+        <property name="authConfigs" ref="nopHttpClientAuthConfigs"/>
+    </bean>
+
+    <ioc:config id="nopHttpClientAuthConfigs" class="io.nop.http.client.oauth.HttpClientAuthConfigs"
+                ioc:config-prefix="nop.http.client.auth-configs"/>
+</beans>

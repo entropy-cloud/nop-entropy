@@ -12,15 +12,15 @@ import io.nop.api.core.util.IOrdered;
 import java.util.Comparator;
 
 public class SafeOrderedComparator implements Comparator<Object> {
-    public static final SafeOrderedComparator DEFAULT = new SafeOrderedComparator(true);
+    public static final SafeOrderedComparator DEFAULT = new SafeOrderedComparator(null);
 
     public static final SafeOrderedComparator NULLS_FIRST = new SafeOrderedComparator(true);
 
     public static final SafeOrderedComparator NULLS_LAST = new SafeOrderedComparator(false);
 
-    private final boolean nullsFirst;
+    private final Boolean nullsFirst;
 
-    public SafeOrderedComparator(boolean nullsFirst) {
+    public SafeOrderedComparator(Boolean nullsFirst) {
         this.nullsFirst = nullsFirst;
     }
 
@@ -29,22 +29,28 @@ public class SafeOrderedComparator implements Comparator<Object> {
         if (o1 == o2)
             return 0;
 
-        if (nullsFirst) {
-            // null小于所有非null的值
-            if (o1 == null) {
-                return -1;
-            }
+        if (nullsFirst != null) {
+            if (nullsFirst) {
+                // null小于所有非null的值
+                if (o1 == null) {
+                    return -1;
+                }
 
-            if (o2 == null)
-                return 1;
-        } else {
-            // null大于所有非null的值
-            if (o1 == null) {
-                return 1;
-            }
+                if (o2 == null)
+                    return 1;
+            } else {
+                // null大于所有非null的值
+                if (o1 == null) {
+                    return 1;
+                }
 
-            if (o2 == null)
-                return -1;
+                if (o2 == null)
+                    return -1;
+            }
+        }
+
+        if (o1 instanceof IOrdered && o2 instanceof IOrdered) {
+            return Integer.compare(getOrder(o1), getOrder(o2));
         }
 
         if (o1.getClass() == o2.getClass()) {
@@ -53,9 +59,6 @@ public class SafeOrderedComparator implements Comparator<Object> {
             }
         }
 
-        if (o1 instanceof IOrdered && o2 instanceof IOrdered) {
-            return Integer.compare(getOrder(o1), getOrder(o2));
-        }
         return 0;
     }
 

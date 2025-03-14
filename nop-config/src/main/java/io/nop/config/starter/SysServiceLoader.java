@@ -29,26 +29,25 @@ public class SysServiceLoader {
         String impl = configSource.getConfigValue(ConfigConstants.CFG_CONFIG_SERVICE_IMPL, "");
 
         ServiceLoader<IConfigService> loader = ServiceLoader.load(IConfigService.class);
-        if (StringHelper.isEmpty(impl)) {
-            IConfigService service = first(loader);
-            if (service != null) {
-                LOG.debug("nop.config.use-config-service:{}", service.getName());
+
+        for (IConfigService service : loader) {
+            if (isEnabled(service, impl)) {
+                LOG.info("nop.config.use-config-service:{}", service.getName());
                 return service;
+            } else {
+                LOG.info("nop.config.ignore-config-service:{}", service.getName());
             }
-            LOG.debug("nop.config.not-find-config-service-impl");
-            return null;
-        } else {
-            for (IConfigService service : loader) {
-                if (service.getName().equals(impl)) {
-                    LOG.info("nop.config.use-config-service:{}", service.getName());
-                    return service;
-                } else {
-                    LOG.info("nop.config.ignore-config-service:{}", service.getName());
-                }
-            }
-            LOG.warn("nop.config.service-impl-not-exists:{}", impl);
-            return null;
         }
+        LOG.warn("nop.config.service-impl-not-exists:{}", impl);
+        return null;
+    }
+
+    static boolean isEnabled(IConfigService service, String impl) {
+        if (!service.isEnabled())
+            return false;
+        if (impl.isEmpty())
+            return true;
+        return service.getName().equals(impl);
     }
 
     public static List<IConfigSourceLoader> getConfigSourceLoaders() {

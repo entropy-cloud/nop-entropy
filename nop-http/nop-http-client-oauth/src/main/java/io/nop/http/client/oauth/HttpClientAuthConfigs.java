@@ -1,4 +1,4 @@
-package io.nop.http.oauth;
+package io.nop.http.client.oauth;
 
 import io.nop.api.core.annotations.data.DataBean;
 
@@ -18,6 +18,14 @@ public class HttpClientAuthConfigs {
                 return entry;
         }
         return null;
+    }
+
+    public HttpClientAuthConfig getHttpClientConfig(String name) {
+        return httpClients == null ? null : httpClients.get(name);
+    }
+
+    public OauthProviderConfig getOauthProviderConfig(String name) {
+        return oauthProviders == null ? null : oauthProviders.get(name);
     }
 
     public OauthProviderConfig getOauthProvider(String name) {
