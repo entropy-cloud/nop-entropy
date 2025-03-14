@@ -832,7 +832,7 @@ public class BeanDefinitionBuilder {
         Map<String, BeanDefinition> namedMatched = Collections.emptyMap();
         boolean useNamePrefix = !StringHelper.isEmpty(model.getNamePrefix());
         if (useNamePrefix) {
-            namedMatched = new LinkedHashMap<>();
+            namedMatched = new TreeMap<>();
             for (Map.Entry<String, BeanDefinition> entry : allBeans.entrySet()) {
                 if (entry.getKey().startsWith(model.getNamePrefix())) {
                     namedMatched.put(entry.getKey().substring(model.getNamePrefix().length()), entry.getValue());
@@ -841,7 +841,7 @@ public class BeanDefinitionBuilder {
         }
 
         if (model.isAsMap()) {
-            Map<String, IBeanPropValueResolver> resolvers = new LinkedHashMap<>();
+            Map<String, IBeanPropValueResolver> resolvers = new TreeMap<>();
             if (useNamePrefix) {
                 for (Map.Entry<String, BeanDefinition> entry : namedMatched.entrySet()) {
                     BeanDefinition matchedBean = entry.getValue();
@@ -867,7 +867,8 @@ public class BeanDefinitionBuilder {
             }
             return new MapValueResolver(LinkedHashMap.class, resolvers, true);
         } else {
-            List<IBeanPropValueResolver> items = new ArrayList<>(matched.size());
+            List<BeanDefinition> beans = new ArrayList<>(matched.size());
+
             if (beanType != null || annType != null) {
                 for (BeanDefinition matchedBean : matched) {
                     if (!matchTag(matchedBean, model))
@@ -877,7 +878,7 @@ public class BeanDefinitionBuilder {
                             continue;
                         }
                     }
-                    items.add(new InjectRefValueResolver(matchedBean.getId(), false, model.isIocIgnoreDepends(), matchedBean));
+                    beans.add(matchedBean);
                 }
             } else {
                 // 没有类型过滤，则完全按照名称过滤
@@ -886,10 +887,15 @@ public class BeanDefinitionBuilder {
                     for (BeanDefinition matchedBean : set) {
                         if (!matchTag(matchedBean, model))
                             continue;
-                        items.add(new InjectRefValueResolver(matchedBean.getId(), false, model.isIocIgnoreDepends(), matchedBean));
+                        beans.add(matchedBean);
                     }
                 }
             }
+
+            beans.sort(Comparator.comparing(BeanDefinition::getIocSortOrder));
+            List<IBeanPropValueResolver> items = beans.stream()
+                    .map(def -> new InjectRefValueResolver(def.getId(), false, model.isIocIgnoreDepends(), def))
+                    .collect(Collectors.toList());
             ListValueResolver resolver = new ListValueResolver(ArrayList.class, items, true);
             return resolver;
         }

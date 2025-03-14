@@ -54,10 +54,10 @@ public abstract class _BeanModel extends io.nop.ioc.model.BeanValue {
     
     /**
      *  
-     * xml name: ioc:priority
-     * 
+     * xml name: ioc:sort-order
+     * 通过ioc:collect-beans收集列表时按照这个配置进行排序
      */
-    private java.lang.Integer _iocPriority ;
+    private int _iocSortOrder  = 100;
     
     /**
      *  
@@ -178,19 +178,19 @@ public abstract class _BeanModel extends io.nop.ioc.model.BeanValue {
     
     /**
      * 
-     * xml name: ioc:priority
-     *  
+     * xml name: ioc:sort-order
+     *  通过ioc:collect-beans收集列表时按照这个配置进行排序
      */
     
-    public java.lang.Integer getIocPriority(){
-      return _iocPriority;
+    public int getIocSortOrder(){
+      return _iocSortOrder;
     }
 
     
-    public void setIocPriority(java.lang.Integer value){
+    public void setIocSortOrder(int value){
         checkAllowChange();
         
-        this._iocPriority = value;
+        this._iocSortOrder = value;
            
     }
 
@@ -274,7 +274,7 @@ public abstract class _BeanModel extends io.nop.ioc.model.BeanValue {
         out.putNotNull("iocAllowOverride",this.isIocAllowOverride());
         out.putNotNull("iocDefault",this.isIocDefault());
         out.putNotNull("iocPointcut",this.getIocPointcut());
-        out.putNotNull("iocPriority",this.getIocPriority());
+        out.putNotNull("iocSortOrder",this.getIocSortOrder());
         out.putNotNull("iocTags",this.getIocTags());
         out.putNotNull("name",this.getName());
         out.putNotNull("primary",this.isPrimary());
@@ -294,7 +294,7 @@ public abstract class _BeanModel extends io.nop.ioc.model.BeanValue {
         instance.setIocAllowOverride(this.isIocAllowOverride());
         instance.setIocDefault(this.isIocDefault());
         instance.setIocPointcut(this.getIocPointcut());
-        instance.setIocPriority(this.getIocPriority());
+        instance.setIocSortOrder(this.getIocSortOrder());
         instance.setIocTags(this.getIocTags());
         instance.setName(this.getName());
         instance.setPrimary(this.isPrimary());

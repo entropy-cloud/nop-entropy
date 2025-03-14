@@ -113,6 +113,10 @@ public class BeanDefinition implements IBeanDefinition {
         configDependants.add(beanId);
     }
 
+    public int getIocSortOrder() {
+        return beanModel.getIocSortOrder();
+    }
+
     public boolean isIocForceInit() {
         return beanModel.isIocForceInit();
     }
@@ -486,7 +490,7 @@ public class BeanDefinition implements IBeanDefinition {
 
             addInterceptors(bean, scope, container);
 
-            if(this.isSingleton())
+            if (this.isSingleton())
                 subscribeConfigChange(bean, scope, container);
 
             if (initMethod != null)

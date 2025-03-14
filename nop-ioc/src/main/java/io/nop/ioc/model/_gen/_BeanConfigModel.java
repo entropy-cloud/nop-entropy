@@ -39,6 +39,13 @@ public abstract class _BeanConfigModel extends io.nop.ioc.model.BeanValue {
     
     /**
      *  
+     * xml name: ioc:sort-order
+     * 
+     */
+    private int _iocSortOrder  = 100;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -103,6 +110,25 @@ public abstract class _BeanConfigModel extends io.nop.ioc.model.BeanValue {
     
     /**
      * 
+     * xml name: ioc:sort-order
+     *  
+     */
+    
+    public int getIocSortOrder(){
+      return _iocSortOrder;
+    }
+
+    
+    public void setIocSortOrder(int value){
+        checkAllowChange();
+        
+        this._iocSortOrder = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: name
      *  
      */
@@ -138,6 +164,7 @@ public abstract class _BeanConfigModel extends io.nop.ioc.model.BeanValue {
         out.putNotNull("id",this.getId());
         out.putNotNull("iocAllowOverride",this.isIocAllowOverride());
         out.putNotNull("iocDefault",this.isIocDefault());
+        out.putNotNull("iocSortOrder",this.getIocSortOrder());
         out.putNotNull("name",this.getName());
     }
 
@@ -153,6 +180,7 @@ public abstract class _BeanConfigModel extends io.nop.ioc.model.BeanValue {
         instance.setId(this.getId());
         instance.setIocAllowOverride(this.isIocAllowOverride());
         instance.setIocDefault(this.isIocDefault());
+        instance.setIocSortOrder(this.getIocSortOrder());
         instance.setName(this.getName());
     }
 

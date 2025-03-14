@@ -217,8 +217,9 @@
     @ioc:default 是否缺省bean。如果设置为true，则相当于自动为bean增加condition-on-missing-bean的条件。
     仅当容器中不存在对应名称的bean的定义的时候，此定义才生效。
     @ioc:allow-override 允许覆盖已有的bean的定义。一般情况下bean的id不允许重复。特殊情况下需要强制覆盖时使用这个属性。
+    @ioc:sort-order 通过ioc:collect-beans收集列表时按照这个配置进行排序
     -->
-    <bean xdef:name="BeanModel" id="!bean-name" name="word-set" ioc:tags="word-set" ioc:priority="#int"
+    <bean xdef:name="BeanModel" id="!bean-name" name="word-set" ioc:tags="word-set" ioc:sort-order="!#int=100"
           xdef:unique-attr="id" xdef:ref="BeanValue" ioc:allow-override="!boolean=false" ioc:default="!boolean=false"
           abstract="!boolean=false" primary="!boolean=false">
         <!--
@@ -234,7 +235,7 @@
     -->
     <ioc:config xdef:name="BeanConfigModel" xdef:unique-attr="id" ioc:allow-override="!boolean=false"
                 id="!bean-name" ioc:config-prefix="!string" name="word-set" parent="bean-name"
-                ioc:default="!boolean=false"
+                ioc:default="!boolean=false" ioc:sort-order="!#int=100"
                 xdef:ref="BeanValue" scope="var-name" ioc:init-order="!#int=100">
     </ioc:config>
 
@@ -251,18 +252,19 @@
     <import xdef:name="BeanImportModel" resource="!v-path" xdef:allow-multiple="true" xdef:unique-attr="resource"/>
 
     <util:list xdef:name="BeanListModel" xdef:ref="BeanListValue" ioc:allow-override="!boolean=false"
-               ioc:init-order="!#int=100" ioc:default="!boolean=false"
+               ioc:init-order="!#int=100" ioc:default="!boolean=false" ioc:sort-order="!#int=100"
                scope="var-name" id="!bean-name" name="word-set" xdef:unique-attr="id" lazy-init="boolean=false"/>
 
     <util:set xdef:name="BeanSetModel" xdef:ref="BeanSetValue" ioc:allow-override="!boolean=false"
-              ioc:init-order="!#int=100" ioc:default="!boolean=false"
+              ioc:init-order="!#int=100" ioc:default="!boolean=false" ioc:sort-order="!#int=100"
               scope="var-name" id="!bean-name" name="word-set" xdef:unique-attr="id" lazy-init="boolean=false"/>
 
     <util:map xdef:name="BeanMapModel" xdef:ref="BeanMapValue" scope="var-name" id="!bean-name"
               lazy-init="boolean=false" ioc:init-order="!#int=100" ioc:default="!boolean=false"
+              ioc:sort-order="!#int=100"
               name="word-set" xdef:unique-attr="id" ioc:allow-override="!boolean=false"/>
 
     <util:constant xdef:name="BeanConstantModel" id="!bean-name" static-field="!string" name="word-set"
-                   ioc:default="!boolean=false"
+                   ioc:default="!boolean=false" ioc:sort-order="!#int=100"
                    scope="var-name" xdef:unique-attr="id" ioc:allow-override="!boolean=false"/>
 </beans>

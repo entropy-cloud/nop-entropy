@@ -36,7 +36,8 @@ public class ConfigPropHelper {
             String configVar = buildConfigVar(configPrefix, propModel);
             return buildBeanResolver(type.getRawClass(), loc, configVar, reactive, introspection);
         } else if (type.isMapLike()) {
-            return new ConfigMapResolver(loc, true, configPrefix, type, false);
+            String configVar = buildConfigVar(configPrefix, propModel);
+            return new ConfigMapResolver(loc, true, configVar, type, false);
         } else {
             return null;
         }

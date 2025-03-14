@@ -42,7 +42,7 @@ public class ListValueResolver implements IBeanPropValueResolver {
     }
 
     @Override
-    public Object resolveValue(IBeanContainerImplementor container, IBeanScope scope) {
+    public List<Object> resolveValue(IBeanContainerImplementor container, IBeanScope scope) {
         List<Object> ret = (List<Object>) ClassHelper.newInstance(type);
 
         for (IBeanPropValueResolver item : items) {

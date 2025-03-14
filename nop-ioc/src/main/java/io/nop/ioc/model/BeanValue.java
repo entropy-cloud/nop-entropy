@@ -22,7 +22,11 @@ public class BeanValue extends _BeanValue implements IBeanPropValue {
 
     }
 
-    public String getId(){
+    public int getIocSortOrder() {
+        return 0;
+    }
+
+    public String getId() {
         return null;
     }
 

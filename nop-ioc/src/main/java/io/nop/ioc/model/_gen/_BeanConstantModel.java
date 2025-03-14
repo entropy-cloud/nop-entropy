@@ -39,6 +39,13 @@ public abstract class _BeanConstantModel extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: ioc:sort-order
+     * 
+     */
+    private int _iocSortOrder  = 100;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -111,6 +118,25 @@ public abstract class _BeanConstantModel extends io.nop.core.resource.component.
         checkAllowChange();
         
         this._iocDefault = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: ioc:sort-order
+     *  
+     */
+    
+    public int getIocSortOrder(){
+      return _iocSortOrder;
+    }
+
+    
+    public void setIocSortOrder(int value){
+        checkAllowChange();
+        
+        this._iocSortOrder = value;
            
     }
 
@@ -190,6 +216,7 @@ public abstract class _BeanConstantModel extends io.nop.core.resource.component.
         out.putNotNull("id",this.getId());
         out.putNotNull("iocAllowOverride",this.isIocAllowOverride());
         out.putNotNull("iocDefault",this.isIocDefault());
+        out.putNotNull("iocSortOrder",this.getIocSortOrder());
         out.putNotNull("name",this.getName());
         out.putNotNull("scope",this.getScope());
         out.putNotNull("staticField",this.getStaticField());
@@ -207,6 +234,7 @@ public abstract class _BeanConstantModel extends io.nop.core.resource.component.
         instance.setId(this.getId());
         instance.setIocAllowOverride(this.isIocAllowOverride());
         instance.setIocDefault(this.isIocDefault());
+        instance.setIocSortOrder(this.getIocSortOrder());
         instance.setName(this.getName());
         instance.setScope(this.getScope());
         instance.setStaticField(this.getStaticField());

@@ -46,6 +46,13 @@ public abstract class _BeanSetModel extends io.nop.ioc.model.BeanSetValue {
     
     /**
      *  
+     * xml name: ioc:sort-order
+     * 
+     */
+    private int _iocSortOrder  = 100;
+    
+    /**
+     *  
      * xml name: lazy-init
      * 
      */
@@ -143,6 +150,25 @@ public abstract class _BeanSetModel extends io.nop.ioc.model.BeanSetValue {
     
     /**
      * 
+     * xml name: ioc:sort-order
+     *  
+     */
+    
+    public int getIocSortOrder(){
+      return _iocSortOrder;
+    }
+
+    
+    public void setIocSortOrder(int value){
+        checkAllowChange();
+        
+        this._iocSortOrder = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: lazy-init
      *  
      */
@@ -217,6 +243,7 @@ public abstract class _BeanSetModel extends io.nop.ioc.model.BeanSetValue {
         out.putNotNull("iocAllowOverride",this.isIocAllowOverride());
         out.putNotNull("iocDefault",this.isIocDefault());
         out.putNotNull("iocInitOrder",this.getIocInitOrder());
+        out.putNotNull("iocSortOrder",this.getIocSortOrder());
         out.putNotNull("lazyInit",this.getLazyInit());
         out.putNotNull("name",this.getName());
         out.putNotNull("scope",this.getScope());
@@ -235,6 +262,7 @@ public abstract class _BeanSetModel extends io.nop.ioc.model.BeanSetValue {
         instance.setIocAllowOverride(this.isIocAllowOverride());
         instance.setIocDefault(this.isIocDefault());
         instance.setIocInitOrder(this.getIocInitOrder());
+        instance.setIocSortOrder(this.getIocSortOrder());
         instance.setLazyInit(this.getLazyInit());
         instance.setName(this.getName());
         instance.setScope(this.getScope());
