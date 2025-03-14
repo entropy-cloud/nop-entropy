@@ -54,7 +54,6 @@ public class MdxQueryExecutor {
         return ret.get(0);
     }
 
-
     public boolean exists(QueryBean query) {
         int timeout = query.getTimeout() == null ? 0 : query.getTimeout();
         IEntityModel entityModel = ormTemplate.getOrmModel().requireEntityModel(query.getSourceName());
@@ -114,11 +113,13 @@ public class MdxQueryExecutor {
         timeout = CoreMetrics.calcNewTimeout(timeout, beginTime,
                 err -> new NopException(ERR_ORM_QUERY_TIMEOUT).param(ARG_NAME, query.getName()));
 
+        boolean filterSub = mainQuery.getLimit() > 0 || mainQuery.getFilter() != null;
+
         // 合并子表查询结果到主表查询结果上，按照dimField进行对齐
         for (int i = 1, n = queries.size(); i < n; i++) {
             beginTime = CoreMetrics.currentTimeMillis();
 
-            addSubQueryResult(dimIndex, queries.get(i), mainQuery.getLimit() > 0, timeout);
+            addSubQueryResult(dimIndex, queries.get(i), filterSub, timeout);
 
             timeout = CoreMetrics.calcNewTimeout(timeout, beginTime,
                     err -> new NopException(ERR_ORM_QUERY_TIMEOUT).param(ARG_NAME, query.getName()));
@@ -158,9 +159,9 @@ public class MdxQueryExecutor {
         };
     }
 
-    private void addSubQueryResult(Map<Object, Map<String, Object>> dimIndex, MdxQueryBean query, boolean pageQuery,
+    private void addSubQueryResult(Map<Object, Map<String, Object>> dimIndex, MdxQueryBean query, boolean filterSub,
                                    int timeout) {
-        if (pageQuery) {
+        if (filterSub) {
             if (query.getDimFields().size() == 1) {
                 query.addFilter(FilterBeans.in(query.getDimFields().get(0), dimIndex.keySet()));
             } else {
