@@ -24,7 +24,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import static io.nop.netty.NopNettyErrors.ARG_ID;
 import static io.nop.netty.NopNettyErrors.ERR_CHANNEL_NOT_ACTIVE;
+import static io.nop.netty.NopNettyErrors.ERR_NETTY_DUPLICATE_MESSAGE_ID;
 import static io.nop.netty.NopNettyErrors.ERR_TOO_MANY_REQUEST_IN_FLIGHT;
 
 public class RpcMessageHandler extends ChannelDuplexHandler implements IRpcMessageHandler {
@@ -145,8 +147,13 @@ public class RpcMessageHandler extends ChannelDuplexHandler implements IRpcMessa
             future.future.completeExceptionally(
                     new NopException(ERR_TOO_MANY_REQUEST_IN_FLIGHT));
         } else {
-            futures.put(msgId, future);
+            ResponseFuture old = futures.put(msgId, future);
             channel.writeAndFlush(msg);
+            if (old != null) {
+                LOG.error("nop.err.netty.duplicate-message-id:msgId={}", msgId);
+                old.future.completeExceptionally(new NopException(ERR_NETTY_DUPLICATE_MESSAGE_ID)
+                        .param(ARG_ID, msgId));
+            }
         }
     }
 

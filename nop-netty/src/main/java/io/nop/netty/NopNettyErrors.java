@@ -12,6 +12,8 @@ import io.nop.api.core.exceptions.ErrorCode;
 import static io.nop.api.core.exceptions.ErrorCode.define;
 
 public interface NopNettyErrors {
+    String ARG_ID = "id";
+
     ErrorCode ERR_CHANNEL_NOT_ACTIVE = define("nop.err.netty.channel-not-active",
             "尚未建立连接");
 
@@ -23,5 +25,8 @@ public interface NopNettyErrors {
 
     ErrorCode ERR_NETTY_NO_AVAILABLE_CHANNEL = define("nop.err.netty.no-available-channel",
             "没有可用的连接通道");
+
+    ErrorCode ERR_NETTY_DUPLICATE_MESSAGE_ID = define("nop.err.netty.duplicate-message-id",
+            "重复的消息ID:{id}");
 
 }
