@@ -10,6 +10,7 @@ import io.nop.core.lang.json.JsonTool;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class DebugMessageHelper {
     public static final String MESSAGE_SEPARATOR = "\n#**********************************#\n";
@@ -21,7 +22,16 @@ public class DebugMessageHelper {
     public static final String EXCEPTION_BEGIN = "<AI_EXCEPTION>\n";
     public static final String EXCEPTION_END = "\n</AI_EXCEPTION>\n";
 
+    public static final String METADATA_BEGIN = "<AI_META_DATA>\n";
+    public static final String METADATA_END = "\n</AI_META_DATA>\n";
+
     public static void collectDebugText(StringBuilder sb, AiChatResponse message) {
+        if (message.getMetadata() != null && !message.getMetadata().isEmpty()) {
+            sb.append(METADATA_BEGIN);
+            sb.append(JsonTool.stringify(message.getMetadata()));
+            sb.append(METADATA_END);
+        }
+
         Prompt prompt = message.getPrompt();
         if (prompt != null) {
             sb.append(PROMPT_BEGIN);
@@ -33,7 +43,7 @@ public class DebugMessageHelper {
             sb.append(EXCEPTION_BEGIN);
             if (message.getInvalidReason() != null) {
                 ErrorBean error = message.getInvalidReason();
-                sb.append(JsonTool.serializeToJson(error));
+                sb.append(JsonTool.stringify(error));
             }
             sb.append(EXCEPTION_END);
         }
@@ -72,10 +82,19 @@ public class DebugMessageHelper {
         AiChatResponse res = new AiChatResponse();
 
         int pos = 0;
-        if (text.startsWith(PROMPT_BEGIN)) {
-            pos = text.indexOf(PROMPT_END);
+        if (text.startsWith(METADATA_BEGIN, pos)) {
+            int pos2 = text.indexOf(METADATA_END, pos + METADATA_BEGIN.length());
+            if (pos2 > 0) {
+                String block = text.substring(pos + METADATA_BEGIN.length(), pos2);
+                Map<String, Object> metadata = JsonTool.parseMap(block);
+                res.setMetadata(metadata);
+                pos = pos2 + METADATA_END.length();
+            }
+        }
+        if (text.startsWith(PROMPT_BEGIN, pos)) {
+            pos = text.indexOf(PROMPT_END, pos + PROMPT_BEGIN.length());
             String prompt = text.substring(PROMPT_BEGIN.length(), pos);
-            if(prompt.startsWith(PROMPT_BEGIN))
+            if (prompt.startsWith(PROMPT_BEGIN))
                 prompt = prompt.substring(PROMPT_BEGIN.length());
             res.setPrompt(Prompt.userText(prompt));
             pos += PROMPT_END.length();

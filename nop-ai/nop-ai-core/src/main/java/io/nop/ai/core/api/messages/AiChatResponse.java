@@ -17,6 +17,7 @@ package io.nop.ai.core.api.messages;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.nop.ai.core.api.support.Metadata;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.commons.util.StringHelper;
@@ -35,7 +36,7 @@ import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_NO_EXPECTED_PART;
 import static io.nop.ai.core.commons.debug.DebugMessageHelper.collectDebugText;
 
 @DataBean
-public class AiChatResponse {
+public class AiChatResponse extends Metadata {
 
     private Prompt prompt;
 
@@ -270,8 +271,8 @@ public class AiChatResponse {
             return null;
         }
 
-        int pos = content.indexOf(blockBegin);
-        if (pos < 0) {
+        int[] markPos = indexOfMark(blockBegin);
+        if (markPos == null) {
             if (!optionalBegin) {
                 invalidReason = new ErrorBean(ERR_AI_RESULT_NO_EXPECTED_PART.getErrorCode())
                         .param(ARG_EXPECTED, blockBegin);
@@ -280,20 +281,49 @@ public class AiChatResponse {
             }
         }
 
-        if (pos < 0) {
-            pos = 0;
-        } else {
-            pos += blockBegin.length();
-        }
+        int pos = markPos == null ? 0 : markPos[1];
 
-        int pos2 = content.lastIndexOf(blockEnd);
-        if (pos2 < 0) {
+        int[] markPos2 = indexOfMark(blockEnd);
+        if (markPos2 == null) {
             invalidReason = new ErrorBean(ERR_AI_RESULT_NO_EXPECTED_PART.getErrorCode())
                     .param(ARG_EXPECTED, blockEnd);
             setInvalid(true);
             return null;
         }
+
+        int pos2 = markPos2[0];
         return content.substring(pos, pos2);
+    }
+
+    // 忽略无关紧要的空格
+    public int[] indexOfMark(String mark) {
+        String content = getContent();
+        int pos = content.indexOf(mark);
+        if (pos >= 0)
+            return new int[]{pos, pos + mark.length()};
+        String trimmedMark = mark.trim();
+        pos = content.indexOf(trimmedMark);
+        if (pos >= 0) {
+            int pos0 = 0, pos1 = pos + trimmedMark.length();
+            if (mark.startsWith("\n")) {
+                int pos2 = content.lastIndexOf('\n', pos);
+                if (!StringHelper.onlyContainsWhitespace(content.substring(pos2 + 1, pos)))
+                    return null;
+                pos0 = pos2 + 1;
+            }
+
+            if (mark.endsWith("\n")) {
+                int pos2 = content.indexOf('\n', pos1);
+                if (pos2 < 0)
+                    pos2 = content.length();
+                if (!StringHelper.onlyContainsWhitespace(content.substring(pos1, pos2)))
+                    return null;
+                pos1 = pos2;
+            }
+
+            return new int[]{pos0, pos1};
+        }
+        return null;
     }
 
     public Number requireNumberBlock(String name, String blockBegin, String blockEnd) {

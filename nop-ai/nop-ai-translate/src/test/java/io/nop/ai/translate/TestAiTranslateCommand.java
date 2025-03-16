@@ -66,6 +66,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
        // model = "deepseek-r1:14b";
        // model = "llama3.1:8b";
         //model = "phi4";
+        model = "llama3.2:latest";
         String promptName = "translate";
 
         AiTranslateCommand translator = new AiTranslateCommand(chatService, templateManager, promptName);
@@ -80,7 +81,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         translator.recoverMode(true);
 
         File docsDir = getDocsDir();
-        File docsEnDir = new File(docsDir.getParent(), "docs-en");
+        File docsEnDir = new File(docsDir.getParent(), "docs-en-new");
 
         translator.translateDir(docsDir, docsEnDir, null);
     }

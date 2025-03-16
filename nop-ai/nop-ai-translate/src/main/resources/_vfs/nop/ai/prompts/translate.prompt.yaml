@@ -9,10 +9,9 @@ template: >
      你好  
    </TRANSLATE_RESULT>
 
-   待翻译的内容
+   待翻译的内容如下
 
-   <TRANSLATE_SOURCE>
-   
+   <TRANSLATE_SOURCE> 
    ${content}
    </TRANSLATE_SOURCE>
    翻译结果为 
