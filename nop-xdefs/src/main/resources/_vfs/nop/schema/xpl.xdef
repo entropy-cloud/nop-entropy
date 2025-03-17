@@ -30,6 +30,8 @@
       <my:MyTag xpl:lib="/test/my.xlib" /> 等价于
       <c:import lib="/test/my.xlib" /> <my:MyTag />。
 
+    @xpl:dump 如果设置为true，则输出标签的AST树。
+
     @xpl:skipIf 如果返回false，则跳过本节点自身，相当于只编译节点的body部分。例如
       <my:MyTag xpl:skipIf="true"><body/></my:MyTag> 等价于 <body/>
     @xpl:if 当条件满足的时候才输出本标签及其body。类似于vue框架的v-if机制
@@ -50,7 +52,7 @@
                  xpl:enableNs="csv-set" xpl:disableNs="csv-set"
                  xpl:slot="var-name" xpl:slotArgs="expr" xpl:slotScope="slot-scope"
                  xpl:attrs="expr" xpl:outputMode="enum:io.nop.xlang.ast.XLangOutputMode"
-                 xpl:lib="v-path"
+                 xpl:lib="v-path" xpl:dump="boolean"
                  xpl:skipIf="expr" xpl:if="expr"
                  xpl:is="#xml-name" xpl:return="var-name"
                  xpl:invert="boolean"

@@ -19,9 +19,9 @@
                     import io.nop.core.lang.sql.SQL;
 
                     const sb = SqlHelper.markNamedParam(slot_default.contentValue);
-                    const cond = sb.markers.map(marker=> "!_.isEmpty("+marker.name+")").join(" and ");
+                    const cond = sb.markers.map(marker=> "!_.isEmpty("+marker.name.$replace('.',"?.")+")").join(" and ");
                     const sqlText = sb.renderText(marker =>{
-                    return "${" + marker.name + "}";
+                    return "${" + marker.name.$replace('.',"?.") + "}";
                     });
                 </c:script>
 

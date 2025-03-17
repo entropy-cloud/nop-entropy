@@ -10,6 +10,7 @@ package io.nop.orm.sql_lib;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.orm.SqlLibMapper;
 import io.nop.api.core.beans.LongRangeBean;
+import io.nop.app.SimsClass;
 import io.nop.orm.entity.MyEntity;
 
 import java.time.LocalDate;
@@ -39,4 +40,6 @@ public interface MyMapper {
     static int add(int a, int b) {
         return a + b;
     }
+
+    List<SimsClass> testComplexParams(@Name("data") Map<String, Object> data);
 }

@@ -112,8 +112,14 @@ test为自定义前缀信息。 a.f()为待查看的表达式源码, `=> 1`表�
 
 ### 3. 在xpl模板语言中
 
-```
+```xml
 <c:log info="${data}" />
+```
+
+在xpl标签上标注`xpl:dump="true"`会打印出解析得到的AST抽象语法树。对于宏标签会得到宏处理之后的结果。
+
+```xml
+<my:MyTag xpl:dump="true" />
 ```
 
 ## 模型dump

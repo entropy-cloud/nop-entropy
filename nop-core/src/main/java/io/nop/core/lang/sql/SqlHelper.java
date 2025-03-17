@@ -74,7 +74,7 @@ public class SqlHelper {
     static int findParamEndPos(String sqlText, int startPos) {
         for (int i = startPos, n = sqlText.length(); i < n; i++) {
             char c = sqlText.charAt(i);
-            if (!Character.isJavaIdentifierPart(c))
+            if (!Character.isJavaIdentifierPart(c) && c != '.')
                 return i;
         }
         return sqlText.length();

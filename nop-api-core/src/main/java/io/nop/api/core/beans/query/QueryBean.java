@@ -258,6 +258,11 @@ public class QueryBean implements Serializable, ICloneable {
         return filter.childWithAttr("name", propName);
     }
 
+    public Object getPropFilterValue(String propName) {
+        TreeBean bean = getPropFilter(propName);
+        return bean == null ? null : bean.getAttr("value");
+    }
+
     public boolean transformFilter(Function<TreeBean, ?> fn) {
         if (filter == null)
             return false;

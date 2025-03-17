@@ -21,6 +21,7 @@ import io.nop.xlang.api.XLang;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -42,6 +43,26 @@ public class TestOrmSqlLib extends AbstractOrmTestCase {
             assertEquals(1, list.size());
             SimsClass entity = list.get(0);
             assertEquals("11", entity.getClassId());
+        });
+    }
+
+    @Test
+    public void testComplexParams() {
+        orm().runInSession(() -> {
+            IEvalScope scope = XLang.newEvalScope();
+            Map<String, Object> data = new HashMap<>();
+            data.put("ids", Arrays.asList(11, 1112));
+            data.put("unknownParam", null);
+            scope.setLocalValue("data", data);
+            List<SimsClass> list = (List<SimsClass>) sqlLibManager.invoke("test.testComplexParams",
+                    LongRangeBean.of(0, 1), scope);
+            assertEquals(1, list.size());
+            SimsClass entity = list.get(0);
+            assertEquals("11", entity.getClassId());
+
+            MyMapper mapper = sqlLibManager.createProxy(MyMapper.class);
+            list = mapper.testComplexParams(data);
+            assertEquals(1, list.size());
         });
     }
 

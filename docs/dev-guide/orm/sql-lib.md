@@ -279,6 +279,26 @@ public interface LitemallGoodsMapper {
 * 如果执行SQL之前对应的实体数据已经加载到内存中，且已经被修改，则执行SQL会抛出异常`nop.err.orm.entity-prop-is-dirty`。如果没有被修改，则会更新实体属性。
 * 可以通过ormEntityRefreshBehavior来改变上面的行为。errorWhenDirty是缺省行为。useFirst将保留第一次加载的实体数据，忽略当前SQL查询得到的数据。useLast则使用最后一次查询得到的数据。
 
+## 10. 传入Map或者JavaBean
+对于参数很多的情况，可以汇总到一个Map参数或者JavaBean对象中传入
+
+```java
+interface MyMapper{
+  List<MyEntity> findByXX(@Name("query")MyQuery query);
+}
+```
+在sql-lib中可以使用表达式或者复合属性来访问
+
+```xml
+<eql name="findByXX" >
+  <source>
+    select o from MyEntity o
+    where o.fldA = ${query.fldA}
+    <sql:filter> and o.fldB = :query.fldB </sql:filter>
+  </source>
+</eql>
+```
+
 ## 与MyBatis的对比
 
 | MyBatis         |Nop平台|

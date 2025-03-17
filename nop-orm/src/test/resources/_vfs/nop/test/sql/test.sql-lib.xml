@@ -1,4 +1,7 @@
-<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:sql="sql" xmlns:c="c">
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+         xmlns:sql="sql" xmlns:c="c" xmlns:xpl="xpl">
+
+
     <sqls>
         <sql name="select" sqlMethod="findFirst" rowType="io.nop.orm.entity.MyEntity">
             <fields>
@@ -40,6 +43,17 @@
                 where id = ${id}
             </source>
         </sql>
+
+        <eql name="testComplexParams">
+            <source>
+                <c:import from="/nop/orm/xlib/sql.xlib"/>
+                select o
+                from io.nop.app.SimsClass o
+                where 1=1
+                <sql:filter xpl:dump="true">and o.classId in (:data.ids)</sql:filter>
+                <sql:filter>and o.classId = :data.unknownParam</sql:filter>
+            </source>
+        </eql>
 
         <eql name="findBySqlFilter">
             <!--
