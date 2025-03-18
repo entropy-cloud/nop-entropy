@@ -20,15 +20,19 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.ai.core.api.support.Metadata;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ErrorBean;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.exceptions.NopRebuildException;
 import io.nop.commons.util.StringHelper;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.nop.ai.core.AiCoreErrors.ARG_CONTENT;
 import static io.nop.ai.core.AiCoreErrors.ARG_EXPECTED;
 import static io.nop.ai.core.AiCoreErrors.ARG_LINE;
 import static io.nop.ai.core.AiCoreErrors.ARG_NAME;
 import static io.nop.ai.core.AiCoreErrors.ARG_VALUE;
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_INVALID_RESPONSE;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_INVALID_END_LINE;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_INVALID_NUMBER;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
@@ -152,6 +156,16 @@ public class AiChatResponse extends Metadata {
         return !invalid;
     }
 
+    public AiChatResponse validate() {
+        if (!isValid()) {
+            if (invalidReason != null)
+                throw NopRebuildException.rebuild(invalidReason);
+            throw new NopException(ERR_AI_INVALID_RESPONSE)
+                    .param(ARG_CONTENT, StringHelper.limitLen(getContent(), 255));
+        }
+        return this;
+    }
+
     public Integer getIndex() {
         return index;
     }
@@ -224,17 +238,27 @@ public class AiChatResponse extends Metadata {
         return sb.toString();
     }
 
+    public boolean checkNotEmpty() {
+        String content = getContent();
+        if (StringHelper.isEmpty(content)) {
+            invalidReason = new ErrorBean(ERR_AI_RESULT_IS_EMPTY.getErrorCode());
+            setInvalid(true);
+            return false;
+        }
+        return true;
+    }
+
     /**
      * 检查结果的最后一行为指定内容，如果不是则抛出异常
      *
      * @param expected 期待返回的文本行
      */
-    public void checkAndRemoveEndLine(String expected) {
+    public boolean checkAndRemoveEndLine(String expected) {
         String content = getContent();
         if (StringHelper.isEmpty(content)) {
             invalidReason = new ErrorBean(ERR_AI_RESULT_IS_EMPTY.getErrorCode());
             setInvalid(true);
-            return;
+            return false;
         }
         int pos = content.lastIndexOf('\n');
         if (pos == content.length() - 1) {
@@ -244,7 +268,7 @@ public class AiChatResponse extends Metadata {
             invalidReason = new ErrorBean(ERR_AI_RESULT_INVALID_END_LINE.getErrorCode())
                     .param(ARG_EXPECTED, expected).param(ARG_LINE, "");
             setInvalid(true);
-            return;
+            return false;
         }
 
         String endLine = content.substring(pos + 1).trim();
@@ -253,10 +277,11 @@ public class AiChatResponse extends Metadata {
                     .param(ARG_EXPECTED, expected)
                     .param(ARG_LINE, endLine);
             setInvalid(true);
-            return;
+            return false;
         }
 
         setContent(content.substring(0, pos));
+        return true;
     }
 
     public String requireBlock(String blockBegin, String blockEnd) {
@@ -264,8 +289,14 @@ public class AiChatResponse extends Metadata {
     }
 
     public String requireBlock(String blockBegin, String blockEnd, boolean optionalBegin) {
+        return getBlock(blockBegin, blockEnd, optionalBegin, false);
+    }
+
+    public String getBlock(String blockBegin, String blockEnd, boolean optionalBegin, boolean optional) {
         String content = getContent();
         if (StringHelper.isEmpty(content)) {
+            if (optional)
+                return null;
             invalidReason = new ErrorBean(ERR_AI_RESULT_IS_EMPTY.getErrorCode());
             setInvalid(true);
             return null;
@@ -273,6 +304,8 @@ public class AiChatResponse extends Metadata {
 
         int[] markPos = indexOfMark(blockBegin);
         if (markPos == null) {
+            if (optional)
+                return null;
             if (!optionalBegin) {
                 invalidReason = new ErrorBean(ERR_AI_RESULT_NO_EXPECTED_PART.getErrorCode())
                         .param(ARG_EXPECTED, blockBegin);
@@ -285,6 +318,8 @@ public class AiChatResponse extends Metadata {
 
         int[] markPos2 = indexOfMark(blockEnd);
         if (markPos2 == null) {
+            if (optional)
+                return null;
             invalidReason = new ErrorBean(ERR_AI_RESULT_NO_EXPECTED_PART.getErrorCode())
                     .param(ARG_EXPECTED, blockEnd);
             setInvalid(true);
@@ -327,11 +362,18 @@ public class AiChatResponse extends Metadata {
     }
 
     public Number requireNumberBlock(String name, String blockBegin, String blockEnd) {
-        String block = requireBlock(blockBegin, blockEnd);
+        return getNumberBlock(name, blockBegin, blockEnd, false);
+    }
+
+    public Number getNumberBlock(String name, String blockBegin, String blockEnd, boolean optional) {
+        String block = getBlock(blockBegin, blockEnd, false, optional);
         if (block == null)
             return null;
         Number num = StringHelper.tryParseNumber(block);
         if (num == null) {
+            if (optional)
+                return null;
+
             setInvalid(true);
             invalidReason = new ErrorBean(ERR_AI_RESULT_INVALID_NUMBER.getErrorCode())
                     .param(ARG_NAME, name)
@@ -342,24 +384,36 @@ public class AiChatResponse extends Metadata {
     }
 
     public Object parseBlock(String name, String blockBegin, String blockEnd) {
-        Object value = requireBlock(blockBegin, blockEnd);
+        return parseBlock(name, blockBegin, blockEnd, false, false);
+    }
+
+    public Object parseBlock(String name, String blockBegin, String blockEnd, boolean optionalBegin, boolean optional) {
+        Object value = getBlock(blockBegin, blockEnd, optionalBegin, optional);
         if (value != null)
             setParsedValue(name, value);
         return value;
     }
 
-    public Object parseNumberBlock(String name, String blockBegin, String blockEnd) {
-        Number value = requireNumberBlock(name, blockBegin, blockEnd);
+    public Number parseNumberBlock(String name, String blockBegin, String blockEnd) {
+        return parseNumberBlock(name, blockBegin, blockEnd, false);
+    }
+
+    public Number parseNumberBlock(String name, String blockBegin, String blockEnd, boolean optional) {
+        Number value = getNumberBlock(name, blockBegin, blockEnd, optional);
         if (value != null)
             setParsedValue(name, value);
         return value;
     }
 
-    public String parseContentBlock(String blockBegin, String blockEnd, boolean optionalBegin) {
-        String content = requireBlock(blockBegin, blockEnd, optionalBegin);
+    public String parseContentBlock(String blockBegin, String blockEnd, boolean optionalBegin, boolean optional) {
+        String content = getBlock(blockBegin, blockEnd, optionalBegin, optional);
         if (content != null)
             setContent(content);
         return content;
+    }
+
+    public String parseContentBlock(String blockBegin, String blockEnd) {
+        return parseContentBlock(blockBegin, blockEnd, false, false);
     }
 
     @Override

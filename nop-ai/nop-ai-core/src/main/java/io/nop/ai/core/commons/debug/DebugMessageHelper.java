@@ -60,6 +60,20 @@ public class DebugMessageHelper {
             sb.append(content);
     }
 
+    public static String buildDebugText(List<AiChatResponse> messages) {
+        StringBuilder sb = new StringBuilder();
+        for (AiChatResponse message : messages) {
+            collectDebugText(sb, message);
+            sb.append(DebugMessageHelper.MESSAGE_SEPARATOR);
+        }
+        return sb.toString();
+    }
+
+    public static void writeDebugFile(File file, List<AiChatResponse> messages) {
+        String text = buildDebugText(messages);
+        FileHelper.writeText(file, text, null);
+    }
+
     public static List<AiChatResponse> parseDebugFile(File file) {
         return parseDebugText(FileHelper.readText(file, null));
     }

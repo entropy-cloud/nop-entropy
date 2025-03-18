@@ -16,7 +16,7 @@ public class TestAiChatResponse extends BaseTestCase {
         File file = getTestResourceFile("data/translate-result1.md");
         List<AiChatResponse> list = DebugMessageHelper.parseDebugFile(file);
         AiChatResponse response = list.get(0);
-        response.parseContentBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>",true);
+        response.parseContentBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>",true, false);
         assertTrue(response.isValid());
     }
 }

@@ -18,4 +18,4 @@ template: |
 
 processChatResponse: |
   chatResponse.parseNumberBlock("score", "<SCORE>", "</SCORE>");
-  chatResponse.parseContentBlock("<IMPROVED_TRANSLATION>\n", "\n</IMPROVED_TRANSLATION>");
+  chatResponse.parseContentBlock("<IMPROVED_TRANSLATION>\n", "\n</IMPROVED_TRANSLATION>",true);

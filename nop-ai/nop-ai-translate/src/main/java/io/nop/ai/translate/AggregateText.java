@@ -6,8 +6,6 @@ import io.nop.api.core.annotations.data.DataBean;
 
 import java.util.List;
 
-import static io.nop.ai.core.commons.debug.DebugMessageHelper.collectDebugText;
-
 @DataBean
 public class AggregateText {
     private List<AiChatResponse> messages;
@@ -34,13 +32,9 @@ public class AggregateText {
     }
 
     public String getDebugText() {
-        StringBuilder sb = new StringBuilder();
-        for (AiChatResponse message : messages) {
-            collectDebugText(sb, message);
-            sb.append(DebugMessageHelper.MESSAGE_SEPARATOR);
-        }
-        return sb.toString();
+        return DebugMessageHelper.buildDebugText(messages);
     }
+
 
     public List<AiChatResponse> getMessages() {
         return messages;

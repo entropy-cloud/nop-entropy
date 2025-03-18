@@ -13,7 +13,9 @@ template: |
   
   评估原翻译的质量，输出时采用如下格式：
   <SCORE>1-10的分数</SCORE>
+  注意，仅返回SCORE，不要返回其他信息，不要返回其他信息！
   ]]>
 
 processChatResponse: |
   chatResponse.parseNumberBlock("score", "<SCORE>", "</SCORE>");
+  chatResponse.parseBlock("reason", "<REASON>", "</REASON>",false,true);

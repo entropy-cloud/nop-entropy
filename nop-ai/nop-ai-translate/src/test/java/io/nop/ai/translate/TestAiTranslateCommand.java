@@ -6,6 +6,7 @@ import io.nop.ai.core.commons.debug.DebugMessageHelper;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.ai.core.prompt.PromptTemplateManager;
 import io.nop.ai.core.service.DefaultAiChatService;
+import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.autotest.junit.JunitBaseTestCase;
@@ -63,8 +64,8 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
     @Test
     public void testTranslateDir() {
         String model = "deepseek-r1:8b";
-       // model = "deepseek-r1:14b";
-       // model = "llama3.1:8b";
+        // model = "deepseek-r1:14b";
+        // model = "llama3.1:8b";
         //model = "phi4";
         model = "llama3.2:latest";
         String promptName = "translate";
@@ -92,7 +93,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         String text = FileHelper.readText(file, null);
         AiChatResponse response = new AiChatResponse();
         response.setContent(text);
-        response.parseContentBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>", true);
+        response.parseContentBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>", true, false);
     }
 
     @Test
@@ -102,9 +103,10 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         File docsEnDebugDir = new File(docsDir.getParentFile(), "docs-en-debug");
 
         String model = "llama3.1:8b";
-        model = "deepseek-r1:8b";
+       // model = "deepseek-r1:8b";
+        //model = "llama3.2:latest";
 
-        AiCheckTranslationCommand check = new AiCheckTranslationCommand(chatService, templateManager,"translate/improve");
+        AiCheckTranslationCommand check = new AiCheckTranslationCommand(chatService, templateManager, "translate/score");
         check.fromLang("中文").toLang("英文");
         check.getChatOptions().setLlm("ollama");
         check.getChatOptions().setModel(model);
@@ -116,19 +118,45 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
             if (f2.getName().endsWith(".md") && f2.exists()) {
                 List<AiChatResponse> messages = DebugMessageHelper.parseDebugFile(f2);
                 for (AiChatResponse message : messages) {
-                    String text = message.getBlockFromPrompt("待翻译的内容如下：\n","\n[EndOfData]");
-                    if(text == null){
-                        text = message.getBlockFromPrompt("<TRANSLATE_RESULT>\n","\n</TRANSLATE_RESULT>");
-                    }
-                    if(text != null){
-                        String translated = message.getContent();
-                        AiChatResponse response = FutureHelper.syncGet(check.fixTranslationAsync(text, translated,null));
-                        System.out.println(response.getContent());
+                    message.checkNotEmpty();
+
+                    if (message.isInvalid())
+                        continue;
+
+                    Number scoreValue = (Number) message.getParsedValue("score");
+                    if (scoreValue != null && scoreValue.intValue() >= 7)
+                        continue;
+
+                    String source = getSourceText(message);
+                    if(source == null)
+                        continue;
+
+                    try {
+
+                        message = FutureHelper.syncGet(check.executeAsync(source, message.getContent(), null));
+                        Number score = (Number) message.getParsedValue("score");
+                        if (score != null)
+                            message.addMetadata("score", score);
+                        if (score != null && score.intValue() < 7) {
+                            message.setInvalid(true);
+                            message.setInvalidReason(new ErrorBean("score.too-low").param("score", score));
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
+                DebugMessageHelper.writeDebugFile(f2, messages);
             }
             return FileVisitResult.CONTINUE;
         });
+    }
+
+    String getSourceText(AiChatResponse message) {
+        String text = message.getBlockFromPrompt("待翻译的内容如下：\n", "\n[EndOfData]");
+        if (text == null) {
+            text = message.getBlockFromPrompt("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>");
+        }
+        return text;
     }
 
     @Test
