@@ -62,10 +62,12 @@ public interface LoginApi {
     @BizMutation
     ApiResponse<LoginResult> refreshToken(ApiRequest<RefreshTokenRequest> request);
 
+    @BizMutation
     default CompletionStage<ApiResponse<LoginResult>> loginAsync(ApiRequest<LoginRequest> request) {
         return FutureHelper.futureCall(() -> login(request));
     }
 
+    @BizMutation
     default CompletionStage<ApiResponse<Void>> logoutAsync(ApiRequest<LogoutRequest> request) {
         return FutureHelper.futureCall(() -> logout(request));
     }

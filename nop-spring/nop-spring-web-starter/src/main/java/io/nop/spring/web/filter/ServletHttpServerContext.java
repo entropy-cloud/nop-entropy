@@ -34,6 +34,8 @@ public class ServletHttpServerContext implements IHttpServerContext {
 
     private IContext context;
 
+    private String characterEncoding;
+
     public ServletHttpServerContext(HttpServletRequest request, HttpServletResponse response) {
         this.request = request;
         this.response = response;
@@ -183,7 +185,16 @@ public class ServletHttpServerContext implements IHttpServerContext {
 
     @Override
     public void setResponseContentType(String contentType) {
+        if (characterEncoding != null && !contentType.contains("charset=")) {
+            contentType += ";charset=" + characterEncoding;
+        }
         response.setContentType(contentType);
+    }
+
+    @Override
+    public void setResponseCharacterEncoding(String encoding) {
+        this.characterEncoding = encoding;
+        response.setCharacterEncoding(encoding);
     }
 
     @Override

@@ -199,7 +199,7 @@ Map = Map extends Map<Map>
 在编译器看来，所谓的类、模板类、模板参数都可以被看作是Map，而且实际情况也一般是按照Map结构来管理的。至于孤立的函数定义和变量定义，实际上也会属于某种Map，比如模块对象可以看作是一个Map，它包含一组模块内定义的变量、函数和类型等。即使不从属于任何模块，那些独立的函数也会属于某个隐式存在的全局命名空间。
 
 > Lisp语言的内在结构是List，本质上是利用下标来管理元素（原始的Lisp甚至没有下标，只有car、cdr这种逐个遍历的处理机制），但是现在流行的Lisp变种早就引入了类似Map的Associated List结构，使用名称来定位子元素，而不是按照下标去定位。在概念层面上（不考虑冯诺依曼机器按照下标取值的性能优势），List可以看作是用下标来做key的一种特殊的Map。
->
+> 
 > Lisp的核心创造S表达式可以看作是一种通用的Tree结构，而Lisp也提供了宏等操作这些Tree结构的内置机制，但是Lisp并没有建立Tree的差量的概念。XLang可以看作是对S表达式这一通用处理机制的进一步深化发展。
 
 现有主流程序语言提供的各种语法可以看作是在以Map为基础的结构空间中不断构造新的Map的各种规则。XLang语言的创新点在于它选择将Map结构扩展为Tree结构，在Tree结构的基础上重新思考软件结构的构造问题。也就是将软件结构的构造公式推广为：
@@ -491,19 +491,19 @@ Xpl模板中通过\${expr}表示嵌入XScript表达式，除此之外，Xpl中�
 
 XScript的语法类似于JavaScript，但是增加了一些扩展语法，比如import语句可以引入Java类。
 
-#### XML和表达式语法的相互嵌入
+#### XML模板语言和表达式语法的相互嵌入
 
 XLang没有采用jsx语法实现类XML语法，而是沿用XML语法，扩展JavaScript中的Template表达式语法。
 
 ```javascript
-let resut = xpl `<my:MyTag a='1' />`
+let resut = xpl `<my:MyTag a='${data}' />`
 const y = result + 3;
 ```
 
 等价于
 
 ```xml
-<my:MyTag a='1' xpl:return="result" />
+<my:MyTag a='${data}' xpl:return="result" />
 <c:script>
   const y = result + 3;
 </c:script>
@@ -621,4 +621,3 @@ XNode结构中记录了属性和节点的源码位置，同时将attribute和con
 - github: [entropy-cloud/nop-entropy](https://github.com/entropy-cloud/nop-entropy)
 - 开发示例：[docs/tutorial/tutorial.md](https://gitee.com/canonical-entropy/nop-entropy/blob/master/docs/tutorial/tutorial.md)
 - [可逆计算原理和Nop平台介绍及答疑\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV14u411T715/)
-

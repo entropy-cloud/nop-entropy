@@ -27,6 +27,8 @@
 /dict/dyn/function-type.dict.yaml
 /dict/dyn/module-status.dict.yaml
 /dict/dyn/page-schema-type.dict.yaml
+/dict/dyn/script-lang.dict.yaml
+/dict/dyn/source-lang.dict.yaml
 /dict/orm/sql-kind.dict.yaml
 /dict/rpt/data-display-mode.dict.yaml
 /dict/rule/rule-type.dict.yaml
@@ -276,6 +278,7 @@
 /nop/autoconfig/nop-dao.beans
 /nop/autoconfig/nop-dbtool.beans
 /nop/autoconfig/nop-gateway.beans
+/nop/autoconfig/nop-http-api.beans
 /nop/autoconfig/nop-http-client-jdk.beans
 /nop/autoconfig/nop-integration-zxing.beans
 /nop/autoconfig/nop-message-core.beans
@@ -341,6 +344,7 @@
 /nop/dao/dialect/mssql.dialect.xml
 /nop/dao/dialect/mysql.dialect.xml
 /nop/dao/dialect/mysql5.7.dialect.xml
+/nop/dao/dialect/oracle-reverse.dialect.xml
 /nop/dao/dialect/oracle.dialect.xml
 /nop/dao/dialect/postgis.dialect.xml
 /nop/dao/dialect/postgresql.dialect.xml
@@ -547,6 +551,7 @@
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql
 /nop/graphql/introspection.graphql
+/nop/http/beans/http-api.beans.xml
 /nop/http/beans/http-client-jdk.beans.xml
 /nop/integration/beans/zxing-defaults.beans.xml
 /nop/main/app.gateway.xml

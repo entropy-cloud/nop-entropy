@@ -31,11 +31,17 @@ public class QuarkusExecutorHelper {
         return g_serverContext.get();
     }
 
-    public static <T> CompletionStage<T> withRoutingContext(RoutingContext routingContext, Supplier<CompletionStage<T>> task) {
+    public static VertxHttpServerContext makeServerContext(RoutingContext routingContext) {
         VertxHttpServerContext ctx = routingContext.get(KEY_NOP_HTTP_SERVER_CONTEXT);
         if (ctx == null) {
             ctx = new VertxHttpServerContext(routingContext);
+            routingContext.put(KEY_NOP_HTTP_SERVER_CONTEXT, ctx);
         }
+        return ctx;
+    }
+
+    public static <T> CompletionStage<T> withRoutingContext(RoutingContext routingContext, Supplier<CompletionStage<T>> task) {
+        VertxHttpServerContext ctx = makeServerContext(routingContext);
         g_serverContext.set(ctx);
         try {
             IContext context = ctx.getContext();

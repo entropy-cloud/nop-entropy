@@ -86,6 +86,8 @@ public interface IHttpServerContext {
 
     void setResponseContentType(String contentType);
 
+    void setResponseCharacterEncoding(String encoding);
+
     IAsyncBody getRequestBody();
 
     CompletionStage<Object> executeBlocking(Callable<?> task);

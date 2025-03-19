@@ -9,6 +9,7 @@ package io.nop.graphql.core;
 
 import io.nop.api.core.exceptions.ErrorCode;
 
+import static io.nop.api.core.ApiConstants.API_STATUS_BAD_REQUEST;
 import static io.nop.api.core.exceptions.ErrorCode.define;
 
 public interface GraphQLErrors {
@@ -91,41 +92,41 @@ public interface GraphQLErrors {
 
     String ARG_MAX = "max";
 
-    ErrorCode ERR_GRAPHQL_PARSE_INVALID_ARG_NAME = define("nop.err.graphql.parse.invalid-arg-name", "参数名不合法：{name}",
+    ErrorCode ERR_GRAPHQL_PARSE_INVALID_ARG_NAME = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.parse.invalid-arg-name", "参数名不合法：{name}",
             ARG_NAME);
 
-    ErrorCode ERR_GRAPHQL_PARSE_INVALID_VAR_NAME = define("nop.err.graphql.parse.invalid-var-name", "变量名不合法:{name}",
+    ErrorCode ERR_GRAPHQL_PARSE_INVALID_VAR_NAME = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.parse.invalid-var-name", "变量名不合法:{name}",
             ARG_NAME);
 
     ErrorCode ERR_GRAPHQL_PARSE_UNEXPECTED_CHAR = define("nop.err.graphql.parse.unexpected-char", "非法的字符");
 
-    ErrorCode ERR_GRAPHQL_PARSE_EXCEED_MAX_LENGTH = define("nop.err.graphql.parse.exceed-max-length",
+    ErrorCode ERR_GRAPHQL_PARSE_EXCEED_MAX_LENGTH = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.parse.exceed-max-length",
             "GraphQL查询语句过长，超过长度限制");
 
-    ErrorCode ERR_GRAPHQL_QUERY_EXCEED_MAX_DEPTH = define("nop.err.graphql.query.exceed-max-depth",
+    ErrorCode ERR_GRAPHQL_QUERY_EXCEED_MAX_DEPTH = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.query.exceed-max-depth",
             "GraphQL查询语句嵌套层次过多，超过最大深度限制。最大深度为{maxDepth}", ARG_MAX_DEPTH);
 
-    ErrorCode ERR_GRAPHQL_QUERY_EXCEED_MAX_OPERATION_COUNT = define("nop.err.graphql.query.exceed-max-operation-count",
+    ErrorCode ERR_GRAPHQL_QUERY_EXCEED_MAX_OPERATION_COUNT = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.query.exceed-max-operation-count",
             "GraphQL查询语句包含操作过多，超过最大操作个数限制。最大个数为{maxCount}", ARG_MAX_COUNT);
 
-    ErrorCode ERR_GRAPHQL_QUERY_NO_OPERATION = define("nop.err.graphql.query.no-operation",
+    ErrorCode ERR_GRAPHQL_QUERY_NO_OPERATION = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.query.no-operation",
             "GraphQL查询语句不能为空，必须包含具体的操作");
 
     ErrorCode ERR_GRAPHQL_ARG_MAX_MUST_BE_POSITIVE = define("nop.err.graphql.arg-max-must-be-positive", "参数max必须为正整数",
             ARG_MAX);
 
-    ErrorCode ERR_GRAPHQL_PARSE_EMPTY_STRING = define("nop.err.graphql.parse.empty-strign", "GraphQL查询语句为空");
+    ErrorCode ERR_GRAPHQL_PARSE_EMPTY_STRING = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.parse.empty-string", "GraphQL查询语句为空");
 
-    ErrorCode ERR_GRAPHQL_UNKNOWN_DIRECTIVE = define("nop.err.graphql.unknown-directive", "GraphQL扩展未定义",
+    ErrorCode ERR_GRAPHQL_UNKNOWN_DIRECTIVE = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.unknown-directive", "GraphQL扩展未定义",
             ARG_DIRECTIVE);
 
-    ErrorCode ERR_GRAPHQL_NOT_ALLOW_DIRECTIVE_AT_LOCATION = define("nop.err.graphql.not-allow-directive-at-location",
+    ErrorCode ERR_GRAPHQL_NOT_ALLOW_DIRECTIVE_AT_LOCATION = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.not-allow-directive-at-location",
             "GraphQL扩展[{directive}]不允许出现在位置[{location}]", ARG_DIRECTIVE, ARG_LOCATION);
 
-    ErrorCode ERR_GRAPHQL_FIELD_NAME_DUPLICATED = define("nop.err.graphql.field-name-duplicated",
+    ErrorCode ERR_GRAPHQL_FIELD_NAME_DUPLICATED = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.field-name-duplicated",
             "GraphQL的字段名不允许重复:{fieldName},parent={parentName}", ARG_FIELD_NAME, ARG_PARENT_NAME);
 
-    ErrorCode ERR_GRAPHQL_UNKNOWN_LOADER = define("nop.err.graphql.unknown-loader", "未定义的Loader:{loaderName}",
+    ErrorCode ERR_GRAPHQL_UNKNOWN_LOADER = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.unknown-loader", "未定义的Loader:{loaderName}",
             ARG_LOADER_NAME);
 
     ErrorCode ERR_GRAPHQL_DUPLICATED_LOADER = define("nop.err.graphql.duplicated-loader", "Loader名称不允许重复:{loaderName}",
@@ -257,13 +258,13 @@ public interface GraphQLErrors {
     ErrorCode ERR_GRAPHQL_NOT_OBJ_TYPE_FOR_FIELD = define("nop.err.graphql.not-obj-type-for-field",
             "对象[{objType}]的属性[{fieldName}]的类型[{type}]未定义", ARG_OBJ_TYPE);
 
-    ErrorCode ERR_GRAPHQL_UNKNOWN_OBJ_TYPE = define("nop.err.graphql.unknown-obj-type", "未定义的GraphQL类型:{type}",
+    ErrorCode ERR_GRAPHQL_UNKNOWN_OBJ_TYPE = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.unknown-obj-type", "未定义的GraphQL类型:{type}",
             ARG_TYPE);
 
-    ErrorCode ERR_GRAPHQL_INVALID_OPERATION_NAME = define("nop.err.graphql.invalid-operation-name",
+    ErrorCode ERR_GRAPHQL_INVALID_OPERATION_NAME = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.invalid-operation-name",
             "操作名称格式不正确:{operationName}", ARG_OPERATION_NAME);
 
-    ErrorCode ERR_GRAPHQL_UNEXPECTED_OPERATION_TYPE = define("nop.err.graphql.unexpected-operation-type",
+    ErrorCode ERR_GRAPHQL_UNEXPECTED_OPERATION_TYPE = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.unexpected-operation-type",
             "操作[{operationName}]的类型[{operationType}]不是期望类型[{expectedOperationType}]", ARG_OPERATION_NAME,
             ARG_OPERATION_TYPE, ARG_EXPECTED_OPERATION_TYPE);
 
@@ -271,7 +272,7 @@ public interface GraphQLErrors {
             "nop.err.graphql.multi-class-has-same-biz-obj-name", "类[{class}]和[{otherClass}]标记了同样的对象名[{bizObjName}]",
             ARG_CLASS, ARG_OTHER_CLASS, ARG_BIZ_OBJ_NAME);
 
-    ErrorCode ERR_GRAPHQL_UNKNOWN_OPERATION = define("nop.err.graphql.unknown-operation", "未知的请求:{operationName}",
+    ErrorCode ERR_GRAPHQL_UNKNOWN_OPERATION = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.unknown-operation", "未知的请求:{operationName}",
             ARG_OPERATION_NAME);
 
     ErrorCode ERR_GRAPHQL_UNKNOWN_DICT_VALUE_PROP = define("nop.err.graphql.unknown-dict-value-prop",
@@ -279,7 +280,7 @@ public interface GraphQLErrors {
 
     ErrorCode ERR_GRAPHQL_UNKNOWN_DICT = define("nop.err.graphql.unknown-dict", "没有定义字典:{dictName}", ARG_DICT_NAME);
 
-    ErrorCode ERR_GRAPHQL_INTROSPECTION_NOT_ENABLED = define("nop.err.graphql.introspection-not-enabled",
+    ErrorCode ERR_GRAPHQL_INTROSPECTION_NOT_ENABLED = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.introspection-not-enabled",
             "没有开启GraphQL的introspection支持，不允许访问系统对象");
 
     ErrorCode ERR_GRAPHQL_UNKNOWN_BUILTIN_TYPE = define("nop.err.graphql.unknown-builtin-type", "不支持的系统对象类型：{typeName}",

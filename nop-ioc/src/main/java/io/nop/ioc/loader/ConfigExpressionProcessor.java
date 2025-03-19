@@ -63,7 +63,7 @@ public class ConfigExpressionProcessor {
         return buildValue(loc, expr, expectedType);
     }
 
-    IBeanPropValueResolver parseSpringExpr(BeanDefinition bean, SourceLocation loc, String propName, String expr) {
+    public IBeanPropValueResolver parseSpringExpr(BeanDefinition bean, SourceLocation loc, String propName, String expr) {
         TextScanner sc = TextScanner.fromString(loc, expr);
         List<String> configVars = new ArrayList<>();
         List<IBeanPropValueResolver> resolvers = parseExpr(sc, "${", "}", (l, v) -> buildValue(l, v, null),

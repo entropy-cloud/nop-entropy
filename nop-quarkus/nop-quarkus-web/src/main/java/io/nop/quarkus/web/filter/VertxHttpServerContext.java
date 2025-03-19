@@ -36,6 +36,8 @@ public class VertxHttpServerContext implements IHttpServerContext {
 
     private IContext context;
 
+    private String characterEncoding;
+
 
     public VertxHttpServerContext(RoutingContext routingContext) {
         this.routingContext = routingContext;
@@ -166,7 +168,18 @@ public class VertxHttpServerContext implements IHttpServerContext {
 
     @Override
     public void setResponseContentType(String contentType) {
+        if (characterEncoding != null && !contentType.contains("charset="))
+            contentType += ";charset=" + characterEncoding;
         routingContext.response().headers().set(HttpHeaders.CONTENT_TYPE, contentType);
+    }
+
+    @Override
+    public void setResponseCharacterEncoding(String encoding) {
+        this.characterEncoding = encoding;
+        String contentType = getResponseContentType();
+        if (contentType != null) {
+            setResponseContentType(contentType);
+        }
     }
 
     public CompletionStage<Void> proceedAsync() {

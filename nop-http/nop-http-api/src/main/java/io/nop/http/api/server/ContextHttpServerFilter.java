@@ -35,6 +35,8 @@ public class ContextHttpServerFilter implements IHttpServerFilter {
 
     @Override
     public CompletionStage<Void> filterAsync(IHttpServerContext context, Supplier<CompletionStage<Void>> next) {
+        context.setResponseCharacterEncoding("UTF-8");
+
         IContext ctx = ContextProvider.newContext();
         LOG.trace("nop.http.process:url={}", context.getRequestUrl());
 
