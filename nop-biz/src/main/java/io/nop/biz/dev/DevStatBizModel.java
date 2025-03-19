@@ -17,6 +17,12 @@ import java.util.List;
 @BizModel("DevStat")
 public class DevStatBizModel {
     @BizQuery
+    @Description("清空所有统计信息")
+    public void clearStats() {
+        GlobalStatManager.instance().clear();
+    }
+
+    @BizQuery
     @Description("jdbc调用的统计信息")
     public List<JdbcSqlStatValue> jdbcSqlStats(@Name("orderByAvgTime") @Optional Boolean orderByAvgTime) {
         if (orderByAvgTime == null)

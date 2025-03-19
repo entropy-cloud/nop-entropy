@@ -48,6 +48,12 @@ public class GlobalStatManager implements IJdbcStatManager, IRpcClientStatManage
         return rpcServerStats;
     }
 
+    public void clear() {
+        getSqlStats().clear();
+        getRpcClientStats().clear();
+        getRpcServerStats().clear();
+    }
+
     @Override
     public JdbcSqlStat getJdbcSqlStat(String sql) {
         return getSqlStats().computeIfAbsent(sql, JdbcSqlStat::new);
