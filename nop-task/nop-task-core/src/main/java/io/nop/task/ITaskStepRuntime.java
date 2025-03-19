@@ -2,12 +2,13 @@ package io.nop.task;
 
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.commons.lang.IEditableTagSetSupport;
 import io.nop.core.context.IEvalContext;
 import jakarta.annotation.Nonnull;
 
 import java.util.Set;
 
-public interface ITaskStepRuntime extends IEvalContext {
+public interface ITaskStepRuntime extends IEvalContext, IEditableTagSetSupport {
 
     default IContext getContext() {
         return getTaskRuntime().getContext();
@@ -83,14 +84,9 @@ public interface ITaskStepRuntime extends IEvalContext {
     ITaskStepState getState();
 
     @Nonnull
-    Set<String> getEnabledFlags();
+    Set<String> getTagSet();
 
-    void setEnabledFlags(Set<String> enabledFlags);
-
-    default boolean isFlagEnabled(String flag) {
-        return getEnabledFlags().contains(flag);
-    }
-
+    void setTagSet(Set<String> enabledFlags);
 
     boolean isSupportPersist();
 

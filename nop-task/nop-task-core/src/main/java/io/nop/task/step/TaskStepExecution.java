@@ -203,9 +203,9 @@ public class TaskStepExecution implements ITaskStepExecution {
         }
 
         if (flagOperation != null) {
-            stepRt.setEnabledFlags(flagOperation.buildChildFlags(parentRt.getEnabledFlags()));
+            stepRt.setTagSet(flagOperation.buildChildFlags(parentRt.getTagSet()));
         } else {
-            stepRt.setEnabledFlags(parentRt.getEnabledFlags());
+            stepRt.setTagSet(parentRt.getTagSet());
         }
 
         ITaskFlowMetrics metrics = parentRt.getTaskRuntime().getMetrics();
@@ -278,7 +278,7 @@ public class TaskStepExecution implements ITaskStepExecution {
     }
 
     boolean allowExecute(ITaskStepRuntime parentRt) {
-        if (flagOperation != null && !flagOperation.checkMatchFlag(parentRt.getEnabledFlags())) {
+        if (flagOperation != null && !flagOperation.checkMatchFlag(parentRt.getTagSet())) {
             return false;
         }
         if (when != null && !when.passConditions(parentRt))

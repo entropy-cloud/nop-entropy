@@ -80,9 +80,9 @@ public class TaskImpl implements ITask {
     public TaskStepReturn execute(ITaskRuntime taskRt, Set<String> outputNames) {
         ITaskStepRuntime stepRt = taskRt.newMainStepRuntime();
         if (flagOperation == null) {
-            stepRt.setEnabledFlags(taskRt.getEnabledFlags());
+            stepRt.setTagSet(taskRt.getTagSet());
         } else {
-            stepRt.setEnabledFlags(flagOperation.buildChildFlags(taskRt.getEnabledFlags()));
+            stepRt.setTagSet(flagOperation.buildChildFlags(taskRt.getTagSet()));
         }
 
         stepRt.setOutputNames(outputNames);

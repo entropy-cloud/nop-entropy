@@ -131,12 +131,12 @@ public class TaskRuntimeImpl extends Cancellable implements ITaskRuntime {
 
     @Nonnull
     @Override
-    public Set<String> getEnabledFlags() {
+    public Set<String> getTagSet() {
         return enabledFlags;
     }
 
     @Override
-    public void setEnabledFlags(Set<String> enabledFlags) {
+    public void setTagSet(Set<String> enabledFlags) {
         this.enabledFlags = enabledFlags == null ? Collections.emptySet() : enabledFlags;
     }
 

@@ -13,10 +13,10 @@ import io.nop.api.core.util.ICancellable;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
+import io.nop.commons.lang.IEditableTagSetSupport;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
 import io.nop.task.metrics.ITaskFlowMetrics;
-import jakarta.annotation.Nonnull;
 
 import java.util.Map;
 import java.util.Set;
@@ -31,7 +31,7 @@ import java.util.function.Function;
  * <p>
  * 5. attributes保存不需要持久化的临时变量，taskVars保存需要持久化的Task级别的状态变量。
  */
-public interface ITaskRuntime extends IEvalContext, ICancellable {
+public interface ITaskRuntime extends IEvalContext, ICancellable, IEditableTagSetSupport {
     IServiceContext getSvcCtx();
 
     IContext getContext();
@@ -99,10 +99,6 @@ public interface ITaskRuntime extends IEvalContext, ICancellable {
         return getTaskState().getTaskVars();
     }
 
-    @Nonnull
-    Set<String> getEnabledFlags();
-
-    void setEnabledFlags(Set<String> enabledFlags);
 
     Object getAttribute(String name);
 
