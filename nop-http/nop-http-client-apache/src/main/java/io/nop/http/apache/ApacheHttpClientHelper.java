@@ -63,7 +63,7 @@ public class ApacheHttpClientHelper {
                                                       PoolingAsyncClientConnectionManager connManager) {
         HttpAsyncClientBuilder builder = HttpAsyncClients.custom();
         builder.setIOReactorConfig(ioReactorConfig).setConnectionManager(connManager)
-                .evictExpiredConnections().evictIdleConnections(TimeValue.ofMilliseconds(clientConfig.getMaxIdleTime().toMillis()))
+                .evictIdleConnections(TimeValue.ofMilliseconds(clientConfig.getMaxIdleTime().toMillis()))
                 .setUserAgent(clientConfig.getUserAgent());
         return builder.build();
     }
@@ -148,7 +148,7 @@ public class ApacheHttpClientHelper {
                 keyManagers = clientConfig.getKeyManagers();
             }
 
-            SSLContext sslContext = SSLContext.getInstance("TLS");
+            SSLContext sslContext = SSLContext.getInstance(clientConfig.getSslVersion());
             sslContext.init(keyManagers, new TrustManager[]{compositeX509TrustManager},
                     clientConfig.getSecureRandom());
 

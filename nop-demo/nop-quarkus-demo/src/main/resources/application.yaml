@@ -67,6 +67,7 @@ nop:
   web:
     page-validation-thread-count: 4
 
+
 # 开发模式配置
 
 "%dev":
@@ -120,6 +121,7 @@ quarkus:
   http:
     host: 0.0.0.0
     cors: true
+    http2: true
 
   log:
     level: info

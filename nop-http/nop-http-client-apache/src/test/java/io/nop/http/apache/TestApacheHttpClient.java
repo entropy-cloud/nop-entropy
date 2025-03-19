@@ -39,9 +39,9 @@ public class TestApacheHttpClient {
         ApacheHttpClient client = new ApacheHttpClient(config);
         client.start();
         HttpRequest request = new HttpRequest();
-        request.setUrl("http://localhost:8080");
+        request.setUrl("http://localhost:8080/r/LoginApi__login");
         IHttpResponse response = FutureHelper.syncGet(client.fetchAsync(request, null));
-        System.out.println(response.getBodyAsText());
+        System.out.println(response.getHttpStatus() + ":" + response.getBodyAsText());
         client.stop();
     }
 

@@ -22,6 +22,12 @@
 * `nop.core.component.resource-cache.check-changed`设置为false,则不会检查资源文件是否有变化，不会自动更新缓存的解析结果。
 * 将日志级别设置为info，减少日志输出
 
+## 启用Http2
+Quarkus服务端配置 `quarkus.http.http2=true`
+Spring服务端配置 `server.http2.enabled=true`
+HttpClient的客户端配置 `nop.http.client.http2=true`
+
+
 ## 查看统计信息
 
 通过prometheus度量对外暴露了Metrics信息。在quarks框架下使用`/q/metrics`
@@ -32,3 +38,4 @@
 1. `/r/DevStat__jdbcSqlStats` 查看每一个sql语句的执行时间、执行次数以及时间范围分布
 2. `/r/DevStat__rpcServerStats` 查看每一个后台服务函数的执行时间、执行次数，以及时间范围分布
 3. `/r/DevStat__rpcClientStats` 查看每一个rpc客户端调用的执行时间、执行次数，以及时间范围分布
+4. `/r/DevStat__resetStats` 重置所有统计信息
