@@ -1,0 +1,7 @@
+nop:
+  debug: true
+  application:
+    name: demo
+
+  hazelcast:
+    config-path: /hazelcast.xml

@@ -9,7 +9,7 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nop-hazelcast-cache</artifactId>
+    <artifactId>nop-hazelcast-core</artifactId>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -17,19 +17,19 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-hazelcast-core</artifactId>
+            <groupId>com.hazelcast</groupId>
+            <artifactId>hazelcast</artifactId>
         </dependency>
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-commons</artifactId>
+            <artifactId>nop-xlang</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>javax.cache</groupId>
-            <artifactId>cache-api</artifactId>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-autotest-junit</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
-
 </project>

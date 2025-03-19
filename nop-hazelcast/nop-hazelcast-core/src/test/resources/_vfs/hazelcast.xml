@@ -1,0 +1,36 @@
+<hazelcast xsi:schemaLocation="http://www.hazelcast.com/schema/config
+   http://www.hazelcast.com/schema/config/hazelcast-config-4.0.xsd"
+           xmlns="http://www.hazelcast.com/schema/config"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <network>
+        <join>
+            <multicast enabled="true"/>
+<!--            <tcp-ip enabled="true">-->
+<!--                <member>192.168.1.1</member>-->
+<!--                <member>192.168.1.2</member>-->
+<!--                <member>192.168.1.3</member>-->
+<!--            </tcp-ip>-->
+        </join>
+    </network>
+    <partition-group enabled="true" group-type="ZONE_AWARE"/>
+    <map name="default">
+        <backup-count>2</backup-count>
+        <async-backup-count>1</async-backup-count>
+    </map>
+
+    <map name="exampleMap">
+        <time-to-live-seconds>10</time-to-live-seconds>
+        <near-cache>
+            <time-to-live-seconds>1</time-to-live-seconds>
+        </near-cache>
+    </map>
+
+    <properties>
+        <property name="hazelcast.health.monitoring.level">SILENT</property>
+        <property name="hazelcast.health.monitoring.delay.seconds">30</property>
+    </properties>
+
+    <member-attributes>
+        <attribute name="hazelcast.partition.group.zone">zone1</attribute>
+    </member-attributes>
+</hazelcast>
