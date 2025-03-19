@@ -21,6 +21,8 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.record.IResourceRecordInputProvider;
 import io.nop.dataset.record.IRecordInput;
 import io.nop.dataset.record.IRowNumberRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
 import java.util.List;
@@ -39,6 +41,7 @@ import static io.nop.batch.core.BatchErrors.ERR_BATCH_TOO_MANY_PROCESSING_ITEMS;
  */
 public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandler
         implements IBatchLoaderProvider<S> {
+    static final Logger LOG = LoggerFactory.getLogger(ResourceRecordLoaderProvider.class);
 
     private IResourceRecordInputProvider<S> recordIO;
     private IEvalAction encodingExpr;
@@ -132,6 +135,10 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
         this.recordRowNumber = recordRowNumber;
     }
 
+    public void setMaxProcessingItems(int maxProcessingItems) {
+        this.maxProcessingItems = maxProcessingItems;
+    }
+
     @Override
     public IBatchLoader<S> setup(IBatchTaskContext context) {
         LoaderState<S> state = newLoaderState(context);
@@ -210,10 +217,16 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
     public synchronized void onChunkEnd(IBatchChunkContext context, Throwable exception, LoaderState<S> state) {
         if (state.processingItems != null) {
             // 多个chunk有可能被并行处理，所以可能会乱序完成
+            long maxRowNumber = -1;
+            long minRowNumber = -1;
             if (context.getChunkItems() != null) {
                 for (Object item : context.getChunkItems()) {
                     long rowNumber = getRowNumber(item, context);
                     if (rowNumber > 0) {
+                        if (rowNumber > maxRowNumber)
+                            maxRowNumber = rowNumber;
+                        if (rowNumber < minRowNumber || minRowNumber < 0)
+                            minRowNumber = rowNumber;
                         state.processingItems.put(rowNumber, true);
                     }
                 }
@@ -231,6 +244,9 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
                     break;
                 }
             }
+
+            LOG.info("nop.batch.loader.chunk-end:minRowNumber={},maxRowNumber={},completedIndex={},processingItems={}",
+                    minRowNumber, maxRowNumber, completedRow, state.processingItems.size());
 
             // 如果处理阶段异常，则不会保存到状态变量中，这样下次处理的时候仍然会处理到这些记录
             if (completedRow > 0 && exception == null) {
@@ -257,7 +273,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
                     chunkCtx.setRowNumber(item, rowNumber);
                 }
 
-                if (state.processingItems != null)
+                if (state.processingItems != null && rowNumber > 0)
                     state.processingItems.put(rowNumber, false);
             }
             if (state.processingItems != null && state.processingItems.size() > maxProcessingItems)
