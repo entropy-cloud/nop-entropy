@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestAiChatResponse extends BaseTestCase {
@@ -18,5 +19,6 @@ public class TestAiChatResponse extends BaseTestCase {
         AiChatResponse response = list.get(0);
         response.parseContentBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>",true, false);
         assertTrue(response.isValid());
+        assertFalse(response.getContent().contains("<TRANSLATE_RESULT>"));
     }
 }

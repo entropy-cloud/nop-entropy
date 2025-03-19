@@ -1,5 +1,5 @@
 template: |
-  <![CDATA[Your task is to carefully read, then edit, a translation from ${fromLang} to ${toLang}.
+  <![CDATA[Your task is to carefully read, then evaluate, a translation from ${fromLang} to ${toLang}.
 
   The source text, the initial translation are delimited by XML tags <SOURCE_TEXT></SOURCE_TEXT>, <TRANSLATION></TRANSLATION> as follows:
 
@@ -13,9 +13,8 @@ template: |
   
   评估原翻译的质量，输出时采用如下格式：
   <SCORE>1-10的分数</SCORE>
-  注意，仅返回SCORE，不要返回其他信息，不要返回其他信息！
+  注意，仅返回SCORE，不要返回其他信息，不要返回其他信息！如果翻译结果与原文内容不匹配，有明显内容缺失或者不匹配的新增内容，则SCORE为5分以下
   ]]>
 
 processChatResponse: |
   chatResponse.parseNumberBlock("score", "<SCORE>", "</SCORE>");
-  chatResponse.parseBlock("reason", "<REASON>", "</REASON>",false,true);

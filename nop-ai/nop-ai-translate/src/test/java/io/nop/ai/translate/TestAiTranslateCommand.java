@@ -117,24 +117,26 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         FileHelper.walk2(docsEnDir, docsEnDebugDir, (f1, f2) -> {
             if (f2.getName().endsWith(".md") && f2.exists()) {
                 List<AiChatResponse> messages = DebugMessageHelper.parseDebugFile(f2);
+                boolean changed = false;
                 for (AiChatResponse message : messages) {
                     message.checkNotEmpty();
 
                     if (message.isInvalid())
                         continue;
 
-                    Number scoreValue = (Number) message.getParsedValue("score");
-                    if (scoreValue != null && scoreValue.intValue() >= 7)
+                    Object scoreValue =  message.getMetadata("score");
+                    if (scoreValue != null)
                         continue;
 
                     String source = getSourceText(message);
                     if(source == null)
                         continue;
 
+                    changed = true;
                     try {
 
-                        message = FutureHelper.syncGet(check.executeAsync(source, message.getContent(), null));
-                        Number score = (Number) message.getParsedValue("score");
+                        AiChatResponse scoreMessage = FutureHelper.syncGet(check.executeAsync(source, message.getContent(), null));
+                        Number score = (Number) scoreMessage.getParsedValue("score");
                         if (score != null)
                             message.addMetadata("score", score);
                         if (score != null && score.intValue() < 7) {
@@ -145,7 +147,8 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
                         e.printStackTrace();
                     }
                 }
-                DebugMessageHelper.writeDebugFile(f2, messages);
+                if(changed)
+                    DebugMessageHelper.writeDebugFile(f2, messages);
             }
             return FileVisitResult.CONTINUE;
         });
@@ -154,7 +157,9 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
     String getSourceText(AiChatResponse message) {
         String text = message.getBlockFromPrompt("待翻译的内容如下：\n", "\n[EndOfData]");
         if (text == null) {
-            text = message.getBlockFromPrompt("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>");
+            text = message.getBlockFromPrompt("<TRANSLATE_SOURCE>\n", "\n</TRANSLATE_SOURCE>", 1);
+            if(text == null)
+                text = message.getBlockFromPrompt("<TRANSLATE_SOURCE>\n", "\n</TRANSLATE_SOURCE>", 0);
         }
         return text;
     }

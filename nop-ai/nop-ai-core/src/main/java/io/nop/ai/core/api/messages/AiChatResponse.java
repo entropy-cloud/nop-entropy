@@ -80,6 +80,10 @@ public class AiChatResponse extends Metadata {
     }
 
     public String getBlockFromPrompt(String blockBegin, String blockEnd) {
+        return getBlockFromPrompt(blockBegin, blockEnd, 0);
+    }
+
+    public String getBlockFromPrompt(String blockBegin, String blockEnd, int blockIndex) {
         if (prompt == null)
             return null;
 
@@ -87,12 +91,15 @@ public class AiChatResponse extends Metadata {
         if (message == null)
             return null;
 
-        int pos = message.indexOf(blockBegin);
-        int pos2 = message.lastIndexOf(blockEnd);
-        if (pos < 0 || pos2 < 0)
+        int[] pos = indexOfMark(message, 0, blockBegin, blockIndex);
+        if (pos == null)
             return null;
 
-        return message.substring(pos + blockBegin.length(), pos2);
+        int[] pos2 = indexOfMark(message, pos[1], blockEnd);
+        if (pos2 == null)
+            return null;
+
+        return message.substring(pos[1], pos2[0]);
     }
 
     public String getThink() {
@@ -302,7 +309,7 @@ public class AiChatResponse extends Metadata {
             return null;
         }
 
-        int[] markPos = indexOfMark(blockBegin);
+        int[] markPos = indexOfMark(content, 0, blockBegin);
         if (markPos == null) {
             if (optional)
                 return null;
@@ -316,7 +323,7 @@ public class AiChatResponse extends Metadata {
 
         int pos = markPos == null ? 0 : markPos[1];
 
-        int[] markPos2 = indexOfMark(blockEnd);
+        int[] markPos2 = indexOfMark(content, pos, blockEnd);
         if (markPos2 == null) {
             if (optional)
                 return null;
@@ -330,16 +337,26 @@ public class AiChatResponse extends Metadata {
         return content.substring(pos, pos2);
     }
 
+    public static int[] indexOfMark(String content, int start, String mark, int blockIndex) {
+        int startPos = start;
+        for (int i = 0; i < blockIndex; i++) {
+            int[] pos = indexOfMark(content, startPos, mark);
+            if (pos == null)
+                return null;
+            startPos = pos[1];
+        }
+        return indexOfMark(content, startPos, mark);
+    }
+
     // 忽略无关紧要的空格
-    public int[] indexOfMark(String mark) {
-        String content = getContent();
-        int pos = content.indexOf(mark);
+    public static int[] indexOfMark(String content, int start, String mark) {
+        int pos = content.indexOf(mark, start);
         if (pos >= 0)
             return new int[]{pos, pos + mark.length()};
         String trimmedMark = mark.trim();
-        pos = content.indexOf(trimmedMark);
+        pos = content.indexOf(trimmedMark, start);
         if (pos >= 0) {
-            int pos0 = 0, pos1 = pos + trimmedMark.length();
+            int pos0 = pos, pos1 = pos + trimmedMark.length();
             if (mark.startsWith("\n")) {
                 int pos2 = content.lastIndexOf('\n', pos);
                 if (!StringHelper.onlyContainsWhitespace(content.substring(pos2 + 1, pos)))
