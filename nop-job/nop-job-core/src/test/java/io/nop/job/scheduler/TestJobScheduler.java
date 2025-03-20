@@ -34,6 +34,7 @@ public class TestJobScheduler {
     static class MockJobInvoker implements IJobInvoker {
         @Override
         public CompletionStage<TriggerFireResult> invokeAsync(String jobName, Map<String, Object> jobParams,
+                                                              boolean forceFire,
                                                               ITriggerState state, ICancelToken cancelToken) {
             System.out.println("executionId=" + state.getLastExecutionId() + ",count=" + state.getExecutionCount());
             return null;
@@ -115,7 +116,7 @@ public class TestJobScheduler {
             } catch (Exception e) {
             }
         }
-       // assertEquals(TriggerStatus.CANCELLED, scheduler.getTriggerStatus("test"));
+        // assertEquals(TriggerStatus.CANCELLED, scheduler.getTriggerStatus("test"));
 
         scheduler.deactivate();
     }

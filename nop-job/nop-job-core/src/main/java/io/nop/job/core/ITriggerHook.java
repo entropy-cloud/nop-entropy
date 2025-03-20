@@ -7,6 +7,8 @@
  */
 package io.nop.job.core;
 
+import io.nop.job.api.TriggerFireResult;
+
 public interface ITriggerHook {
     void onSchedule(long currentTime, long nextScheduleTime, ITriggerContext context);
 
@@ -20,9 +22,11 @@ public interface ITriggerHook {
 
     void onException(long currentTime, Throwable exception, ITriggerContext context);
 
-    void onError(long currentTime, ITriggerContext context);
+    void onError(long currentTime, TriggerFireResult result, ITriggerContext context);
 
     void onCancel(long currentTime, ITriggerContext context);
 
-    void onFireNow(long currentTime, ITriggerContext context);
+    void onBeginFireNow(long currentTime, ITriggerContext context);
+
+    void onEndFireNow(TriggerFireResult result, Throwable exception, ITriggerContext context);
 }

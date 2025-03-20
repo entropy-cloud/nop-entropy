@@ -21,7 +21,6 @@ import io.nop.job.api.spec.JobSpec;
 import io.nop.job.core.ICalendar;
 import io.nop.job.core.ITrigger;
 import io.nop.job.core.ITriggerContext;
-import io.nop.job.core.ITriggerExecution;
 import io.nop.job.core.ITriggerExecutor;
 import io.nop.job.core.trigger.OnceTrigger;
 import io.nop.job.core.trigger.TriggerBuilder;
@@ -139,6 +138,9 @@ public class DefaultJobScheduler implements IJobScheduler {
             synchronized (execution) {
                 return execution.toJobDetail();
             }
+        } else {
+            if (jobStore != null)
+                return jobStore.loadJobDetail(jobName);
         }
         return null;
     }
@@ -278,7 +280,8 @@ public class DefaultJobScheduler implements IJobScheduler {
                     return false;
 
                 if (execution.getTriggerStatus() == TriggerStatus.PAUSED) {
-                    return tryStartTrigger(execution);
+                    tryStartTrigger(execution);
+                    return true;
                 }
             }
         }
@@ -286,26 +289,21 @@ public class DefaultJobScheduler implements IJobScheduler {
         return false;
     }
 
-    boolean tryStartTrigger(JobExecution execution) {
+    void tryStartTrigger(JobExecution execution) {
         boolean active = !execution.isClosed() && execution.getTriggerStatus().isActive();
         if (!active)
-            return false;
+            return;
 
-        return startTrigger(execution);
+        execution.startTrigger(executor, () -> {
+            onTriggerCompleted(execution);
+        });
     }
 
-    private boolean startTrigger(JobExecution execution) {
-        String jobName = execution.getJobSpec().getJobName();
-        ITriggerExecution triggerExec = execution.getTriggerExecution();
-        if (triggerExec == null) {
-            return execution.startTrigger(executor, () -> {
-                if (execution.getJobSpec().isRemoveWhenDone() && execution.getTriggerStatus().isDone()) {
-                    if (jobs.remove(jobName, execution))
-                        execution.deactivate();
-                }
-            });
+    private void onTriggerCompleted(JobExecution execution) {
+        if (execution.getJobSpec().isRemoveWhenDone() && execution.getTriggerStatus().isDone()) {
+            if (jobs.remove(execution.getJobName(), execution))
+                execution.deactivate();
         }
-        return true;
     }
 
     @Override
@@ -354,7 +352,7 @@ public class DefaultJobScheduler implements IJobScheduler {
 
         LOG.info("nop.job.fireNow:jobName={},epoch={}", jobName, epoch);
 
-        JobExecution execution = jobs.get(jobName);
+        JobExecution execution = makeJobExecution(jobName);
         if (execution == null) {
             LOG.info("nop.job.fireNow-not-exists:jobName={},epoch={}", jobName, epoch);
             return false;
@@ -366,9 +364,21 @@ public class DefaultJobScheduler implements IJobScheduler {
                 return false;
             }
 
-            execution.fireNow(executor);
+            execution.fireNow(executor, () -> onTriggerCompleted(execution));
         }
 
         return true;
+    }
+
+    synchronized JobExecution makeJobExecution(String jobName) {
+        JobExecution execution = jobs.get(jobName);
+        if (execution == null && jobStore != null) {
+            JobDetail jobDetail = jobStore.loadJobDetail(jobName);
+            if (jobDetail != null) {
+                ResolvedJobSpec resolved = resolveJobSpec(jobDetail.getJobSpec());
+                execution = jobs.computeIfAbsent(jobName, k -> createJobExecution(resolved, null));
+            }
+        }
+        return execution;
     }
 }

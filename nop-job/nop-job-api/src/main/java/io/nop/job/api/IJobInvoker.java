@@ -27,6 +27,8 @@ public interface IJobInvoker {
      * @param cancelToken 通过cancelToken传递任务是否已经被取消的信息
      * @return 异步执行的返回结果
      */
-    CompletionStage<TriggerFireResult> invokeAsync(String jobName, Map<String, Object> jobParams, ITriggerState state,
+    CompletionStage<TriggerFireResult> invokeAsync(String jobName, Map<String, Object> jobParams,
+                                                   boolean forceFire,
+                                                   ITriggerState state,
                                                    ICancelToken cancelToken);
 }

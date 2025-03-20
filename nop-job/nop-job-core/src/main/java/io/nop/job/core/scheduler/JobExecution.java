@@ -15,15 +15,15 @@ import io.nop.job.core.ITriggerContext;
 import io.nop.job.core.ITriggerExecution;
 import io.nop.job.core.ITriggerExecutor;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 class JobExecution {
     private ResolvedJobSpec jobSpec;
     private ITriggerContext triggerContext;
 
     private ITriggerExecution triggerExecution;
-    private final AtomicBoolean running = new AtomicBoolean(false);
-    private final AtomicBoolean scheduledTaskPending = new AtomicBoolean(false);
+
+    private ITriggerExecution fireNowExecution;
+
+    private boolean scheduledTrigger;
 
     private boolean closed;
 
@@ -32,6 +32,10 @@ class JobExecution {
         detail.setTriggerState(new TriggerState(triggerContext));
         detail.setJobSpec(jobSpec.getJobSpec());
         return detail;
+    }
+
+    public String getJobName() {
+        return jobSpec.getJobName();
     }
 
     public boolean isClosed() {
@@ -44,16 +48,27 @@ class JobExecution {
 
     public ITriggerAction createTriggerAction() {
         ResolvedJobSpec resolved = this.jobSpec;
-        return (state, cancelToken) -> resolved.getJobInvoker().invokeAsync(resolved.getJobName(), resolved.getJobParams(),
-                state, cancelToken);
+        return (forceFire, state, cancelToken) ->
+                resolved.getJobInvoker().invokeAsync(resolved.getJobName(), resolved.getJobParams(), forceFire,
+                        state, cancelToken);
     }
 
-    public boolean startTrigger(ITriggerExecutor executor, Runnable onComplete) {
-        if (getTriggerStatus().isDone())
-            return false;
+    public synchronized void startTrigger(ITriggerExecutor executor, Runnable onComplete) {
+        if (getTriggerStatus().isDone() || isClosed())
+            return;
+
+        if (this.triggerExecution != null)
+            return;
+
+        if (fireNowExecution != null) {
+            scheduledTrigger = true;
+            return;
+        }
+
+        scheduledTrigger = false;
 
         ResolvedJobSpec jobSpec = this.jobSpec;
-        ITriggerExecution execution = executor.execute(false, jobSpec.getTrigger(), createTriggerAction(),
+        ITriggerExecution execution = executor.execute(jobSpec.getTrigger(), createTriggerAction(),
                 getTriggerContext());
         this.triggerExecution = execution;
 
@@ -61,25 +76,29 @@ class JobExecution {
             clearTriggerExecution(execution);
             onComplete.run();
         });
-        return true;
     }
 
-    public void fireNow(ITriggerExecutor executor) {
+    public synchronized void fireNow(ITriggerExecutor executor, Runnable onComplete) {
         ITriggerExecution trigger = this.triggerExecution;
         if (trigger != null) {
-            trigger.fireNow();
             return;
         }
 
-        ResolvedJobSpec jobSpec = this.jobSpec;
-
-        ITriggerExecution execution = executor.execute(true, jobSpec.getTrigger(), createTriggerAction(),
-                getTriggerContext());
-        this.triggerExecution = execution;
+        ITriggerExecution execution = executor.fireNow(createTriggerAction(), getTriggerContext());
+        this.fireNowExecution = execution;
 
         execution.getFinishPromise().whenComplete((ret, err) -> {
-            clearTriggerExecution(execution);
+            clearFireNowExecution(execution, executor, onComplete);
+            onComplete.run();
         });
+    }
+
+    synchronized void clearFireNowExecution(ITriggerExecution execution, ITriggerExecutor executor, Runnable onComplete) {
+        if (this.fireNowExecution == execution)
+            this.fireNowExecution = null;
+
+        if (scheduledTrigger)
+            startTrigger(executor, onComplete);
     }
 
     synchronized void clearTriggerExecution(ITriggerExecution execution) {
@@ -88,25 +107,35 @@ class JobExecution {
         }
     }
 
-    public void pauseTrigger() {
+    public synchronized void pauseTrigger() {
+        scheduledTrigger = false;
         ITriggerExecution execution = triggerExecution;
         if (execution != null) {
             execution.pause();
         }
     }
 
-    public void deactivate() {
+    public synchronized void deactivate() {
         closed = true;
+        scheduledTrigger = false;
+
         ITriggerExecution execution = triggerExecution;
         if (execution != null) {
             execution.deactivate();
         }
     }
 
-    public void cancelTrigger() {
+    public synchronized void cancelTrigger() {
+        scheduledTrigger = false;
+
         ITriggerExecution execution = triggerExecution;
         if (execution != null) {
             execution.cancel();
+        }
+
+        ITriggerExecution fireNowExecution = this.fireNowExecution;
+        if (fireNowExecution != null) {
+            fireNowExecution.cancel();
         }
     }
 

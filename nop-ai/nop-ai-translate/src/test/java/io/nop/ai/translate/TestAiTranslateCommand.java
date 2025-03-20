@@ -65,7 +65,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
     @Test
     public void testTranslateDir() {
         String model = "deepseek-r1:8b";
-         model = "deepseek-r1:14b";
+       //  model = "deepseek-r1:14b";
         // model = "llama3.1:8b";
         //model = "phi4";
         //model = "llama3.2:latest";

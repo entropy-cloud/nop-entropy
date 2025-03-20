@@ -39,8 +39,8 @@ public class TestTriggerExecutor {
         TriggerContextImpl context = new TriggerContextImpl("test", spec);
         List<LocalDateTime> times = new CopyOnWriteArrayList<>();
 
-        ITriggerExecution execution = executor.execute(false, trigger,
-                (ctx, cancelToken) -> GlobalExecutors.globalTimer().schedule(() -> {
+        ITriggerExecution execution = executor.execute(trigger,
+                (forceFire, ctx, cancelToken) -> GlobalExecutors.globalTimer().schedule(() -> {
                     times.add(DateHelper.millisToDateTime(ctx.getLastExecutionEndTime()));
                     times.add(DateHelper.millisToDateTime(ctx.getNextScheduleTime()));
                     return null;

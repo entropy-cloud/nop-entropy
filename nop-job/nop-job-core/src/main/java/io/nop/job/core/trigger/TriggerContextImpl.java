@@ -146,11 +146,13 @@ public class TriggerContextImpl extends TriggerState implements ITriggerContext 
     }
 
     @Override
-    public void onFireNow(long currentTime) {
-        TriggerStatus status = getTriggerStatus();
-        setNextTriggerStatus(status);
-        setNextScheduleTime(currentTime);
-        onChange();
+    public void onBeginFireNow(long currentTime) {
+
+    }
+
+    @Override
+    public void onEndFireNow(long currentTime) {
+
     }
 
     protected String newExecutionId() {

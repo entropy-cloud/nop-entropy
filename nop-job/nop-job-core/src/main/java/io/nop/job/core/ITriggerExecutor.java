@@ -16,8 +16,8 @@ public interface ITriggerExecutor {
 
     /**
      * 根据trigger返回的调度时间，不断调度执行action，直至trigger返回-1
-     *
-     * @param fireNow 如果fireNow为true，则总是会执行一次，然后再按照trigger策略执行
      */
-    ITriggerExecution execute(boolean fireNow, ITrigger trigger, ITriggerAction action, ITriggerContext context);
+    ITriggerExecution execute(ITrigger trigger, ITriggerAction action, ITriggerContext context);
+
+    ITriggerExecution fireNow(ITriggerAction action, ITriggerContext context);
 }

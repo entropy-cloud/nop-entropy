@@ -15,5 +15,5 @@ import java.util.concurrent.CompletionStage;
 
 @FunctionalInterface
 public interface ITriggerAction {
-    CompletionStage<TriggerFireResult> execute(ITriggerState state, ICancelToken cancelToken);
+    CompletionStage<TriggerFireResult> execute(boolean forceFire, ITriggerState state, ICancelToken cancelToken);
 }

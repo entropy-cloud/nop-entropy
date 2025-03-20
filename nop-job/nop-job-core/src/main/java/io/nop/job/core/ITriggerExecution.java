@@ -20,10 +20,7 @@ public interface ITriggerExecution extends ICancellable {
 
     boolean isExecuting();
 
-    /**
-     * 立刻触发一次
-     */
-    boolean fireNow();
+    boolean isDone();
 
     default void pause() {
         cancel(JobCoreConstants.CANCEL_REASON_PAUSE);

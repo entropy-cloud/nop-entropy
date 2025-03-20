@@ -34,7 +34,9 @@ public interface ITriggerContext extends ITriggerState {
 
     void onPaused(long currentTime);
 
-    void onFireNow(long currentTime);
+    void onBeginFireNow(long currentTime);
+
+    void onEndFireNow(long currentTime);
 
     void deactivate();
 

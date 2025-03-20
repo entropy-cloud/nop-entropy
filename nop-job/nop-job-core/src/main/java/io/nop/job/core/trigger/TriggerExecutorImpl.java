@@ -17,12 +17,22 @@ import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.job.api.ITriggerState;
 import io.nop.job.api.TriggerFireResult;
-import io.nop.job.core.*;
+import io.nop.job.core.ITrigger;
+import io.nop.job.core.ITriggerAction;
+import io.nop.job.core.ITriggerContext;
+import io.nop.job.core.ITriggerExecution;
+import io.nop.job.core.ITriggerExecutor;
+import io.nop.job.core.ITriggerHook;
+import io.nop.job.core.JobCoreConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_TRIGGER_FIRE_FAIL;
 
@@ -46,15 +56,25 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
     }
 
     @Override
-    public ITriggerExecution execute(boolean fireNow, ITrigger trigger, ITriggerAction action,
+    public ITriggerExecution execute(ITrigger trigger, ITriggerAction action,
                                      ITriggerContext context) {
 
         LOG.info("nop.job.start-trigger:jobName={},epoch={},executionId={},status={}", context.getJobName(),
                 context.getEpoch(), context.getLastExecutionId(), context.getTriggerStatus());
 
         TriggerExecution task = new TriggerExecution(trigger, action, context);
-        task.schedule(fireNow);
+        task.schedule();
 
+        return task;
+    }
+
+    @Override
+    public ITriggerExecution fireNow(ITriggerAction action, ITriggerContext context) {
+        LOG.info("nop.job.fire-now:jobName={},epoch={},executionId={},status={}", context.getJobName(),
+                context.getEpoch(), context.getLastExecutionId(), context.getTriggerStatus());
+
+        TriggerExecution task = new TriggerExecution(null, action, context);
+        task.fireNow();
         return task;
     }
 
@@ -98,26 +118,6 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
             return promise.isDone();
         }
 
-        @Override
-        public boolean fireNow() {
-            synchronized (lock) {
-                if (isExecuting() || isCancelled() || isDone())
-                    return false;
-
-                // executing=false表示当前没有ScheduleTask正在执行
-
-                // 取消当前正在等待调度执行的任务
-                scheduleIndex++;
-                clearFuture();
-
-                // 立刻发起一次调度
-                onFireNow(context);
-                currentFuture = executor.schedule(new ScheduleTask(), 0, TimeUnit.MILLISECONDS);
-            }
-
-            return true;
-        }
-
         void clearFuture() {
             Future<?> f = this.currentFuture;
             if (f != null) {
@@ -149,14 +149,7 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
             }
         }
 
-        void schedule(boolean fireNow) {
-            if (fireNow) {
-                synchronized (lock) {
-                    onFireNow(context);
-                    currentFuture = executor.schedule(new ScheduleTask(), 0, TimeUnit.MILLISECONDS);
-                    return;
-                }
-            }
+        void schedule() {
             long nextScheduleTime = calcNextScheduleTime(getCurrentTime() - 1);
             if (nextScheduleTime <= 0) {
                 synchronized (lock) {
@@ -168,10 +161,31 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
             }
         }
 
+        void fireNow() {
+            synchronized (lock) {
+                try {
+                    onBeginFireNow(context);
+                    CompletionStage<TriggerFireResult> taskPromise = action.execute(true, context, TriggerExecution.this);
+                    if (taskPromise == null) {
+                        handleFireNowResult(null, null);
+                    } else {
+                        taskPromise.whenComplete(this::handleFireNowResult);
+                    }
+                } catch (Exception e) {
+                    handleFireNowResult(null, e);
+                }
+            }
+        }
+
+        void handleFireNowResult(TriggerFireResult result, Throwable err) {
+            synchronized (lock) {
+                onEndFireNow(result, err, context);
+            }
+        }
+
         private long calcNextScheduleTime(long afterTime) {
             long current = getCurrentTime();
-            long beginTime = trigger.nextScheduleTime(Math.max(afterTime, current), context);
-            return beginTime;
+            return trigger.nextScheduleTime(Math.max(afterTime, current), context);
         }
 
         private void scheduleAt(long beginTime, long startIndex) {
@@ -217,7 +231,7 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
                 }
 
                 try {
-                    CompletionStage<TriggerFireResult> taskPromise = action.execute(context, TriggerExecution.this);
+                    CompletionStage<TriggerFireResult> taskPromise = action.execute(false, context, TriggerExecution.this);
                     if (taskPromise == null) {
                         handleResult(null, null);
                     } else {
@@ -252,7 +266,7 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
                             if (err == null)
                                 err = new NopException(ERR_JOB_TRIGGER_FIRE_FAIL);
                         } else if (result.isCompletedResult()) {
-                            onCompleted(context);
+                            nextScheduleTime = 0;
                         } else if (context.isActive()) {
                             // 明确指定下次调度时间
                             if (result.getNextScheduleTime() > 0) {
@@ -260,9 +274,6 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
                             } else {
                                 // 动态计算下次调度时间
                                 nextScheduleTime = calcNextScheduleTime(context.getLastScheduleTime());
-                            }
-                            if (nextScheduleTime <= 0) {
-                                onCompleted(context);
                             }
                         }
                     } finally {
@@ -278,7 +289,7 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
                     if (nextScheduleTime > 0) {
                         scheduleAt(nextScheduleTime, startIndex);
                     } else {
-                        promise.complete(null);
+                        onCompleted(context);
                     }
                 }
             }
@@ -347,7 +358,7 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
                 context.getEpoch(), context.getLastExecutionId(), result.getError());
 
         if (globalHook != null) {
-            globalHook.onError(current, context);
+            globalHook.onError(current, result, context);
         }
     }
 
@@ -363,15 +374,25 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
         }
     }
 
-    private void onFireNow(ITriggerContext context) {
+    private void onBeginFireNow(ITriggerContext context) {
         long current = getCurrentTime();
-        context.onFireNow(current);
+        context.onBeginFireNow(current);
 
-        LOG.debug("nop.job.fire-now:jobName={},epoch={},executionId={}", context.getJobName(), context.getEpoch(),
+        LOG.debug("nop.job.begin-fire-now:jobName={},epoch={},executionId={}", context.getJobName(), context.getEpoch(),
                 context.getLastExecutionId());
-
         if (globalHook != null) {
-            globalHook.onFireNow(current, context);
+            globalHook.onBeginFireNow(current, context);
+        }
+    }
+
+    private void onEndFireNow(TriggerFireResult result, Throwable exception, ITriggerContext context) {
+        long current = getCurrentTime();
+        context.onEndFireNow(current);
+
+        LOG.debug("nop.job.end-fire-now:jobName={},epoch={},executionId={}", context.getJobName(), context.getEpoch(),
+                context.getLastExecutionId());
+        if (globalHook != null) {
+            globalHook.onEndFireNow(result, exception, context);
         }
     }
 
