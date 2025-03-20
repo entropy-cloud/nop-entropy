@@ -6,6 +6,7 @@ import io.nop.ai.core.commons.debug.DebugMessageHelper;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.ai.core.prompt.PromptTemplateManager;
 import io.nop.ai.core.service.DefaultAiChatService;
+import io.nop.ai.translate.fix.FixMarkdownTranslation;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
@@ -64,10 +65,10 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
     @Test
     public void testTranslateDir() {
         String model = "deepseek-r1:8b";
-        // model = "deepseek-r1:14b";
+         model = "deepseek-r1:14b";
         // model = "llama3.1:8b";
         //model = "phi4";
-        model = "llama3.2:latest";
+        //model = "llama3.2:latest";
         String promptName = "translate";
 
         AiTranslateCommand translator = new AiTranslateCommand(chatService, templateManager, promptName);
@@ -82,7 +83,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         translator.recoverMode(true);
 
         File docsDir = getDocsDir();
-        File docsEnDir = new File(docsDir.getParent(), "docs-en-new");
+        File docsEnDir = new File(docsDir.getParent(), "docs-en");
 
         translator.translateDir(docsDir, docsEnDir, null);
     }
@@ -103,7 +104,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         File docsEnDebugDir = new File(docsDir.getParentFile(), "docs-en-debug");
 
         String model = "llama3.1:8b";
-       // model = "deepseek-r1:8b";
+        // model = "deepseek-r1:8b";
         //model = "llama3.2:latest";
 
         AiCheckTranslationCommand check = new AiCheckTranslationCommand(chatService, templateManager, "translate/score");
@@ -124,12 +125,12 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
                     if (message.isInvalid())
                         continue;
 
-                    Object scoreValue =  message.getMetadata("score");
+                    Object scoreValue = message.getMetadata("score");
                     if (scoreValue != null)
                         continue;
 
                     String source = getSourceText(message);
-                    if(source == null)
+                    if (source == null)
                         continue;
 
                     changed = true;
@@ -147,7 +148,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
                         e.printStackTrace();
                     }
                 }
-                if(changed)
+                if (changed)
                     DebugMessageHelper.writeDebugFile(f2, messages);
             }
             return FileVisitResult.CONTINUE;
@@ -158,7 +159,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         String text = message.getBlockFromPrompt("待翻译的内容如下：\n", "\n[EndOfData]");
         if (text == null) {
             text = message.getBlockFromPrompt("<TRANSLATE_SOURCE>\n", "\n</TRANSLATE_SOURCE>", 1);
-            if(text == null)
+            if (text == null)
                 text = message.getBlockFromPrompt("<TRANSLATE_SOURCE>\n", "\n</TRANSLATE_SOURCE>", 0);
         }
         return text;
@@ -234,6 +235,14 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         for (AiChatResponse response : responses) {
             System.out.println(response.getContent());
         }
+    }
+
+    @Test
+    public void testFixMarkdown() {
+        File docsDir = getDocsDir();
+        File docsEnDebugDir = new File(docsDir.getParentFile(), "docs-en-debug");
+        File fixDir = new File(docsDir.getParentFile(), "docs-en-debug-fix");
+        new FixMarkdownTranslation().fixDir(docsEnDebugDir, fixDir);
     }
 
     @Test
