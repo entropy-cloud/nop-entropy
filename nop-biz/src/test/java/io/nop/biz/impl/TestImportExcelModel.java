@@ -136,11 +136,11 @@ public class TestImportExcelModel extends BaseTestCase {
     }
 
     @Test
-    public void testTreeMerge(){
+    public void testTreeMerge() {
         IResource resource = attachmentResource("test-tree-merge.test.xlsx");
         Object bean = ExcelHelper.loadXlsxObject("/nop/test/imp/test-tree-merge.imp.xml", resource);
 
-        System.out.println(JsonTool.serialize(bean,true));
+        System.out.println(JsonTool.serialize(bean, true));
         IEvalScope scope = XLang.newEvalScope();
         scope.setLocalValue("indexYears", Arrays.asList(2001, 2002));
         scope.setLocalValue("groups", Arrays.asList("分组1", "分组2"));
@@ -148,5 +148,12 @@ public class TestImportExcelModel extends BaseTestCase {
         String html = ExcelReportHelper.getHtmlForXlsxObject("/nop/test/imp/test-tree-merge.imp.xml", bean, scope);
         FileHelper.writeText(getTargetFile("test-tree-merge.html"), html, null);
         assertEquals(normalizeCRLF(attachmentText("test-tree-merge.html")), normalizeCRLF(html));
+    }
+
+    @Test
+    public void testDynamicSheetAndCol() {
+        IResource resource = attachmentResource("test-dynamic-sheet-and-col.xlsx");
+        Object bean = ExcelHelper.loadXlsxObject("/nop/test/imp/test-dynamic-sheet-and-col.imp.xml", resource);
+        assertEquals(attachmentJsonText("test-dynamic-sheet-and-col.json"), JsonTool.serialize(bean, true));
     }
 }

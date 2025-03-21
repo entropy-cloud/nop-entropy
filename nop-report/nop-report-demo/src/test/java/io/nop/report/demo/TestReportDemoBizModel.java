@@ -18,6 +18,7 @@ import io.nop.commons.util.FileHelper;
 import io.nop.report.core.XptConstants;
 import io.nop.report.demo.biz.ReportDemoBizModel;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -61,6 +62,20 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
 //        FileHelper.copyFile(file, getTargetFile("test-report.xlsx"));
 //        file.delete();
 //    }
+
+    @EnableSnapshot
+    @Test
+    public void testDynamicSheetAndDynamicCol() {
+        setTestConfig(ApiConfigs.CFG_EXCEPTION_FILL_STACKTRACE, true);
+        String reportName = "/base/17-动态Sheet和动态列.xpt.xlsx";
+        String html = reportDemo.renderHtml(reportName);
+        FileHelper.writeText(getTargetFile(reportName + ".html"), html, null);
+
+        WebContentBean result = reportDemo.download(reportName, XptConstants.RENDER_TYPE_XLSX);
+        File file = (File) result.getContent();
+        FileHelper.copyFile(file, getTargetFile("test-dynamic-sheet-and-col.xlsx"));
+        file.delete();
+    }
 
     @EnableSnapshot
     @Test

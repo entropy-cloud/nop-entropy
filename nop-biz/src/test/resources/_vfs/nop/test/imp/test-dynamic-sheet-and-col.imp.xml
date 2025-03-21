@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+>
+
+    <!--    <x:post-extends>-->
+    <!--        <imp-gen:TreeTableSupport xpl:lib="/nop/excel/xlib/imp-gen.xlib"/>-->
+    <!--    </x:post-extends>-->
+
+
+    <normalizeFieldsExpr>
+        const list = [];
+        rootRecord['data'].forEach((k,v) => {
+        list.push({name:k,list:v})
+        })
+
+        record.data = list;
+    </normalizeFieldsExpr>
+
+
+    <sheets>
+
+        <sheet name="数据" field="data" list="true" namePattern=".*" multipleAsMap="true" multiple="true"
+               noSeqCol="true" headerRowCount="2">
+
+            <fields>
+                <field name="品牌">
+
+                </field>
+
+                <field name="单价" mandatory="true">
+                    <schema stdDomain="double"/>
+                </field>
+
+                <field name="产地" mandatory="true">
+
+                </field>
+
+                <field name="dynamicProp" virtual="true">
+                    <valueExpr>
+                        let map = record.makeMap('属性')
+                        map[fieldLabel] = value;
+                    </valueExpr>
+                </field>
+            </fields>
+
+            <!-- 动态列全部映射到dynamicProp字段去处理。
+             dynamicProp字段是一个虚拟字段，它执行valueExpr来实现数据结构变换
+             -->
+            <fieldDecider>
+                'dynamicProp'
+            </fieldDecider>
+        </sheet>
+
+    </sheets>
+</imp>

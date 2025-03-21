@@ -19,3 +19,4 @@
 *.csv text eol=lf
 *.js text eol=lf
 *.xjs text eol=lf
+*.html text eol=lf

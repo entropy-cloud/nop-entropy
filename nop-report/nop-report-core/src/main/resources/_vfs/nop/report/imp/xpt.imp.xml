@@ -12,6 +12,10 @@
                     <schema stdDomain="csv-set"/>
                 </field>
 
+                <field name="loopVarName" displayName="循环变量名">
+                    <schema stdDomain="string"/>
+                </field>
+
                 <field name="beginLoop" displayName="构建循环变量">
                     <schema stdDomain="xpl"/>
                 </field>

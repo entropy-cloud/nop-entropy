@@ -170,6 +170,24 @@ public class DynamicObject extends AbstractFreezable implements IComponentModel,
         return (List<Object>) value;
     }
 
+    public Map<String, Object> makeMap(String propName) {
+        Object value = propValues.get(propName);
+        if (value == null) {
+            value = new LinkedHashMap<>();
+            propValues.put(propName, value);
+        }
+        return (Map<String, Object>) value;
+    }
+
+    public DynamicObject makeObject(String propName) {
+        Object value = propValues.get(propName);
+        if (value == null) {
+            value = new DynamicObject(objName + '@' + propName);
+            propValues.put(propName, value);
+        }
+        return (DynamicObject) value;
+    }
+
     @Override
     public Object prop_make(String propName) {
         Object value = propValues.get(propName);
