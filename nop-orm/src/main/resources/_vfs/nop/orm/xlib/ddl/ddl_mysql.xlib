@@ -36,6 +36,11 @@
                         return;
                     </c:script>
                 </c:if>
+
+                <c:if test="${col.defaultValue and col.stdSqlType.toString() == 'DATE'}">
+                    <c:unit><![CDATA[ default '${col.normalizedDefaultValue}' ]]></c:unit>
+                    <c:script>return;</c:script>
+                </c:if>
             </source>
         </DefaultValue>
 

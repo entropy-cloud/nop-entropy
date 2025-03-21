@@ -157,7 +157,7 @@
         <sqlDataType name="NVARCHAR" precision="16383" stdSqlType="VARCHAR"/>
         <sqlDataType name="TEXT" precision="65535" stdSqlType="VARCHAR" allowPrecision="false"/>
         <sqlDataType name="MEDIUMTEXT" precision="16777215" allowPrecision="false" stdSqlType="VARCHAR"/>
-        <sqlDataType name="LONGTEXT" allowPrecision="false" stdSqlType="VARCHAR"/>
+        <sqlDataType name="LONGTEXT" stdSqlType="CLOB"/>
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="TIME" stdSqlType="TIME"/>
         <sqlDataType name="DATETIME" stdSqlType="DATETIME"/>
@@ -169,7 +169,7 @@
         <sqlDataType name="BLOB" precision="255" allowPrecision="false" stdSqlType="VARBINARY"/>
         <sqlDataType name="VARBINARY" precision="16383" stdSqlType="VARBINARY" allowExceedPrecision="true"/>
         <sqlDataType name="MEDIUMBLOB" precision="16777215" stdSqlType="VARBINARY" allowPrecision="false"/>
-        <sqlDataType name="LONGBLOB" stdSqlType="VARBINARY" allowPrecision="false"/>
+        <sqlDataType name="LONGBLOB" stdSqlType="BLOB" allowPrecision="false"/>
         <sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN" alias="BIT" />
         <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>
         <sqlDataType name="JSON" stdSqlType="JSON" />

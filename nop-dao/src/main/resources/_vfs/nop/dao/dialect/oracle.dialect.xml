@@ -160,7 +160,7 @@
         32767 bytes or characters if MAX_STRING_SIZE = EXTENDED
         -->
         <sqlDataType name="VARCHAR2" precision="4000" stdSqlType="VARCHAR" alias="VARCHAR,NVARCHAR2"/>
-        <sqlDataType name="CLOB" stdSqlType="VARCHAR" allowPrecision="false" alias="NCLOB"/>
+        <sqlDataType name="CLOB" stdSqlType="CLOB" alias="NCLOB"/>
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="DATETIME" code="DATE" stdSqlType="DATETIME"/>
         <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP" alias="TIMESTAMP(6) WITH LOCAL TIME ZONE"/>
@@ -172,7 +172,7 @@
          32767 bytes if MAX_STRING_SIZE = EXTENDED,  2000 bytes if MAX_STRING_SIZE = STANDARD
         -->
         <sqlDataType name="RAW" precision="2000" stdSqlType="VARBINARY"/>
-        <sqlDataType name="BLOB" allowPrecision="false" stdSqlType="VARBINARY"/>
+        <sqlDataType name="BLOB" stdSqlType="BLOB"/>
         <!--
         1表示true, 0表示false。jdbc驱动可以自动转换为boolean
         -->

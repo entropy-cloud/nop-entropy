@@ -111,7 +111,7 @@
         <sqlDataType name="INT8" stdSqlType="BIGINT"/>
         <sqlDataType name="VARCHAR" precision="4000" stdSqlType="VARCHAR"/>
         <sqlDataType name="NVARCHAR" precision="4000" stdSqlType="VARCHAR"/>
-        <sqlDataType name="TEXT" stdSqlType="VARCHAR" allowPrecision="false"/>
+        <sqlDataType name="TEXT" stdSqlType="CLOB" />
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="DATETIME" code="TIMESTAMP" stdSqlType="DATETIME"/>
         <sqlDataType name="TIMESTAMP" stdSqlType="TIMESTAMP"/>
@@ -119,7 +119,7 @@
         <sqlDataType name="FLOAT4" stdSqlType="REAL"/>
         <sqlDataType name="FLOAT8" stdSqlType="DOUBLE" alias="DOUBLE PRECISION"/>
         <sqlDataType name="NUMERIC" stdSqlType="DECIMAL"/>
-        <sqlDataType name="BYTEA" allowPrecision="false" stdSqlType="VARBINARY"/>
+        <sqlDataType name="BYTEA" stdSqlType="BLOB"/>
         <sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN"/>
         <sqlDataType name="JSON" stdSqlType="JSON"/>
         <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>

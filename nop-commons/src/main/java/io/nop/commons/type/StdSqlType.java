@@ -90,6 +90,10 @@ public enum StdSqlType implements ISqlDataType {
 
     JSON(false, false, Types.VARCHAR, StdDataType.STRING),
 
+    CLOB(false, false, Types.CLOB, StdDataType.STRING),
+
+    BLOB(false, false, Types.BLOB, StdDataType.BYTES),
+
     ANY(false, false, Types.JAVA_OBJECT, StdDataType.ANY),
     // CURSOR(PrecScale.NO_NO, false, ExtraSqlTypes.REF_CURSOR,
     // SqlTypeFamily.CURSOR),
@@ -153,9 +157,6 @@ public enum StdSqlType implements ISqlDataType {
 
             stdTypeMap.put(type.getStdDataType(), type);
         }
-
-        jdbcTypeMap.put(Types.CLOB, VARCHAR);
-        jdbcTypeMap.put(Types.BLOB, VARBINARY);
     }
 
     public boolean isCompatibleWith(StdSqlType type) {
