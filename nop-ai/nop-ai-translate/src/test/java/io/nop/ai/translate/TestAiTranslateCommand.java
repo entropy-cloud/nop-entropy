@@ -255,6 +255,37 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
     }
 
     @Test
+    public void fixDebugFile() {
+        File docsDir = getDocsDir();
+        File docsEnDebugDir = new File(docsDir.getParentFile(), "docs-en-debug");
+        File docsEnFixDir = new File(docsDir.getParentFile(), "docs-en-debug-fix");
+
+        fixDebugFileForDir(docsEnFixDir);
+        fixDebugFileForDir(docsEnDebugDir);
+    }
+
+    void fixDebugFileForDir(File dir) {
+        FileHelper.walk(dir, f1 -> {
+            if (f1.getName().endsWith(".md")) {
+                List<AiChatResponse> messages = DebugMessageHelper.parseDebugFile(f1);
+                boolean changed = false;
+                for (AiChatResponse message : messages) {
+                    String content = message.getContent();
+                    if (content != null && content.contains("<TRANSLATE_RESULT>")) {
+                        message.parseContentBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>", false, false);
+                        changed = true;
+                    }
+                }
+
+                if (changed) {
+                    DebugMessageHelper.writeDebugFile(f1, messages);
+                }
+            }
+            return FileVisitResult.CONTINUE;
+        });
+    }
+
+    @Test
     public void removeErrorFiles() {
         File docsDir = getDocsDir();
         File docsEnDir = new File(docsDir.getParentFile(), "docs-en-x");

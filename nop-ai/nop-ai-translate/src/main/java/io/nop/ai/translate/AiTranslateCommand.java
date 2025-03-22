@@ -193,11 +193,11 @@ public class AiTranslateCommand extends AiCommand {
                 return FileVisitResult.CONTINUE;
 
             List<AiChatResponse> messages = DebugMessageHelper.parseDebugFile(debugFile);
-            String debugText = DebugMessageHelper.buildDebugText(messages);
+            String aggText = DebugMessageHelper.getText(messages);
 
             String text = FileHelper.readText(outFile, null);
-            if (!debugText.equals(text)) {
-                FileHelper.writeText(outFile, debugText, null);
+            if (!aggText.equals(text)) {
+                FileHelper.writeText(outFile, aggText, null);
             }
             return FileVisitResult.CONTINUE;
         });

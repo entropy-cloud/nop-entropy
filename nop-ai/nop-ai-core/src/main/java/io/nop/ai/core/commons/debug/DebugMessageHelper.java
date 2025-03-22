@@ -69,6 +69,16 @@ public class DebugMessageHelper {
         return sb.toString();
     }
 
+    public static String getText(List<AiChatResponse> messages) {
+        StringBuilder sb = new StringBuilder();
+        for (AiChatResponse message : messages) {
+            String content = message.getContent();
+            if (content != null)
+                sb.append(content).append('\n');
+        }
+        return sb.toString();
+    }
+
     public static void writeDebugFile(File file, List<AiChatResponse> messages) {
         String text = buildDebugText(messages);
         FileHelper.writeText(file, text, null);
