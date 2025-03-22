@@ -1,5 +1,7 @@
 # NopReport示例: 动态Sheet和动态列
 
+讲解视频: https://www.bilibili.com/video/BV1fKXkYWEQJ/
+
 NopReport是一个非常强大的中国式报表引擎，它支持各种复杂报表格式，一般商业报表引擎如帆软报表FineReport可以实现的报表在NopReport中都存在一个简单的对应解决方案。
 详细介绍参见 [NopReport:采用Excel作为设计器的开源中国式报表引擎](https://mp.weixin.qq.com/s/_nKUiryetF2O5zSrPfU8FQ)
 
@@ -74,8 +76,8 @@ D2单元格配置列展开：
 * `expandExpr=entity.list[0].属性.keySet()`
   表示从当前上下文中的entity对象上取list中第一个条目的【属性】字段，这个字段是一个Map，它的key集合是动态属性名称集合。实际使用中可能采用其他方式获取动态属性名。
 * `*=产地` 是valueExpr的一种简写形式，用于从当前的expandedValue上取指定属性作为单元格的值。
-  
-  
+
+
 
 D3单元格通过valueExpr来获取动态列的值，具体配置为`valueExpr=cell.rp.ev.属性[cell.cp.ev]`
 
@@ -163,6 +165,6 @@ TestImportExcelModel这个单元测试中提供了一个`test-dynamic-sheet-and-
  IResource resource = attachmentResource("test-dynamic-sheet-and-col.xlsx");
  Object bean = ExcelHelper.loadXlsxObject(
        "/nop/test/imp/test-dynamic-sheet-and-col.imp.xml", resource);
- assertEquals(attachmentJsonText("test-dynamic-sheet-and-col.json"), 
+ assertEquals(attachmentJsonText("test-dynamic-sheet-and-col.json"),
        JsonTool.serialize(bean, true));
 ```

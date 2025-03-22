@@ -70,7 +70,7 @@ public class SqlDataTypeMapping {
         if (type == null) {
             if (ignoreUnknown)
                 return null;
-            
+
             throw new NopException(ERR_DIALECT_DATA_TYPE_NOT_SUPPORTED).param(ARG_DATA_TYPE, sqlTypeName)
                     .param(ARG_ALLOWED_TYPES, nativeTypes.keySet());
         }
@@ -94,16 +94,34 @@ public class SqlDataTypeMapping {
                 continue;
 
             if (dataTypeModel.isAllowPrecision(precision)) {
-                String code = dataTypeModel.getCode();
-                if (code == null)
-                    code = dataTypeModel.getName();
-                return new SQLDataType(code,
-                        sqlType.isAllowPrecision() && !Boolean.FALSE.equals(dataTypeModel.getAllowPrecision())
-                                ? precision : -1,
-                        sqlType.isAllowScale() ? scale : -1);
+                return buildSQLDataType(dataTypeModel, sqlType, precision, scale);
+            }
+        }
+
+        if (sqlType == StdSqlType.VARCHAR || sqlType == StdSqlType.VARBINARY) {
+            if (sqlType == StdSqlType.VARCHAR) {
+                sqlType = StdSqlType.CLOB;
+            } else {
+                sqlType = StdSqlType.BLOB;
+            }
+            list = stdToNative.get(sqlType);
+            if (list != null) {
+                return buildSQLDataType(list.get(0), sqlType, precision, scale);
             }
         }
         throw new NopException(ERR_DIALECT_STD_DATA_TYPE_NOT_SUPPORTED).param(ARG_DATA_TYPE, sqlType.getName())
                 .param(ARG_ALLOWED_TYPES, stdToNative.keySet()).param(ARG_PRECISION, precision);
     }
+
+    SQLDataType buildSQLDataType(SqlDataTypeModel dataTypeModel, StdSqlType sqlType, int precision, int scale) {
+        String code = dataTypeModel.getCode();
+        if (code == null)
+            code = dataTypeModel.getName();
+        return new SQLDataType(code,
+                sqlType.isAllowPrecision() && !Boolean.FALSE.equals(dataTypeModel.getAllowPrecision())
+                        ? precision : -1,
+                sqlType.isAllowScale() ? scale : -1);
+    }
+
 }
+

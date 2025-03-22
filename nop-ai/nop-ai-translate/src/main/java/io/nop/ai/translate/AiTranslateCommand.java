@@ -187,6 +187,22 @@ public class AiTranslateCommand extends AiCommand {
         FutureHelper.syncGet(translateDirAsync(srcDir, targetFir, cancelToken));
     }
 
+    public static void syncFromDebugFile(File outDir, File debugDir) {
+        FileHelper.walk2(debugDir, outDir, (debugFile, outFile) -> {
+            if (!debugFile.getName().endsWith(".md"))
+                return FileVisitResult.CONTINUE;
+
+            List<AiChatResponse> messages = DebugMessageHelper.parseDebugFile(debugFile);
+            String debugText = DebugMessageHelper.buildDebugText(messages);
+
+            String text = FileHelper.readText(outFile, null);
+            if (!debugText.equals(text)) {
+                FileHelper.writeText(outFile, debugText, null);
+            }
+            return FileVisitResult.CONTINUE;
+        });
+    }
+
     public CompletionStage<Void> translateDirAsync(File srcDir, File targetDir, ICancelToken cancelToken) {
         List<CompletionStage<?>> futures = new ArrayList<>();
 

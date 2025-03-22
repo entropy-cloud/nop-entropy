@@ -65,8 +65,8 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
     @Test
     public void testTranslateDir() {
         String model = "deepseek-r1:8b";
-       //  model = "deepseek-r1:14b";
-        // model = "llama3.1:8b";
+        //  model = "deepseek-r1:14b";
+        model = "llama3.1:8b";
         //model = "phi4";
         //model = "llama3.2:latest";
         String promptName = "translate";
@@ -163,6 +163,15 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
                 text = message.getBlockFromPrompt("<TRANSLATE_SOURCE>\n", "\n</TRANSLATE_SOURCE>", 0);
         }
         return text;
+    }
+
+    @Test
+    public void syncFromDebugFile() {
+        File docsDir = getDocsDir();
+        File docsEnDir = new File(docsDir.getParentFile(), "docs-en");
+        File docsEnDebugDir = new File(docsDir.getParentFile(), "docs-en-debug-fix");
+
+        AiTranslateCommand.syncFromDebugFile(docsEnDir, docsEnDebugDir);
     }
 
     @Test
