@@ -62,6 +62,7 @@ public class DaoLoginSessionStore implements ILoginSessionStore {
         session.setLoginTime(CoreMetrics.currentTimestamp());
         session.setLoginAddr(ApiHeaders.getStringHeader(headers, ApiConstants.HEADER_CLIENT_ADDR));
         session.setLoginDevice(request.getDeviceId());
+        session.setLoginOs(request.getDeviceType());
         daoProvider.daoFor(NopAuthSession.class).saveEntity(session);
         return session.getSessionId();
     }
