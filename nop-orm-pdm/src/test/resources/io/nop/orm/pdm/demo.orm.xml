@@ -1,7 +1,7 @@
 <orm displayName="demo" x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <domains>
-        <domain displayName="blob" name="blob" stdDataType="bytes" stdSqlType="VARBINARY"/>
-        <domain displayName="clob" name="clob" stdDataType="string" stdSqlType="VARCHAR"/>
+        <domain displayName="blob" name="blob" stdDataType="bytes" stdSqlType="BLOB"/>
+        <domain displayName="clob" name="clob" stdDataType="string" stdSqlType="CLOB"/>
         <domain displayName="date" name="date" stdDataType="date" stdDomain="date" stdSqlType="DATE"/>
         <domain displayName="datetime" name="datetime" stdDataType="datetime" stdDomain="datetime" stdSqlType="DATE"/>
         <domain displayName="degree" name="degree" precision="50" stdDataType="string" stdSqlType="VARCHAR"/>
@@ -9,7 +9,7 @@
         <domain displayName="file" name="file" precision="500" stdDataType="string" stdDomain="file"
                 stdSqlType="VARCHAR"/>
         <domain displayName="fileList" name="fileList" stdDataType="int" stdDomain="fileList" stdSqlType="INTEGER"/>
-        <domain displayName="html" name="html" stdDataType="string" stdSqlType="VARCHAR"/>
+        <domain displayName="html" name="html" stdDataType="string" stdSqlType="CLOB"/>
         <domain displayName="long" name="long" stdDataType="long" stdDomain="long" stdSqlType="INTEGER"/>
         <domain displayName="roleId" name="roleId" precision="50" stdDataType="string" stdSqlType="VARCHAR"/>
         <domain displayName="string_int" name="string_int" stdDataType="string" stdDomain="string" stdSqlType="INTEGER"/>

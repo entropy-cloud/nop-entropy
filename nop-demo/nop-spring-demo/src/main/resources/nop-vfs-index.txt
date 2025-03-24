@@ -235,6 +235,7 @@
 /nop/autoconfig/nop-biz.beans
 /nop/autoconfig/nop-dao.beans
 /nop/autoconfig/nop-gateway.beans
+/nop/autoconfig/nop-http-api.beans
 /nop/autoconfig/nop-http-client-jdk.beans
 /nop/autoconfig/nop-integration-zxing.beans
 /nop/autoconfig/nop-message-core.beans
@@ -289,6 +290,7 @@
 /nop/dao/dialect/mssql.dialect.xml
 /nop/dao/dialect/mysql.dialect.xml
 /nop/dao/dialect/mysql5.7.dialect.xml
+/nop/dao/dialect/oracle-reverse.dialect.xml
 /nop/dao/dialect/oracle.dialect.xml
 /nop/dao/dialect/postgis.dialect.xml
 /nop/dao/dialect/postgresql.dialect.xml
@@ -315,6 +317,7 @@
 /nop/graphql/base.graphql
 /nop/graphql/default.graphql
 /nop/graphql/introspection.graphql
+/nop/http/beans/http-api.beans.xml
 /nop/http/beans/http-client-jdk.beans.xml
 /nop/integration/beans/zxing-defaults.beans.xml
 /nop/message/beans/message-core-defaults.beans.xml
@@ -358,6 +361,7 @@
 /nop/report/demo/base/14-复杂结构行展开.xpt.xlsx
 /nop/report/demo/base/15-兄弟节点同时展开.xpt.xlsx
 /nop/report/demo/base/16-多个数据源展开.xpt.xlsx
+/nop/report/demo/base/17-动态Sheet和动态列.xpt.xlsx
 /nop/report/demo/ext/report-with-params.xpt.xlsx
 /nop/report/demo/pages/demo.page.yaml
 /nop/report/demo/pages/report-with-params.page.yaml

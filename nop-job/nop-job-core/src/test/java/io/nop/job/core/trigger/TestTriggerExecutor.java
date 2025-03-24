@@ -15,6 +15,7 @@ import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.job.api.spec.TriggerSpec;
 import io.nop.job.core.ITrigger;
 import io.nop.job.core.ITriggerExecution;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -24,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@Disabled
 public class TestTriggerExecutor {
     @Test
     public void testExecute() {

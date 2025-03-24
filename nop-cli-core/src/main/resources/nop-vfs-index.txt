@@ -92,6 +92,7 @@
 /nop/dao/dialect/mssql.dialect.xml
 /nop/dao/dialect/mysql.dialect.xml
 /nop/dao/dialect/mysql5.7.dialect.xml
+/nop/dao/dialect/oracle-reverse.dialect.xml
 /nop/dao/dialect/oracle.dialect.xml
 /nop/dao/dialect/postgis.dialect.xml
 /nop/dao/dialect/postgresql.dialect.xml
