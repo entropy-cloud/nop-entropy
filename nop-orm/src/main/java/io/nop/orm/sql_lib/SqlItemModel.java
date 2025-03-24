@@ -29,6 +29,7 @@ import io.nop.dataset.IRowMapper;
 import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dataset.impl.BinderFieldMapper;
 import io.nop.dataset.rowmapper.ColRowMapper;
+import io.nop.dataset.rowmapper.ColumnMapRowMapper;
 import io.nop.dataset.rowmapper.SmartRowMapper;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmTemplate;
@@ -162,7 +163,7 @@ public abstract class SqlItemModel extends _SqlItemModel {
             ((IOrmTemplate) executor).batchLoadSelection(data, getBatchLoadSelection());
         }
 
-        if (getRowType() != null && !hasDao(daoProvider)) {
+        if (getRowType() != null && !hasDaoForRowType(daoProvider)) {
             IBeanModel beanModel = ReflectionManager.instance().loadBeanModel(getRowType());
             data = data.stream().map(item -> {
                 if (item instanceof Map) {
@@ -176,7 +177,7 @@ public abstract class SqlItemModel extends _SqlItemModel {
         return data;
     }
 
-    protected boolean hasDao(IDaoProvider daoProvider) {
+    protected boolean hasDaoForRowType(IDaoProvider daoProvider) {
         if (getRowType() == null || daoProvider == null)
             return false;
         return daoProvider.hasDao(getRowType());
@@ -190,7 +191,7 @@ public abstract class SqlItemModel extends _SqlItemModel {
             ((IOrmTemplate) executor).batchLoadSelection(Collections.singleton(data), getBatchLoadSelection());
         }
 
-        if (getRowType() != null && !hasDao(daoProvider)) {
+        if (getRowType() != null && !hasDaoForRowType(daoProvider)) {
             IBeanModel beanModel = ReflectionManager.instance().loadBeanModel(getRowType());
 
             if (data instanceof Map) {
@@ -203,17 +204,17 @@ public abstract class SqlItemModel extends _SqlItemModel {
     }
 
     protected IRowMapper buildRowMapper(IDaoProvider daoProvider, ISqlExecutor executor, String querySpace, IEvalScope scope) {
-        if (getRowType() != null && hasDao(daoProvider)) {
+        if (getRowType() != null && hasDaoForRowType(daoProvider)) {
             // 行为实体对象
             IOrmEntityDao<IOrmEntity> entityDao = (IOrmEntityDao) daoProvider.dao(getRowType());
             return new OrmEntityRowMapper<>(entityDao, isColNameCamelCase(), getOrmEntityRefreshBehavior());
         }
-        SmartRowMapper rowMapper;
+        IRowMapper rowMapper;
         if (DaoConstants.SQL_TYPE_SQL.equals(getType())) {
-            rowMapper = isColNameCamelCase() ? SmartRowMapper.CASE_INSENSITIVE : SmartRowMapper.CAMEL_CASE;
+            rowMapper = isColNameCamelCase() ? ColumnMapRowMapper.CASE_INSENSITIVE : ColumnMapRowMapper.CAMEL_CASE;
         } else {
             // eql语法时列名就是指定的属性名，不需要作camelCase转换
-            rowMapper = SmartRowMapper.INSTANCE;
+            rowMapper = ColumnMapRowMapper.INSTANCE;
         }
         scope.setLocalValue(OrmConstants.PARAM_ROW_MAPPER, rowMapper);
 
@@ -221,15 +222,20 @@ public abstract class SqlItemModel extends _SqlItemModel {
             IDialect dialect = executor.getDialectForQuerySpace(querySpace);
             IFieldMapper colMapper = buildColMapper(dialect);
             scope.setLocalValue(OrmConstants.PARAM_COL_MAPPER, colMapper);
-            rowMapper = new SmartRowMapper(new ColRowMapper<>(rowMapper, colMapper));
+            rowMapper = new ColRowMapper<>(rowMapper, colMapper);
             scope.setLocalValue(OrmConstants.PARAM_ROW_MAPPER, rowMapper);
         }
 
         if (getBuildRowMapper() != null) {
             Object result = getBuildRowMapper().invoke(scope);
             if (result instanceof IRowMapper) {
-                return ((IRowMapper) result);
+                rowMapper = ((IRowMapper) result);
             }
+        }
+
+        if (!isDisableSmartRowMapper()) {
+            if (!(rowMapper instanceof SmartRowMapper))
+                rowMapper = new SmartRowMapper(rowMapper);
         }
         return rowMapper;
     }

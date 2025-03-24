@@ -81,6 +81,13 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: disableSmartRowMapper
+     * 禁用SmartRowMapper机制。缺省情况下，如果只返回一列数据，比如String类型，会自动转换为单列的List<String>。
+     */
+    private boolean _disableSmartRowMapper  = false;
+    
+    /**
+     *  
      * xml name: displayName
      * 
      */
@@ -355,6 +362,25 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
     
     /**
      * 
+     * xml name: disableSmartRowMapper
+     *  禁用SmartRowMapper机制。缺省情况下，如果只返回一列数据，比如String类型，会自动转换为单列的List<String>。
+     */
+    
+    public boolean isDisableSmartRowMapper(){
+      return _disableSmartRowMapper;
+    }
+
+    
+    public void setDisableSmartRowMapper(boolean value){
+        checkAllowChange();
+        
+        this._disableSmartRowMapper = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: displayName
      *  
      */
@@ -618,6 +644,7 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("cacheName",this.getCacheName());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("disableLogicalDelete",this.isDisableLogicalDelete());
+        out.putNotNull("disableSmartRowMapper",this.isDisableSmartRowMapper());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("fetchSize",this.getFetchSize());
         out.putNotNull("fields",this.getFields());
@@ -649,6 +676,7 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
         instance.setCacheName(this.getCacheName());
         instance.setDescription(this.getDescription());
         instance.setDisableLogicalDelete(this.isDisableLogicalDelete());
+        instance.setDisableSmartRowMapper(this.isDisableSmartRowMapper());
         instance.setDisplayName(this.getDisplayName());
         instance.setFetchSize(this.getFetchSize());
         instance.setFields(this.getFields());
