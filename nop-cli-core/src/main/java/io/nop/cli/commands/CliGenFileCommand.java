@@ -58,7 +58,12 @@ public class CliGenFileCommand implements Callable<Integer> {
     public Integer call() {
         Map<String, Object> json = null;
         if (file != null) {
-            json = JsonTool.parseBeanFromResource(resolveRelativePathResource(file), Map.class);
+            IResource resource = resolveRelativePathResource(file);
+            if (file.endsWith(".xml")) {
+                json = DslModelHelper.loadDslModelAsJson(resource, true).toMap();
+            } else {
+                json = JsonTool.parseBeanFromResource(resource, Map.class);
+            }
         } else if (!StringHelper.isEmpty(input)) {
             json = (Map<String, Object>) JsonTool.parseNonStrict(input);
         } else {
