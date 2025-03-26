@@ -27,6 +27,8 @@ public class GlobalExecutors {
 
     public static final String NOP_VIRTUAL_THREAD = "nop-virtual-thread";
 
+    public static final String NOP_SYNC_EXECUTOR = "nop-sync-executor";
+
     private static final Map<String, IThreadPoolExecutor> g_executors = new ConcurrentHashMap<>();
 
     public static Map<String, IThreadPoolExecutor> allExecutors() {
@@ -47,7 +49,16 @@ public class GlobalExecutors {
     }
 
     public static IThreadPoolExecutor getExecutor(String name) {
-        return g_executors.get(name);
+        IThreadPoolExecutor executor = g_executors.get(name);
+        if (executor == null) {
+            if (NOP_GLOBAL_TIMER.equals(name))
+                return globalTimer();
+            if (NOP_CACHED_THREAD_POOL.equals(name))
+                return cachedThreadPool();
+            if (NOP_GLOBAL_WORKER.equals(name))
+                return globalWorker();
+        }
+        return executor;
     }
 
     public static IThreadPoolExecutor requireExecutor(String name) {

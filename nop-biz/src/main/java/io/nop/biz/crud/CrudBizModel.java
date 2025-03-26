@@ -136,7 +136,6 @@ import static io.nop.biz.BizErrors.ERR_BIZ_NO_STATE_MACHINE;
 import static io.nop.biz.BizErrors.ERR_BIZ_OBJ_NO_DICT_TAG;
 import static io.nop.biz.BizErrors.ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF;
 import static io.nop.biz.BizErrors.ERR_BIZ_TOO_MANY_LEFT_JOIN_PROPS_IN_QUERY;
-import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_DEFAULT_PAGE_SIZE;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 import static io.nop.orm.utils.OrmQueryHelper.resolveRef;
 
@@ -223,6 +222,11 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
     public IEntityDao<T> dao() {
         return daoProvider.dao(getEntityName());
+    }
+
+    @BizAction
+    public final IEntityDao<T> getDao() {
+        return dao();
     }
 
     public <R extends IOrmEntity> IEntityDao<R> daoFor(Class<R> clazz) {

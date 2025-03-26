@@ -8,4 +8,9 @@
 package io.nop.biz.report;
 
 public interface BizReportConstants {
+    String EXPORT_FORMAT_XLSX = "xlsx";
+
+    String EXPORT_FORMAT_CSV = "csv";
+
+    String VAR_EXPORT_FILE_PATH = "exportFilePath";
 }

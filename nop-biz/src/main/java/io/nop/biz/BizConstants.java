@@ -69,6 +69,8 @@ public interface BizConstants {
     String METHOD_TRY_UPDATE = "tryUpdate";
     String METHOD_TRY_DELETE = "tryDelete";
 
+    String METHOD_GET_DAO = "getDao";
+
     String ACTION_doFindFirstByQueryDirectly = "doFindFirstByQueryDirectly";
 
     String METHOD_AS_DICT = "asDict";

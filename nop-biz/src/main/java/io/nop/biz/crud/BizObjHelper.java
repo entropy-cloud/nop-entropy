@@ -15,6 +15,8 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.dao.api.IDaoEntity;
+import io.nop.dao.api.IEntityDao;
 import io.nop.xlang.xmeta.IObjPropMeta;
 
 import java.util.Arrays;
@@ -48,5 +50,9 @@ public class BizObjHelper {
             return bizObj.invoke(METHOD_FIND_FIRST, request, null, context);
         });
         return refEntity;
+    }
+
+    public static <T extends IDaoEntity> IEntityDao<T> getDao(IBizObject bizObj, IServiceContext context) {
+        return (IEntityDao<T>) bizObj.invoke(BizConstants.METHOD_GET_DAO, null, null, context);
     }
 }

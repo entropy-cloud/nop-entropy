@@ -104,7 +104,9 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         env.setOpRequest(operation.getOpRequest());
         env.setSelectionBean(context.getFieldSelection().getField(operation.getAliasOrName()));
 
-        CompletionStage<Object> future = FutureHelper.toCompletionStage(fetchNext(result, env));
+        Object ret = fetchNext(result, env);
+
+        CompletionStage<Object> future = FutureHelper.toCompletionStage(ret);
 
         dispatchAll(context);
         return future;

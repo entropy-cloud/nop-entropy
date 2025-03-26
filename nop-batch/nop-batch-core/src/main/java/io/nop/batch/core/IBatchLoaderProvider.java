@@ -4,9 +4,16 @@ import io.nop.api.core.util.FutureHelper;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 public interface IBatchLoaderProvider<S> {
     IBatchLoader<S> setup(IBatchTaskContext context);
+
+    default <R> IBatchLoaderProvider<R> withHook(Function<IBatchLoader<S>, IBatchLoader<R>> hook) {
+        return ctx -> {
+            return hook.apply(setup(ctx));
+        };
+    }
 
     /**
      * <p>
