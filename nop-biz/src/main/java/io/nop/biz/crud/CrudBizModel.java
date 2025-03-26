@@ -105,6 +105,7 @@ import static io.nop.biz.BizConstants.METHOD_FIND_COUNT;
 import static io.nop.biz.BizConstants.METHOD_FIND_FIRST;
 import static io.nop.biz.BizConstants.METHOD_FIND_LIST;
 import static io.nop.biz.BizConstants.METHOD_FIND_PAGE;
+import static io.nop.biz.BizConstants.METHOD_FIND_TREE_LIST;
 import static io.nop.biz.BizConstants.METHOD_FIND_TREE_PAGE;
 import static io.nop.biz.BizConstants.METHOD_TRY_DELETE;
 import static io.nop.biz.BizConstants.METHOD_TRY_SAVE;
@@ -184,6 +185,10 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         return bizObjName;
     }
 
+    public String getAuthObjName(String action) {
+        return getBizObjName();
+    }
+
     /**
      * 如果强制指定BizObjName，则以指定的值为准
      */
@@ -246,7 +251,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (query != null)
             query.setDisableLogicalDelete(false);
 
-        return doFindCount0(query, getBizObjName(), this::invokeDefaultPrepareQuery, context);
+        return doFindCount0(query, getAuthObjName(METHOD_FIND_COUNT), this::invokeDefaultPrepareQuery, context);
     }
 
     @BizAction
@@ -282,7 +287,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     public PageBean<T> doFindPage(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                                   @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery, FieldSelectionBean selection,
                                   IServiceContext context) {
-        return doFindPage0(query, getBizObjName(), prepareQuery, selection, context);
+        return doFindPage0(query, getAuthObjName(METHOD_FIND_PAGE), prepareQuery, selection, context);
     }
 
     @BizAction
@@ -342,7 +347,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                                              @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
                                              IServiceContext context) {
         if (authObjName == null)
-            authObjName = getBizObjName();
+            authObjName = getAuthObjName(action);
 
         checkAllowQuery(query, getThisObj().getObjMeta());
 
@@ -451,7 +456,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     public T doFindFirst(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                          @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
                          FieldSelectionBean selection, IServiceContext context) {
-        return doFindFirst0(query, getBizObjName(), prepareQuery, selection, context);
+        return doFindFirst0(query, getAuthObjName(METHOD_FIND_FIRST), prepareQuery, selection, context);
     }
 
     @BizAction
@@ -674,7 +679,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (dataAuthChecker == null)
             return;
 
-        String bizObjName = getBizObjName();
+        String bizObjName = getAuthObjName(action);
         if (!dataAuthChecker.isPermitted(bizObjName, action, entity, context)) {
             throw new NopException(ERR_AUTH_NO_DATA_AUTH).param(ARG_BIZ_OBJ_NAME, bizObjName);
         }
@@ -685,7 +690,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (dataAuthChecker == null)
             return;
 
-        String bizObjName = getBizObjName();
+        String bizObjName = getAuthObjName(BizConstants.METHOD_UPDATE);
         if (!dataAuthChecker.isPermitted(bizObjName, BizConstants.METHOD_UPDATE, entity, context)) {
             throw new NopException(ERR_AUTH_NO_DATA_AUTH_AFTER_UPDATE).param(ARG_BIZ_OBJ_NAME, bizObjName);
         }
@@ -1281,7 +1286,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     public int updateByQuery(@Name("query") QueryBean query, @Name("data") Map<String, Object> data, IServiceContext context) {
         if (query != null)
             query.setDisableLogicalDelete(false);
-        return doUpdateByQuery(query, getBizObjName(), data, null, this::invokeDefaultPrepareUpdate, context);
+        return doUpdateByQuery(query, getAuthObjName(METHOD_FIND_LIST), data, null, this::invokeDefaultPrepareUpdate, context);
     }
 
     @BizAction
@@ -1321,7 +1326,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (query != null)
             query.setDisableLogicalDelete(false);
 
-        return doDeleteByQuery(query, getBizObjName(), getDefaultRefNamesToCheckExists(),
+        return doDeleteByQuery(query, getAuthObjName(METHOD_FIND_LIST), getDefaultRefNamesToCheckExists(),
                 null, this::invokeDefaultPrepareDelete, context);
     }
 
@@ -1394,7 +1399,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                               @Name("prepareQuery") BiConsumer<QueryBean, IServiceContext> prepareQuery,
                               FieldSelectionBean selection,
                               IServiceContext context) {
-        return doFindList0(query, getBizObjName(), prepareQuery, selection, context);
+        return doFindList0(query, getAuthObjName(METHOD_FIND_LIST), prepareQuery, selection, context);
     }
 
     @BizAction
@@ -1621,7 +1626,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @BizQuery
     @Description("分页查询树状结构")
     public PageBean<StdTreeEntity> findTreeEntityPage(@Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
-        return doFindTreeEntityPage(query, getBizObjName(), null, selection, context);
+        return doFindTreeEntityPage(query, getAuthObjName(METHOD_FIND_TREE_PAGE), null, selection, context);
     }
 
     @BizAction
@@ -1668,7 +1673,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @BizQuery
     @Description("查询树状结构")
     public List<StdTreeEntity> findTreeEntityList(@Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
-        return doFindTreeEntityList(query, getBizObjName(), null, selection, context);
+        return doFindTreeEntityList(query, getAuthObjName(METHOD_FIND_TREE_LIST), null, selection, context);
     }
 
     @BizAction
@@ -1689,7 +1694,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @BizQuery
     @Description("查询树状结构")
     public List<T> findListForTree(@Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
-        return doFindListForTree(query, getBizObjName(), null, selection, context);
+        return doFindListForTree(query, getAuthObjName(METHOD_FIND_TREE_LIST), null, selection, context);
     }
 
     @BizAction
@@ -1710,7 +1715,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @BizQuery
     @Description("分页查询树状结构")
     public PageBean<T> findPageForTree(@Name("query") QueryBean query, FieldSelectionBean selection, IServiceContext context) {
-        return doFindPageForTree(query, getBizObjName(), null, selection, context);
+        return doFindPageForTree(query, getAuthObjName(METHOD_FIND_TREE_PAGE), null, selection, context);
     }
 
     @BizAction
