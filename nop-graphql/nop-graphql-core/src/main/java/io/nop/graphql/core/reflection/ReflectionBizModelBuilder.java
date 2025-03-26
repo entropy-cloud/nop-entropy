@@ -180,11 +180,11 @@ public class ReflectionBizModelBuilder {
         return ret;
     }
 
-    boolean isLocalMethod(IClassModel classModel, IFunctionModel func) {
+    protected boolean isLocalMethod(IClassModel classModel, IFunctionModel func) {
         return func.getDeclaringClass() == classModel.getRawClass();
     }
 
-    boolean isAllowed(String actionName, String[] disabledActions, String[] inheritedActions) {
+    protected boolean isAllowed(String actionName, String[] disabledActions, String[] inheritedActions) {
         if (disabledActions.length > 0) {
             if (ArrayHelper.indexOf(disabledActions, actionName) >= 0)
                 return false;
@@ -197,18 +197,18 @@ public class ReflectionBizModelBuilder {
         return true;
     }
 
-    String getReturnBizObjName(IFunctionModel fn) {
+    protected String getReturnBizObjName(IFunctionModel fn) {
         GraphQLReturn returnAnn = fn.getAnnotation(GraphQLReturn.class);
         return returnAnn == null ? null : returnAnn.bizObjName();
     }
 
-    GraphQLObjectDefinition getLoaderForType(BizLoader loader, TypeRegistry registry) {
+    protected GraphQLObjectDefinition getLoaderForType(BizLoader loader, TypeRegistry registry) {
         if (loader.forType() != Object.class)
             return ReflectionGraphQLTypeFactory.INSTANCE.buildDef(loader.forType(), registry);
         return null;
     }
 
-    private BizModel getBizModel(IClassModel classModel) {
+    protected BizModel getBizModel(IClassModel classModel) {
         BizModel bizModel = classModel.getAnnotation(BizModel.class);
         if (bizModel == null)
             throw new IllegalArgumentException("class no @BizModel annotation:" + classModel.getClassName());
@@ -216,7 +216,7 @@ public class ReflectionBizModelBuilder {
         return bizModel;
     }
 
-    private String getBizObjName(BizModel bizModel, IClassModel classModel) {
+    protected String getBizObjName(BizModel bizModel, IClassModel classModel) {
         String bizObjName = bizModel.value();
         if (StringHelper.isEmpty(bizObjName)) {
             bizObjName = classModel.getSimpleName();
@@ -227,14 +227,14 @@ public class ReflectionBizModelBuilder {
         return bizObjName;
     }
 
-    private String getQueryName(BizQuery query, IFunctionModel funcModel) {
+    protected String getQueryName(BizQuery query, IFunctionModel funcModel) {
         String name = query.value();
         if (StringHelper.isEmpty(name))
             name = getActionName(funcModel);
         return name; // GraphQLNameHelper.getOperationName(bizObjName, name);
     }
 
-    private String getMutationName(BizMutation mutation, IFunctionModel funcModel) {
+    protected String getMutationName(BizMutation mutation, IFunctionModel funcModel) {
         String name = mutation.value();
         if (StringHelper.isEmpty(name)) {
             name = getActionName(funcModel);
@@ -242,21 +242,21 @@ public class ReflectionBizModelBuilder {
         return name;// GraphQLNameHelper.getOperationName(bizObjName, name);
     }
 
-    private String getLoaderName(BizLoader loader, IFunctionModel funcModel) {
+    protected String getLoaderName(BizLoader loader, IFunctionModel funcModel) {
         String name = loader.value();
         if (StringHelper.isEmpty(name))
             name = getActionName(funcModel);
         return name;
     }
 
-    private String getBizActionName(BizAction action, IFunctionModel funcModel) {
+    protected String getBizActionName(BizAction action, IFunctionModel funcModel) {
         String name = action.value();
         if (StringHelper.isEmpty(name))
             name = getActionName(funcModel);
         return name;
     }
 
-    private String getActionName(IFunctionModel funcModel) {
+    protected String getActionName(IFunctionModel funcModel) {
         String name = funcModel.getName();
         if (funcModel.isAsync()) {
             if (name.endsWith("Async")) {
@@ -266,7 +266,7 @@ public class ReflectionBizModelBuilder {
         return name;
     }
 
-    private GraphQLFieldDefinition buildActionField(String bizObjName, Object bean, GraphQLOperationType opType,
+    protected GraphQLFieldDefinition buildActionField(String bizObjName, Object bean, GraphQLOperationType opType,
                                                     SourceLocation loc, String name,
                                                     IFunctionModel func, TypeRegistry registry) {
         IServiceAction action = buildAction(bean, loc, name, func);
@@ -320,7 +320,7 @@ public class ReflectionBizModelBuilder {
         return field;
     }
 
-    private BeanMethodAction buildAction(Object bean, SourceLocation loc, String name, IFunctionModel func) {
+    protected BeanMethodAction buildAction(Object bean, SourceLocation loc, String name, IFunctionModel func) {
         List<IServiceActionArgBuilder> argBuilders = new ArrayList<>(func.getArgCount());
 
         for (int i = 0, n = func.getArgCount(); i < n; i++) {
@@ -374,7 +374,7 @@ public class ReflectionBizModelBuilder {
         return def;
     }
 
-    private IDataFetcher buildFetcher(String bizObjName, Object bean, SourceLocation loc, String name, IFunctionModel func) {
+    protected IDataFetcher buildFetcher(String bizObjName, Object bean, SourceLocation loc, String name, IFunctionModel func) {
         List<Function<IDataFetchingEnvironment, Object>> argBuilders = new ArrayList<>(func.getArgCount());
 
         int sourceIndex = -1;
@@ -420,7 +420,7 @@ public class ReflectionBizModelBuilder {
         return fetcher;
     }
 
-    private IDataFetcher buildFetcher(String bizObjName, Object bean, SourceLocation loc, String name, IFunctionModel func,
+    protected IDataFetcher buildFetcher(String bizObjName, Object bean, SourceLocation loc, String name, IFunctionModel func,
                                       List<Function<IDataFetchingEnvironment, Object>> argBuilders, int sourceIndex) {
         if (sourceIndex >= 0) {
             IFunctionArgument sourceArg = func.getArgs().get(sourceIndex);
