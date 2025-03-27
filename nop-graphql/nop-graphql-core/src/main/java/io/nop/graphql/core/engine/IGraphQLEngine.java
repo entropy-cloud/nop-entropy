@@ -36,6 +36,8 @@ public interface IGraphQLEngine {
 
     void clearCache();
 
+    ICancelTokenManger getCancelTokenManager();
+
     GraphQLDocument parseOperation(String query, boolean skipCache);
 
     GraphQLTypeDefinition getTypeDefinition(String typeName);

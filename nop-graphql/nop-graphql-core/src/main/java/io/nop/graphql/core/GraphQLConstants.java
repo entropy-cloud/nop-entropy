@@ -163,4 +163,6 @@ public interface GraphQLConstants {
     String FRAGMENT_DEFAULTS = "F_defaults";
 
     String SYS_OPERATION_FETCH_RESULTS = "__fetchResult";
+
+    String BEAN_NOP_PROXY_RPC_SERVICE_INVOKER = "nopProxyRpcServiceInvoker";
 }

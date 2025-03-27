@@ -166,6 +166,10 @@ public interface ApiConstants extends FilterBeanConstants {
      */
     String HEADER_TXN_BRANCH_NO = "nop-txn-branch-no";
 
+    String HEADER_TCC_CANCEL = "nop-tcc-cancel";
+
+    String HEADER_TCC_CONFIRM = "nop-tcc-confirm";
+
     /**
      * 业务唯一键，可以用于数据分区选择
      */

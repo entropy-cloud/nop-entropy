@@ -157,6 +157,11 @@ public class GraphQLEngine implements IGraphQLEngine {
         this.graphQLHook = graphQLHook;
     }
 
+    @Override
+    public ICancelTokenManger getCancelTokenManager(){
+        return cancelTokenManager;
+    }
+
     public LocalCache<String, ResourceCacheEntryWithLoader<GraphQLDocument>> getDocumentCache() {
         return documentCache;
     }

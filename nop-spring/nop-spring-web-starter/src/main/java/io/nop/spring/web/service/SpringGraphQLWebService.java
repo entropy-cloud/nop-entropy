@@ -82,7 +82,6 @@ public class SpringGraphQLWebService extends GraphQLWebService {
         return ret;
     }
 
-
     @PostMapping(path = "/graphql", produces = MediaType.APPLICATION_JSON_VALUE)
     public CompletionStage<ResponseEntity<Object>> graphqlSpring(@RequestBody String body) {
         return runGraphQL(body, this::transformSpringResponse);
@@ -96,6 +95,17 @@ public class SpringGraphQLWebService extends GraphQLWebService {
         });
 
         return new ResponseEntity<>(body, httpHeaders, status);
+    }
+
+    @PostMapping(path = "/px/{serviceName}/{serviceMethod}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public CompletionStage<ResponseEntity<Object>> proxy(
+            @PathVariable("serviceName") String serviceName,
+            @PathVariable("serviceMethod") String serviceMethod,
+            @RequestParam(value = SYS_PARAM_SELECTION, required = false) String selection,
+            @RequestBody(required = false) String body) {
+        return runProxy(serviceName, serviceMethod, () -> {
+            return buildRequest(body, selection, true);
+        }, this::transformSpringResponse);
     }
 
     @PostMapping(path = "/r/{operationName}", produces = MediaType.APPLICATION_JSON_VALUE)

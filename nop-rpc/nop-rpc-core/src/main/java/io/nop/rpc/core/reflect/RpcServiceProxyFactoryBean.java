@@ -9,10 +9,11 @@ package io.nop.rpc.core.reflect;
 
 import io.nop.api.core.util.Guard;
 import io.nop.core.reflect.ReflectionManager;
+import io.nop.rpc.api.IAopDynamicProxy;
 import io.nop.rpc.api.IRpcService;
 import io.nop.rpc.api.IRpcServiceInterceptor;
-
 import jakarta.annotation.PostConstruct;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -89,7 +90,7 @@ public class RpcServiceProxyFactoryBean {
 
         RpcInvocationHandler handler = new RpcInvocationHandler(getServiceName(), rpcService,
                 interceptors, messageTransformer);
-        Class[] inf = new Class[]{serviceClass};
+        Class[] inf = new Class[]{serviceClass, IAopDynamicProxy.class};
         this.serviceBean = ReflectionManager.instance().newProxyInstance(inf, handler);
     }
 

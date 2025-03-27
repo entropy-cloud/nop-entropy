@@ -291,6 +291,22 @@ public class ApiHeaders {
         message.setHeader(ApiConstants.HEADER_TXN_BRANCH_NO, branchNo);
     }
 
+    public static String getTccCancel(ApiMessage message){
+        return getStringHeader(message.getHeaders(), ApiConstants.HEADER_TCC_CANCEL);
+    }
+
+    public static void setTccCancel(ApiMessage message, String value){
+        message.setHeader(ApiConstants.HEADER_TCC_CANCEL, value);
+    }
+
+    public static String getTccConfirm(ApiMessage message){
+        return getStringHeader(message.getHeaders(), ApiConstants.HEADER_TCC_CONFIRM);
+    }
+
+    public static void setTccConfirm(ApiMessage message, String value){
+        message.setHeader(ApiConstants.HEADER_TCC_CONFIRM, value);
+    }
+
 
     public static String getActor(ApiMessage message) {
         return getStringHeader(message.getHeaders(), ApiConstants.HEADER_ACTOR);

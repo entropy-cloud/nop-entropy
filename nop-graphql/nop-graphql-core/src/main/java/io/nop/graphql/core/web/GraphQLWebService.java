@@ -20,6 +20,7 @@ import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.commons.functional.ITriFunction;
 import io.nop.commons.functional.Lazy;
 import io.nop.commons.util.CollectionHelper;
@@ -32,10 +33,12 @@ import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.IGraphQLLogger;
 import io.nop.graphql.core.ast.GraphQLOperationType;
+import io.nop.graphql.core.engine.ICancelTokenManger;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import io.nop.graphql.core.utils.GraphQLArgsHelper;
 import io.nop.graphql.core.utils.GraphQLResponseHelper;
 import io.nop.rpc.api.ContextBinder;
+import io.nop.rpc.api.IRpcServiceInvoker;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 import org.slf4j.Logger;
@@ -159,6 +162,69 @@ public abstract class GraphQLWebService {
         return JaxrsHelper.buildJaxrsResponse(context != null ? context.getResponseHeaders() : null, body, 200);
     }
 
+    protected <T> CompletionStage<T> runProxy(String serviceName,
+                                              String serviceMethod,
+                                              Supplier<ApiRequest<?>> requestBuilder,
+                                              ITriFunction<Map<String, Object>, String, Integer, T> responseBuilder) {
+        return runProxy(serviceName, serviceMethod, requestBuilder, (response, gqlContext) -> {
+            return buildRestResponse(response, responseBuilder);
+        });
+    }
+
+    protected <T> CompletionStage<T> runProxy(String serviceName,
+                                              String serviceMethod,
+                                              Supplier<ApiRequest<?>> requestBuilder,
+                                              BiFunction<ApiResponse<?>, IGraphQLExecutionContext, T> responseBuilder) {
+        IRpcServiceInvoker invoker = (IRpcServiceInvoker) BeanContainer.instance()
+                .getBean(GraphQLConstants.BEAN_NOP_PROXY_RPC_SERVICE_INVOKER);
+        IGraphQLEngine graphqlEngine = BeanContainer.getBeanByType(IGraphQLEngine.class);
+
+        long beginTime = CoreMetrics.currentTimeMillis();
+        ApiRequest<?> request = requestBuilder.get();
+
+        ContextBinder binder = new ContextBinder();
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("nop.graphql.rpc-proxy:serviceName={}, serviceMethod={},request={}", serviceName,
+                    serviceMethod, JSON.serialize(request, true));
+        }
+
+        IGraphQLExecutionContext ctx = newGraphQLContext(graphqlEngine);
+        ICancelTokenManger cancelTokenManger = graphqlEngine.getCancelTokenManager();
+
+        binder.init(request);
+        IAsyncFunctionInvoker wrapped = cancelTokenManger.buildInvoker(ctx.getServiceContext());
+
+        try {
+            CompletionStage<ApiResponse<?>> future = wrapped.invokeAsync(req -> {
+                return invoker.invokeAsync(serviceName, serviceMethod, req, ctx.getServiceContext());
+            }, request);
+
+            return future.thenApply(res -> {
+                LOG.info("nop.graphql.end-rpc-proxy:usedTime={},serviceName={},serviceMethod={},errorCode={},msg={}",
+                        CoreMetrics.currentTimeMillis() - beginTime, serviceName, serviceMethod,
+                        res.getCode(), res.getMsg());
+                logRpcResult(beginTime, res, null, ctx);
+                return responseBuilder.apply(res, ctx);
+            }).exceptionally(e -> {
+                if (e != null) {
+                    logRpcResult(beginTime, null, e, ctx);
+                }
+                return responseBuilder.apply(graphqlEngine.buildRpcResponse(null, e, ctx), ctx);
+            }).whenComplete((r, e) -> {
+                binder.close();
+            });
+        } catch (Exception e) {
+            try {
+                return FutureHelper.success(responseBuilder.apply(
+                        graphqlEngine.buildRpcResponse(null, e, ctx), ctx));
+            } finally {
+                binder.close();
+                logRpcResult(beginTime, null, e, ctx);
+            }
+        }
+    }
+
     protected <T> CompletionStage<T> runRest(GraphQLOperationType expectedOpType, String operationName,
                                              Supplier<ApiRequest<?>> requestBuilder,
                                              BiFunction<ApiResponse<?>, IGraphQLExecutionContext, T> responseBuilder
@@ -227,16 +293,21 @@ public abstract class GraphQLWebService {
                                              ITriFunction<Map<String, Object>, String, Integer, T> responseBuilder
     ) {
         return runRest(expectedOpType, operationName, requestBuilder, (response, gqlContext) -> {
-            int status = response.getHttpStatus();
-            if (status == 0) {
-                status = 200;
-            }
-
-            String body = JSON.stringify(response.cloneInstance(false));
-            Map<String, Object> headers = response.getHeaders();
-
-            return responseBuilder.apply(headers != null ? new HashMap<>(headers) : new HashMap<>(), body, status);
+            return buildRestResponse(response, responseBuilder);
         });
+    }
+
+
+    protected <T> T buildRestResponse(ApiResponse<?> response, ITriFunction<Map<String, Object>, String, Integer, T> responseBuilder) {
+        int status = response.getHttpStatus();
+        if (status == 0) {
+            status = 200;
+        }
+
+        String body = JSON.stringify(response.cloneInstance(false));
+        Map<String, Object> headers = response.getHeaders();
+
+        return responseBuilder.apply(headers != null ? new HashMap<>(headers) : new HashMap<>(), body, status);
     }
 
     protected Response buildJaxrsRestResponse(ApiResponse<?> res, IGraphQLExecutionContext context) {

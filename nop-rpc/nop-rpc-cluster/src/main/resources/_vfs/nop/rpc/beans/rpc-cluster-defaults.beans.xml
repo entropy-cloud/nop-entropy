@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-       xmlns:ioc="ioc" xmlns:util="util" xmlns:feature="feature"
-       xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans
-        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+       xmlns:ioc="ioc" xmlns:util="util" xmlns:feature="feature">
 
 
     <import resource="load-balance-defaults.beans.xml"/>
@@ -74,10 +70,12 @@
         <property name="loadBalance" ref="nopLoadBalance_leastActive"/>
     </bean>
 
+    <alias alias="nopServerChooser_default" name="nopServerChooser_random"/>
+
     <bean id="AbstractClusterRpcProxyFactoryBean" abstract="true" ioc:default="true"
           ioc:bean-method="getObject"
           class="io.nop.rpc.cluster.ClusterRpcProxyFactoryBean">
-        <property name="serverChooser" ref="nopServerChooser_random"/>
+        <property name="serverChooser" ref="nopServerChooser_default"/>
         <property name="interceptors" ref="nopRpcServiceInterceptors"/>
         <property name="serviceClass" value="@bean:type"/>
         <property name="retryCount" value="@cfg:nop.rpc.cluster-client-retry-count|2"/>
@@ -94,7 +92,7 @@
     <bean id="AbstractHttpRpcProxyFactoryBean" abstract="true" ioc:default="true"
           ioc:bean-method="getObject"
           class="io.nop.rpc.cluster.http.HttpRpcProxyFactoryBean">
-        <property name="serverChooser" ref="nopServerChooser_random"/>
+        <property name="serverChooser" ref="nopServerChooser_default"/>
         <property name="interceptors" ref="nopRpcServiceInterceptors"/>
         <property name="serviceClass" value="@bean:type"/>
         <property name="retryCount" value="@cfg:nop.rpc.cluster-client-retry-count|2"/>
@@ -103,7 +101,7 @@
     <bean id="AbstractBroadcastRpcProxyFactoryBean" abstract="true" ioc:default="true"
           ioc:bean-method="getObject"
           class="io.nop.rpc.cluster.ClusterRpcProxyFactoryBean">
-        <property name="serverChooser" ref="nopServerChooser_random"/>
+        <property name="serverChooser" ref="nopServerChooser_default"/>
         <property name="interceptors" ref="nopRpcServiceInterceptors"/>
         <property name="serviceClass" value="@bean:type"/>
     </bean>
@@ -121,7 +119,17 @@
         <ref bean="nopRpcServiceInterceptor_stat"/>
         <ref bean="nopRpcServiceInterceptor_log"/>
         <ref bean="nopRpcServiceInterceptor_clientContext"/>
+        <ref bean="nopRpcServiceInterceptor_tcc" ioc:optional="true"/>
     </util:list>
+
+    <bean id="nopClusterRpcServiceInvoker" class="io.nop.rpc.cluster.ClusterRpcServiceInvoker">
+        <property name="serverChooser" ref="nopServerChooser_default"/>
+        <property name="interceptors" ref="nopRpcServiceInterceptors"/>
+        <property name="retryCount" value="@cfg:nop.rpc.proxy.client-retry-count|1"/>
+        <property name="allowedServiceNames" value="@cfg:nop.rpc.proxy.allowed-service-names|"/>
+    </bean>
+
+    <alias name="nopClusterRpcServiceInvoker" alias="nopProxyRpcServiceInvoker"/>
 
     <bean id="nopDynamicRpcService" parent="AbstractRpcProxyFactoryBean"
           ioc:type="io.nop.rpc.api.IDynamicRpcService">

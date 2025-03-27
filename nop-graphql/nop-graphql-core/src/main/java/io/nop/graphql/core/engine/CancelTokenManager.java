@@ -21,16 +21,18 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-public class CancelTokenManager {
+public class CancelTokenManager implements ICancelTokenManger{
     static final Logger LOG = LoggerFactory.getLogger(CancelTokenManager.class);
     private final Map<String, ICancellable> cancelTokens = new ConcurrentHashMap<>();
 
+    @Override
     public void register(String reqId, ICancellable cancelToken) {
         ICancellable oldToken = cancelTokens.put(reqId, cancelToken);
         if (oldToken != null && oldToken != cancelToken)
             oldToken.cancel("replace");
     }
 
+    @Override
     public boolean cancel(String reqId) {
         ICancellable cancelToken = cancelTokens.remove(reqId);
         if (cancelToken == null)
@@ -39,6 +41,7 @@ public class CancelTokenManager {
         return true;
     }
 
+    @Override
     public IAsyncFunctionInvoker wrap(IAsyncFunctionInvoker invoker, IServiceContext ctx) {
         String reqId = ApiHeaders.getIdFromHeaders(ctx.getRequestHeaders());
         if (StringHelper.isEmpty(reqId))

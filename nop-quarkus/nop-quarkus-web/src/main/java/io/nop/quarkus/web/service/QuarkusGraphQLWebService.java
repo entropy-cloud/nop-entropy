@@ -40,6 +40,20 @@ public class QuarkusGraphQLWebService extends GraphQLWebService {
 
 
     @POST
+    @Path("/px/{serviceName}/{serviceMethod}")
+    @Produces(MediaType.APPLICATION_JSON + ";charset=UTF-8")
+    public CompletionStage<Response> proxy(@Context RoutingContext routingContext,
+                                           @PathParam("serviceName") String serviceName,
+                                           @PathParam("serviceMethod") String serviceMethod,
+                                           @QueryParam(SYS_PARAM_SELECTION) String selection, String body) {
+        return withRoutingContext(routingContext, () -> {
+            return runProxy(serviceName, serviceMethod, () -> {
+                return buildRequest(body, selection, true);
+            }, this::buildJaxrsRestResponse);
+        });
+    }
+
+    @POST
     @Path("/graphql")
     @Produces(MediaType.APPLICATION_JSON + ";charset=UTF-8")
     public CompletionStage<Response> graphql(@Context RoutingContext routingContext, String body) {
