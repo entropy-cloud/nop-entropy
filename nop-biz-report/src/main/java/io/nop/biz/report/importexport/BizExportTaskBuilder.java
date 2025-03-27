@@ -36,6 +36,7 @@ public class BizExportTaskBuilder {
                                 Executor executor) {
         this.graphQLEngine = graphQLEngine;
         this.daoProvider = daoProvider;
+        this.executor = executor;
     }
 
     public BatchTaskBuilder<Object, Object> newTaskBuilder(
