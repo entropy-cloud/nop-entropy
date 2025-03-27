@@ -32,4 +32,7 @@ public interface TccCoreErrors {
 
     ErrorCode ERR_TCC_INVALID_CONFIRM_STATUS = define("nop.err.tcc.core.invalid-confirm-status",
             "事务[{txnGroup}/{txnId}]的不允许提交:{tccStatus}", ARG_TXN_GROUP, ARG_TXN_ID, ARG_TCC_STATUS);
+
+    ErrorCode ERR_TCC_NO_TXN_ID = define("nop.err.tcc.core.no-txn-id",
+            "事务ID不存在:{txnGroup}", ARG_TXN_GROUP);
 }

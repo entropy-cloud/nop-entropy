@@ -15,11 +15,10 @@ import io.nop.rpc.api.IRpcServiceInvocation;
 import io.nop.tcc.api.ITccEngine;
 import io.nop.tcc.api.TccBranchRequest;
 import io.nop.tcc.core.impl.TccHelper;
-import io.nop.tcc.core.meta.ITccServiceMeta;
 import io.nop.tcc.core.meta.ITccServiceMetaLoader;
 import io.nop.tcc.core.meta.TccMethodMeta;
-
 import jakarta.inject.Inject;
+
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.api.core.context.ContextProvider.thenOnContext;
@@ -61,11 +60,8 @@ public class TccRpcServiceInterceptor implements IRpcServiceInterceptor {
     }
 
     private CompletionStage<ApiResponse<?>> runWithTccContext(TccContext tccContext, IRpcServiceInvocation inv) {
-        ITccServiceMeta serviceMeta = serviceMetaLoader.getServiceMeta(inv.getServiceName());
-        if (serviceMeta == null)
-            return inv.proceedAsync();
-
-        TccMethodMeta methodMeta = serviceMeta.getMethodMeta(inv.getServiceMethod());
+        TccMethodMeta methodMeta = serviceMetaLoader.getMethodMeta(inv.getServiceName(),
+                inv.getServiceMethod(), inv.getRequest());
 
         // 对于不支持tcc事务的方法，直接返回
         if (methodMeta == null) {
@@ -87,7 +83,7 @@ public class TccRpcServiceInterceptor implements IRpcServiceInterceptor {
         TccContext finalContext = tccContext;
         return tccEngine.runInTransactionAsync(methodMeta.getTxnGroup(), txnId, txn -> {
             if (shouldStartBranch(inv.isInbound(), txn.isInitiator(), methodMeta)) {
-                TccBranchRequest req = buildBranchRequest(serviceMeta, methodMeta, finalContext, request);
+                TccBranchRequest req = buildBranchRequest(inv.getServiceName(), methodMeta, finalContext, request);
                 return tccEngine.runBranchTransactionAsync(txn, req, t -> inv.proceedAsync());
             }
             return inv.proceedAsync();
@@ -107,10 +103,10 @@ public class TccRpcServiceInterceptor implements IRpcServiceInterceptor {
         return true;
     }
 
-    private TccBranchRequest buildBranchRequest(ITccServiceMeta serviceMeta, TccMethodMeta methodMeta, TccContext tccContext,
+    private TccBranchRequest buildBranchRequest(String serviceName, TccMethodMeta methodMeta, TccContext tccContext,
                                                 ApiRequest<?> request) {
         TccBranchRequest req = new TccBranchRequest();
-        req.setServiceName(serviceMeta.getServiceName());
+        req.setServiceName(serviceName);
         req.setTxnGroup(methodMeta.getTxnGroup());
         req.setServiceMethod(methodMeta.getServiceMethod());
         req.setCancelMethod(methodMeta.getCancelMethod());

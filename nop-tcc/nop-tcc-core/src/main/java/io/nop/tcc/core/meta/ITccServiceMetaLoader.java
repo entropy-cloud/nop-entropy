@@ -7,6 +7,8 @@
  */
 package io.nop.tcc.core.meta;
 
+import io.nop.api.core.beans.ApiRequest;
+
 public interface ITccServiceMetaLoader {
-    ITccServiceMeta getServiceMeta(String serviceName);
+    TccMethodMeta getMethodMeta(String serviceName, String methodName, ApiRequest<?> request);
 }
