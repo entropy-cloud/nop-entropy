@@ -241,7 +241,6 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @Description("@i18n:biz.findCount|获取记录总数")
     @BizQuery
     @BizArgsNormalizer(BizConstants.BEAN_nopQueryBeanArgsNormalizer)
-    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public long findCount(@Optional @Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query, IServiceContext context) {
         if (query != null)
             query.setDisableLogicalDelete(false);
