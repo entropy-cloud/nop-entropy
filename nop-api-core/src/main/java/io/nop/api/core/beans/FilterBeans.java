@@ -47,6 +47,7 @@ import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_VALUE_NAME;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_DATETIME_BETWEEN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_DATE_BETWEEN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_LENGTH_BETWEEN;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_LIKE;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_BLANK;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_EMPTY;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT_IN;
@@ -207,6 +208,8 @@ public class FilterBeans {
     public static TreeBean endsWith(String name, Object value) {
         return compareOp(FILTER_OP_ENDS_WITH, name, value);
     }
+
+    public static TreeBean like(String name, String value) { return compareOp(FILTER_OP_LIKE, name, value); }
 
     public static TreeBean contains(String name, Object value) {
         return compareOp(FILTER_OP_CONTAINS, name, value);
