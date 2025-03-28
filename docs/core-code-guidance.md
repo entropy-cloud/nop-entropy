@@ -158,7 +158,7 @@ Nop平台所有的设计都非常简单直接，一般核心代码集中在少�
 5. GraphQLExecutor
    任务派发和结果选择的具体执行逻辑
 6. BizObjectManager
-   使用BizObjectBuilder动态组装BizObject业务对象。将BizObjet上的方法映射为GraphQLOperation，将BizObject的属性结构映射为GraphQLObjectDefinition。
+   使用BizObjectBuilder动态组装BizObject业务对象。将BizObject上的方法映射为GraphQLOperation，将BizObject的属性结构映射为GraphQLObjectDefinition。
 7. BizObjectBuilder
    将XMeta文件、XBiz文件中的信息，以及BizModel Java类中的信息合成在一起，构成有一个完整的BizObject业务对象。
 8. ReflectionBizModelBuilder和ReflectionGraphQLTypeFactory
