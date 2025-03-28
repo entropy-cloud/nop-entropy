@@ -35,7 +35,7 @@ Nop Platform 2.0是基于可逆计算原理从零开始构建的采用面向语�
   *面向最终用户的无代码平台的支撑技术**，允许客户在线调整业务模块功能，以所见即所得的方式进行产品迭代。**Nop平台可以作为一个非常精巧的通用SAAS平台底座**，基于它只需要做少量包装即可实现一个完善的针对特定领域的SAAS平台。
 
 目前Nop平台开源的部分主要包含XLang语言的实现，以及ORM、依赖注入容器(IoC)、分布式配置（Config）、GraphQLEngine、报表引擎（Report
-Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Prcessing Engine）、规则引擎（Rule Engine）等基础框架，
+Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Processing Engine）、规则引擎（Rule Engine）等基础框架，
 后续规划包括工作流引擎（Workflow Engine）、商业智能（BI）、流处理引擎等业务开发常用部分。
 
 > Nop Platform 2.0的代码是由Entropy Platform 1.0重构而来

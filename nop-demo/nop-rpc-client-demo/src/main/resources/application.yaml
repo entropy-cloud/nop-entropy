@@ -5,6 +5,10 @@ nop:
   server:
     port: 9092
 
+  rpc:
+    proxy:
+      allowed-service-names: '*'
+
   cluster:
     registration:
       enabled: true
@@ -37,3 +41,9 @@ quarkus:
   http:
     host: 0.0.0.0
     port: ${nop.server.port}
+
+  log:
+    level: INFO
+    category:
+      "com.alibaba.nacos":
+        level: INFO

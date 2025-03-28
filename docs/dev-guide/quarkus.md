@@ -185,3 +185,6 @@ http://localhost:8080/r/NopAuthSite__findPage?%40selection=items%7Bid%7D
 
 ### 3. 如何设置dev和prod环境的配置
 quarkus通过`quarkus.profile`配置来区分dev和prod环境，可以在`application.yaml`中设置`quarkus.profile: dev`或者`quarkus.profile: prod`来区分环境
+
+### 4. IDEA中启动失败，没有任何提示
+application.yaml文件格式不合法会导致这些问题。在main函数中加断点调试可以跟踪。
