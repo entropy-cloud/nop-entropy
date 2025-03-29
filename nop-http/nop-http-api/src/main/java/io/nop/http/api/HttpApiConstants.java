@@ -8,7 +8,9 @@
 package io.nop.http.api;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * http header大小写不敏感，全部转成小写
@@ -42,6 +44,13 @@ public interface HttpApiConstants {
     String HEADER_SET_COOKIE2 = "set-cookie2";
 
     String HEADER_REFERRER = "referrer";
+
+    String HEADER_CONNECTION = "connection";
+    String HEADER_EXPECT = "expect";
+    String HEADER_UPGRADE = "upgrade";
+
+    Set<String> DISALLOWED_HEADERS = new HashSet<>(Arrays.asList(
+            HEADER_HOST, HEADER_CONTENT_LENGTH, HEADER_CONNECTION, HEADER_EXPECT, HEADER_UPGRADE));
 
     String CONTENT_TYPE_OCTET = "application/octet-stream";
     String CONTENT_TYPE_HTML = "text/html";

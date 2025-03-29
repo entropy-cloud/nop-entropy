@@ -9,10 +9,13 @@ package io.nop.tcc.core.meta;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.annotations.data.ImmutableBean;
+import io.nop.api.core.util.Guard;
 
 import java.io.Serializable;
 
 @DataBean
+@ImmutableBean
 public class TccMethodMeta implements Serializable {
     private final String txnGroup;
     private final String serviceMethod;
@@ -22,7 +25,7 @@ public class TccMethodMeta implements Serializable {
     public TccMethodMeta(@JsonProperty("txnGroup") String txnGroup, @JsonProperty("serviceMethod") String serviceMethod,
                          @JsonProperty("confirmMethod") String confirmMethod, @JsonProperty("cancelMethod") String cancelMethod) {
         this.txnGroup = txnGroup;
-        this.serviceMethod = serviceMethod;
+        this.serviceMethod = Guard.notEmpty(serviceMethod, "serviceMethod");
         this.confirmMethod = confirmMethod;
         this.cancelMethod = cancelMethod;
     }

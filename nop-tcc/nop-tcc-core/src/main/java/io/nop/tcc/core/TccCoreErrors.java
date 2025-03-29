@@ -35,4 +35,7 @@ public interface TccCoreErrors {
 
     ErrorCode ERR_TCC_NO_TXN_ID = define("nop.err.tcc.core.no-txn-id",
             "事务ID不存在:{txnGroup}", ARG_TXN_GROUP);
+
+    ErrorCode ERR_TCC_UNKNOWN_SERVICE_METHOD = define("nop.err.tcc.core.unknown-service-method",
+            "未知的服务方法:{serviceName}/{serviceMethod}", ARG_SERVICE_NAME, ARG_SERVICE_METHOD);
 }

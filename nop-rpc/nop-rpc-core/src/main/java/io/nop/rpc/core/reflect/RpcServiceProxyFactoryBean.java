@@ -12,12 +12,13 @@ import io.nop.core.reflect.ReflectionManager;
 import io.nop.rpc.api.IAopDynamicProxy;
 import io.nop.rpc.api.IRpcService;
 import io.nop.rpc.api.IRpcServiceInterceptor;
+import io.nop.rpc.api.IRpcProxyFactory;
 import jakarta.annotation.PostConstruct;
 
 import java.util.Collections;
 import java.util.List;
 
-public class RpcServiceProxyFactoryBean {
+public class RpcServiceProxyFactoryBean implements IRpcProxyFactory {
     private String serviceName;
     private Class<?> serviceClass;
     private List<IRpcServiceInterceptor> interceptors;
@@ -56,10 +57,12 @@ public class RpcServiceProxyFactoryBean {
         this.messageTransformer = messageTransformer;
     }
 
+    @Override
     public String getServiceName() {
         return serviceName;
     }
 
+    @Override
     public Class<?> getServiceClass() {
         return serviceClass;
     }
@@ -94,6 +97,7 @@ public class RpcServiceProxyFactoryBean {
         this.serviceBean = ReflectionManager.instance().newProxyInstance(inf, handler);
     }
 
+    @Override
     public Object getObject() {
         return serviceBean;
     }

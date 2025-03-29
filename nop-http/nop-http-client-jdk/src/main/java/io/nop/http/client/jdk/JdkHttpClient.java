@@ -173,6 +173,10 @@ public class JdkHttpClient implements IHttpClient {
         builder.method(method, toBodyPublisher(body));
         if (request.getHeaders() != null) {
             for (Map.Entry<String, Object> entry : request.getHeaders().entrySet()) {
+                String name = entry.getKey();
+                if (HttpApiConstants.DISALLOWED_HEADERS.contains(name))
+                    continue;
+
                 Object value = entry.getValue();
                 if (value instanceof Collection) {
                     Collection<?> c = (Collection<?>) value;

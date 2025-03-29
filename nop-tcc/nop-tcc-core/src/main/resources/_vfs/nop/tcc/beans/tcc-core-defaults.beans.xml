@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc">
+
+    <bean id="nopTccServiceMetaLoader" class="io.nop.tcc.core.meta.DefaultTccServiceMetaLoader">
+        <property name="rpcProxyFactories">
+            <ioc:collect-beans only-concrete-classes="true" by-type="io.nop.rpc.api.IRpcProxyFactory"/>
+        </property>
+    </bean>
+
+</beans>

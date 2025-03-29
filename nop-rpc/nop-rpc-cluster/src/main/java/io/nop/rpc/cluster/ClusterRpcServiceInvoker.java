@@ -100,6 +100,11 @@ public class ClusterRpcServiceInvoker implements IRpcServiceInvoker {
             return FutureHelper.reject(new NopException(ERR_RPC_NOT_ALLOWED_SERVICE_NAME)
                     .param(ARG_SERVICE_NAME, serviceName));
 
-        return getRpcService(serviceMethod).callAsync(serviceMethod, request, cancelToken);
+        checkRequest(request);
+        return getRpcService(serviceName).callAsync(serviceMethod, request, cancelToken);
+    }
+
+    protected void checkRequest(ApiRequest<?> request) {
+
     }
 }

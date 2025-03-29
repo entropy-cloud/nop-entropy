@@ -31,11 +31,6 @@ public class RpcClientApplication {
 
     public static void main(String... args) {
         globalArgs = args;
-        try {
-            Quarkus.run(args);
-        } catch (RuntimeException e) {
-            e.printStackTrace();
-            throw e;
-        }
+        Quarkus.run(args);
     }
 }
