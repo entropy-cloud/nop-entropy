@@ -18,6 +18,10 @@ public class DefaultRateLimiter implements IRateLimiter {
         this.rateLimiter = RateLimiter.create(permitsPerSecond);
     }
 
+    public static IRateLimiter create(double permitsPerSecond) {
+        return new DefaultRateLimiter(permitsPerSecond);
+    }
+
     @Override
     public boolean tryAcquire(int permits, long timeout) {
         return rateLimiter.tryAcquire(permits, timeout, TimeUnit.MILLISECONDS);

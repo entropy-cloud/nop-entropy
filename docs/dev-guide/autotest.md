@@ -473,6 +473,8 @@ public @interface NopTestConfig {
 }
 ```
 
+当测试时可以通过testConfigFile引入测试专用的bean配置，在其中定义mock用的bean。
+
 ### @NopTestProperty
 
 在测试类上可以通过@NopTestProperty注解直接指定专门针对本测试类的配置项，这样可以不用修改application.yaml文件，例如
