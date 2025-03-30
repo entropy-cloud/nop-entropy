@@ -22,11 +22,6 @@ public class StatRpcServiceInterceptor implements IRpcServiceInterceptor {
     }
 
     @Override
-    public int order() {
-        return HIGH_PRIORITY;
-    }
-
-    @Override
     public CompletionStage<ApiResponse<?>> interceptAsync(IRpcServiceInvocation inv) {
         long beginTime = CoreMetrics.nanoTime();
         RpcClientStat stat = statManager.getRpcClientStat(inv.getServiceName(), inv.getServiceMethod());

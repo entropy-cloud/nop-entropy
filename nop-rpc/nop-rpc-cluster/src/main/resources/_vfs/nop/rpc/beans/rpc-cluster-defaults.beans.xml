@@ -76,7 +76,7 @@
           ioc:bean-method="getObject"
           class="io.nop.rpc.cluster.ClusterRpcProxyFactoryBean">
         <property name="serverChooser" ref="nopServerChooser_default"/>
-        <property name="interceptors" ref="nopRpcServiceInterceptors"/>
+        <property name="interceptors" ref="nopRpcServiceClientInterceptors"/>
         <property name="serviceClass" value="@bean:type"/>
         <property name="retryCount" value="@cfg:nop.rpc.cluster-client-retry-count|2"/>
     </bean>
@@ -93,7 +93,7 @@
           ioc:bean-method="getObject"
           class="io.nop.rpc.cluster.http.HttpRpcProxyFactoryBean">
         <property name="serverChooser" ref="nopServerChooser_default"/>
-        <property name="interceptors" ref="nopRpcServiceInterceptors"/>
+        <property name="interceptors" ref="nopRpcServiceClientInterceptors"/>
         <property name="serviceClass" value="@bean:type"/>
         <property name="retryCount" value="@cfg:nop.rpc.cluster-client-retry-count|2"/>
     </bean>
@@ -102,7 +102,7 @@
           ioc:bean-method="getObject"
           class="io.nop.rpc.cluster.ClusterRpcProxyFactoryBean">
         <property name="serverChooser" ref="nopServerChooser_default"/>
-        <property name="interceptors" ref="nopRpcServiceInterceptors"/>
+        <property name="interceptors" ref="nopRpcServiceClientInterceptors"/>
         <property name="serviceClass" value="@bean:type"/>
     </bean>
 
@@ -115,7 +115,7 @@
     <bean id="nopRpcServiceInterceptor_clientContext"
           class="io.nop.rpc.core.interceptors.ClientContextRpcServiceInterceptor"/>
 
-    <util:list id="nopRpcServiceInterceptors">
+    <util:list id="nopRpcServiceClientInterceptors">
         <ref bean="nopRpcServiceInterceptor_stat"/>
         <ref bean="nopRpcServiceInterceptor_log"/>
         <ref bean="nopRpcServiceInterceptor_clientContext"/>
@@ -124,7 +124,7 @@
 
     <bean id="nopClusterRpcServiceInvoker" class="io.nop.rpc.cluster.ClusterRpcServiceInvoker">
         <property name="serverChooser" ref="nopServerChooser_default"/>
-        <property name="interceptors" ref="nopRpcServiceInterceptors"/>
+        <property name="interceptors" ref="nopRpcServiceClientInterceptors"/>
         <property name="retryCount" value="@cfg:nop.rpc.proxy.client-retry-count|1"/>
         <property name="allowedServiceNames" value="@cfg:nop.rpc.proxy.allowed-service-names|"/>
     </bean>

@@ -68,4 +68,6 @@ public interface RpcErrors {
             ARG_SERVICE_METHOD);
 
     ErrorCode ERR_RPC_CANCELLED = define("nop.err.rpc.cancelled", "RPC调用已取消，原因:{reason}", ARG_CANCEL_REASON);
+
+    ErrorCode ERR_RPC_FLOW_CONTROL_REJECT = define("nop.err.rpc.flow-control-reject", "RPC调用被限流");
 }

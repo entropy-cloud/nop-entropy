@@ -7,7 +7,6 @@
  */
 package io.nop.rpc.api;
 
-import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 
@@ -17,10 +16,6 @@ import java.util.concurrent.CompletionStage;
  * 根据ApiRequest中的信息初始化IContext。当请求执行完毕之后自动清除context
  */
 public class ApiContextInterceptor implements IRpcServiceInterceptor {
-
-    public int order() {
-        return ApiConstants.INTERCEPTOR_PRIORITY_API_CONTEXT;
-    }
 
     @Override
     public CompletionStage<ApiResponse<?>> interceptAsync(

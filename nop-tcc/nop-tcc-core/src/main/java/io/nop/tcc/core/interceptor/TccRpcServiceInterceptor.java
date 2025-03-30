@@ -7,7 +7,6 @@
  */
 package io.nop.tcc.core.interceptor;
 
-import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.rpc.api.IRpcServiceInterceptor;
@@ -27,10 +26,6 @@ public class TccRpcServiceInterceptor implements IRpcServiceInterceptor {
 
     private final ITccEngine tccEngine;
     private final ITccServiceMetaLoader serviceMetaLoader;
-
-    public int order() {
-        return ApiConstants.INTERCEPTOR_PRIORITY_TCC;
-    }
 
     @Inject
     public TccRpcServiceInterceptor(ITccEngine engine, ITccServiceMetaLoader serviceMetaLoader) {

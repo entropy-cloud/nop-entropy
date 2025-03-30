@@ -24,11 +24,6 @@ public class DelegateInterceptor implements IRpcServiceInterceptor {
     }
 
     @Override
-    public int order() {
-        return priority;
-    }
-
-    @Override
     public CompletionStage<ApiResponse<?>> interceptAsync(IRpcServiceInvocation inv) {
         return interceptor.interceptAsync(inv);
     }
