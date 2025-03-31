@@ -27,13 +27,13 @@ public interface IHttpClient {
         throw new UnsupportedOperationException();
     }
 
-    CompletionStage<Void> downloadAsync(HttpRequest request, IHttpOutputFile targetFile, DownloadOptions options,
-                                        ICancelToken cancelToken);
+    CompletionStage<IHttpResponse> downloadAsync(HttpRequest request, IHttpOutputFile targetFile, DownloadOptions options,
+                                                 ICancelToken cancelToken);
 
-    default void download(HttpRequest request, IHttpOutputFile targetFile, DownloadOptions options, ICancelToken cancelToken) {
-        FutureHelper.syncGet(downloadAsync(request, targetFile, options, cancelToken));
+    default IHttpResponse download(HttpRequest request, IHttpOutputFile targetFile, DownloadOptions options, ICancelToken cancelToken) {
+        return FutureHelper.syncGet(downloadAsync(request, targetFile, options, cancelToken));
     }
 
-    CompletionStage<Void> uploadAsync(HttpRequest request, IHttpInputFile inputFile, UploadOptions options,
-                                      ICancelToken cancelToken);
+    CompletionStage<IHttpResponse> uploadAsync(HttpRequest request, IHttpInputFile inputFile, UploadOptions options,
+                                               ICancelToken cancelToken);
 }

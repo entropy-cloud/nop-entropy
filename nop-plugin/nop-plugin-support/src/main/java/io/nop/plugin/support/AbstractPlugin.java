@@ -1,10 +1,13 @@
-package io.nop.plugin.core.support;
+package io.nop.plugin.support;
 
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.service.LifeCycleSupport;
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.plugin.api.IPlugin;
 import io.nop.plugin.api.IPluginCancelToken;
 import io.nop.plugin.api.IPluginCommand;
@@ -13,7 +16,7 @@ import java.sql.Timestamp;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
-import static io.nop.plugin.core.PluginCoreConstants.BEAN_NOP_PLUGIN_COMMAND_PREFIX;
+import static io.nop.plugin.api.NopPluginConstants.BEAN_NOP_PLUGIN_COMMAND_PREFIX;
 
 public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin {
     private IBeanContainer beanContainer;
@@ -64,15 +67,23 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
             autoInit = true;
             CoreInitialization.initialize();
         }
+
+        IResource beansResource = VirtualFileSystem.instance().getResource("/nop/plugin.beans.xml");
+
     }
 
     @Override
-    public CompletionStage<Map<String, Object>> invokeCommand(String command, Map<String, Object> args, IPluginCancelToken cancelToken) {
+    public CompletionStage<Map<String, Object>> invokeCommandAsync(String command, Map<String, Object> args, IPluginCancelToken cancelToken) {
         String beanName = BEAN_NOP_PLUGIN_COMMAND_PREFIX + command;
         IPluginCommand commandBean = (IPluginCommand) BeanContainer.tryGetBean(beanName);
         if (commandBean == null) {
             commandBean = (IPluginCommand) BeanContainer.instance().getBean(BEAN_NOP_PLUGIN_COMMAND_PREFIX + "default");
         }
-        return commandBean.invokeCommand(command, args, cancelToken);
+        return commandBean.invokeCommandAsync(command, args, cancelToken);
+    }
+
+    @Override
+    public Map<String, Object> invokeCommand(String command, Map<String, Object> args, IPluginCancelToken cancelToken) {
+        return FutureHelper.syncGet(invokeCommandAsync(command, args, cancelToken));
     }
 }

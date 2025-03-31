@@ -10,7 +10,16 @@ package io.nop.http.api.client;
 import io.nop.api.core.util.progress.IProgressListener;
 
 public class DownloadOptions {
+    private long initialOffset;
     private IProgressListener progressListener;
+
+    public long getInitialOffset() {
+        return initialOffset;
+    }
+
+    public void setInitialOffset(long initialOffset) {
+        this.initialOffset = initialOffset;
+    }
 
     public IProgressListener getProgressListener() {
         return progressListener;

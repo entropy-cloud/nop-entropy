@@ -69,8 +69,8 @@ public class HttpPluginResourceResolver implements IPluginResourceResolver {
 
             httpClient.download(request, new DefaultHttpOutputFile(tmp), null, null);
 
-            boolean bRet = tmp.renameTo(jarFile);
-            tmp.delete();
+            boolean bRet = FileHelper.moveFile(tmp, jarFile);
+            //tmp.delete();
 
             if (!bRet)
                 throw new NopException(ERR_PLUGIN_DOWNLOAD_RENAME_FILE_FAIL).param(ARG_FILE_NAME, tmp.getName());

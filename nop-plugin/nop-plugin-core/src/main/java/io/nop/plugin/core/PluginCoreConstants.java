@@ -7,5 +7,5 @@ public interface PluginCoreConstants {
 
     String VAR_PLUGIN_VERSION = "pluginVersion";
 
-    String BEAN_NOP_PLUGIN_COMMAND_PREFIX = "nopPluginCommand_";
+
 }

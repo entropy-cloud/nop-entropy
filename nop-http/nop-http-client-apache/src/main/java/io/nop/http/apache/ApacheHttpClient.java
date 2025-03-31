@@ -17,12 +17,12 @@ import io.nop.http.api.client.IHttpOutputFile;
 import io.nop.http.api.client.IHttpResponse;
 import io.nop.http.api.client.IServerEventResponse;
 import io.nop.http.api.client.UploadOptions;
-import io.nop.http.api.support.DefaultHttpResponse;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.client5.http.async.methods.SimpleRequestBuilder;
+import org.apache.hc.client5.http.async.methods.SimpleRequestProducer;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
@@ -41,6 +41,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
+import static io.nop.http.apache.ApacheHttpClientHelper.fromSimpleResponse;
 
 public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
 
@@ -90,7 +92,11 @@ public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
         Future<?> future = client.execute(req, newHttpClientContext(request), new FutureCallback<>() {
             @Override
             public void completed(SimpleHttpResponse result) {
-                promise.complete(fromSimpleResponse(result));
+                try {
+                    promise.complete(fromSimpleResponse(result));
+                } catch (Exception e) {
+                    failed(e);
+                }
             }
 
             @Override
@@ -207,19 +213,45 @@ public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
         return ContentType.APPLICATION_JSON;
     }
 
-    private DefaultHttpResponse fromSimpleResponse(SimpleHttpResponse httpResponse) {
-        return ApacheHttpClientHelper.fromSimpleResponse(httpResponse);
+
+    @Override
+    public CompletionStage<IHttpResponse> downloadAsync(HttpRequest request, IHttpOutputFile targetFile, DownloadOptions options,
+                                                        ICancelToken cancelToken) {
+
+        CompletableFuture<IHttpResponse> promise = new CompletableFuture<>();
+
+        FutureCallback<SimpleHttpResponse> callback = new FutureCallback<>() {
+            @Override
+            public void completed(SimpleHttpResponse response) {
+                try {
+                    promise.complete(fromSimpleResponse(response, true));
+                } catch (Exception e) {
+                    failed(e);
+                }
+            }
+
+            @Override
+            public void failed(Exception ex) {
+                promise.completeExceptionally(ApacheHttpClientHelper.wrapException(ex));
+            }
+
+            @Override
+            public void cancelled() {
+                promise.cancel(false);
+            }
+        };
+
+        // 执行请求
+        client.execute(SimpleRequestProducer.create(toSimpleRequest(request)),
+                new DownloadResponseConsumer(targetFile), newHttpClientContext(request), callback);
+
+        FutureHelper.bindCancelToken(cancelToken, promise);
+        return promise;
     }
 
     @Override
-    public CompletionStage<Void> downloadAsync(HttpRequest request, IHttpOutputFile targetFile, DownloadOptions options,
-                                               ICancelToken cancelToken) {
-        return null;
-    }
-
-    @Override
-    public CompletionStage<Void> uploadAsync(HttpRequest request, IHttpInputFile inputFile, UploadOptions options,
-                                             ICancelToken cancelToken) {
+    public CompletionStage<IHttpResponse> uploadAsync(HttpRequest request, IHttpInputFile inputFile, UploadOptions options,
+                                                      ICancelToken cancelToken) {
         return null;
     }
 }

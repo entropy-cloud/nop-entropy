@@ -21,6 +21,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.impl.URLResource;
 import io.nop.plugin.api.IPlugin;
+import io.nop.plugin.api.NopPluginConstants;
 
 import java.io.IOException;
 import java.net.URL;
@@ -55,11 +56,11 @@ public class PluginClassLoader extends URLClassLoader {
     }
 
     PluginConfig loadPluginConfig() {
-        URL url = getResource("nop/plugin.json");
+        URL url = getResource(NopPluginConstants.PLUGIN_CONFIG_FILE);
         if (url == null)
             throw new NopException(ERR_PLUGIN_MISSING_CONFIG_FILE);
 
-        PluginConfig config = JsonTool.parseBeanFromResource(new URLResource("/nop/plugin.json", url), PluginConfig.class);
+        PluginConfig config = JsonTool.parseBeanFromResource(new URLResource(NopPluginConstants.PLUGIN_CONFIG_FILE, url), PluginConfig.class);
         if (StringHelper.isEmpty(config.getPluginClassName()))
             throw new NopException(ERR_PLUGIN_NO_PLUGIN_CLASS_NAME);
         return config;

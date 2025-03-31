@@ -9,22 +9,28 @@ package io.nop.http.client.jdk;
 
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.util.FileHelper;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.core.unittest.BaseTestCase;
 import io.nop.http.api.client.HttpClientConfig;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpResponse;
 import io.nop.http.api.client.IServerEventResponse;
+import io.nop.http.api.support.DefaultHttpOutputFile;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @Disabled
-public class TestJdkHttpClient {
+public class TestJdkHttpClient extends BaseTestCase {
     @Test
     public void testHttps() {
         HttpClientConfig config = new HttpClientConfig();
@@ -35,6 +41,22 @@ public class TestJdkHttpClient {
         request.setUrl("https://www.baidu.com");
         IHttpResponse response = FutureHelper.syncGet(client.fetchAsync(request, null));
         System.out.println(response.getBodyAsText());
+        client.stop();
+    }
+
+    @Test
+    public void testDownload() {
+        HttpClientConfig config = new HttpClientConfig();
+        JdkHttpClient client = new JdkHttpClient(config);
+        client.start();
+
+        HttpRequest request = new HttpRequest();
+        request.setUrl("https://www.baidu.com");
+        File file = getTargetFile("download.html");
+        IHttpResponse response = FutureHelper.syncGet(client.downloadAsync(request, DefaultHttpOutputFile.create(file), null, null));
+        String text = FileHelper.readText(file, null);
+        System.out.println(text);
+        assertEquals(200, response.getHttpStatus());
         client.stop();
     }
 
@@ -55,7 +77,7 @@ public class TestJdkHttpClient {
         map.put("stream", true);
         map.put("model", "deepseek-r1:8b");
         map.put("temperature", 0.7);
-        map.put("messages", Arrays.asList(Map.of("content", "你的存在意义是什么","role", "user")));
+        map.put("messages", Arrays.asList(Map.of("content", "你的存在意义是什么", "role", "user")));
         request.setBody(map);
 
         CountDownLatch latch = new CountDownLatch(1);
@@ -68,7 +90,7 @@ public class TestJdkHttpClient {
 
             @Override
             public void onNext(IServerEventResponse item) {
-                System.out.println(Thread.currentThread().getName()+":"+item.getData());
+                System.out.println(Thread.currentThread().getName() + ":" + item.getData());
             }
 
             @Override

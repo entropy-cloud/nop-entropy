@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.channels.WritableByteChannel;
 
@@ -134,6 +133,15 @@ public class ByteBufferHelper {
         destinationBuffer.position(destinationBuffer.position() + totalBytesRead);
     }
 
+    public static void writeToOutput(DataOutput out, ByteBuffer buffer) throws IOException {
+        writeToOutput0(out, buffer, buffer.remaining());
+    }
+
+    public static void writeToOutput(DataOutput out, ByteBuffer buffer, int length) throws IOException {
+        writeToOutput0(out, buffer, length);
+        buffer.position(buffer.position() + length);
+    }
+
     /**
      * Write the contents of a buffer to an output stream. The bytes are copied from the current position in the buffer.
      *
@@ -142,23 +150,46 @@ public class ByteBufferHelper {
      * @param length The number of bytes to write
      * @throws IOException For any errors writing to the output
      */
-    public static void writeToOutput(DataOutput out, ByteBuffer buffer, int length) throws IOException {
+    public static void writeToOutput0(DataOutput out, ByteBuffer buffer, int length) throws IOException {
         if (buffer.hasArray()) {
             out.write(buffer.array(), buffer.position() + buffer.arrayOffset(), length);
         } else {
-            int pos = buffer.position();
-            for (int i = pos; i < length + pos; i++)
-                out.writeByte(buffer.get(i));
+            ByteBuffer slice = buffer.slice().limit(length);
+            byte[] temp = new byte[Math.min(length, 8192)];
+            while (slice.hasRemaining()) {
+                int chunkSize = Math.min(slice.remaining(), temp.length);
+                slice.get(temp, 0, chunkSize);
+                out.write(temp, 0, chunkSize);
+            }
         }
     }
 
+    public static void writeToStream(OutputStream out, ByteBuffer buffer) throws IOException {
+        writeToStream(out, buffer, buffer.remaining());
+    }
+
     public static void writeToStream(OutputStream out, ByteBuffer buffer, int length) throws IOException {
+        writeToStream0(out, buffer, length);
+        buffer.position(buffer.position() + length);
+    }
+
+    public static void writeToStream0(OutputStream out, ByteBuffer buffer, int length) throws IOException {
         if (buffer.hasArray()) {
-            out.write(buffer.array(), buffer.position() + buffer.arrayOffset(), length);
+            // 直接访问底层数组
+            out.write(buffer.array(), buffer.arrayOffset() + buffer.position(), length);
         } else {
-            int pos = buffer.position();
-            for (int i = pos; i < length + pos; i++)
-                out.write(buffer.get(i));
+            // 对于非数组支持的缓冲区，使用临时数组批量写入
+            ByteBuffer slice = buffer.slice().limit(length);
+            if (out instanceof WritableByteChannel) {
+                ((WritableByteChannel) out).write(slice);
+            } else {
+                byte[] temp = new byte[Math.min(length, 8192)];
+                while (slice.hasRemaining()) {
+                    int chunkSize = Math.min(slice.remaining(), temp.length);
+                    slice.get(temp, 0, chunkSize);
+                    out.write(temp, 0, chunkSize);
+                }
+            }
         }
     }
 

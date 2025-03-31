@@ -11,9 +11,11 @@ import io.nop.api.core.exceptions.NopConnectException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.util.ApiStringHelper;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
+import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.http.api.HttpApiConstants;
 import io.nop.http.api.HttpStatus;
@@ -39,6 +41,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -283,13 +286,19 @@ public class JdkHttpClient implements IHttpClient {
     }
 
     IHttpResponse toHttpResponse(HttpResponse<byte[]> response) {
+        return toHttpResponse(response, false);
+    }
+
+    IHttpResponse toHttpResponse(HttpResponse<?> response, boolean ignoreBody) {
         // 某些MAC系统或者JDK版本中连接不上也不会抛出connect异常，而是会返回503错误码
         if (response.statusCode() == HttpStatus.SC_SERVICE_UNAVAILABLE)
             throw new NopConnectException(ERR_HTTP_CONNECT_FAIL);
 
         DefaultHttpResponse ret = new DefaultHttpResponse();
         ret.setHttpStatus(response.statusCode());
-        ret.setBodyAsBytes(response.body());
+        if (!ignoreBody)
+            ret.setBodyAsBytes((byte[]) response.body());
+
         ret.setHeaders(toMap(response.headers()));
 
         Optional<String> contentType = response.headers().firstValue(HttpApiConstants.HEADER_CONTENT_TYPE);
@@ -319,14 +328,21 @@ public class JdkHttpClient implements IHttpClient {
     }
 
     @Override
-    public CompletionStage<Void> downloadAsync(HttpRequest request, IHttpOutputFile targetFile, DownloadOptions options,
-                                               ICancelToken cancelToken) {
-        return null;
+    public CompletionStage<IHttpResponse> downloadAsync(HttpRequest request, IHttpOutputFile targetFile, DownloadOptions options,
+                                                        ICancelToken cancelToken) {
+
+        File file = targetFile.toFile();
+        FileHelper.assureParent(file);
+
+        CompletableFuture<HttpResponse<Path>> future = client.sendAsync(toJdkHttpRequest(request), HttpResponse.BodyHandlers.ofFile(file.toPath()));
+        FutureHelper.bindCancelToken(cancelToken, future);
+
+        return future.thenApply(res -> toHttpResponse(res, true));
     }
 
     @Override
-    public CompletionStage<Void> uploadAsync(HttpRequest request, IHttpInputFile inputFile, UploadOptions options,
-                                             ICancelToken cancelToken) {
+    public CompletionStage<IHttpResponse> uploadAsync(HttpRequest request, IHttpInputFile inputFile, UploadOptions options,
+                                                      ICancelToken cancelToken) {
         return null;
     }
 }

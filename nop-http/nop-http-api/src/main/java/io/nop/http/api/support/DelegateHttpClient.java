@@ -35,14 +35,14 @@ public class DelegateHttpClient implements IHttpClient {
     }
 
     @Override
-    public CompletionStage<Void> downloadAsync(HttpRequest request, IHttpOutputFile targetFile,
+    public CompletionStage<IHttpResponse> downloadAsync(HttpRequest request, IHttpOutputFile targetFile,
                                                DownloadOptions options, ICancelToken cancelToken) {
         onDownloadBegin(request, targetFile, options, cancelToken);
         return httpClient.downloadAsync(request, targetFile, options, cancelToken);
     }
 
     @Override
-    public CompletionStage<Void> uploadAsync(HttpRequest request, IHttpInputFile inputFile, UploadOptions options, ICancelToken cancelToken) {
+    public CompletionStage<IHttpResponse> uploadAsync(HttpRequest request, IHttpInputFile inputFile, UploadOptions options, ICancelToken cancelToken) {
         onUploadBegin(request, inputFile, options, cancelToken);
         return httpClient.uploadAsync(request, inputFile, options, cancelToken);
     }

@@ -21,6 +21,10 @@ public class DefaultHttpOutputFile implements IHttpOutputFile {
         this.file = file;
     }
 
+    public static DefaultHttpOutputFile create(File file) {
+        return new DefaultHttpOutputFile(file);
+    }
+
     @Override
     public File toFile() {
         return file;

@@ -2,22 +2,28 @@ package io.nop.http.apache;
 
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.util.FileHelper;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.core.unittest.BaseTestCase;
 import io.nop.http.api.client.HttpClientConfig;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpResponse;
 import io.nop.http.api.client.IServerEventResponse;
+import io.nop.http.api.support.DefaultHttpOutputFile;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @Disabled
-public class TestApacheHttpClient {
+public class TestApacheHttpClient extends BaseTestCase {
     @Test
     public void testHttps() {
         HttpClientConfig config = new HttpClientConfig();
@@ -95,4 +101,21 @@ public class TestApacheHttpClient {
         latch.await();
         client.stop();
     }
+
+    @Test
+    public void testDownload() {
+        HttpClientConfig config = new HttpClientConfig();
+        ApacheHttpClient client = new ApacheHttpClient(config);
+        client.start();
+
+        HttpRequest request = new HttpRequest();
+        request.setUrl("https://www.baidu.com");
+        File file = getTargetFile("download.html");
+        IHttpResponse response = FutureHelper.syncGet(client.downloadAsync(request, DefaultHttpOutputFile.create(file), null, null));
+        String text = FileHelper.readText(file, null);
+        System.out.println("response="+text);
+        assertEquals(200, response.getHttpStatus());
+        client.stop();
+    }
+
 }

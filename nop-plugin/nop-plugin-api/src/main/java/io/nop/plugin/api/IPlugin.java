@@ -22,7 +22,10 @@ public interface IPlugin {
     /**
      * 相当于执行本地RPC调用
      */
-    CompletionStage<Map<String, Object>> invokeCommand(String command, Map<String, Object> args, IPluginCancelToken cancelToken);
+    CompletionStage<Map<String, Object>> invokeCommandAsync(String command, Map<String, Object> args,
+                                                            IPluginCancelToken cancelToken);
+
+    Map<String, Object> invokeCommand(String command, Map<String, Object> args, IPluginCancelToken cancelToken);
 
     void start();
 

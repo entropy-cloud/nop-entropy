@@ -170,25 +170,33 @@ public class ApacheHttpClientHelper {
         }
     }
 
-    public static DefaultHttpResponse fromSimpleResponse(SimpleHttpResponse httpResponse) {
+    public static DefaultHttpResponse fromSimpleResponse(SimpleHttpResponse response) {
+        return fromSimpleResponse(response, false);
+    }
+
+    public static DefaultHttpResponse fromSimpleResponse(SimpleHttpResponse httpResponse, boolean ignoreBody) {
         DefaultHttpResponse result = new DefaultHttpResponse();
 
         // status code
         result.setHttpStatus(httpResponse.getCode());
         httpResponse.getBodyBytes();
         SimpleBody body = httpResponse.getBody();
-        if (body.isText()) {
-            result.setBodyAsText(body.getBodyText());
-        } else if (body.isBytes()) {
-            result.setBodyAsBytes(body.getBodyBytes());
-        }
-        ContentType contentType = body.getContentType();
-        if (contentType != null) {
-            Charset charset = contentType.getCharset();
-            if (charset != null) {
-                result.setCharset(charset.name());
+        if (!ignoreBody) {
+            if (body.isText()) {
+                result.setBodyAsText(body.getBodyText());
+            } else if (body.isBytes()) {
+                result.setBodyAsBytes(body.getBodyBytes());
             }
-            result.setContentType(contentType.getMimeType());
+        }
+        if (body != null) {
+            ContentType contentType = body.getContentType();
+            if (contentType != null) {
+                Charset charset = contentType.getCharset();
+                if (charset != null) {
+                    result.setCharset(charset.name());
+                }
+                result.setContentType(contentType.getMimeType());
+            }
         }
 
         // headers

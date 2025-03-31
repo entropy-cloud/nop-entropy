@@ -116,15 +116,15 @@ public class OkHttpClientImpl implements IHttpClient {
     }
 
     @Override
-    public CompletionStage<Void> downloadAsync(HttpRequest request, IHttpOutputFile targetFile, DownloadOptions options,
-                                               ICancelToken cancelToken) {
+    public CompletionStage<IHttpResponse> downloadAsync(HttpRequest request, IHttpOutputFile targetFile, DownloadOptions options,
+                                                        ICancelToken cancelToken) {
         client.newCall(null).enqueue(null);
         return null;
     }
 
     @Override
-    public CompletionStage<Void> uploadAsync(HttpRequest request, IHttpInputFile inputFile, UploadOptions options,
-                                             ICancelToken cancelToken) {
+    public CompletionStage<IHttpResponse> uploadAsync(HttpRequest request, IHttpInputFile inputFile, UploadOptions options,
+                                                      ICancelToken cancelToken) {
         return null;
     }
 }
