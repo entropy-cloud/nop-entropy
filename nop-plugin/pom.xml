@@ -18,7 +18,7 @@
 
     <modules>
         <module>nop-plugin-api</module>
-        <module>nop-plugin-core</module>
+        <module>nop-plugin-manager</module>
         <module>nop-plugin-support</module>
     </modules>
 </project>

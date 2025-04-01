@@ -23,11 +23,19 @@ public interface IPlugin {
      * 相当于执行本地RPC调用
      */
     CompletionStage<Map<String, Object>> invokeCommandAsync(String command, Map<String, Object> args,
+                                                            String fieldSelection,
                                                             IPluginCancelToken cancelToken);
 
-    Map<String, Object> invokeCommand(String command, Map<String, Object> args, IPluginCancelToken cancelToken);
+    Map<String, Object> invokeCommand(String command, Map<String, Object> args,
+                                      String fieldSelection,
+                                      IPluginCancelToken cancelToken);
 
-    void start();
+    void start(String pluginGroupId, String pluginArtifactId, String pluginVersion,
+               Map<String, Object> config);
+
+    default void updateConfig(Map<String, Object> config) {
+
+    }
 
     void stop();
 }

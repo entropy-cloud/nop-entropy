@@ -9,7 +9,9 @@ import java.util.concurrent.CompletionStage;
 
 public class DemoPluginCommand implements IPluginCommand {
     @Override
-    public CompletionStage<Map<String, Object>> invokeCommandAsync(String command, Map<String, Object> args, IPluginCancelToken cancelToken) {
+    public CompletionStage<Map<String, Object>> invokeCommandAsync(String command, Map<String, Object> args,
+                                                                   String fieldSelection,
+                                                                   IPluginCancelToken cancelToken) {
         return FutureHelper.success(Map.of("result", "OK", "command", command));
     }
 }

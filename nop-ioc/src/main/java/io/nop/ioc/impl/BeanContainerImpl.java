@@ -49,11 +49,9 @@ import static io.nop.ioc.IocErrors.ARG_BEANS;
 import static io.nop.ioc.IocErrors.ARG_BEAN_NAME;
 import static io.nop.ioc.IocErrors.ARG_BEAN_TYPE;
 import static io.nop.ioc.IocErrors.ARG_CONTAINER_ID;
-import static io.nop.ioc.IocErrors.ARG_OTHER_BEAN;
 import static io.nop.ioc.IocErrors.ERR_IOC_CONTAINER_ALREADY_STARTED;
 import static io.nop.ioc.IocErrors.ERR_IOC_CONTAINER_NOT_STARTED;
 import static io.nop.ioc.IocErrors.ERR_IOC_MULTIPLE_BEAN_WITH_TYPE;
-import static io.nop.ioc.IocErrors.ERR_IOC_MULTIPLE_BEAN_WITH_TYPE_FOR_PROP;
 import static io.nop.ioc.IocErrors.ERR_IOC_NOT_PRODUCER_BEAN;
 import static io.nop.ioc.IocErrors.ERR_IOC_PRODUCER_BEAN_NOT_INITED;
 
@@ -342,8 +340,9 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         if (mapping.isEmpty())
             return null;
         if (mapping.getOtherPrimaryBean() != null)
-            throw new NopException(ERR_IOC_MULTIPLE_BEAN_WITH_TYPE_FOR_PROP).param(ARG_BEAN_TYPE, beanType)
-                    .param(ARG_BEAN, mapping.getPrimaryBean()).param(ARG_OTHER_BEAN, mapping.getOtherPrimaryBean());
+            throw new NopException(ERR_IOC_MULTIPLE_BEAN_WITH_TYPE).param(ARG_BEAN_TYPE, beanType)
+                    .param(ARG_BEANS, mapping.getBeans());
+
         BeanDefinition bean = mapping.getPrimaryBean();
         if (bean == null) {
             throw new NopException(ERR_IOC_MULTIPLE_BEAN_WITH_TYPE).param(ARG_BEAN_TYPE, beanType)
@@ -608,9 +607,20 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             cancellable.cancel(ICancellable.CANCEL_REASON_STOP);
             cancellable = null;
         }
-        if (singletonScope != null)
-            singletonScope.close();
+
+        RuntimeException ex = null;
+        if (singletonScope != null) {
+            try {
+                singletonScope.close();
+            } catch (RuntimeException e) {
+                LOG.error("nop.err.ioc.singleton-scope-close-fail:containerId={}", getId(), e);
+                ex = e;
+            }
+        }
         BeanScopeContext.instance().onContainerStop(this);
+
+        if (ex != null)
+            throw ex;
     }
 
     void checkStarted() {

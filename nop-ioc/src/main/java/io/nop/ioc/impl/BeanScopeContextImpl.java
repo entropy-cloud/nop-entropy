@@ -14,6 +14,8 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.api.IBeanScope;
 import io.nop.ioc.api.IBeanScopeContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,7 +24,7 @@ import static io.nop.ioc.IocErrors.ARG_SCOPE;
 import static io.nop.ioc.IocErrors.ERR_IOC_SCOPE_NOT_OPENED;
 
 public class BeanScopeContextImpl implements IBeanScopeContext {
-    // static final Logger LOG = LoggerFactory.getLogger(BeanScopeContextImpl.class);
+    static final Logger LOG = LoggerFactory.getLogger(BeanScopeContextImpl.class);
 
     static final String CONTEXT_KEY = BeanContainerScope.class.getSimpleName();
 
@@ -80,10 +82,18 @@ public class BeanScopeContextImpl implements IBeanScopeContext {
     @Override
     public void onContainerStop(IBeanContainerImplementor container) {
         BeanContainerScope containerScope = getContainerScope(container);
+        RuntimeException ex = null;
         if (containerScope != null) {
             for (IBeanScope scope : containerScope.scopes.values()) {
-                scope.close();
+                try {
+                    scope.close();
+                } catch (RuntimeException e2) {
+                    LOG.error("nop.err.ioc.container-stop-fail:containerId={}", container.getId(), e2);
+                    ex = e2;
+                }
             }
         }
+        if (ex != null)
+            throw ex;
     }
 }
