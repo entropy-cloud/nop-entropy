@@ -7,6 +7,8 @@
  */
 package io.nop.commons.util;
 
+import io.nop.commons.collections.bit.IBitSet;
+import io.nop.commons.mutable.MutableInt;
 import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
@@ -27,6 +29,21 @@ public class TestCollectionHelper {
             set.add(String.valueOf(i));
         }
         return set;
+    }
+
+    @Test
+    public void testBitSet() {
+        for (int i = 1; i < 500; i++) {
+            IBitSet bs = CollectionHelper.newFixedBitSet(i);
+            for (int j = 0; j < i; j++) {
+                bs.set(j);
+            }
+            MutableInt n = new MutableInt();
+            bs.forEach(k -> {
+                n.incrementAndGet();
+            });
+            assertEquals(i, n.get());
+        }
     }
 
     @Test

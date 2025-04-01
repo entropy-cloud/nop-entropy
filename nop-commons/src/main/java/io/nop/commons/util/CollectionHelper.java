@@ -82,7 +82,7 @@ public class CollectionHelper {
     }
 
     public static IBitSet newFixedBitSet(int capacity) {
-        if (capacity <= Long.SIZE)
+        if (capacity < Long.SIZE)
             return new SmallBitSet();
         return new FixedBitSet(capacity);
     }
