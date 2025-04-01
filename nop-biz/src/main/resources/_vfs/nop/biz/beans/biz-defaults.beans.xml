@@ -89,7 +89,11 @@
     BizModel模型初始化时需要校验obj字典是否有效，因此需要注册对应的DictLoader。为了避免并行初始化报错，这里还需要强制指定依赖于ormTemplate
     -->
     <bean id="nopObjDictLoader" class="io.nop.biz.dict.ObjDictLoader" ioc:before="nopBizObjectManager"
-          depends-on="nopOrmTemplate"/>
+          depends-on="nopOrmTemplate">
+        <ioc:condition>
+            <on-bean>nopOrmTemplate</on-bean>
+        </ioc:condition>
+    </bean>
 
     <bean id="nopContextHttpServerFilter" class="io.nop.http.api.server.ContextHttpServerFilter">
         <ioc:condition>
