@@ -69,7 +69,7 @@ public class ReflectionGraphQLTypeFactory {
         getArgDefinitions(field, func, registry, new HashMap<>());
     }
 
-    private void getArgDefinitions(GraphQLFieldDefinition field, IFunctionModel func, TypeRegistry registry,
+    protected void getArgDefinitions(GraphQLFieldDefinition field, IFunctionModel func, TypeRegistry registry,
                                    Map<String, GraphQLTypeDefinition> creatingTypes) {
         List<GraphQLArgumentDefinition> argDefs = new ArrayList<>();
 
@@ -184,7 +184,7 @@ public class ReflectionGraphQLTypeFactory {
         return bizObjName == null ? null : bizObjName.value();
     }
 
-    private GraphQLType buildGraphQLType(IGenericType type, String bizObjName, TypeRegistry registry,
+    protected GraphQLType buildGraphQLType(IGenericType type, String bizObjName, TypeRegistry registry,
                                          Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
         if (type.isAssignableTo(CompletionStage.class)) {
             type = type.getGenericType(CompletionStage.class).getTypeParameters().get(0);
@@ -316,7 +316,7 @@ public class ReflectionGraphQLTypeFactory {
         return (GraphQLObjectDefinition) buildDef(name, clazz, registry, new HashMap<>(), false);
     }
 
-    GraphQLTypeDefinition buildDef(String name, Class<?> clazz, TypeRegistry registry,
+    protected GraphQLTypeDefinition buildDef(String name, Class<?> clazz, TypeRegistry registry,
                                    Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
         GraphQLTypeDefinition objDef = creatingTypes.get(name);
         if (objDef != null)
