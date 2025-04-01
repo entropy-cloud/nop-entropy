@@ -30,6 +30,7 @@ import io.nop.orm.eql.ast.SqlDelete;
 import io.nop.orm.eql.ast.SqlExpr;
 import io.nop.orm.eql.ast.SqlExprProjection;
 import io.nop.orm.eql.ast.SqlFrom;
+import io.nop.orm.eql.ast.SqlGroupBy;
 import io.nop.orm.eql.ast.SqlInsert;
 import io.nop.orm.eql.ast.SqlJoinTableSource;
 import io.nop.orm.eql.ast.SqlLiteral;
@@ -156,6 +157,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
      * 判断是否正在处理order by子句。如果仅在order by语句中通过a.b.c这种属性表达式引用关联表上的字段，且关联字段允许为空， 则使用left join来实现隐式关联。
      */
     private boolean inOrderBy;
+    private boolean inGroupBy;
 
     public EqlTransformVisitor(ISqlCompileContext context) {
         this.context = context;
@@ -1152,6 +1154,10 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     public void visitSqlColumnName(SqlColumnName node) {
         SqlTableSource source;
         if (node.getOwner() == null) {
+            if (inOrderBy || inGroupBy) {
+                if (resolveSelectExpr(node))
+                    return;
+            }
             resolveDefaultTableSource(node);
             return;
         } else if (node.getOwner().getNext() == null) {
@@ -1245,16 +1251,16 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         } else {
             PropPath propPath = model.getAliasPropPath(node.getName());
             if (propPath == null) {
-                if (node.getOwner() == null && inOrderBy) {
-                    // order by段中可以使用selection中的字段别名
-                    SqlQuerySelect select = getQuerySelect(node);
-                    ISqlExprMeta fieldExpr = select.getResolvedTableMeta().getFieldExprMeta(node.getName(), false);
-                    if (fieldExpr != null) {
-                        node.setResolvedExprMeta(fieldExpr);
-                        node.setProjection(select.getProjectionByExprMeta(fieldExpr));
-                        return;
-                    }
-                }
+//                if (node.getOwner() == null && (inOrderBy || inGroupBy)) {
+//                    // order by段中可以使用selection中的字段别名
+//                    SqlQuerySelect select = getQuerySelect(node);
+//                    ISqlExprMeta fieldExpr = select.getResolvedTableMeta().getFieldExprMeta(node.getName(), false);
+//                    if (fieldExpr != null) {
+//                        node.setResolvedExprMeta(fieldExpr);
+//                        node.setProjection(select.getProjectionByExprMeta(fieldExpr));
+//                        return;
+//                    }
+//                }
                 if (model instanceof ISqlTableMeta) {
                     throw new NopException(ERR_EQL_UNKNOWN_COLUMN_NAME).source(node)
                             .param(ARG_ENTITY_NAME, ((ISqlTableMeta) model).getEntityName())
@@ -1272,6 +1278,18 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                 resolveColName(join.getRight(), node, propPath.getLast());
             }
         }
+    }
+
+    boolean resolveSelectExpr(SqlColumnName node) {
+        // order by段中可以使用selection中的字段别名
+        SqlQuerySelect select = getQuerySelect(node);
+        ISqlExprMeta fieldExpr = select.getResolvedTableMeta().getFieldExprMeta(node.getName(), false);
+        if (fieldExpr != null) {
+            node.setResolvedExprMeta(fieldExpr);
+            node.setProjection(select.getProjectionByExprMeta(fieldExpr));
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -1427,6 +1445,13 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         this.visitChild(node.getWhere());
 
         currentScope = currentScope.getParent();
+    }
+
+    @Override
+    public void visitSqlGroupBy(SqlGroupBy node) {
+        inGroupBy = true;
+        super.visitSqlGroupBy(node);
+        inGroupBy = false;
     }
 
     @Override

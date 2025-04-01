@@ -27,9 +27,26 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestOrmTemplate extends AbstractOrmTestCase {
+    @Test
+    public void testFuncCallAlias() {
+        IOrmSessionFactory factory = orm().getSessionFactory();
+        String sqlText = "select (FLOOR(o.studentNumber / 0.05) * 5)/100 AS start, count(1) as cnt\n" +
+                "                from SimsClass o\n" +
+                "                group by start\n" +
+                "                order by start\n";
+        ICompiledSql sql = factory.compileSql("test",
+                sqlText, false);
+        sql.getSql().dump();
+        assertTrue(sql.getSql().getText().contains("group by \n" +
+                "  start\n" +
+                " order by \n" +
+                "  start asc"));
+    }
+
     @Test
     public void testCompileUpdate() {
         IOrmSessionFactory factory = orm().getSessionFactory();

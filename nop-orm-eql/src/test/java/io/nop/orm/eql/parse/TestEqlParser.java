@@ -27,6 +27,16 @@ public class TestEqlParser extends BaseTestCase {
     }
 
     @Test
+    public void testAs(){
+        String sql = "select (FLOOR(o.freqPoint / 0.05) * 5)/100 AS start, count(1) as cnt\n" +
+                "                from demo o\n" +
+                "                group by start\n" +
+                "                order by start\n";
+        SqlProgram program = parse(sql);
+        program.toSQL().dump();
+    }
+
+    @Test
     public void testJoin() {
         String sql = "select o from MyEntity o left join OtherTable b on a.id = b.id";
         SqlProgram program = parse(sql);
