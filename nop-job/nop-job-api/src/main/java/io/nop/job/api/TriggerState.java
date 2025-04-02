@@ -9,7 +9,6 @@ package io.nop.job.api;
 
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ErrorBean;
-import io.nop.job.api.spec.ITriggerSpec;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,70 +17,42 @@ import java.util.Map;
 public class TriggerState implements ITriggerState {
     private String lastExecutionId;
     private long lastScheduleTime;
-    private long lastExecutionStartTime;
-    private long lastExecutionEndTime;
-    private long executionCount = 1;
+    private long executionCount;
     private long nextScheduleTime;
-
-    private long firstExecutionTime;
 
     private boolean recoverMode;
     private long recoverTime;
 
-    private long minScheduleTime;
-    private long maxScheduleTime;
-    private long maxExecutionCount;
-    private int maxFailedCount;
-
-    private long completionTime;
-    private long totalFailedCount;
-    private long consecutiveFailedCount;
+    private long execBeginTime;
+    private long execEndTime;
+    private long execFailCount;
+    private long lastExecEndTime;
     private ErrorBean lastError;
 
     private String jobName;
     private long jobVersion;
-    private long epoch;
 
-    private TriggerStatus triggerStatus;
-    private TriggerStatus nextTriggerStatus;
+    private int triggerStatus;
     private Map<String, Object> attributes;
 
     public TriggerState() {
     }
 
-    public TriggerState(ITriggerSpec spec) {
-        this.minScheduleTime = spec.getMinScheduleTime();
-        this.maxScheduleTime = spec.getMaxScheduleTime();
-        this.maxExecutionCount = spec.getMaxExecutionCount();
-        this.maxFailedCount = spec.getMaxFailedCount();
-    }
-
     public TriggerState(ITriggerState state) {
         this.lastExecutionId = state.getLastExecutionId();
         this.lastScheduleTime = state.getLastScheduleTime();
-        this.lastExecutionStartTime = state.getLastExecutionStartTime();
-        this.lastExecutionEndTime = state.getLastExecutionEndTime();
         this.executionCount = state.getExecutionCount();
         this.nextScheduleTime = state.getNextScheduleTime();
 
-        this.firstExecutionTime = state.getFirstExecutionTime();
-
-        this.minScheduleTime = state.getMinScheduleTime();
-        this.maxScheduleTime = state.getMaxScheduleTime();
-        this.maxExecutionCount = state.getMaxExecutionCount();
-        this.maxFailedCount = state.getMaxFailedCount();
-
-        this.completionTime = state.getCompletionTime();
-        this.totalFailedCount = state.getTotalFailedCount();
-        this.consecutiveFailedCount = state.getConsecutiveFailedCount();
+        this.execBeginTime = state.getExecBeginTime();
+        this.execEndTime = state.getExecEndTime();
+        this.execFailCount = state.getExecFailCount();
         this.lastError = state.getLastError();
 
         this.jobName = state.getJobName();
         this.jobVersion = state.getJobVersion();
-        this.epoch = state.getEpoch();
         this.triggerStatus = state.getTriggerStatus();
 
-        this.nextTriggerStatus = state.getNextTriggerStatus();
         this.recoverMode = state.isRecoverMode();
         this.recoverTime = state.getRecoverTime();
         this.attributes = state.getAttributes() == null ? null : new HashMap<>(state.getAttributes());
@@ -96,14 +67,6 @@ public class TriggerState implements ITriggerState {
         this.jobVersion = jobVersion;
     }
 
-    @Override
-    public long getEpoch() {
-        return epoch;
-    }
-
-    public void setEpoch(long epoch) {
-        this.epoch = epoch;
-    }
 
     @Override
     public boolean isRecoverMode() {
@@ -124,20 +87,11 @@ public class TriggerState implements ITriggerState {
     }
 
     @Override
-    public TriggerStatus getNextTriggerStatus() {
-        return nextTriggerStatus;
-    }
-
-    public void setNextTriggerStatus(TriggerStatus nextTriggerStatus) {
-        this.nextTriggerStatus = nextTriggerStatus;
-    }
-
-    @Override
-    public TriggerStatus getTriggerStatus() {
+    public int getTriggerStatus() {
         return triggerStatus;
     }
 
-    public void setTriggerStatus(TriggerStatus triggerStatus) {
+    public void setTriggerStatus(int triggerStatus) {
         this.triggerStatus = triggerStatus;
     }
 
@@ -160,24 +114,6 @@ public class TriggerState implements ITriggerState {
     }
 
     @Override
-    public long getLastExecutionStartTime() {
-        return lastExecutionStartTime;
-    }
-
-    public void setLastExecutionStartTime(long lastExecutionStartTime) {
-        this.lastExecutionStartTime = lastExecutionStartTime;
-    }
-
-    @Override
-    public long getLastExecutionEndTime() {
-        return lastExecutionEndTime;
-    }
-
-    public void setLastExecutionEndTime(long lastExecutionEndTime) {
-        this.lastExecutionEndTime = lastExecutionEndTime;
-    }
-
-    @Override
     public long getExecutionCount() {
         return executionCount;
     }
@@ -196,74 +132,39 @@ public class TriggerState implements ITriggerState {
     }
 
     @Override
-    public long getFirstExecutionTime() {
-        return firstExecutionTime;
+    public long getExecBeginTime() {
+        return execBeginTime;
     }
 
-    public void setFirstExecutionTime(long firstExecutionTime) {
-        this.firstExecutionTime = firstExecutionTime;
-    }
-
-    @Override
-    public long getMinScheduleTime() {
-        return minScheduleTime;
-    }
-
-    public void setMinScheduleTime(long minScheduleTime) {
-        this.minScheduleTime = minScheduleTime;
+    public void setExecBeginTime(long execBeginTime) {
+        this.execBeginTime = execBeginTime;
     }
 
     @Override
-    public long getMaxScheduleTime() {
-        return maxScheduleTime;
+    public long getExecEndTime() {
+        return execEndTime;
     }
 
-    public void setMaxScheduleTime(long maxScheduleTime) {
-        this.maxScheduleTime = maxScheduleTime;
-    }
-
-    @Override
-    public long getMaxExecutionCount() {
-        return maxExecutionCount;
-    }
-
-    public void setMaxExecutionCount(long maxExecutionCount) {
-        this.maxExecutionCount = maxExecutionCount;
-    }
-
-    public int getMaxFailedCount() {
-        return maxFailedCount;
-    }
-
-    public void setMaxFailedCount(int maxFailedCount) {
-        this.maxFailedCount = maxFailedCount;
+    public void setExecEndTime(long execEndTime) {
+        this.execEndTime = execEndTime;
     }
 
     @Override
-    public long getCompletionTime() {
-        return completionTime;
+    public long getExecFailCount() {
+        return execFailCount;
     }
 
-    public void setCompletionTime(long completionTime) {
-        this.completionTime = completionTime;
-    }
-
-    @Override
-    public long getTotalFailedCount() {
-        return totalFailedCount;
-    }
-
-    public void setTotalFailedCount(long totalFailedCount) {
-        this.totalFailedCount = totalFailedCount;
+    public void setExecFailCount(long execFailCount) {
+        this.execFailCount = execFailCount;
     }
 
     @Override
-    public long getConsecutiveFailedCount() {
-        return consecutiveFailedCount;
+    public long getLastExecEndTime() {
+        return lastExecEndTime;
     }
 
-    public void setConsecutiveFailedCount(long consecutiveFailedCount) {
-        this.consecutiveFailedCount = consecutiveFailedCount;
+    public void setLastExecEndTime(long lastExecEndTime) {
+        this.lastExecEndTime = lastExecEndTime;
     }
 
     @Override

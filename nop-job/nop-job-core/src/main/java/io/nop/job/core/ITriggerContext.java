@@ -9,7 +9,7 @@ package io.nop.job.core;
 
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.job.api.ITriggerState;
-import io.nop.job.api.spec.TriggerSpec;
+import io.nop.job.api.spec.ITriggerSpec;
 
 /**
  * 记录触发器的状态信息
@@ -17,6 +17,31 @@ import io.nop.job.api.spec.TriggerSpec;
  * @author canonical_entropy@163.com
  */
 public interface ITriggerContext extends ITriggerState {
+
+    long getMinScheduleTime();
+
+    long getMaxScheduleTime();
+
+    long getMaxExecutionCount();
+
+    long getMaxFailedCount();
+
+    void setMaxFailedCount(long maxFailedCount);
+
+    void setMaxExecutionCount(long maxExecutionCount);
+
+    void setMinScheduleTime(long minScheduleTime);
+
+    void setMaxScheduleTime(long maxScheduleTime);
+
+
+    default boolean isJobFinished() {
+        return getTriggerStatus() >= NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FINISHED;
+    }
+
+    default boolean isRunning() {
+        return getTriggerStatus() == NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING;
+    }
 
     void onSchedule(long currentTime, long nextScheduleTime);
 
@@ -40,5 +65,5 @@ public interface ITriggerContext extends ITriggerState {
 
     void deactivate();
 
-    void update(TriggerSpec spec);
+    void update(ITriggerSpec spec);
 }

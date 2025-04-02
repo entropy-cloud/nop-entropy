@@ -84,8 +84,7 @@ public interface IJobScheduler {
     /**
      * 获取job当前状态。如果没有找到已注册的job，则返回null
      */
-    @Nullable
-    TriggerStatus getTriggerStatus(@Name("jobName") String jobName);
+    int getTriggerStatus(@Name("jobName") String jobName);
 
     /**
      * 启动已经注册的任务
@@ -157,10 +156,8 @@ public interface IJobScheduler {
 
     /**
      * 从数据库中装载持久化任务。
-     *
-     * @param epoch 每次leader选举都产生一个新的epoch号
      */
-    void activate(@Name("epoch") long epoch);
+    void activate();
 
     /**
      * deactivate之后不允许再接收外部指令。负载均衡场景下只有一个主任务调度器允许运行，如果发生主从切换，从服务器要执行deactivate操作。 处于deactivate状态的调度器不会再修改数据库。

@@ -92,48 +92,32 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     public static final String PROP_NAME_pauseCalendars = "pauseCalendars";
     public static final int PROP_ID_pauseCalendars = 18;
     
-    /* 调度器分组: SCHEDULER_GROUP VARCHAR */
-    public static final String PROP_NAME_schedulerGroup = "schedulerGroup";
-    public static final int PROP_ID_schedulerGroup = 19;
-    
-    /* 调度器ID: SCHEDULER_ID VARCHAR */
-    public static final String PROP_NAME_schedulerId = "schedulerId";
-    public static final int PROP_ID_schedulerId = 20;
-    
-    /* 调度器世代: SCHEDULER_EPOCH BIGINT */
-    public static final String PROP_NAME_schedulerEpoch = "schedulerEpoch";
-    public static final int PROP_ID_schedulerEpoch = 21;
-    
-    /* 调度器加载时间: SCHEDULER_LOAD_TIME TIMESTAMP */
-    public static final String PROP_NAME_schedulerLoadTime = "schedulerLoadTime";
-    public static final int PROP_ID_schedulerLoadTime = 22;
-    
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 23;
+    public static final int PROP_ID_version = 19;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 24;
+    public static final int PROP_ID_createdBy = 20;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 25;
+    public static final int PROP_ID_createTime = 21;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 26;
+    public static final int PROP_ID_updatedBy = 22;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 27;
+    public static final int PROP_ID_updateTime = 23;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 28;
+    public static final int PROP_ID_remark = 24;
     
 
-    private static int _PROP_ID_BOUND = 29;
+    private static int _PROP_ID_BOUND = 25;
 
     
     /* component:  */
@@ -143,7 +127,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[29];
+    private static final String[] PROP_ID_TO_NAME = new String[25];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -200,18 +184,6 @@ public class _NopJobDefinition extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_pauseCalendars] = PROP_NAME_pauseCalendars;
           PROP_NAME_TO_ID.put(PROP_NAME_pauseCalendars, PROP_ID_pauseCalendars);
-      
-          PROP_ID_TO_NAME[PROP_ID_schedulerGroup] = PROP_NAME_schedulerGroup;
-          PROP_NAME_TO_ID.put(PROP_NAME_schedulerGroup, PROP_ID_schedulerGroup);
-      
-          PROP_ID_TO_NAME[PROP_ID_schedulerId] = PROP_NAME_schedulerId;
-          PROP_NAME_TO_ID.put(PROP_NAME_schedulerId, PROP_ID_schedulerId);
-      
-          PROP_ID_TO_NAME[PROP_ID_schedulerEpoch] = PROP_NAME_schedulerEpoch;
-          PROP_NAME_TO_ID.put(PROP_NAME_schedulerEpoch, PROP_ID_schedulerEpoch);
-      
-          PROP_ID_TO_NAME[PROP_ID_schedulerLoadTime] = PROP_NAME_schedulerLoadTime;
-          PROP_NAME_TO_ID.put(PROP_NAME_schedulerLoadTime, PROP_ID_schedulerLoadTime);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -287,18 +259,6 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     
     /* 暂停日历: PAUSE_CALENDARS */
     private java.lang.String _pauseCalendars;
-    
-    /* 调度器分组: SCHEDULER_GROUP */
-    private java.lang.String _schedulerGroup;
-    
-    /* 调度器ID: SCHEDULER_ID */
-    private java.lang.String _schedulerId;
-    
-    /* 调度器世代: SCHEDULER_EPOCH */
-    private java.lang.Long _schedulerEpoch;
-    
-    /* 调度器加载时间: SCHEDULER_LOAD_TIME */
-    private java.sql.Timestamp _schedulerLoadTime;
     
     /* 数据版本: VERSION */
     private java.lang.Long _version;
@@ -445,18 +405,6 @@ public class _NopJobDefinition extends DynamicOrmEntity{
         
             case PROP_ID_pauseCalendars:
                return getPauseCalendars();
-        
-            case PROP_ID_schedulerGroup:
-               return getSchedulerGroup();
-        
-            case PROP_ID_schedulerId:
-               return getSchedulerId();
-        
-            case PROP_ID_schedulerEpoch:
-               return getSchedulerEpoch();
-        
-            case PROP_ID_schedulerLoadTime:
-               return getSchedulerLoadTime();
         
             case PROP_ID_version:
                return getVersion();
@@ -667,46 +615,6 @@ public class _NopJobDefinition extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_schedulerGroup:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_schedulerGroup));
-               }
-               setSchedulerGroup(typedValue);
-               break;
-            }
-        
-            case PROP_ID_schedulerId:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_schedulerId));
-               }
-               setSchedulerId(typedValue);
-               break;
-            }
-        
-            case PROP_ID_schedulerEpoch:{
-               java.lang.Long typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toLong(value,
-                       err-> newTypeConversionError(PROP_NAME_schedulerEpoch));
-               }
-               setSchedulerEpoch(typedValue);
-               break;
-            }
-        
-            case PROP_ID_schedulerLoadTime:{
-               java.sql.Timestamp typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toTimestamp(value,
-                       err-> newTypeConversionError(PROP_NAME_schedulerLoadTime));
-               }
-               setSchedulerLoadTime(typedValue);
-               break;
-            }
-        
             case PROP_ID_version:{
                java.lang.Long typedValue = null;
                if(value != null){
@@ -898,34 +806,6 @@ public class _NopJobDefinition extends DynamicOrmEntity{
             case PROP_ID_pauseCalendars:{
                onInitProp(propId);
                this._pauseCalendars = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_schedulerGroup:{
-               onInitProp(propId);
-               this._schedulerGroup = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_schedulerId:{
-               onInitProp(propId);
-               this._schedulerId = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_schedulerEpoch:{
-               onInitProp(propId);
-               this._schedulerEpoch = (java.lang.Long)value;
-               
-               break;
-            }
-        
-            case PROP_ID_schedulerLoadTime:{
-               onInitProp(propId);
-               this._schedulerLoadTime = (java.sql.Timestamp)value;
                
                break;
             }
@@ -1316,82 +1196,6 @@ public class _NopJobDefinition extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_pauseCalendars,value)){
             this._pauseCalendars = value;
             internalClearRefs(PROP_ID_pauseCalendars);
-            
-        }
-    }
-    
-    /**
-     * 调度器分组: SCHEDULER_GROUP
-     */
-    public final java.lang.String getSchedulerGroup(){
-         onPropGet(PROP_ID_schedulerGroup);
-         return _schedulerGroup;
-    }
-
-    /**
-     * 调度器分组: SCHEDULER_GROUP
-     */
-    public final void setSchedulerGroup(java.lang.String value){
-        if(onPropSet(PROP_ID_schedulerGroup,value)){
-            this._schedulerGroup = value;
-            internalClearRefs(PROP_ID_schedulerGroup);
-            
-        }
-    }
-    
-    /**
-     * 调度器ID: SCHEDULER_ID
-     */
-    public final java.lang.String getSchedulerId(){
-         onPropGet(PROP_ID_schedulerId);
-         return _schedulerId;
-    }
-
-    /**
-     * 调度器ID: SCHEDULER_ID
-     */
-    public final void setSchedulerId(java.lang.String value){
-        if(onPropSet(PROP_ID_schedulerId,value)){
-            this._schedulerId = value;
-            internalClearRefs(PROP_ID_schedulerId);
-            
-        }
-    }
-    
-    /**
-     * 调度器世代: SCHEDULER_EPOCH
-     */
-    public final java.lang.Long getSchedulerEpoch(){
-         onPropGet(PROP_ID_schedulerEpoch);
-         return _schedulerEpoch;
-    }
-
-    /**
-     * 调度器世代: SCHEDULER_EPOCH
-     */
-    public final void setSchedulerEpoch(java.lang.Long value){
-        if(onPropSet(PROP_ID_schedulerEpoch,value)){
-            this._schedulerEpoch = value;
-            internalClearRefs(PROP_ID_schedulerEpoch);
-            
-        }
-    }
-    
-    /**
-     * 调度器加载时间: SCHEDULER_LOAD_TIME
-     */
-    public final java.sql.Timestamp getSchedulerLoadTime(){
-         onPropGet(PROP_ID_schedulerLoadTime);
-         return _schedulerLoadTime;
-    }
-
-    /**
-     * 调度器加载时间: SCHEDULER_LOAD_TIME
-     */
-    public final void setSchedulerLoadTime(java.sql.Timestamp value){
-        if(onPropSet(PROP_ID_schedulerLoadTime,value)){
-            this._schedulerLoadTime = value;
-            internalClearRefs(PROP_ID_schedulerLoadTime);
             
         }
     }

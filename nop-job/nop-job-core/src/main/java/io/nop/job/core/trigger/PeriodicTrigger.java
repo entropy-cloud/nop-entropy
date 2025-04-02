@@ -40,7 +40,7 @@ public class PeriodicTrigger implements ITrigger {
                 return afterTime + 1;
             }
 
-            long lastEnd = triggerContext.getLastExecutionEndTime();
+            long lastEnd = triggerContext.getLastExecEndTime();
             if (lastEnd <= 0)
                 lastEnd = afterTime;
 

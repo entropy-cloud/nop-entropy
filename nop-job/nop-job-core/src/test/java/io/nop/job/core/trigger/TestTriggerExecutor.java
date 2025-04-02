@@ -43,7 +43,7 @@ public class TestTriggerExecutor {
 
         ITriggerExecution execution = executor.execute(trigger,
                 (forceFire, ctx, cancelToken) -> GlobalExecutors.globalTimer().schedule(() -> {
-                    times.add(DateHelper.millisToDateTime(ctx.getLastExecutionEndTime()));
+                    times.add(DateHelper.millisToDateTime(ctx.getLastExecEndTime()));
                     times.add(DateHelper.millisToDateTime(ctx.getNextScheduleTime()));
                     return null;
                 }, 100, TimeUnit.MILLISECONDS), context);

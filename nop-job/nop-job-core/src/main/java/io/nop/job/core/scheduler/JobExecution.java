@@ -9,7 +9,6 @@ package io.nop.job.core.scheduler;
 
 import io.nop.job.api.JobDetail;
 import io.nop.job.api.TriggerState;
-import io.nop.job.api.TriggerStatus;
 import io.nop.job.core.ITriggerAction;
 import io.nop.job.core.ITriggerContext;
 import io.nop.job.core.ITriggerExecution;
@@ -42,6 +41,14 @@ class JobExecution {
         return closed;
     }
 
+    public boolean isDone() {
+        return triggerContext.isJobFinished();
+    }
+
+    public boolean isActive() {
+        return triggerContext.isRunning();
+    }
+
     public long getJobVersion() {
         return jobSpec.getJobSpec().getVersion();
     }
@@ -54,7 +61,7 @@ class JobExecution {
     }
 
     public synchronized void startTrigger(ITriggerExecutor executor, Runnable onComplete) {
-        if (getTriggerStatus().isDone() || isClosed())
+        if (getTriggerContext().isJobFinished() || isClosed())
             return;
 
         if (this.triggerExecution != null)
@@ -139,7 +146,7 @@ class JobExecution {
         }
     }
 
-    public TriggerStatus getTriggerStatus() {
+    public int getTriggerStatus() {
         return triggerContext.getTriggerStatus();
     }
 

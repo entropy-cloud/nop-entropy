@@ -25,10 +25,6 @@ prop:
       pauseCalendars: 暂停日历
       remark: 备注
       repeatInterval: 定时执行间隔
-      schedulerEpoch: 调度器世代
-      schedulerGroup: 调度器分组
-      schedulerId: 调度器ID
-      schedulerLoadTime: 调度器加载时间
       sid: SID
       status: 任务状态
       status_label: 任务状态
@@ -40,7 +36,10 @@ prop:
       createdBy: 创建人
       errCode: 错误码
       errMsg: 错误消息
-      execTime: 实际执行时间
+      execBeginTime: 本次执行开始时间
+      execCount: 执行次数
+      execEndTime: 本次执行完成时间
+      execFailCount: 失败次数
       jobDefId: 任务定义ID
       jobDefinition: 作业计划
       jobDefinition.displayName: 作业计划
@@ -50,11 +49,13 @@ prop:
       jobName: 任务名
       jobParams: 任务参数
       jobParamsComponent: null
+      lastExecEndTime: 上次执行完成时间
+      lastExecId: 上次执行ID
       onceTask: 是否只执行一次
+      recoverMode: 是否恢复模式
       remark: 备注
       scheduledExecTime: 调度执行时间
       status: 任务状态
       status_label: 任务状态
       updateTime: 修改时间
       updatedBy: 修改人
-      version: 数据版本

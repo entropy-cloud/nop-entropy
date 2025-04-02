@@ -17,6 +17,7 @@ import io.nop.job.api.TriggerStatus;
 import io.nop.job.api.spec.JobSpec;
 import io.nop.job.api.spec.TriggerSpec;
 import io.nop.job.core.ITriggerExecutor;
+import io.nop.job.core.NopJobCoreConstants;
 import io.nop.job.core.scheduler.DefaultJobScheduler;
 import io.nop.job.core.trigger.TriggerExecutorImpl;
 import org.junit.jupiter.api.Disabled;
@@ -50,7 +51,7 @@ public class TestJobScheduler {
             return new MockJobInvoker();
         });
 
-        scheduler.activate(1);
+        scheduler.activate();
         JobSpec job = new JobSpec();
         job.setJobGroup("test");
         job.setJobName("test");
@@ -110,7 +111,7 @@ public class TestJobScheduler {
 
         assertEquals(TriggerStatus.SCHEDULING, scheduler.getTriggerStatus("test"));
         scheduler.cancelJob("test");
-        if (scheduler.getTriggerStatus("test") != TriggerStatus.CANCELLED) {
+        if (scheduler.getTriggerStatus("test") != NopJobCoreConstants.JOB_INSTANCE_STATUS_SUSPENDED) {
             try {
                 Thread.sleep(200);
             } catch (Exception e) {

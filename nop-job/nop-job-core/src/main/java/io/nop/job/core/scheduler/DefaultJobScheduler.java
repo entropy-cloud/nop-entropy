@@ -22,10 +22,10 @@ import io.nop.job.core.ICalendar;
 import io.nop.job.core.ITrigger;
 import io.nop.job.core.ITriggerContext;
 import io.nop.job.core.ITriggerExecutor;
+import io.nop.job.core.NopJobCoreConstants;
 import io.nop.job.core.trigger.OnceTrigger;
 import io.nop.job.core.trigger.TriggerBuilder;
 import io.nop.job.core.trigger.TriggerContextImpl;
-import jakarta.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,13 +37,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import static io.nop.job.api.JobApiErrors.ARG_JOB_NAME;
-import static io.nop.job.core.JobCoreErrors.ARG_CURRENT_EPOCH;
-import static io.nop.job.core.JobCoreErrors.ARG_EPOCH;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_ALREADY_EXISTS;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_DEACTIVATED_SCHEDULER_NOT_ALLOW_OPERATION;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_EMPTY_INVOKER_NAME;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_INVALID_JOB_NAME;
-import static io.nop.job.core.JobCoreErrors.ERR_JOB_SCHEDULER_EPOCH_EXPIRED;
 
 public class DefaultJobScheduler implements IJobScheduler {
     static final Logger LOG = LoggerFactory.getLogger(DefaultJobScheduler.class);
@@ -62,7 +59,6 @@ public class DefaultJobScheduler implements IJobScheduler {
 
     private volatile boolean deactivated;
 
-    private volatile long epoch;
 
     public DefaultJobScheduler(ITriggerExecutor executor, Function<String, IJobInvoker> invokerFactory) {
         this.executor = Guard.notNull(executor, "triggerExecutor");
@@ -78,18 +74,8 @@ public class DefaultJobScheduler implements IJobScheduler {
     }
 
     @Override
-    public synchronized void activate(long epoch) {
-        if (this.epoch < epoch) {
-            throw new NopException(ERR_JOB_SCHEDULER_EPOCH_EXPIRED).param(ARG_EPOCH, epoch).param(ARG_CURRENT_EPOCH, epoch);
-        }
-
-        if (this.epoch == epoch) {
-            if (!this.deactivated)
-                return;
-        }
-
+    public synchronized void activate() {
         deactivate();
-        this.epoch = epoch;
 
         deactivated = false;
 
@@ -152,7 +138,7 @@ public class DefaultJobScheduler implements IJobScheduler {
 
     private void addJob(JobSpec spec, ITriggerState triggerState, boolean allowUpdate) {
         checkActivated();
-        LOG.info("nop.job.add-job:jobName={},epoch={}", spec.getJobName(), epoch);
+        LOG.info("nop.job.add-job:jobName={}", spec.getJobName());
 
         ResolvedJobSpec resolved = resolveJobSpec(spec);
         String jobName = resolved.getJobName();
@@ -209,7 +195,6 @@ public class DefaultJobScheduler implements IJobScheduler {
         }
         context.setJobName(jobSpec.getJobName());
         context.setJobVersion(jobSpec.getVersion());
-        context.setEpoch(epoch);
         context.setJobStore(jobStore);
         return context;
     }
@@ -242,7 +227,7 @@ public class DefaultJobScheduler implements IJobScheduler {
     @Override
     public boolean removeJob(String jobName) {
         checkActivated();
-        LOG.info("nop.job.remove-job:jobName={},epoch={}", jobName, epoch);
+        LOG.info("nop.job.remove-job:jobName={}", jobName);
 
         JobExecution execution = jobs.remove(jobName);
         if (execution != null) {
@@ -251,27 +236,26 @@ public class DefaultJobScheduler implements IJobScheduler {
                 return true;
             }
         }
-        LOG.info("nop.job.remove-job-not-exists:jobName={},epoch={}", jobName, epoch);
+        LOG.info("nop.job.remove-job-not-exists:jobName={}", jobName);
         return false;
     }
 
-    @Nullable
     @Override
-    public TriggerStatus getTriggerStatus(String jobName) {
+    public int getTriggerStatus(String jobName) {
         JobExecution execution = jobs.get(jobName);
         if (execution != null) {
             synchronized (execution) {//NOSONAR
                 return execution.getTriggerStatus();
             }
         }
-        return null;
+        return NopJobCoreConstants.JOB_INSTANCE_STATUS_CREATED;
     }
 
     @Override
     public boolean resumeJob(String jobName) {
         checkActivated();
 
-        LOG.info("nop.job.start-job:jobName={},epoch={}", jobName, epoch);
+        LOG.info("nop.job.start-job:jobName={}", jobName);
 
         JobExecution execution = jobs.get(jobName);
         if (execution != null) {
@@ -279,18 +263,18 @@ public class DefaultJobScheduler implements IJobScheduler {
                 if (execution.isClosed())
                     return false;
 
-                if (execution.getTriggerStatus() == TriggerStatus.PAUSED) {
+                if (execution.getTriggerStatus() == NopJobCoreConstants.JOB_INSTANCE_STATUS_SUSPENDED) {
                     tryStartTrigger(execution);
                     return true;
                 }
             }
         }
-        LOG.info("nop.job.start-job-not-exists:jobName={},epoch={}", jobName, epoch);
+        LOG.info("nop.job.start-job-not-exists:jobName={}", jobName);
         return false;
     }
 
     void tryStartTrigger(JobExecution execution) {
-        boolean active = !execution.isClosed() && execution.getTriggerStatus().isActive();
+        boolean active = !execution.isClosed() && execution.isActive();
         if (!active)
             return;
 
@@ -300,7 +284,7 @@ public class DefaultJobScheduler implements IJobScheduler {
     }
 
     private void onTriggerCompleted(JobExecution execution) {
-        if (execution.getJobSpec().isRemoveWhenDone() && execution.getTriggerStatus().isDone()) {
+        if (execution.getJobSpec().isRemoveWhenDone() && execution.isDone()) {
             if (jobs.remove(execution.getJobName(), execution))
                 execution.deactivate();
         }
@@ -309,7 +293,7 @@ public class DefaultJobScheduler implements IJobScheduler {
     @Override
     public boolean pauseJob(String jobName) {
         checkActivated();
-        LOG.info("nop.job.pause-job:jobName={},epoch={}", jobName, epoch);
+        LOG.info("nop.job.pause-job:jobName={}", jobName);
 
         JobExecution execution = jobs.get(jobName);
         if (execution != null) {
@@ -322,14 +306,14 @@ public class DefaultJobScheduler implements IJobScheduler {
             }
         }
 
-        LOG.info("nop.job.pause-job-not-exists:jobName={},epoch={}", jobName, epoch);
+        LOG.info("nop.job.pause-job-not-exists:jobName={}", jobName);
         return false;
     }
 
     @Override
     public boolean cancelJob(String jobName) {
         checkActivated();
-        LOG.info("nop.job.cancel-job:jobName={},epoch={}", jobName, epoch);
+        LOG.info("nop.job.cancel-job:jobName={}", jobName);
 
         JobExecution execution = jobs.get(jobName);
         if (execution != null) {
@@ -342,7 +326,7 @@ public class DefaultJobScheduler implements IJobScheduler {
             }
         }
 
-        LOG.info("nop.job.cancel-job-not-exists:jobName={},epoch={}", jobName, epoch);
+        LOG.info("nop.job.cancel-job-not-exists:jobName={}", jobName);
         return false;
     }
 
@@ -350,17 +334,17 @@ public class DefaultJobScheduler implements IJobScheduler {
     public boolean fireNow(String jobName) {
         checkActivated();
 
-        LOG.info("nop.job.fireNow:jobName={},epoch={}", jobName, epoch);
+        LOG.info("nop.job.fireNow:jobName={}", jobName);
 
         JobExecution execution = makeJobExecution(jobName);
         if (execution == null) {
-            LOG.info("nop.job.fireNow-not-exists:jobName={},epoch={}", jobName, epoch);
+            LOG.info("nop.job.fireNow-not-exists:jobName={}", jobName);
             return false;
         }
 
         synchronized (execution) { //NOSONAR
             if (execution.isClosed()) {
-                LOG.info("nop.job.fireNow-execution-closed:jobName={},epoch={}", jobName, epoch);
+                LOG.info("nop.job.fireNow-execution-closed:jobName={}", jobName);
                 return false;
             }
 

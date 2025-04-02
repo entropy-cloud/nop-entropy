@@ -21,19 +21,27 @@ options:
     value: 30
     description: 
   
-  - label: 已完成
+  - label: 执行成功
     value: 40
     description: 
   
-  - label: 已超时
+  - label: 执行失败
     value: 50
     description: 
   
-  - label: 已失败
+  - label: 执行超时
     value: 60
     description: 
   
-  - label: 已中止
+  - label: 任务结束
     value: 70
+    description: 
+  
+  - label: 任务失败
+    value: 80
+    description: 
+  
+  - label: 任务中止
+    value: 90
     description: 
   

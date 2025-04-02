@@ -24,10 +24,6 @@ prop:
       maxFailedCount: Max Failed Count
       isUseDefaultCalendar: Is Use Default Calendar
       pauseCalendars: Pause Calendars
-      schedulerGroup: Scheduler Group
-      schedulerId: Scheduler Id
-      schedulerEpoch: Scheduler Epoch
-      schedulerLoadTime: Scheduler Load Time
       version: Version
       createdBy: Created By
       createTime: Create Time
@@ -45,11 +41,16 @@ prop:
       status: Status
       status_label: null
       scheduledExecTime: Scheduled Exec Time
-      execTime: Exec Time
+      execCount: Exec Count
+      execBeginTime: Exec Begin Time
+      execEndTime: Exec End Time
       onceTask: Once Task
+      execFailCount: Exec Fail Count
       errCode: Error Code
       errMsg: Error Message
-      version: Version
+      recoverMode: Is Recover Mode
+      lastExecId: Last Exec ID
+      lastExecEndTime: Last Exec End Time
       createdBy: Created By
       createTime: Create Time
       updatedBy: Updated By

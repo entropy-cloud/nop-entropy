@@ -18,10 +18,6 @@ CREATE TABLE nop_job_definition(
   MAX_FAILED_COUNT INTEGER  ,
   IS_USE_DEFAULT_CALENDAR SMALLINT default 0   ,
   PAUSE_CALENDARS VARCHAR2(4000)  ,
-  SCHEDULER_GROUP VARCHAR2(50) NOT NULL ,
-  SCHEDULER_ID VARCHAR2(32) NOT NULL ,
-  SCHEDULER_EPOCH NUMBER(20) NOT NULL ,
-  SCHEDULER_LOAD_TIME TIMESTAMP  ,
   VERSION NUMBER(20) NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -39,12 +35,17 @@ CREATE TABLE nop_job_instance(
   JOB_PARAMS VARCHAR2(4000)  ,
   JOB_INVOKER VARCHAR2(200) NOT NULL ,
   STATUS INTEGER NOT NULL ,
-  SCHEDULED_EXEC_TIME TIMESTAMP  ,
-  EXEC_TIME TIMESTAMP  ,
-  ONCE_TASK SMALLINT default 0   ,
+  SCHEDULED_EXEC_TIME TIMESTAMP NOT NULL ,
+  EXEC_COUNT NUMBER(20) NOT NULL ,
+  EXEC_BEGIN_TIME TIMESTAMP  ,
+  EXEC_END_TIME TIMESTAMP  ,
+  ONCE_TASK CHAR(1)  ,
+  EXEC_FAIL_COUNT INTEGER  ,
   ERR_CODE VARCHAR2(200)  ,
   ERR_MSG VARCHAR2(500)  ,
-  VERSION NUMBER(20) NOT NULL ,
+  RECOVER_MODE CHAR(1)  ,
+  LAST_EXEC_ID VARCHAR2(32)  ,
+  LAST_EXEC_END_TIME TIMESTAMP  ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
   UPDATED_BY VARCHAR2(50) NOT NULL ,
@@ -92,14 +93,6 @@ CREATE TABLE nop_job_instance(
                     
       COMMENT ON COLUMN nop_job_definition.PAUSE_CALENDARS IS '暂停日历';
                     
-      COMMENT ON COLUMN nop_job_definition.SCHEDULER_GROUP IS '调度器分组';
-                    
-      COMMENT ON COLUMN nop_job_definition.SCHEDULER_ID IS '调度器ID';
-                    
-      COMMENT ON COLUMN nop_job_definition.SCHEDULER_EPOCH IS '调度器世代';
-                    
-      COMMENT ON COLUMN nop_job_definition.SCHEDULER_LOAD_TIME IS '调度器加载时间';
-                    
       COMMENT ON COLUMN nop_job_definition.VERSION IS '数据版本';
                     
       COMMENT ON COLUMN nop_job_definition.CREATED_BY IS '创建人';
@@ -130,15 +123,25 @@ CREATE TABLE nop_job_instance(
                     
       COMMENT ON COLUMN nop_job_instance.SCHEDULED_EXEC_TIME IS '调度执行时间';
                     
-      COMMENT ON COLUMN nop_job_instance.EXEC_TIME IS '实际执行时间';
+      COMMENT ON COLUMN nop_job_instance.EXEC_COUNT IS '执行次数';
+                    
+      COMMENT ON COLUMN nop_job_instance.EXEC_BEGIN_TIME IS '本次执行开始时间';
+                    
+      COMMENT ON COLUMN nop_job_instance.EXEC_END_TIME IS '本次执行完成时间';
                     
       COMMENT ON COLUMN nop_job_instance.ONCE_TASK IS '是否只执行一次';
+                    
+      COMMENT ON COLUMN nop_job_instance.EXEC_FAIL_COUNT IS '失败次数';
                     
       COMMENT ON COLUMN nop_job_instance.ERR_CODE IS '错误码';
                     
       COMMENT ON COLUMN nop_job_instance.ERR_MSG IS '错误消息';
                     
-      COMMENT ON COLUMN nop_job_instance.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_job_instance.RECOVER_MODE IS '是否恢复模式';
+                    
+      COMMENT ON COLUMN nop_job_instance.LAST_EXEC_ID IS '上次执行ID';
+                    
+      COMMENT ON COLUMN nop_job_instance.LAST_EXEC_END_TIME IS '上次执行完成时间';
                     
       COMMENT ON COLUMN nop_job_instance.CREATED_BY IS '创建人';
                     

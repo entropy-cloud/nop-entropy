@@ -12,10 +12,10 @@ import io.nop.commons.util.StringHelper;
 import io.nop.job.api.IJobScheduleStore;
 import io.nop.job.api.ITriggerState;
 import io.nop.job.api.TriggerState;
-import io.nop.job.api.TriggerStatus;
 import io.nop.job.api.spec.ITriggerSpec;
 import io.nop.job.api.spec.TriggerSpec;
 import io.nop.job.core.ITriggerContext;
+import io.nop.job.core.NopJobCoreConstants;
 
 /**
  * @author canonical_entropy@163.com
@@ -23,9 +23,13 @@ import io.nop.job.core.ITriggerContext;
 public class TriggerContextImpl extends TriggerState implements ITriggerContext {
     private IJobScheduleStore jobStore;
     private boolean deactivated;
+    private long maxExecutionCount;
+    private long minScheduleTime;
+    private long maxScheduleTime;
+    private long maxFailedCount;
 
     public TriggerContextImpl() {
-        this.setTriggerStatus(TriggerStatus.SCHEDULING);
+        this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING);
     }
 
     public TriggerContextImpl(String jobName, ITriggerSpec spec) {
@@ -34,8 +38,8 @@ public class TriggerContextImpl extends TriggerState implements ITriggerContext 
     }
 
     public TriggerContextImpl(ITriggerSpec spec) {
-        super(spec);
-        setTriggerStatus(TriggerStatus.SCHEDULING);
+        update(spec);
+        setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING);
     }
 
     public TriggerContextImpl(ITriggerState state) {
@@ -52,17 +56,15 @@ public class TriggerContextImpl extends TriggerState implements ITriggerContext 
 
     @Override
     public void onSchedule(long currentTime, long nextExecutionTime) {
-        this.setTriggerStatus(TriggerStatus.SCHEDULING);
+        this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_WAITING);
         this.setNextScheduleTime(nextExecutionTime);
         onChange();
     }
 
     @Override
     public void onBeginExecute(long currentTime) {
-        this.setTriggerStatus(TriggerStatus.EXECUTING);
-        this.setLastExecutionStartTime(currentTime);
-        if (getFirstExecutionTime() <= 0)
-            this.setFirstExecutionTime(currentTime);
+        this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_SUSPENDED);
+        this.setExecBeginTime(currentTime);
         this.setLastExecutionId(newExecutionId());
         onChange();
     }
@@ -71,43 +73,37 @@ public class TriggerContextImpl extends TriggerState implements ITriggerContext 
     public void onEndExecute(long currentTime) {
         // 如果是fireNow触发，则会设置nextTriggerStatus为triggerState此前的status。
         // 因此在PAUSED状态下由fireNow触发后仍然会恢复为PAUSED状态。
-        TriggerStatus status = getNextTriggerStatus();
-        if (status == null) {
-            status = TriggerStatus.SCHEDULING;
-        } else {
-            setNextTriggerStatus(null);
-        }
+        int status = NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING;
 
         // 只有错误恢复后的第一次执行是recoverMode
         this.setRecoverMode(false);
 
         this.setTriggerStatus(status);
         this.setLastScheduleTime(this.getNextScheduleTime());
-        this.setLastExecutionEndTime(currentTime);
+        this.setExecEndTime(currentTime);
         this.setExecutionCount(getExecutionCount() + 1);
         onChange();
     }
 
     @Override
     public void onCompleted(long currentTime) {
-        if (isDone())
+        if (isJobFinished())
             return;
 
-        this.setTriggerStatus(TriggerStatus.COMPLETED);
-        this.setCompletionTime(currentTime);
+        this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FINISHED);
+        this.setExecBeginTime(currentTime);
         onChange();
     }
 
     @Override
     public void onException(long currentTime, ErrorBean error) {
-        this.setConsecutiveFailedCount(getConsecutiveFailedCount() + 1);
-        this.setTotalFailedCount(getTotalFailedCount() + 1);
+        this.setExecFailCount(getExecFailCount() + 1);
         this.setLastError(error);
 
-        if (!isDone()) {
-            if (this.getMaxFailedCount() > 0 && this.getConsecutiveFailedCount() >= this.getMaxFailedCount()) {
-                this.setTriggerStatus(TriggerStatus.ERROR);
-                this.setCompletionTime(currentTime);
+        if (!isJobFinished()) {
+            if (this.getMaxFailedCount() > 0 && this.getExecFailCount() >= this.getMaxFailedCount()) {
+                this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FAILED);
+                this.setExecBeginTime(currentTime);
             }
         }
         onChange();
@@ -115,33 +111,32 @@ public class TriggerContextImpl extends TriggerState implements ITriggerContext 
 
     @Override
     public void onError(long currentTime, ErrorBean error) {
-        this.setConsecutiveFailedCount(getConsecutiveFailedCount() + 1);
-        this.setTotalFailedCount(getTotalFailedCount() + 1);
+        this.setExecFailCount(getExecFailCount() + 1);
         this.setLastError(error);
 
-        if (!isDone()) {
-            this.setTriggerStatus(TriggerStatus.ERROR);
-            this.setCompletionTime(currentTime);
+        if (!isJobFinished()) {
+            this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FAILED);
+            this.setExecBeginTime(currentTime);
         }
         onChange();
     }
 
     @Override
     public void onCancel(long currentTime) {
-        if (isDone())
+        if (isJobFinished())
             return;
 
-        this.setTriggerStatus(TriggerStatus.CANCELLED);
-        this.setCompletionTime(currentTime);
+        this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_KILLED);
+        this.setExecBeginTime(currentTime);
         onChange();
     }
 
     @Override
     public void onPaused(long currentTime) {
-        if (isDone())
+        if (isJobFinished())
             return;
 
-        this.setTriggerStatus(TriggerStatus.PAUSED);
+        this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_SUSPENDED);
         onChange();
     }
 
@@ -170,7 +165,46 @@ public class TriggerContextImpl extends TriggerState implements ITriggerContext 
         this.deactivated = true;
     }
 
-    public void update(TriggerSpec spec) {
+    @Override
+    public long getMaxExecutionCount() {
+        return maxExecutionCount;
+    }
+
+    @Override
+    public void setMaxExecutionCount(long maxExecutionCount) {
+        this.maxExecutionCount = maxExecutionCount;
+    }
+
+    @Override
+    public long getMinScheduleTime() {
+        return minScheduleTime;
+    }
+
+    @Override
+    public void setMinScheduleTime(long minScheduleTime) {
+        this.minScheduleTime = minScheduleTime;
+    }
+
+    @Override
+    public long getMaxScheduleTime() {
+        return maxScheduleTime;
+    }
+
+    @Override
+    public void setMaxScheduleTime(long maxScheduleTime) {
+        this.maxScheduleTime = maxScheduleTime;
+    }
+
+    @Override
+    public long getMaxFailedCount() {
+        return maxFailedCount;
+    }
+
+    public void setMaxFailedCount(long maxFailedCount) {
+        this.maxFailedCount = maxFailedCount;
+    }
+
+    public void update(ITriggerSpec spec) {
         this.setMaxExecutionCount(spec.getMaxExecutionCount());
         this.setMaxScheduleTime(spec.getMaxScheduleTime());
         this.setMinScheduleTime(spec.getMinScheduleTime());

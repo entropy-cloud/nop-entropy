@@ -18,15 +18,15 @@ public interface ITriggerExecution extends ICancellable {
 
     ITriggerState getTriggerState();
 
-    boolean isExecuting();
+    boolean isRunning();
 
     boolean isDone();
 
     default void pause() {
-        cancel(JobCoreConstants.CANCEL_REASON_PAUSE);
+        cancel(NopJobCoreConstants.CANCEL_REASON_PAUSE);
     }
 
     default void deactivate() {
-        cancel(JobCoreConstants.CANCEL_REASON_DEACTIVATE);
+        cancel(NopJobCoreConstants.CANCEL_REASON_DEACTIVATE);
     }
 }
