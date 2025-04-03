@@ -154,13 +154,13 @@ public interface OrmEqlErrors {
     ErrorCode ERR_EQL_DECORATOR_ARG_TYPE_IS_NOT_EXPECTED = define("nop.err.eql.decorator-arg-type-is-not-expected",
             "注解[{decorator}]的参数[{argIndex}]的类型不是期待的数据类型:{expected}", ARG_DECORATOR, ARG_ARG_INDEX, ARG_EXPECTED);
 
-    ErrorCode ERR_EQL_FUNC_TOO_FEW_ARGS = define("nop.err.eql.func-too-few-args", "函数[{funcName]的参数个数不足",
+    ErrorCode ERR_EQL_FUNC_TOO_FEW_ARGS = define("nop.err.eql.func-too-few-args", "函数[{funcName}]的参数个数不足",
             ARG_FUNC_NAME);
 
-    ErrorCode ERR_EQL_FUNC_TOO_MANY_ARGS = define("nop.err.eql.func-too-many-args", "函数[{funcName]的参数个数过多",
+    ErrorCode ERR_EQL_FUNC_TOO_MANY_ARGS = define("nop.err.eql.func-too-many-args", "函数[{funcName}]的参数个数过多",
             ARG_FUNC_NAME);
 
-    ErrorCode ERR_EQL_UNKNOWN_FUNCTION = define("nop.err.eql.unknown-function", "未知的函数[{funcName]", ARG_FUNC_NAME);
+    ErrorCode ERR_EQL_UNKNOWN_FUNCTION = define("nop.err.eql.unknown-function", "未知的函数[{funcName}]", ARG_FUNC_NAME);
 
     ErrorCode ERR_EQL_FUNC_ONLY_ALLOW_IN_WINDOW_EXPR =
             define("nop.err.eql.func-only-allow-in-window-expr", "函数[{funcName}]只允许在窗口表达式中使用", ARG_FUNC_NAME);

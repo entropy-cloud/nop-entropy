@@ -88,7 +88,7 @@ public interface MatchErrors {
             "[{jsonPath}]对应的值[{value}]与变量[{varName}]的值[{varValue}]不匹配", ARG_JSON_PATH, ARG_VALUE, ARG_VAR_NAME,
             ARG_VAR_VALUE);
 
-    ErrorCode ERR_MATCH_INVALID_VAR_NAME = define("nop.err.match.invalid-var-name", "变量名[varName]格式不合法", ARG_VAR_NAME);
+    ErrorCode ERR_MATCH_INVALID_VAR_NAME = define("nop.err.match.invalid-var-name", "变量名[{varName}]格式不合法", ARG_VAR_NAME);
 
     ErrorCode ERR_MATCH_BETWEEN_CHECK_FAIL = define("nop.err.match.between-check-fail",
             "[{jsonPath}]对应的值[{value}]不在有效的区间范围内：filterOp={filterOp},min={min},max={max}", ARG_JSON_PATH, ARG_VALUE,

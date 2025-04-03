@@ -37,7 +37,7 @@ public interface RpcErrors {
     ErrorCode ERR_RPC_CHANNEL_CLOSED = define("nop.err.rpc.channel-closed", "RPC连接已关闭");
 
     ErrorCode ERR_RPC_TOO_MANY_INFLIGHT_MESSAGES = define("nop.err.rpc.too-many-inflight-messages",
-            "正在等待响应的RPC消息过多，超过最大限制[{maxInflights]", ARG_MAX_WAIT_REQUESTS);
+            "正在等待响应的RPC消息过多，超过最大限制[{maxWaitRequests}]", ARG_MAX_WAIT_REQUESTS);
 
     ErrorCode ERR_RPC_NO_HANDLER = define("nop.err.rpc.no-handler", "RPC服务没有找到合适的处理函数", ARG_REQUEST, ARG_SERVICE_NAME,
             ARG_SERVICE_METHOD);

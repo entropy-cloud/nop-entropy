@@ -97,7 +97,7 @@ public interface OrmModelErrors {
             "实体[{entityName}]的关联属性[{propName}]不是数据库中的列，只支持主外键关联", ARG_ENTITY_NAME, ARG_PROP_NAME);
 
     ErrorCode ERR_ORM_MODEL_RELATION_JOIN_IS_EMPTY = define("nop.err.orm.model.relation-join-is-empty",
-            "对象[{entityName]的属性[{refName}]所对应的关联条件为空", ARG_ENTITY_NAME, ARG_REF_NAME);
+            "对象[{entityName}]的属性[{refName}]所对应的关联条件为空", ARG_ENTITY_NAME, ARG_REF_NAME);
 
     ErrorCode ERR_ORM_ENTITY_MODEL_NO_PK = define("nop.err.orm.model.entity-model-no-pk", "对象模型[{entityName}]没有定义主键");
 
