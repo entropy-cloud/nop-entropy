@@ -17,7 +17,7 @@ import java.util.Map;
 public class TriggerState implements ITriggerState {
     private String lastExecutionId;
     private long lastScheduleTime;
-    private long executionCount;
+    private long executionCount = 1;
     private long nextScheduleTime;
 
     private boolean recoverMode;

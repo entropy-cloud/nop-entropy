@@ -289,7 +289,12 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
                     if (nextScheduleTime > 0) {
                         scheduleAt(nextScheduleTime, startIndex);
                     } else {
-                        onCompleted(context);
+                        try {
+                            onCompleted(context);
+                            promise.complete(null);
+                        } catch (Exception e) {
+                            promise.completeExceptionally(e);
+                        }
                     }
                 }
             }
