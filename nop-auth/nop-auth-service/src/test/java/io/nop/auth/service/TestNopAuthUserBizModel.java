@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.BeanContainer;
@@ -20,6 +21,7 @@ import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.auth.service.entity.NopAuthUserBizModel;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.model.selection.FieldSelectionBeanParser;
 import io.nop.core.type.IGenericType;
 import io.nop.dao.api.IDaoProvider;
@@ -27,6 +29,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.graphql.core.jsonrpc.JsonRpcService;
 import io.nop.ioc.IocErrors;
 import io.nop.orm.IOrmTemplate;
 import io.nop.xlang.api.XLang;
@@ -35,6 +38,7 @@ import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
@@ -164,5 +168,18 @@ public class TestNopAuthUserBizModel extends JunitAutoTestCase {
                 "NopAuthUserEx__initData", request);
         Object result = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
         output("response.json5", result);
+    }
+
+
+    @Inject
+    JsonRpcService jsonRpcService;
+
+    @EnableSnapshot
+    @Test
+    public void testJsonRpc() {
+        String body = inputText("input.json");
+        ApiResponse<String> response = FutureHelper.syncGet(jsonRpcService.executeAsync(body, new HashMap<>()));
+        assertEquals(200, response.getHttpStatus());
+        output("response.json5", JsonTool.parse(response.getData()));
     }
 }

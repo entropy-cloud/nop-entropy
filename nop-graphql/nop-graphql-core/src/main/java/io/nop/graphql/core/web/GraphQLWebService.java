@@ -35,6 +35,7 @@ import io.nop.graphql.core.IGraphQLLogger;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.ICancelTokenManger;
 import io.nop.graphql.core.engine.IGraphQLEngine;
+import io.nop.graphql.core.jsonrpc.JsonRpcService;
 import io.nop.graphql.core.utils.GraphQLArgsHelper;
 import io.nop.graphql.core.utils.GraphQLResponseHelper;
 import io.nop.rpc.api.ContextBinder;
@@ -329,12 +330,6 @@ public abstract class GraphQLWebService {
         return Collections.emptyMap();
     }
 
-    static final Set<String> IGNORE_HEADERS = CollectionHelper.buildImmutableSet("connection",
-            "accept", "accept-encoding", "content-length");
-
-    protected boolean shouldIgnoreHeader(String name) {
-        return IGNORE_HEADERS.contains(name);
-    }
 
     protected ApiRequest<Map<String, Object>> buildRequest(String body, String selection, boolean addParams) {
         ApiRequest<Map<String, Object>> request = new ApiRequest<>();
@@ -395,6 +390,11 @@ public abstract class GraphQLWebService {
             }
             return req;
         }, responseBuilder);
+    }
+
+    protected CompletionStage<ApiResponse<String>> runJsonRpc(String body, Map<String, Object> headers) {
+        JsonRpcService service = BeanContainer.getBeanByType(JsonRpcService.class);
+        return service.executeAsync(body, headers);
     }
 
     protected Response buildJaxrsPageResponse(ApiResponse<?> response, IGraphQLExecutionContext context) {

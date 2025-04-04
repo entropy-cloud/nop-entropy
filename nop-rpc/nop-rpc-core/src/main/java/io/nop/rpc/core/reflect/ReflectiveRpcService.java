@@ -74,7 +74,7 @@ public class ReflectiveRpcService implements IRpcService {
             }
         } catch (Exception e) {
             String locale = ApiHeaders.getLocale(request);
-            return FutureHelper.success(ErrorMessageManager.instance().buildResponse(locale, e));
+            return FutureHelper.success(ErrorMessageManager.instance().buildResponseForException(locale, e));
         }
     }
 }

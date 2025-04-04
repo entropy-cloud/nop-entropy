@@ -158,7 +158,7 @@ public class GraphQLEngine implements IGraphQLEngine {
     }
 
     @Override
-    public ICancelTokenManger getCancelTokenManager(){
+    public ICancelTokenManger getCancelTokenManager() {
         return cancelTokenManager;
     }
 
@@ -317,7 +317,7 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     @Override
     public GraphQLFieldDefinition getOperationDefinition(GraphQLOperationType opType, String name) {
-        if (opType == GraphQLOperationType.query && builtinSchema != null) {
+        if ((opType == null || opType == GraphQLOperationType.query) && builtinSchema != null) {
             GraphQLObjectDefinition def = builtinSchema.getObjectType("Query");
             if (def != null) {
                 GraphQLFieldDefinition field = def.getField(name);
@@ -591,7 +591,7 @@ public class GraphQLEngine implements IGraphQLEngine {
         if (err != null) {
             NopException.logIfNotTraced(LOG, "nop.graphql.rest-execute-fail", err);
             String locale = ContextProvider.currentLocale();
-            res = ErrorMessageManager.instance().buildResponse(locale, err);
+            res = ErrorMessageManager.instance().buildResponseForException(locale, err);
         } else if (result instanceof ApiResponse<?>) {
             res = (ApiResponse<?>) result;
         } else {

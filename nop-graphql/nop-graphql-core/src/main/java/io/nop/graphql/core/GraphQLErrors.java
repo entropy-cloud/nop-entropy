@@ -331,4 +331,8 @@ public interface GraphQLErrors {
 
     ErrorCode ERR_GRAPHQL_EXCEED_MAX_DIRECTIVE_PER_REQUEST =
             define("nop.err.graphql.exceed-max-directive-per-request", "当前请求的Directive个数超出限制，最多允许{maxCount}个", ARG_MAX_COUNT);
+
+    ErrorCode ERR_JSONRPC_EXCEED_MAX_COMMAND_COUNT = define("nop.err.jsonrpc.exceed-max-command-count",
+            "JsonRpc单次请求包含的命令过多，超过最大个数限制。最大个数为{maxCount}", ARG_MAX_COUNT);
+
 }

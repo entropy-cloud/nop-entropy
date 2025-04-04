@@ -29,7 +29,7 @@ public class DefaultRpcMessageAdapter implements IRpcMessageAdapter<ApiRequest<?
     @Override
     public ApiResponse<?> getErrorResponse(Throwable e, ApiRequest<?> request) {
         String locale = ApiHeaders.getLocale(request);
-        return ErrorMessageManager.instance().buildResponse(locale, e);
+        return ErrorMessageManager.instance().buildResponseForException(locale, e);
     }
 
     @Override

@@ -21,10 +21,11 @@ import io.vertx.core.http.impl.CookieImpl;
 import io.vertx.ext.web.RoutingContext;
 
 import java.net.HttpCookie;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -78,9 +79,10 @@ public class VertxHttpServerContext implements IHttpServerContext {
     @Override
     public Map<String, Object> getRequestHeaders() {
         MultiMap map = routingContext.request().headers();
-        Map<String, Object> ret = new HashMap<>();
+        Map<String, Object> ret = new TreeMap<>();
         for (Map.Entry<String, String> entry : map) {
-            ret.putIfAbsent(entry.getKey().toLowerCase(), entry.getValue());
+            String normalized = entry.getKey().toLowerCase(Locale.ENGLISH);
+            ret.putIfAbsent(normalized, entry.getValue());
         }
         return ret;
     }

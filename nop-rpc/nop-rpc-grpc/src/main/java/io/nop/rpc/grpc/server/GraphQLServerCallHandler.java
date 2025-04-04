@@ -214,7 +214,7 @@ public class GraphQLServerCallHandler<S, R> implements ServerCallHandler<S, R> {
         @Override
         public void onError(Throwable t) {
             String locale = context == null ? null : context.getContext().getLocale();
-            ApiResponse<?> err = ErrorMessageManager.instance().buildResponse(locale, t);
+            ApiResponse<?> err = ErrorMessageManager.instance().buildResponseForException(locale, t);
 
             call.close(statusMapping.mapToStatus(err), GrpcHelper.buildHeaders(err.getHeaders()));
             aborted = true;

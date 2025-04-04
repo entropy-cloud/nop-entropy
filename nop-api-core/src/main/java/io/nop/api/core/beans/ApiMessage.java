@@ -40,6 +40,10 @@ public abstract class ApiMessage implements Serializable, ICloneable {
         return ApiHeaders.getHeader(headers, name);
     }
 
+    public boolean hasHeader(String name) {
+        return headers != null && headers.containsKey(name);
+    }
+
     public void setHeader(String name, Object value) {
         if (headers == null)
             headers = new TreeMap<>();
@@ -49,6 +53,21 @@ public abstract class ApiMessage implements Serializable, ICloneable {
     public void addHeaders(Map<String, Object> headers) {
         if (headers != null) {
             headers.forEach(this::setHeader);
+        }
+    }
+
+    public void addHeadersIfAbsent(Map<String, Object> headers) {
+        if (headers == null || headers.isEmpty())
+            return;
+
+        if (this.headers == null) {
+            this.headers = new TreeMap<>(headers);
+        } else {
+            headers.forEach((k, v) -> {
+                if (!hasHeader(k)) {
+                    setHeader(k, v);
+                }
+            });
         }
     }
 

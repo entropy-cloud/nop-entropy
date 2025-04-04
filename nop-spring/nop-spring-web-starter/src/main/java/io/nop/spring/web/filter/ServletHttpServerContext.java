@@ -21,10 +21,11 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.net.HttpCookie;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionStage;
 
@@ -76,11 +77,12 @@ public class ServletHttpServerContext implements IHttpServerContext {
 
     @Override
     public Map<String, Object> getRequestHeaders() {
-        Map<String, Object> ret = new HashMap<>();
+        Map<String, Object> ret = new TreeMap<>();
         Enumeration<String> it = request.getHeaderNames();
         while (it.hasMoreElements()) {
             String name = it.nextElement();
-            ret.put(name, request.getHeader(name));
+            String normalized = name.toLowerCase(Locale.ENGLISH);
+            ret.put(normalized, request.getHeader(name));
         }
         return ret;
     }

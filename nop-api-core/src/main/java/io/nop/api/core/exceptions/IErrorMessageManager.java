@@ -32,11 +32,11 @@ public interface IErrorMessageManager {
     }
 
     default ApiResponse<?> buildResponse(ApiRequest<?> request, Throwable e) {
-        ApiResponse<?> res = buildResponse(ApiHeaders.getLocale(request), e);
+        ApiResponse<?> res = buildResponseForException(ApiHeaders.getLocale(request), e);
         return res;
     }
 
-    ApiResponse<?> buildResponse(String locale, Throwable e);
+    ApiResponse<?> buildResponseForException(String locale, Throwable e);
 
-    ApiResponse<?> buildResponse(String locale, ErrorBean error);
+    ApiResponse<?> buildResponseForErrorBean(String locale, ErrorBean error);
 }

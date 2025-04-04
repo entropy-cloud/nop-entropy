@@ -46,7 +46,7 @@ public class AopProxyHelper {
     public static ApiResponse<?> buildResponse(Object ret, Throwable e, IServiceContext ctx) {
         if (e != null) {
             String locale = ContextProvider.currentLocale();
-            ApiResponse<?> res = ErrorMessageManager.instance().buildResponse(locale, e);
+            ApiResponse<?> res = ErrorMessageManager.instance().buildResponseForException(locale, e);
             if (ctx != null) {
                 res.setHeaders(ctx.getResponseHeaders());
             }

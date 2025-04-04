@@ -90,7 +90,7 @@ public class GraphQLMessageSubscriptionRegistrar {
             IGraphQLExecutionContext gqlCtx = graphQLEngine.newRpcContext(null, operationName, request);
             return graphQLEngine.executeRpcAsync(gqlCtx);
         } catch (Exception e) {
-            return ErrorMessageManager.instance().buildResponse(locale, e);
+            return ErrorMessageManager.instance().buildResponseForException(locale, e);
         }
     }
 

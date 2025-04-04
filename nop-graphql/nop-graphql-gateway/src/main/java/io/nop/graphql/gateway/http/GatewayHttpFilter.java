@@ -57,7 +57,7 @@ public class GatewayHttpFilter implements IHttpServerFilter {
             }
         } catch (Exception e) {
             String locale = ContextProvider.currentLocale();
-            ApiResponse<?> res = ErrorMessageManager.instance().buildResponse(locale, e);
+            ApiResponse<?> res = ErrorMessageManager.instance().buildResponseForException(locale, e);
             write(context, res);
             return FutureHelper.success(null);
         }

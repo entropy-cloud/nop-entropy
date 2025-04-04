@@ -219,10 +219,10 @@ public class BizObjectManager implements IBizObjectManager, IGraphQLSchemaLoader
         ApiResponse<?> response;
 
         if (rt.getError() != null) {
-            response = ErrorMessageManager.instance().buildResponse(locale, rt.getError());
+            response = ErrorMessageManager.instance().buildResponseForException(locale, rt.getError());
         } else if (rt.getErrorBeans() != null && !rt.getErrorBeans().isEmpty()) {
             Collections.sort(rt.getErrorBeans(), Comparator.comparing(ErrorBean::getSeverity));
-            response = ErrorMessageManager.instance().buildResponse(locale, rt.getErrorBeans().get(0));
+            response = ErrorMessageManager.instance().buildResponseForErrorBean(locale, rt.getErrorBeans().get(0));
         } else {
             response = ApiResponse.buildSuccess(result);
         }

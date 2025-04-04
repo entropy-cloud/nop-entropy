@@ -35,12 +35,9 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.graphql.core.GraphQLConstants.SYS_PARAM_ARGS;
@@ -71,15 +68,7 @@ public class SpringGraphQLWebService extends GraphQLWebService {
         if (attrs == null)
             throw new IllegalStateException("null request context");
         HttpServletRequest request = attrs.getRequest();
-        Map<String, Object> ret = new TreeMap<>();
-        Enumeration<String> it = request.getHeaderNames();
-        while (it.hasMoreElements()) {
-            String name = it.nextElement().toLowerCase(Locale.ENGLISH);
-            if (shouldIgnoreHeader(name))
-                continue;
-            ret.put(name, request.getHeader(name));
-        }
-        return ret;
+        return SpringMvcHelper.getHeaders(request);
     }
 
     @PostMapping(path = "/graphql", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -87,14 +76,14 @@ public class SpringGraphQLWebService extends GraphQLWebService {
         return runGraphQL(body, this::transformSpringResponse);
     }
 
-    protected ResponseEntity<Object> transformSpringResponse(Map<String, Object> headers, Object body, int status) {
+    protected ResponseEntity<Object> transformSpringResponse(Map<String, Object> headers, Object body, int httpStatus) {
         HttpHeaders httpHeaders = new HttpHeaders();
         headers.forEach((name, value) -> {
             List<String> list = Collections.singletonList(String.valueOf(value));
             httpHeaders.put(name, list);
         });
 
-        return new ResponseEntity<>(body, httpHeaders, status);
+        return new ResponseEntity<>(body, httpHeaders, httpStatus);
     }
 
     @PostMapping(path = "/px/{serviceName}/{serviceMethod}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -159,4 +148,5 @@ public class SpringGraphQLWebService extends GraphQLWebService {
             return transformSpringResponse(headers, content, status);
         });
     }
+
 }

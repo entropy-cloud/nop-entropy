@@ -1,0 +1,21 @@
+[
+  {
+    "jsonrpc": "2.0",
+    "method": "NopAuthUser__findPage",
+    "params": {
+      "query": {
+        "limit": 3
+      }
+    },
+    "id": "r-1"
+  },
+
+  {
+    "jsonrpc": "2.0",
+    "method": "NopAuthUser__get",
+    "params": {
+      "id": "123"
+    },
+    "id": "r-2"
+  }
+]

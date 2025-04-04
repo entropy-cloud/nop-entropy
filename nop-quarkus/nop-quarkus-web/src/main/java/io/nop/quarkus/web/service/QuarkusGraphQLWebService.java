@@ -24,9 +24,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.util.Collections;
-import java.util.Locale;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.graphql.core.GraphQLConstants.SYS_PARAM_ARGS;
@@ -37,7 +35,6 @@ import static io.nop.quarkus.web.utils.QuarkusExecutorHelper.withRoutingContext;
 @ApplicationScoped
 public class QuarkusGraphQLWebService extends GraphQLWebService {
     // static final Logger LOG = LoggerFactory.getLogger(QuarkusGraphQLWebService.class);
-
 
     @POST
     @Path("/px/{serviceName}/{serviceMethod}")
@@ -102,7 +99,6 @@ public class QuarkusGraphQLWebService extends GraphQLWebService {
                 doPageQuery(null, query, selection, body, this::buildJaxrsPageResponse));
     }
 
-
     @Override
     protected Map<String, String> getParams() {
         IHttpServerContext sc = QuarkusExecutorHelper.getHttpServerContext();
@@ -113,17 +109,10 @@ public class QuarkusGraphQLWebService extends GraphQLWebService {
 
     @Override
     protected Map<String, Object> getHeaders() {
-        Map<String, Object> ret = new TreeMap<>();
         IHttpServerContext sc = QuarkusExecutorHelper.getHttpServerContext();
         if (sc == null)
             return Collections.emptyMap();
 
-        sc.getRequestHeaders().forEach((name, value) -> {
-            name = name.toLowerCase(Locale.ENGLISH);
-            if (shouldIgnoreHeader(name))
-                return;
-            ret.put(name, value);
-        });
-        return ret;
+        return sc.getRequestHeaders();
     }
 }

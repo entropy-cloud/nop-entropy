@@ -1,0 +1,28 @@
+[
+  {
+    "jsonrpc": "2.0",
+    "result": {
+      "extData": null,
+      "hasNext": null,
+      "hasPrev": null,
+      "items": [],
+      "limit": 3,
+      "nextCursor": null,
+      "offset": 0,
+      "page": 1,
+      "pageCount": 1,
+      "prevCursor": null,
+      "total": 0
+    },
+    "id": "r-1"
+  },
+  {
+    "error": {
+      "code": -1,
+      "errorCode": "nop.err.dao.unknown-entity",
+      "message": "类型为[用户]，id为[123]的记录不存在"
+    },
+    "id": "r-2",
+    "jsonrpc": "2.0"
+  }
+]

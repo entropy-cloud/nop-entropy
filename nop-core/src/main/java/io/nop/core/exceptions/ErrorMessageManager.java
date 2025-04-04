@@ -376,13 +376,13 @@ public class ErrorMessageManager implements IErrorMessageManager {
     }
 
     @Override
-    public ApiResponse<?> buildResponse(String locale, Throwable e) {
+    public ApiResponse<?> buildResponseForException(String locale, Throwable e) {
         Pair<ErrorBean, ErrorCodeMapping> pair = _buildErrorMessage(locale, e, false, true, true);
         return _buildResponse(pair);
     }
 
     @Override
-    public ApiResponse<?> buildResponse(String locale, ErrorBean error) {
+    public ApiResponse<?> buildResponseForErrorBean(String locale, ErrorBean error) {
         Pair<ErrorBean, ErrorCodeMapping> pair = applyMapping(locale, error, true);
         if (pair == null) {
             pair = buildSysError(locale);

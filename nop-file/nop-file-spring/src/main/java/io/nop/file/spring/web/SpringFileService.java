@@ -54,7 +54,7 @@ public class SpringFileService extends AbstractGraphQLFileService {
 
             res = uploadAsync(buildApiRequest(request, input));
         } catch (IOException e) {
-            res = FutureHelper.success(ErrorMessageManager.instance().buildResponse(locale, e));
+            res = FutureHelper.success(ErrorMessageManager.instance().buildResponseForException(locale, e));
         }
 
         return res.thenApply(SpringWebHelper::buildJsonResponse);

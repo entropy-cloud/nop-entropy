@@ -18,6 +18,8 @@
         <property name="graphQLHook" ref="nopMetricsGraphQLHook"/>
     </bean>
 
+    <bean id="nopJsonRpcService" class="io.nop.graphql.core.jsonrpc.JsonRpcService" />
+
     <bean id="nopMetricsGraphQLHook" class="io.nop.graphql.core.engine.MetricsGraphQLHook"/>
 
     <bean id="nopGraphQLOperationInvoker" class="io.nop.commons.functional.ChainedAsyncFunctionInvoker">
