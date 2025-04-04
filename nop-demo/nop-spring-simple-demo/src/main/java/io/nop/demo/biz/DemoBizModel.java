@@ -36,4 +36,12 @@ public class DemoBizModel {
     public DemoResponse testError(@RequestBean DemoRequest request) {
         throw new NopException(ERR_DEMO_NOT_FOUND).param(ARG_NAME, request.getName());
     }
+
+    @BizQuery
+    public CustomObj testCustomObj(@Name("name") String name) {
+        CustomObj obj = new CustomObj();
+        obj.setName(name);
+        obj.setStatus(1);
+        return obj;
+    }
 }
