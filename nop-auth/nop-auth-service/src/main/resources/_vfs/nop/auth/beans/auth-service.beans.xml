@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-       xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans
-        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
+       xmlns:ioc="ioc" xmlns:feature="feature">
 
     <bean id="io.nop.auth.service.biz.LoginApiBizModel" ioc:type="@bean:id"/>
 
@@ -73,6 +70,11 @@
                 <value>/p/*</value>
                 <!-- 文件上传下载 -->
                 <value>/f/*</value>
+                <!-- jsonrpc调用 -->
+                <value>/jsonrpc</value>
+
+                <!-- 代理调用分布式服务 -->
+                <value>/px/*</value>
             </list>
         </property>
 
@@ -85,6 +87,9 @@
                 <value>/p/*</value>
                 <!-- 文件上传下载 -->
                 <value>/f/*</value>
+
+                <value>/jsonrpc</value>
+                <value>/px/*</value>
             </list>
         </property>
 
