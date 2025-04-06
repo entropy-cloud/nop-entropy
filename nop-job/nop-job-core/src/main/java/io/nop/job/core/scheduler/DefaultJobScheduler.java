@@ -11,12 +11,11 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancellable;
 import io.nop.commons.util.StringHelper;
-import io.nop.job.api.IJobInvoker;
+import io.nop.job.api.IJobInstanceState;
 import io.nop.job.api.IJobScheduleStore;
 import io.nop.job.api.IJobScheduler;
-import io.nop.job.api.ITriggerState;
 import io.nop.job.api.JobDetail;
-import io.nop.job.api.TriggerStatus;
+import io.nop.job.api.execution.IJobInvoker;
 import io.nop.job.api.spec.JobSpec;
 import io.nop.job.core.ICalendar;
 import io.nop.job.core.ITrigger;
@@ -82,7 +81,7 @@ public class DefaultJobScheduler implements IJobScheduler {
         if (jobStore != null) {
             cancelFetch = jobStore.fetchPersistJobs(jobDetail -> {
                 try {
-                    addJob(jobDetail.getJobSpec(), jobDetail.getTriggerState(), true);
+                    addJob(jobDetail.getJobSpec(), jobDetail.getInstanceState(), true);
                 } catch (Exception e) {
                     LOG.error("nop.err.job.process-schedule-event-fail", e);
                 }
@@ -136,7 +135,7 @@ public class DefaultJobScheduler implements IJobScheduler {
         addJob(spec, null, allowUpdate);
     }
 
-    private void addJob(JobSpec spec, ITriggerState triggerState, boolean allowUpdate) {
+    private void addJob(JobSpec spec, IJobInstanceState triggerState, boolean allowUpdate) {
         checkActivated();
         LOG.info("nop.job.add-job:jobName={}", spec.getJobName());
 
@@ -161,9 +160,9 @@ public class DefaultJobScheduler implements IJobScheduler {
 
         synchronized (execution) { //NOSONAR
             // 忽略旧版本
-            if (execution.getJobSpec().getVersion() > spec.getVersion()) {
+            if (execution.getJobSpec().getVersion() > spec.getJobVersion()) {
                 LOG.info("nop.job.ignore-obsolete-job-spec:jobName={},version={},currentVer={}", spec.getJobName(),
-                        spec.getVersion(), execution.getJobSpec().getVersion());
+                        spec.getJobVersion(), execution.getJobSpec().getVersion());
                 return;
             }
 
@@ -171,7 +170,7 @@ public class DefaultJobScheduler implements IJobScheduler {
                 throw new NopException(ERR_JOB_ALREADY_EXISTS).param(ARG_JOB_NAME, jobName);
 
             LOG.info("nop.job.update-job-spec:jobName={},version={},currentVer={}", spec.getJobName(),
-                    spec.getVersion(), execution.getJobSpec().getVersion());
+                    spec.getJobVersion(), execution.getJobSpec().getVersion());
 
             execution.setJobSpec(resolved);
             // 如果当前有实例正在运行，可能看不见修改后的JobSpec
@@ -179,22 +178,22 @@ public class DefaultJobScheduler implements IJobScheduler {
         }
     }
 
-    JobExecution createJobExecution(ResolvedJobSpec jobSpec, ITriggerState triggerState) {
+    JobExecution createJobExecution(ResolvedJobSpec jobSpec, IJobInstanceState triggerState) {
         JobExecution execution = new JobExecution();
         execution.setJobSpec(jobSpec);
         execution.setTriggerContext(createTriggerContext(jobSpec.getJobSpec(), triggerState));
         return execution;
     }
 
-    protected ITriggerContext createTriggerContext(JobSpec jobSpec, ITriggerState triggerState) {
+    protected ITriggerContext createTriggerContext(JobSpec jobSpec, IJobInstanceState triggerState) {
         TriggerContextImpl context;
         if (triggerState != null) {
             context = new TriggerContextImpl(triggerState);
         } else {
-            context = new TriggerContextImpl();
+            context = new TriggerContextImpl(jobSpec.getJobName(), jobSpec.getTriggerSpec());
         }
         context.setJobName(jobSpec.getJobName());
-        context.setJobVersion(jobSpec.getVersion());
+        context.setJobVersion(jobSpec.getJobVersion());
         context.setJobStore(jobStore);
         return context;
     }

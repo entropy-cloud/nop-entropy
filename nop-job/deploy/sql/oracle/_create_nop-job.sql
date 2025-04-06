@@ -28,7 +28,7 @@ CREATE TABLE nop_job_definition(
 );
 
 CREATE TABLE nop_job_instance(
-  JOB_ID VARCHAR2(32) NOT NULL ,
+  JOB_INSTANCE_ID VARCHAR2(32) NOT NULL ,
   JOB_DEF_ID VARCHAR2(32)  ,
   JOB_NAME VARCHAR2(100) NOT NULL ,
   JOB_GROUP VARCHAR2(100) NOT NULL ,
@@ -40,18 +40,19 @@ CREATE TABLE nop_job_instance(
   EXEC_BEGIN_TIME TIMESTAMP  ,
   EXEC_END_TIME TIMESTAMP  ,
   ONCE_TASK CHAR(1)  ,
+  MANUAL_FIRE CHAR(1)  ,
+  FIRED_BY VARCHAR2(50)  ,
   EXEC_FAIL_COUNT INTEGER  ,
   ERR_CODE VARCHAR2(200)  ,
   ERR_MSG VARCHAR2(500)  ,
-  RECOVER_MODE CHAR(1)  ,
-  LAST_EXEC_ID VARCHAR2(32)  ,
-  LAST_EXEC_END_TIME TIMESTAMP  ,
+  LAST_JOB_INSTANCE_ID VARCHAR2(32)  ,
+  VERSION NUMBER(20) NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
   UPDATED_BY VARCHAR2(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
-  constraint PK_nop_job_instance primary key (JOB_ID)
+  constraint PK_nop_job_instance primary key (JOB_INSTANCE_ID)
 );
 
 
@@ -107,7 +108,7 @@ CREATE TABLE nop_job_instance(
                     
       COMMENT ON TABLE nop_job_instance IS '任务实例';
                 
-      COMMENT ON COLUMN nop_job_instance.JOB_ID IS 'Job ID';
+      COMMENT ON COLUMN nop_job_instance.JOB_INSTANCE_ID IS '任务实例ID';
                     
       COMMENT ON COLUMN nop_job_instance.JOB_DEF_ID IS '任务定义ID';
                     
@@ -131,17 +132,19 @@ CREATE TABLE nop_job_instance(
                     
       COMMENT ON COLUMN nop_job_instance.ONCE_TASK IS '是否只执行一次';
                     
+      COMMENT ON COLUMN nop_job_instance.MANUAL_FIRE IS '是否手工触发';
+                    
+      COMMENT ON COLUMN nop_job_instance.FIRED_BY IS '触发执行的用户';
+                    
       COMMENT ON COLUMN nop_job_instance.EXEC_FAIL_COUNT IS '失败次数';
                     
       COMMENT ON COLUMN nop_job_instance.ERR_CODE IS '错误码';
                     
       COMMENT ON COLUMN nop_job_instance.ERR_MSG IS '错误消息';
                     
-      COMMENT ON COLUMN nop_job_instance.RECOVER_MODE IS '是否恢复模式';
+      COMMENT ON COLUMN nop_job_instance.LAST_JOB_INSTANCE_ID IS '上次任务实例ID';
                     
-      COMMENT ON COLUMN nop_job_instance.LAST_EXEC_ID IS '上次执行ID';
-                    
-      COMMENT ON COLUMN nop_job_instance.LAST_EXEC_END_TIME IS '上次执行完成时间';
+      COMMENT ON COLUMN nop_job_instance.VERSION IS '数据版本';
                     
       COMMENT ON COLUMN nop_job_instance.CREATED_BY IS '创建人';
                     

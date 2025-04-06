@@ -18,8 +18,8 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--Job ID-->
-                <col id="jobId" mandatory="true" sortable="true"/>
+                <!--任务实例ID-->
+                <col id="jobInstanceId" mandatory="true" sortable="true"/>
 
                 <!--任务名-->
                 <col id="jobName" mandatory="true" sortable="true"/>
@@ -51,6 +51,12 @@
                 <!--是否只执行一次-->
                 <col id="onceTask" sortable="true"/>
 
+                <!--是否手工触发-->
+                <col id="manualFire" sortable="true"/>
+
+                <!--触发执行的用户-->
+                <col id="firedBy" sortable="true"/>
+
                 <!--失败次数-->
                 <col id="execFailCount" ui:number="true" sortable="true"/>
 
@@ -60,14 +66,8 @@
                 <!--错误消息-->
                 <col id="errMsg" sortable="true"/>
 
-                <!--是否恢复模式-->
-                <col id="recoverMode" sortable="true"/>
-
-                <!--上次执行ID-->
-                <col id="lastExecId" sortable="true"/>
-
-                <!--上次执行完成时间-->
-                <col id="lastExecEndTime" sortable="true"/>
+                <!--上次任务实例ID-->
+                <col id="lastJobInstanceId" sortable="true"/>
 
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
@@ -91,15 +91,15 @@
     <forms>
         <form id="view" editMode="view" title="查看-任务实例" i18n-en:title="View Job Instance">
             <layout>
- jobId[Job ID] jobName[任务名]
+ jobInstanceId[任务实例ID] jobName[任务名]
  jobGroup[任务组] jobParams[任务参数]
  jobInvoker[任务执行函数] status[任务状态]
  scheduledExecTime[调度执行时间] execCount[执行次数]
  execBeginTime[本次执行开始时间] execEndTime[本次执行完成时间]
- onceTask[是否只执行一次] execFailCount[失败次数]
+ onceTask[是否只执行一次] manualFire[是否手工触发]
+ firedBy[触发执行的用户] execFailCount[失败次数]
  errCode[错误码] errMsg[错误消息]
- recoverMode[是否恢复模式] lastExecId[上次执行ID]
- lastExecEndTime[上次执行完成时间] createdBy[创建人]
+ lastJobInstanceId[上次任务实例ID] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] remark[备注]
 </layout>
@@ -107,15 +107,15 @@
         <form id="add" editMode="add" title="新增-任务实例" i18n-en:title="Add Job Instance" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-任务实例" i18n-en:title="Edit Job Instance">
             <layout>
- jobId[Job ID] jobName[任务名]
+ jobInstanceId[任务实例ID] jobName[任务名]
  jobGroup[任务组] jobParams[任务参数]
  jobInvoker[任务执行函数] status[任务状态]
  scheduledExecTime[调度执行时间] execCount[执行次数]
  execBeginTime[本次执行开始时间] execEndTime[本次执行完成时间]
- onceTask[是否只执行一次] execFailCount[失败次数]
+ onceTask[是否只执行一次] manualFire[是否手工触发]
+ firedBy[触发执行的用户] execFailCount[失败次数]
  errCode[错误码] errMsg[错误消息]
- recoverMode[是否恢复模式] lastExecId[上次执行ID]
- lastExecEndTime[上次执行完成时间] remark[备注]
+ lastJobInstanceId[上次任务实例ID] remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

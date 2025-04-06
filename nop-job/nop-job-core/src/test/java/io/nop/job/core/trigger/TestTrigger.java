@@ -42,16 +42,16 @@ public class TestTrigger {
         for (int i = 0; i < 100; i++) {
             long time = trigger.nextScheduleTime(beginTime, context);
             assertEquals(time, beginTime + 1);
-            context.onEndExecute(time);
+            context.onInstanceSuccess(time);
             beginTime = time;
             assertTrue(beginTime > 0);
         }
         assertEquals(-1, trigger.nextScheduleTime(beginTime, context));
 
-        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING, context.getTriggerStatus());
-        context.onCompleted(beginTime);
+        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING, context.getInstanceStatus());
+        context.onJobFinished(beginTime);
 
-        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FINISHED, context.getTriggerStatus());
+        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FINISHED, context.getInstanceStatus());
     }
 
     @Test
@@ -75,8 +75,8 @@ public class TestTrigger {
             if (time <= 0)
                 break;
             times.add(DateHelper.millisToDateTime(time));
-            context.onEndExecute(time + 100);
-            beginTime = context.getLastExecEndTime();
+            context.onInstanceSuccess(time + 100);
+            beginTime = context.getExecEndTime();
         }
         System.out.println(StringHelper.join(times, "\n"));
 
@@ -87,10 +87,10 @@ public class TestTrigger {
         assertEquals("2022-02-12T06:00", times.get(2).toString());
         assertEquals("2022-02-14T19:00", times.get(5).toString());
 
-        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING, context.getTriggerStatus());
-        context.onCompleted(beginTime);
+        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING, context.getInstanceStatus());
+        context.onJobFinished(beginTime);
 
-        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FINISHED, context.getTriggerStatus());
+        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FINISHED, context.getInstanceStatus());
     }
 
     @Test
@@ -112,7 +112,7 @@ public class TestTrigger {
 
         long time = trigger.nextScheduleTime(beginTime, context);
         context.onSchedule(time, time);
-        context.onEndExecute(time);
+        context.onInstanceSuccess(time);
 
         time = trigger.nextScheduleTime(DateHelper.dateTimeToMillis(LocalDateTime.of(2022, 2, 12, 19, 0, 1)),
                 context);

@@ -21,7 +21,7 @@ public class CheckActiveTrigger implements ITrigger {
     @Override
     public long nextScheduleTime(long afterTime, ITriggerContext triggerContext) {
         // 如果是pause状态，仍然需要计算下一次调度时间
-        if (triggerContext.getTriggerStatus() >= NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FINISHED)
+        if (triggerContext.isJobFinished())
             return -1;
         return trigger.nextScheduleTime(afterTime, triggerContext);
     }

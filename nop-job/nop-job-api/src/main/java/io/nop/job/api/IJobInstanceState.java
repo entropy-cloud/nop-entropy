@@ -16,8 +16,10 @@ import java.util.Map;
 /**
  * 记录Trigger的执行状态。一个Job只关联一条TriggerState记录。
  */
-@JsonSubTypes(@JsonSubTypes.Type(TriggerState.class))
-public interface ITriggerState {
+@JsonSubTypes(@JsonSubTypes.Type(JobInstanceState.class))
+public interface IJobInstanceState {
+    String getJobDefId();
+
     /**
      * 用于起标识作用的唯一ID
      */
@@ -25,45 +27,44 @@ public interface ITriggerState {
 
     long getJobVersion();
 
+    String getJobGroup();
+
+    Map<String, Object> getJobParams();
+
+    String getInstanceId();
+
     /**
-     * 已经执行过的次数
+     * 当前对应的执行次数，从1开始
      */
-    long getExecutionCount();
+    long getExecCount();
 
     /**
      * 下次执行时间
      */
-    long getNextScheduleTime();
-
-    boolean isRecoverMode();
-
-    long getRecoverTime();
-
-    /**
-     * 上一次调度的预计执行时间。返回0, 如果此前没有执行过
-     */
-    long getLastScheduleTime();
-
-    /**
-     * 每一次执行都会分配一个唯一id。这里记录最近一次执行的id
-     */
-    String getLastExecutionId();
-
+    long getScheduledExecTime();
 
     long getExecBeginTime();
 
     long getExecEndTime();
 
-    long getLastExecEndTime();
+    boolean isOnceTask();
+
+    boolean isManualFire();
+
+    String getFiredBy();
+
+    long getChangeVersion();
 
     /**
      * 执行失败次数
      */
     long getExecFailCount();
 
-    int getTriggerStatus();
+    int getInstanceStatus();
 
-    ErrorBean getLastError();
+    ErrorBean getExecError();
+
+    String getLastInstanceId();
 
     Map<String, Object> getAttributes();
 

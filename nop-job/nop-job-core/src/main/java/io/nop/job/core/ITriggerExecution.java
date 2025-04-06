@@ -8,7 +8,7 @@
 package io.nop.job.core;
 
 import io.nop.api.core.util.ICancellable;
-import io.nop.job.api.ITriggerState;
+import io.nop.job.api.IJobInstanceState;
 
 import java.util.concurrent.CompletionStage;
 
@@ -16,17 +16,21 @@ public interface ITriggerExecution extends ICancellable {
 
     CompletionStage<Void> getFinishPromise();
 
-    ITriggerState getTriggerState();
+    IJobInstanceState getTriggerState();
 
     boolean isRunning();
 
     boolean isDone();
 
-    default void pause() {
-        cancel(NopJobCoreConstants.CANCEL_REASON_PAUSE);
+    default void suspend() {
+        cancel(NopJobCoreConstants.CANCEL_REASON_SUSPEND);
     }
 
-    default void deactivate() {
-        cancel(NopJobCoreConstants.CANCEL_REASON_DEACTIVATE);
+    default void killJob() {
+        cancel(NopJobCoreConstants.CANCEL_REASON_KILL);
+    }
+
+    default void cancelExec() {
+        cancel(NopJobCoreConstants.CANCEL_REASON_CANCEL);
     }
 }

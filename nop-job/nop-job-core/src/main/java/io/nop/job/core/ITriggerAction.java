@@ -8,12 +8,12 @@
 package io.nop.job.core;
 
 import io.nop.api.core.util.ICancelToken;
-import io.nop.job.api.ITriggerState;
-import io.nop.job.api.TriggerFireResult;
+import io.nop.job.api.IJobInstanceState;
+import io.nop.job.api.execution.JobFireResult;
 
 import java.util.concurrent.CompletionStage;
 
 @FunctionalInterface
 public interface ITriggerAction {
-    CompletionStage<TriggerFireResult> execute(boolean forceFire, ITriggerState state, ICancelToken cancelToken);
+    CompletionStage<JobFireResult> execute(boolean forceFire, IJobInstanceState state, ICancelToken cancelToken);
 }

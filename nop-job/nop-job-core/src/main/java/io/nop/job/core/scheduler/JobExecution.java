@@ -8,7 +8,7 @@
 package io.nop.job.core.scheduler;
 
 import io.nop.job.api.JobDetail;
-import io.nop.job.api.TriggerState;
+import io.nop.job.api.JobInstanceState;
 import io.nop.job.core.ITriggerAction;
 import io.nop.job.core.ITriggerContext;
 import io.nop.job.core.ITriggerExecution;
@@ -28,7 +28,7 @@ class JobExecution {
 
     public JobDetail toJobDetail() {
         JobDetail detail = new JobDetail();
-        detail.setTriggerState(new TriggerState(triggerContext));
+        detail.setInstanceState(new JobInstanceState(triggerContext));
         detail.setJobSpec(jobSpec.getJobSpec());
         return detail;
     }
@@ -46,18 +46,17 @@ class JobExecution {
     }
 
     public boolean isActive() {
-        return triggerContext.isRunning();
+        return triggerContext.isInstanceRunning();
     }
 
     public long getJobVersion() {
-        return jobSpec.getJobSpec().getVersion();
+        return jobSpec.getJobSpec().getJobVersion();
     }
 
     public ITriggerAction createTriggerAction() {
         ResolvedJobSpec resolved = this.jobSpec;
         return (forceFire, state, cancelToken) ->
-                resolved.getJobInvoker().invokeAsync(resolved.getJobName(), resolved.getJobParams(), forceFire,
-                        state, cancelToken);
+                resolved.getJobInvoker().invokeAsync(triggerContext);
     }
 
     public synchronized void startTrigger(ITriggerExecutor executor, Runnable onComplete) {
@@ -118,7 +117,7 @@ class JobExecution {
         scheduledTrigger = false;
         ITriggerExecution execution = triggerExecution;
         if (execution != null) {
-            execution.pause();
+            execution.suspend();
         }
     }
 
@@ -128,7 +127,7 @@ class JobExecution {
 
         ITriggerExecution execution = triggerExecution;
         if (execution != null) {
-            execution.deactivate();
+            execution.cancelExec();
         }
     }
 
@@ -147,7 +146,7 @@ class JobExecution {
     }
 
     public int getTriggerStatus() {
-        return triggerContext.getTriggerStatus();
+        return triggerContext.getInstanceStatus();
     }
 
     public ResolvedJobSpec getJobSpec() {

@@ -3,8 +3,8 @@ package io.nop.job.dao.store;
 import io.nop.api.core.util.ICancellable;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.job.api.IJobInstanceState;
 import io.nop.job.api.IJobScheduleStore;
-import io.nop.job.api.ITriggerState;
 import io.nop.job.api.JobDetail;
 import io.nop.job.dao.entity.NopJobInstance;
 import jakarta.inject.Inject;
@@ -29,17 +29,12 @@ public class DaoJobSchedulerStore implements IJobScheduleStore {
     }
 
     @Override
-    public ITriggerState loadTriggerState(String jobName) {
-        return null;
-    }
-
-    @Override
     public JobDetail loadJobDetail(String jobName) {
         return null;
     }
 
     @Override
-    public void saveTriggerState(ITriggerState state) {
+    public void saveInstanceState(IJobInstanceState state) {
 
     }
 }

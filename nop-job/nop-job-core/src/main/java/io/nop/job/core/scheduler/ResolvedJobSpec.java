@@ -7,7 +7,7 @@
  */
 package io.nop.job.core.scheduler;
 
-import io.nop.job.api.IJobInvoker;
+import io.nop.job.api.execution.IJobInvoker;
 import io.nop.job.api.spec.JobSpec;
 import io.nop.job.core.ITrigger;
 
@@ -28,7 +28,7 @@ class ResolvedJobSpec {
     }
 
     public boolean isRemoveWhenDone() {
-        return jobSpec.isRemoveWhenDone();
+        return jobSpec.isOnceTask();
     }
 
     public String getJobName() {
@@ -44,7 +44,7 @@ class ResolvedJobSpec {
     }
 
     public long getVersion() {
-        return jobSpec.getVersion();
+        return jobSpec.getJobVersion();
     }
 
     public IJobInvoker getJobInvoker() {

@@ -8,7 +8,7 @@
 package io.nop.job.core;
 
 import io.nop.api.core.beans.ErrorBean;
-import io.nop.job.api.ITriggerState;
+import io.nop.job.api.execution.IJobExecutionContext;
 import io.nop.job.api.spec.ITriggerSpec;
 
 /**
@@ -16,15 +16,7 @@ import io.nop.job.api.spec.ITriggerSpec;
  *
  * @author canonical_entropy@163.com
  */
-public interface ITriggerContext extends ITriggerState {
-
-    long getMinScheduleTime();
-
-    long getMaxScheduleTime();
-
-    long getMaxExecutionCount();
-
-    long getMaxFailedCount();
+public interface ITriggerContext extends IJobExecutionContext {
 
     void setMaxFailedCount(long maxFailedCount);
 
@@ -36,34 +28,36 @@ public interface ITriggerContext extends ITriggerState {
 
 
     default boolean isJobFinished() {
-        return getTriggerStatus() >= NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FINISHED;
+        return getInstanceStatus() >= NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FINISHED;
     }
 
-    default boolean isRunning() {
-        return getTriggerStatus() == NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING;
+    default boolean isInstanceRunning() {
+        return getInstanceStatus() == NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING;
     }
 
     void onSchedule(long currentTime, long nextScheduleTime);
 
-    void onBeginExecute(long currentTime);
+    void onInstanceBeginExecute(long currentTime);
 
-    void onEndExecute(long currentTime);
+    void onInstanceSuccess(long currentTime);
 
-    void onCompleted(long currentTime);
+    void onInstanceFailed(long currentTime, ErrorBean exception);
 
-    void onException(long currentTime, ErrorBean exception);
+    void onInstanceCancelled(long currentTime);
 
-    void onError(long currentTime, ErrorBean error);
-
-    void onCancel(long currentTime);
-
-    void onPaused(long currentTime);
+    void onInstanceTimeout(long currentTime);
 
     void onBeginFireNow(long currentTime);
 
     void onEndFireNow(long currentTime);
 
-    void deactivate();
+    void onJobFinished(long currentTime);
+
+    void onJobFailed(long currentTime, ErrorBean error);
+
+    void onJobSuspended(long currentTime);
+
+    void onJobKilled(long currentTime);
 
     void update(ITriggerSpec spec);
 }

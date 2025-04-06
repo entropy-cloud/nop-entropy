@@ -9,40 +9,30 @@ package io.nop.job.core.trigger;
 
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.commons.util.StringHelper;
+import io.nop.job.api.IJobInstanceState;
 import io.nop.job.api.IJobScheduleStore;
-import io.nop.job.api.ITriggerState;
-import io.nop.job.api.TriggerState;
+import io.nop.job.api.JobInstanceState;
 import io.nop.job.api.spec.ITriggerSpec;
-import io.nop.job.api.spec.TriggerSpec;
 import io.nop.job.core.ITriggerContext;
 import io.nop.job.core.NopJobCoreConstants;
 
 /**
  * @author canonical_entropy@163.com
  */
-public class TriggerContextImpl extends TriggerState implements ITriggerContext {
+public class TriggerContextImpl extends JobInstanceState implements ITriggerContext {
     private IJobScheduleStore jobStore;
-    private boolean deactivated;
     private long maxExecutionCount;
     private long minScheduleTime;
     private long maxScheduleTime;
     private long maxFailedCount;
 
-    public TriggerContextImpl() {
-        this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING);
-    }
-
     public TriggerContextImpl(String jobName, ITriggerSpec spec) {
-        this(spec);
-        setJobName(jobName);
-    }
-
-    public TriggerContextImpl(ITriggerSpec spec) {
         update(spec);
-        setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING);
+        setJobName(jobName);
+        setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_UNKNOWN);
     }
 
-    public TriggerContextImpl(ITriggerState state) {
+    public TriggerContextImpl(IJobInstanceState state) {
         super(state);
     }
 
@@ -56,98 +46,112 @@ public class TriggerContextImpl extends TriggerState implements ITriggerContext 
 
     @Override
     public void onSchedule(long currentTime, long nextExecutionTime) {
-        this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_WAITING);
-        this.setNextScheduleTime(nextExecutionTime);
+        this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_WAITING);
+        this.setScheduledExecTime(nextExecutionTime);
+        this.setExecBeginTime(-1);
+        this.setExecEndTime(-1);
+        this.setExecError(null);
+        this.setLastInstanceId(getInstanceId());
+        this.setInstanceId(newExecutionId());
         onChange();
     }
 
     @Override
-    public void onBeginExecute(long currentTime) {
-        this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_SUSPENDED);
+    public void onInstanceBeginExecute(long currentTime) {
+        this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING);
         this.setExecBeginTime(currentTime);
-        this.setLastExecutionId(newExecutionId());
+        this.setExecCount(getExecCount() + 1);
         onChange();
     }
 
     @Override
-    public void onEndExecute(long currentTime) {
-        // 如果是fireNow触发，则会设置nextTriggerStatus为triggerState此前的status。
-        // 因此在PAUSED状态下由fireNow触发后仍然会恢复为PAUSED状态。
-        int status = NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING;
-
-        // 只有错误恢复后的第一次执行是recoverMode
-        this.setRecoverMode(false);
-
-        this.setTriggerStatus(status);
-        this.setLastScheduleTime(this.getNextScheduleTime());
+    public void onInstanceSuccess(long currentTime) {
+        this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_EXEC_SUCCESS);
         this.setExecEndTime(currentTime);
-        this.setExecutionCount(getExecutionCount() + 1);
+        this.setExecFailCount(0);
         onChange();
     }
 
     @Override
-    public void onCompleted(long currentTime) {
+    public void onBeginFireNow(long currentTime) {
+        this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING);
+        this.setExecBeginTime(currentTime);
+        this.setExecCount(getExecCount() + 1);
+        onChange();
+    }
+
+    @Override
+    public void onEndFireNow(long currentTime) {
+        this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_EXEC_SUCCESS);
+        this.setExecEndTime(currentTime);
+        this.setExecFailCount(0);
+        onChange();
+    }
+
+    @Override
+    public void onJobFinished(long currentTime) {
         if (isJobFinished())
             return;
 
-        this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FINISHED);
+        this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FINISHED);
         this.setExecBeginTime(currentTime);
         onChange();
     }
 
     @Override
-    public void onException(long currentTime, ErrorBean error) {
+    public void onInstanceFailed(long currentTime, ErrorBean error) {
         this.setExecFailCount(getExecFailCount() + 1);
+        this.setExecEndTime(currentTime);
         this.setLastError(error);
 
         if (!isJobFinished()) {
             if (this.getMaxFailedCount() > 0 && this.getExecFailCount() >= this.getMaxFailedCount()) {
-                this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FAILED);
-                this.setExecBeginTime(currentTime);
+                this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FAILED);
             }
         }
         onChange();
     }
 
     @Override
-    public void onError(long currentTime, ErrorBean error) {
+    public void onJobFailed(long currentTime, ErrorBean error) {
         this.setExecFailCount(getExecFailCount() + 1);
         this.setLastError(error);
 
         if (!isJobFinished()) {
-            this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FAILED);
+            this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FAILED);
             this.setExecBeginTime(currentTime);
         }
         onChange();
     }
 
     @Override
-    public void onCancel(long currentTime) {
-        if (isJobFinished())
-            return;
-
-        this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_KILLED);
-        this.setExecBeginTime(currentTime);
-        onChange();
+    public void onInstanceCancelled(long currentTime) {
+        this.setExecFailCount(getExecFailCount() + 1);
+        this.setExecEndTime(currentTime);
+        this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_EXEC_CANCELLED);
+        this.onChange();
     }
 
     @Override
-    public void onPaused(long currentTime) {
-        if (isJobFinished())
-            return;
-
-        this.setTriggerStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_SUSPENDED);
-        onChange();
+    public void onInstanceTimeout(long currentTime) {
+        this.setExecFailCount(getExecFailCount() + 1);
+        this.setExecEndTime(currentTime);
+        this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_EXEC_TIMEOUT);
+        this.onChange();
     }
 
     @Override
-    public void onBeginFireNow(long currentTime) {
-
+    public void onJobSuspended(long currentTime) {
+        this.setExecEndTime(currentTime);
+        this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_SUSPENDED);
+        this.onChange();
     }
 
     @Override
-    public void onEndFireNow(long currentTime) {
-
+    public void onJobKilled(long currentTime) {
+        this.setExecEndTime(currentTime);
+        this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_KILLED);
+        this.onChange();
     }
 
     protected String newExecutionId() {
@@ -155,14 +159,9 @@ public class TriggerContextImpl extends TriggerState implements ITriggerContext 
     }
 
     protected void onChange() {
-        if (jobStore != null && !deactivated) {
-            jobStore.saveTriggerState(this);
+        if (jobStore != null) {
+            jobStore.saveInstanceState(this);
         }
-    }
-
-    @Override
-    public void deactivate() {
-        this.deactivated = true;
     }
 
     @Override
