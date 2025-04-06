@@ -359,7 +359,7 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
 
         if (ref != null && supportExtends == null)
             supportExtends = true;
-        
+
         defNode.setXdefSupportExtends(supportExtends);
 
         boolean refResolved = node.attrBoolean(keys.REF_RESOLVED);
@@ -410,7 +410,9 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
 
         XNode unknownTag = node.childByTag(keys.UNKNOWN_TAG);
         if (unknownTag != null) {
-            defNode.setXdefUnknownTag(parseNode(unknownTag, false, beanPackage, parentKeyAttr));
+            // Note: xdef:unknown-tag 为当前节点的子节点，
+            // 所以，应该向 parseNode 函数传递当前节点属性 xdef:key-attr 的值
+            defNode.setXdefUnknownTag(parseNode(unknownTag, false, beanPackage, keyAttr));
         }
 
         // 标记了xdef:unique-attr的节点对应的bean属性名缺省为 tagName + 's'
