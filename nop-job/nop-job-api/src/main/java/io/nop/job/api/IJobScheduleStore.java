@@ -18,8 +18,6 @@ public interface IJobScheduleStore {
 
     ICancellable fetchPersistJobs(Consumer<JobDetail> processor);
 
-    ITriggerState loadTriggerState(String jobName);
-
     JobDetail loadJobDetail(String jobName);
 
     /**
@@ -27,6 +25,6 @@ public interface IJobScheduleStore {
      *
      * @param state 触发器状态
      */
-    void saveTriggerState(ITriggerState state);
+    void saveInstanceState(IJobInstanceState state);
 
 }

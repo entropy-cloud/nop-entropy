@@ -25,7 +25,7 @@ public class CronTrigger implements ITrigger {
     @Override
     public long nextScheduleTime(long afterTime, ITriggerContext triggerContext) {
         // 如果是第一次执行
-        long time = triggerContext.getLastScheduleTime();
+        long time = triggerContext.getScheduledExecTime();
         if (time < afterTime)
             time = afterTime;
 

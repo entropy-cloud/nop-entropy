@@ -29,19 +29,23 @@ options:
     value: 50
     description: 
   
-  - label: 执行超时
+  - label: 执行取消
     value: 60
     description: 
   
-  - label: 任务结束
+  - label: 执行超时
     value: 70
     description: 
   
-  - label: 任务失败
+  - label: 任务结束
     value: 80
     description: 
   
-  - label: 任务中止
+  - label: 任务失败
     value: 90
+    description: 
+  
+  - label: 任务中止
+    value: 100
     description: 
   

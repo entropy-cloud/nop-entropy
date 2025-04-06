@@ -32,7 +32,7 @@ prop:
       remark: Remark
       jobParamsComponent: null
     NopJobInstance:
-      jobId: Job Id
+      jobInstanceId: Job Instance Id
       jobDefId: Job Definition Id
       jobName: Job Name
       jobGroup: Job Group
@@ -45,12 +45,13 @@ prop:
       execBeginTime: Exec Begin Time
       execEndTime: Exec End Time
       onceTask: Once Task
+      manualFire: Manual Fire
+      firedBy: Fired By
       execFailCount: Exec Fail Count
       errCode: Error Code
       errMsg: Error Message
-      recoverMode: Is Recover Mode
-      lastExecId: Last Exec ID
-      lastExecEndTime: Last Exec End Time
+      lastJobInstanceId: Last Job Instance ID
+      version: Version
       createdBy: Created By
       createTime: Create Time
       updatedBy: Updated By
@@ -58,4 +59,5 @@ prop:
       remark: Remark
       jobDefinition: Job Definition
       jobDefinition.displayName: Job Definition
+      lastJobInstance: Last Job Instance
       jobParamsComponent: null

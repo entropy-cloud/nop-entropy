@@ -8,13 +8,14 @@
 package io.nop.job.api.spec;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.job.api.execution.IJobInvoker;
 
 import java.util.Map;
 
 @DataBean
 public class JobSpec {
     private String jobName;
-    private long version;
+    private long jobVersion;
 
     /**
      * 用于逻辑分组。jobName需要是全局唯一的，不同分组下的jobName也不允许重复
@@ -26,7 +27,7 @@ public class JobSpec {
 
     /**
      * 对应BeanContainer中的某个已注册的bean。一般情况下beanName= 'jobInvoker_'+jobInvoker。
-     * 这个bean必须是静态单例，且为{@link io.nop.job.api.IJobInvoker}类型或者具有名为invoke的方法，且此方法可以通过反射机制 封装为IJobInvoker接口。
+     * 这个bean必须是静态单例，且为{@link IJobInvoker}类型或者具有名为invoke的方法，且此方法可以通过反射机制 封装为IJobInvoker接口。
      */
     private String jobInvoker;
     private Map<String, Object> jobParams;
@@ -36,14 +37,14 @@ public class JobSpec {
     /**
      * 任务执行完毕后是否自动从JobScheduler中删除
      */
-    private boolean removeWhenDone;
+    private boolean onceTask;
 
-    public long getVersion() {
-        return version;
+    public long getJobVersion() {
+        return jobVersion;
     }
 
-    public void setVersion(long version) {
-        this.version = version;
+    public void setJobVersion(long jobVersion) {
+        this.jobVersion = jobVersion;
     }
 
     public String getJobName() {
@@ -102,11 +103,11 @@ public class JobSpec {
         this.triggerSpec = triggerSpec;
     }
 
-    public boolean isRemoveWhenDone() {
-        return removeWhenDone;
+    public boolean isOnceTask() {
+        return onceTask;
     }
 
-    public void setRemoveWhenDone(boolean removeWhenDone) {
-        this.removeWhenDone = removeWhenDone;
+    public void setOnceTask(boolean onceTask) {
+        this.onceTask = onceTask;
     }
 }

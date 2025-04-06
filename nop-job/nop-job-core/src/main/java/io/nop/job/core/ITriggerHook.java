@@ -7,7 +7,7 @@
  */
 package io.nop.job.core;
 
-import io.nop.job.api.TriggerFireResult;
+import io.nop.job.api.execution.JobFireResult;
 
 public interface ITriggerHook {
     void onSchedule(long currentTime, long nextScheduleTime, ITriggerContext context);
@@ -16,17 +16,19 @@ public interface ITriggerHook {
 
     void onEndExecute(long currentTime, ITriggerContext context);
 
-    void onPaused(long currentTime, ITriggerContext context);
+    void onJobSuspended(long currentTime, ITriggerContext context);
 
-    void onCompleted(long currentTime, ITriggerContext context);
+    void onJobFinished(long currentTime, ITriggerContext context);
 
     void onException(long currentTime, Throwable exception, ITriggerContext context);
 
-    void onError(long currentTime, TriggerFireResult result, ITriggerContext context);
+    void onError(long currentTime, JobFireResult result, ITriggerContext context);
 
-    void onCancel(long currentTime, ITriggerContext context);
+    void onJobKilled(long currentTime, ITriggerContext context);
+
+    void onInstanceCancelled(long currentTime, ITriggerContext context);
 
     void onBeginFireNow(long currentTime, ITriggerContext context);
 
-    void onEndFireNow(TriggerFireResult result, Throwable exception, ITriggerContext context);
+    void onEndFireNow(JobFireResult result, Throwable exception, ITriggerContext context);
 }

@@ -1,5 +1,5 @@
 {
-  "jobId": "",
+  "jobInstanceId": "",
   "jobDefId": "",
   "jobName": "",
   "jobGroup": "",
@@ -12,12 +12,13 @@
   "execBeginTime": "2000-01-01 14:00:00",
   "execEndTime": "2000-01-01 14:00:00",
   "onceTask": false,
+  "manualFire": false,
+  "firedBy": "",
   "execFailCount": 0,
   "errCode": "",
   "errMsg": "",
-  "recoverMode": false,
-  "lastExecId": "",
-  "lastExecEndTime": "2000-01-01 14:00:00",
+  "lastJobInstanceId": "",
+  "version": 0,
   "createdBy": "",
   "createTime": "2000-01-01 14:00:00",
   "updatedBy": "",
@@ -25,5 +26,6 @@
   "remark": "",
   "jobDefinition": null,
   "jobDefinition.displayName": "",
+  "lastJobInstance": null,
   "jobParamsComponent": null
 }

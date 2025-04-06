@@ -40,22 +40,24 @@ prop:
       execCount: 执行次数
       execEndTime: 本次执行完成时间
       execFailCount: 失败次数
+      firedBy: 触发执行的用户
       jobDefId: 任务定义ID
       jobDefinition: 作业计划
       jobDefinition.displayName: 作业计划
       jobGroup: 任务组
-      jobId: Job ID
+      jobInstanceId: 任务实例ID
       jobInvoker: 任务执行函数
       jobName: 任务名
       jobParams: 任务参数
       jobParamsComponent: null
-      lastExecEndTime: 上次执行完成时间
-      lastExecId: 上次执行ID
+      lastJobInstance: 上次执行实例
+      lastJobInstanceId: 上次任务实例ID
+      manualFire: 是否手工触发
       onceTask: 是否只执行一次
-      recoverMode: 是否恢复模式
       remark: 备注
       scheduledExecTime: 调度执行时间
       status: 任务状态
       status_label: 任务状态
       updateTime: 修改时间
       updatedBy: 修改人
+      version: 数据版本

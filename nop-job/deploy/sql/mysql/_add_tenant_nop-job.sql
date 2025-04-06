@@ -7,6 +7,6 @@ alter table nop_job_definition drop primary key;
 alter table nop_job_definition add primary key (NOP_TENANT_ID, SID);
 
 alter table nop_job_instance drop primary key;
-alter table nop_job_instance add primary key (NOP_TENANT_ID, JOB_ID);
+alter table nop_job_instance add primary key (NOP_TENANT_ID, JOB_INSTANCE_ID);
 
 

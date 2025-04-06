@@ -16,7 +16,7 @@ import io.nop.job.api.spec.TriggerSpec;
 public class JobDetail {
     private JobSpec jobSpec;
 
-    private TriggerState triggerState;
+    private JobInstanceState instanceState;
 
     public JobSpec getJobSpec() {
         return jobSpec;
@@ -26,12 +26,12 @@ public class JobDetail {
         this.jobSpec = jobSpec;
     }
 
-    public TriggerState getTriggerState() {
-        return triggerState;
+    public JobInstanceState getInstanceState() {
+        return instanceState;
     }
 
-    public void setTriggerState(TriggerState triggerState) {
-        this.triggerState = triggerState;
+    public void setInstanceState(JobInstanceState jobInstanceState) {
+        this.instanceState = jobInstanceState;
     }
 
     @JsonIgnore

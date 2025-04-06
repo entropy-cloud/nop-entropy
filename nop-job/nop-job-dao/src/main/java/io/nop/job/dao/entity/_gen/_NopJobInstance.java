@@ -20,9 +20,9 @@ import io.nop.job.dao.entity.NopJobInstance;
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopJobInstance extends DynamicOrmEntity{
     
-    /* Job ID: JOB_ID VARCHAR */
-    public static final String PROP_NAME_jobId = "jobId";
-    public static final int PROP_ID_jobId = 1;
+    /* 任务实例ID: JOB_INSTANCE_ID VARCHAR */
+    public static final String PROP_NAME_jobInstanceId = "jobInstanceId";
+    public static final int PROP_ID_jobInstanceId = 1;
     
     /* 任务定义ID: JOB_DEF_ID VARCHAR */
     public static final String PROP_NAME_jobDefId = "jobDefId";
@@ -68,70 +68,77 @@ public class _NopJobInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_onceTask = "onceTask";
     public static final int PROP_ID_onceTask = 12;
     
+    /* 是否手工触发: MANUAL_FIRE BOOLEAN */
+    public static final String PROP_NAME_manualFire = "manualFire";
+    public static final int PROP_ID_manualFire = 13;
+    
+    /* 触发执行的用户: FIRED_BY VARCHAR */
+    public static final String PROP_NAME_firedBy = "firedBy";
+    public static final int PROP_ID_firedBy = 14;
+    
     /* 失败次数: EXEC_FAIL_COUNT INTEGER */
     public static final String PROP_NAME_execFailCount = "execFailCount";
-    public static final int PROP_ID_execFailCount = 13;
+    public static final int PROP_ID_execFailCount = 15;
     
     /* 错误码: ERR_CODE VARCHAR */
     public static final String PROP_NAME_errCode = "errCode";
-    public static final int PROP_ID_errCode = 14;
+    public static final int PROP_ID_errCode = 16;
     
     /* 错误消息: ERR_MSG VARCHAR */
     public static final String PROP_NAME_errMsg = "errMsg";
-    public static final int PROP_ID_errMsg = 15;
+    public static final int PROP_ID_errMsg = 17;
     
-    /* 是否恢复模式: RECOVER_MODE BOOLEAN */
-    public static final String PROP_NAME_recoverMode = "recoverMode";
-    public static final int PROP_ID_recoverMode = 16;
+    /* 上次任务实例ID: LAST_JOB_INSTANCE_ID VARCHAR */
+    public static final String PROP_NAME_lastJobInstanceId = "lastJobInstanceId";
+    public static final int PROP_ID_lastJobInstanceId = 18;
     
-    /* 上次执行ID: LAST_EXEC_ID VARCHAR */
-    public static final String PROP_NAME_lastExecId = "lastExecId";
-    public static final int PROP_ID_lastExecId = 17;
-    
-    /* 上次执行完成时间: LAST_EXEC_END_TIME TIMESTAMP */
-    public static final String PROP_NAME_lastExecEndTime = "lastExecEndTime";
-    public static final int PROP_ID_lastExecEndTime = 18;
+    /* 数据版本: VERSION BIGINT */
+    public static final String PROP_NAME_version = "version";
+    public static final int PROP_ID_version = 19;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 19;
+    public static final int PROP_ID_createdBy = 20;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 20;
+    public static final int PROP_ID_createTime = 21;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 21;
+    public static final int PROP_ID_updatedBy = 22;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 22;
+    public static final int PROP_ID_updateTime = 23;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 23;
+    public static final int PROP_ID_remark = 24;
     
 
-    private static int _PROP_ID_BOUND = 24;
+    private static int _PROP_ID_BOUND = 25;
 
     
     /* relation: 作业计划 */
     public static final String PROP_NAME_jobDefinition = "jobDefinition";
     
+    /* relation: 上次执行实例 */
+    public static final String PROP_NAME_lastJobInstance = "lastJobInstance";
+    
     /* component:  */
     public static final String PROP_NAME_jobParamsComponent = "jobParamsComponent";
     
 
-    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobId);
-    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobInstanceId);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobInstanceId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[24];
+    private static final String[] PROP_ID_TO_NAME = new String[25];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
-          PROP_ID_TO_NAME[PROP_ID_jobId] = PROP_NAME_jobId;
-          PROP_NAME_TO_ID.put(PROP_NAME_jobId, PROP_ID_jobId);
+          PROP_ID_TO_NAME[PROP_ID_jobInstanceId] = PROP_NAME_jobInstanceId;
+          PROP_NAME_TO_ID.put(PROP_NAME_jobInstanceId, PROP_ID_jobInstanceId);
       
           PROP_ID_TO_NAME[PROP_ID_jobDefId] = PROP_NAME_jobDefId;
           PROP_NAME_TO_ID.put(PROP_NAME_jobDefId, PROP_ID_jobDefId);
@@ -166,6 +173,12 @@ public class _NopJobInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_onceTask] = PROP_NAME_onceTask;
           PROP_NAME_TO_ID.put(PROP_NAME_onceTask, PROP_ID_onceTask);
       
+          PROP_ID_TO_NAME[PROP_ID_manualFire] = PROP_NAME_manualFire;
+          PROP_NAME_TO_ID.put(PROP_NAME_manualFire, PROP_ID_manualFire);
+      
+          PROP_ID_TO_NAME[PROP_ID_firedBy] = PROP_NAME_firedBy;
+          PROP_NAME_TO_ID.put(PROP_NAME_firedBy, PROP_ID_firedBy);
+      
           PROP_ID_TO_NAME[PROP_ID_execFailCount] = PROP_NAME_execFailCount;
           PROP_NAME_TO_ID.put(PROP_NAME_execFailCount, PROP_ID_execFailCount);
       
@@ -175,14 +188,11 @@ public class _NopJobInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_errMsg] = PROP_NAME_errMsg;
           PROP_NAME_TO_ID.put(PROP_NAME_errMsg, PROP_ID_errMsg);
       
-          PROP_ID_TO_NAME[PROP_ID_recoverMode] = PROP_NAME_recoverMode;
-          PROP_NAME_TO_ID.put(PROP_NAME_recoverMode, PROP_ID_recoverMode);
+          PROP_ID_TO_NAME[PROP_ID_lastJobInstanceId] = PROP_NAME_lastJobInstanceId;
+          PROP_NAME_TO_ID.put(PROP_NAME_lastJobInstanceId, PROP_ID_lastJobInstanceId);
       
-          PROP_ID_TO_NAME[PROP_ID_lastExecId] = PROP_NAME_lastExecId;
-          PROP_NAME_TO_ID.put(PROP_NAME_lastExecId, PROP_ID_lastExecId);
-      
-          PROP_ID_TO_NAME[PROP_ID_lastExecEndTime] = PROP_NAME_lastExecEndTime;
-          PROP_NAME_TO_ID.put(PROP_NAME_lastExecEndTime, PROP_ID_lastExecEndTime);
+          PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
+          PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
       
           PROP_ID_TO_NAME[PROP_ID_createdBy] = PROP_NAME_createdBy;
           PROP_NAME_TO_ID.put(PROP_NAME_createdBy, PROP_ID_createdBy);
@@ -202,8 +212,8 @@ public class _NopJobInstance extends DynamicOrmEntity{
     }
 
     
-    /* Job ID: JOB_ID */
-    private java.lang.String _jobId;
+    /* 任务实例ID: JOB_INSTANCE_ID */
+    private java.lang.String _jobInstanceId;
     
     /* 任务定义ID: JOB_DEF_ID */
     private java.lang.String _jobDefId;
@@ -238,6 +248,12 @@ public class _NopJobInstance extends DynamicOrmEntity{
     /* 是否只执行一次: ONCE_TASK */
     private java.lang.Boolean _onceTask;
     
+    /* 是否手工触发: MANUAL_FIRE */
+    private java.lang.Boolean _manualFire;
+    
+    /* 触发执行的用户: FIRED_BY */
+    private java.lang.String _firedBy;
+    
     /* 失败次数: EXEC_FAIL_COUNT */
     private java.lang.Integer _execFailCount;
     
@@ -247,14 +263,11 @@ public class _NopJobInstance extends DynamicOrmEntity{
     /* 错误消息: ERR_MSG */
     private java.lang.String _errMsg;
     
-    /* 是否恢复模式: RECOVER_MODE */
-    private java.lang.Boolean _recoverMode;
+    /* 上次任务实例ID: LAST_JOB_INSTANCE_ID */
+    private java.lang.String _lastJobInstanceId;
     
-    /* 上次执行ID: LAST_EXEC_ID */
-    private java.lang.String _lastExecId;
-    
-    /* 上次执行完成时间: LAST_EXEC_END_TIME */
-    private java.sql.Timestamp _lastExecEndTime;
+    /* 数据版本: VERSION */
+    private java.lang.Long _version;
     
     /* 创建人: CREATED_BY */
     private java.lang.String _createdBy;
@@ -312,14 +325,14 @@ public class _NopJobInstance extends DynamicOrmEntity{
     @Override
     public Object orm_id() {
     
-        return buildSimpleId(PROP_ID_jobId);
+        return buildSimpleId(PROP_ID_jobInstanceId);
      
     }
 
     @Override
     public boolean orm_isPrimary(int propId) {
         
-            return propId == PROP_ID_jobId;
+            return propId == PROP_ID_jobInstanceId;
           
     }
 
@@ -345,8 +358,8 @@ public class _NopJobInstance extends DynamicOrmEntity{
     public Object orm_propValue(int propId) {
         switch(propId){
         
-            case PROP_ID_jobId:
-               return getJobId();
+            case PROP_ID_jobInstanceId:
+               return getJobInstanceId();
         
             case PROP_ID_jobDefId:
                return getJobDefId();
@@ -381,6 +394,12 @@ public class _NopJobInstance extends DynamicOrmEntity{
             case PROP_ID_onceTask:
                return getOnceTask();
         
+            case PROP_ID_manualFire:
+               return getManualFire();
+        
+            case PROP_ID_firedBy:
+               return getFiredBy();
+        
             case PROP_ID_execFailCount:
                return getExecFailCount();
         
@@ -390,14 +409,11 @@ public class _NopJobInstance extends DynamicOrmEntity{
             case PROP_ID_errMsg:
                return getErrMsg();
         
-            case PROP_ID_recoverMode:
-               return getRecoverMode();
+            case PROP_ID_lastJobInstanceId:
+               return getLastJobInstanceId();
         
-            case PROP_ID_lastExecId:
-               return getLastExecId();
-        
-            case PROP_ID_lastExecEndTime:
-               return getLastExecEndTime();
+            case PROP_ID_version:
+               return getVersion();
         
             case PROP_ID_createdBy:
                return getCreatedBy();
@@ -425,13 +441,13 @@ public class _NopJobInstance extends DynamicOrmEntity{
     public void orm_propValue(int propId, Object value){
         switch(propId){
         
-            case PROP_ID_jobId:{
+            case PROP_ID_jobInstanceId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_jobId));
+                       err-> newTypeConversionError(PROP_NAME_jobInstanceId));
                }
-               setJobId(typedValue);
+               setJobInstanceId(typedValue);
                break;
             }
         
@@ -545,6 +561,26 @@ public class _NopJobInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_manualFire:{
+               java.lang.Boolean typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_manualFire));
+               }
+               setManualFire(typedValue);
+               break;
+            }
+        
+            case PROP_ID_firedBy:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_firedBy));
+               }
+               setFiredBy(typedValue);
+               break;
+            }
+        
             case PROP_ID_execFailCount:{
                java.lang.Integer typedValue = null;
                if(value != null){
@@ -575,33 +611,23 @@ public class _NopJobInstance extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_recoverMode:{
-               java.lang.Boolean typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toBoolean(value,
-                       err-> newTypeConversionError(PROP_NAME_recoverMode));
-               }
-               setRecoverMode(typedValue);
-               break;
-            }
-        
-            case PROP_ID_lastExecId:{
+            case PROP_ID_lastJobInstanceId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_lastExecId));
+                       err-> newTypeConversionError(PROP_NAME_lastJobInstanceId));
                }
-               setLastExecId(typedValue);
+               setLastJobInstanceId(typedValue);
                break;
             }
         
-            case PROP_ID_lastExecEndTime:{
-               java.sql.Timestamp typedValue = null;
+            case PROP_ID_version:{
+               java.lang.Long typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toTimestamp(value,
-                       err-> newTypeConversionError(PROP_NAME_lastExecEndTime));
+                   typedValue = ConvertHelper.toLong(value,
+                       err-> newTypeConversionError(PROP_NAME_version));
                }
-               setLastExecEndTime(typedValue);
+               setVersion(typedValue);
                break;
             }
         
@@ -664,9 +690,9 @@ public class _NopJobInstance extends DynamicOrmEntity{
     public void orm_internalSet(int propId, Object value) {
         switch(propId){
         
-            case PROP_ID_jobId:{
+            case PROP_ID_jobInstanceId:{
                onInitProp(propId);
-               this._jobId = (java.lang.String)value;
+               this._jobInstanceId = (java.lang.String)value;
                orm_id(); // 如果是设置主键字段，则触发watcher
                break;
             }
@@ -748,6 +774,20 @@ public class _NopJobInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_manualFire:{
+               onInitProp(propId);
+               this._manualFire = (java.lang.Boolean)value;
+               
+               break;
+            }
+        
+            case PROP_ID_firedBy:{
+               onInitProp(propId);
+               this._firedBy = (java.lang.String)value;
+               
+               break;
+            }
+        
             case PROP_ID_execFailCount:{
                onInitProp(propId);
                this._execFailCount = (java.lang.Integer)value;
@@ -769,23 +809,16 @@ public class _NopJobInstance extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_recoverMode:{
+            case PROP_ID_lastJobInstanceId:{
                onInitProp(propId);
-               this._recoverMode = (java.lang.Boolean)value;
+               this._lastJobInstanceId = (java.lang.String)value;
                
                break;
             }
         
-            case PROP_ID_lastExecId:{
+            case PROP_ID_version:{
                onInitProp(propId);
-               this._lastExecId = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_lastExecEndTime:{
-               onInitProp(propId);
-               this._lastExecEndTime = (java.sql.Timestamp)value;
+               this._version = (java.lang.Long)value;
                
                break;
             }
@@ -832,20 +865,20 @@ public class _NopJobInstance extends DynamicOrmEntity{
 
     
     /**
-     * Job ID: JOB_ID
+     * 任务实例ID: JOB_INSTANCE_ID
      */
-    public final java.lang.String getJobId(){
-         onPropGet(PROP_ID_jobId);
-         return _jobId;
+    public final java.lang.String getJobInstanceId(){
+         onPropGet(PROP_ID_jobInstanceId);
+         return _jobInstanceId;
     }
 
     /**
-     * Job ID: JOB_ID
+     * 任务实例ID: JOB_INSTANCE_ID
      */
-    public final void setJobId(java.lang.String value){
-        if(onPropSet(PROP_ID_jobId,value)){
-            this._jobId = value;
-            internalClearRefs(PROP_ID_jobId);
+    public final void setJobInstanceId(java.lang.String value){
+        if(onPropSet(PROP_ID_jobInstanceId,value)){
+            this._jobInstanceId = value;
+            internalClearRefs(PROP_ID_jobInstanceId);
             orm_id();
         }
     }
@@ -1060,6 +1093,44 @@ public class _NopJobInstance extends DynamicOrmEntity{
     }
     
     /**
+     * 是否手工触发: MANUAL_FIRE
+     */
+    public final java.lang.Boolean getManualFire(){
+         onPropGet(PROP_ID_manualFire);
+         return _manualFire;
+    }
+
+    /**
+     * 是否手工触发: MANUAL_FIRE
+     */
+    public final void setManualFire(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_manualFire,value)){
+            this._manualFire = value;
+            internalClearRefs(PROP_ID_manualFire);
+            
+        }
+    }
+    
+    /**
+     * 触发执行的用户: FIRED_BY
+     */
+    public final java.lang.String getFiredBy(){
+         onPropGet(PROP_ID_firedBy);
+         return _firedBy;
+    }
+
+    /**
+     * 触发执行的用户: FIRED_BY
+     */
+    public final void setFiredBy(java.lang.String value){
+        if(onPropSet(PROP_ID_firedBy,value)){
+            this._firedBy = value;
+            internalClearRefs(PROP_ID_firedBy);
+            
+        }
+    }
+    
+    /**
      * 失败次数: EXEC_FAIL_COUNT
      */
     public final java.lang.Integer getExecFailCount(){
@@ -1117,58 +1188,39 @@ public class _NopJobInstance extends DynamicOrmEntity{
     }
     
     /**
-     * 是否恢复模式: RECOVER_MODE
+     * 上次任务实例ID: LAST_JOB_INSTANCE_ID
      */
-    public final java.lang.Boolean getRecoverMode(){
-         onPropGet(PROP_ID_recoverMode);
-         return _recoverMode;
+    public final java.lang.String getLastJobInstanceId(){
+         onPropGet(PROP_ID_lastJobInstanceId);
+         return _lastJobInstanceId;
     }
 
     /**
-     * 是否恢复模式: RECOVER_MODE
+     * 上次任务实例ID: LAST_JOB_INSTANCE_ID
      */
-    public final void setRecoverMode(java.lang.Boolean value){
-        if(onPropSet(PROP_ID_recoverMode,value)){
-            this._recoverMode = value;
-            internalClearRefs(PROP_ID_recoverMode);
+    public final void setLastJobInstanceId(java.lang.String value){
+        if(onPropSet(PROP_ID_lastJobInstanceId,value)){
+            this._lastJobInstanceId = value;
+            internalClearRefs(PROP_ID_lastJobInstanceId);
             
         }
     }
     
     /**
-     * 上次执行ID: LAST_EXEC_ID
+     * 数据版本: VERSION
      */
-    public final java.lang.String getLastExecId(){
-         onPropGet(PROP_ID_lastExecId);
-         return _lastExecId;
+    public final java.lang.Long getVersion(){
+         onPropGet(PROP_ID_version);
+         return _version;
     }
 
     /**
-     * 上次执行ID: LAST_EXEC_ID
+     * 数据版本: VERSION
      */
-    public final void setLastExecId(java.lang.String value){
-        if(onPropSet(PROP_ID_lastExecId,value)){
-            this._lastExecId = value;
-            internalClearRefs(PROP_ID_lastExecId);
-            
-        }
-    }
-    
-    /**
-     * 上次执行完成时间: LAST_EXEC_END_TIME
-     */
-    public final java.sql.Timestamp getLastExecEndTime(){
-         onPropGet(PROP_ID_lastExecEndTime);
-         return _lastExecEndTime;
-    }
-
-    /**
-     * 上次执行完成时间: LAST_EXEC_END_TIME
-     */
-    public final void setLastExecEndTime(java.sql.Timestamp value){
-        if(onPropSet(PROP_ID_lastExecEndTime,value)){
-            this._lastExecEndTime = value;
-            internalClearRefs(PROP_ID_lastExecEndTime);
+    public final void setVersion(java.lang.Long value){
+        if(onPropSet(PROP_ID_version,value)){
+            this._version = value;
+            internalClearRefs(PROP_ID_version);
             
         }
     }
@@ -1285,6 +1337,29 @@ public class _NopJobInstance extends DynamicOrmEntity{
            internalSetRefEntity(PROP_NAME_jobDefinition, refEntity,()->{
            
                            this.setJobDefId(refEntity.getSid());
+                       
+           });
+           }
+       
+    }
+       
+    /**
+     * 上次执行实例
+     */
+    public final io.nop.job.dao.entity.NopJobInstance getLastJobInstance(){
+       return (io.nop.job.dao.entity.NopJobInstance)internalGetRefEntity(PROP_NAME_lastJobInstance);
+    }
+
+    public final void setLastJobInstance(io.nop.job.dao.entity.NopJobInstance refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setLastJobInstanceId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_lastJobInstance, refEntity,()->{
+           
+                           this.setLastJobInstanceId(refEntity.getJobInstanceId());
                        
            });
            }

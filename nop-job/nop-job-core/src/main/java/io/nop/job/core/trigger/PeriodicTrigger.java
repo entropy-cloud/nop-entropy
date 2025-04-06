@@ -35,12 +35,12 @@ public class PeriodicTrigger implements ITrigger {
     @Override
     public long nextScheduleTime(long afterTime, ITriggerContext triggerContext) {
         if (fixedDelay) {
-            if (triggerContext.getLastScheduleTime() <= 0) {
+            if (triggerContext.getScheduledExecTime() <= 0) {
                 // 第一次执行
                 return afterTime + 1;
             }
 
-            long lastEnd = triggerContext.getLastExecEndTime();
+            long lastEnd = triggerContext.getExecEndTime();
             if (lastEnd <= 0)
                 lastEnd = afterTime;
 
@@ -51,7 +51,7 @@ public class PeriodicTrigger implements ITrigger {
                 time = afterTime + 1;
             return time;
         } else {
-            long start = triggerContext.getLastScheduleTime();
+            long start = triggerContext.getScheduledExecTime();
             if (start < 0) {
                 // 第一次执行
                 start = triggerContext.getMinScheduleTime();

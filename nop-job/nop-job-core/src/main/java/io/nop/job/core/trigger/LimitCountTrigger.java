@@ -24,7 +24,7 @@ public class LimitCountTrigger implements ITrigger {
     public long nextScheduleTime(long afterTime, ITriggerContext triggerContext) {
         long maxRepeatCount = triggerContext.getMaxExecutionCount();
         if (maxRepeatCount > 0) {
-            if (maxRepeatCount < triggerContext.getExecutionCount())
+            if (maxRepeatCount < triggerContext.getExecCount())
                 return -1;
         }
 
