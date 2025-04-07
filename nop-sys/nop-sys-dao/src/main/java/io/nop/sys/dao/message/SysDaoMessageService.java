@@ -1,5 +1,6 @@
 package io.nop.sys.dao.message;
 
+import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
@@ -146,6 +147,7 @@ public class SysDaoMessageService extends LifeCycleSupport implements IMessageSe
         } while (true);
     }
 
+    @Transactional
     public List<NopSysEvent> updateScheduleTime(List<NopSysEvent> events) {
         IOrmEntityDao<NopSysEvent> dao = dao();
         IEstimatedClock clock = dao.getDbEstimatedClock();

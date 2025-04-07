@@ -7,11 +7,8 @@
  */
 package io.nop.tcc.api;
 
-import io.nop.api.core.util.ICancelToken;
-
 import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 
 public interface ITccRecordRepository {
     ITccRecord newTccRecord(String txnGroup);
@@ -30,9 +27,11 @@ public interface ITccRecordRepository {
 
     CompletionStage<Void> updateTccBranchStatusAsync(ITccBranchRecord record, TccStatus status, Throwable error);
 
-    void forEachExpiredRecord(Function<ITccRecord, CompletionStage<Void>> consumer, long expireGap, int maxRetryCount,
-                              ICancelToken cancelToken);
+    List<? extends ITccRecord> fetchExpiredRecords(int pageSize, long expireGap, long checkInterval);
 
-    void removeCompletedRecords(long retentionTime);
+//    void forEachExpiredRecord(Function<ITccRecord, CompletionStage<Void>> consumer, long expireGap, int maxRetryCount,
+//                              ICancelToken cancelToken);
+
+    void removeCompletedRecords(long retentionTime, boolean onlyCompleted);
 
 }

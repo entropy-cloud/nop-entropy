@@ -22,8 +22,8 @@ import io.nop.tcc.api.ITccRecordRepository;
 import io.nop.tcc.api.ITccTransaction;
 import io.nop.tcc.api.TccBranchRequest;
 import io.nop.tcc.api.TccStatus;
-
 import jakarta.inject.Inject;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
@@ -82,10 +82,10 @@ public class TccEngine implements ITccEngine {
         return TccHelper.normalizeTxnGroup(txnGroup);
     }
 
-    public boolean isClientException(Throwable ex) {
+    public boolean isSafeFailException(Throwable ex) {
         if (exceptionChecker == null)
             return false;
-        return exceptionChecker.isClientException(ex);
+        return exceptionChecker.isSafeFailException(ex);
     }
 
     @Override
@@ -278,23 +278,12 @@ public class TccEngine implements ITccEngine {
     @Override
     public <T> T runBranchTransaction(ITccTransaction txn, TccBranchRequest branchRequest,
                                       Function<ITccBranchTransaction, T> task) {
-        // 如果事务已经结束，则不能执行分支
-        if (txn.getTccStatus() != TccStatus.TRYING)
-            throw new NopException(ERR_TCC_TRANSACTION_NOT_ALLOW_START_BRANCH).param(ARG_TXN_ID, txn.getTxnId())
-                    .param(ARG_TXN_GROUP, txn.getTxnGroup()).param(ARG_TCC_STATUS, txn.getTccStatus())
-                    .param(ARG_SERVICE_NAME, branchRequest.getServiceName())
-                    .param(ARG_SERVICE_METHOD, branchRequest.getServiceMethod());
-
-        ITccBranchRecord branchRecord = getTccRecordRepository().newBranchRecord(txn.getTccRecord(), branchRequest);
-
-        TccBranchTransaction txnBranch = new TccBranchTransaction(branchRecord, this);
-
-        return FutureHelper.syncGet(TccRunner.runBranchTryAsync(txnBranch, apiResponseNormalizer, t -> FutureHelper.futureApply(task, t)));
+        return FutureHelper.syncGet(runBranchTransactionAsync(txn, branchRequest, t -> FutureHelper.futureApply(task, t)));
     }
 
     @Override
     public void checkExpiredTransactions(long expireGap, int maxRetryCount, ICancelToken canceller) {
-        repository.forEachExpiredRecord(this::checkExpiredAsync, expireGap, maxRetryCount, canceller);
+        //repository.forEachExpiredRecord(this::checkExpiredAsync, expireGap, maxRetryCount, canceller);
     }
 
     private CompletionStage<Void> checkExpiredAsync(ITccRecord record) {
@@ -304,6 +293,6 @@ public class TccEngine implements ITccEngine {
 
     @Override
     public void cleanCompletedTransactions(long retentionTime) {
-        repository.removeCompletedRecords(retentionTime);
+        repository.removeCompletedRecords(retentionTime, false);
     }
 }

@@ -11,13 +11,15 @@ import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.ErrorBean;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
-import io.nop.api.core.util.ICancelToken;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.tcc.api.ITccBranchRecord;
 import io.nop.tcc.api.ITccRecord;
 import io.nop.tcc.api.ITccRecordRepository;
@@ -25,12 +27,12 @@ import io.nop.tcc.api.TccBranchRequest;
 import io.nop.tcc.api.TccStatus;
 import io.nop.tcc.dao.entity.NopTccBranchRecord;
 import io.nop.tcc.dao.entity.NopTccRecord;
-
 import jakarta.inject.Inject;
+
 import java.sql.Timestamp;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Function;
 
 public class TccRecordRepository implements ITccRecordRepository {
 
@@ -48,8 +50,8 @@ public class TccRecordRepository implements ITccRecordRepository {
         this.daoProvider = daoProvider;
     }
 
-    private IEntityDao<NopTccRecord> recordDao() {
-        return daoProvider.daoFor(NopTccRecord.class);
+    private IOrmEntityDao<NopTccRecord> recordDao() {
+        return (IOrmEntityDao<NopTccRecord>) daoProvider.daoFor(NopTccRecord.class);
     }
 
     private IEntityDao<NopTccBranchRecord> branchDao() {
@@ -178,12 +180,60 @@ public class TccRecordRepository implements ITccRecordRepository {
     }
 
     @Override
-    public void forEachExpiredRecord(Function<ITccRecord, CompletionStage<Void>> consumer, long expireGap, int maxRetryCount, ICancelToken cancelToken) {
+    @Transactional
+    public List<NopTccRecord> fetchExpiredRecords(int pageSize, long expireGap, long checkInterval) {
+        IOrmEntityDao<NopTccRecord> dao = recordDao();
 
+        Timestamp minTime = new Timestamp(getCurrentTime(dao) - expireGap);
+        Timestamp nextCheckTime = new Timestamp(minTime.getTime() + checkInterval);
+
+        QueryBean query = new QueryBean();
+        // 已经超时
+        query.addFilter(FilterBeans.lt(NopTccRecord.PROP_NAME_expireTime, minTime));
+        // 状态为还没有结束
+        query.addFilter(FilterBeans.lt(NopTccRecord.PROP_NAME_status, TccStatus.CONFIRM_SUCCESS.getCode()));
+        query.setLimit(pageSize);
+        query.addOrderField(NopTccRecord.PROP_NAME_beginTime, true);
+
+        for (int i = 0; i < 100; i++) {
+            List<NopTccRecord> records = dao.findPageByQuery(query);
+            if (records.isEmpty())
+                return records;
+
+            // 更新超时时间为下一次检查时间
+            for (NopTccRecord record : records) {
+                record.setExpireTime(nextCheckTime);
+            }
+
+            // 如果更新结果为空，则表示有其他线程也在扫描，并且已经处理这些记录
+            List<NopTccRecord> ret = dao.tryUpdateManyWithVersionCheck(records);
+            if (!ret.isEmpty())
+                return ret;
+        }
+
+        // 如果一直没有找到符合条件的记录，则返回空
+        return Collections.emptyList();
+    }
+
+    protected long getCurrentTime(IOrmEntityDao<NopTccRecord> dao) {
+        return CoreMetrics.currentTimeMillis();
     }
 
     @Override
-    public void removeCompletedRecords(long retentionTime) {
+    @Transactional
+    public void removeCompletedRecords(long retentionTime, boolean onlyCompleted) {
+        QueryBean query = new QueryBean();
+        Timestamp minTime = new Timestamp(CoreMetrics.currentTimeMillis() - retentionTime);
+        query.addFilter(FilterBeans.lt(NopTccRecord.PROP_NAME_beginTime, minTime));
+        if (onlyCompleted)
+            query.addFilter(FilterBeans.in(NopTccRecord.PROP_NAME_status, TccStatus.getFinishedStatus()));
+        this.recordDao().deleteByQuery(query);
 
+        QueryBean subQuery = new QueryBean();
+        subQuery.addFilter(FilterBeans.lt(NopTccBranchRecord.PROP_NAME_beginTime, minTime));
+        if (onlyCompleted) {
+            query.addFilter(FilterBeans.in(NopTccBranchRecord.PROP_NAME_status, TccStatus.getFinishedStatus()));
+        }
+        this.branchDao().deleteByQuery(query);
     }
 }

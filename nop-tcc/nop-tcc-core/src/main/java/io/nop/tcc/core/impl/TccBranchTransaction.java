@@ -38,7 +38,7 @@ public class TccBranchTransaction implements ITccBranchTransaction {
     @Override
     public CompletionStage<Void> finishTryAsync(ApiResponse<?> response, Throwable ex) {
         if (ex != null) {
-            if (tccEngine.isClientException(ex)) {
+            if (tccEngine.isSafeFailException(ex)) {
                 return getRepository().updateTccBranchStatusAsync(branchRecord, TccStatus.TRY_FAILED, ex);
             } else {
                 return getRepository().updateTccBranchStatusAsync(branchRecord, TccStatus.TRY_UNKNOWN, ex);

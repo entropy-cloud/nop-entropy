@@ -11,5 +11,5 @@ public interface ITccExceptionChecker {
     /**
      * 是否未发送到远程服务器就失败了。例如没有找到合法的服务器，或者连接服务器失败
      */
-    boolean isClientException(Throwable ex);
+    boolean isSafeFailException(Throwable ex);
 }
