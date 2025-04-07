@@ -208,6 +208,21 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         });
     }
 
+    @Test
+    public void copyImages() {
+        File docsDir = getDocsDir();
+        File docsEnDir = new File(docsDir.getParentFile(), "docs-en");
+
+        FileHelper.walk2(docsDir, docsEnDir, (f1, f2) -> {
+            String ext = StringHelper.fileExt(f1.getName()).toLowerCase();
+            if (List.of("png", "jpg", "jpeg", "gif","bmp").contains(ext)) {
+                FileHelper.copyFile(f1, f2);
+                return FileVisitResult.CONTINUE;
+            }
+            return FileVisitResult.CONTINUE;
+        });
+    }
+
     void translateFile(String model, Consumer<AiTranslateCommand> config) {
         String promptName = "translate3";
         int contextLength = 4096;
