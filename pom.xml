@@ -100,7 +100,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>${maven-compiler-plugin.version}</version>
                 <configuration>
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
@@ -152,9 +152,9 @@
                         ${jacocoArgLine}
                     </argLine>
                     <testFailureIgnore>false</testFailureIgnore>
-<!--                    <forkCount>4</forkCount>-->
-<!--                    <reuseForks>true</reuseForks>-->
-<!--                    <forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>-->
+                    <!--                    <forkCount>4</forkCount>-->
+                    <!--                    <reuseForks>true</reuseForks>-->
+                    <!--                    <forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>-->
                 </configuration>
 
             </plugin>
@@ -180,31 +180,31 @@
                 </executions>
             </plugin>
 
-<!--            <plugin>-->
-<!--                <groupId>org.codehaus.mojo</groupId>-->
-<!--                <artifactId>flatten-maven-plugin</artifactId>-->
-<!--                <version>1.5.0</version>-->
-<!--                <configuration>-->
-<!--                    <updatePomFile>true</updatePomFile>-->
-<!--                    <flattenMode>oss</flattenMode>-->
-<!--                </configuration>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>flatten</id>-->
-<!--                        <phase>process-resources</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>flatten</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                    <execution>-->
-<!--                        <id>flatten.clean</id>-->
-<!--                        <phase>clean</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>clean</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
+            <!--            <plugin>-->
+            <!--                <groupId>org.codehaus.mojo</groupId>-->
+            <!--                <artifactId>flatten-maven-plugin</artifactId>-->
+            <!--                <version>1.5.0</version>-->
+            <!--                <configuration>-->
+            <!--                    <updatePomFile>true</updatePomFile>-->
+            <!--                    <flattenMode>oss</flattenMode>-->
+            <!--                </configuration>-->
+            <!--                <executions>-->
+            <!--                    <execution>-->
+            <!--                        <id>flatten</id>-->
+            <!--                        <phase>process-resources</phase>-->
+            <!--                        <goals>-->
+            <!--                            <goal>flatten</goal>-->
+            <!--                        </goals>-->
+            <!--                    </execution>-->
+            <!--                    <execution>-->
+            <!--                        <id>flatten.clean</id>-->
+            <!--                        <phase>clean</phase>-->
+            <!--                        <goals>-->
+            <!--                            <goal>clean</goal>-->
+            <!--                        </goals>-->
+            <!--                    </execution>-->
+            <!--                </executions>-->
+            <!--            </plugin>-->
 
         </plugins>
 
@@ -448,9 +448,9 @@
         <module>nop-netty</module>
         <module>nop-datav</module>
         <module>nop-dev</module>
-<!--        <module>nop-all-for-spring</module>-->
+        <!--        <module>nop-all-for-spring</module>-->
         <module>nop-git</module>
-       <!-- <module>tests</module> -->
+        <!-- <module>tests</module> -->
         <module>nop-oauth</module>
         <module>nop-dyn</module>
         <module>nop-ai</module>
