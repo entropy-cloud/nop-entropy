@@ -285,6 +285,11 @@ public class XDefRefResolver {
                             .param(ARG_TAG_NAME, child.getTagName());
                 }
 
+                // Note: 从 xdef:ref 节点上合并的 xdef:key-attr 也需影响子节点的 xdef:allow-multiple 的缺省值设定
+                if (child.getXdefAllowMultiple() == null && defNode.getXdefKeyAttr() != null) {
+                    ((XDefNode) child).setXdefAllowMultiple(true);
+                }
+
                 children.put(tagName, child);
             }
             defNode.setChildren((Map) children);

@@ -8,6 +8,7 @@
 package io.nop.xlang.delta;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.Pair;
@@ -15,6 +16,7 @@ import io.nop.core.lang.json.delta.DeltaMergeHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
+import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdsl.XDslKeys;
 
 import java.util.HashMap;
@@ -106,6 +108,9 @@ public class ChildNodeMap {
                         // 如果具有keyAttr
                         IXDefAttribute defAttr = defChild.getAttribute(keyAttr);
                         if (defAttr != null) {
+                            // 支持使用在 keyAttr 属性上指定的缺省值作为唯一键
+                            applyDefaultAttrValue(defChild, data, keyAttr);
+
                             byKeys = addByUniqueAttr(byKeys, keyAttr, data);
                             continue;
                         }
@@ -113,6 +118,9 @@ public class ChildNodeMap {
                     // 如果没有keyAttr，但是具有uniqueAttr。则具有同样tagName的节点按照uniqueKey组织
                     String uniqueAttr = defChild.getXdefUniqueAttr();
                     if (uniqueAttr != null) {
+                        // 支持使用在 uniqueAttr 属性上指定的缺省值作为唯一键
+                        applyDefaultAttrValue(defChild, data, uniqueAttr);
+
                         byKeys = addByUniqueAttr(byKeys, uniqueAttr, data);
                     }
                 } else {
@@ -174,6 +182,30 @@ public class ChildNodeMap {
             map.put(key, data);
         }
         return data;
+    }
+
+    static void applyDefaultAttrValue(IXDefNode defChild, NodeData data, String attrName) {
+        if (data.node.hasAttr(attrName)) {
+            return;
+        }
+
+        IXDefAttribute defAttr = defChild.getAttribute(attrName);
+        XDefTypeDecl defAttrType = defAttr.getType();
+
+        Object attrValue = defAttrType.getDefaultValue();
+        SourceLocation attrValueLoc = defAttr.getLocation();
+        // 处理 name="!conf-name=@attr:type" 形式的引用其他属性（type）的值作为缺省值的情况
+        if (attrValue == null && !CollectionHelper.isEmpty(defAttrType.getDefaultAttrNames())) {
+            // 仅支持引用一个属性的情况，且不处理嵌套引用
+            String refAttrName = defAttrType.getDefaultAttrNames().get(0);
+
+            attrValue = data.node.getAttr(refAttrName);
+            attrValueLoc = data.node.attrLoc(refAttrName);
+        }
+
+        if (attrValue != null) {
+            data.node.setAttr(attrValueLoc, attrName, attrValue);
+        }
     }
 
     static Map<String, NodeData> addByUniqueAttr(Map<String, NodeData> map, String attrName, NodeData data) {
