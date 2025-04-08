@@ -13,6 +13,7 @@ import io.nop.graphql.core.ast.GraphQLObjectDefinition;
 import io.nop.graphql.core.biz.IBizObjectQueryProcessorBuilder;
 import io.nop.graphql.core.biz.IGraphQLBizInitializer;
 import io.nop.graphql.core.biz.IGraphQLBizObject;
+import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.schema.TypeRegistry;
 import io.nop.orm.IOrmTemplate;
 import jakarta.inject.Inject;
@@ -35,7 +36,7 @@ public class OrmBizInitializer implements IGraphQLBizInitializer {
     @Override
     public void initialize(IGraphQLBizObject bizObj,
                            IBizObjectQueryProcessorBuilder queryProcessorBuilder,
-                           TypeRegistry typeRegistry) {
+                           TypeRegistry typeRegistry, GraphQLBizModels bizModels) {
         GraphQLObjectDefinition objDef = bizObj.getObjectDefinition();
         String entityName = bizObj.getEntityName();
         if (StringHelper.isEmpty(entityName))

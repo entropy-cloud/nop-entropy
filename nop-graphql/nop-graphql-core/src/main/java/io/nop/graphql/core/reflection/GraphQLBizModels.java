@@ -41,7 +41,7 @@ public class GraphQLBizModels {
     public void build(TypeRegistry typeRegistry, Collection<?> beans) {
         if (beans != null) {
             for (Object bean : beans) {
-                GraphQLBizModel bizModel = ReflectionBizModelBuilder.INSTANCE.build(bean, typeRegistry);
+                GraphQLBizModel bizModel = ReflectionBizModelBuilder.INSTANCE.build(bean, typeRegistry, this);
                 GraphQLBizModel oldModel = bizModels.putIfAbsent(bizModel.getBizObjName(), bizModel);
                 if (oldModel != null)
                     oldModel.merge(bizModel);
@@ -63,6 +63,10 @@ public class GraphQLBizModels {
 
     public GraphQLBizModel getBizModel(String bizObjName) {
         return bizModels.get(bizObjName);
+    }
+
+    public GraphQLBizModel makeBizModel(String bizObjName) {
+        return bizModels.computeIfAbsent(bizObjName, GraphQLBizModel::new);
     }
 
     public static void discoverBizModel(Map<String, GraphQLBizModel> bizModels, IResource resource) {

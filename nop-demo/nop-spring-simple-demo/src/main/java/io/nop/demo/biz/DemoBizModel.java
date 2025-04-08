@@ -7,9 +7,11 @@
  */
 package io.nop.demo.biz;
 
+import io.nop.api.core.annotations.biz.BizLoader;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.biz.BizQuery;
+import io.nop.api.core.annotations.biz.ContextSource;
 import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.exceptions.NopException;
@@ -43,5 +45,10 @@ public class DemoBizModel {
         obj.setName(name);
         obj.setStatus(1);
         return obj;
+    }
+
+    @BizLoader(forType = CustomObj.class, value = "name")
+    public String customObjName(@ContextSource CustomObj obj) {
+        return "custom:" + obj.getName();
     }
 }

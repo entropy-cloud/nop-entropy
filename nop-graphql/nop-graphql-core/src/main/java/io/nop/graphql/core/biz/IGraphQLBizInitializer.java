@@ -7,11 +7,11 @@
  */
 package io.nop.graphql.core.biz;
 
-import io.nop.api.core.util.IOrdered;
+import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.schema.TypeRegistry;
 
-public interface IGraphQLBizInitializer extends IOrdered {
+public interface IGraphQLBizInitializer {
     void initialize(IGraphQLBizObject bizObj,
                     IBizObjectQueryProcessorBuilder queryProcessorBuilder,
-                    TypeRegistry typeRegistry);
+                    TypeRegistry typeRegistry, GraphQLBizModels bizModels);
 }

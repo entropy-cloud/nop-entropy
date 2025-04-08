@@ -7,6 +7,8 @@
  */
 package io.nop.graphql.core.utils;
 
+import io.nop.api.core.annotations.biz.BizLoader;
+import io.nop.api.core.annotations.biz.BizObjName;
 import io.nop.api.core.annotations.graphql.GraphQLInput;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.commons.util.StringHelper;
@@ -33,6 +35,19 @@ public class GraphQLNameHelper {
         return getGraphQLTypeName(clazz, true);
     }
 
+    public static boolean isBizObject(Class<?> clazz) {
+        return clazz.isAnnotationPresent(BizObjName.class);
+    }
+
+    public static String getBizLoaderForTypeName(BizLoader bizLoader) {
+        String forTypeName = bizLoader.forTypeName();
+        if (!StringHelper.isEmpty(forTypeName))
+            return forTypeName;
+        if (bizLoader.forType() == Object.class)
+            return null;
+        return getGraphQLTypeName(bizLoader.forType(), false);
+    }
+
     public static String getGraphQLTypeName(Class<?> clazz, boolean input) {
         if (input) {
             if (clazz.isAnnotationPresent(GraphQLInput.class))
@@ -41,21 +56,21 @@ public class GraphQLNameHelper {
             if (clazz.isAnnotationPresent(GraphQLObject.class))
                 return clazz.getSimpleName() + "Input";
 
-            if(clazz.isEnum())
-                return "e_" + clazz.getName().replace('.','_');
+            if (clazz.isEnum())
+                return "e_" + clazz.getName().replace('.', '_');
 
             return "i_" + clazz.getName().replace('.', '_');
         }
 
+        BizObjName bizObjName = clazz.getAnnotation(BizObjName.class);
+        if (bizObjName != null)
+            return bizObjName.value();
+
         if (clazz.isAnnotationPresent(GraphQLObject.class))
             return clazz.getSimpleName();
 
-//        BizObjName bizObjName = clazz.getAnnotation(BizObjName.class);
-//        if(bizObjName != null)
-//            return bizObjName.value();
-
-        if(clazz.isEnum())
-            return "e_" + clazz.getName().replace('.','_');
+        if (clazz.isEnum())
+            return "e_" + clazz.getName().replace('.', '_');
 
         return "g_" + clazz.getName().replace('.', '_');
     }

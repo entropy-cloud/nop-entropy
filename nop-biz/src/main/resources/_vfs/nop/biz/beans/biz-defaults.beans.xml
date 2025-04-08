@@ -18,7 +18,7 @@
         <property name="graphQLHook" ref="nopMetricsGraphQLHook"/>
     </bean>
 
-    <bean id="nopJsonRpcService" class="io.nop.graphql.core.jsonrpc.JsonRpcService" />
+    <bean id="nopJsonRpcService" class="io.nop.graphql.core.jsonrpc.JsonRpcService"/>
 
     <bean id="nopMetricsGraphQLHook" class="io.nop.graphql.core.engine.MetricsGraphQLHook"/>
 
@@ -37,7 +37,8 @@
 
     <bean id="nopGraphQLAuditer" class="io.nop.graphql.core.audit.DefaultGraphQLAuditer" ioc:default="true"/>
 
-    <bean id="nopGraphQLTransactionOperationInvoker" class="io.nop.graphql.core.engine.GraphQLTransactionOperationInvoker">
+    <bean id="nopGraphQLTransactionOperationInvoker"
+          class="io.nop.graphql.core.engine.GraphQLTransactionOperationInvoker">
         <ioc:condition>
             <on-bean>nopTransactionalFunctionInvoker</on-bean>
         </ioc:condition>
@@ -68,7 +69,7 @@
         </property>
     </bean>
 
-    <bean id="nopCrudBizInitializer" class="io.nop.biz.crud.CrudBizInitializer">
+    <bean id="nopCrudBizInitializer" class="io.nop.biz.crud.CrudBizInitializer" ioc:sort-order="90">
         <ioc:condition>
             <on-bean>nopDaoProvider</on-bean>
         </ioc:condition>
@@ -117,7 +118,7 @@
 
     <bean id="nopDevStatBizModel" class="io.nop.biz.dev.DevStatBizModel">
         <ioc:condition>
-            <if-property name="nop.biz.stat.enabled" enableIfMissing="true" />
+            <if-property name="nop.biz.stat.enabled" enableIfMissing="true"/>
         </ioc:condition>
     </bean>
 

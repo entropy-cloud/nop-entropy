@@ -70,7 +70,7 @@ public class ReflectionGraphQLTypeFactory {
     }
 
     protected void getArgDefinitions(GraphQLFieldDefinition field, IFunctionModel func, TypeRegistry registry,
-                                   Map<String, GraphQLTypeDefinition> creatingTypes) {
+                                     Map<String, GraphQLTypeDefinition> creatingTypes) {
         List<GraphQLArgumentDefinition> argDefs = new ArrayList<>();
 
         for (IFunctionArgument arg : func.getArgs()) {
@@ -185,7 +185,7 @@ public class ReflectionGraphQLTypeFactory {
     }
 
     protected GraphQLType buildGraphQLType(IGenericType type, String bizObjName, TypeRegistry registry,
-                                         Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
+                                           Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
         if (type.isAssignableTo(CompletionStage.class)) {
             type = type.getGenericType(CompletionStage.class).getTypeParameters().get(0);
         }
@@ -223,6 +223,10 @@ public class ReflectionGraphQLTypeFactory {
 
         if (clazz.isEnum()) {
             String name = GraphQLNameHelper.getGraphQLTypeName(clazz, input);
+            if (GraphQLNameHelper.isBizObject(clazz)) {
+                registry.addBizObjClass(bizObjName, clazz);
+                return GraphQLTypeHelper.namedType(bizObjName);
+            }
             GraphQLDefinition typeDef = buildDef(name, clazz, registry, creatingTypes, input);
             GraphQLNamedType namedType = GraphQLTypeHelper.namedType(name);
             namedType.setResolvedType(typeDef);
@@ -317,7 +321,7 @@ public class ReflectionGraphQLTypeFactory {
     }
 
     protected GraphQLTypeDefinition buildDef(String name, Class<?> clazz, TypeRegistry registry,
-                                   Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
+                                             Map<String, GraphQLTypeDefinition> creatingTypes, boolean input) {
         GraphQLTypeDefinition objDef = creatingTypes.get(name);
         if (objDef != null)
             return objDef;

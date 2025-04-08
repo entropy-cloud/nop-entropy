@@ -81,7 +81,7 @@ import static io.nop.graphql.core.reflection.ArgBuilders.getEnv;
 public class ReflectionBizModelBuilder {
     public static final ReflectionBizModelBuilder INSTANCE = new ReflectionBizModelBuilder();
 
-    public GraphQLBizModel build(Object bean, TypeRegistry registry) {
+    public GraphQLBizModel build(Object bean, TypeRegistry registry, GraphQLBizModels bizModels) {
         Class<?> clazz = bean.getClass();
         if (IAopProxy.class.isAssignableFrom(clazz))
             clazz = clazz.getSuperclass();
@@ -172,7 +172,12 @@ public class ReflectionBizModelBuilder {
                 if (loaderType != null) {
                     loaderType.mergeField(field, false);
                 } else {
-                    ret.addLoader(name, field);
+                    String typeName = GraphQLNameHelper.getBizLoaderForTypeName(bizLoader);
+                    if (bizObjName.equals(typeName)) {
+                        ret.addLoader(name, field);
+                    } else {
+                        bizModels.makeBizModel(typeName).addLoader(name, field);
+                    }
                 }
             }
         }
@@ -203,8 +208,9 @@ public class ReflectionBizModelBuilder {
     }
 
     protected GraphQLObjectDefinition getLoaderForType(BizLoader loader, TypeRegistry registry) {
-        if (loader.forType() != Object.class)
+        if (loader.forType() != Object.class && !GraphQLNameHelper.isBizObject(loader.forType())) {
             return ReflectionGraphQLTypeFactory.INSTANCE.buildDef(loader.forType(), registry);
+        }
         return null;
     }
 
@@ -267,8 +273,8 @@ public class ReflectionBizModelBuilder {
     }
 
     protected GraphQLFieldDefinition buildActionField(String bizObjName, Object bean, GraphQLOperationType opType,
-                                                    SourceLocation loc, String name,
-                                                    IFunctionModel func, TypeRegistry registry) {
+                                                      SourceLocation loc, String name,
+                                                      IFunctionModel func, TypeRegistry registry) {
         IServiceAction action = buildAction(bean, loc, name, func);
         IDataFetcher fetcher = new ServiceActionFetcher(action);
 
@@ -286,10 +292,10 @@ public class ReflectionBizModelBuilder {
 
         Auth auth = func.getAnnotation(Auth.class);
         if (auth != null) {
-            field.setAuth(new ActionAuthMeta(auth.publicAccess(), ConvertHelper.toCsvSet(auth.roles()), MultiCsvSet.fromText(auth.permissions()),auth.skipWhenNoAuth()));
+            field.setAuth(new ActionAuthMeta(auth.publicAccess(), ConvertHelper.toCsvSet(auth.roles()), MultiCsvSet.fromText(auth.permissions()), auth.skipWhenNoAuth()));
         } else {
             String permission = bizObjName + ':' + opType + "|" + bizObjName + ':' + name;
-            field.setAuth(new ActionAuthMeta(false, Collections.emptySet(), MultiCsvSet.fromText(permission),false));
+            field.setAuth(new ActionAuthMeta(false, Collections.emptySet(), MultiCsvSet.fromText(permission), false));
         }
 
         BizMakerChecker makerChecker = func.getAnnotation(BizMakerChecker.class);
@@ -421,7 +427,7 @@ public class ReflectionBizModelBuilder {
     }
 
     protected IDataFetcher buildFetcher(String bizObjName, Object bean, SourceLocation loc, String name, IFunctionModel func,
-                                      List<Function<IDataFetchingEnvironment, Object>> argBuilders, int sourceIndex) {
+                                        List<Function<IDataFetchingEnvironment, Object>> argBuilders, int sourceIndex) {
         if (sourceIndex >= 0) {
             IFunctionArgument sourceArg = func.getArgs().get(sourceIndex);
             if (sourceArg.getType().isCollectionLike()) {

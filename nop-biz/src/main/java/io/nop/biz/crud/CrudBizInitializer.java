@@ -18,6 +18,7 @@ import io.nop.graphql.core.biz.IBizObjectQueryProcessorBuilder;
 import io.nop.graphql.core.biz.IGraphQLBizInitializer;
 import io.nop.graphql.core.biz.IGraphQLBizObject;
 import io.nop.graphql.core.reflection.GraphQLBizModel;
+import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.reflection.ReflectionBizModelBuilder;
 import io.nop.graphql.core.schema.TypeRegistry;
 import jakarta.inject.Inject;
@@ -64,18 +65,13 @@ public class CrudBizInitializer implements IGraphQLBizInitializer {
     }
 
     @Override
-    public int order() {
-        return NORMAL_PRIORITY - 100;
-    }
-
-    @Override
     public void initialize(IGraphQLBizObject bizObj,
                            IBizObjectQueryProcessorBuilder queryProcessorBuilder,
-                           TypeRegistry typeRegistry) {
+                           TypeRegistry typeRegistry, GraphQLBizModels bizModels) {
         Set<String> base = ConvertHelper.toCsvSet(bizObj.getExtAttribute(BizConstants.GRAPHQL_BASE_NAME));
         if (base != null && base.contains(BizConstants.BASE_CRUD)) {
             DynamicCrudBizModel bean = newBizModelBean(bizObj);
-            GraphQLBizModel bizModel = ReflectionBizModelBuilder.INSTANCE.build(bean, typeRegistry);
+            GraphQLBizModel bizModel = ReflectionBizModelBuilder.INSTANCE.build(bean, typeRegistry, bizModels);
 
             BizObjectBuildHelper.addDefaultAction(bizObj, bizModel, collectors);
         }

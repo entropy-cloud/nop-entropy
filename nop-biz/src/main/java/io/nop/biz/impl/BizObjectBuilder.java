@@ -149,7 +149,7 @@ public class BizObjectBuilder {
 
         if (bizInitializers != null) {
             for (IGraphQLBizInitializer initializer : bizInitializers) {
-                initializer.initialize(bizObj, this::buildQueryProcessor, typeRegistry);
+                initializer.initialize(bizObj, this::buildQueryProcessor, typeRegistry, bizModels);
             }
         }
 
