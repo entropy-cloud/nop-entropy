@@ -7,6 +7,7 @@
  */
 package io.nop.api.core.beans.file;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
@@ -23,6 +24,7 @@ public class FileStatusBean {
     private long lastModified;
     private String permissions;
     private String fileSize;
+    private String externalPath;
 
     public FileStatusBean() {
     }
@@ -82,5 +84,15 @@ public class FileStatusBean {
     @PropMeta(propId = 6)
     public String getFileSize() {
         return ApiStringHelper.fileSizeString(getSize());
+    }
+
+    @PropMeta(propId = 7)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getExternalPath() {
+        return externalPath;
+    }
+
+    public void setExternalPath(String externalPath) {
+        this.externalPath = externalPath;
     }
 }

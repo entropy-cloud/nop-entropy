@@ -29,6 +29,16 @@ public class OssConfig {
 
     private boolean autoCreateBucket = false;
 
+    private boolean returnRemotePathAsExternalPath;
+
+    public boolean isReturnRemotePathAsExternalPath() {
+        return returnRemotePathAsExternalPath;
+    }
+
+    public void setReturnRemotePathAsExternalPath(boolean returnRemotePathAsExternalPath) {
+        this.returnRemotePathAsExternalPath = returnRemotePathAsExternalPath;
+    }
+
     public boolean isAutoCreateBucket() {
         return autoCreateBucket;
     }

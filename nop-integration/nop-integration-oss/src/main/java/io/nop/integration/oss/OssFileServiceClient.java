@@ -14,11 +14,11 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.resource.IResourceReference;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.integration.api.file.IFileServiceClient;
 import jakarta.ws.rs.core.MediaType;
 import org.slf4j.Logger;
@@ -91,7 +91,14 @@ public class OssFileServiceClient implements IFileServiceClient {
         status.setLastModified(obj.getLastModified().getTime());
         status.setSize(obj.getContentLength());
         status.setName(StringHelper.fileFullName(remotePath));
+        status.setExternalPath(getExternalPath(remotePath, obj));
         return status;
+    }
+
+    protected String getExternalPath(String remotePath, ObjectMetadata obj) {
+        if (ossConfig.isReturnRemotePathAsExternalPath())
+            return remotePath;
+        return null;
     }
 
     @Override

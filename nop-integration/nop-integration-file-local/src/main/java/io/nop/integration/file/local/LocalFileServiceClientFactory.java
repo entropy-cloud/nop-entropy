@@ -7,6 +7,7 @@
  */
 package io.nop.integration.file.local;
 
+import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.resource.IResourceReference;
 import io.nop.commons.util.IoHelper;
@@ -14,7 +15,6 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceStore;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.store.LocalResourceStore;
-import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.integration.api.file.IFileServiceClient;
 import io.nop.integration.api.file.IFileServiceClientFactory;
 
@@ -42,20 +42,26 @@ public class LocalFileServiceClientFactory implements IFileServiceClientFactory,
     @Override
     public List<FileStatusBean> listFiles(String remotePath) {
         List<? extends IResource> resources = resourceStore.getChildren(remotePath);
-        return resources.stream().map(this::newFileStatus).collect(Collectors.toList());
+        return resources.stream().map(resource -> newFileStatus(remotePath, resource)).collect(Collectors.toList());
     }
 
     public FileStatusBean getFileStatus(String remotePath) {
         IResource resource = resourceStore.getResource(remotePath);
-        return newFileStatus(resource);
+        return newFileStatus(remotePath, resource);
     }
 
-    private FileStatusBean newFileStatus(IResource resource) {
+    private FileStatusBean newFileStatus(String remotePath, IResource resource) {
         FileStatusBean status = new FileStatusBean();
         status.setName(resource.getName());
         status.setLastModified(resource.lastModified());
         status.setSize(resource.length());
+        status.setExternalPath(getExternalPath(remotePath, resource));
         return status;
+    }
+
+    protected String getExternalPath(String remotePath, IResource resource) {
+        // 缺省不对外暴露直接访问链接
+        return null;
     }
 
     @Override

@@ -11,9 +11,9 @@ import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpATTRS;
+import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.resource.IResourceReference;
-import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.integration.api.file.IFileServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,8 +84,8 @@ public class SftpClient implements IFileServiceClient {
             for (ChannelSftp.LsEntry file : files) {
                 String name = file.getFilename();
                 SftpATTRS attrs = file.getAttrs();
-
-                ret.add(newFileStatus(name, attrs));
+                String remotePath = appendPath(remoteDir, name);
+                ret.add(newFileStatus(remotePath, name, attrs));
             }
             return ret;
         } catch (Exception e) {
@@ -94,18 +94,32 @@ public class SftpClient implements IFileServiceClient {
         }
     }
 
-    private FileStatusBean newFileStatus(String name, SftpATTRS attrs) {
+    protected String appendPath(String remoteDir, String name) {
+        if (remoteDir.endsWith("/")) {
+            return remoteDir + name;
+        } else {
+            return remoteDir + "/" + name;
+        }
+    }
+
+    private FileStatusBean newFileStatus(String remotePath, String name, SftpATTRS attrs) {
         String permissions = attrs.getPermissionsString();
         long size = attrs.getSize();
 
-        return new FileStatusBean(name, size, attrs.getMTime() * 1000L, permissions);
+        FileStatusBean status = new FileStatusBean(name, size, attrs.getMTime() * 1000L, permissions);
+        status.setExternalPath(getExternalPath(remotePath, attrs));
+        return status;
+    }
+
+    protected String getExternalPath(String remotePath, SftpATTRS attrs) {
+        return null;
     }
 
     @Override
     public FileStatusBean getFileStatus(String remotePath) {
         try {
             SftpATTRS attrs = channel.lstat(remotePath);
-            return newFileStatus(getFileName(remotePath), attrs);
+            return newFileStatus(remotePath, getFileName(remotePath), attrs);
         } catch (Exception e) {
             throw new NopException(ERR_SFTP_LIST_FILE_FAIL, e)
                     .param(ARG_REMOTE_PATH, remotePath);
