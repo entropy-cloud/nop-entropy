@@ -5,5 +5,7 @@ public interface IAggregator {
 
     Object getResult();
 
-    void reset();
+    default void reset() {
+
+    }
 }
