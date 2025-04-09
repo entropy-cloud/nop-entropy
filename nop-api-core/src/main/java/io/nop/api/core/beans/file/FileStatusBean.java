@@ -25,6 +25,7 @@ public class FileStatusBean {
     private String permissions;
     private String fileSize;
     private String externalPath;
+    private String previewPath;
 
     public FileStatusBean() {
     }
@@ -94,5 +95,15 @@ public class FileStatusBean {
 
     public void setExternalPath(String externalPath) {
         this.externalPath = externalPath;
+    }
+
+    @PropMeta(propId = 8)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getPreviewPath() {
+        return previewPath;
+    }
+
+    public void setPreviewPath(String previewPath) {
+        this.previewPath = previewPath;
     }
 }
