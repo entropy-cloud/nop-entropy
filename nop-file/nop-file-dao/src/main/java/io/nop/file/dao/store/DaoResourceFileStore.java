@@ -229,7 +229,12 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         ret.setName(record.getFileName());
         ret.setLastModified(record.getFileLastModified() == null ? -1L : record.getFileLastModified().getTime());
         ret.setSize(record.getFileLength() == null ? -1L : record.getFileLength());
+        ret.setExternalPath(getExternalPath(record));
         return ret;
+    }
+
+    protected String getExternalPath(NopFileRecord record) {
+        return null;
     }
 
     private NopFileRecord getRecord(String fileId, String bizObjName, String objId, String fieldName) {
