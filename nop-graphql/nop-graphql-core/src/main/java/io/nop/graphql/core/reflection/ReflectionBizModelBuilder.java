@@ -172,7 +172,7 @@ public class ReflectionBizModelBuilder {
                 if (loaderType != null) {
                     loaderType.mergeField(field, false);
                 } else {
-                    String typeName = GraphQLNameHelper.getBizLoaderForTypeName(bizLoader);
+                    String typeName = GraphQLNameHelper.getBizLoaderForTypeName(bizLoader, bizObjName);
                     if (bizObjName.equals(typeName)) {
                         ret.addLoader(name, field);
                     } else {

@@ -39,12 +39,12 @@ public class GraphQLNameHelper {
         return clazz.isAnnotationPresent(BizObjName.class);
     }
 
-    public static String getBizLoaderForTypeName(BizLoader bizLoader) {
+    public static String getBizLoaderForTypeName(BizLoader bizLoader, String defaultName) {
         String forTypeName = bizLoader.forTypeName();
         if (!StringHelper.isEmpty(forTypeName))
             return forTypeName;
         if (bizLoader.forType() == Object.class)
-            return null;
+            return defaultName;
         return getGraphQLTypeName(bizLoader.forType(), false);
     }
 
