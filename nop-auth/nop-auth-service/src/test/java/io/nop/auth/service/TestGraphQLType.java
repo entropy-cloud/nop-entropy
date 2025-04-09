@@ -21,6 +21,7 @@ import io.nop.graphql.core.ast.GraphQLDefinition;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.reflection.GraphQLBizModel;
+import io.nop.graphql.core.reflection.GraphQLBizModels;
 import io.nop.graphql.core.reflection.ReflectionBizModelBuilder;
 import io.nop.graphql.core.schema.TypeRegistry;
 import io.nop.graphql.core.utils.GraphQLNameHelper;
@@ -39,7 +40,7 @@ public class TestGraphQLType {
     @Test
     public void testJavaType() {
         TypeRegistry registry = new TypeRegistry();
-        ReflectionBizModelBuilder.INSTANCE.build(new LoginApiBizModel(), registry);
+        ReflectionBizModelBuilder.INSTANCE.build(new LoginApiBizModel(), registry, new GraphQLBizModels());
         String typeName = GraphQLNameHelper.getResultTypeName(LoginResult.class);
         GraphQLDefinition def = registry.getType(typeName);
         assertNotNull(def);
@@ -71,7 +72,7 @@ public class TestGraphQLType {
     public void testPageBean() {
         TypeRegistry registry = new TypeRegistry();
         GraphQLBizModel bizModel = ReflectionBizModelBuilder.INSTANCE.build(new NopAuthUserBizModel(),
-                registry);
+                registry, new GraphQLBizModels());
         GraphQLFieldDefinition field = bizModel.getOperationDefinition(GraphQLOperationType.query, "findPage");
         assertEquals("PageBean_NopAuthUser", field.getType().toString());
     }

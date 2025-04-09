@@ -30,7 +30,7 @@ public class TestReflectionBizModelBuilder {
     @Test
     public void testResponse() {
         try {
-            ReflectionBizModelBuilder.INSTANCE.build(new MyServiceBizModel(), new TypeRegistry());
+            ReflectionBizModelBuilder.INSTANCE.build(new MyServiceBizModel(), new TypeRegistry(),new GraphQLBizModels());
             fail();
         } catch (NopException e) {
             System.out.println(e);
