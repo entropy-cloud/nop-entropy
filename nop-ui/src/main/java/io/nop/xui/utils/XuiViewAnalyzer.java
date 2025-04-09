@@ -115,18 +115,29 @@ public class XuiViewAnalyzer {
         if (control == null)
             control = (String) propMeta.prop_get(XuiConstants.UI_CONTROL);
 
-        if (control == null) {
-            control = dispMeta == null ? null : dispMeta.getDomain();
-            if (control == null)
-                control = propMeta.getDomain();
+        String domain = null;
+        if (dispMeta != null)
+            domain = dispMeta.getStdDomain();
+        if (domain == null) {
+            domain = propMeta.getStdDomain();
         }
 
-        if (control == null)
-            control = dispMeta == null ? null : dispMeta.getStdDomain();
-        if (control == null)
-            control = propMeta.getStdDomain();
+        String stdDomain = null;
+        if (dispMeta != null)
+            stdDomain = dispMeta.getStdDomain();
+        if (stdDomain == null) {
+            stdDomain = propMeta.getStdDomain();
+        }
 
-        if (XuiConstants.CONTROL_FILE.equals(control)) {
+        if (control == null) {
+            control = domain;
+        }
+
+
+        if (control == null)
+            control = stdDomain;
+
+        if (XuiConstants.CONTROL_FILE.equals(stdDomain) || XuiConstants.CONTROL_FILE.equals(control)) {
             String fileStatus = propMeta.getName() + "ComponentFileStatus";
             FieldSelectionBean sub = selection.makeSubField(fileStatus, true);
             IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(FileStatusBean.class);
@@ -134,7 +145,7 @@ public class XuiViewAnalyzer {
                 if (propModel.isSerializable())
                     sub.addField(name);
             });
-        } else if (XuiConstants.CONTROL_FILE_LIST.equals(control)) {
+        } else if (XuiConstants.CONTROL_FILE_LIST.equals(stdDomain) || XuiConstants.CONTROL_FILE_LIST.equals(control)) {
             String fileStatus = propMeta.getName() + "ComponentFileStatusList";
             FieldSelectionBean sub = selection.makeSubField(fileStatus, true);
             IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(FileStatusBean.class);
