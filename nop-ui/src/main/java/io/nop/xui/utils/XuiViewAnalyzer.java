@@ -139,7 +139,7 @@ public class XuiViewAnalyzer {
 
         if (XuiConstants.CONTROL_FILE.equals(stdDomain) || XuiConstants.CONTROL_FILE.equals(control)) {
             String fileStatus = propMeta.getName() + "ComponentFileStatus";
-            FieldSelectionBean sub = selection.makeSubField(fileStatus, true);
+            FieldSelectionBean sub = selection.addCompositeField(fileStatus, true);
             IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(FileStatusBean.class);
             beanModel.getPropertyModels().forEach((name, propModel) -> {
                 if (propModel.isSerializable())
@@ -147,7 +147,7 @@ public class XuiViewAnalyzer {
             });
         } else if (XuiConstants.CONTROL_FILE_LIST.equals(stdDomain) || XuiConstants.CONTROL_FILE_LIST.equals(control)) {
             String fileStatus = propMeta.getName() + "ComponentFileStatusList";
-            FieldSelectionBean sub = selection.makeSubField(fileStatus, true);
+            FieldSelectionBean sub = selection.addCompositeField(fileStatus, true);
             IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(FileStatusBean.class);
             beanModel.getPropertyModels().forEach((name, propModel) -> {
                 if (propModel.isSerializable())
