@@ -21,6 +21,7 @@ import io.nop.job.core.ICalendar;
 import io.nop.job.core.ITrigger;
 import io.nop.job.core.ITriggerContext;
 import io.nop.job.core.ITriggerExecutor;
+import io.nop.job.core.ITriggerHook;
 import io.nop.job.core.NopJobCoreConstants;
 import io.nop.job.core.trigger.OnceTrigger;
 import io.nop.job.core.trigger.TriggerBuilder;
@@ -51,6 +52,7 @@ public class DefaultJobScheduler implements IJobScheduler {
     private final Function<String, IJobInvoker> invokerFactory;
 
     private IJobScheduleStore jobStore;
+    private ITriggerHook triggerHook;
 
     private ICalendar defaultCalendar;
 
@@ -70,6 +72,10 @@ public class DefaultJobScheduler implements IJobScheduler {
 
     public void setJobScheduleStore(IJobScheduleStore jobStore) {
         this.jobStore = jobStore;
+    }
+
+    public void setTriggerHook(ITriggerHook triggerHook) {
+        this.triggerHook = triggerHook;
     }
 
     @Override
@@ -120,7 +126,7 @@ public class DefaultJobScheduler implements IJobScheduler {
     public JobDetail getJobDetail(String jobName) {
         JobExecution execution = jobs.get(jobName);
         if (execution != null) {
-            synchronized (execution) {
+            synchronized (execution.getTriggerContext()) {
                 return execution.toJobDetail();
             }
         } else {
@@ -146,7 +152,7 @@ public class DefaultJobScheduler implements IJobScheduler {
         boolean created = execution.getJobSpec() == resolved;
 
         if (created) {
-            synchronized (execution) { //NOSONAR
+            synchronized (execution.getTriggerContext()) { //NOSONAR
                 tryStartTrigger(execution);
             }
         } else {
@@ -158,7 +164,7 @@ public class DefaultJobScheduler implements IJobScheduler {
         String jobName = resolved.getJobName();
         JobSpec spec = resolved.getJobSpec();
 
-        synchronized (execution) { //NOSONAR
+        synchronized (execution.getTriggerContext()) { //NOSONAR
             // 忽略旧版本
             if (execution.getJobSpec().getVersion() > spec.getJobVersion()) {
                 LOG.info("nop.job.ignore-obsolete-job-spec:jobName={},version={},currentVer={}", spec.getJobName(),
@@ -195,6 +201,7 @@ public class DefaultJobScheduler implements IJobScheduler {
         context.setJobName(jobSpec.getJobName());
         context.setJobVersion(jobSpec.getJobVersion());
         context.setJobStore(jobStore);
+        context.setTriggerHook(triggerHook);
         return context;
     }
 
@@ -230,7 +237,7 @@ public class DefaultJobScheduler implements IJobScheduler {
 
         JobExecution execution = jobs.remove(jobName);
         if (execution != null) {
-            synchronized (execution) {
+            synchronized (execution.getTriggerContext()) {
                 execution.deactivate();
                 return true;
             }
@@ -243,7 +250,7 @@ public class DefaultJobScheduler implements IJobScheduler {
     public int getTriggerStatus(String jobName) {
         JobExecution execution = jobs.get(jobName);
         if (execution != null) {
-            synchronized (execution) {//NOSONAR
+            synchronized (execution.getTriggerContext()) {//NOSONAR
                 return execution.getTriggerStatus();
             }
         }
@@ -254,11 +261,11 @@ public class DefaultJobScheduler implements IJobScheduler {
     public boolean resumeJob(String jobName) {
         checkActivated();
 
-        LOG.info("nop.job.start-job:jobName={}", jobName);
+        LOG.info("nop.job.resume-job:jobName={}", jobName);
 
         JobExecution execution = jobs.get(jobName);
         if (execution != null) {
-            synchronized (execution) { //NOSONAR
+            synchronized (execution.getTriggerExecution()) { //NOSONAR
                 if (execution.isClosed())
                     return false;
 
@@ -268,7 +275,7 @@ public class DefaultJobScheduler implements IJobScheduler {
                 }
             }
         }
-        LOG.info("nop.job.start-job-not-exists:jobName={}", jobName);
+        LOG.info("nop.job.resume-job-not-exists:jobName={}", jobName);
         return false;
     }
 
@@ -290,13 +297,13 @@ public class DefaultJobScheduler implements IJobScheduler {
     }
 
     @Override
-    public boolean pauseJob(String jobName) {
+    public boolean suspendJob(String jobName) {
         checkActivated();
-        LOG.info("nop.job.pause-job:jobName={}", jobName);
+        LOG.info("nop.job.suspend-job:jobName={}", jobName);
 
         JobExecution execution = jobs.get(jobName);
         if (execution != null) {
-            synchronized (execution) { //NOSONAR
+            synchronized (execution.getTriggerContext()) { //NOSONAR
                 if (execution.isClosed())
                     return true;
 
@@ -305,7 +312,7 @@ public class DefaultJobScheduler implements IJobScheduler {
             }
         }
 
-        LOG.info("nop.job.pause-job-not-exists:jobName={}", jobName);
+        LOG.info("nop.job.suspend-job-not-exists:jobName={}", jobName);
         return false;
     }
 
@@ -316,7 +323,7 @@ public class DefaultJobScheduler implements IJobScheduler {
 
         JobExecution execution = jobs.get(jobName);
         if (execution != null) {
-            synchronized (execution) { //NOSONAR
+            synchronized (execution.getTriggerContext()) { //NOSONAR
                 if (execution.isClosed())
                     return true;
 
@@ -341,7 +348,7 @@ public class DefaultJobScheduler implements IJobScheduler {
             return false;
         }
 
-        synchronized (execution) { //NOSONAR
+        synchronized (execution.getTriggerContext()) { //NOSONAR
             if (execution.isClosed()) {
                 LOG.info("nop.job.fireNow-execution-closed:jobName={}", jobName);
                 return false;

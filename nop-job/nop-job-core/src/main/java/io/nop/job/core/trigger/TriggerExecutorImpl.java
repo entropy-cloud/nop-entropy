@@ -22,12 +22,10 @@ import io.nop.job.core.ITriggerAction;
 import io.nop.job.core.ITriggerContext;
 import io.nop.job.core.ITriggerExecution;
 import io.nop.job.core.ITriggerExecutor;
-import io.nop.job.core.ITriggerHook;
 import io.nop.job.core.NopJobCoreConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Timestamp;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -44,15 +42,10 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
 
     private final IScheduledExecutor executor;
     private final IErrorMessageManager errorMessageManager;
-    private ITriggerHook globalHook;
 
     public TriggerExecutorImpl(IScheduledExecutor executor, IErrorMessageManager errorMessageManager) {
         this.executor = executor;
         this.errorMessageManager = errorMessageManager;
-    }
-
-    public void setGlobalHook(ITriggerHook hook) {
-        this.globalHook = hook;
     }
 
     @Override
@@ -83,9 +76,6 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
         private final ITriggerAction action;
         private final ITriggerContext context;
         private Future<?> currentFuture;
-
-        // 对于triggerContext的修改在此lock保护下进行
-        private final Object lock = new Object();
 
         // 是否正在执行action
         private volatile boolean executing;
@@ -127,18 +117,19 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
         }
 
         protected void doCancel(String cancelReason) {
-            synchronized (lock) {
+            synchronized (context) {
                 // 取消当前正在等待调度执行的任务
                 scheduleIndex++;
                 clearFuture();
 
+                long currentTime = getCurrentTime();
                 if (!context.isJobFinished()) {
                     if (NopJobCoreConstants.CANCEL_REASON_KILL.equals(cancelReason)) {
-                        onJobKilled(context);
+                        context.onJobKilled(currentTime);
                     } else if (NopJobCoreConstants.CANCEL_REASON_CANCEL.equals(cancelReason)) {
-                        onInstanceCancelled(context);
+                        context.onInstanceCancelled(currentTime);
                     } else {
-                        onJobSuspended(context);
+                        context.onJobSuspended(currentTime);
                     }
                 }
 
@@ -151,8 +142,8 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
         void schedule() {
             long nextScheduleTime = calcNextScheduleTime(getCurrentTime() - 1);
             if (nextScheduleTime <= 0) {
-                synchronized (lock) {
-                    onJobFinished(context);
+                synchronized (context) {
+                    context.onJobFinished(getCurrentTime());
                 }
                 promise.complete(null);
             } else {
@@ -161,9 +152,10 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
         }
 
         void fireNow() {
-            synchronized (lock) {
+            synchronized (context) {
                 try {
-                    onBeginFireNow(context);
+                    context.onBeginFireNow(getCurrentTime());
+
                     CompletionStage<JobFireResult> taskPromise = action.execute(true, context, TriggerExecution.this);
                     if (taskPromise == null) {
                         handleFireNowResult(null, null);
@@ -177,8 +169,8 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
         }
 
         void handleFireNowResult(JobFireResult result, Throwable err) {
-            synchronized (lock) {
-                onEndFireNow(result, err, context);
+            synchronized (context) {
+                context.onEndFireNow(getCurrentTime(), result, err);
             }
         }
 
@@ -188,7 +180,7 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
         }
 
         private void scheduleAt(long beginTime, long startIndex) {
-            synchronized (lock) {
+            synchronized (context) {
                 // 如果调用了pause/cancel/deactivate，则isCancelled为true，不再继续调度。
                 if (isCancelled())
                     return;
@@ -200,7 +192,8 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
                     return;
 
                 long current = getCurrentTime();
-                onSchedule(context, beginTime);
+                context.onSchedule(current, beginTime);
+
                 currentFuture = executor.schedule(new ScheduleTask(), Math.max(beginTime - current, 0),
                         TimeUnit.MILLISECONDS);
             }
@@ -214,7 +207,7 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
             }
 
             public Void call() {
-                synchronized (lock) {
+                synchronized (context) {
                     // 避免重入。每次调度scheduleIndex都会递增
                     if (startIndex != scheduleIndex) {
                         return null;
@@ -226,7 +219,7 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
                     // 最多只会有一个线程进入executing状态
                     executing = true;
 
-                    onBeginExecute(context);
+                    context.onInstanceBeginExecute(getCurrentTime());
                 }
 
                 try {
@@ -244,9 +237,9 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
 
             void handleResult(JobFireResult result, Throwable err) {
                 long nextScheduleTime = -1;
-                synchronized (lock) {
+                synchronized (context) {
                     try {
-                        onEndExecute(context);
+                        context.onInstanceSuccess(getCurrentTime());
 
                         if (result == null)
                             result = JobFireResult.CONTINUE;
@@ -265,7 +258,7 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
                                 err = new NopException(ERR_JOB_TRIGGER_FIRE_FAIL);
                         } else if (result.isCompleted()) {
                             nextScheduleTime = 0;
-                        } else if (context.isInstanceRunning()) {
+                        } else {
                             // 明确指定下次调度时间
                             if (result.getNextScheduleTime() > 0) {
                                 nextScheduleTime = result.getNextScheduleTime();
@@ -288,7 +281,9 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
                         scheduleAt(nextScheduleTime, startIndex);
                     } else {
                         try {
-                            onJobFinished(context);
+                            synchronized (context) {
+                                context.onJobFinished(getCurrentTime());
+                            }
                             promise.complete(null);
                         } catch (Exception e) {
                             promise.completeExceptionally(e);
@@ -296,54 +291,6 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
                     }
                 }
             }
-        }
-    }
-
-    private void onInstanceCancelled(ITriggerContext context) {
-        long current = getCurrentTime();
-        context.onInstanceCancelled(current);
-
-        LOG.info("nop.job.on-instance-cancelled:jobName={},instanceId={},status={}", context.getJobName(),
-                context.getInstanceId(), context.getInstanceStatus());
-
-        if (globalHook != null) {
-            globalHook.onInstanceCancelled(current, context);
-        }
-    }
-
-    private void onJobKilled(ITriggerContext context) {
-        long current = getCurrentTime();
-        context.onJobKilled(current);
-
-        LOG.info("nop.job.on-job-killed:jobName={},instanceId={},status={}", context.getJobName(),
-                context.getInstanceId(), context.getInstanceStatus());
-
-        if (globalHook != null) {
-            globalHook.onJobKilled(current, context);
-        }
-    }
-
-    private void onJobSuspended(ITriggerContext context) {
-        long current = getCurrentTime();
-        context.onJobSuspended(current);
-
-        LOG.info("nop.job.on-job-suspended:jobName={},instanceId={},status={}", context.getJobName(),
-                context.getInstanceId(), context.getInstanceStatus());
-
-        if (globalHook != null) {
-            globalHook.onJobSuspended(current, context);
-        }
-    }
-
-    private void onJobFinished(ITriggerContext context) {
-        long current = getCurrentTime();
-        context.onJobFinished(current);
-
-        LOG.info("nop.job.on-job-finished:jobName={},instanceId={},status={}", context.getJobName(),
-                context.getInstanceId(), context.getInstanceStatus());
-
-        if (globalHook != null) {
-            globalHook.onJobFinished(current, context);
         }
     }
 
@@ -356,75 +303,12 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
             error = errorMessageManager.buildErrorMessage(ContextProvider.currentLocale(), exception, true, false);
         }
 
-        LOG.info("nop.job.on-error:jobName={},instanceId={},error={}", context.getJobName(),
-                context.getInstanceId(), error, exception);
-
         if (result != null && result.isCompleted()) {
+            context.onJobFailed(current, error);
+        } else if (context.getExecFailCount() + 1 >= context.getMaxFailedCount()) {
             context.onJobFailed(current, error);
         } else {
             context.onInstanceFailed(current, error);
-        }
-
-        if (globalHook != null) {
-            globalHook.onException(current, exception, context);
-        }
-    }
-
-
-    private void onSchedule(ITriggerContext context, long nextScheduleTime) {
-        long current = getCurrentTime();
-        context.onSchedule(current, nextScheduleTime);
-
-        LOG.debug("nop.job.schedule:jobName={},instanceId={},nextScheduleTime={}", context.getJobName(),
-                context.getInstanceId(), new Timestamp(nextScheduleTime));
-
-        if (globalHook != null) {
-            globalHook.onSchedule(current, nextScheduleTime, context);
-        }
-    }
-
-    private void onBeginFireNow(ITriggerContext context) {
-        long current = getCurrentTime();
-        context.onBeginFireNow(current);
-
-        LOG.debug("nop.job.begin-fire-now:jobName={},instanceId={}", context.getJobName(),
-                context.getInstanceId());
-        if (globalHook != null) {
-            globalHook.onBeginFireNow(current, context);
-        }
-    }
-
-    private void onEndFireNow(JobFireResult result, Throwable exception, ITriggerContext context) {
-        long current = getCurrentTime();
-        context.onEndFireNow(current);
-
-        LOG.debug("nop.job.end-fire-now:jobName={},instanceId={}", context.getJobName(),
-                context.getInstanceId());
-        if (globalHook != null) {
-            globalHook.onEndFireNow(result, exception, context);
-        }
-    }
-
-    private void onBeginExecute(ITriggerContext context) {
-        long current = getCurrentTime();
-        context.onInstanceBeginExecute(current);
-
-        LOG.debug("nop.job.begin-execute:jobName={},instanceId={}", context.getJobName(),
-                context.getInstanceId());
-        if (globalHook != null) {
-            globalHook.onBeginExecute(current, context);
-        }
-    }
-
-    private void onEndExecute(ITriggerContext context) {
-        long current = getCurrentTime();
-        context.onInstanceSuccess(current);
-
-        LOG.debug("nop.job.end-execute:jobName={},instanceId={},status={}", context.getJobName(),
-                context.getInstanceId(), context.getInstanceStatus());
-
-        if (globalHook != null) {
-            globalHook.onEndExecute(current, context);
         }
     }
 

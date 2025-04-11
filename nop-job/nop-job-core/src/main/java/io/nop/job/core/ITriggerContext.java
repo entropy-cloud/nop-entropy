@@ -9,6 +9,7 @@ package io.nop.job.core;
 
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.job.api.execution.IJobExecutionContext;
+import io.nop.job.api.execution.JobFireResult;
 import io.nop.job.api.spec.ITriggerSpec;
 
 /**
@@ -49,7 +50,7 @@ public interface ITriggerContext extends IJobExecutionContext {
 
     void onBeginFireNow(long currentTime);
 
-    void onEndFireNow(long currentTime);
+    void onEndFireNow(long currentTime, JobFireResult result, Throwable err);
 
     void onJobFinished(long currentTime);
 

@@ -7,22 +7,23 @@
  */
 package io.nop.job.core;
 
+import io.nop.api.core.beans.ErrorBean;
 import io.nop.job.api.execution.JobFireResult;
 
 public interface ITriggerHook {
     void onSchedule(long currentTime, long nextScheduleTime, ITriggerContext context);
 
-    void onBeginExecute(long currentTime, ITriggerContext context);
+    void onInstanceBeginExecute(long currentTime, ITriggerContext context);
 
-    void onEndExecute(long currentTime, ITriggerContext context);
+    void onInstanceSuccess(long currentTime, ITriggerContext context);
 
     void onJobSuspended(long currentTime, ITriggerContext context);
 
     void onJobFinished(long currentTime, ITriggerContext context);
 
-    void onException(long currentTime, Throwable exception, ITriggerContext context);
+    void onJobFailed(long currentTime, ErrorBean error, ITriggerContext context);
 
-    void onError(long currentTime, JobFireResult result, ITriggerContext context);
+    void onInstanceFailed(long currentTime, ErrorBean error, ITriggerContext context);
 
     void onJobKilled(long currentTime, ITriggerContext context);
 
@@ -30,5 +31,5 @@ public interface ITriggerHook {
 
     void onBeginFireNow(long currentTime, ITriggerContext context);
 
-    void onEndFireNow(JobFireResult result, Throwable exception, ITriggerContext context);
+    void onEndFireNow(long currentTime, JobFireResult result, Throwable err, ITriggerContext context);
 }

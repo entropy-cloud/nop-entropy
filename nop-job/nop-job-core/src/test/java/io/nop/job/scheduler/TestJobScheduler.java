@@ -7,12 +7,10 @@
  */
 package io.nop.job.scheduler;
 
-import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.job.api.execution.IJobExecutionContext;
 import io.nop.job.api.execution.IJobInvoker;
-import io.nop.job.api.IJobInstanceState;
 import io.nop.job.api.execution.JobFireResult;
 import io.nop.job.api.spec.JobSpec;
 import io.nop.job.api.spec.TriggerSpec;
@@ -23,7 +21,6 @@ import io.nop.job.core.trigger.TriggerExecutorImpl;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -69,7 +66,7 @@ public class TestJobScheduler {
         } catch (Exception e) {
         }
 
-        scheduler.pauseJob("test");
+        scheduler.suspendJob("test");
         assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_SUSPENDED, scheduler.getTriggerStatus("test"));
 
         assertEquals(true, scheduler.fireNow("test"));

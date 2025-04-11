@@ -110,7 +110,7 @@ public interface IJobScheduler {
     /**
      * 暂停任务。但是任务仍然保存在调度器中，并没有被删除
      */
-    boolean pauseJob(@Name("jobName") String jobName);
+    boolean suspendJob(@Name("jobName") String jobName);
 
     default boolean pauseJobs(@Name("jobNames") Collection<String> jobNames) {
         if (jobNames == null)
@@ -118,7 +118,7 @@ public interface IJobScheduler {
 
         boolean b = false;
         for (String jobName : jobNames) {
-            if (pauseJob(jobName))
+            if (suspendJob(jobName))
                 b = true;
         }
         return b;

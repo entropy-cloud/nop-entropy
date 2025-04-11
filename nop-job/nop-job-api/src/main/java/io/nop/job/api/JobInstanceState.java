@@ -25,7 +25,7 @@ public class JobInstanceState implements IJobInstanceState {
 
     private long scheduledExecTime;
 
-    private long execCount = 1;
+    private long execCount = 0;
 
     private long execBeginTime;
     private long execEndTime;

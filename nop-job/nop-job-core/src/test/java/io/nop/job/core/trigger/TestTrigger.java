@@ -14,7 +14,6 @@ import io.nop.job.api.spec.AnnualCalendarSpec;
 import io.nop.job.api.spec.TriggerSpec;
 import io.nop.job.core.ITrigger;
 import io.nop.job.core.NopJobCoreConstants;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -26,7 +25,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Disabled
 public class TestTrigger {
     @Test
     public void testPeriod() {
@@ -42,13 +40,14 @@ public class TestTrigger {
         for (int i = 0; i < 100; i++) {
             long time = trigger.nextScheduleTime(beginTime, context);
             assertEquals(time, beginTime + 1);
+            context.onInstanceBeginExecute(time);
             context.onInstanceSuccess(time);
             beginTime = time;
             assertTrue(beginTime > 0);
         }
         assertEquals(-1, trigger.nextScheduleTime(beginTime, context));
 
-        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING, context.getInstanceStatus());
+        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_EXEC_SUCCESS, context.getInstanceStatus());
         context.onJobFinished(beginTime);
 
         assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FINISHED, context.getInstanceStatus());
@@ -75,6 +74,7 @@ public class TestTrigger {
             if (time <= 0)
                 break;
             times.add(DateHelper.millisToDateTime(time));
+            context.onInstanceBeginExecute(time);
             context.onInstanceSuccess(time + 100);
             beginTime = context.getExecEndTime();
         }
@@ -87,7 +87,7 @@ public class TestTrigger {
         assertEquals("2022-02-12T06:00", times.get(2).toString());
         assertEquals("2022-02-14T19:00", times.get(5).toString());
 
-        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING, context.getInstanceStatus());
+        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_EXEC_SUCCESS, context.getInstanceStatus());
         context.onJobFinished(beginTime);
 
         assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FINISHED, context.getInstanceStatus());

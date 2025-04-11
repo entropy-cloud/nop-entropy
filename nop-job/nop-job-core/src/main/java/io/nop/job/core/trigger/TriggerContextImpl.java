@@ -12,15 +12,22 @@ import io.nop.commons.util.StringHelper;
 import io.nop.job.api.IJobInstanceState;
 import io.nop.job.api.IJobScheduleStore;
 import io.nop.job.api.JobInstanceState;
+import io.nop.job.api.execution.JobFireResult;
 import io.nop.job.api.spec.ITriggerSpec;
 import io.nop.job.core.ITriggerContext;
+import io.nop.job.core.ITriggerHook;
 import io.nop.job.core.NopJobCoreConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author canonical_entropy@163.com
  */
 public class TriggerContextImpl extends JobInstanceState implements ITriggerContext {
+    static final Logger LOG = LoggerFactory.getLogger(TriggerContextImpl.class);
+
     private IJobScheduleStore jobStore;
+    private ITriggerHook triggerHook;
     private long maxExecutionCount;
     private long minScheduleTime;
     private long maxScheduleTime;
@@ -34,6 +41,10 @@ public class TriggerContextImpl extends JobInstanceState implements ITriggerCont
 
     public TriggerContextImpl(IJobInstanceState state) {
         super(state);
+    }
+
+    public void setTriggerHook(ITriggerHook triggerHook) {
+        this.triggerHook = triggerHook;
     }
 
     public IJobScheduleStore getJobStore() {
@@ -54,6 +65,12 @@ public class TriggerContextImpl extends JobInstanceState implements ITriggerCont
         this.setLastInstanceId(getInstanceId());
         this.setInstanceId(newExecutionId());
         onChange();
+
+        LOG.info("nop.job.on-schedule:jobName={},instanceId={}", getJobName(),
+                getInstanceId());
+        if (triggerHook != null) {
+            triggerHook.onSchedule(currentTime, nextExecutionTime, this);
+        }
     }
 
     @Override
@@ -62,6 +79,12 @@ public class TriggerContextImpl extends JobInstanceState implements ITriggerCont
         this.setExecBeginTime(currentTime);
         this.setExecCount(getExecCount() + 1);
         onChange();
+
+        LOG.debug("nop.job.on-instance-begin-execute:jobName={},instanceId={}", getJobName(),
+                getInstanceId());
+        if (triggerHook != null) {
+            triggerHook.onInstanceBeginExecute(currentTime, this);
+        }
     }
 
     @Override
@@ -70,6 +93,13 @@ public class TriggerContextImpl extends JobInstanceState implements ITriggerCont
         this.setExecEndTime(currentTime);
         this.setExecFailCount(0);
         onChange();
+
+        LOG.debug("nop.job.on-instance-success:jobName={},instanceId={},status={}", getJobName(),
+                getInstanceId(), getInstanceStatus());
+
+        if (triggerHook != null) {
+            triggerHook.onInstanceSuccess(currentTime, this);
+        }
     }
 
     @Override
@@ -78,14 +108,27 @@ public class TriggerContextImpl extends JobInstanceState implements ITriggerCont
         this.setExecBeginTime(currentTime);
         this.setExecCount(getExecCount() + 1);
         onChange();
+
+        LOG.info("nop.job.begin-fire-now:jobName={},instanceId={}", getJobName(),
+                getInstanceId());
+        if (triggerHook != null) {
+            triggerHook.onBeginFireNow(currentTime, this);
+        }
     }
 
     @Override
-    public void onEndFireNow(long currentTime) {
+    public void onEndFireNow(long currentTime, JobFireResult result, Throwable err) {
         this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_EXEC_SUCCESS);
         this.setExecEndTime(currentTime);
         this.setExecFailCount(0);
         onChange();
+
+
+        LOG.info("nop.job.end-fire-now:jobName={},instanceId={}", getJobName(),
+                getInstanceId());
+        if (triggerHook != null) {
+            triggerHook.onEndFireNow(currentTime, result, err, this);
+        }
     }
 
     @Override
@@ -96,6 +139,13 @@ public class TriggerContextImpl extends JobInstanceState implements ITriggerCont
         this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FINISHED);
         this.setExecBeginTime(currentTime);
         onChange();
+
+        LOG.info("nop.job.on-job-finished:jobName={},instanceId={},status={}", getJobName(),
+                getInstanceId(), getInstanceStatus());
+
+        if (triggerHook != null) {
+            triggerHook.onJobFinished(currentTime, this);
+        }
     }
 
     @Override
@@ -103,13 +153,16 @@ public class TriggerContextImpl extends JobInstanceState implements ITriggerCont
         this.setExecFailCount(getExecFailCount() + 1);
         this.setExecEndTime(currentTime);
         this.setLastError(error);
+        this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_EXEC_FAILED);
 
-        if (!isJobFinished()) {
-            if (this.getMaxFailedCount() > 0 && this.getExecFailCount() >= this.getMaxFailedCount()) {
-                this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FAILED);
-            }
-        }
         onChange();
+
+        LOG.info("nop.job.on-instance-failed:jobName={},instanceId={},status={},error={}", getJobName(),
+                getInstanceId(), getInstanceStatus(), error);
+
+        if (triggerHook != null) {
+            triggerHook.onInstanceFailed(currentTime, error, this);
+        }
     }
 
     @Override
@@ -117,11 +170,17 @@ public class TriggerContextImpl extends JobInstanceState implements ITriggerCont
         this.setExecFailCount(getExecFailCount() + 1);
         this.setLastError(error);
 
-        if (!isJobFinished()) {
-            this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FAILED);
-            this.setExecBeginTime(currentTime);
-        }
+        this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_FAILED);
+        this.setExecEndTime(currentTime);
+
         onChange();
+
+        LOG.info("nop.job.on-job-failed:jobName={},instanceId={},status={},error={}", getJobName(),
+                getInstanceId(), getInstanceStatus(), error);
+
+        if (triggerHook != null) {
+            triggerHook.onJobFailed(currentTime, error, this);
+        }
     }
 
     @Override
@@ -130,6 +189,13 @@ public class TriggerContextImpl extends JobInstanceState implements ITriggerCont
         this.setExecEndTime(currentTime);
         this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_EXEC_CANCELLED);
         this.onChange();
+
+        LOG.info("nop.job.on-instance-cancelled:jobName={},instanceId={},status={}", getJobName(),
+                getInstanceId(), getInstanceStatus());
+
+        if (triggerHook != null) {
+            triggerHook.onInstanceCancelled(currentTime, this);
+        }
     }
 
     @Override
@@ -145,6 +211,13 @@ public class TriggerContextImpl extends JobInstanceState implements ITriggerCont
         this.setExecEndTime(currentTime);
         this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_SUSPENDED);
         this.onChange();
+
+        LOG.info("nop.job.on-job-suspended:jobName={},instanceId={},status={}", getJobName(),
+                getInstanceId(), getInstanceStatus());
+
+        if (triggerHook != null) {
+            triggerHook.onJobSuspended(currentTime, this);
+        }
     }
 
     @Override
@@ -152,6 +225,13 @@ public class TriggerContextImpl extends JobInstanceState implements ITriggerCont
         this.setExecEndTime(currentTime);
         this.setInstanceStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_JOB_KILLED);
         this.onChange();
+
+        LOG.info("nop.job.on-job-killed:jobName={},instanceId={},status={}", getJobName(),
+                getInstanceId(), getInstanceStatus());
+
+        if (triggerHook != null) {
+            triggerHook.onJobKilled(currentTime, this);
+        }
     }
 
     protected String newExecutionId() {
