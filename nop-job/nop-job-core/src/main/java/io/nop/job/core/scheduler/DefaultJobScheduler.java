@@ -265,7 +265,7 @@ public class DefaultJobScheduler implements IJobScheduler {
 
         JobExecution execution = jobs.get(jobName);
         if (execution != null) {
-            synchronized (execution.getTriggerExecution()) { //NOSONAR
+            synchronized (execution.getTriggerContext()) { //NOSONAR
                 if (execution.isClosed())
                     return false;
 
@@ -280,19 +280,14 @@ public class DefaultJobScheduler implements IJobScheduler {
     }
 
     void tryStartTrigger(JobExecution execution) {
-        boolean active = !execution.isClosed() && execution.isActive();
-        if (!active)
-            return;
-
         execution.startTrigger(executor, () -> {
             onTriggerCompleted(execution);
         });
     }
 
     private void onTriggerCompleted(JobExecution execution) {
-        if (execution.getJobSpec().isRemoveWhenDone() && execution.isDone()) {
-            if (jobs.remove(execution.getJobName(), execution))
-                execution.deactivate();
+        if (execution.isJobFinished()) {
+            jobs.remove(execution.getJobName(), execution);
         }
     }
 

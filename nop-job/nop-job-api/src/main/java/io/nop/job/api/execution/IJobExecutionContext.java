@@ -15,4 +15,6 @@ public interface IJobExecutionContext extends IJobInstanceState {
     boolean isJobFinished();
 
     boolean isInstanceRunning();
+
+    boolean isScheduleEnabled();
 }

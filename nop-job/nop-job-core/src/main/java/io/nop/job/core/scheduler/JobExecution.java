@@ -41,11 +41,11 @@ class JobExecution {
         return closed;
     }
 
-    public boolean isDone() {
+    public boolean isJobFinished() {
         return triggerContext.isJobFinished();
     }
 
-    public boolean isActive() {
+    public boolean isInstanceRunning() {
         return triggerContext.isInstanceRunning();
     }
 
@@ -72,6 +72,7 @@ class JobExecution {
         }
 
         scheduledTrigger = false;
+        triggerContext.setScheduleEnabled(true);
 
         ResolvedJobSpec jobSpec = this.jobSpec;
         ITriggerExecution execution = executor.execute(jobSpec.getTrigger(), createTriggerAction(),
@@ -131,10 +132,7 @@ class JobExecution {
         closed = true;
         scheduledTrigger = false;
 
-        ITriggerExecution execution = triggerExecution;
-        if (execution != null) {
-            execution.cancelExec();
-        }
+        triggerContext.setScheduleEnabled(false);
     }
 
     public void cancelTrigger() {

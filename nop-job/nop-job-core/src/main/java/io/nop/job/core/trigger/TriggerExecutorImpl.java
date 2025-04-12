@@ -188,6 +188,9 @@ public class TriggerExecutorImpl implements ITriggerExecutor {
                 if (isDone())
                     return;
 
+                if (!context.isScheduleEnabled())
+                    return;
+
                 if (startIndex != scheduleIndex)
                     return;
 

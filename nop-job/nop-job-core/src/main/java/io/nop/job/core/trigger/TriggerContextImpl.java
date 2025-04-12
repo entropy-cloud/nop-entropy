@@ -32,6 +32,7 @@ public class TriggerContextImpl extends JobInstanceState implements ITriggerCont
     private long minScheduleTime;
     private long maxScheduleTime;
     private long maxFailedCount;
+    private boolean scheduleEnabled;
 
     public TriggerContextImpl(String jobName, ITriggerSpec spec) {
         update(spec);
@@ -45,6 +46,14 @@ public class TriggerContextImpl extends JobInstanceState implements ITriggerCont
 
     public void setTriggerHook(ITriggerHook triggerHook) {
         this.triggerHook = triggerHook;
+    }
+
+    public boolean isScheduleEnabled() {
+        return scheduleEnabled;
+    }
+
+    public void setScheduleEnabled(boolean scheduleEnabled) {
+        this.scheduleEnabled = scheduleEnabled;
     }
 
     public IJobScheduleStore getJobStore() {

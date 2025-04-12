@@ -18,7 +18,6 @@ import io.nop.job.core.ITriggerExecutor;
 import io.nop.job.core.NopJobCoreConstants;
 import io.nop.job.core.scheduler.DefaultJobScheduler;
 import io.nop.job.core.trigger.TriggerExecutorImpl;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CompletionStage;
@@ -26,7 +25,7 @@ import java.util.concurrent.CompletionStage;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Disabled
+//@Disabled
 public class TestJobScheduler {
 
     static class MockJobInvoker implements IJobInvoker {
@@ -101,7 +100,7 @@ public class TestJobScheduler {
             }
         }
         assertTrue(count > 5);
-        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_WAITING, scheduler.getTriggerStatus("test"));
+        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_EXEC_SUCCESS, scheduler.getTriggerStatus("test"));
 
         try {
             Thread.sleep(200);
@@ -109,7 +108,7 @@ public class TestJobScheduler {
         }
         assertEquals(count, scheduler.getJobDetail("test").getInstanceState().getExecCount());
 
-        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_RUNNING, scheduler.getTriggerStatus("test"));
+        assertEquals(NopJobCoreConstants.JOB_INSTANCE_STATUS_EXEC_SUCCESS, scheduler.getTriggerStatus("test"));
         scheduler.cancelJob("test");
         if (scheduler.getTriggerStatus("test") != NopJobCoreConstants.JOB_INSTANCE_STATUS_SUSPENDED) {
             try {

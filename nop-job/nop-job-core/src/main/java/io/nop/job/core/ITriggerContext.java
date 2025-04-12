@@ -19,6 +19,8 @@ import io.nop.job.api.spec.ITriggerSpec;
  */
 public interface ITriggerContext extends IJobExecutionContext {
 
+    void setScheduleEnabled(boolean scheduleEnabled);
+
     void setMaxFailedCount(long maxFailedCount);
 
     void setMaxExecutionCount(long maxExecutionCount);
