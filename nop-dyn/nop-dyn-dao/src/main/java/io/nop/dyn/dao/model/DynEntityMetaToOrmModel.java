@@ -390,6 +390,7 @@ public class DynEntityMetaToOrmModel {
     protected OrmColumnModel toColumnModel(NopDynPropMeta propMeta) {
         OrmColumnModel ret = new OrmColumnModel();
         ret.setName(propMeta.getPropName());
+        ret.setDisplayName(propMeta.getDisplayName());
         ret.setCode(StringHelper.camelCaseToUnderscore(propMeta.getPropName(), false));
         Set<String> tagSet = propMeta.getTagSet();
         ret.setTagSet(tagSet);
