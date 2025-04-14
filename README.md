@@ -270,7 +270,7 @@ switch(贵公司很有钱吗()){
 
 ## 技术支持
 
-使用中遇到问题或者BUG可以在[Gitee上提Issues](https://gitee.com/canonical-entropy/nop-entropy/issues)
+使用中遇到问题或者BUG可以在[Gitee上提Issues](https://gitee.com/canonical-entropy/nop-entropy/issues)，或者[在GitCode上提Issues](https://gitcode.com/canonical-entropy/nop-entropy/issues)
 
 ## 致谢
 
@@ -279,7 +279,7 @@ switch(贵公司很有钱吗()){
 ## 社区
 
 * 官网国际站: [https://nop-platform.github.io/](https://nop-platform.github.io/)
-* 官网中国站: [https://nop-platform.gitee.io/](https://nop-platform.gitee.io/)
+* GitCode社区: [https://gitcode.com/org/nop-platform/discussion](https://gitcode.com/org/nop-platform/discussion)
 * 网友[Crazydan Studio](https://studio.crazydan.org/)建立的[Nop开发实践分享网站](https://nop.crazydan.io/)
 
 ## 网友评价

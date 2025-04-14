@@ -265,17 +265,17 @@ Switch (Is your company rich ()){
 
 ## Technical Support
 
-Problems or bugs encountered in use can be mentioned on [Gitee](https://gitee.com/canonical-entropy/nop-entropy/issues)
+Problems or bugs encountered in use can be mentioned on [Gitee](https://gitee.com/canonical-entropy/nop-entropy/issues) or [GitCode](https://gitcode.com/canonical-entropy/nop-entropy/issues)
 
 ## Acknowledgements
 
-* Thanks to the ORM test case contributed by netizen [xyplayman](https://gitee.com/xyplayman), the original project address is https://gitee.com/xyplayman/nop-orm-demo
+* Thanks to the ORM test case contributed by  [xyplayman](https://gitee.com/xyplayman), the original project address is https://gitee.com/xyplayman/nop-orm-demo
 
 ## Community
 
 * official website international station: [https://nop-platform.github.io/](https://nop-platform.github.io/)
-* official website China Station: [https://nop-platform.gitee.io/](https://nop-platform.gitee.io/)
-* [Nop Development Practice Sharing Website](https://studio.crazydan.org/) Established by Netizen [Crazydan Studio](https://nop.crazydan.io/)
+* GitCode Community:[https://gitcode.com/org/nop-platform/discussion](https://gitcode.com/org/nop-platform/discussion)
+* [Nop Development Practice Sharing Website](https://studio.crazydan.org/) Established by [Crazydan Studio](https://nop.crazydan.io/)
 
 ## Author WeChat and WeChat Discussion Group
 
