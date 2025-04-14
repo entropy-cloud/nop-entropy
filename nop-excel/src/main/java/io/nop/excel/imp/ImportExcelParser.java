@@ -174,6 +174,7 @@ public class ImportExcelParser {
         ImportDataCollector builder = new ImportDataCollector(scope, cache, compileTool, obj, list);
 
         for (ExcelSheet sheet : sheets) {
+            scope.setLocalValue(ExcelConstants.VAR_SHEET, sheet);
             new TreeTableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel, builder);
         }
 

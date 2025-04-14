@@ -88,6 +88,13 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      *  
+     * xml name: provider
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _provider ;
+    
+    /**
+     *  
      * xml name: saveState
      * 
      */
@@ -292,6 +299,25 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
     
     /**
      * 
+     * xml name: provider
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getProvider(){
+      return _provider;
+    }
+
+    
+    public void setProvider(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._provider = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: saveState
      *  
      */
@@ -365,6 +391,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         out.putNotNull("generator",this.getGenerator());
         out.putNotNull("jdbcReader",this.getJdbcReader());
         out.putNotNull("ormReader",this.getOrmReader());
+        out.putNotNull("provider",this.getProvider());
         out.putNotNull("saveState",this.getSaveState());
         out.putNotNull("source",this.getSource());
     }
@@ -388,6 +415,7 @@ public abstract class _BatchLoaderModel extends io.nop.batch.dsl.model.BatchList
         instance.setGenerator(this.getGenerator());
         instance.setJdbcReader(this.getJdbcReader());
         instance.setOrmReader(this.getOrmReader());
+        instance.setProvider(this.getProvider());
         instance.setSaveState(this.getSaveState());
         instance.setSource(this.getSource());
     }

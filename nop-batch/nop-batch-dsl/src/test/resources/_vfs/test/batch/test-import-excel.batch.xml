@@ -1,0 +1,18 @@
+<batch taskName="test.loadData" batchSize="100"
+       x:schema="/nop/schema/task/batch.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:batch="batch" xmlns:xpl="xpl">
+
+
+    <loader>
+        <provider>
+            <batch:ImportFromExcelLoader impModelPath="test.imp.xml" filePath="test.xlsx" resultVar="data"
+                                         xpl:lib="/nop/batch/xlib/batch.xlib"/>
+        </provider>
+    </loader>
+
+    <consumer name="all">
+        <source>
+            logInfo("items={}",items);
+        </source>
+    </consumer>
+
+</batch>

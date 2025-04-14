@@ -20,7 +20,7 @@ public class ListBatchLoader<S, C> implements IBatchLoaderProvider.IBatchLoader<
     private int offset = 0;
 
     public ListBatchLoader(List<S> list) {
-        this.list = list;
+        this.list = list == null ? Collections.emptyList() : list;
     }
 
 
@@ -29,7 +29,7 @@ public class ListBatchLoader<S, C> implements IBatchLoaderProvider.IBatchLoader<
         if (offset >= list.size())
             return Collections.emptyList();
 
-        int n = Math.max(list.size() - offset, batchSize);
+        int n = Math.min(list.size() - offset, batchSize);
         List<S> ret = new ArrayList<>(list.subList(offset, n));
         offset += n;
         return ret;

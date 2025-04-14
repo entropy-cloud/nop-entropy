@@ -2,7 +2,11 @@ package io.nop.batch.dsl;
 
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.autotest.junit.JunitAutoTestCase;
+import io.nop.batch.core.IBatchTask;
+import io.nop.batch.core.impl.BatchTaskContextImpl;
+import io.nop.batch.core.manager.IBatchTaskManager;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
@@ -28,6 +32,9 @@ public class TestBatchTaskDsl extends JunitAutoTestCase {
     @Inject
     ITaskFlowManager taskFlowManager;
 
+    @Inject
+    IBatchTaskManager batchTaskManager;
+
     @EnableSnapshot
     @Test
     public void testBatchTask() {
@@ -52,5 +59,13 @@ public class TestBatchTaskDsl extends JunitAutoTestCase {
             records.add(Map.of("name", "N" + i, "product", "P" + i, "price", i * 1000.0, "quantity", i));
         }
         RecordFileHelper.writeRecords(new FileResource(file), fileMeta, records);
+    }
+
+    @EnableSnapshot
+    @Test
+    public void testImportExcel() {
+        String path = "/test/batch/test-import-excel.batch.xml";
+        IBatchTask task = batchTaskManager.loadBatchTaskFromPath(path, BeanContainer.instance());
+        task.execute(new BatchTaskContextImpl());
     }
 }

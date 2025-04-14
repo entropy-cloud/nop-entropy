@@ -25,6 +25,7 @@ import io.nop.batch.core.consumer.SplitBatchConsumer;
 import io.nop.batch.core.consumer.TransformedBatchConsumerProvider;
 import io.nop.batch.core.filter.EvalBatchRecordFilter;
 import io.nop.batch.core.history.IBatchHistoryStoreBuilder;
+import io.nop.batch.core.loader.ListBatchLoader;
 import io.nop.batch.core.loader.PostProcessBatchLoaderProvider;
 import io.nop.batch.core.processor.FilterBatchProcessor;
 import io.nop.batch.core.processor.MultiBatchProcessorProvider;
@@ -68,7 +69,11 @@ import java.util.concurrent.Executor;
 import static io.nop.batch.dsl.BatchDslErrors.ARG_BATCH_TASK_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ARG_BEAN_NAME;
 import static io.nop.batch.dsl.BatchDslErrors.ARG_PROCESSOR_NAME;
+import static io.nop.batch.dsl.BatchDslErrors.ARG_VALUE;
+import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_INVALID_CONSUMER;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_INVALID_HISTORY_STORE_BEAN;
+import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_INVALID_LOADER;
+import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_INVALID_PROCESSOR;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_NO_LOADER;
 import static io.nop.batch.dsl.BatchDslErrors.ERR_BATCH_TASK_PROCESSOR_IS_NULL;
 import static io.nop.batch.dsl.manager.FileBatchSupport.newExcelReader;
@@ -387,12 +392,30 @@ public class ModelBasedBatchTaskBuilderFactory {
             return newOrmReader(loaderModel.getOrmReader(), daoProvider);
         } else if (loaderModel.getGenerator() != null) {
             return newGenerator(loaderModel.getGenerator());
+        } else if (loaderModel.getProvider() != null) {
+            return newLoaderProvider(loaderModel.getProvider());
         } else if (loaderModel.getSource() != null) {
             return context -> (batchSize, ctx) -> (List<Object>) loaderModel.getSource().call2(null,
                     batchSize, ctx, ctx.getEvalScope());
         } else {
             return null;
         }
+    }
+
+    private IBatchLoaderProvider<Object> newLoaderProvider(IEvalFunction provider) {
+        return taskCtx -> {
+            Object value = provider.call1(null, taskCtx, taskCtx.getEvalScope());
+            if (value instanceof IBatchLoaderProvider.IBatchLoader)
+                return (IBatchLoaderProvider.IBatchLoader<Object>) value;
+            if (value == null || value instanceof List)
+                return new ListBatchLoader<>((List<Object>) value);
+            if (value instanceof IEvalFunction) {
+                IEvalFunction fn = (IEvalFunction) value;
+                return (batchSize, batchChunkCtx) -> (List) fn.call2(null, batchSize, batchChunkCtx, batchChunkCtx.getEvalScope());
+            }
+            throw new NopException(ERR_BATCH_TASK_INVALID_LOADER).param(ARG_BATCH_TASK_NAME, taskCtx.getTaskName())
+                    .param(ARG_VALUE, value);
+        };
     }
 
     private IBatchLoaderProvider<Object> newGenerator(BatchGeneratorModel generatorModel) {
@@ -433,6 +456,10 @@ public class ModelBasedBatchTaskBuilderFactory {
         if (processorModel.getBean() != null)
             return (IBatchProcessorProvider) beanContainer.getBean(processorModel.getBean());
 
+        if (processorModel.getProvider() != null) {
+            return newProcessorProvider(processorModel.getProvider());
+        }
+
         if (processorModel.getSource() != null) {
             return context -> (item, consumer, ctx) -> {
                 processorModel.getSource().call3(null, item, consumer, ctx, ctx.getEvalScope());
@@ -440,6 +467,23 @@ public class ModelBasedBatchTaskBuilderFactory {
         } else {
             return null;
         }
+    }
+
+    private IBatchProcessorProvider<Object, Object> newProcessorProvider(IEvalFunction provider) {
+        return taskCtx -> {
+            Object value = provider.call1(null, taskCtx, taskCtx.getEvalScope());
+            if (value instanceof IBatchProcessorProvider.IBatchProcessor)
+                return (IBatchProcessorProvider.IBatchProcessor<Object, Object>) value;
+            if (value == null) {
+                return (item, consumer, ctx) -> consumer.accept(item);
+            }
+            if (value instanceof IEvalFunction) {
+                IEvalFunction fn = (IEvalFunction) value;
+                return (item, consumer, ctx) -> fn.call3(null, item, consumer, ctx, ctx.getEvalScope());
+            }
+            throw new NopException(ERR_BATCH_TASK_INVALID_PROCESSOR).param(ARG_BATCH_TASK_NAME, taskCtx.getTaskName())
+                    .param(ARG_VALUE, value);
+        };
     }
 
     private void addListeners(BatchTaskBuilder<Object, Object> builder, BatchListenersModel listenersModel) {
@@ -569,6 +613,8 @@ public class ModelBasedBatchTaskBuilderFactory {
             ret = newOrmWriter(consumerModel.getOrmWriter(), daoProvider, ormTemplate);
         } else if (consumerModel.getJdbcWriter() != null) {
             ret = newJdbcWriter(consumerModel.getJdbcWriter(), jdbcTemplate);
+        } else if (consumerModel.getProvider() != null) {
+            return newConsumerProvider(consumerModel.getProvider());
         } else if (consumerModel.getSource() != null) {
             ret = newXplWriter(consumerModel.getSource());
         } else {
@@ -579,6 +625,22 @@ public class ModelBasedBatchTaskBuilderFactory {
             ret = new TransformedBatchConsumerProvider<>(ret,
                     (item, chunkCtx) -> consumerModel.getTransformer().call2(null, item, chunkCtx, chunkCtx.getEvalScope()));
         return addFilterForWriter(consumerModel, ret);
+    }
+
+    private IBatchConsumerProvider<Object> newConsumerProvider(IEvalFunction provider) {
+        return taskCtx -> {
+            Object value = provider.call1(null, taskCtx, taskCtx.getEvalScope());
+            if (value instanceof IBatchConsumerProvider.IBatchConsumer)
+                return (IBatchConsumerProvider.IBatchConsumer<Object>) value;
+            if (value == null)
+                return (items, batchChunkCtx) -> {
+                };
+            if (value instanceof IEvalFunction) {
+                IEvalFunction fn = (IEvalFunction) value;
+                return new EvalBatchConsumer<>(fn);
+            }
+            throw new NopException(ERR_BATCH_TASK_INVALID_CONSUMER).param(ARG_BATCH_TASK_NAME, taskCtx.getTaskName());
+        };
     }
 
     private IBatchConsumerProvider<Object> newXplWriter(IEvalFunction source) {

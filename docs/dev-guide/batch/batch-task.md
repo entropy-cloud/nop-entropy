@@ -158,6 +158,24 @@
 * Windows操作系统上压缩的zip文件会缺省使用GBK这种编码，而在Linux操作系统中会缺省使用UTF-8。因此在windows上产生的zip文件如果有中文文件名，则在linux操作系统中可能读取报错。此时可以通过如下url形式指定encoding
 `/a.zip!/entryNameInZip.txt?encoding=GBK`。
 
+### 自定义loader
+loader/processor/consumer都支持provider配置，它相当于实现对应的IBatchLoaderProvider/IBatchProcessorProvider/IBatchConsumerProvider接口，通过它可以定制加载器/处理器/消费者等。
+
+比如`batch.xlib`提供了一个根据imp.xml模型导入Excel数据的标签
+
+```xml
+
+<loader>
+  <provider>
+    <batch:ImportFromExcelLoader impModelPath="test.imp.xml" filePath="test.xlsx" resultVar="data"
+                                 xpl:lib="/nop/batch/xlib/batch.xlib"/>
+  </provider>
+</loader>
+```
+
+loader的provider可以返回List/IBatchLoader/IEvalFunction等多种结果，它们都会被自动包装为IBatchLoader接口。
+
+
 ## 异步Processor
 缺省情况下processor是同步执行，如果`batch.xml`的根节点上配置了`asyncProcessor=true`则表示启用异步处理，要求processor内部必须调用`batchChunkCtx.countDown()`来标记当前processor执行完毕。
 通过asyncProcessTimeout可以配置异步执行的等待时间，缺省为10分钟。

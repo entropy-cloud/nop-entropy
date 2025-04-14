@@ -102,6 +102,13 @@ public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchLi
     
     /**
      *  
+     * xml name: provider
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _provider ;
+    
+    /**
+     *  
      * xml name: source
      * 
      */
@@ -344,6 +351,25 @@ public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchLi
     
     /**
      * 
+     * xml name: provider
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getProvider(){
+      return _provider;
+    }
+
+    
+    public void setProvider(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._provider = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: source
      *  
      */
@@ -415,6 +441,7 @@ public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchLi
         out.putNotNull("name",this.getName());
         out.putNotNull("order",this.getOrder());
         out.putNotNull("ormWriter",this.getOrmWriter());
+        out.putNotNull("provider",this.getProvider());
         out.putNotNull("source",this.getSource());
         out.putNotNull("transformer",this.getTransformer());
     }
@@ -440,6 +467,7 @@ public abstract class _BatchConsumerModel extends io.nop.batch.dsl.model.BatchLi
         instance.setName(this.getName());
         instance.setOrder(this.getOrder());
         instance.setOrmWriter(this.getOrmWriter());
+        instance.setProvider(this.getProvider());
         instance.setSource(this.getSource());
         instance.setTransformer(this.getTransformer());
     }

@@ -11,6 +11,17 @@ public interface BatchDslErrors {
 
     String ARG_BEAN_NAME = "beanName";
 
+    String ARG_VALUE = "value";
+
+    ErrorCode ERR_BATCH_TASK_INVALID_LOADER =
+            ErrorCode.define("nop.err.batch.task-invalid-loader", "批处理的loader类型不合法", ARG_BATCH_TASK_NAME);
+
+    ErrorCode ERR_BATCH_TASK_INVALID_PROCESSOR =
+            ErrorCode.define("nop.err.batch.task-invalid-processor", "批处理的processor类型不合法", ARG_BATCH_TASK_NAME);
+
+    ErrorCode ERR_BATCH_TASK_INVALID_CONSUMER =
+            ErrorCode.define("nop.err.batch.task-invalid-consumer", "批处理的consumer类型不合法", ARG_BATCH_TASK_NAME);
+
     ErrorCode ERR_BATCH_TASK_NO_LOADER =
             ErrorCode.define("nop.err.batch.task-no-loader", "批处理任务没有定义loader", ARG_BATCH_TASK_NAME);
 

@@ -110,6 +110,13 @@ public class BatchTaskManagerImpl implements IBatchTaskManager {
         }
     }
 
+    @Override
+    public IBatchTask loadBatchTaskFromPath(String path, IBeanProvider beanProvider) {
+        BatchTaskModel taskModel = (BatchTaskModel) ResourceComponentManager.instance().loadComponentModel(path);
+        return new ModelBasedBatchTaskBuilderFactory(taskModel, stateStore, transactionTemplate,
+                ormTemplate, jdbcTemplate, daoProvider, sqlLibManager, historyStoreBuilder).newTaskBuilder(beanProvider).buildTask();
+    }
+
     public BatchTaskModel loadBatchTaskModel(String batchTaskName, Long taskVersion) {
         String taskPath = ResourceVersionHelper.buildPath(BatchDslConstants.FILE_DIR_BATCH_TASK,
                 batchTaskName, taskVersion, BatchDslConstants.FILE_TYPE_BATCH_TASK);

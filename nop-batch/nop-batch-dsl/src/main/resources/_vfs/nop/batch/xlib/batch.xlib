@@ -75,5 +75,25 @@
                 consume(_.mapFields(item,mapping));
             </source>
         </MapFields>
+
+        <ImportFromExcelLoader>
+            <attr name="impModelPath" stdDomain="v-path" />
+            <attr name="filePath" stdDomain="v-path" />
+
+            <attr name="resultVar" optional="true" />
+
+
+            <source><![CDATA[
+              import io.nop.ooxml.xlsx.util.ExcelHelper;
+              import io.nop.core.resource.VirtualFileSystem;
+
+              const resource = VirtualFileSystem.instance().getResource(filePath);
+              const entity = ExcelHelper.loadXlsxObject(impModelPath,resource);
+              let list = entity;
+              if(resultVar)
+                  list = entity[resultVar];
+              return list;
+            ]]></source>
+        </ImportFromExcelLoader>
     </tags>
 </lib>

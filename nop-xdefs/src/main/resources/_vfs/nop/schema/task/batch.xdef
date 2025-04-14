@@ -134,6 +134,8 @@
 
         <source xdef:value="xpl-fn:(batchSize,batchChunkCtx)=>List"/>
 
+        <provider xdef:value="xpl-fn:(batchTaskCtx)=>any"/>
+
         <adapter xdef:value="xpl-fn:(loader)=>any"/>
 
     </loader>
@@ -142,6 +144,7 @@
                xdef:unique-attr="name" xdef:name="BatchProcessorModel" xdef:ref="BatchListenersModel">
         <filter xdef:value="xpl-fn:(item,batchChunkCtx)=>boolean"/>
         <source xdef:value="xpl-fn:(item,consume,batchChunkCtx)=>void"/>
+        <provider xdef:value="xpl-fn:(batchTaskCtx)=>any"/>
         <adapter xdef:value="xpl-fn:(processor)=>any"/>
     </processor>
 
@@ -189,6 +192,8 @@
 
         <!-- 实际写入之前执行transformer进行结构转换。实际保存的是返回的结果对象。如果transformer的返回值是null，则忽略这个条目 -->
         <transformer xdef:value="xpl-fn:(item,batchChunkCtx)=>any"/>
+
+        <provider xdef:value="xpl-fn:(batchTaskCtx)=>any"/>
 
         <source xdef:value="xpl-fn:(items,batchChunkCtx)=>void"/>
 

@@ -15,6 +15,7 @@ import io.nop.core.lang.eval.IEvalScope;
 
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public interface IExecutionContext extends IEvalContext, IAttributeSet, ICancellable {
 
@@ -38,7 +39,6 @@ public interface IExecutionContext extends IEvalContext, IAttributeSet, ICancell
 
     /**
      * complete会自动调用fireBeforeComplete来触发回调函数。也可以直接调用。
-     *
      */
     @Internal
     void fireBeforeComplete();
@@ -66,5 +66,14 @@ public interface IExecutionContext extends IEvalContext, IAttributeSet, ICancell
 
     default boolean isSuccess() {
         return isDone() && getError() != null;
+    }
+
+    default <T> T computeIfAbsent(String key, Supplier<T> supplier) {
+        T ret = (T) getEvalScope().getValue(key);
+        if (ret == null) {
+            ret = supplier.get();
+            getEvalScope().setLocalValue(key, ret);
+        }
+        return ret;
     }
 }

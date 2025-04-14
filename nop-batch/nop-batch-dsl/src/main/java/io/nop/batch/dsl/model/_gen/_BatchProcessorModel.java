@@ -53,6 +53,13 @@ public abstract class _BatchProcessorModel extends io.nop.batch.dsl.model.BatchL
     
     /**
      *  
+     * xml name: provider
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _provider ;
+    
+    /**
+     *  
      * xml name: source
      * 
      */
@@ -155,6 +162,25 @@ public abstract class _BatchProcessorModel extends io.nop.batch.dsl.model.BatchL
     
     /**
      * 
+     * xml name: provider
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getProvider(){
+      return _provider;
+    }
+
+    
+    public void setProvider(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._provider = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: source
      *  
      */
@@ -192,6 +218,7 @@ public abstract class _BatchProcessorModel extends io.nop.batch.dsl.model.BatchL
         out.putNotNull("filter",this.getFilter());
         out.putNotNull("name",this.getName());
         out.putNotNull("order",this.getOrder());
+        out.putNotNull("provider",this.getProvider());
         out.putNotNull("source",this.getSource());
     }
 
@@ -209,6 +236,7 @@ public abstract class _BatchProcessorModel extends io.nop.batch.dsl.model.BatchL
         instance.setFilter(this.getFilter());
         instance.setName(this.getName());
         instance.setOrder(this.getOrder());
+        instance.setProvider(this.getProvider());
         instance.setSource(this.getSource());
     }
 
