@@ -52,7 +52,9 @@
 
         <tablesaw.version>0.43.1</tablesaw.version>
         <lucene.version>9.7.0</lucene.version>
-<!--        <grpc.version>1.60.0</grpc.version>-->
+
+        <commonmark.version>0.22.0</commonmark.version>
+        <!--        <grpc.version>1.60.0</grpc.version>-->
         <!--        <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>-->
     </properties>
 
@@ -362,11 +364,29 @@
                 <version>3.5.3</version>
             </dependency>
 
-<!--            <dependency>-->
-<!--                <groupId>org.graalvm.js</groupId>-->
-<!--                <artifactId>js</artifactId>-->
-<!--                <version>${graalvm.version}</version>-->
-<!--            </dependency>-->
+            <dependency>
+                <groupId>org.commonmark</groupId>
+                <artifactId>commonmark</artifactId>
+                <version>${commonmark.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.commonmark</groupId>
+                <artifactId>commonmark-ext-autolink</artifactId>
+                <version>${commonmark.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.commonmark</groupId>
+                <artifactId>commonmark-ext-gfm-tables</artifactId>
+                <version>${commonmark.version}</version>
+            </dependency>
+
+            <!--            <dependency>-->
+            <!--                <groupId>org.graalvm.js</groupId>-->
+            <!--                <artifactId>js</artifactId>-->
+            <!--                <version>${graalvm.version}</version>-->
+            <!--            </dependency>-->
 
         </dependencies>
     </dependencyManagement>

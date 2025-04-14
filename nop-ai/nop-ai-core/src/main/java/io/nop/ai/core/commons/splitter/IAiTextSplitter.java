@@ -9,10 +9,20 @@ public interface IAiTextSplitter {
     class SplitChunk {
         private final String type;
         private final String content;
+        private final String anchorId;
 
-        public SplitChunk(String type, String content) {
+        public SplitChunk(String type, String content, String anchorId) {
             this.type = type;
             this.content = content;
+            this.anchorId = anchorId;
+        }
+
+        public SplitChunk(String type, String content) {
+            this(type, content, null);
+        }
+
+        public String getAnchorId() {
+            return anchorId;
         }
 
         public String getType() {

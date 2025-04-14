@@ -3,6 +3,8 @@ package io.nop.ai.translate.fix;
 import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.commons.debug.DebugMessageHelper;
 import io.nop.commons.util.FileHelper;
+import io.nop.markdown.simple.MarkdownBlock;
+import io.nop.markdown.simple.MarkdownBlockParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

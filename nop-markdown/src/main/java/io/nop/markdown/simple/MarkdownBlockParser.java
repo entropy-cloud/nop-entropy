@@ -1,4 +1,4 @@
-package io.nop.ai.translate.fix;
+package io.nop.markdown.simple;
 
 import io.nop.commons.mutable.MutableInt;
 
@@ -15,7 +15,7 @@ public class MarkdownBlockParser {
         if (text.startsWith("#")) {
             MarkdownBlock block = parseBlock(text, index);
             blocks.add(block);
-        }else if(text.startsWith("\n#")){
+        } else if (text.startsWith("\n#")) {
             index.set(1);
         }
 
@@ -38,11 +38,13 @@ public class MarkdownBlockParser {
         if (pos2 < 0) {
             pos2 = text.length();
         } else {
-            pos2 ++;
+            pos2++;
         }
         index.set(pos2);
 
         MarkdownBlock block = new MarkdownBlock();
+        block.setStartIndex(pos);
+        block.setEndIndex(pos2);
 
         int level = countBlockLevel(text, pos);
         block.setLevel(level);
