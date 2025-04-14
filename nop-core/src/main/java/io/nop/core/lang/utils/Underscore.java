@@ -336,7 +336,7 @@ public class Underscore {
         Comparator<Object> comparator = SafeOrderedComparator.DEFAULT;
         for (T item : c) {
             Object v = fn == null ? item : fn.apply(item);
-            if (comparator.compare(max, v) < 0) {
+            if (max == null || comparator.compare(max, v) < 0) {
                 max = v;
                 ret = item;
             }
