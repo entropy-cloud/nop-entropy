@@ -144,7 +144,7 @@ public class OrmBatchConsumer<S extends IOrmEntity, R> implements IBatchConsumer
 
     private Object getKeyFromEntity(S entity) {
         if (keyCol != null) {
-            return entity.orm_propInited(keyCol.getPropId());
+            return entity.orm_propValue(keyCol.getPropId());
         } else if (useIdAsKey) {
             return entity.orm_id();
         } else {
