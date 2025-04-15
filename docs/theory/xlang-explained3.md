@@ -35,7 +35,7 @@ XLang采用XML语法，在需要表达执行逻辑时，会使用Xpl模板语言
 现有的编程语言有效解决的问题空间已经很大，很多关于过程计算逻辑的表达完全没有必要再发明一种新的语法去处理，复用已有的程序语法甚至语言运行时就可以了。
 XLang关注的是现有编程语言没有有效处理的部分，通过引入差量概念和可逆性概念，XLang可以解决很多必须使用`F(X)+Delta`这种计算模式才能有效解决的问题。也就是说，XLang所解决的问题与现有编程语言在很大程度上是不重叠的。但是这并不意味着XLang是一个DSL，它的语法和语义都是通用的，并不是某个业务领域相关的。最终在使用层面，XLang可以和任何第三代编程语言合作来解决问题：XScript这个部分可以替换为任何其他第三代编程语言。
 
-如果将TypeScript看作是JavaScript的扩展， `TypeScript = JavaScript + TypeSystem + JSX`， 那么XLang也可以看作是JavaScript的一种扩展， `XLang = JavaScript + Xpl + MetaProgramming + DeltaProgramming`。Xpl是一种XML格式的模板语言，用途和JSX类似。
+如果将TypeScript看作是JavaScript的扩展， `TypeScript = JavaScript + JSX + TypeSystem`， 那么XLang也可以看作是JavaScript的一种扩展， `XLang = XScript + Xpl + XDef + MetaProgramming + DeltaProgramming`。Xpl是一种XML格式的模板语言，用途和JSX类似。
 这里具有特异性的部分是 DeltaProgramming和MetaProgramming。这里，XLang并不强依赖JavaScript语法，XScript这个子语言部分可以被替换为任何其他第三代编程语言。
 
 有些人对于XLang语言能力的误解可能是它采用XML语法形式，因此无法将它和一个常规的编程语言联系在一起。但是如果你仔细思考一下就会发现，TypeScript的做法是在JavaScript语法内部嵌入类XML的JSX语法，在JSX内部还可以嵌入JavaScript代码段，它是一个正经的编程语言，那么反过来，在XML格式中嵌入JavaScript语法不和TypeScript的做法是等价的吗？

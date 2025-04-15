@@ -1,0 +1,4 @@
+<resource-spec x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+               cpuCors="decimal" taskHeapMemory="decimal" taskOffHeapMemory="decimal" managedMemory="decimal">
+    <extend-resource name="!string" xdef:unique-attr="name" value="decimal"/>
+</resource-spec>

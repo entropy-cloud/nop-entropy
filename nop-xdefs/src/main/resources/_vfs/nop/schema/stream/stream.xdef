@@ -1,0 +1,15 @@
+<stream x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+        xmlns:xdef="/nop/schema/xdef.xdef">
+
+    <xdef:define id="!string" name="string" xdef:name="StreamNode"
+                 parallelism="!int=0" maxParallelism="!int=0" slotSharingGroup="xml-name" colocationGroup="xml-name">
+        <description xdef:value="string"/>
+        <minResources xdef:ref="resource-spec.xdef"/>
+        <preferredResources xdef:ref="resource-spec.xdef"/>
+    </xdef:define>
+
+    <operator xdef:ref="StreamNode" id="!string" xdef:name="StreamOperator">
+        <input name="!string" requirement="string" xdef:unique-attr="name"/>
+
+    </operator>
+</stream>
