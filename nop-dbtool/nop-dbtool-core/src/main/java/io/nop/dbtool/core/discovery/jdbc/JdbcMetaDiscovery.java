@@ -78,7 +78,7 @@ public class JdbcMetaDiscovery {
                 : DialectManager.instance().getDialectForConnection(connection);
     }
 
-    public JdbcMetaDiscovery ignoreUnknownType(boolean ignoreUnknownType){
+    public JdbcMetaDiscovery ignoreUnknownType(boolean ignoreUnknownType) {
         this.ignoreUnknownType = ignoreUnknownType;
         return this;
     }
@@ -334,10 +334,15 @@ public class JdbcMetaDiscovery {
                     }
                 }
 
-                SqlDataTypeModel dataType = dialect.getNativeType(typeName,ignoreUnknownType);
+                SqlDataTypeModel dataType = dialect.getNativeType(typeName, ignoreUnknownType);
                 SQLDataType sqlDataType;
                 if (dataType == null) {
                     StdSqlType stdSqlType = StdSqlType.fromJdbcType(jdbcType);
+                    if (stdSqlType == StdSqlType.OTHER) {
+                        LOG.warn("nop.warn.jdbc.unknown-sql-type:sqlType={},dialect={}", typeName, dialect.getName());
+                        if (ignoreUnknownType)
+                            stdSqlType = StdSqlType.VARCHAR;
+                    }
                     col.setStdSqlType(stdSqlType);
                     col.setStdDataType(stdSqlType.getStdDataType());
                     sqlDataType = dialect.stdToNativeSqlType(stdSqlType, columnSize, digits);

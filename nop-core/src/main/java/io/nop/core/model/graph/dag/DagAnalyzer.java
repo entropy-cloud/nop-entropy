@@ -36,6 +36,8 @@ public class DagAnalyzer {
     // 删除哪些next连接才能得到一个无循环的DAG结构。
     private List<List<String>> removedEdges = new ArrayList<>();
 
+    private boolean useControlNode = false;
+
     static class AnalyzeData {
         DagNode node;
         MutableIntArray prevIndexes = new MutableIntArray();
@@ -52,6 +54,11 @@ public class DagAnalyzer {
         this.data = new AnalyzeData[dag.size()];
     }
 
+    public DagAnalyzer useControlNode(boolean b) {
+        this.useControlNode = b;
+        return this;
+    }
+
     public List<List<String>> getRemovedEdges() {
         return removedEdges;
     }
@@ -61,7 +68,8 @@ public class DagAnalyzer {
         checkLoop();
         initDagNodes();
         initNodeDepth();
-        initControlNode();
+        if (useControlNode)
+            initControlNode();
         initEndNodes();
         dag.setLoopEdges(removedEdges);
     }
@@ -184,7 +192,7 @@ public class DagAnalyzer {
         Set<String> endNodes = new HashSet<>();
 
         dag.forEachNode(node -> {
-            if(node.getName().equals(dag.getRootNodeName()))
+            if (node.getName().equals(dag.getRootNodeName()))
                 return;
 
             if (node.getNextNodeNames() == null || node.getNextNodeNames().isEmpty()) {

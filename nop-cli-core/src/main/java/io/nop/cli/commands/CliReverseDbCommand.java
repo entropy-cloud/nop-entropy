@@ -46,8 +46,11 @@ public class CliReverseDbCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-n", "--ignoreUnknownType"}, description = "忽略未知类型")
     boolean ignoreUnknownType;
 
-    @CommandLine.Parameters(description = "数据库模式名", index = "0")
+    @CommandLine.Parameters(description = "数据库Catalog", index = "0")
     String catalog;
+
+    @CommandLine.Option(names = {"-s", "--schema"}, description = "数据库Schema")
+    String schemaPattern;
 
     @Override
     public Integer call() {
@@ -61,7 +64,7 @@ public class CliReverseDbCommand implements Callable<Integer> {
         JdbcMetaDiscovery discovery = JdbcMetaDiscovery.forDataSource(dataSource);
         discovery.ignoreUnknownType(ignoreUnknownType);
         discovery.basePackageName("app");
-        DataBaseMeta meta = discovery.discover(catalog, null, table == null ? "%" : table);
+        DataBaseMeta meta = discovery.discover(catalog, schemaPattern, table == null ? "%" : table);
 
         OrmModel model = meta.getOrmModel();
 
