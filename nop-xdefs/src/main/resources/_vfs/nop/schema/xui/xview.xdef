@@ -102,7 +102,7 @@
 
             <itemActions xdef:ref="actions.xdef"/>
 
-            <autoGenerateFilter columnsNum="int" showBtnToolbar="boolean" defaultCollapsed="boolean" />
+            <autoGenerateFilter columnsNum="int" showBtnToolbar="boolean" defaultCollapsed="boolean"/>
 
             <!--
             点击单行触发的动作。开启 itemAction 后 checkOnItemClick 将会失效。
@@ -110,6 +110,9 @@
             <itemAction xdef:ref="action.xdef"/>
 
             <defaultParams xdef:value="xjson"/>
+
+            <beforeTable xdef:value="xjson"/>
+            <afterTable xdef:value="xjson"/>
         </crud>
 
         <!--

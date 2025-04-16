@@ -18,6 +18,13 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: actions
+     * 
+     */
+    private KeyedList<io.nop.xui.model.IUiActionModel> _actions = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: bizObjName
      * 
      */
@@ -304,6 +311,33 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
      * 
      */
     private java.lang.String _width ;
+    
+    /**
+     * 
+     * xml name: actions
+     *  
+     */
+    
+    public java.util.List<io.nop.xui.model.IUiActionModel> getActions(){
+      return _actions;
+    }
+
+    
+    public void setActions(java.util.List<io.nop.xui.model.IUiActionModel> value){
+        checkAllowChange();
+        
+        this._actions = KeyedList.fromList(value, io.nop.xui.model.IUiActionModel::getId);
+           
+    }
+
+    
+    public java.util.Set<String> keySet_actions(){
+        return this._actions.keySet();
+    }
+
+    public boolean hasActions(){
+        return !this._actions.isEmpty();
+    }
     
     /**
      * 
@@ -1098,6 +1132,8 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._actions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._actions);
+            
            this._href = io.nop.api.core.util.FreezeHelper.deepFreeze(this._href);
             
            this._view = io.nop.api.core.util.FreezeHelper.deepFreeze(this._view);
@@ -1109,6 +1145,7 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("actions",this.getActions());
         out.putNotNull("bizObjName",this.getBizObjName());
         out.putNotNull("charCase",this.getCharCase());
         out.putNotNull("className",this.getClassName());
@@ -1161,6 +1198,7 @@ public abstract class _UiDisplayMeta extends io.nop.core.resource.component.Abst
     protected void copyTo(UiDisplayMeta instance){
         super.copyTo(instance);
         
+        instance.setActions(this.getActions());
         instance.setBizObjName(this.getBizObjName());
         instance.setCharCase(this.getCharCase());
         instance.setClassName(this.getClassName());

@@ -1,0 +1,34 @@
+template: |
+  【任务描述】
+  根据需求描述设计Web系统的后台功能菜单。每个子模块至少有一个入口链接，
+  
+  【返回格式】
+  
+  ```xml
+    <site id="main">
+        <resource id="unique-english" displayName="chinese" icon="awesome-font" 
+                  routePath="/unique-module-path">
+            <children>
+                <resource id="unique-page-id" displayName="chinese" icon="awesome-font" 
+                          entityName="entity-name" pageName="string" />
+            </children>
+        </resource>
+    </site>
+  ```
+  
+  1. 每个业务表都对应一个实体，并存在一个main页面，包含完整的增删改查操作。
+  2. 非增删改查的业务需要增加单独的resource。比如说统计分析等模块一般是显示图表，pageName就不是main
+  3. pageName=main的页面从列表页面进入，包含新增、修改、查看等页面，所以并不需要定义对应于详情页的resource
+  4. 将相关功能组织在同一菜单下，尽量避免单个children下只有一个resource的情况
+  5. 主表+明细子表这种紧密结合的结构只需要从主实体列表这一个resource进入即可，不需要再定义明细实体的resource
+
+  
+  【表定义】
+  
+  ```xml
+  ${ormModelText}
+  ```
+  
+  【需求描述】
+   ${requirements}
+  

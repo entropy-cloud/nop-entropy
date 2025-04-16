@@ -17,6 +17,7 @@
         <module>nop-ai-llms</module>
         <module>nop-ai-dsl-orm</module>
         <module>nop-ai-translate</module>
+        <module>nop-ai-coder</module>
     </modules>
 
 </project>

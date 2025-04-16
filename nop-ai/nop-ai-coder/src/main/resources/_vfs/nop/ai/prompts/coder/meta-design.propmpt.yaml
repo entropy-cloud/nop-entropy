@@ -1,0 +1,12 @@
+template: |
+  【任务目标】
+  根据如下实体定义，确定关联属性的relation的类型。
+  
+  【返回格式】
+  ```xml
+   <entity name="string">
+     <many-to-one name="xxx" column="xxx_id" refEntityName="string" relationType="relation-type" />
+   </entity>
+  ```
+  
+  relation-type允许的值：one-to-one, one-to-many, many-to-one, many-to-many
