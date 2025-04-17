@@ -9,6 +9,7 @@ package io.nop.ioc.impl;
 
 import io.nop.api.core.annotations.config.OnConfigRefresh;
 import io.nop.api.core.annotations.ioc.BeanMethod;
+import io.nop.api.core.annotations.ioc.DelayMethod;
 import io.nop.api.core.config.IConfigRefreshable;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
@@ -21,7 +22,6 @@ import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFieldModel;
 import io.nop.core.reflect.IFunctionArgument;
 import io.nop.core.reflect.IFunctionModel;
-import io.nop.core.reflect.IPropertyGetter;
 import io.nop.core.reflect.IPropertySetter;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.accessor.FieldPropertyAccessor;
@@ -29,7 +29,6 @@ import io.nop.core.reflect.accessor.MethodPropertySetter;
 import io.nop.core.reflect.bean.IBeanPropertyModel;
 import io.nop.core.reflect.impl.AnnotationData;
 import io.nop.core.reflect.impl.ClassLoaderRawTypeResolver;
-import io.nop.core.reflect.impl.FieldModel;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.type.IGenericType;
@@ -79,17 +78,17 @@ public class DefaultBeanClassIntrospection implements IBeanClassIntrospection {
     }
 
     @Override
+    public IFunctionModel getDelayMethod(IClassModel classModel) {
+        return classModel.getMethodWithAnnotation(DelayMethod.class, 0);
+    }
+
+    @Override
     public IFunctionModel getBeanMethod(IClassModel classModel) {
         if (springBeanSupport.isFactoryBean(classModel.getRawClass())) {
             return classModel.getMethod(SpringBeanSupport.METHOD_GET_OBJECT, 0);
         }
-        for (IFunctionModel fn : classModel.getMethods()) {
-            if (fn.getArgCount() == 0) {
-                if (fn.isAnnotationPresent(BeanMethod.class))
-                    return fn;
-            }
-        }
-        return null;
+
+        return classModel.getMethodWithAnnotation(BeanMethod.class, 0);
     }
 
     @Override
@@ -186,9 +185,9 @@ public class DefaultBeanClassIntrospection implements IBeanClassIntrospection {
         if (propSetter instanceof MethodPropertySetter) {
             MethodPropertySetter setter = (MethodPropertySetter) propSetter;
             return getPropertyInject(propertyModel.getName(), setter.getMethod());
-        } else if(propSetter instanceof FieldPropertyAccessor){
+        } else if (propSetter instanceof FieldPropertyAccessor) {
             FieldPropertyAccessor fieldAccessor = (FieldPropertyAccessor) propSetter;
-            return getInjectInfo(propertyModel.getName(),propertyModel.getType(),fieldAccessor,null);
+            return getInjectInfo(propertyModel.getName(), propertyModel.getType(), fieldAccessor, null);
         }
         return null;
     }

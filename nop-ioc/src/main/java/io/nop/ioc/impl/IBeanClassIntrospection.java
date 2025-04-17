@@ -24,6 +24,8 @@ public interface IBeanClassIntrospection {
 
     IFunctionModel getDestroyMethod(IClassModel classModel);
 
+    IFunctionModel getDelayMethod(IClassModel classModel);
+
     IFunctionModel getBeanMethod(IClassModel classModel);
 
     IFunctionModel getRefreshConfigMethod(IClassModel classModel);

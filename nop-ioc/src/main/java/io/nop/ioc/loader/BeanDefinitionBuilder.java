@@ -424,6 +424,9 @@ public class BeanDefinitionBuilder {
             IFunctionModel delayMethod = classModel.getMethod(beanModel.getIocDelayMethod(), 0);
             checkMethodNotNull(delayMethod, bean, classModel, beanModel.getIocDelayMethod());
             bean.setDelayMethod(delayMethod);
+        } else {
+            IFunctionModel delayMethod = introspection.getDelayMethod(classModel);
+            bean.setDelayMethod(delayMethod);
         }
 
         if (beanModel.getIocRestartMethod() != null) {
