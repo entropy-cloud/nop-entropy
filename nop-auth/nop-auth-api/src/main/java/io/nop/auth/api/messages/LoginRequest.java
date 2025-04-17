@@ -62,6 +62,16 @@ public class LoginRequest extends ExtensibleBean {
     private String deviceType;
 
     /**
+     * 登录用户所使用的设备的操作系统，例如iOS，Android，Windows等
+     */
+    private String deviceOs;
+
+    /**
+     * 登录用户所使用的应用名称
+     */
+    private String appName;
+
+    /**
      * 客户端应用id
      */
     private String clientId;
@@ -214,5 +224,23 @@ public class LoginRequest extends ExtensibleBean {
 
     public void setSignUp(boolean signUp) {
         this.signUp = signUp;
+    }
+
+    @PropMeta(propId = 17)
+    public String getDeviceOs() {
+        return deviceOs;
+    }
+
+    public void setDeviceOs(String deviceOs) {
+        this.deviceOs = deviceOs;
+    }
+
+    @PropMeta(propId = 18)
+    public String getAppName() {
+        return appName;
+    }
+
+    public void setAppName(String appName) {
+        this.appName = appName;
     }
 }
