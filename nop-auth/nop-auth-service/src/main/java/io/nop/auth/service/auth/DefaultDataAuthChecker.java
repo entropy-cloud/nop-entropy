@@ -64,6 +64,9 @@ public class DefaultDataAuthChecker implements IDataAuthChecker {
 
     @PostConstruct
     public void init() {
+    }
+
+    public void lazyInit() {
         this.modelCache = ResourceTenantManager.instance().makeCacheEntry("data-auth-cache", isUseTenant(), null);
         GlobalCacheRegistry.instance().register(modelCache);
     }

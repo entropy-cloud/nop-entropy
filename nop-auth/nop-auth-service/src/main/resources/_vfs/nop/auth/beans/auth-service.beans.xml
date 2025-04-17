@@ -13,7 +13,7 @@
 
     <bean id="nopActionAuthChecker" class="io.nop.auth.service.auth.DefaultActionAuthChecker" ioc:default="true"/>
 
-    <bean id="nopDataAuthChecker" class="io.nop.auth.service.auth.DefaultDataAuthChecker" ioc:default="true"/>
+    <bean id="nopDataAuthChecker" class="io.nop.auth.service.auth.DefaultDataAuthChecker" ioc:default="true" ioc:delay-method="lazyInit"/>
 
     <bean id="nopLoginService" class="io.nop.auth.service.login.LoginServiceImpl" ioc:default="true"
           ioc:delay-method="lazyInit"/>
