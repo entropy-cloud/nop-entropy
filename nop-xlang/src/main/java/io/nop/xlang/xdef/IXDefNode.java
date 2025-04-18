@@ -84,13 +84,7 @@ public interface IXDefNode extends IComponentModel, IFreezable {
 
     @NoReflection
     default boolean isAllowUnknownAttr() {
-        if (getXdefUnknownAttr() != null)
-            return true;
-        XDefTypeDecl value = getXdefValue();
-        // 如果value是fullXml，则允许根节点包含未知属性
-        if (value != null && value.isFullXmlNode())
-            return true;
-        return false;
+        return getXdefUnknownAttr() != null;
     }
 
     XDefBodyType getXdefBodyType();

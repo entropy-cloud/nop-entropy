@@ -7,25 +7,55 @@
 
     <defaultChatOptions xdef:ref="chat-options.xdef"/>
 
-    <vars xdef:body-type="list" xdef:key-attr="name">
+    <inputs xdef:body-type="list" xdef:key-attr="name">
         <!--
         声明模板中使用的变量信息。主要用于模板管理
         -->
-        <var name="!var-name" displayName="string" xdef:name="PromptVarModel" optional="!boolean=false">
+        <input name="!var-name" displayName="string" xdef:name="PromptInputModel"
+               optional="!boolean=false" mandatory="!boolean=false">
             <schema xdef:ref="../schema/schema.xdef"/>
-            <description xdef:value="string"/>
-        </var>
-    </vars>
+            <description>string</description>
+
+            <defaultExpr>xpl-fn:(message)=>any</defaultExpr>
+
+            <parseFromMessage xdef:name="PromptInputParseModel" blockBegin="string" blockEnd="string">
+                <source>xpl-fn:(message)=>any</source>
+            </parseFromMessage>
+        </input>
+    </inputs>
+
+    <outputs xdef:body-type="list" xdef:key-attr="name">
+        <!-- 解析响应消息，得到结果变量保存到AiResultMessage上
+          @skipWhenResponseInvalid 当AiChatResponse为invalid状态时，跳过此输出变量的解析
+          @parseBeforeProcess 是否在processChatResponse调用之前解析
+        -->
+        <output name="!var-name" displayName="string" xdef:name="PromptOutputModel" type="generic-type"
+                optional="!boolean=false" mandatory="!boolean=false"
+                skipWhenResponseInvalid="!boolean=false" parseBeforeProcess="!boolean=false">
+            <description>string</description>
+            <schema xdef:ref="../schema/schema.xdef"/>
+
+            <xdef>xml</xdef>
+            <xdefPath>v-path</xdefPath>
+
+            <parseFromResponse xdef:name="PromptOutputParseModel" contains="string"
+                               beginBlockOptional="!boolean=false" blockBegin="string" blockEnd="string">
+                <source>xpl-fn:(chatResponse)=>any</source>
+            </parseFromResponse>
+        </output>
+    </outputs>
 
     <!--
     通过xpl模板语言生成prompt，可以利用xpl的扩展能力实现Prompt的结构化抽象
     -->
-    <template xdef:value="!xpl-text"/>
+    <template>xpl-text</template>
+
+    <checkAndRemoveLine>string</checkAndRemoveLine>
 
     <!--
     执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
     这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
     比如Prompt中可以额外增加一些特殊的标记提示，用于简化结果解析，在processChatResponse中自动识别这些标记并做处理。
     -->
-    <processChatResponse xdef:value="xpl-fn:(chatResponse)=>void"/>
+    <processChatResponse>xpl-fn:(chatResponse)=>void</processChatResponse>
 </prompt>

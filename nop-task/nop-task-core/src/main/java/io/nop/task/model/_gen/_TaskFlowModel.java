@@ -91,7 +91,7 @@ public abstract class _TaskFlowModel extends io.nop.task.model.TaskStepsModel {
      * xml name: version
      * 
      */
-    private long _version  = 0L;
+    private long _version  = 0;
     
     /**
      * 

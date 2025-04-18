@@ -8,6 +8,7 @@
 package io.nop.xlang.api;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.IEvalAction;
@@ -32,6 +33,9 @@ import io.nop.xlang.exec.LiteralExecutable;
 import io.nop.xlang.expr.ExprConstants;
 import io.nop.xlang.expr.ExprPhase;
 import io.nop.xlang.script.ScriptEvalAction;
+import io.nop.xlang.xdef.IStdDomainHandler;
+import io.nop.xlang.xdef.domain.IStdDomainRegistry;
+import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xpl.IXplCompiler;
 
 import java.util.ArrayList;
@@ -43,12 +47,14 @@ import static io.nop.xlang.XLangErrors.ARG_EXPR;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_NOT_LITERAL_VALUE;
 import static io.nop.xlang.ast.definition.ScopeVarDefinition.readOnly;
 
-public class XLangCompileTool {
+public class XLangCompileTool implements IStdDomainRegistry {
 
     private final IXplCompiler cp;
     private final IXLangCompileScope scope;
     private boolean optimize = true;
     private String configText;
+
+    private IStdDomainRegistry stdDomainRegistry = StdDomainRegistry.instance();
 
     public XLangCompileTool(IXplCompiler cp) {
         this.cp = cp;
@@ -59,6 +65,15 @@ public class XLangCompileTool {
     public XLangCompileTool(IXLangCompileScope scope) {
         this.cp = scope.getCompiler();
         this.scope = scope;
+    }
+
+    @Override
+    public IStdDomainHandler getStdDomainHandler(String stdDomain) {
+        return stdDomainRegistry.getStdDomainHandler(stdDomain);
+    }
+
+    public void setStdDomainRegistry(IStdDomainRegistry stdDomainRegistry) {
+        this.stdDomainRegistry = Guard.notNull(stdDomainRegistry, "stdDomainRegistry");
     }
 
     public String getConfigText() {

@@ -204,7 +204,7 @@ public abstract class _WfModel extends io.nop.core.resource.component.AbstractCo
      * xml name: wfVersion
      * 
      */
-    private long _wfVersion  = 0L;
+    private long _wfVersion  = 0;
     
     /**
      * 

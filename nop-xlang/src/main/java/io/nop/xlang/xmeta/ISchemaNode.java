@@ -75,7 +75,7 @@ public interface ISchemaNode extends ISourceLocationGetter, IFreezable {
      */
     String getStdDomain();
 
-    IStdDomainOptions getStdDomainOptionsObj();
+    String getStdDomainOptions();
 
     /**
      * 扩展验证条件，xml格式

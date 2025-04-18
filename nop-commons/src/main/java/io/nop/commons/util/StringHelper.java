@@ -1412,7 +1412,7 @@ public class StringHelper extends ApiStringHelper {
         int sz = str.length();
         if (str.charAt(0) == '0' && str.length() > 1) {
             char c = str.charAt(1);
-            if (c != 'e' && c != 'E' && c != 'x')
+            if (c != 'e' && c != 'E' && c != 'x' && c != '.')
                 return false;
         }
 

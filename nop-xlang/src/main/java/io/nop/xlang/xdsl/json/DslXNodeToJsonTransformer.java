@@ -88,7 +88,7 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
         // 先检查xdef:value格式。
         if (defNode.getXdefValue() != null) {
             // 如果xdef:value执行xml body，则直接使用xdef:value格式来解析
-            if (defNode.getXdefValue().isSupportBody()) {
+            if (defNode.getXdefValue().isSupportBody(compileTool)) {
                 return parseBodyValue(node, defNode.getXdefValue());
             } else {
                 // 如果node没有子节点，则尝试用xdef:value来解析。
@@ -266,7 +266,7 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
             }
         }
 
-        if (defNode.getXdefValue() != null || defNode.getXdefBodyType() != null) {
+        if (useValue(defNode, node) || defNode.getXdefBodyType() != null) {
             Object value = parseBody(defNode, node);
             if (node.hasBody()) {
                 obj.addProp(defNode.getXdefBeanBodyProp(), value);
@@ -306,6 +306,14 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
             }
         }
         return obj;
+    }
+
+    private boolean useValue(IXDefNode defNode, XNode node) {
+        if (defNode.getXdefValue() == null)
+            return false;
+        if (defNode.hasChild() && node.hasChild())
+            return false;
+        return true;
     }
 
     public Object parseValue(ValueWithLocation vl, String propName, XDefTypeDecl type) {

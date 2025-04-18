@@ -18,9 +18,7 @@ import io.nop.xlang.api.XLangCompileTool;
 import java.util.Collection;
 
 import static io.nop.xlang.XLangErrors.ARG_NODE;
-import static io.nop.xlang.XLangErrors.ARG_OPTIONS;
 import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
-import static io.nop.xlang.XLangErrors.ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_OPTIONS;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_XML_CHILD;
 
 /**
@@ -28,11 +26,6 @@ import static io.nop.xlang.XLangErrors.ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_XML_CHILD
  */
 public interface IStdDomainHandler {
     String getName();
-
-    default IStdDomainOptions parseOptions(SourceLocation loc, String options) {
-        throw new NopException(ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_OPTIONS).loc(loc).param(ARG_STD_DOMAIN, getName())
-                .param(ARG_OPTIONS, options);
-    }
 
     default boolean isFixedType() {
         return false;
@@ -45,12 +38,12 @@ public interface IStdDomainHandler {
     /**
      * 得到解析结果对应的GenericType类型
      */
-    IGenericType getGenericType(boolean mandatory, IStdDomainOptions options);
+    IGenericType getGenericType(boolean mandatory, String options);
 
     /**
      * 解析XML属性配置
      */
-    Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text, XLangCompileTool cp);
+    Object parseProp(String options, SourceLocation loc, String propName, Object text, XLangCompileTool cp);
 
     default String serializeToString(Object value) {
         if (value == null)
@@ -61,7 +54,7 @@ public interface IStdDomainHandler {
     }
 
     default XNode transformToNode(SourceLocation loc, Object value) {
-        throw new UnsupportedOperationException("transformToNode:"+getName());
+        throw new UnsupportedOperationException("transformToNode:" + getName());
     }
 
     default String getSerializeFunction() {
@@ -84,7 +77,7 @@ public interface IStdDomainHandler {
     /**
      * 解析XML节点配置
      */
-    default Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
+    default Object parseXmlChild(String options, XNode body, XLangCompileTool cp) {
         throw new NopException(ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_XML_CHILD).param(ARG_NODE, body).param(ARG_STD_DOMAIN,
                 getName());
     }

@@ -12,14 +12,13 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.type.StdDataType;
+import io.nop.core.dict.DictProvider;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdef.IStdDomainHandler;
-import io.nop.xlang.xdef.IStdDomainOptions;
 import io.nop.xlang.xdef.XDefConstants;
 
-import static io.nop.xlang.XLangErrors.ARG_ALLOWED_NAMES;
 import static io.nop.xlang.XLangErrors.ARG_ALLOWED_VALUES;
 import static io.nop.xlang.XLangErrors.ARG_DICT_NAME;
 import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
@@ -34,15 +33,9 @@ public class DictStdDomainHandler implements IStdDomainHandler {
     }
 
     @Override
-    public IStdDomainOptions parseOptions(SourceLocation loc, String options) {
-        return new DictDomainOptions(options);
-    }
-
-    @Override
-    public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
-        DictDomainOptions opts = (DictDomainOptions) options;
-        DictBean dict = opts.loadDictBean(null);
-        if (dict.getValueType() == null)
+    public IGenericType getGenericType(boolean mandatory, String options) {
+        DictBean dict = DictProvider.instance().getDict(null, options, null, null);
+        if (dict == null || dict.getValueType() == null)
             return PredefinedGenericTypes.STRING_TYPE;
 
         StdDataType dataType = StdDataType.fromStdName(dict.getValueType());
@@ -53,18 +46,17 @@ public class DictStdDomainHandler implements IStdDomainHandler {
     }
 
     @Override
-    public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+    public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                             XLangCompileTool cp) {
         if (options == null)
             return null;
 
-        DictDomainOptions opts = (DictDomainOptions) options;
-        DictBean dict = opts.loadDictBean(null);
+        DictBean dict = DictProvider.instance().requireDict(null, options, null, null);
         if (dict.getOptionByValue(text) == null)
             throw new NopException(ERR_XDEF_INVALID_ENUM_VALUE_FOR_PROP).loc(loc).param(ARG_PROP_NAME, propName)
                     .when(dict.getOptionCount() < 50, e -> {
                         e.param(ARG_ALLOWED_VALUES, dict.getValues());
-                    }).param(ARG_VALUE, text).param(ARG_DICT_NAME, opts.getDictName());
+                    }).param(ARG_VALUE, text).param(ARG_DICT_NAME, options);
 
         return text;
     }

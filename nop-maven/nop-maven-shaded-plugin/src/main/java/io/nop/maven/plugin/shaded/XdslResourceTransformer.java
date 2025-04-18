@@ -21,6 +21,7 @@ import io.nop.core.type.IGenericType;
 import io.nop.core.type.parse.GenericTypeParser;
 import io.nop.xlang.xdef.*;
 import io.nop.xlang.xdef.domain.GenericTypeDomainOptions;
+import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xdsl.XDslParseHelper;
 import io.nop.xlang.xmeta.SchemaLoader;
@@ -149,7 +150,7 @@ public class XdslResourceTransformer extends AbstractResourceTransformer {
                         throw e;
                     }
                 } else if (isDefType(stdDomain)) {
-                    XDefTypeDecl decl = XDslParseHelper.parseAttrDefType(node, name);
+                    XDefTypeDecl decl = XDslParseHelper.parseAttrDefType(node, name,);
                     if (XDefConstants.STD_DOMAIN_ENUM.equals(decl.getStdDomain()) && decl.getOptions() instanceof GenericTypeDomainOptions) {
                         String typeName = ((GenericTypeDomainOptions) decl.getOptions()).getTypeName();
                         String relocated = relocate(typeName, relocatorList);
@@ -261,4 +262,10 @@ public class XdslResourceTransformer extends AbstractResourceTransformer {
         return stdDomain.equals("xml") || stdDomain.equals("xpl") || stdDomain.startsWith("xpl-");
     }
 
+    IStdDomainHandler getStdDomainHandler(String stdDomain){
+        IStdDomainHandler handler = StdDomainRegistry.instance().getStdDomainHandler(stdDomain);
+        if(handler == null){
+            handler = new
+        }
+    }
 }

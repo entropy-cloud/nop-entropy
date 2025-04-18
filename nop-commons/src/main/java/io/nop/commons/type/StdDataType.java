@@ -445,6 +445,9 @@ public enum StdDataType {
         if (value == null)
             return null;
 
+        StdDataType stdDataType = type instanceof Class<?> ? StdDataType.fromJavaClass((Class<?>) type) : StdDataType.ANY;
+        value = stdDataType.convert(value);
+
         if (value instanceof Boolean)
             return value.toString();
 

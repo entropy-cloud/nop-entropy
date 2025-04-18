@@ -28,6 +28,13 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
      * xml name: 
      * 
      */
+    private io.nop.xlang.xdef.XDefTypeDecl _body ;
+    
+    /**
+     *  
+     * xml name: 
+     * 
+     */
     private java.util.Map<java.lang.String,io.nop.xlang.xdef.impl.XDefNode> _children ;
     
     /**
@@ -293,6 +300,25 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
     public boolean hasAttributes(){
         return this._attributes != null && !this._attributes.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: 
+     *  
+     */
+    
+    public io.nop.xlang.xdef.XDefTypeDecl getBody(){
+      return _body;
+    }
+
+    
+    public void setBody(io.nop.xlang.xdef.XDefTypeDecl value){
+        checkAllowChange();
+        
+        this._body = value;
+           
+    }
+
     
     /**
      * 
@@ -1044,6 +1070,7 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
         super.outputJson(out);
         
         out.putNotNull("attributes",this.getAttributes());
+        out.putNotNull("body",this.getBody());
         out.putNotNull("children",this.getChildren());
         out.putNotNull("comment",this.getComment());
         out.putNotNull("tagName",this.getTagName());
@@ -1091,6 +1118,7 @@ public abstract class _XDefNode extends io.nop.core.resource.component.AbstractC
         super.copyTo(instance);
         
         instance.setAttributes(this.getAttributes());
+        instance.setBody(this.getBody());
         instance.setChildren(this.getChildren());
         instance.setComment(this.getComment());
         instance.setTagName(this.getTagName());

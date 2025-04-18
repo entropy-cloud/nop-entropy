@@ -20,6 +20,7 @@ import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 
 import java.util.List;
+import java.util.function.Function;
 
 import static io.nop.xlang.XLangErrors.ARG_DEF_TYPE;
 import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
@@ -33,6 +34,7 @@ import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_PREFIX_OPTIONS;
 public class XDefTypeDeclParser {
     public XDefTypeDecl parseFromText(SourceLocation loc, String text) {
         TextScanner sc = TextScanner.fromString(loc, text);
+        sc.skipBlank();
 
         boolean deprecated = false;
         boolean mandatory = false;
@@ -55,7 +57,7 @@ public class XDefTypeDeclParser {
 
         String stdDomain = intern(sc.nextXmlNamespace());
         String domain = null;
-        IStdDomainOptions options = null;
+        String options = null;
         List<String> defaultAttrNames = null;
         Object defaultValue = null;
 
@@ -64,13 +66,8 @@ public class XDefTypeDeclParser {
             sc.match(']');
         }
 
-        IStdDomainHandler domainHandler = StdDomainRegistry.instance().getStdDomainHandler(stdDomain);
-        if (domainHandler == null)
-            throw new NopException(ERR_XDEF_UNKNOWN_STD_DOMAIN).loc(loc).param(ARG_STD_DOMAIN, stdDomain);
-
         if (sc.tryConsume(XDEF_TYPE_PREFIX_OPTIONS)) {
-            String opts = sc.nextUntil(s -> s.cur == '=' && sc.peek() != '>', true, "=").trim().toString();
-            options = domainHandler.parseOptions(loc, opts);
+            options = sc.nextUntil(s -> s.cur == '=' && sc.peek() != '>', true, "=").trim().toString();
             sc.skipBlank();
         }
 
@@ -83,9 +80,8 @@ public class XDefTypeDeclParser {
             } else {
                 String value = sc.nextUntilEnd().trim().toString();
                 if (!value.isEmpty()) {
-                    StdDataType dataType = domainHandler.getGenericType(mandatory, options).getStdDataType();
                     try {
-                        defaultValue = JsonTool.parseSimpleJsonValue(value, dataType);
+                        defaultValue = JsonTool.parseSimpleJsonValue(value, StdDataType.ANY);
                     } catch (NopException e) {
                         e.loc(loc).param(ARG_STD_DOMAIN, stdDomain).param(ARG_DEF_TYPE, text);
                         throw e;
@@ -93,10 +89,10 @@ public class XDefTypeDeclParser {
                 }
             }
         }
+        sc.skipBlank();
         sc.checkEnd();
         return new XDefTypeDecl(deprecated, internal, mandatory, allowCpExpr, stdDomain, domain, options,
-                defaultAttrNames, defaultValue,
-                domainHandler.supportXmlChild(), domainHandler.isFullXmlNode());
+                defaultAttrNames, defaultValue);
     }
 
     protected String intern(String str) {

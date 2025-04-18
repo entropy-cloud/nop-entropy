@@ -51,6 +51,7 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
     <meta:define meta:name="XDefNode"
                  meta:bean-tag-prop="tagName" meta:unknown-attr="!xdef-attr" meta:bean-comment-prop="comment"
                  meta:bean-unknown-attrs-prop="attributes" meta:bean-unknown-children-prop="children"
+                 meta:value="def-type"
                  xdef:id="~string" xdef:name="var-name" xdef:ref="xdef-ref"
                  xdef:value="def-type" xdef:body-type="enum:io.nop.xlang.xdef.XDefBodyType"
                  xdef:unique-attr="xml-name" xdef:key-attr="xml-name" xdef:order-attr="xml-name"

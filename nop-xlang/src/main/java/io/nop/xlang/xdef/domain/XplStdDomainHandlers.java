@@ -35,7 +35,6 @@ import io.nop.xlang.ast.XLangOutputMode;
 import io.nop.xlang.exec.MakeScopeEvalFunction;
 import io.nop.xlang.expr.ExprPhase;
 import io.nop.xlang.xdef.IStdDomainHandler;
-import io.nop.xlang.xdef.IStdDomainOptions;
 import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xpl.tags.FilterBeanExpressionCompiler;
@@ -103,7 +102,7 @@ public class XplStdDomainHandlers {
             return true;
         }
 
-        protected Object parseXplBody(IStdDomainOptions options, XNode node, XLangCompileTool cp) {
+        protected Object parseXplBody(String options, XNode node, XLangCompileTool cp) {
             XLangOutputMode outputMode = getOutputMode(node);
 
             if (node.hasChild() || outputMode != XLangOutputMode.none) {
@@ -135,11 +134,11 @@ public class XplStdDomainHandlers {
             }
         }
 
-        protected Object doCompileBody(IStdDomainOptions options, XLangCompileTool cp, XNode node) {
+        protected Object doCompileBody(String options, XLangCompileTool cp, XNode node) {
             return cp.compileTagBody(node, outputMode);
         }
 
-        protected Object doCompileContent(IStdDomainOptions options, XLangCompileTool cp, XNode node) {
+        protected Object doCompileContent(String options, XLangCompileTool cp, XNode node) {
             return cp.compileFullExpr(node.content().getLocation(), node.contentText());
         }
 
@@ -230,12 +229,12 @@ public class XplStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return type;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             if (value instanceof ExprEvalAction)
                 return value;
@@ -251,7 +250,7 @@ public class XplStdDomainHandlers {
         }
 
         @Override
-        public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
+        public Object parseXmlChild(String options, XNode body, XLangCompileTool cp) {
             return parseXplBody(options, body, cp);
         }
     }
@@ -273,28 +272,22 @@ public class XplStdDomainHandlers {
         }
 
         @Override
-        public IStdDomainOptions parseOptions(SourceLocation loc, String options) {
+        protected Object doCompileBody(String options, XLangCompileTool cp, XNode node) {
             if (options == null)
                 throw new NopException(ERR_XDEF_FN_NO_TYPE_DECL)
                         .param(ARG_STD_DOMAIN, getName());
             IFunctionType functionType = new GenericTypeParser().parseFunctionTypeFromText(null, options);
-            return new GenericTypeDomainOptions(functionType);
-        }
-
-        @Override
-        protected Object doCompileBody(IStdDomainOptions options, XLangCompileTool cp, XNode node) {
-            IFunctionType functionType = (IFunctionType) ((GenericTypeDomainOptions) options).getGenericType();
 
             return MakeScopeEvalFunction.of(cp.compileEvalFunction(node, functionType, cp.getOutputMode()));
         }
 
         @Override
-        protected Object doCompileContent(IStdDomainOptions options, XLangCompileTool cp, XNode node) {
+        protected Object doCompileContent(String options, XLangCompileTool cp, XNode node) {
             return doCompileBody(options, cp, node);
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             if (value instanceof IEvalFunction)
                 return value;
@@ -324,14 +317,14 @@ public class XplStdDomainHandlers {
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             LOG.warn("nop.xlang.report-expr-domain-is-not-supported:report-expr domain is defined in nop-report module");
             return null;
         }
 
         @Override
-        public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
+        public Object parseXmlChild(String options, XNode body, XLangCompileTool cp) {
             LOG.warn("nop.xlang.report-expr-domain-is-not-supported:report-expr domain is defined in nop-report module");
             return null;
         }
@@ -348,7 +341,7 @@ public class XplStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return new GenericRawTypeReferenceImpl(XDefConstants.VUE_NODE_TYPE);
         }
 
@@ -365,7 +358,7 @@ public class XplStdDomainHandlers {
         }
 
         @Override
-        public ExprEvalAction doCompileBody(IStdDomainOptions options, XLangCompileTool cp, XNode node) {
+        public ExprEvalAction doCompileBody(String options, XLangCompileTool cp, XNode node) {
             Expression expr = new FilterBeanExpressionCompiler(cp).compilePredicate(node);
             return cp.buildEvalAction(expr);
         }
@@ -401,7 +394,7 @@ public class XplStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.I_EVAL_ACTION_TYPE;
         }
 
@@ -419,7 +412,7 @@ public class XplStdDomainHandlers {
             return XDefConstants.STD_DOMAIN_EXPR;
         }
 
-        public IEvalAction parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public IEvalAction parseProp(String options, SourceLocation loc, String propName, Object value,
                                      XLangCompileTool cp) {
             if (value instanceof IEvalAction)
                 return (IEvalAction) value;
@@ -455,7 +448,7 @@ public class XplStdDomainHandlers {
             return XDefConstants.STD_DOMAIN_S_EXPR;
         }
 
-        public IEvalAction parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public IEvalAction parseProp(String options, SourceLocation loc, String propName, Object value,
                                      XLangCompileTool cp) {
             if (value instanceof IEvalAction)
                 return (IEvalAction) value;
@@ -491,7 +484,7 @@ public class XplStdDomainHandlers {
             return XDefConstants.STD_DOMAIN_T_EXPR;
         }
 
-        public IEvalAction parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public IEvalAction parseProp(String options, SourceLocation loc, String propName, Object value,
                                      XLangCompileTool cp) {
             if (value instanceof IEvalAction)
                 return (IEvalAction) value;
@@ -528,7 +521,7 @@ public class XplStdDomainHandlers {
             return XDefConstants.STD_DOMAIN_XT_EXPR;
         }
 
-        public IEvalAction parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public IEvalAction parseProp(String options, SourceLocation loc, String propName, Object value,
                                      XLangCompileTool cp) {
             if (value instanceof IEvalAction)
                 return (IEvalAction) value;
@@ -564,7 +557,7 @@ public class XplStdDomainHandlers {
             return XDefConstants.STD_DOMAIN_XT_VALUE;
         }
 
-        public IEvalAction parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public IEvalAction parseProp(String options, SourceLocation loc, String propName, Object value,
                                      XLangCompileTool cp) {
             if (value instanceof IEvalAction)
                 return (IEvalAction) value;
@@ -601,7 +594,7 @@ public class XplStdDomainHandlers {
         }
 
         @Override
-        public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
+        public Object parseXmlChild(String options, XNode body, XLangCompileTool cp) {
             return cp.compileXjson(body);
         }
     }
@@ -617,12 +610,12 @@ public class XplStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return ReflectionManager.instance().buildGenericType(EvalCode.class);
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             if (value instanceof EvalCode)
                 return value;
@@ -636,7 +629,7 @@ public class XplStdDomainHandlers {
         }
 
         @Override
-        public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
+        public Object parseXmlChild(String options, XNode body, XLangCompileTool cp) {
             ExprEvalAction action = (ExprEvalAction) parseXplBody(options, body, cp);
             if (action == null)
                 return null;

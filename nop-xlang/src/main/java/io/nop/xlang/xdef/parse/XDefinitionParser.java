@@ -62,6 +62,7 @@ import static io.nop.xlang.XLangErrors.ERR_XDEF_SET_NODE_CHILD_NO_ATTR;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_UNIQUE_ATTR_NOT_ALLOW_ON_XDEF_ANY_TAG;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_UNIQUE_ATTR_VALUE_MUST_BE_NODE_ATTR;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_UNKNOWN_DEFINITION_REF;
+import static io.nop.xlang.XLangErrors.ERR_XDEF_VALUE_AND_CONTENT_NOT_ALLOW_BOTH;
 import static io.nop.xlang.xdsl.XDslParseHelper.checkAttrNames;
 import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrBoolean;
 import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrClassName;
@@ -74,6 +75,7 @@ import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrLocalRefName;
 import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrPropName;
 import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrVPath;
 import static io.nop.xlang.xdsl.XDslParseHelper.parseAttrXmlName;
+import static io.nop.xlang.xdsl.XDslParseHelper.parseBodyDefType;
 import static io.nop.xlang.xdsl.XDslParseHelper.requireAttrDefType;
 
 public class XDefinitionParser extends AbstractDslParser<XDefinition> {
@@ -103,12 +105,14 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
 
     @Override
     protected XDefinition doParseResource(IResource resource) {
+        if (compileTool == null)
+            compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
+
         XNode node = XModelInclude.instance().keepComment(true).loadActiveNodeFromResource(resource);
         setResourcePath(resource.getPath());
         if (!resource.getStdPath().equals(XDslConstants.XDSL_SCHEMA_XDEF)) {
             XDslExtendResult extendResult = getModelLoader().loadFromResource(resource, getRequiredSchema(),
                     XDslExtendPhase.validate);
-            compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
             setXdef(extendResult.getXdef());
             node = extendResult.getNode();
             // XDslKeys keys = XDslKeys.of(node);
@@ -295,6 +299,11 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         beanClass = StringHelper.fullClassName(beanClass, beanPackage);
 
         XDefTypeDecl value = parseAttrDefType(node, keys.VALUE);
+        if (!StringHelper.isBlank(node.contentText())) {
+            if (value != null)
+                throw new NopException(ERR_XDEF_VALUE_AND_CONTENT_NOT_ALLOW_BOTH).param(ARG_NODE, node);
+            value = parseBodyDefType(node);
+        }
 
         Boolean supportExtends = parseAttrBoolean(node, keys.SUPPORT_EXTENDS, null);
 
@@ -354,7 +363,7 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         // defNode.setBeanAnyChildProp(beanAnyChildProp);
         defNode.setXdefBeanChildName(beanChildName);
 
-        if (value != null && value.isSupportBody() && supportExtends == null)
+        if (value != null && supportExtends == null && value.isSupportBody(compileTool))
             supportExtends = true;
 
         if (ref != null && supportExtends == null)

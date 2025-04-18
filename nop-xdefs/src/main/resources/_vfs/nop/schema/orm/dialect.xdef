@@ -71,7 +71,7 @@
     @escapeSlash 对sql字符串字面量进行转义时，是否需要将\转义为\\
     -->
     <sqls xdef:name="DialectSqls" xdef:mandatory="true" escapeSlash="boolean" exceptKeyword="string"
-          insertKeyword="string" updateKeyword="string" trueString="string=1" falseString="string=0">
+          insertKeyword="string" updateKeyword="string" trueString="string='1'" falseString="string='0'">
 
         <dateLiteral xdef:value="string"/>
         <timeLiteral xdef:value="string"/>

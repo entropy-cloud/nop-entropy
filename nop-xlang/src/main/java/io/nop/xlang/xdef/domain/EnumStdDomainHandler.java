@@ -12,14 +12,15 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.lang.eval.DisabledEvalScope;
+import io.nop.core.dict.EnumDictLoader;
+import io.nop.core.reflect.IClassModel;
 import io.nop.core.reflect.IFunctionModel;
+import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.core.type.impl.GenericRawTypeReferenceImpl;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdef.IStdDomainHandler;
-import io.nop.xlang.xdef.IStdDomainOptions;
 import io.nop.xlang.xdef.XDefConstants;
 
 import static io.nop.xlang.XLangErrors.ARG_ALLOWED_NAMES;
@@ -38,44 +39,45 @@ public class EnumStdDomainHandler implements IStdDomainHandler {
         return XDefConstants.STD_DOMAIN_ENUM;
     }
 
-    @Override
-    public IStdDomainOptions parseOptions(SourceLocation loc, String options) {
+
+    public IGenericType parseOptions(SourceLocation loc, String options) {
         if (!StringHelper.isValidClassName(options))
             throw new NopException(ERR_XDEF_ILLEGAL_CLASS_NAME_FOR_ENUM_DOMAIN).loc(loc)
                     .param(ARG_STD_DOMAIN, this.getName()).param(ARG_CLASS_NAME, options);
         IGenericType type = PredefinedGenericTypes.getPredefinedType(options);
         if (type == null)
             type = new GenericRawTypeReferenceImpl(options);
-        return new GenericTypeDomainOptions(type);
+        return type;
     }
 
     @Override
-    public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+    public IGenericType getGenericType(boolean mandatory, String options) {
         if (options != null)
-            return ((GenericTypeDomainOptions) options).getGenericType();
+            return parseOptions(null, options);
 
         return null;
     }
 
     @Override
-    public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+    public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                             XLangCompileTool cp) {
         if (options == null)
             return null;
 
-        GenericTypeDomainOptions opts = (GenericTypeDomainOptions) options;
-        IFunctionModel factoryMethod = opts.getFactoryMethod();
-        if(factoryMethod != null)
-            return factoryMethod.call1(null, text, DisabledEvalScope.INSTANCE);
 
-        DictBean dict = opts.loadDictBean();
+        DictBean dict = EnumDictLoader.INSTANCE.loadDict(null, options, null);
         if (dict.getOptionByValue(text) == null)
             throw new NopException(ERR_XDEF_INVALID_ENUM_VALUE_FOR_PROP).loc(loc).param(ARG_PROP_NAME, propName)
                     .when(dict.getOptions().size() < 50, e -> {
                         e.param(ARG_ALLOWED_NAMES, dict.getLabels());
-                    }).param(ARG_VALUE, text).param(ARG_DICT_NAME, opts.getTypeName());
+                    }).param(ARG_VALUE, text).param(ARG_DICT_NAME, options);
 
         return text;
+    }
+
+    public IFunctionModel getFactoryMethod(String className) {
+        IClassModel classModel = ReflectionManager.instance().loadClassModel(className);
+        return classModel.getFactoryMethod();
     }
 
     @Override

@@ -49,19 +49,6 @@ public abstract class SchemaNodeImpl extends _SchemaNodeImpl implements ISchemaN
     }
 
     @Override
-    public IStdDomainOptions getStdDomainOptionsObj() {
-        if (stdDomainOptionsObj == null) {
-            String stdDomain = getStdDomain();
-            String stdDomainOptions = getStdDomainOptions();
-            if (stdDomainOptions != null && stdDomain != null) {
-                this.stdDomainOptionsObj = StdDomainRegistry.instance()
-                        .getStdDomainHandler(stdDomain).parseOptions(getLocation(), stdDomainOptions);
-            }
-        }
-        return stdDomainOptionsObj;
-    }
-
-    @Override
     @NoReflection
     public boolean isRefResolved() {
         return Boolean.TRUE.equals(getRefResolved());

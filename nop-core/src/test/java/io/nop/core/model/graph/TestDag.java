@@ -47,7 +47,7 @@ public class TestDag extends BaseTestCase {
 
         dag.requireNode("b").setInternal(true);
 
-        dag.analyze();
+        dag.analyze(true);
 
         assertEquals("[[f, b], [g, c]]", dag.getLoopEdges().toString());
 

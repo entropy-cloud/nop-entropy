@@ -11,9 +11,7 @@ import io.nop.api.core.json.IJsonString;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.xlang.xdef.domain.DictDomainOptions;
-import io.nop.xlang.xdef.domain.GenericTypeDomainOptions;
-import io.nop.xlang.xdef.domain.StdDomainRegistry;
+import io.nop.xlang.xdef.domain.IStdDomainRegistry;
 
 import java.io.Serializable;
 import java.util.List;
@@ -33,18 +31,21 @@ public class XDefTypeDecl implements Serializable, IJsonString {
     private final boolean allowCpExpr;
     private final String stdDomain;
     private final String domain;
-    private final IStdDomainOptions options;
-    private final List<String> defaultAttrNames;
-    private final Object defaultValue;
-    private final boolean supportBody;
+    private final String options;
+
     /**
-     * 是否允许根节点包含未知属性
+     * 从其他属性获取到值作为本属性的缺省值
      */
-    private final boolean fullXmlNode;
+    private final List<String> defaultAttrNames;
+
+    /**
+     * 直接指定缺省值
+     */
+    private final Object defaultValue;
 
     public XDefTypeDecl(boolean deprecated, boolean internal, boolean mandatory, boolean allowCpExpr, String stdDomain,
-                        String domain, IStdDomainOptions options, List<String> defaultAttrNames,
-                        Object defaultValue, boolean supportBody, boolean fullXmlNode) {
+                        String domain, String options, List<String> defaultAttrNames,
+                        Object defaultValue) {
         this.deprecated = deprecated;
         this.mandatory = mandatory;
         this.internal = internal;
@@ -54,8 +55,6 @@ public class XDefTypeDecl implements Serializable, IJsonString {
         this.options = options;
         this.defaultAttrNames = defaultAttrNames;
         this.defaultValue = defaultValue;
-        this.supportBody = supportBody;
-        this.fullXmlNode = fullXmlNode;
     }
 
     /**
@@ -114,14 +113,6 @@ public class XDefTypeDecl implements Serializable, IJsonString {
         return defaultAttrNames;
     }
 
-    public boolean isFullXmlNode() {
-        return fullXmlNode;
-    }
-
-    public boolean isSupportBody() {
-        return supportBody;
-    }
-
     public boolean isInternal() {
         return internal;
     }
@@ -146,7 +137,7 @@ public class XDefTypeDecl implements Serializable, IJsonString {
         return domain;
     }
 
-    public IStdDomainOptions getOptions() {
+    public String getOptions() {
         return options;
     }
 
@@ -154,18 +145,15 @@ public class XDefTypeDecl implements Serializable, IJsonString {
         return defaultValue;
     }
 
-    public String getDictName() {
-        if (options instanceof DictDomainOptions)
-            return ((DictDomainOptions) options).getDictName();
-        if (options instanceof GenericTypeDomainOptions)
-            return ((GenericTypeDomainOptions) options).getTypeName();
-        return null;
+    public boolean isSupportBody(IStdDomainRegistry stdDomainRegistry) {
+        IStdDomainHandler handler = stdDomainRegistry.getStdDomainHandler(stdDomain);
+        return handler != null && handler.supportXmlChild();
     }
 
-    public StdDataType getStdDataType() {
-        IStdDomainHandler handler = StdDomainRegistry.instance().getStdDomainHandler(getStdDomain());
+    public StdDataType getStdDataType(IStdDomainRegistry stdDomainRegistry) {
+        IStdDomainHandler handler = stdDomainRegistry.getStdDomainHandler(stdDomain);
         if (handler == null)
             return StdDataType.ANY;
-        return handler.getGenericType(isMandatory(), getOptions()).getStdDataType();
+        return handler.getGenericType(mandatory, options).getStdDataType();
     }
 }

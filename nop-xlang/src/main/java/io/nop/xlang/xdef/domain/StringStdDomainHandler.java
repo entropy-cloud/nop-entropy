@@ -19,7 +19,7 @@ public abstract class StringStdDomainHandler extends SimpleStdDomainHandler {
     }
 
     @Override
-    public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+    public IGenericType getGenericType(boolean mandatory, String options) {
         return PredefinedGenericTypes.STRING_TYPE;
     }
 }

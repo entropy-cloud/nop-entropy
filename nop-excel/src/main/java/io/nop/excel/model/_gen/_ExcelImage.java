@@ -91,7 +91,7 @@ public abstract class _ExcelImage extends io.nop.core.resource.component.Abstrac
      * xml name: rotateDegree
      * 
      */
-    private double _rotateDegree  = 0.0;
+    private double _rotateDegree  = 0;
     
     /**
      *  

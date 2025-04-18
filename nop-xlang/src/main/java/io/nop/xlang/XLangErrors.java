@@ -816,6 +816,9 @@ public interface XLangErrors {
     ErrorCode ERR_XDEF_INTERNAL_REF_NODE_NOT_ALLOW_ATTRS = define(
             "nop.err.xlang.xdef.internal-ref-node-not-allow-attrs", "xdef:ref为内部引用时，该节点不允许设置其他属性:{node}", ARG_NODE);
 
+    ErrorCode ERR_XDEF_VALUE_AND_CONTENT_NOT_ALLOW_BOTH = define(
+            "nop.err.xlang.xdef.value-and-content-not-allow-both", "xdef:value和节点内容表示同样的内容，不能同时设置", ARG_NODE);
+
     ErrorCode ERR_XDEF_ATTR_NOT_ALLOW_OVERRIDE_REF = define("nop.err.xlang.xdef.attr-not-allow-override-ref",
             "属性[{attrName}]已经存在，不允许覆盖", ARG_ATTR_NAME);
 

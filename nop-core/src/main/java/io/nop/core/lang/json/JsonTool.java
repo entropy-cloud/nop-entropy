@@ -184,10 +184,13 @@ public class JsonTool {
             return dataType.convert(str);
 
         if (str.equals("true") || str.equals("false"))
-            return Boolean.getBoolean(str);
+            return Boolean.valueOf(str);
 
         if (str.equals("0"))
             return 0;
+
+        if (str.startsWith("0.") && StringHelper.isNumber(str))
+            return StringHelper.parseNumber(str);
 
         if (str.startsWith("0"))
             return str;

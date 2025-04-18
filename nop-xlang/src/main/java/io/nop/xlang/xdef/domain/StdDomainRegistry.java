@@ -15,19 +15,20 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @GlobalInstance
-public class StdDomainRegistry {
+public class StdDomainRegistry implements IStdDomainRegistry {
     static final StdDomainRegistry _instance = new StdDomainRegistry();
 
     public static StdDomainRegistry instance() {
         return _instance;
     }
 
-    private Map<String, IStdDomainHandler> domainHandlers = new ConcurrentHashMap<>();
+    private final Map<String, IStdDomainHandler> domainHandlers = new ConcurrentHashMap<>();
 
     public StdDomainRegistry() {
         registerDefaults();
     }
 
+    @Override
     public IStdDomainHandler getStdDomainHandler(String type) {
         return domainHandlers.get(type);
     }

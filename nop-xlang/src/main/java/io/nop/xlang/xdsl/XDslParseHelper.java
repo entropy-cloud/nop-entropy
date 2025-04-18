@@ -350,6 +350,10 @@ public class XDslParseHelper {
         }
     }
 
+    public static XDefTypeDecl parseBodyDefType(XNode node) {
+        return parseDefType(node.content().getLocation(), CoreConstants.XML_PROP_BODY, node.contentText());
+    }
+
     public static XDefTypeDecl parseDefType(SourceLocation loc, String propName, String text) {
         try {
             return defTypeCache.computeIfAbsent(text, k -> new XDefTypeDeclParser().parseFromText(loc, text));

@@ -48,7 +48,6 @@ import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.expr.MethodRef;
 import io.nop.xlang.expr.flags.FlagsExprParser;
 import io.nop.xlang.xdef.IStdDomainHandler;
-import io.nop.xlang.xdef.IStdDomainOptions;
 import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.impl.XDefAttribute;
@@ -82,7 +81,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             String text = value.toString();
             if (!StringHelper.isValidVPath(text))
@@ -103,7 +102,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             String text = value.toString();
             if (StringHelper.isEmpty(text))
@@ -122,7 +121,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             String text = value.toString();
             if (text.indexOf('.') < 0 || text.startsWith("/") || text.startsWith("@"))
@@ -145,7 +144,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.LIST_STRING_TYPE;
         }
 
@@ -155,7 +154,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             List<String> list = ConvertHelper.toCsvList(value, NopException::new);
             if (list == null || list.isEmpty())
@@ -180,7 +179,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.LIST_INT_TYPE;
         }
 
@@ -190,7 +189,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             List<String> list = ConvertHelper.toCsvList(value, NopException::new);
             if (list == null || list.isEmpty())
@@ -215,12 +214,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.BYTES_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             if (value instanceof ByteString)
                 return value;
@@ -241,12 +240,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.BYTES_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             if (value instanceof ByteString)
                 return value;
@@ -403,7 +402,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return ReflectionManager.instance().buildRawType(MethodRef.class);
         }
 
@@ -413,7 +412,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             return MethodRef.parse(value.toString());
         }
@@ -426,7 +425,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return ReflectionManager.instance().buildRawType(IntRangeBean.class);
         }
 
@@ -436,7 +435,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             return IntRangeBean.parse(value.toString());
         }
@@ -449,7 +448,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return ReflectionManager.instance().buildRawType(LongRangeBean.class);
         }
 
@@ -459,7 +458,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             return LongRangeBean.parse(value.toString());
         }
@@ -472,13 +471,13 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return GenericTypeHelper.buildParameterizedType(PredefinedGenericTypes.PREDICATE_TYPE,
                     Collections.singletonList(PredefinedGenericTypes.SET_STRING_TYPE));
         }
 
         @Override
-        public Predicate<Set<String>> parseProp(IStdDomainOptions options, SourceLocation loc,
+        public Predicate<Set<String>> parseProp(String options, SourceLocation loc,
                                                 String propName, Object text, XLangCompileTool cp) {
             String str = (String) text;
             if (StringHelper.isBlank(str))
@@ -489,7 +488,7 @@ public class SimpleStdDomainHandlers {
 
     public static abstract class AbstractStringSetType extends SimpleStdDomainHandler {
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.SET_STRING_TYPE;
         }
 
@@ -499,7 +498,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             Set<String> list = ConvertHelper.toCsvSet(value, NopException::new);
             if (list == null || list.isEmpty())
@@ -623,12 +622,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.LIST_STRING_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             if (text == null || text instanceof List)
                 return text;
@@ -666,12 +665,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.ANY_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             if (text instanceof IJsonContainer)
                 return text;
@@ -695,7 +694,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return X_NODE_TYPE;
         }
 
@@ -715,7 +714,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             if (StringHelper.isEmptyObject(text))
                 return null;
@@ -736,7 +735,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
+        public Object parseXmlChild(String options, XNode body, XLangCompileTool cp) {
             XNode node = body.cloneInstance();
             node.setTagName(CoreConstants.DUMMY_TAG_NAME);
             // 保留节点属性
@@ -758,7 +757,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             if (StringHelper.isEmptyObject(text))
                 return null;
@@ -782,7 +781,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
+        public Object parseXmlChild(String options, XNode body, XLangCompileTool cp) {
             XNode node = body.cloneInstance();
             node.setTagName(CoreConstants.DUMMY_TAG_NAME);
             node.clearAttrs();
@@ -816,7 +815,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
+        public Object parseXmlChild(String options, XNode body, XLangCompileTool cp) {
             XNode node = body.cloneInstance();
             node.setTagName(CoreConstants.DUMMY_TAG_NAME);
             node.clearAttrs();
@@ -833,7 +832,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return ReflectionManager.instance().buildRawType(XJsonNode.class);
         }
 
@@ -843,7 +842,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             XNode node;
             if (text instanceof XNode) {
@@ -863,7 +862,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
+        public Object parseXmlChild(String options, XNode body, XLangCompileTool cp) {
             XNode node = body.cloneInstance();
             node.setTagName(CoreConstants.DUMMY_TAG_NAME);
             node.removeJsonPrefix();
@@ -884,12 +883,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.INT_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             if (StringHelper.isEmptyObject(text))
                 return null;
@@ -921,12 +920,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.LONG_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             if (StringHelper.isEmptyObject(text))
                 return null;
@@ -956,12 +955,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return ReflectionManager.instance().buildRawType(MultiCsvSet.class);
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             if (text instanceof MultiCsvSet)
                 return text;
@@ -981,12 +980,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.SET_STRING_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             return ConvertHelper.toCsvSet(text, NopException::new);
         }
@@ -1004,12 +1003,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.LIST_STRING_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             return ConvertHelper.toCsvList(text, NopException::new);
         }
@@ -1027,12 +1026,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.SET_STRING_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             return ConvertHelper.toCsvSet(text, NopException::new);
         }
@@ -1050,12 +1049,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.SET_STRING_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             Set<String> ret = ConvertHelper.toCsvSet(text, NopException::new);
             if (ret != null) {
@@ -1089,12 +1088,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return I_GENERIC_TYPE_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             // tell cpd to start ignoring code - CPD-OFF
             if (text instanceof IGenericType)
@@ -1136,7 +1135,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return GenericTypeHelper.buildListType(I_GENERIC_TYPE_TYPE);
         }
 
@@ -1152,7 +1151,7 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             if (text instanceof List)
                 return text;
@@ -1192,12 +1191,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.NUMBER_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             return ConvertHelper.toNumber(text,
                     err -> new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc)
@@ -1219,12 +1218,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.BYTE_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             return ConvertHelper.toByte(text,
                     err -> new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc)
@@ -1242,12 +1241,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.ANY_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             if (!(text instanceof MutableString))
                 throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc)
@@ -1268,12 +1267,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.STD_DATA_TYPE_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             if (text instanceof StdDataType)
                 return text;
@@ -1312,12 +1311,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.MAP_STRING_STRING_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             String str = text.toString();
             return StringHelper.parseStringMap(str);
@@ -1336,12 +1335,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.MAP_STRING_STRING_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             return StringHelper.parseSlotScope(text.toString());
         }
@@ -1359,12 +1358,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return ReflectionManager.instance().buildGenericType(XDefTypeDecl.class);
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             return XDslParseHelper.parseDefType(loc, propName, (String) text);
         }
@@ -1382,12 +1381,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return ReflectionManager.instance().buildGenericType(FieldSelectionBean.class);
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             if (text instanceof FieldSelectionBean)
                 return text;
@@ -1413,12 +1412,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.ANY_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             if (text == null || text instanceof Number || text instanceof Boolean) {
                 return text;
@@ -1449,12 +1448,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.ANY_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             if (text == null || text instanceof Boolean) {
                 return text;
@@ -1482,12 +1481,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return PredefinedGenericTypes.ANY_TYPE;
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             if (text == null || text instanceof Integer) {
                 return text;
@@ -1516,12 +1515,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return ReflectionManager.instance().buildGenericType(StdSqlType.class);
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             if (text instanceof StdSqlType)
                 return text;
@@ -1551,12 +1550,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return ReflectionManager.instance().buildGenericType(LIST_TYPE);
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
 
             List<String> list = ConvertHelper.toCsvList(text, NopException::new);
@@ -1581,13 +1580,13 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             IGenericType type = ReflectionManager.instance().buildRawType(OrderFieldBean.class);
             return GenericTypeHelper.buildListType(type);
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             String str = (String) value;
             return QueryBeanHelper.parseOrderBySql(loc, str);
@@ -1600,12 +1599,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return ReflectionManager.instance().buildRawType(CellPosition.class);
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             return CellPosition.fromABString((String) value);
         }
@@ -1617,12 +1616,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return ReflectionManager.instance().buildRawType(CellRange.class);
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object value,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             return CellRange.fromABString((String) value);
         }
@@ -1640,12 +1639,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return ReflectionManager.instance().buildRawType(JPath.class);
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             return JPath.compileWithCache((String) text);
         }
@@ -1672,13 +1671,13 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             IGenericType baseType = ReflectionManager.instance().buildGenericType(IXSelector.class);
             return GenericTypeHelper.buildParameterizedType(baseType, Arrays.asList(X_NODE_TYPE));
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             return XPathProvider.instance().compileWithCache((String) text);
         }
@@ -1705,12 +1704,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return ReflectionManager.instance().buildRawType(XDefAttribute.class);
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             XDefTypeDecl type = XDslParseHelper.parseDefType(loc, propName, (String) text);
             XDefAttribute attr = new XDefAttribute();
@@ -1733,12 +1732,12 @@ public class SimpleStdDomainHandlers {
         }
 
         @Override
-        public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+        public IGenericType getGenericType(boolean mandatory, String options) {
             return ReflectionManager.instance().buildRawType(LayoutModel.class);
         }
 
         @Override
-        public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+        public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             return new LayoutModelParser().parseFromText(loc, ConvertHelper.toString(text));
         }

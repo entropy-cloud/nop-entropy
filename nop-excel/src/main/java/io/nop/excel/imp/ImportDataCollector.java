@@ -271,7 +271,7 @@ public class ImportDataCollector implements ITableDataEventListener {
                 if (handler != null) {
                     String source = value.toString();
                     SourceLocation loc = getLocation(sheetName, rowIndex, colIndex);
-                    value = handler.parseProp(field.getSchema().getStdDomainOptionsObj(), loc, field.getName(), value,
+                    value = handler.parseProp(field.getSchema().getStdDomainOptions(), loc, field.getName(), value,
                             compileTool);
                     if (value instanceof ExprEvalAction && !(value instanceof IWithSourceCode)) {
                         value = EvalCode.addSource((ExprEvalAction) value, source);

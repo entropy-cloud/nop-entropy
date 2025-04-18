@@ -19,7 +19,6 @@ import io.nop.xlang.api.IFunctionProvider;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.XLangOutputMode;
-import io.nop.xlang.xdef.IStdDomainOptions;
 import io.nop.xlang.xdef.domain.XplStdDomainHandlers;
 
 public class ReportExprStdDomainHandler extends XplStdDomainHandlers.AbstractExprType {
@@ -31,12 +30,12 @@ public class ReportExprStdDomainHandler extends XplStdDomainHandlers.AbstractExp
     }
 
     @Override
-    public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+    public IGenericType getGenericType(boolean mandatory, String options) {
         return PredefinedGenericTypes.I_EVAL_ACTION_TYPE;
     }
 
     @Override
-    public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text, XLangCompileTool cp) {
+    public Object parseProp(String options, SourceLocation loc, String propName, Object text, XLangCompileTool cp) {
         String source = (String) text;
 
         Expression expr = new ReportExpressionParser().parseExpr(loc, source);
@@ -62,7 +61,7 @@ public class ReportExprStdDomainHandler extends XplStdDomainHandlers.AbstractExp
     }
 
     @Override
-    public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
+    public Object parseXmlChild(String options, XNode body, XLangCompileTool cp) {
         return parseProp(options, body.content().getLocation(), "body", body.contentText(), cp);
     }
 }

@@ -20,6 +20,8 @@ import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdef.XDefBodyType;
 import io.nop.xlang.xdef.XDefOverride;
 import io.nop.xlang.xdef.XDefTypeDecl;
+import io.nop.xlang.xdef.domain.IStdDomainRegistry;
+import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xpl.XplConstants;
 
 import java.util.HashMap;
@@ -55,9 +57,16 @@ import static io.nop.xlang.XLangErrors.ERR_XDSL_UNDEFINED_CHILD_NODE;
  */
 public class XDslValidator {
     private final XDslKeys keys;
+    private IStdDomainRegistry stdDomainRegistry = StdDomainRegistry.instance();
+
 
     public XDslValidator(XDslKeys keys) {
         this.keys = keys;
+    }
+
+    public XDslValidator stdDomainRegistry(IStdDomainRegistry stdDomainRegistry) {
+        this.stdDomainRegistry = stdDomainRegistry;
+        return this;
     }
 
     public void validate(XNode node, IXDefNode defNode, boolean checkRootName) {
@@ -97,7 +106,7 @@ public class XDslValidator {
 
                     IXDefNode childDef = defNode.getChild(child.getTagName());
                     if (childDef == null) {
-                        if (defNode.getXdefValue() == null || !defNode.getXdefValue().isSupportBody()) {
+                        if (defNode.getXdefValue() == null || !defNode.getXdefValue().isSupportBody(stdDomainRegistry)) {
                             if (!isIgnorableChild(child.getTagName())) {
                                 throw new NopException(ERR_XDSL_UNDEFINED_CHILD_NODE).param(ARG_NODE, child)
                                         .param(ARG_XDEF_NODE_NAME, defNode.getTagName())
@@ -161,7 +170,7 @@ public class XDslValidator {
                     if (value == null) {
                         value = attrDef.getType().getDefaultValue();
                     } else {
-                        value = attrDef.getType().getStdDataType().convert(value);
+                        value = attrDef.getType().getStdDataType(stdDomainRegistry).convert(value);
                     }
                     child.setAttr(vl.getLocation(), defNode.getXdefOrderAttr(), value);
                 }

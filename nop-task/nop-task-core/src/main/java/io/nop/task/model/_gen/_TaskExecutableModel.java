@@ -154,7 +154,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
      * xml name: timeout
      * 
      */
-    private long _timeout  = 0L;
+    private long _timeout  = 0;
     
     /**
      *  

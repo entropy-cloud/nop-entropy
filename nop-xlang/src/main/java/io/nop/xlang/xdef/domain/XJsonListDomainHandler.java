@@ -16,7 +16,6 @@ import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdef.IStdDomainHandler;
-import io.nop.xlang.xdef.IStdDomainOptions;
 import io.nop.xlang.xdef.XDefConstants;
 
 import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
@@ -31,7 +30,7 @@ public class XJsonListDomainHandler implements IStdDomainHandler {
     }
 
     @Override
-    public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+    public IGenericType getGenericType(boolean mandatory, String options) {
         return PredefinedGenericTypes.LIST_ANY_TYPE;
     }
 
@@ -41,7 +40,7 @@ public class XJsonListDomainHandler implements IStdDomainHandler {
     }
 
     @Override
-    public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
+    public Object parseXmlChild(String options, XNode body, XLangCompileTool cp) {
         if (body.hasContent())
             throw new NopException(ERR_XDEF_STD_DOMAIN_NOT_ALLOW_NODE_CONTENT).loc(body.getLocation())
                     .param(ARG_STD_DOMAIN, getName());
@@ -61,7 +60,7 @@ public class XJsonListDomainHandler implements IStdDomainHandler {
     }
 
     @Override
-    public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+    public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                             XLangCompileTool cp) {
         throw new NopException(ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_PROP).loc(loc).param(ARG_STD_DOMAIN, getName())
                 .param(ARG_PROP_NAME, propName);
@@ -69,6 +68,6 @@ public class XJsonListDomainHandler implements IStdDomainHandler {
 
     @Override
     public void validate(SourceLocation loc, String propName, Object value, IValidationErrorCollector collector) {
-        
+
     }
 }

@@ -58,7 +58,7 @@ public class ConverterStdDomainHandler extends SimpleStdDomainHandler {
     }
 
     @Override
-    public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+    public IGenericType getGenericType(boolean mandatory, String options) {
         return mandatory ? mandatoryType : type;
     }
 
@@ -68,7 +68,7 @@ public class ConverterStdDomainHandler extends SimpleStdDomainHandler {
     }
 
     @Override
-    public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+    public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                             XLangCompileTool cp) {
         return converter.convert(text, err -> {
             throw new NopException(ERR_XDEF_ILLEGAL_PROP_VALUE_FOR_STD_DOMAIN).loc(loc).param(ARG_PROP_NAME, propName)

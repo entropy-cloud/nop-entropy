@@ -21,7 +21,6 @@ import io.nop.core.resource.component.AbstractFreezable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -191,7 +190,11 @@ public class Dag extends AbstractFreezable implements IGraphViewBase<DagNode, De
     }
 
     public void analyze() {
-        new DagAnalyzer(this).analyze();
+        analyze(false);
+    }
+
+    public void analyze(boolean useControlNode) {
+        new DagAnalyzer(this).useControlNode(useControlNode).analyze();
     }
 
     public DagNode addNextNodes(String nodeName, Collection<String> next) {

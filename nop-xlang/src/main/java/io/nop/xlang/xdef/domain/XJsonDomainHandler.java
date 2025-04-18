@@ -29,7 +29,7 @@ public class XJsonDomainHandler implements IStdDomainHandler {
     }
 
     @Override
-    public IGenericType getGenericType(boolean mandatory, IStdDomainOptions options) {
+    public IGenericType getGenericType(boolean mandatory, String options) {
         return PredefinedGenericTypes.MAP_STRING_ANY_TYPE;
     }
 
@@ -39,7 +39,7 @@ public class XJsonDomainHandler implements IStdDomainHandler {
     }
 
     @Override
-    public Object parseXmlChild(IStdDomainOptions options, XNode body, XLangCompileTool cp) {
+    public Object parseXmlChild(String options, XNode body, XLangCompileTool cp) {
         return body.toXJson();
     }
 
@@ -49,7 +49,7 @@ public class XJsonDomainHandler implements IStdDomainHandler {
     }
 
     @Override
-    public Object parseProp(IStdDomainOptions options, SourceLocation loc, String propName, Object text,
+    public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                             XLangCompileTool cp) {
         throw new NopException(ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_PROP).loc(loc).param(ARG_STD_DOMAIN, getName())
                 .param(ARG_PROP_NAME, propName);

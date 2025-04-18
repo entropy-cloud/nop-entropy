@@ -6301,6 +6301,18 @@
         ]
       },
       {
+        "name": "getExternalPath",
+        "parameterTypes": [
+          "io.nop.file.dao.entity.NopFileRecord"
+        ]
+      },
+      {
+        "name": "getPreviewPath",
+        "parameterTypes": [
+          "io.nop.file.dao.entity.NopFileRecord"
+        ]
+      },
+      {
         "name": "isUniqueRef",
         "parameterTypes": [
           "io.nop.dao.api.IEntityDao",
