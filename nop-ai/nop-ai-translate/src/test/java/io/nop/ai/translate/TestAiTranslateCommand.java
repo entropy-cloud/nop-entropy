@@ -73,7 +73,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
 
         AiTranslateCommand translator = new AiTranslateCommand(chatService, templateManager, promptName);
         translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(2048);
-        translator.getChatOptions().setLlm("ollama");
+        translator.getChatOptions().setProvider("ollama");
         translator.getChatOptions().setModel(model);
         translator.getChatOptions().setTemperature(0.6f);
         translator.getChatOptions().setRequestTimeout(600 * 1000L);
@@ -109,7 +109,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
 
         AiCheckTranslationCommand check = new AiCheckTranslationCommand(chatService, templateManager, "translate/score");
         check.fromLang("中文").toLang("英文");
-        check.getChatOptions().setLlm("ollama");
+        check.getChatOptions().setProvider("ollama");
         check.getChatOptions().setModel(model);
         check.getChatOptions().setTemperature(0.6f);
         check.getChatOptions().setRequestTimeout(600 * 1000L);
@@ -137,7 +137,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
                     try {
 
                         AiChatResponse scoreMessage = FutureHelper.syncGet(check.executeAsync(source, message.getContent(), null));
-                        Number score = (Number) scoreMessage.getParsedValue("score");
+                        Number score = (Number) scoreMessage.getOutput("score");
                         if (score != null)
                             message.addMetadata("score", score);
                         if (score != null && score.intValue() < 7) {
@@ -229,7 +229,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         AiTranslateCommand translator = new AiTranslateCommand(chatService, templateManager, promptName);
         translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(2048);
         translator.setReturnExceptionAsResponse(true);
-        translator.getChatOptions().setLlm("ollama");
+        translator.getChatOptions().setProvider("ollama");
         translator.getChatOptions().setModel(model);
         translator.getChatOptions().setTemperature(0.6f);
         translator.getChatOptions().setRequestTimeout(600 * 1000L);

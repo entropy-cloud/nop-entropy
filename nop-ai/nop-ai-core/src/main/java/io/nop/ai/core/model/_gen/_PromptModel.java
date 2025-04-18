@@ -18,6 +18,13 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: checkAndRemoveLine
+     * 
+     */
+    private java.lang.String _checkAndRemoveLine ;
+    
+    /**
+     *  
      * xml name: defaultChatOptions
      * 
      */
@@ -39,6 +46,20 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: inputs
+     * 
+     */
+    private KeyedList<io.nop.ai.core.model.PromptInputModel> _inputs = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: outputs
+     * 
+     */
+    private KeyedList<io.nop.ai.core.model.PromptOutputModel> _outputs = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: processChatResponse
      * 执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
      * 这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
@@ -54,11 +75,23 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     private io.nop.core.resource.tpl.ITextTemplateOutput _template ;
     
     /**
-     *  
-     * xml name: vars
      * 
+     * xml name: checkAndRemoveLine
+     *  
      */
-    private KeyedList<io.nop.ai.core.model.PromptVarModel> _vars = KeyedList.emptyList();
+    
+    public java.lang.String getCheckAndRemoveLine(){
+      return _checkAndRemoveLine;
+    }
+
+    
+    public void setCheckAndRemoveLine(java.lang.String value){
+        checkAllowChange();
+        
+        this._checkAndRemoveLine = value;
+           
+    }
+
     
     /**
      * 
@@ -119,6 +152,96 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: inputs
+     *  
+     */
+    
+    public java.util.List<io.nop.ai.core.model.PromptInputModel> getInputs(){
+      return _inputs;
+    }
+
+    
+    public void setInputs(java.util.List<io.nop.ai.core.model.PromptInputModel> value){
+        checkAllowChange();
+        
+        this._inputs = KeyedList.fromList(value, io.nop.ai.core.model.PromptInputModel::getName);
+           
+    }
+
+    
+    public io.nop.ai.core.model.PromptInputModel getInput(String name){
+        return this._inputs.getByKey(name);
+    }
+
+    public boolean hasInput(String name){
+        return this._inputs.containsKey(name);
+    }
+
+    public void addInput(io.nop.ai.core.model.PromptInputModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.ai.core.model.PromptInputModel> list = this.getInputs();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.ai.core.model.PromptInputModel::getName);
+            setInputs(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_inputs(){
+        return this._inputs.keySet();
+    }
+
+    public boolean hasInputs(){
+        return !this._inputs.isEmpty();
+    }
+    
+    /**
+     * 
+     * xml name: outputs
+     *  
+     */
+    
+    public java.util.List<io.nop.ai.core.model.PromptOutputModel> getOutputs(){
+      return _outputs;
+    }
+
+    
+    public void setOutputs(java.util.List<io.nop.ai.core.model.PromptOutputModel> value){
+        checkAllowChange();
+        
+        this._outputs = KeyedList.fromList(value, io.nop.ai.core.model.PromptOutputModel::getName);
+           
+    }
+
+    
+    public io.nop.ai.core.model.PromptOutputModel getOutput(String name){
+        return this._outputs.getByKey(name);
+    }
+
+    public boolean hasOutput(String name){
+        return this._outputs.containsKey(name);
+    }
+
+    public void addOutput(io.nop.ai.core.model.PromptOutputModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.ai.core.model.PromptOutputModel> list = this.getOutputs();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.ai.core.model.PromptOutputModel::getName);
+            setOutputs(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_outputs(){
+        return this._outputs.keySet();
+    }
+
+    public boolean hasOutputs(){
+        return !this._outputs.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: processChatResponse
      *  执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
      * 这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
@@ -157,51 +280,6 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     }
 
     
-    /**
-     * 
-     * xml name: vars
-     *  
-     */
-    
-    public java.util.List<io.nop.ai.core.model.PromptVarModel> getVars(){
-      return _vars;
-    }
-
-    
-    public void setVars(java.util.List<io.nop.ai.core.model.PromptVarModel> value){
-        checkAllowChange();
-        
-        this._vars = KeyedList.fromList(value, io.nop.ai.core.model.PromptVarModel::getName);
-           
-    }
-
-    
-    public io.nop.ai.core.model.PromptVarModel getVar(String name){
-        return this._vars.getByKey(name);
-    }
-
-    public boolean hasVar(String name){
-        return this._vars.containsKey(name);
-    }
-
-    public void addVar(io.nop.ai.core.model.PromptVarModel item) {
-        checkAllowChange();
-        java.util.List<io.nop.ai.core.model.PromptVarModel> list = this.getVars();
-        if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.ai.core.model.PromptVarModel::getName);
-            setVars(list);
-        }
-        list.add(item);
-    }
-    
-    public java.util.Set<String> keySet_vars(){
-        return this._vars.keySet();
-    }
-
-    public boolean hasVars(){
-        return !this._vars.isEmpty();
-    }
-    
 
     @Override
     public void freeze(boolean cascade){
@@ -212,7 +290,9 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
         
            this._defaultChatOptions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._defaultChatOptions);
             
-           this._vars = io.nop.api.core.util.FreezeHelper.deepFreeze(this._vars);
+           this._inputs = io.nop.api.core.util.FreezeHelper.deepFreeze(this._inputs);
+            
+           this._outputs = io.nop.api.core.util.FreezeHelper.deepFreeze(this._outputs);
             
         }
     }
@@ -221,12 +301,14 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("checkAndRemoveLine",this.getCheckAndRemoveLine());
         out.putNotNull("defaultChatOptions",this.getDefaultChatOptions());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("inputs",this.getInputs());
+        out.putNotNull("outputs",this.getOutputs());
         out.putNotNull("processChatResponse",this.getProcessChatResponse());
         out.putNotNull("template",this.getTemplate());
-        out.putNotNull("vars",this.getVars());
     }
 
     public PromptModel cloneInstance(){
@@ -238,12 +320,14 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     protected void copyTo(PromptModel instance){
         super.copyTo(instance);
         
+        instance.setCheckAndRemoveLine(this.getCheckAndRemoveLine());
         instance.setDefaultChatOptions(this.getDefaultChatOptions());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
+        instance.setInputs(this.getInputs());
+        instance.setOutputs(this.getOutputs());
         instance.setProcessChatResponse(this.getProcessChatResponse());
         instance.setTemplate(this.getTemplate());
-        instance.setVars(this.getVars());
     }
 
     protected PromptModel newInstance(){

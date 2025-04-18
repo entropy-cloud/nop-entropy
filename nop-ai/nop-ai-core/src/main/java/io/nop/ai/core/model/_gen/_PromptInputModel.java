@@ -2,7 +2,7 @@ package io.nop.ai.core.model._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.ai.core.model.PromptVarModel;
+import io.nop.ai.core.model.PromptInputModel;
 import io.nop.commons.util.ClassHelper;
 
 
@@ -14,7 +14,14 @@ import io.nop.commons.util.ClassHelper;
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
-public abstract class _PromptVarModel extends io.nop.core.resource.component.AbstractComponentModel {
+public abstract class _PromptInputModel extends io.nop.core.resource.component.AbstractComponentModel {
+    
+    /**
+     *  
+     * xml name: defaultExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _defaultExpr ;
     
     /**
      *  
@@ -32,6 +39,13 @@ public abstract class _PromptVarModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: mandatory
+     * 
+     */
+    private boolean _mandatory  = false;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -46,11 +60,37 @@ public abstract class _PromptVarModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: parseFromMessage
+     * 
+     */
+    private io.nop.ai.core.model.PromptInputParseModel _parseFromMessage ;
+    
+    /**
+     *  
      * xml name: schema
      * schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
      * Map对应props配置,  List对应item配置, Union对应oneOf配置
      */
     private io.nop.xlang.xmeta.ISchema _schema ;
+    
+    /**
+     * 
+     * xml name: defaultExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getDefaultExpr(){
+      return _defaultExpr;
+    }
+
+    
+    public void setDefaultExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._defaultExpr = value;
+           
+    }
+
     
     /**
      * 
@@ -86,6 +126,25 @@ public abstract class _PromptVarModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._displayName = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: mandatory
+     *  
+     */
+    
+    public boolean isMandatory(){
+      return _mandatory;
+    }
+
+    
+    public void setMandatory(boolean value){
+        checkAllowChange();
+        
+        this._mandatory = value;
            
     }
 
@@ -130,6 +189,25 @@ public abstract class _PromptVarModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: parseFromMessage
+     *  
+     */
+    
+    public io.nop.ai.core.model.PromptInputParseModel getParseFromMessage(){
+      return _parseFromMessage;
+    }
+
+    
+    public void setParseFromMessage(io.nop.ai.core.model.PromptInputParseModel value){
+        checkAllowChange();
+        
+        this._parseFromMessage = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: schema
      *  schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
      * Map对应props配置,  List对应item配置, Union对应oneOf配置
@@ -156,6 +234,8 @@ public abstract class _PromptVarModel extends io.nop.core.resource.component.Abs
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._parseFromMessage = io.nop.api.core.util.FreezeHelper.deepFreeze(this._parseFromMessage);
+            
            this._schema = io.nop.api.core.util.FreezeHelper.deepFreeze(this._schema);
             
         }
@@ -165,31 +245,37 @@ public abstract class _PromptVarModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("defaultExpr",this.getDefaultExpr());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("name",this.getName());
         out.putNotNull("optional",this.isOptional());
+        out.putNotNull("parseFromMessage",this.getParseFromMessage());
         out.putNotNull("schema",this.getSchema());
     }
 
-    public PromptVarModel cloneInstance(){
-        PromptVarModel instance = newInstance();
+    public PromptInputModel cloneInstance(){
+        PromptInputModel instance = newInstance();
         this.copyTo(instance);
         return instance;
     }
 
-    protected void copyTo(PromptVarModel instance){
+    protected void copyTo(PromptInputModel instance){
         super.copyTo(instance);
         
+        instance.setDefaultExpr(this.getDefaultExpr());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
+        instance.setMandatory(this.isMandatory());
         instance.setName(this.getName());
         instance.setOptional(this.isOptional());
+        instance.setParseFromMessage(this.getParseFromMessage());
         instance.setSchema(this.getSchema());
     }
 
-    protected PromptVarModel newInstance(){
-        return (PromptVarModel) ClassHelper.newInstance(getClass());
+    protected PromptInputModel newInstance(){
+        return (PromptInputModel) ClassHelper.newInstance(getClass());
     }
 }
  // resume CPD analysis - CPD-ON

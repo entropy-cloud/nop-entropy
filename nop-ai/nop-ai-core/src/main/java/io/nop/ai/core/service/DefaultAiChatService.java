@@ -77,7 +77,7 @@ public class DefaultAiChatService implements IAiChatService {
     }
 
     protected String getLlmName(AiChatOptions options) {
-        String llm = options.getLlm();
+        String llm = options.getProvider();
         if (llm == null)
             llm = CFG_AI_SERVICE_DEFAULT_LLM.get();
         if (StringHelper.isEmpty(llm))

@@ -12,7 +12,7 @@ import io.nop.api.core.beans.ExtensibleBean;
 import java.util.List;
 
 public class AiChatOptions extends ExtensibleBean {
-    private String llm;
+    private String provider;
     private String model;
     private String seed;
     private Float temperature;
@@ -33,12 +33,12 @@ public class AiChatOptions extends ExtensibleBean {
 
     private boolean stream;
 
-    public String getLlm() {
-        return llm;
+    public String getProvider() {
+        return provider;
     }
 
-    public void setLlm(String llm) {
-        this.llm = llm;
+    public void setProvider(String provider) {
+        this.provider = provider;
     }
 
     public String getModel() {

@@ -41,7 +41,9 @@ import static io.nop.ai.core.commons.debug.DebugMessageHelper.collectDebugText;
 
 @DataBean
 public class AiChatResponse extends Metadata {
-
+    /**
+     * 此次消息所对应的prompt
+     */
     private Prompt prompt;
 
     private Integer index;
@@ -53,9 +55,19 @@ public class AiChatResponse extends Metadata {
     private Integer completionTokens;
     private Integer totalTokens;
 
-    private Map<String, Object> parsedValues;
+    /**
+     * 接下响应消息得到的结果对象
+     */
+    private Map<String, Object> outputs;
+
+    /**
+     * 用于保存上下文相关变量
+     */
     private Map<String, Object> attributes;
 
+    /**
+     * 解析output失败会设置invalid为true
+     */
     private boolean invalid;
     private ErrorBean invalidReason;
 
@@ -76,7 +88,7 @@ public class AiChatResponse extends Metadata {
     }
 
     public boolean isEmpty() {
-        return StringHelper.isEmpty(getContent()) && parsedValues == null;
+        return StringHelper.isEmpty(getContent()) && outputs == null;
     }
 
     public String getBlockFromPrompt(String blockBegin, String blockEnd) {
@@ -198,24 +210,24 @@ public class AiChatResponse extends Metadata {
         this.prompt = prompt;
     }
 
-    public Map<String, Object> getParsedValues() {
-        return parsedValues;
+    public Map<String, Object> getOutputs() {
+        return outputs;
     }
 
-    public void setParsedValues(Map<String, Object> parsedValues) {
-        this.parsedValues = parsedValues;
+    public void setOutputs(Map<String, Object> outputs) {
+        this.outputs = outputs;
     }
 
-    public Object getParsedValue(String name) {
-        if (parsedValues == null)
+    public Object getOutput(String name) {
+        if (outputs == null)
             return null;
-        return parsedValues.get(name);
+        return outputs.get(name);
     }
 
-    public void setParsedValue(String name, Object value) {
-        if (parsedValues == null)
-            parsedValues = new HashMap<>();
-        parsedValues.put(name, value);
+    public void setOutput(String name, Object value) {
+        if (outputs == null)
+            outputs = new HashMap<>();
+        outputs.put(name, value);
     }
 
     @JsonIgnore
@@ -407,7 +419,7 @@ public class AiChatResponse extends Metadata {
     public Object parseBlock(String name, String blockBegin, String blockEnd, boolean optionalBegin, boolean optional) {
         Object value = getBlock(blockBegin, blockEnd, optionalBegin, optional);
         if (value != null)
-            setParsedValue(name, value);
+            setOutput(name, value);
         return value;
     }
 
@@ -418,7 +430,7 @@ public class AiChatResponse extends Metadata {
     public Number parseNumberBlock(String name, String blockBegin, String blockEnd, boolean optional) {
         Number value = getNumberBlock(name, blockBegin, blockEnd, optional);
         if (value != null)
-            setParsedValue(name, value);
+            setOutput(name, value);
         return value;
     }
 

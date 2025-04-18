@@ -1,0 +1,6 @@
+template: |
+  【设计目标】
+  分析需求描述，从中抽取出与实体【${entityName}】相关的部分
+  
+  【需求描述】
+  ${requirements}  

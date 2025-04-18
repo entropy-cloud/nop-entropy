@@ -5,7 +5,7 @@ import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.commons.processor.IAiChatResponseProcessor;
-import io.nop.ai.core.model.PromptVarModel;
+import io.nop.ai.core.model.PromptInputModel;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
@@ -149,8 +149,8 @@ public class AiCommand {
     }
 
     protected void checkPromptVars(Map<String, Object> vars) {
-        if (promptTemplate.getVars() != null) {
-            for (PromptVarModel varModel : promptTemplate.getVars()) {
+        if (promptTemplate.getInputs() != null) {
+            for (PromptInputModel varModel : promptTemplate.getInputs()) {
                 if (!vars.containsKey(varModel.getName())) {
                     if (varModel.isOptional())
                         vars.put(varModel.getName(), null);
