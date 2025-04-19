@@ -12,7 +12,9 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.util.MathHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 
@@ -120,12 +122,30 @@ public class SimpleSchemaValidator {
     }
 
     void checkLength(ISchema schema, SourceLocation loc, String propName, Object value, IValidationErrorCollector collector) {
-        if (schema.getMaxLength() != null) {
+        if (schema.getUtf8Length() != null) {
+            String str = value.toString();
+            if (StringHelper.utf8Length(str) > schema.getUtf8Length()) {
+                collector.buildError(ERR_SCHEMA_PROP_LENGTH_GREATER_THAN_MAX_LENGTH)
+                        .loc(loc).param(ARG_PROP_NAME, propName)
+                        .param(ARG_MAX_LENGTH, schema.getUtf8Length())
+                        .param(ARG_VALUE, value)
+                        .addToCollector(collector);
+            }
+        } else if (schema.getMaxLength() != null) {
             String str = value.toString();
             if (str.length() > schema.getMaxLength()) {
                 collector.buildError(ERR_SCHEMA_PROP_LENGTH_GREATER_THAN_MAX_LENGTH)
                         .loc(loc).param(ARG_PROP_NAME, propName)
                         .param(ARG_MAX_LENGTH, schema.getMaxLength())
+                        .param(ARG_VALUE, value)
+                        .addToCollector(collector);
+            }
+        } else if (schema.getPrecision() != null && schema.getType() == PredefinedGenericTypes.STRING_TYPE) {
+            String str = value.toString();
+            if (str.length() > schema.getPrecision()) {
+                collector.buildError(ERR_SCHEMA_PROP_LENGTH_GREATER_THAN_MAX_LENGTH)
+                        .loc(loc).param(ARG_PROP_NAME, propName)
+                        .param(ARG_MAX_LENGTH, schema.getPrecision())
                         .param(ARG_VALUE, value)
                         .addToCollector(collector);
             }

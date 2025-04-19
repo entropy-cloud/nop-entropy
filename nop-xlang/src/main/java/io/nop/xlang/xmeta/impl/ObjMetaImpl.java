@@ -222,6 +222,11 @@ public class ObjMetaImpl extends _ObjMetaImpl implements IObjMeta, ISchema {
     }
 
     @Override
+    public Integer getUtf8Length() {
+        return null;
+    }
+
+    @Override
     public Integer getMaxLength() {
         return null;
     }

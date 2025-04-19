@@ -54,6 +54,8 @@ public interface ISimpleSchema extends ISchemaNode {
 
     Boolean getExcludeMax();
 
+    Integer getUtf8Length();
+
     Integer getMinLength();
 
     Integer getMaxLength();

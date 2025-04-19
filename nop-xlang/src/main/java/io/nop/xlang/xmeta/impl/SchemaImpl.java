@@ -231,6 +231,7 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
         Integer minLength;
         Integer maxLength;
         Integer multipleOf;
+        Integer utf8Length;
 
         public SimpleSchemaData cloneInstance() {
             SimpleSchemaData ret = new SimpleSchemaData();
@@ -246,6 +247,7 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
             ret.minLength = minLength;
             ret.maxLength = maxLength;
             ret.multipleOf = multipleOf;
+            ret.utf8Length = utf8Length;
             return ret;
         }
 
@@ -273,6 +275,10 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
             if (excludeMax != null) {
                 node.setAttr(node.getLocation(), "excludeMax", excludeMax);
             }
+
+            if (utf8Length != null)
+                node.setAttr(node.getLocation(), "utf8Length", utf8Length);
+
             if (minLength != null) {
                 node.setAttr(node.getLocation(), "minLength", minLength);
             }
@@ -595,6 +601,18 @@ public class SchemaImpl extends SchemaNodeImpl implements ISchema, IKeyedElement
         if (excludeMax == null && simpleSchema == null)
             return;
         makeSimpleSchemaData().excludeMax = excludeMax;
+    }
+
+    @Override
+    public Integer getUtf8Length() {
+        return simpleSchema == null ? null : simpleSchema.utf8Length;
+    }
+
+    public void setUtf8Length(Integer length) {
+        checkAllowChange();
+        if (length == null && simpleSchema == null)
+            return;
+        makeSimpleSchemaData().utf8Length = length;
     }
 
     @Override

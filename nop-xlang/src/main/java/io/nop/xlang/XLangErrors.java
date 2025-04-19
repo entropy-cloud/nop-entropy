@@ -1002,6 +1002,10 @@ public interface XLangErrors {
             define("nop.err.schema.prop-length-greater-than-max-length",
                     "属性[{propName}]的值[{value}]的长度超过最大值[{maxLength}]", ARG_PROP_NAME, ARG_VALUE, ARG_MAX_LENGTH);
 
+    ErrorCode ERR_SCHEMA_PROP_LENGTH_GREATER_THAN_UTF8_LENGTH =
+            define("nop.err.schema.prop-length-greater-than-utf8-length",
+                    "属性[{propName}]的值[{value}]的UTF8长度超过最大值[{maxLength}]", ARG_PROP_NAME, ARG_VALUE, ARG_MAX_LENGTH);
+
     ErrorCode ERR_SCHEMA_PROP_LENGTH_LESS_THAN_MIN_LENGTH =
             define("nop.err.schema.prop-length-less-than-min-length",
                     "属性[{propName}]的值[{value}]的长度小于最小值[{maxLength}]", ARG_PROP_NAME, ARG_VALUE, ARG_MIN_LENGTH);
