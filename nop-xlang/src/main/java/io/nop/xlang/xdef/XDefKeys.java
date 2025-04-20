@@ -78,6 +78,8 @@ public class XDefKeys implements Serializable {
     public final String INTERNAL;
     public final String DEPRECATED;
 
+    public final String ALLOW_UNKNOWN_STD_DOMAIN;
+
     public final String DEFINE;
 
     public final String GETTER;
@@ -127,6 +129,8 @@ public class XDefKeys implements Serializable {
         BEAN_BODY_TYPE = getFullName(ns, "bean-body-type");
         BEAN_EXTENDS_TYPE = getFullName(ns, "bean-extends-type");
         BEAN_IMPLEMENTS_TYPES = getFullName(ns, "bean-implements-types");
+
+        ALLOW_UNKNOWN_STD_DOMAIN = getFullName(ns, "allow-unknown-std-domain");
 
         BODY_TYPE = getFullName(ns, "body-type");
         KEY_ATTR = getFullName(ns, "key-attr");

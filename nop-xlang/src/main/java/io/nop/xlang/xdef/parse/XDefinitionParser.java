@@ -17,12 +17,15 @@ import io.nop.core.type.IGenericType;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.feature.XModelInclude;
+import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.XDefBodyType;
 import io.nop.xlang.xdef.XDefKeys;
 import io.nop.xlang.xdef.XDefOverride;
 import io.nop.xlang.xdef.XDefTypeDecl;
+import io.nop.xlang.xdef.domain.StdDomainRegistry;
+import io.nop.xlang.xdef.domain.UnknownStdDomainHandler;
 import io.nop.xlang.xdef.impl.XDefAttribute;
 import io.nop.xlang.xdef.impl.XDefComment;
 import io.nop.xlang.xdef.impl.XDefHelper;
@@ -94,6 +97,8 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
     private Set<String> propNs;
     private XDslKeys dslKeys;
 
+    private boolean allowUnknownStdDomain;
+
     public XDefinitionParser() {
         setRequiredSchema(XLangConstants.XDSL_SCHEMA_XDEF);
     }
@@ -101,6 +106,18 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
     public XDefinitionParser resolveRef(boolean value) {
         this.resolveRef = value;
         return this;
+    }
+
+    public XDefinitionParser allowUnknownStdDomain(boolean value) {
+        this.allowUnknownStdDomain = value;
+        return this;
+    }
+
+    private IStdDomainHandler getStdDomainHandler(String stdDomain) {
+        IStdDomainHandler domainHandler = StdDomainRegistry.instance().getStdDomainHandler(stdDomain);
+        if (domainHandler == null && allowUnknownStdDomain)
+            domainHandler = new UnknownStdDomainHandler(stdDomain);
+        return domainHandler;
     }
 
     @Override
@@ -150,6 +167,10 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         String xdefBase = node.attrText(keys.BASE);
         String xdefModelNameProp = node.attrText(keys.MODEL_NAME_PROP);
         String xdefModelVersionProp = node.attrText(keys.MODEL_VERSION_PROP);
+
+        boolean allowUnknownStdDomain = node.attrBoolean(keys.ALLOW_UNKNOWN_STD_DOMAIN);
+        if (allowUnknownStdDomain)
+            this.allowUnknownStdDomain = allowUnknownStdDomain;
 
         Set<String> propNs = node.attrCsvSet(keys.PROP_NS);
         if (propNs == null)
@@ -305,6 +326,8 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
             value = parseBodyDefType(node);
         }
 
+        checkStdDomain(value);
+
         Boolean supportExtends = parseAttrBoolean(node, keys.SUPPORT_EXTENDS, null);
 
         String beanTagProp = parseAttrPropName(node, keys.BEAN_TAG_PROP);
@@ -363,7 +386,7 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         // defNode.setBeanAnyChildProp(beanAnyChildProp);
         defNode.setXdefBeanChildName(beanChildName);
 
-        if (value != null && supportExtends == null && value.isSupportBody(compileTool))
+        if (value != null && supportExtends == null && value.isSupportBody(this::getStdDomainHandler))
             supportExtends = true;
 
         if (ref != null && supportExtends == null)
@@ -448,6 +471,15 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
 
         validateNode(defNode, node);
         return defNode;
+    }
+
+    private void checkStdDomain(XDefTypeDecl defType) {
+        if (defType == null)
+            return;
+
+        if (!allowUnknownStdDomain) {
+            getStdDomainHandler(defType.getStdDomain());
+        }
     }
 
     private void parseXdefChildren(XNode node, XDefNode defNode) {
@@ -591,6 +623,8 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
             }
 
             XDefTypeDecl type = requireAttrDefType(node, name);
+            checkStdDomain(type);
+
             XDefAttribute attr = new XDefAttribute();
             attr.setLocation(v.getLocation());
             attr.setName(name);

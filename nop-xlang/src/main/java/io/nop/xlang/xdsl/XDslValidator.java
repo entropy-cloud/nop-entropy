@@ -58,10 +58,16 @@ import static io.nop.xlang.XLangErrors.ERR_XDSL_UNDEFINED_CHILD_NODE;
 public class XDslValidator {
     private final XDslKeys keys;
     private IStdDomainRegistry stdDomainRegistry = StdDomainRegistry.instance();
+    private boolean removeUnknownAttrs = false;
 
 
     public XDslValidator(XDslKeys keys) {
         this.keys = keys;
+    }
+
+    public XDslValidator removeUnknownAttrs(boolean removeUnknownAttrs) {
+        this.removeUnknownAttrs = removeUnknownAttrs;
+        return this;
     }
 
     public XDslValidator stdDomainRegistry(IStdDomainRegistry stdDomainRegistry) {
@@ -243,10 +249,15 @@ public class XDslValidator {
                 if (!checkNs.isEmpty() && StringHelper.hasNamespace(name)) {
                     String ns = StringHelper.getNamespace(name);
                     if (checkNs.contains(ns))
-                        if (defNode.getAttributes().get(name) == null)
-                            throw new NopException(ERR_XDSL_ATTR_NOT_ALLOWED).source(vl).param(ARG_NODE, node)
-                                    .param(ARG_ATTR_NAME, name)
-                                    .param(ARG_ALLOWED_NAMES, defNode.getAttributes().keySet());
+                        if (defNode.getAttributes().get(name) == null) {
+                            if (removeUnknownAttrs) {
+                                it.remove();
+                            } else {
+                                throw new NopException(ERR_XDSL_ATTR_NOT_ALLOWED).source(vl).param(ARG_NODE, node)
+                                        .param(ARG_ATTR_NAME, name)
+                                        .param(ARG_ALLOWED_NAMES, defNode.getAttributes().keySet());
+                            }
+                        }
                 }
 
                 if (name.startsWith(keys.X_NS_PREFIX)) {
@@ -256,9 +267,14 @@ public class XDslValidator {
 
                     it.remove();
                 } else if (!defNode.isAllowUnknownAttr()) {
-                    if (defNode.getAttribute(name) == null && !isIgnorableAttr(name))
-                        throw new NopException(ERR_XDSL_ATTR_NOT_ALLOWED).source(vl).param(ARG_NODE, node)
-                                .param(ARG_ATTR_NAME, name).param(ARG_ALLOWED_NAMES, defNode.getAttributes().keySet());
+                    if (defNode.getAttribute(name) == null && !isIgnorableAttr(name)) {
+                        if (removeUnknownAttrs) {
+                            it.remove();
+                        } else {
+                            throw new NopException(ERR_XDSL_ATTR_NOT_ALLOWED).source(vl).param(ARG_NODE, node)
+                                    .param(ARG_ATTR_NAME, name).param(ARG_ALLOWED_NAMES, defNode.getAttributes().keySet());
+                        }
+                    }
                 }
             }
         }

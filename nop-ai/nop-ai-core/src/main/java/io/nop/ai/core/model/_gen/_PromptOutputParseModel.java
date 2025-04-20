@@ -10,7 +10,9 @@ import io.nop.commons.util.ClassHelper;
 // tell cpd to start ignoring code - CPD-OFF
 /**
  * generate from /nop/schema/ai/prompt.xdef <p>
- * 
+ * 没有指定format的情况下才会使用parseFromResponse配置
+ * 如果指定了source，则执行代码来解析变量。如果没有指定source，但是指定了blockBegin和blockEnd，则从响应消息中截取相关信息。
+ * 如果以上配置都没有，但是配置了contains，则只要响应消息中包含此字符串，就设置为true。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -46,10 +48,24 @@ public abstract class _PromptOutputParseModel extends io.nop.core.resource.compo
     
     /**
      *  
-     * xml name: source
+     * xml name: includeBlockBegin
+     * 如果为true，则将blockBegin包含在解析结果中
+     */
+    private boolean _includeBlockBegin  = false;
+    
+    /**
+     *  
+     * xml name: includeBlockEnd
      * 
      */
-    private io.nop.core.lang.eval.IEvalFunction _source ;
+    private boolean _includeBlockEnd  = false;
+    
+    /**
+     *  
+     * xml name: parser
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _parser ;
     
     /**
      * 
@@ -129,19 +145,57 @@ public abstract class _PromptOutputParseModel extends io.nop.core.resource.compo
     
     /**
      * 
-     * xml name: source
-     *  
+     * xml name: includeBlockBegin
+     *  如果为true，则将blockBegin包含在解析结果中
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getSource(){
-      return _source;
+    public boolean isIncludeBlockBegin(){
+      return _includeBlockBegin;
     }
 
     
-    public void setSource(io.nop.core.lang.eval.IEvalFunction value){
+    public void setIncludeBlockBegin(boolean value){
         checkAllowChange();
         
-        this._source = value;
+        this._includeBlockBegin = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: includeBlockEnd
+     *  
+     */
+    
+    public boolean isIncludeBlockEnd(){
+      return _includeBlockEnd;
+    }
+
+    
+    public void setIncludeBlockEnd(boolean value){
+        checkAllowChange();
+        
+        this._includeBlockEnd = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: parser
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getParser(){
+      return _parser;
+    }
+
+    
+    public void setParser(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._parser = value;
            
     }
 
@@ -165,7 +219,9 @@ public abstract class _PromptOutputParseModel extends io.nop.core.resource.compo
         out.putNotNull("blockBegin",this.getBlockBegin());
         out.putNotNull("blockEnd",this.getBlockEnd());
         out.putNotNull("contains",this.getContains());
-        out.putNotNull("source",this.getSource());
+        out.putNotNull("includeBlockBegin",this.isIncludeBlockBegin());
+        out.putNotNull("includeBlockEnd",this.isIncludeBlockEnd());
+        out.putNotNull("parser",this.getParser());
     }
 
     public PromptOutputParseModel cloneInstance(){
@@ -181,7 +237,9 @@ public abstract class _PromptOutputParseModel extends io.nop.core.resource.compo
         instance.setBlockBegin(this.getBlockBegin());
         instance.setBlockEnd(this.getBlockEnd());
         instance.setContains(this.getContains());
-        instance.setSource(this.getSource());
+        instance.setIncludeBlockBegin(this.isIncludeBlockBegin());
+        instance.setIncludeBlockEnd(this.isIncludeBlockEnd());
+        instance.setParser(this.getParser());
     }
 
     protected PromptOutputParseModel newInstance(){

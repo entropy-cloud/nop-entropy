@@ -5,7 +5,6 @@ import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.commons.processor.IAiChatResponseProcessor;
-import io.nop.ai.core.model.PromptInputModel;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
@@ -14,6 +13,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.retry.RetryHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
+import io.nop.core.lang.eval.IEvalScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,13 +83,18 @@ public class AiCommand {
     }
 
     public CompletionStage<AiChatResponse> callAiAsync(Map<String, Object> vars, ICancelToken cancelToken) {
-        Prompt prompt = newPrompt(vars);
+        IEvalScope scope = prepareInputs(vars);
+        Prompt prompt = newPrompt(scope);
 
         return RetryHelper.retryNTimes((index) -> {
                     adjustTemperature(prompt, index);
-                    return callAiOnceAsync(prompt, cancelToken);
+                    return callAiOnceAsync(prompt, scope, cancelToken);
                 },
                 AiChatResponse::isValid, retryTimesPerRequest);
+    }
+
+    protected IEvalScope prepareInputs(Map<String, Object> vars) {
+        return promptTemplate.prepareInputs(vars);
     }
 
     protected void adjustTemperature(Prompt prompt, int index) {
@@ -100,7 +105,7 @@ public class AiCommand {
         }
     }
 
-    public CompletionStage<AiChatResponse> callAiOnceAsync(Prompt prompt, ICancelToken cancelToken) {
+    public CompletionStage<AiChatResponse> callAiOnceAsync(Prompt prompt, IEvalScope scope, ICancelToken cancelToken) {
         if (cancelToken != null && cancelToken.isCancelled()) {
             LOG.info("nop.ai.cancel-call-ai");
             return FutureHelper.reject(new CancellationException("cancel-call-ai"));
@@ -108,7 +113,7 @@ public class AiCommand {
 
         CompletionStage<AiChatResponse> future = chatService.sendChatAsync(prompt, chatOptions, cancelToken).thenApply(ret -> {
             ret.setPrompt(prompt);
-            promptTemplate.processChatResponse(ret);
+            promptTemplate.processChatResponse(ret, scope);
             return ret;
         });
 
@@ -140,22 +145,9 @@ public class AiCommand {
         return ret;
     }
 
-    protected Prompt newPrompt(Map<String, Object> vars) {
-        checkPromptVars(vars);
-
-        String promptText = promptTemplate.generatePrompt(vars);
+    protected Prompt newPrompt(IEvalScope scope) {
+        String promptText = promptTemplate.generatePrompt(scope);
         Guard.notEmpty(promptText, "promptText");
         return Prompt.userText(promptText);
-    }
-
-    protected void checkPromptVars(Map<String, Object> vars) {
-        if (promptTemplate.getInputs() != null) {
-            for (PromptInputModel varModel : promptTemplate.getInputs()) {
-                if (!vars.containsKey(varModel.getName())) {
-                    if (varModel.isOptional())
-                        vars.put(varModel.getName(), null);
-                }
-            }
-        }
     }
 }

@@ -32,10 +32,10 @@ public abstract class _PromptInputParseModel extends io.nop.core.resource.compon
     
     /**
      *  
-     * xml name: source
+     * xml name: parser
      * 
      */
-    private io.nop.core.lang.eval.IEvalFunction _source ;
+    private io.nop.core.lang.eval.IEvalFunction _parser ;
     
     /**
      * 
@@ -77,19 +77,19 @@ public abstract class _PromptInputParseModel extends io.nop.core.resource.compon
     
     /**
      * 
-     * xml name: source
+     * xml name: parser
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getSource(){
-      return _source;
+    public io.nop.core.lang.eval.IEvalFunction getParser(){
+      return _parser;
     }
 
     
-    public void setSource(io.nop.core.lang.eval.IEvalFunction value){
+    public void setParser(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._source = value;
+        this._parser = value;
            
     }
 
@@ -111,7 +111,7 @@ public abstract class _PromptInputParseModel extends io.nop.core.resource.compon
         
         out.putNotNull("blockBegin",this.getBlockBegin());
         out.putNotNull("blockEnd",this.getBlockEnd());
-        out.putNotNull("source",this.getSource());
+        out.putNotNull("parser",this.getParser());
     }
 
     public PromptInputParseModel cloneInstance(){
@@ -125,7 +125,7 @@ public abstract class _PromptInputParseModel extends io.nop.core.resource.compon
         
         instance.setBlockBegin(this.getBlockBegin());
         instance.setBlockEnd(this.getBlockEnd());
-        instance.setSource(this.getSource());
+        instance.setParser(this.getParser());
     }
 
     protected PromptInputParseModel newInstance(){

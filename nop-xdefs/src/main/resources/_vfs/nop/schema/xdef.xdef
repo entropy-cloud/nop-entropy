@@ -30,7 +30,7 @@ xdef自身的元模型定义。通过此文件实现对xdef的自举定义，即
                   xdef:parse-for-html="boolean" xdef:parse-keep-comment="boolean"
                   xdef:bean-package="package-name"
                   xdef:parser-class="class-name"
-                  xdef:check-ns="word-set" xdef:prop-ns="word-set"
+                  xdef:check-ns="word-set" xdef:prop-ns="word-set" xdef:allow-unknown-std-domain="boolean"
                   xdef:base="v-path" xdef:model-name-prop="string" xdef:model-version-prop="string"
                   xmlns:xdef="xdef">
     <!--

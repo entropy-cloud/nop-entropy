@@ -4,6 +4,7 @@ import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.model.PromptInputModel;
 import io.nop.ai.core.model.PromptOutputModel;
+import io.nop.core.lang.eval.IEvalScope;
 
 import java.util.List;
 import java.util.Map;
@@ -15,7 +16,9 @@ public interface IPromptTemplate {
 
     void applyChatOptions(AiChatOptions chatOptions);
 
-    String generatePrompt(Map<String, Object> vars);
+    IEvalScope prepareInputs(Map<String, Object> vars);
 
-    void processChatResponse(AiChatResponse chatResponse);
+    String generatePrompt(IEvalScope scope);
+
+    void processChatResponse(AiChatResponse chatResponse, IEvalScope scope);
 }

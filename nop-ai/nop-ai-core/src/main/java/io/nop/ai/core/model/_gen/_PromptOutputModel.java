@@ -32,6 +32,13 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: format
+     * 如果是xml，则尝试从content中解析得到XML节点。如果是json，则尝试解析得到json数据。解析中会自动忽略一些无关的输出信息。
+     */
+    private io.nop.ai.core.model.PromptOutputFormat _format ;
+    
+    /**
+     *  
      * xml name: mandatory
      * 
      */
@@ -43,6 +50,13 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
      * 
      */
     private java.lang.String _name ;
+    
+    /**
+     *  
+     * xml name: normalizer
+     * 对解析得到的value进行后处理
+     */
+    private io.nop.core.lang.eval.IEvalFunction _normalizer ;
     
     /**
      *  
@@ -61,7 +75,9 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     /**
      *  
      * xml name: parseFromResponse
-     * 
+     * 没有指定format的情况下才会使用parseFromResponse配置
+     * 如果指定了source，则执行代码来解析变量。如果没有指定source，但是指定了blockBegin和blockEnd，则从响应消息中截取相关信息。
+     * 如果以上配置都没有，但是配置了contains，则只要响应消息中包含此字符串，就设置为true。
      */
     private io.nop.ai.core.model.PromptOutputParseModel _parseFromResponse ;
     
@@ -141,6 +157,25 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      * 
+     * xml name: format
+     *  如果是xml，则尝试从content中解析得到XML节点。如果是json，则尝试解析得到json数据。解析中会自动忽略一些无关的输出信息。
+     */
+    
+    public io.nop.ai.core.model.PromptOutputFormat getFormat(){
+      return _format;
+    }
+
+    
+    public void setFormat(io.nop.ai.core.model.PromptOutputFormat value){
+        checkAllowChange();
+        
+        this._format = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: mandatory
      *  
      */
@@ -173,6 +208,25 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
         checkAllowChange();
         
         this._name = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: normalizer
+     *  对解析得到的value进行后处理
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getNormalizer(){
+      return _normalizer;
+    }
+
+    
+    public void setNormalizer(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._normalizer = value;
            
     }
 
@@ -218,7 +272,9 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     /**
      * 
      * xml name: parseFromResponse
-     *  
+     *  没有指定format的情况下才会使用parseFromResponse配置
+     * 如果指定了source，则执行代码来解析变量。如果没有指定source，但是指定了blockBegin和blockEnd，则从响应消息中截取相关信息。
+     * 如果以上配置都没有，但是配置了contains，则只要响应消息中包含此字符串，就设置为true。
      */
     
     public io.nop.ai.core.model.PromptOutputParseModel getParseFromResponse(){
@@ -351,8 +407,10 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
         
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("format",this.getFormat());
         out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("name",this.getName());
+        out.putNotNull("normalizer",this.getNormalizer());
         out.putNotNull("optional",this.isOptional());
         out.putNotNull("parseBeforeProcess",this.isParseBeforeProcess());
         out.putNotNull("parseFromResponse",this.getParseFromResponse());
@@ -374,8 +432,10 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
         
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
+        instance.setFormat(this.getFormat());
         instance.setMandatory(this.isMandatory());
         instance.setName(this.getName());
+        instance.setNormalizer(this.getNormalizer());
         instance.setOptional(this.isOptional());
         instance.setParseBeforeProcess(this.isParseBeforeProcess());
         instance.setParseFromResponse(this.getParseFromResponse());

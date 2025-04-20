@@ -4,30 +4,53 @@ import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.model._gen._PromptModel;
 import io.nop.ai.core.prompt.IPromptTemplate;
+import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.Guard;
+import io.nop.api.core.util.INeedInit;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.core.lang.xml.XNode;
+import io.nop.core.model.object.DynamicObject;
+import io.nop.core.reflect.bean.BeanTool;
+import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdsl.DslModelParser;
+import io.nop.xlang.xdsl.XDslKeys;
+import io.nop.xlang.xdsl.XDslValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
 import static io.nop.ai.core.AiCoreErrors.ARG_INPUT_NAME;
+import static io.nop.ai.core.AiCoreErrors.ARG_OUTPUT_NAME;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_MANDATORY_INPUT_IS_EMPTY;
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_MANDATORY_OUTPUT_IS_EMPTY;
 
-public class PromptModel extends _PromptModel implements IPromptTemplate {
+public class PromptModel extends _PromptModel implements IPromptTemplate, INeedInit {
+    static final Logger LOG = LoggerFactory.getLogger(PromptModel.class);
+
     public PromptModel() {
 
     }
 
     @Override
-    public String generatePrompt(Map<String, Object> vars) {
-        IEvalScope scope = XLang.newEvalScope(vars);
-        prepareInputs(scope);
-        return getTemplate().generateText(scope);
+    public void init() {
+        if (getOutputs() != null) {
+            for (PromptOutputModel output : getOutputs()) {
+                output.init();
+            }
+        }
     }
 
-    private void prepareInputs(IEvalScope scope) {
+    @Override
+    public IEvalScope prepareInputs(Map<String, Object> vars) {
+        IEvalScope scope = XLang.newEvalScope(vars);
         if (getInputs() != null) {
             for (PromptInputModel input : getInputs()) {
                 String name = input.getName();
@@ -50,33 +73,131 @@ public class PromptModel extends _PromptModel implements IPromptTemplate {
                 }
             }
         }
+        return scope;
+    }
+
+
+    @Override
+    public String generatePrompt(IEvalScope scope) {
+        return getTemplate().generateText(scope);
     }
 
     @Override
-    public void processChatResponse(AiChatResponse chatResponse) {
-        parseOutputs(chatResponse, true);
+    public void processChatResponse(AiChatResponse chatResponse, IEvalScope scope) {
+        if (this.getEndResponseMarker() != null) {
+            chatResponse.checkAndRemoveEndLine(this.getEndResponseMarker());
+        }
+
+        parseOutputs(chatResponse, true, scope);
 
         IEvalFunction fn = this.getProcessChatResponse();
         if (fn != null)
-            fn.call1(null, chatResponse, XLang.newEvalScope());
+            fn.call1(null, chatResponse, scope);
 
-        parseOutputs(chatResponse, false);
+        parseOutputs(chatResponse, false, scope);
     }
 
 
-    void parseOutputs(AiChatResponse chatResponse, boolean beforeProcess) {
+    void parseOutputs(AiChatResponse chatResponse, boolean beforeProcess, IEvalScope scope) {
         if (getOutputs() != null) {
             for (PromptOutputModel output : getOutputs()) {
+
+                if (chatResponse.isInvalid() && output.isSkipWhenResponseInvalid())
+                    continue;
+
                 if (output.isParseBeforeProcess() == beforeProcess) {
-                    if (output.getParseFromResponse() != null) {
-                        PromptOutputParseModel parseModel = output.getParseFromResponse();
-                        if (parseModel.getBlockBegin() != null && parseModel.getBlockEnd() != null) {
-                            chatResponse.parseBlock()
-                        }
-                    }
+                    Object value = parseOutput(chatResponse, output, scope);
+                    chatResponse.setOutput(output.getName(), value);
                 }
             }
         }
+    }
+
+    protected Object parseOutput(AiChatResponse chatResponse, PromptOutputModel output, IEvalScope scope) {
+        Object value;
+        if (output.getFormat() == PromptOutputFormat.xml) {
+            value = chatResponse.parseXmlContent();
+        } else if (output.getFormat() == PromptOutputFormat.json) {
+            value = chatResponse.parseJsonContent();
+        } else {
+            PromptOutputParseModel parseModel = output.getParseFromResponse();
+            Guard.notNull(parseModel, "parseFromResponse");
+
+            if (parseModel.getParser() != null) {
+                value = parseModel.getParser().call1(null, chatResponse, scope);
+            } else if (parseModel.getBlockBegin() != null && parseModel.getBlockEnd() != null) {
+                value = chatResponse.getBlock(parseModel.getBlockBegin(), parseModel.getBlockEnd(),
+                        parseModel.isBeginBlockOptional(), output.isOptional());
+                if (parseModel.isIncludeBlockBegin() || parseModel.isIncludeBlockEnd()) {
+                    value = (parseModel.isIncludeBlockBegin() ? parseModel.getBlockBegin() : "")
+                            + value + (parseModel.isIncludeBlockEnd() ? parseModel.getBlockEnd() : "");
+                }
+            } else if (parseModel.getContains() != null) {
+                value = chatResponse.contentContains(parseModel.getContains());
+            } else {
+                throw new IllegalArgumentException("unsupported parseFromResponse: " + parseModel);
+            }
+        }
+
+        return validateValue(chatResponse, output, value, scope);
+    }
+
+    protected Object validateValue(AiChatResponse chatResponse, PromptOutputModel output, Object value, IEvalScope scope) {
+        try {
+            if (output.getNormalizer() != null) {
+                value = output.getNormalizer().call2(null, value, chatResponse, scope);
+            }
+            if (output.getType() != null) {
+                if (value instanceof XNode) {
+                    XNode node = (XNode) value;
+
+                    if (output.getXdefObj() != null) {
+                        new XDslValidator(XDslKeys.DEFAULT).removeUnknownAttrs(true).validate(node, output.getXdefObj(), true);
+                    }
+
+                    if (output.getType() == PredefinedGenericTypes.STRING_TYPE) {
+                        value = node.html();
+                    } else if (output.getType().isMapLike()) {
+                        value = transformNodeToMap(node, output);
+                    } else {
+                        value = transformNodeToMap(node, output);
+                        value = BeanTool.castBeanToType(value, output.getType());
+                    }
+                } else if (output.getType() == PredefinedGenericTypes.STRING_TYPE) {
+                    value = JsonTool.serialize(value, true);
+                } else {
+                    value = BeanTool.castBeanToType(value, output.getType());
+                }
+            }
+        } catch (Exception e) {
+            LOG.info("nop.err.ai.parse-output-failed:name={},value={}", output.getName(), value, e);
+            if (!chatResponse.isInvalid()) {
+                ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(null, e);
+                chatResponse.setInvalid(true);
+                chatResponse.setInvalidReason(errorBean);
+            }
+        }
+
+        if (output.isMandatory() && StringHelper.isEmptyObject(value)) {
+            LOG.info("nop.err.ai.mandatory-output-value-is-empty:name={}", output.getName());
+            if (!chatResponse.isInvalid()) {
+                chatResponse.setInvalid(true);
+                ErrorBean errorBean = new ErrorBean(ERR_AI_MANDATORY_OUTPUT_IS_EMPTY.getErrorCode())
+                        .param(ARG_OUTPUT_NAME, output.getName());
+                chatResponse.setInvalidReason(errorBean);
+            }
+        }
+
+        return value;
+    }
+
+    protected Map<String, Object> transformNodeToMap(XNode node, PromptOutputModel output) {
+        IXDefinition xdef = output.getXdefObj();
+        if (xdef == null)
+            return (Map<String, Object>) node.toXJson();
+
+        DynamicObject obj = (DynamicObject) new DslModelParser().ignoreUnknown(true).parseWithXDef(xdef, node);
+        return (Map<String, Object>) JsonTool.serializeToJson(obj);
     }
 
     @Override

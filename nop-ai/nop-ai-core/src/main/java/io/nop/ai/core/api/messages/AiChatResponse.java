@@ -18,29 +18,35 @@ package io.nop.ai.core.api.messages;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.ai.core.api.support.Metadata;
+import io.nop.ai.core.response.JsonResponseParser;
+import io.nop.ai.core.response.XmlResponseParser;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.NopRebuildException;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.xml.XNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.nop.ai.core.AiCoreErrors.ARG_BLOCK_BEGIN;
+import static io.nop.ai.core.AiCoreErrors.ARG_BLOCK_END;
 import static io.nop.ai.core.AiCoreErrors.ARG_CONTENT;
 import static io.nop.ai.core.AiCoreErrors.ARG_EXPECTED;
 import static io.nop.ai.core.AiCoreErrors.ARG_LINE;
-import static io.nop.ai.core.AiCoreErrors.ARG_NAME;
-import static io.nop.ai.core.AiCoreErrors.ARG_VALUE;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_INVALID_RESPONSE;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_INVALID_END_LINE;
-import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_INVALID_NUMBER;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_NO_EXPECTED_PART;
 import static io.nop.ai.core.commons.debug.DebugMessageHelper.collectDebugText;
 
 @DataBean
 public class AiChatResponse extends Metadata {
+    static final Logger LOG = LoggerFactory.getLogger(AiChatResponse.class);
+
     /**
      * 此次消息所对应的prompt
      */
@@ -275,6 +281,8 @@ public class AiChatResponse extends Metadata {
     public boolean checkAndRemoveEndLine(String expected) {
         String content = getContent();
         if (StringHelper.isEmpty(content)) {
+            LOG.debug("nop.err.ai.content-is-empty");
+
             invalidReason = new ErrorBean(ERR_AI_RESULT_IS_EMPTY.getErrorCode());
             setInvalid(true);
             return false;
@@ -284,6 +292,8 @@ public class AiChatResponse extends Metadata {
             pos = content.lastIndexOf('\n', pos - 1);
         }
         if (pos < 0) {
+            LOG.debug("nop.err.ai.missing-expected-line:{}", expected);
+
             invalidReason = new ErrorBean(ERR_AI_RESULT_INVALID_END_LINE.getErrorCode())
                     .param(ARG_EXPECTED, expected).param(ARG_LINE, "");
             setInvalid(true);
@@ -292,6 +302,8 @@ public class AiChatResponse extends Metadata {
 
         String endLine = content.substring(pos + 1).trim();
         if (!endLine.equals(expected.trim())) {
+            LOG.debug("nop.err.ai.end-line-not-match:expected={},endLine={}", expected, endLine);
+
             invalidReason = new ErrorBean(ERR_AI_RESULT_INVALID_END_LINE.getErrorCode())
                     .param(ARG_EXPECTED, expected)
                     .param(ARG_LINE, endLine);
@@ -311,12 +323,25 @@ public class AiChatResponse extends Metadata {
         return getBlock(blockBegin, blockEnd, optionalBegin, false);
     }
 
+    public String parseContentBlock(String blockBegin, String blockEnd, boolean optionalBegin, boolean optional) {
+        String block = getBlock(blockBegin, blockEnd, optionalBegin, optional);
+        if (block != null) {
+            setContent(block);
+        }
+        return block;
+    }
+
     public String getBlock(String blockBegin, String blockEnd, boolean optionalBegin, boolean optional) {
         String content = getContent();
         if (StringHelper.isEmpty(content)) {
             if (optional)
                 return null;
-            invalidReason = new ErrorBean(ERR_AI_RESULT_IS_EMPTY.getErrorCode());
+
+            LOG.debug("nop.err.ai.content-is-empty-when-get-block");
+
+            invalidReason = new ErrorBean(ERR_AI_RESULT_IS_EMPTY.getErrorCode())
+                    .param(ARG_BLOCK_BEGIN, blockBegin)
+                    .param(ARG_BLOCK_END, blockEnd);
             setInvalid(true);
             return null;
         }
@@ -326,6 +351,8 @@ public class AiChatResponse extends Metadata {
             if (optional)
                 return null;
             if (!optionalBegin) {
+                LOG.debug("nop.err.ai.missing-block-begin:{}", blockBegin);
+
                 invalidReason = new ErrorBean(ERR_AI_RESULT_NO_EXPECTED_PART.getErrorCode())
                         .param(ARG_EXPECTED, blockBegin);
                 setInvalid(true);
@@ -339,6 +366,8 @@ public class AiChatResponse extends Metadata {
         if (markPos2 == null) {
             if (optional)
                 return null;
+            LOG.debug("nop.err.ai.missing-block-end:{}", blockEnd);
+
             invalidReason = new ErrorBean(ERR_AI_RESULT_NO_EXPECTED_PART.getErrorCode())
                     .param(ARG_EXPECTED, blockEnd);
             setInvalid(true);
@@ -390,59 +419,26 @@ public class AiChatResponse extends Metadata {
         return null;
     }
 
-    public Number requireNumberBlock(String name, String blockBegin, String blockEnd) {
-        return getNumberBlock(name, blockBegin, blockEnd, false);
+    public boolean contentContains(String str) {
+        String content = getContent();
+        if (content == null)
+            return false;
+        return content.contains(str);
     }
 
-    public Number getNumberBlock(String name, String blockBegin, String blockEnd, boolean optional) {
-        String block = getBlock(blockBegin, blockEnd, false, optional);
-        if (block == null)
+    public XNode parseXmlContent() {
+        String content = getContent();
+        if (StringHelper.isEmpty(content))
             return null;
-        Number num = StringHelper.tryParseNumber(block);
-        if (num == null) {
-            if (optional)
-                return null;
 
-            setInvalid(true);
-            invalidReason = new ErrorBean(ERR_AI_RESULT_INVALID_NUMBER.getErrorCode())
-                    .param(ARG_NAME, name)
-                    .param(ARG_VALUE, block);
+        return new XmlResponseParser().parseResponse(content);
+    }
+
+    public Map<String, Object> parseJsonContent() {
+        String content = getContent();
+        if (StringHelper.isEmpty(content))
             return null;
-        }
-        return num;
-    }
-
-    public Object parseBlock(String name, String blockBegin, String blockEnd) {
-        return parseBlock(name, blockBegin, blockEnd, false, false);
-    }
-
-    public Object parseBlock(String name, String blockBegin, String blockEnd, boolean optionalBegin, boolean optional) {
-        Object value = getBlock(blockBegin, blockEnd, optionalBegin, optional);
-        if (value != null)
-            setOutput(name, value);
-        return value;
-    }
-
-    public Number parseNumberBlock(String name, String blockBegin, String blockEnd) {
-        return parseNumberBlock(name, blockBegin, blockEnd, false);
-    }
-
-    public Number parseNumberBlock(String name, String blockBegin, String blockEnd, boolean optional) {
-        Number value = getNumberBlock(name, blockBegin, blockEnd, optional);
-        if (value != null)
-            setOutput(name, value);
-        return value;
-    }
-
-    public String parseContentBlock(String blockBegin, String blockEnd, boolean optionalBegin, boolean optional) {
-        String content = getBlock(blockBegin, blockEnd, optionalBegin, optional);
-        if (content != null)
-            setContent(content);
-        return content;
-    }
-
-    public String parseContentBlock(String blockBegin, String blockEnd) {
-        return parseContentBlock(blockBegin, blockEnd, false, false);
+        return new JsonResponseParser().parseResponse(content);
     }
 
     @Override

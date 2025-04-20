@@ -22,6 +22,9 @@ public interface AiCoreErrors {
     String ARG_INPUT_NAME = "inputName";
     String ARG_OUTPUT_NAME = "outputName";
 
+    String ARG_BLOCK_BEGIN = "blockBegin";
+    String ARG_BLOCK_END = "blockEnd";
+
     ErrorCode ERR_AI_SERVICE_NO_DEFAULT_LLMS =
             define("nop.err.ai.service.no-default-llms", "没有指定调用的大语言模型，也没有配置nop.ai.service.default-llm来指定缺省的大语言模型");
 

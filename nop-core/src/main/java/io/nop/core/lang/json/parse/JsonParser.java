@@ -40,6 +40,7 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
     private boolean strictMode = false;
     private boolean keepComment = false;
     private boolean intern = false;
+    private boolean checkEndAfterParse = true;
     private IJsonHandler handler;
 
     protected void incParseDepth(TextScanner sc) {
@@ -94,6 +95,11 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
         return this;
     }
 
+    public JsonParser checkEndAfterParse(boolean checkEndAfterParse) {
+        this.checkEndAfterParse = checkEndAfterParse;
+        return this;
+    }
+
     protected Object doParse(SourceLocation loc, ICharReader reader) {
         TextScanner sc = TextScanner.fromReader(loc, reader);
         return parseJsonDoc(sc);
@@ -116,7 +122,8 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
             default:
                 handler.value(sc.location(), parseLiteral(sc));
         }
-        if (!sc.isEnd())
+
+        if (checkEndAfterParse && !sc.isEnd())
             throw sc.newError(ERR_JSON_DOC_NOT_END_PROPERLY);
         return handler.endDoc();
     }

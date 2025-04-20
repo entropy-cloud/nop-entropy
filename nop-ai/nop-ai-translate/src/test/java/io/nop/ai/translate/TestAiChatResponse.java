@@ -9,15 +9,17 @@ import java.io.File;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestAiChatResponse extends BaseTestCase {
     @Test
-    public void testChatResponse(){
+    public void testChatResponse() {
         File file = getTestResourceFile("data/translate-result1.md");
         List<AiChatResponse> list = DebugMessageHelper.parseDebugFile(file);
         AiChatResponse response = list.get(0);
-        response.parseContentBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>",true, false);
+        String result = response.getBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>", true, false);
+        assertNotNull(result);
         assertTrue(response.isValid());
         assertFalse(response.getContent().contains("<TRANSLATE_RESULT>"));
     }

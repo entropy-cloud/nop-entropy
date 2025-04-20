@@ -1,0 +1,4 @@
+locale: zh-CN
+options:
+  - value: generic-type
+    label: Java泛型类型

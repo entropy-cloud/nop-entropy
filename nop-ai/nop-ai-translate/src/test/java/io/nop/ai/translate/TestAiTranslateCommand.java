@@ -94,7 +94,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         String text = FileHelper.readText(file, null);
         AiChatResponse response = new AiChatResponse();
         response.setContent(text);
-        response.parseContentBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>", true, false);
+        response.getBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>", true, false);
     }
 
     @Test

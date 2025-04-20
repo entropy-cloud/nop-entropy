@@ -18,13 +18,6 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
-     * xml name: checkAndRemoveLine
-     * 
-     */
-    private java.lang.String _checkAndRemoveLine ;
-    
-    /**
-     *  
      * xml name: defaultChatOptions
      * 
      */
@@ -46,6 +39,14 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: endResponseMarker
+     * 用于标记整个输出结束的标记，必须以这个字符串为结尾才是合法输出。最终结果会自动删除这个标记
+     * 通过额外增加一些特殊的标记提示，可以简化结果解析并识别AI输出质量。如果不能严格按照格式要求输出，则往往质量不高。
+     */
+    private java.lang.String _endResponseMarker ;
+    
+    /**
+     *  
      * xml name: inputs
      * 
      */
@@ -63,7 +64,6 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
      * xml name: processChatResponse
      * 执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
      * 这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
-     * 比如Prompt中可以额外增加一些特殊的标记提示，用于简化结果解析，在processChatResponse中自动识别这些标记并做处理。
      */
     private io.nop.core.lang.eval.IEvalFunction _processChatResponse ;
     
@@ -73,25 +73,6 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
      * 通过xpl模板语言生成prompt，可以利用xpl的扩展能力实现Prompt的结构化抽象
      */
     private io.nop.core.resource.tpl.ITextTemplateOutput _template ;
-    
-    /**
-     * 
-     * xml name: checkAndRemoveLine
-     *  
-     */
-    
-    public java.lang.String getCheckAndRemoveLine(){
-      return _checkAndRemoveLine;
-    }
-
-    
-    public void setCheckAndRemoveLine(java.lang.String value){
-        checkAllowChange();
-        
-        this._checkAndRemoveLine = value;
-           
-    }
-
     
     /**
      * 
@@ -146,6 +127,26 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._displayName = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: endResponseMarker
+     *  用于标记整个输出结束的标记，必须以这个字符串为结尾才是合法输出。最终结果会自动删除这个标记
+     * 通过额外增加一些特殊的标记提示，可以简化结果解析并识别AI输出质量。如果不能严格按照格式要求输出，则往往质量不高。
+     */
+    
+    public java.lang.String getEndResponseMarker(){
+      return _endResponseMarker;
+    }
+
+    
+    public void setEndResponseMarker(java.lang.String value){
+        checkAllowChange();
+        
+        this._endResponseMarker = value;
            
     }
 
@@ -245,7 +246,6 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
      * xml name: processChatResponse
      *  执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
      * 这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
-     * 比如Prompt中可以额外增加一些特殊的标记提示，用于简化结果解析，在processChatResponse中自动识别这些标记并做处理。
      */
     
     public io.nop.core.lang.eval.IEvalFunction getProcessChatResponse(){
@@ -301,10 +301,10 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("checkAndRemoveLine",this.getCheckAndRemoveLine());
         out.putNotNull("defaultChatOptions",this.getDefaultChatOptions());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("endResponseMarker",this.getEndResponseMarker());
         out.putNotNull("inputs",this.getInputs());
         out.putNotNull("outputs",this.getOutputs());
         out.putNotNull("processChatResponse",this.getProcessChatResponse());
@@ -320,10 +320,10 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     protected void copyTo(PromptModel instance){
         super.copyTo(instance);
         
-        instance.setCheckAndRemoveLine(this.getCheckAndRemoveLine());
         instance.setDefaultChatOptions(this.getDefaultChatOptions());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
+        instance.setEndResponseMarker(this.getEndResponseMarker());
         instance.setInputs(this.getInputs());
         instance.setOutputs(this.getOutputs());
         instance.setProcessChatResponse(this.getProcessChatResponse());

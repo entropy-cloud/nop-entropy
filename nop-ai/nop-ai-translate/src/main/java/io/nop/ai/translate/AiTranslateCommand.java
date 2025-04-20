@@ -358,7 +358,7 @@ public class AiTranslateCommand extends AiCommand {
 
         if (StringHelper.isBlank(text)) {
             AiChatResponse response = new AiChatResponse();
-            Prompt prompt = newPrompt(vars);
+            Prompt prompt = newPrompt(prepareInputs(vars));
             response.setPrompt(prompt);
             response.setContent(text);
             return FutureHelper.success(response);

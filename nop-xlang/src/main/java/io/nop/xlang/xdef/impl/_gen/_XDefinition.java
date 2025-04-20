@@ -19,6 +19,13 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
     
     /**
      *  
+     * xml name: xdef:allow-unknown-std-domain
+     * 
+     */
+    private java.lang.Boolean _xdefAllowUnknownStdDomain ;
+    
+    /**
+     *  
      * xml name: xdef:base
      * 本文件所对应的基础约束，用于识别当前xdef文件是否从某个基础元模型衍生得到
      */
@@ -125,6 +132,25 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
      * 
      */
     private java.lang.String _xdefVersion ;
+    
+    /**
+     * 
+     * xml name: xdef:allow-unknown-std-domain
+     *  
+     */
+    
+    public java.lang.Boolean getXdefAllowUnknownStdDomain(){
+      return _xdefAllowUnknownStdDomain;
+    }
+
+    
+    public void setXdefAllowUnknownStdDomain(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._xdefAllowUnknownStdDomain = value;
+           
+    }
+
     
     /**
      * 
@@ -430,6 +456,7 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("xdefAllowUnknownStdDomain",this.getXdefAllowUnknownStdDomain());
         out.putNotNull("xdefBase",this.getXdefBase());
         out.putNotNull("xdefBeanPackage",this.getXdefBeanPackage());
         out.putNotNull("xdefCheckNs",this.getXdefCheckNs());
@@ -456,6 +483,7 @@ public abstract class _XDefinition extends io.nop.xlang.xdef.impl.XDefNode {
     protected void copyTo(XDefinition instance){
         super.copyTo(instance);
         
+        instance.setXdefAllowUnknownStdDomain(this.getXdefAllowUnknownStdDomain());
         instance.setXdefBase(this.getXdefBase());
         instance.setXdefBeanPackage(this.getXdefBeanPackage());
         instance.setXdefCheckNs(this.getXdefCheckNs());
