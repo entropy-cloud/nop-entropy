@@ -666,6 +666,18 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return attributes;
     }
 
+    public XNode singleNode() {
+        if (!isDummyNode())
+            return this;
+        if (!hasChild())
+            return null;
+
+        if (getChildCount() > 1)
+            throw new IllegalStateException("node not allow multiple children:" + this);
+        XNode child = child(0);
+        return child;
+    }
+
     public XNode clearChildren() {
         checkNotReadOnly();
 

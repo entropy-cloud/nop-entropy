@@ -37,7 +37,7 @@
             <description>string</description>
             <schema xdef:ref="../schema/schema.xdef"/>
 
-            <xdef>xml</xdef>
+            <xdef>string</xdef>
             <xdefPath>v-path</xdefPath>
 
             <!--

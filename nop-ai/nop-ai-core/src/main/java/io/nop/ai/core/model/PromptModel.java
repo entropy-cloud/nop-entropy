@@ -1,5 +1,6 @@
 package io.nop.ai.core.model;
 
+import io.nop.ai.core.AiCoreConstants;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.model._gen._PromptModel;
@@ -51,6 +52,8 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
     @Override
     public IEvalScope prepareInputs(Map<String, Object> vars) {
         IEvalScope scope = XLang.newEvalScope(vars);
+        scope.setLocalValue(AiCoreConstants.VAR_PROMPT_MODEL, this);
+
         if (getInputs() != null) {
             for (PromptInputModel input : getInputs()) {
                 String name = input.getName();
@@ -147,13 +150,17 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
             if (output.getNormalizer() != null) {
                 value = output.getNormalizer().call2(null, value, chatResponse, scope);
             }
+
+            if (value instanceof XNode) {
+                XNode node = (XNode) value;
+                if (output.getXdefObj() != null) {
+                    new XDslValidator(XDslKeys.DEFAULT).removeUnknownAttrs(true).validate(node, output.getXdefObj(), true);
+                }
+            }
+
             if (output.getType() != null) {
                 if (value instanceof XNode) {
                     XNode node = (XNode) value;
-
-                    if (output.getXdefObj() != null) {
-                        new XDslValidator(XDslKeys.DEFAULT).removeUnknownAttrs(true).validate(node, output.getXdefObj(), true);
-                    }
 
                     if (output.getType() == PredefinedGenericTypes.STRING_TYPE) {
                         value = node.html();

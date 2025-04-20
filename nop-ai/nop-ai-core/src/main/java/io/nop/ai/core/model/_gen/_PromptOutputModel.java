@@ -108,7 +108,7 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
      * xml name: xdef
      * 
      */
-    private io.nop.core.lang.xml.XNode _xdef ;
+    private java.lang.String _xdef ;
     
     /**
      *  
@@ -354,12 +354,12 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
      *  
      */
     
-    public io.nop.core.lang.xml.XNode getXdef(){
+    public java.lang.String getXdef(){
       return _xdef;
     }
 
     
-    public void setXdef(io.nop.core.lang.xml.XNode value){
+    public void setXdef(java.lang.String value){
         checkAllowChange();
         
         this._xdef = value;
