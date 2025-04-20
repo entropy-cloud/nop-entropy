@@ -105,13 +105,6 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      *  
-     * xml name: xdef
-     * 
-     */
-    private java.lang.String _xdef ;
-    
-    /**
-     *  
      * xml name: xdefPath
      * 
      */
@@ -350,25 +343,6 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      * 
-     * xml name: xdef
-     *  
-     */
-    
-    public java.lang.String getXdef(){
-      return _xdef;
-    }
-
-    
-    public void setXdef(java.lang.String value){
-        checkAllowChange();
-        
-        this._xdef = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: xdefPath
      *  
      */
@@ -417,7 +391,6 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
         out.putNotNull("schema",this.getSchema());
         out.putNotNull("skipWhenResponseInvalid",this.isSkipWhenResponseInvalid());
         out.putNotNull("type",this.getType());
-        out.putNotNull("xdef",this.getXdef());
         out.putNotNull("xdefPath",this.getXdefPath());
     }
 
@@ -442,7 +415,6 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
         instance.setSchema(this.getSchema());
         instance.setSkipWhenResponseInvalid(this.isSkipWhenResponseInvalid());
         instance.setType(this.getType());
-        instance.setXdef(this.getXdef());
         instance.setXdefPath(this.getXdefPath());
     }
 

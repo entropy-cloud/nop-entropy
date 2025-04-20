@@ -1,0 +1,14 @@
+<orm x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+     xmlns:orm="orm">
+    <entities xdef:body-type="list" xdef:key-attr="name">
+        <entity name="!english" displayName="chinese">
+            <comment>description</comment>
+            <columns xdef:body-type="list" xdef:key-attr="name">
+                <column name="!english" displayName="chinese" mandatory="boolean" primary="boolean"
+                        stdDomain="std-domain"
+                        sqlType="!sql-type" precision="int" scale="int" orm:ref-table="table-name"
+                        orm:ref-prop="parent-to-children-prop" orm:ref-prop-display-name="chinese"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>
