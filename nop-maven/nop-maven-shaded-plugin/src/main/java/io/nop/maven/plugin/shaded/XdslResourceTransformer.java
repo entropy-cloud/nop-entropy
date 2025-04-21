@@ -19,9 +19,11 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.ByteArrayResource;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.parse.GenericTypeParser;
-import io.nop.xlang.xdef.*;
-import io.nop.xlang.xdef.domain.GenericTypeDomainOptions;
-import io.nop.xlang.xdef.domain.StdDomainRegistry;
+import io.nop.xlang.xdef.IXDefAttribute;
+import io.nop.xlang.xdef.IXDefNode;
+import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdef.XDefConstants;
+import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xdsl.XDslParseHelper;
 import io.nop.xlang.xmeta.SchemaLoader;
@@ -34,7 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 public class XdslResourceTransformer extends AbstractResourceTransformer {
-    private final List<String> FILE_TYPES = List.of("xmeta", "xdef", "xwf", "xlib", "xpl", "xgen", "xrun","xbiz");
+    private final List<String> FILE_TYPES = List.of("xmeta", "xdef", "xwf", "xlib", "xpl", "xgen", "xrun", "xbiz");
 
     static {
         CoreInitialization.initialize();
@@ -70,11 +72,11 @@ public class XdslResourceTransformer extends AbstractResourceTransformer {
         }
 
         String fileType = StringHelper.fileExt(path);
-        if(isXplFile(fileType)){
-            node.forEachNode(child->{
-                processXplNode(child,relocatorList);
+        if (isXplFile(fileType)) {
+            node.forEachNode(child -> {
+                processXplNode(child, relocatorList);
             });
-            saveNode(path,node);
+            saveNode(path, node);
             return;
         }
 
@@ -150,9 +152,9 @@ public class XdslResourceTransformer extends AbstractResourceTransformer {
                         throw e;
                     }
                 } else if (isDefType(stdDomain)) {
-                    XDefTypeDecl decl = XDslParseHelper.parseAttrDefType(node, name,);
-                    if (XDefConstants.STD_DOMAIN_ENUM.equals(decl.getStdDomain()) && decl.getOptions() instanceof GenericTypeDomainOptions) {
-                        String typeName = ((GenericTypeDomainOptions) decl.getOptions()).getTypeName();
+                    XDefTypeDecl decl = XDslParseHelper.parseAttrDefType(node, name);
+                    if (XDefConstants.STD_DOMAIN_ENUM.equals(decl.getStdDomain()) && decl.getOptions() != null) {
+                        String typeName = decl.getOptions();
                         String relocated = relocate(typeName, relocatorList);
                         entry.setValue(ValueWithLocation.of(null, "enum:" + relocated));
                     }
@@ -260,12 +262,5 @@ public class XdslResourceTransformer extends AbstractResourceTransformer {
 
     boolean isXplType(String stdDomain) {
         return stdDomain.equals("xml") || stdDomain.equals("xpl") || stdDomain.startsWith("xpl-");
-    }
-
-    IStdDomainHandler getStdDomainHandler(String stdDomain){
-        IStdDomainHandler handler = StdDomainRegistry.instance().getStdDomainHandler(stdDomain);
-        if(handler == null){
-            handler = new
-        }
     }
 }
