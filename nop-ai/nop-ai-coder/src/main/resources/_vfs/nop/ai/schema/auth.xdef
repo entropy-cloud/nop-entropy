@@ -1,0 +1,20 @@
+<auth>
+    <site x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+          xmlns:xdef="/nop/schema/xdef.xdef" xmlns:app="app">
+
+        <resource id="!unique-english" displayName="!chinese" icon="awesome-font" xdef:unique-attr="id"
+                  routePath="unique-module-path">
+            <children xdef:body-type="list" xdef:key-attr="id">
+                <resource id="!unique-page-id" displayName="!chinese" icon="awesome-font"
+                          app:entityName="entity-name" app:pageName="string" role="role-csv-set">
+                </resource>
+            </children>
+        </resource>
+    </site>
+
+    <roles>
+        <role name="!string" displayName="chinese">
+            <description>string</description>
+        </role>
+    </roles>
+</auth>

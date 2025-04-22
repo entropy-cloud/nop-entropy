@@ -643,7 +643,7 @@ public class XDefinitionParser extends AbstractDslParser<XDefinition> {
         if (!node.hasChild())
             return Collections.emptyMap();
 
-        Map<String, XDefNode> children = new HashMap<>();
+        Map<String, XDefNode> children = new LinkedHashMap<>();
         node.forEachChild(child -> {
             String name = child.getTagName();
             if (StringHelper.startsWithNamespace(name, keys.NS)) {

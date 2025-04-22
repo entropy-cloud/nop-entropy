@@ -5,6 +5,7 @@ template: |
   【要求】
    1. 不需要考虑User, Role，权限管理，页面资源等公共表。
    2. 返回全部的表定义，不仅仅是返回新增的表。
+   3. 所有ext:dict都在dicts集合中定义，status等字段应该使用dict。
   
   
   【表定义】
@@ -14,7 +15,7 @@ template: |
   ```
   
   【需求描述】
-   ${requirements}
+  ${requirements}
 
 outputs:
   - name: noChange

@@ -1,5 +1,7 @@
 package io.nop.ai.coder;
 
+import io.nop.ai.coder.orm.AiOrmConfig;
+import io.nop.ai.coder.orm.AiOrmModelNormalizer;
 import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.model.PromptModel;
 import io.nop.core.initialize.CoreInitialization;
@@ -7,6 +9,9 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.unittest.BaseTestCase;
+import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.OrmModel;
+import io.nop.xlang.xdsl.DslModelParser;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -93,5 +98,61 @@ public class TestAiCoder extends BaseTestCase {
         assertTrue(response.isValid());
         assertNull(response.getOutput("RESULT"));
         assertEquals(true, response.getOutput("noChange"));
+    }
+
+    @Test
+    public void testMenuDesign() {
+        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/menu-design.prompt.yaml");
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("ormModelText", attachmentText("output-orm-design.xml"));
+        vars.put("requirements", attachmentText("response-refine-requirements.md"));
+
+        IEvalScope scope = promptModel.prepareInputs(vars);
+        String prompt = promptModel.generatePrompt(scope);
+        System.out.println(prompt);
+        assertEquals(normalizeCRLF(attachmentText("prompt-menu-design.md").trim()), normalizeCRLF(prompt.trim()));
+
+        AiChatResponse response = new AiChatResponse();
+        String content = attachmentText("response-menu-design.md");
+        response.setContent(content);
+        promptModel.processChatResponse(response, scope);
+
+        assertTrue(response.isValid());
+        XNode node = (XNode) response.getOutput("RESULT");
+        node.dump();
+    }
+
+    @Test
+    public void testExtractEntityRequirements() {
+        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/extract-entity-requirements.prompt.yaml");
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("requirements", attachmentText("response-refine-requirements.md"));
+        vars.put("entityName", "StockIn");
+
+        IEvalScope scope = promptModel.prepareInputs(vars);
+        String prompt = promptModel.generatePrompt(scope);
+        System.out.println(prompt);
+        assertEquals(normalizeCRLF(attachmentText("prompt-extract-entity-requirements.md").trim()), normalizeCRLF(prompt.trim()));
+    }
+
+    @Test
+    public void testFormDesign() {
+        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/form-design.prompt.yaml");
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("requirements", attachmentText("response-extract-entity-requirements.md"));
+
+        XNode node = attachmentXml("output-orm-design.xml");
+        AiOrmConfig config = new AiOrmConfig();
+        config.setBasePackageName("app");
+        new AiOrmModelNormalizer().normalizeOrm(node, config);
+
+        OrmModel ormModel = (OrmModel) new DslModelParser().parseFromNode(node);
+        IEntityModel entityModel = ormModel.requireEntityModel("StockIn");
+        vars.put("entityModel", entityModel);
+
+        IEvalScope scope = promptModel.prepareInputs(vars);
+        String prompt = promptModel.generatePrompt(scope);
+        System.out.println(prompt);
+        assertEquals(normalizeCRLF(attachmentText("prompt-form-design.md").trim()), normalizeCRLF(prompt.trim()));
     }
 }

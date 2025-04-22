@@ -47,14 +47,15 @@ public class AiOrmModelNormalizer {
         String entityName = entity.attrText("name");
         String code = StringHelper.camelCaseToUnderscore(StringHelper.firstPart(entityName, '.'), true);
         entity.setAttr("tableName", code);
+        entity.setAttr("registerShortName",true);
 
         String name = StringHelper.camelCase(code, true);
-        entity.setAttr("name", name);
         if (StringHelper.isEmpty(entity.attrText("displayName")))
             entity.setAttr("displayName", name);
 
-        String className = StringHelper.simpleClassName(name);
-        entity.setAttr("className", StringHelper.fullClassName(className, config.getBasePackageName()));
+        String className = StringHelper.fullClassName(StringHelper.simpleClassName(name), config.getBasePackageName());
+        entity.setAttr("className", className);
+        entity.setAttr("name", className);
 
         XNode columns = entity.makeChild("columns");
         int nextId = 1;
@@ -106,6 +107,7 @@ public class AiOrmModelNormalizer {
         String code = StringHelper.camelCaseToUnderscore(colName, false);
         String name = StringHelper.camelCase(code, false);
         String sqlType = col.attrText("sqlType");
+        col.removeAttr("sqlType");
         if (!StringHelper.isEmpty(sqlType)) {
             sqlType = sqlType.trim().toUpperCase();
             sqlType = StringHelper.replace(sqlType, " AUTO_INCREMENT", "");

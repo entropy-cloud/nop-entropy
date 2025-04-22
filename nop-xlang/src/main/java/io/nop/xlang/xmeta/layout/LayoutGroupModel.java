@@ -59,6 +59,10 @@ public class LayoutGroupModel extends BaseCell implements ILayoutGroupModel, ILa
         table.display(sb, !isFirstRealCell(), !isLastRealCell(), indent);
     }
 
+    public List<LayoutCellModel> getAllCells() {
+        return table.getAllCells();
+    }
+
     public boolean isFirstRealCell() {
         IRow row = getRow();
         if (row == null)
@@ -80,7 +84,7 @@ public class LayoutGroupModel extends BaseCell implements ILayoutGroupModel, ILa
 
     @JsonIgnore
     public String getId() {
-        if(table == null)
+        if (table == null)
             return null;
         return table.getId();
     }

@@ -37,6 +37,7 @@ public class TestLayoutModelParser extends BaseTestCase {
         System.out.println(model.toString());
         String str = model.toString();
         assertEquals(str, parse(str).toString());
+        System.out.println(JsonTool.serialize(model,true));
 
         assertEquals(1, model.getGroups().size());
         assertEquals(2, model.getGroups().get(0).getRowCount());

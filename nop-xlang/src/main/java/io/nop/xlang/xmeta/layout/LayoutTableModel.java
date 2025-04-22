@@ -166,6 +166,12 @@ public class LayoutTableModel extends AbstractTable<LayoutRowModel> implements I
         this.getRows().add(row);
     }
 
+    public List<LayoutCellModel> getAllCells() {
+        List<LayoutCellModel> ret = new ArrayList<>();
+        forEachLayoutCell(ret::add);
+        return ret;
+    }
+
     public void forEachLayoutCell(Consumer<LayoutCellModel> action) {
         for (IRow row : getRows()) {
             for (ICell cell : row.getCells()) {

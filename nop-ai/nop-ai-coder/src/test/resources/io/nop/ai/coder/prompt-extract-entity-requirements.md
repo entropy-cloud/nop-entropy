@@ -1,40 +1,5 @@
-【任务目标】
-作为兼具软件技术与业务领域专业知识的专家，依据给定需求完成数据库表结构设计
-
-【具体要求】
-1. 设计范围不包含User、Role, Permission、页面资源等通用公共表
-2. 所有字段命名需严格避免与 SQL 关键字冲突
-
-【返回格式】
-返回结果采用如下XML格式
-
-```xml
-<orm>
-    <dicts>
-        <dict name="string" label="string">
-            <description>string</description>
-            <option value="upper-case-english" label="chinese" description="string"/>
-        </dict>
-    </dicts>
-    <entities>
-        <entity name="english" displayName="chinese">
-            <comment>description</comment>
-            <columns>
-                <column name="english" displayName="chinese" mandatory="boolean" primary="boolean" ext:dict="dict-name"
-                        stdDomain="std-domain" sqlType="sql-type" precision="int" scale="int" orm:ref-table="table-name"
-                        orm:ref-prop="parent-to-children-prop" orm:ref-prop-display-name="chinese"/>
-            </columns>
-        </entity>
-    </entities>
-</orm>
-```
-
-1. sql-type允许的值：VARCHAR, CHAR, DATE, TIME, DATETIME,TIMESTAMP, INT,BIGINT,DECIMAL,BOOLEAN,VARBINARY,BLOB,CLOB
-2. `orm:ref-prop`是主表上引用子表的集合属性，比如子表上的`parent_id`字段，主表上应该有`children`这样的集合属性，用于反向关联子表。 数据字典表引用场景无需设置此属性，该属性主要用于支持主表记录创建时级联提交子表记录集合
-3. 当存在`orm:ref-prop`属性的时候，需要同时设置`orm:ref-prop-display-name`
-4. std-domain的可选范围image|file|fileList|imageList。图片字段、图片地址字段对应于image， 附件字段对应于file,附件列表字段对应于fileList。
-5. ext:dict指定字段值的可选范围由字典定义。字典的名称必须在dicts集合中。status等字段应该指定ext:dict。
-6. 不需要为表增加【创建时间】等审计字段
+【设计目标】
+分析需求描述，从中抽取出与实体【StockIn】相关的部分
 
 【需求描述】
 # 食堂物资管理系统详细设计

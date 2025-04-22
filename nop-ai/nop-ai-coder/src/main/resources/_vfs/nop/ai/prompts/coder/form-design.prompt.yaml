@@ -1,2 +1,89 @@
 template: |
-  【设计目标】
+  【任务目标】
+  使用form-layout语法创建【${entityModel.displayName}】实体的详细信息页面，它能够实现【需求描述】中涉及到的实体页面
+
+  【返回格式】
+  ```xml
+  ${promptModel.getOutput('RESULT').xdefForAi}
+  ```
+  
+  1. 根据具体业务需求选择tab或者group
+  2. handler表示触发的后台业务方法名，比如resetPassword等
+  3. role-set表示角色集合，比如admin,manager等
+  
+  【form-layout格式规范】
+  1. 基础规则：
+  - `#` 表示嵌套层级深度
+  - `>cellId` 表示默认展开的可折叠区域
+  - `^cellId` 表示默认折叠的可折叠区域
+  - `!fieldName` 表示隐藏字段标签（注意符号在前）
+  
+  2. layout配置：
+  - 每行最多放置3个字段
+  - 语义相关的字段应分组显示
+  - 重要/必填字段应优先排列
+  - 所有字段必须来自下方提供的字段列表
+  - 不需要用到所有字段，无关的字段可以直接忽略（不是隐藏）
+  
+  <![CDATA[
+  【示例】
+  ```xml
+  <form>
+    <layout>
+      ===#group_main====
+      field1 field2 field3
+  
+      ===>##group_sub1==
+      field4 field5
+  
+      ===#group_second===
+      !field6
+    </layout>
+  
+    <cells>
+      <cell id="group_main" displayName="主标签">
+        <visibleOn>fieldA > fieldB</visibleOn>
+      </cell>
+    </cells>
+  </form>
+  ```
+  ]]>
+  
+  <c:script>
+  function buildPropList() {
+    const props = [...entityModel.columns, ...entityModel.toManyRelations];
+  
+    return props.map2((p,i) => (i+1)+'. '+ p.name+'['+p.displayName+']'+(p.mandatory?',必填':'')
+                   +(p.relationModel?',列表':'')).join('\n');
+  }
+  
+  function buildRoleList(){
+    return roleList.map2((role,i)=> (i+1)+'.'+ role.name + '[' + role.displayName+']').join('\n');
+  }
+  </c:script>
+  【字段列表】
+  ${buildPropList()}
+  
+  【role列表】
+  ${buildRoleList()}
+  
+  【要求】
+  1. 严格检查语法合规性
+  2. 验证所有使用字段的合法性
+  3. 避免冗余visibleOn配置
+  
+  【需求描述】
+  ${requirements}
+
+inputs:
+  - name: entityModel
+    mandatory: true
+  - name: requirements
+    mandatory: true
+  - name: roleList
+    mandatory: true
+
+outputs:
+  - name: RESULT
+    xdefPath: /nop/ai/schema/form.xdef
+    format: xml

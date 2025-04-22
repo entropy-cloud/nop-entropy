@@ -10,16 +10,22 @@
 
 ```xml
 <orm>
-    <entities>
-        <entity displayName="chinese" name="english">
-            <columns>
-                <column displayName="chinese" mandatory="boolean" name="english" orm:ref-prop="parent-to-children-prop"
-                        orm:ref-prop-display-name="chinese" orm:ref-table="table-name" precision="int" primary="boolean"
-                        scale="int" sqlType="sql-type" stdDomain="std-domain"/>
-            </columns>
-            <comment>description</comment>
-        </entity>
-    </entities>
+  <dicts>
+    <dict name="string" label="string">
+      <description>string</description>
+      <option value="upper-case-english" label="chinese" description="string"/>
+    </dict>
+  </dicts>
+  <entities>
+    <entity name="english" displayName="chinese">
+      <comment>description</comment>
+      <columns>
+        <column name="english" displayName="chinese" mandatory="boolean" primary="boolean" ext:dict="dict-name"
+                stdDomain="std-domain" sqlType="sql-type" precision="int" scale="int" orm:ref-table="table-name"
+                orm:ref-prop="parent-to-children-prop" orm:ref-prop-display-name="chinese"/>
+      </columns>
+    </entity>
+  </entities>
 </orm>
 ```
 
@@ -27,9 +33,11 @@
 2. `orm:ref-prop`是主表上引用子表的集合属性，比如子表上的`parent_id`字段，主表上应该有`children`这样的集合属性，用于反向关联子表。 数据字典表引用场景无需设置此属性，该属性主要用于支持主表记录创建时级联提交子表记录集合
 3. 当存在`orm:ref-prop`属性的时候，需要同时设置`orm:ref-prop-display-name`
 4. std-domain的可选范围image|file|fileList|imageList。图片字段、图片地址字段对应于image， 附件字段对应于file,附件列表字段对应于fileList。
+5. ext:dict指定字段值的可选范围由字典定义。字典的名称必须在dicts集合中。status等字段应该指定ext:dict。
+6. 不需要为表增加【创建时间】等审计字段
 
 【需求描述】
-  # 食堂物资管理系统详细设计
+# 食堂物资管理系统详细设计
 
 ## 角色与权限设计
 
@@ -281,4 +289,3 @@ graph LR
 
 - 日偏差率 = (实际消耗 - 理论消耗)/理论消耗
 - 连续异常偏差触发预警
-
