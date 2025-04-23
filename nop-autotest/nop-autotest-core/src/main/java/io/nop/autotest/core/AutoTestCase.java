@@ -32,6 +32,8 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.json.bind.ValueResolverCompilerRegistry;
+import io.nop.core.lang.xml.XNode;
+import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.FileResource;
@@ -268,7 +270,7 @@ public class AutoTestCase extends BaseTestCase {
         this.sqlInit = sqlInit;
     }
 
-    public void setSqlInput(boolean sqlInput){
+    public void setSqlInput(boolean sqlInput) {
         this.sqlInput = sqlInput;
     }
 
@@ -342,6 +344,11 @@ public class AutoTestCase extends BaseTestCase {
 
     public String inputText(String fileName) {
         return caseData.readText(caseData.getInputFileName(fileName, variant), null);
+    }
+
+    public XNode inputXml(String fileName) {
+        String xml = inputText(fileName);
+        return XNodeParser.instance().parseFromText(null, xml);
     }
 
     public void outputText(String fileName, String text) {

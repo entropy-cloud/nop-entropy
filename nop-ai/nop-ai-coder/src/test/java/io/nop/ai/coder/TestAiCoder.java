@@ -4,17 +4,15 @@ import io.nop.ai.coder.orm.AiOrmConfig;
 import io.nop.ai.coder.orm.AiOrmModelNormalizer;
 import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.model.PromptModel;
-import io.nop.core.initialize.CoreInitialization;
+import io.nop.api.core.annotations.autotest.EnableSnapshot;
+import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.component.ResourceComponentManager;
-import io.nop.core.unittest.BaseTestCase;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.OrmModel;
 import io.nop.xlang.xdsl.DslModelParser;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -25,54 +23,46 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestAiCoder extends BaseTestCase {
-    @BeforeAll
-    public static void init() {
-        CoreInitialization.initialize();
-    }
-
-    @AfterAll
-    public static void destroy() {
-        CoreInitialization.destroy();
-    }
+public class TestAiCoder extends JunitAutoTestCase {
 
     PromptModel loadPrompt(String promptPath) {
         PromptModel promptModel = (PromptModel) ResourceComponentManager.instance().loadComponentModel(promptPath);
         return promptModel;
     }
 
+    @EnableSnapshot
     @Test
     public void testRefineRequirements() {
         PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/refine-requirements.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
-        vars.put("requirements", attachmentText("requirements.md"));
+        vars.put("requirements", inputText("requirements.md"));
 
         IEvalScope scope = promptModel.prepareInputs(vars);
 
         String prompt = promptModel.generatePrompt(scope);
-        System.out.println(prompt);
+        outputText("prompt-refine-requirements.md", prompt);
 
         AiChatResponse response = new AiChatResponse();
-        String content = attachmentText("response-refine-requirements.md");
+        String content = inputText("response-refine-requirements.md");
         response.setContent(content);
         promptModel.processChatResponse(response, scope);
 
         System.out.println(response.getContent());
     }
 
+    @EnableSnapshot
     @Test
     public void testOrmDesign() {
         PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/orm-design.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
-        vars.put("requirements", attachmentText("response-refine-requirements.md"));
+        vars.put("requirements", inputText("response-refine-requirements.md"));
 
         IEvalScope scope = promptModel.prepareInputs(vars);
         String prompt = promptModel.generatePrompt(scope);
-        System.out.println(prompt);
-        assertEquals(normalizeCRLF(attachmentText("prompt-orm-design.md").trim()), normalizeCRLF(prompt.trim()));
+        outputText("prompt-orm-design.md", prompt);
 
         AiChatResponse response = new AiChatResponse();
-        String content = attachmentText("response-orm-design.md");
+        String content = inputText("response-orm-design.md");
         response.setContent(content);
         promptModel.processChatResponse(response, scope);
 
@@ -80,20 +70,20 @@ public class TestAiCoder extends BaseTestCase {
         node.dump();
     }
 
+    @EnableSnapshot
     @Test
     public void testRefineOrmDesign() {
         PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/refine-orm-design.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
-        vars.put("ormModelText", attachmentText("output-orm-design.xml"));
-        vars.put("requirements", attachmentText("response-refine-requirements.md"));
+        vars.put("ormModelText", inputText("output-orm-design.xml"));
+        vars.put("requirements", inputText("response-refine-requirements.md"));
 
         IEvalScope scope = promptModel.prepareInputs(vars);
         String prompt = promptModel.generatePrompt(scope);
-        System.out.println(prompt);
-        assertEquals(normalizeCRLF(attachmentText("prompt-refine-orm-design.md").trim()), normalizeCRLF(prompt.trim()));
+        outputText("prompt-refine-orm-design.md", prompt);
 
         AiChatResponse response = new AiChatResponse();
-        String content = attachmentText("response-refine-orm-design.md");
+        String content = inputText("response-refine-orm-design.md");
         response.setContent(content);
         promptModel.processChatResponse(response, scope);
 
@@ -102,20 +92,20 @@ public class TestAiCoder extends BaseTestCase {
         assertEquals(true, response.getOutput("noChange"));
     }
 
+    @EnableSnapshot
     @Test
     public void testMenuDesign() {
         PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/menu-design.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
-        vars.put("ormModelText", attachmentText("output-orm-design.xml"));
-        vars.put("requirements", attachmentText("response-refine-requirements.md"));
+        vars.put("ormModelText", inputText("output-orm-design.xml"));
+        vars.put("requirements", inputText("response-refine-requirements.md"));
 
         IEvalScope scope = promptModel.prepareInputs(vars);
         String prompt = promptModel.generatePrompt(scope);
-        System.out.println(prompt);
-        assertEquals(normalizeCRLF(attachmentText("prompt-menu-design.md").trim()), normalizeCRLF(prompt.trim()));
+        outputText("prompt-menu-design.md", prompt);
 
         AiChatResponse response = new AiChatResponse();
-        String content = attachmentText("response-menu-design.md");
+        String content = inputText("response-menu-design.md");
         response.setContent(content);
         promptModel.processChatResponse(response, scope);
 
@@ -124,26 +114,27 @@ public class TestAiCoder extends BaseTestCase {
         node.dump();
     }
 
+    @EnableSnapshot
     @Test
     public void testExtractEntityRequirements() {
         PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/extract-entity-requirements.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
-        vars.put("requirements", attachmentText("response-refine-requirements.md"));
+        vars.put("requirements", inputText("response-refine-requirements.md"));
         vars.put("entityName", "stock_operation(库存操作)");
 
         IEvalScope scope = promptModel.prepareInputs(vars);
         String prompt = promptModel.generatePrompt(scope);
-        System.out.println(prompt);
-        assertEquals(normalizeCRLF(attachmentText("prompt-extract-entity-requirements.md").trim()), normalizeCRLF(prompt.trim()));
+        outputText("prompt-extract-entity-requirements.md", prompt);
     }
 
+    @EnableSnapshot
     @Test
     public void testFormDesign() {
         PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/form-design.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
-        vars.put("requirements", attachmentText("response-extract-entity-requirements.md"));
+        vars.put("requirements", inputText("response-extract-entity-requirements.md"));
 
-        XNode node = attachmentXml("output-orm-design.xml");
+        XNode node = inputXml("output-orm-design.xml");
         AiOrmConfig config = new AiOrmConfig();
         config.setBasePackageName("app");
         new AiOrmModelNormalizer().normalizeOrm(node, config);
@@ -152,7 +143,7 @@ public class TestAiCoder extends BaseTestCase {
         IEntityModel entityModel = ormModel.requireEntityModel("StockOperation");
         vars.put("entityModel", entityModel);
 
-        XNode menuNode = attachmentXml("output-menu-design.xml");
+        XNode menuNode = inputXml("output-menu-design.xml");
         menuNode.setAttr("x:schema", "/nop/ai/schema/auth.xdef");
         Object site = new DslModelParser().parseFromNode(menuNode);
         List<Object> roleList = (List<Object>) BeanTool.getProperty(site, "roles");
@@ -160,7 +151,6 @@ public class TestAiCoder extends BaseTestCase {
 
         IEvalScope scope = promptModel.prepareInputs(vars);
         String prompt = promptModel.generatePrompt(scope);
-        System.out.println(prompt);
-        assertEquals(normalizeCRLF(attachmentText("prompt-form-design.md").trim()), normalizeCRLF(prompt.trim()));
+        outputText("prompt-form-design.md", prompt);
     }
 }
