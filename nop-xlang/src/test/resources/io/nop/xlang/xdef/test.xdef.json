@@ -1,8 +1,8 @@
 {
   "tagName": "lib",
   "xdefName": "XplTagLib",
-  "defaultOutputMode": "enum:io.nop.xlang.xpl.XplOutputMode=none",
   "displayName": "string",
+  "defaultOutputMode": "enum:io.nop.xlang.xpl.XplOutputMode=none",
   "interfaces": "generic-type-list",
   "namespace": "ns-name",
   "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagLib",
@@ -38,16 +38,16 @@
     "xdefUnknownTag": {
       "tagName": "xdef:unknown-tag",
       "xdefName": "XplTag",
-      "alias": "csv-set",
-      "attrsVar": "var-name",
-      "bodyType": "enum:io.nop.xlang.xpl.XplSlotType",
-      "deprecated": "boolean",
       "displayName": "string",
-      "macro": "boolean",
-      "outputMode": "enum:io.nop.xlang.xpl.XplOutputMode",
+      "alias": "csv-set",
       "schema": "v-path",
+      "deprecated": "boolean",
+      "macro": "boolean",
       "transformer": "v-path",
+      "bodyType": "enum:io.nop.xlang.xpl.XplSlotType",
+      "outputMode": "enum:io.nop.xlang.xpl.XplOutputMode",
       "unknownAttrsVar": "var-name",
+      "attrsVar": "var-name",
       "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTag",
       "xdefBeanTagProp": "tagName",
       "comment": {
@@ -86,19 +86,28 @@
           }
         }
       },
+      "description": {
+        "tagName": "description",
+        "xdefValue": "string"
+      },
+      "example": {
+        "tagName": "example",
+        "xdefValue": "xml",
+        "xdefSupportExtends": true
+      },
       "attr": {
         "tagName": "attr",
         "xdefName": "XplTagAttribute",
+        "name": "!xml-name",
+        "var": "var-name",
+        "displayName": "string",
+        "type": "generic-type",
+        "domain": "var-name",
+        "mandatory": "boolean",
+        "implicit": "boolean",
+        "optional": "boolean=true",
         "defaultValue": "string",
         "deprecated": "boolean",
-        "displayName": "string",
-        "domain": "var-name",
-        "implicit": "boolean",
-        "mandatory": "boolean",
-        "name": "!xml-name",
-        "optional": "boolean=true",
-        "type": "generic-type",
-        "var": "var-name",
         "xdefAllowMultiple": true,
         "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagAttribute",
         "xdefBeanProp": "attrs",
@@ -123,37 +132,17 @@
           "xdefId": "@7@/test/test.xdef"
         }
       },
-      "description": {
-        "tagName": "description",
-        "xdefValue": "string"
-      },
-      "example": {
-        "tagName": "example",
-        "xdefValue": "xml",
-        "xdefSupportExtends": true
-      },
-      "return": {
-        "tagName": "return",
-        "xdefName": "XplTagReturn",
-        "domain": "var-name",
-        "type": "generic-type",
-        "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagReturn",
-        "description": {
-          "tagName": "description",
-          "xdefValue": "string"
-        }
-      },
       "slot": {
         "tagName": "slot",
         "xdefName": "XplTagSlot",
-        "deprecated": "boolean",
+        "name": "!var-name",
         "displayName": "string",
+        "type": "generic-type",
         "domain": "var-name",
         "mandatory": "boolean",
         "multiple": "boolean",
-        "name": "!var-name",
         "schema": "v-path",
-        "type": "generic-type",
+        "deprecated": "boolean",
         "xdefAllowMultiple": true,
         "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagSlot",
         "xdefBeanProp": "slots",
@@ -168,10 +157,10 @@
         "arg": {
           "tagName": "arg",
           "xdefName": "XplTagSlotArg",
-          "deprecated": "boolean",
-          "displayName": "string",
           "name": "!string",
+          "displayName": "string",
           "type": "generic-type",
+          "deprecated": "boolean",
           "xdefAllowMultiple": true,
           "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagSlotArg",
           "xdefBeanProp": "args"
@@ -180,16 +169,16 @@
           "tagName": "attr",
           "xdefRef": "/test/test.xdef#XplTagAttribute",
           "xdefRefResolved": true,
+          "name": "!xml-name",
+          "var": "var-name",
+          "displayName": "string",
+          "type": "generic-type",
+          "domain": "var-name",
+          "mandatory": "boolean",
+          "implicit": "boolean",
+          "optional": "boolean=true",
           "defaultValue": "string",
           "deprecated": "boolean",
-          "displayName": "string",
-          "domain": "var-name",
-          "implicit": "boolean",
-          "mandatory": "boolean",
-          "name": "!xml-name",
-          "optional": "boolean=true",
-          "type": "generic-type",
-          "var": "var-name",
           "xdefAllowMultiple": true,
           "xdefSupportExtends": true,
           "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagAttribute",
@@ -218,11 +207,6 @@
           "tagName": "description",
           "xdefValue": "string"
         }
-      },
-      "source": {
-        "tagName": "source",
-        "xdefValue": "xml",
-        "xdefSupportExtends": true
       },
       "validator": {
         "tagName": "validator",
@@ -253,21 +237,6 @@
             "tagName": "and",
             "xdefRef": "@2@/test/test-filter.xdef"
           },
-          "lt": {
-            "tagName": "lt",
-            "xdefRef": "/test/test-filter.xdef#SimpleFilterNode",
-            "xdefRefResolved": true,
-            "name": "!string",
-            "value": "number",
-            "xdefAllowMultiple": true,
-            "xdefSupportExtends": true,
-            "xdefBeanClass": "io.nop.api.support.beans.TreeBean",
-            "xdefBeanTagProp": "$type",
-            "xdefId": "@4@/test/test-filter.xdef",
-            "comment": {
-              "mainDescription": "小于"
-            }
-          },
           "or": {
             "tagName": "or",
             "xdefRef": "/test/test-filter.xdef#FilterCondition",
@@ -284,13 +253,24 @@
               "tagName": "and",
               "xdefRef": "@2@/test/test-filter.xdef"
             },
-            "lt": {
-              "tagName": "lt",
-              "xdefRef": "@4@/test/test-filter.xdef"
-            },
             "or": {
               "tagName": "or",
               "xdefRef": "@3@/test/test-filter.xdef"
+            },
+            "lt": {
+              "tagName": "lt",
+              "xdefRef": "/test/test-filter.xdef#SimpleFilterNode",
+              "xdefRefResolved": true,
+              "name": "!string",
+              "value": "number",
+              "xdefAllowMultiple": true,
+              "xdefSupportExtends": true,
+              "xdefBeanClass": "io.nop.api.support.beans.TreeBean",
+              "xdefBeanTagProp": "$type",
+              "xdefId": "@4@/test/test-filter.xdef",
+              "comment": {
+                "mainDescription": "小于"
+              }
             },
             "timeBetween": {
               "tagName": "timeBetween",
@@ -298,8 +278,8 @@
               "xdefRefResolved": true,
               "excludeMax": "boolean",
               "excludeMin": "boolean",
-              "max": "time",
               "min": "time",
+              "max": "time",
               "name": "!string",
               "xdefAllowMultiple": true,
               "xdefSupportExtends": true,
@@ -322,6 +302,10 @@
               "xdefId": "@6@/test/test-filter.xdef"
             }
           },
+          "lt": {
+            "tagName": "lt",
+            "xdefRef": "@4@/test/test-filter.xdef"
+          },
           "timeBetween": {
             "tagName": "timeBetween",
             "xdefRef": "@5@/test/test-filter.xdef"
@@ -331,13 +315,13 @@
             "xdefRef": "@6@/test/test-filter.xdef"
           }
         },
-        "lt": {
-          "tagName": "lt",
-          "xdefRef": "@4@/test/test-filter.xdef"
-        },
         "or": {
           "tagName": "or",
           "xdefRef": "@3@/test/test-filter.xdef"
+        },
+        "lt": {
+          "tagName": "lt",
+          "xdefRef": "@4@/test/test-filter.xdef"
         },
         "timeBetween": {
           "tagName": "timeBetween",
@@ -347,6 +331,22 @@
           "tagName": "xdef:unknown-tag",
           "xdefRef": "@6@/test/test-filter.xdef"
         }
+      },
+      "return": {
+        "tagName": "return",
+        "xdefName": "XplTagReturn",
+        "type": "generic-type",
+        "domain": "var-name",
+        "xdefBeanClass": "io.nop.xlang.xpl.xlib.model.XplTagReturn",
+        "description": {
+          "tagName": "description",
+          "xdefValue": "string"
+        }
+      },
+      "source": {
+        "tagName": "source",
+        "xdefValue": "xml",
+        "xdefSupportExtends": true
       }
     }
   }

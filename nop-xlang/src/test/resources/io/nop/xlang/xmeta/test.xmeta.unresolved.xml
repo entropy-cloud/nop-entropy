@@ -66,14 +66,57 @@
                         <prop name="tagName" xmlPos="tag">
                             <schema stdDomain="string"/>
                         </prop>
-                        <prop name="validator" xmlPos="child">
-                            <description>对标签的参数进行校验</description>
-                            <schema ref="/test/test-filter.xdef">
-                                <description>对标签的参数进行校验</description>
-                            </schema>
-                        </prop>
                         <prop name="description" xmlPos="child">
                             <schema stdDomain="string"/>
+                        </prop>
+                        <prop name="example" xmlPos="child">
+                            <schema stdDomain="xml" type="io.nop.core.lang.xml.XNode"/>
+                        </prop>
+                        <prop name="attrs" xmlName="attr" childXmlName="attr" xmlPos="child">
+                            <schema type="java.util.List&lt;io.nop.xlang.xpl.xlib.model.XplTagAttribute&gt;"
+                                    keyProp="name">
+                                <item name="XplTagAttribute" type="io.nop.xlang.xpl.xlib.model.XplTagAttribute">
+                                    <props>
+                                        <prop name="name" mandatory="true">
+                                            <schema stdDomain="xml-name"/>
+                                        </prop>
+                                        <prop name="var">
+                                            <description>对应于表达式中可以使用的变量名。一般情况下变量名与属性名相同，但是如果属性名中存在特殊字符，例如on:click或者v-model，
+则将会转换为大小写混排的变量名，例如onClick和vModel。</description>
+                                            <schema stdDomain="var-name"/>
+                                        </prop>
+                                        <prop name="displayName">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                        <prop name="type">
+                                            <schema stdDomain="generic-type"/>
+                                        </prop>
+                                        <prop name="domain">
+                                            <schema stdDomain="var-name"/>
+                                        </prop>
+                                        <prop name="mandatory" displayName="是否非空">
+                                            <description>是否必须设置该属性，且属性值不能是空值或者空字符串</description>
+                                            <schema stdDomain="boolean"/>
+                                        </prop>
+                                        <prop name="implicit">
+                                            <schema stdDomain="boolean"/>
+                                        </prop>
+                                        <prop name="optional" displayName="是否可选" defaultValue="true">
+                                            <description>如果不是可选属性，则调用时必须传入该属性，但是属性值允许为空</description>
+                                            <schema stdDomain="boolean"/>
+                                        </prop>
+                                        <prop name="defaultValue">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                        <prop name="deprecated">
+                                            <schema stdDomain="boolean"/>
+                                        </prop>
+                                        <prop name="description" xmlPos="child">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                    </props>
+                                </item>
+                            </schema>
                         </prop>
                         <prop name="slots" xmlName="slot" childXmlName="slot" xmlPos="child">
                             <description>在普通标签上标记xpl:slot，表示将slot和该节点合并，然后再调用render</description>
@@ -129,63 +172,20 @@
                                                 </item>
                                             </schema>
                                         </prop>
-                                        <prop name="description" xmlPos="child">
-                                            <schema stdDomain="string"/>
-                                        </prop>
                                         <prop name="attr" xmlPos="child">
                                             <schema ref="/test/test.xdef#XplTagAttribute"/>
+                                        </prop>
+                                        <prop name="description" xmlPos="child">
+                                            <schema stdDomain="string"/>
                                         </prop>
                                     </props>
                                 </item>
                             </schema>
                         </prop>
-                        <prop name="source" xmlPos="child">
-                            <schema stdDomain="xml" type="io.nop.core.lang.xml.XNode"/>
-                        </prop>
-                        <prop name="attrs" xmlName="attr" childXmlName="attr" xmlPos="child">
-                            <schema type="java.util.List&lt;io.nop.xlang.xpl.xlib.model.XplTagAttribute&gt;"
-                                    keyProp="name">
-                                <item name="XplTagAttribute" type="io.nop.xlang.xpl.xlib.model.XplTagAttribute">
-                                    <props>
-                                        <prop name="name" mandatory="true">
-                                            <schema stdDomain="xml-name"/>
-                                        </prop>
-                                        <prop name="var">
-                                            <description>对应于表达式中可以使用的变量名。一般情况下变量名与属性名相同，但是如果属性名中存在特殊字符，例如on:click或者v-model，
-则将会转换为大小写混排的变量名，例如onClick和vModel。</description>
-                                            <schema stdDomain="var-name"/>
-                                        </prop>
-                                        <prop name="displayName">
-                                            <schema stdDomain="string"/>
-                                        </prop>
-                                        <prop name="type">
-                                            <schema stdDomain="generic-type"/>
-                                        </prop>
-                                        <prop name="domain">
-                                            <schema stdDomain="var-name"/>
-                                        </prop>
-                                        <prop name="mandatory" displayName="是否非空">
-                                            <description>是否必须设置该属性，且属性值不能是空值或者空字符串</description>
-                                            <schema stdDomain="boolean"/>
-                                        </prop>
-                                        <prop name="implicit">
-                                            <schema stdDomain="boolean"/>
-                                        </prop>
-                                        <prop name="optional" displayName="是否可选" defaultValue="true">
-                                            <description>如果不是可选属性，则调用时必须传入该属性，但是属性值允许为空</description>
-                                            <schema stdDomain="boolean"/>
-                                        </prop>
-                                        <prop name="defaultValue">
-                                            <schema stdDomain="string"/>
-                                        </prop>
-                                        <prop name="deprecated">
-                                            <schema stdDomain="boolean"/>
-                                        </prop>
-                                        <prop name="description" xmlPos="child">
-                                            <schema stdDomain="string"/>
-                                        </prop>
-                                    </props>
-                                </item>
+                        <prop name="validator" xmlPos="child">
+                            <description>对标签的参数进行校验</description>
+                            <schema ref="/test/test-filter.xdef">
+                                <description>对标签的参数进行校验</description>
                             </schema>
                         </prop>
                         <prop name="return" xmlPos="child">
@@ -203,7 +203,7 @@
                                 </props>
                             </schema>
                         </prop>
-                        <prop name="example" xmlPos="child">
+                        <prop name="source" xmlPos="child">
                             <schema stdDomain="xml" type="io.nop.core.lang.xml.XNode"/>
                         </prop>
                     </props>

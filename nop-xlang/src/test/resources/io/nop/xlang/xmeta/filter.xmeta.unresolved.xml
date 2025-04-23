@@ -10,6 +10,34 @@
                     <schema type="java.util.List&lt;io.nop.api.support.beans.TreeBean&gt;">
                         <item subTypeOf="$type">
                             <oneOf>
+                                <schema ref="/test/test-filter.xdef#FilterCondition" typeValue="and">
+                                    <props>
+                                        <prop name="$type" xmlPos="tag">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                    </props>
+                                </schema>
+                                <schema ref="/test/test-filter.xdef#FilterCondition" typeValue="or">
+                                    <props>
+                                        <prop name="$type" xmlPos="tag">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                    </props>
+                                </schema>
+                                <schema ref="/test/test-filter.xdef#SimpleFilterNode" typeValue="lt">
+                                    <description>小于</description>
+                                    <props>
+                                        <prop name="name" mandatory="true">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                        <prop name="value">
+                                            <schema stdDomain="number"/>
+                                        </prop>
+                                        <prop name="$type" xmlPos="tag">
+                                            <schema stdDomain="string"/>
+                                        </prop>
+                                    </props>
+                                </schema>
                                 <schema ref="/test/test-filter.xdef#SimpleFilterNode" typeValue="timeBetween">
                                     <description>时间在指定范围之内</description>
                                     <props>
@@ -27,34 +55,6 @@
                                         </prop>
                                         <prop name="excludeMax">
                                             <schema stdDomain="boolean"/>
-                                        </prop>
-                                        <prop name="$type" xmlPos="tag">
-                                            <schema stdDomain="string"/>
-                                        </prop>
-                                    </props>
-                                </schema>
-                                <schema ref="/test/test-filter.xdef#FilterCondition" typeValue="or">
-                                    <props>
-                                        <prop name="$type" xmlPos="tag">
-                                            <schema stdDomain="string"/>
-                                        </prop>
-                                    </props>
-                                </schema>
-                                <schema ref="/test/test-filter.xdef#FilterCondition" typeValue="and">
-                                    <props>
-                                        <prop name="$type" xmlPos="tag">
-                                            <schema stdDomain="string"/>
-                                        </prop>
-                                    </props>
-                                </schema>
-                                <schema ref="/test/test-filter.xdef#SimpleFilterNode" typeValue="lt">
-                                    <description>小于</description>
-                                    <props>
-                                        <prop name="name" mandatory="true">
-                                            <schema stdDomain="string"/>
-                                        </prop>
-                                        <prop name="value">
-                                            <schema stdDomain="number"/>
                                         </prop>
                                         <prop name="$type" xmlPos="tag">
                                             <schema stdDomain="string"/>

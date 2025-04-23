@@ -6,7 +6,7 @@
     @displayName [显示名称]
     @interfaces [接口列表] 标签库提供了一组函数，它们满足哪些接口要求
 -->
-<lib xdef:name="XplTagLib" defaultOutputMode="enum:io.nop.xlang.xpl.XplOutputMode=none" displayName="string"
+<lib xdef:name="XplTagLib" displayName="string" defaultOutputMode="enum:io.nop.xlang.xpl.XplOutputMode=none"
      interfaces="generic-type-list" namespace="ns-name" xdef:bean-class="io.nop.xlang.xpl.xlib.model.XplTagLib"
      xdef:default-extends="/nop/core/defaults/default.xlib" x:schema="/nop/schema/xdef.xdef"
      xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef">
@@ -28,11 +28,13 @@
             @transformer [转换器] 在实际进行编译之前先经过transformer转换
             @unknownAttrsVar [未知属性变量名] 所有未知属性构成一个Map类型的变量。只有此参数非空时，才允许调用时传入未定义的属性。
         -->
-        <xdef:unknown-tag xdef:name="XplTag" alias="csv-set" attrsVar="var-name"
-                          bodyType="enum:io.nop.xlang.xpl.XplSlotType" deprecated="boolean" displayName="string"
-                          macro="boolean" outputMode="enum:io.nop.xlang.xpl.XplOutputMode" schema="v-path"
-                          transformer="v-path" unknownAttrsVar="var-name"
-                          xdef:bean-class="io.nop.xlang.xpl.xlib.model.XplTag" xdef:bean-tag-prop="tagName">
+        <xdef:unknown-tag xdef:name="XplTag" displayName="string" alias="csv-set" schema="v-path" deprecated="boolean"
+                          macro="boolean" transformer="v-path" bodyType="enum:io.nop.xlang.xpl.XplSlotType"
+                          outputMode="enum:io.nop.xlang.xpl.XplOutputMode" unknownAttrsVar="var-name"
+                          attrsVar="var-name" xdef:bean-class="io.nop.xlang.xpl.xlib.model.XplTag"
+                          xdef:bean-tag-prop="tagName">
+            <description xdef:value="string"/>
+            <example xdef:value="xml" xdef:support-extends="true"/>
 
             <!--
                 @mandatory [是否非空] 是否必须设置该属性，且属性值不能是空值或者空字符串
@@ -40,29 +42,23 @@
                 @var 对应于表达式中可以使用的变量名。一般情况下变量名与属性名相同，但是如果属性名中存在特殊字符，例如on:click或者v-model，
                 则将会转换为大小写混排的变量名，例如onClick和vModel。
             -->
-            <attr xdef:name="XplTagAttribute" defaultValue="string" deprecated="boolean" displayName="string"
-                  domain="var-name" implicit="boolean" mandatory="boolean" name="!xml-name" optional="boolean=true"
-                  type="generic-type" var="var-name" xdef:allow-multiple="true"
+            <attr xdef:name="XplTagAttribute" name="!xml-name" var="var-name" displayName="string" type="generic-type"
+                  domain="var-name" mandatory="boolean" implicit="boolean" optional="boolean=true" defaultValue="string"
+                  deprecated="boolean" xdef:allow-multiple="true"
                   xdef:bean-class="io.nop.xlang.xpl.xlib.model.XplTagAttribute" xdef:bean-prop="attrs">
                 <description xdef:value="string" xdef:id="@7@/test/test.xdef"/>
             </attr>
-            <description xdef:value="string"/>
-            <example xdef:value="xml" xdef:support-extends="true"/>
-            <return xdef:name="XplTagReturn" domain="var-name" type="generic-type"
-                    xdef:bean-class="io.nop.xlang.xpl.xlib.model.XplTagReturn">
-                <description xdef:value="string"/>
-            </return>
 
             <!--
                 在普通标签上标记xpl:slot，表示将slot和该节点合并，然后再调用render
 
                 @multiple 是否允许存在多个指定名称的slot。如果multiple为true，则实际传入的是列表对象
             -->
-            <slot xdef:name="XplTagSlot" deprecated="boolean" displayName="string" domain="var-name" mandatory="boolean"
-                  multiple="boolean" name="!var-name" schema="v-path" type="generic-type" xdef:allow-multiple="true"
+            <slot xdef:name="XplTagSlot" name="!var-name" displayName="string" type="generic-type" domain="var-name"
+                  mandatory="boolean" multiple="boolean" schema="v-path" deprecated="boolean" xdef:allow-multiple="true"
                   xdef:bean-class="io.nop.xlang.xpl.xlib.model.XplTagSlot" xdef:bean-prop="slots">
-                <arg xdef:name="XplTagSlotArg" deprecated="boolean" displayName="string" name="!string"
-                     type="generic-type" xdef:allow-multiple="true"
+                <arg xdef:name="XplTagSlotArg" name="!string" displayName="string" type="generic-type"
+                     deprecated="boolean" xdef:allow-multiple="true"
                      xdef:bean-class="io.nop.xlang.xpl.xlib.model.XplTagSlotArg" xdef:bean-prop="args"/>
 
                 <!--
@@ -71,16 +67,15 @@
                     @var 对应于表达式中可以使用的变量名。一般情况下变量名与属性名相同，但是如果属性名中存在特殊字符，例如on:click或者v-model，
                     则将会转换为大小写混排的变量名，例如onClick和vModel。
                 -->
-                <attr xdef:ref="/test/test.xdef#XplTagAttribute" xdef:ref-resolved="true" defaultValue="string"
-                      deprecated="boolean" displayName="string" domain="var-name" implicit="boolean" mandatory="boolean"
-                      name="!xml-name" optional="boolean=true" type="generic-type" var="var-name"
+                <attr xdef:ref="/test/test.xdef#XplTagAttribute" xdef:ref-resolved="true" name="!xml-name"
+                      var="var-name" displayName="string" type="generic-type" domain="var-name" mandatory="boolean"
+                      implicit="boolean" optional="boolean=true" defaultValue="string" deprecated="boolean"
                       xdef:allow-multiple="true" xdef:support-extends="true"
                       xdef:bean-class="io.nop.xlang.xpl.xlib.model.XplTagAttribute" xdef:bean-prop="attrs">
                     <description xdef:ref="@7@/test/test.xdef"/>
                 </attr>
                 <description xdef:value="string"/>
             </slot>
-            <source xdef:value="xml" xdef:support-extends="true"/>
 
             <!--对标签的参数进行校验-->
             <validator xdef:ref="/test/test-filter.xdef" xdef:ref-resolved="true" xdef:body-type="list"
@@ -93,24 +88,23 @@
                      xdef:bean-body-type="java.util.List&lt;io.nop.api.support.beans.TreeBean&gt;"
                      xdef:bean-tag-prop="$type" xdef:bean-body-prop="$body">
                     <and xdef:ref="@2@/test/test-filter.xdef"/>
-
-                    <!--小于-->
-                    <lt xdef:ref="/test/test-filter.xdef#SimpleFilterNode" xdef:ref-resolved="true" name="!string"
-                        value="number" xdef:allow-multiple="true" xdef:support-extends="true"
-                        xdef:bean-class="io.nop.api.support.beans.TreeBean" xdef:bean-tag-prop="$type"
-                        xdef:id="@4@/test/test-filter.xdef"/>
                     <or xdef:ref="/test/test-filter.xdef#FilterCondition" xdef:ref-resolved="true"
                         xdef:id="@3@/test/test-filter.xdef" xdef:body-type="list" xdef:allow-multiple="true"
                         xdef:support-extends="true" xdef:bean-class="io.nop.api.support.beans.TreeBean"
                         xdef:bean-body-type="java.util.List&lt;io.nop.api.support.beans.TreeBean&gt;"
                         xdef:bean-tag-prop="$type" xdef:bean-body-prop="$body">
                         <and xdef:ref="@2@/test/test-filter.xdef"/>
-                        <lt xdef:ref="@4@/test/test-filter.xdef"/>
                         <or xdef:ref="@3@/test/test-filter.xdef"/>
+
+                        <!--小于-->
+                        <lt xdef:ref="/test/test-filter.xdef#SimpleFilterNode" xdef:ref-resolved="true" name="!string"
+                            value="number" xdef:allow-multiple="true" xdef:support-extends="true"
+                            xdef:bean-class="io.nop.api.support.beans.TreeBean" xdef:bean-tag-prop="$type"
+                            xdef:id="@4@/test/test-filter.xdef"/>
 
                         <!--时间在指定范围之内-->
                         <timeBetween xdef:ref="/test/test-filter.xdef#SimpleFilterNode" xdef:ref-resolved="true"
-                                     excludeMax="boolean" excludeMin="boolean" max="time" min="time" name="!string"
+                                     excludeMax="boolean" excludeMin="boolean" min="time" max="time" name="!string"
                                      xdef:allow-multiple="true" xdef:support-extends="true"
                                      xdef:bean-class="io.nop.api.support.beans.TreeBean" xdef:bean-tag-prop="$type"
                                      xdef:id="@5@/test/test-filter.xdef"/>
@@ -119,14 +113,20 @@
                                           xdef:bean-class="io.nop.api.support.beans.TreeBean" xdef:bean-tag-prop="$type"
                                           xdef:id="@6@/test/test-filter.xdef"/>
                     </or>
+                    <lt xdef:ref="@4@/test/test-filter.xdef"/>
                     <timeBetween xdef:ref="@5@/test/test-filter.xdef"/>
                     <xdef:unknown-tag xdef:ref="@6@/test/test-filter.xdef"/>
                 </and>
-                <lt xdef:ref="@4@/test/test-filter.xdef"/>
                 <or xdef:ref="@3@/test/test-filter.xdef"/>
+                <lt xdef:ref="@4@/test/test-filter.xdef"/>
                 <timeBetween xdef:ref="@5@/test/test-filter.xdef"/>
                 <xdef:unknown-tag xdef:ref="@6@/test/test-filter.xdef"/>
             </validator>
+            <return xdef:name="XplTagReturn" type="generic-type" domain="var-name"
+                    xdef:bean-class="io.nop.xlang.xpl.xlib.model.XplTagReturn">
+                <description xdef:value="string"/>
+            </return>
+            <source xdef:value="xml" xdef:support-extends="true"/>
         </xdef:unknown-tag>
     </tags>
 </lib>
