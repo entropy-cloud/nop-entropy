@@ -26,6 +26,7 @@ import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
+import io.nop.xlang.xdef.domain.UnknownStdDomainHandler;
 import io.nop.xlang.xdef.impl.XDefComment;
 
 import java.util.ArrayList;
@@ -35,9 +36,7 @@ import java.util.Map;
 
 import static io.nop.xlang.XLangErrors.ARG_ALLOWED_NAMES;
 import static io.nop.xlang.XLangErrors.ARG_NODE;
-import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
 import static io.nop.xlang.XLangErrors.ARG_TAG_NAME;
-import static io.nop.xlang.XLangErrors.ERR_XDEF_UNKNOWN_STD_DOMAIN;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_NODE_UNEXPECTED_TAG_NAME;
 
 public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
@@ -368,10 +367,10 @@ public class DslXNodeToJsonTransformer implements IXNodeToObjectTransformer {
         return value;
     }
 
-    private IStdDomainHandler getHandler(SourceLocation loc, XDefTypeDecl type) {
+    protected IStdDomainHandler getHandler(SourceLocation loc, XDefTypeDecl type) {
         IStdDomainHandler handler = StdDomainRegistry.instance().getStdDomainHandler(type.getStdDomain());
         if (handler == null)
-            throw new NopException(ERR_XDEF_UNKNOWN_STD_DOMAIN).loc(loc).param(ARG_STD_DOMAIN, type.getStdDomain());
+            return new UnknownStdDomainHandler(type.getStdDomain());
         return handler;
     }
 

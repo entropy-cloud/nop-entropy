@@ -361,6 +361,10 @@ public class ResourceHelper {
         return buildNamespacePath(ResourceConstants.RESOURCE_NS_DUMP, dumpPath);
     }
 
+    public static IResource getDumpResource(String path) {
+        return VirtualFileSystem.instance().getResource(getDumpPath(path));
+    }
+
     public static void dumpResource(IResource resource, String source) {
         if (AppConfig.isDebugMode()) {
             String dumpPath = getDumpPath(resource.getPath());

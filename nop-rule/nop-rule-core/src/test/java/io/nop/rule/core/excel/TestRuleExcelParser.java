@@ -107,6 +107,25 @@ public class TestRuleExcelParser extends BaseTestCase {
         assertEquals("Stew Light Salad and nice Steak", output.get("dish"));
     }
 
+    @Test
+    public void testExecuteDecisionTreeMultiOutput() {
+        IRuleManager ruleManager = getRuleManager();
+        IRuleRuntime ruleRt = ruleManager.newRuleRuntime();
+        ruleRt.setInput("season", "Winter");
+        ruleRt.setInput("guestCount", 4);
+        Map<String, Object> output = ruleManager.executeRule("test/test-multi-output", null, ruleRt);
+        System.out.println(JsonTool.serialize(ruleRt.getLogMessages(), true));
+        assertEquals("Roastbeef", output.get("dish"));
+        assertEquals("Roastbeef", output.get("cloth"));
+
+        ruleRt = ruleManager.newRuleRuntime();
+        ruleRt.setInput("season", "Summer");
+        ruleRt.setInput("guestCount", 4);
+        output = ruleManager.executeRule("test/test-multi-output", null, ruleRt);
+        assertEquals("Light Salad and nice Steak", output.get("dish"));
+        assertEquals("Light Salad and nice Steak", output.get("cloth"));
+    }
+
     private IRuleManager getRuleManager() {
         return new RuleManager();
     }

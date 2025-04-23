@@ -14,6 +14,7 @@ import io.nop.api.core.util.IVariableScope;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
+import io.nop.core.lang.json.JsonTool;
 
 import java.util.List;
 
@@ -217,7 +218,10 @@ public class FilterBeanVisitor<T> {
     protected Object normalizeValue(SourceLocation loc, String name, Object value) {
         if (value instanceof String) {
             String str = value.toString();
-            if (str.startsWith(CoreConstants.ATTR_JSON_PREFIX)) {
+            if (str.startsWith(CoreConstants.ATTR_EXPR_PREFIX)) {
+                str = str.substring(CoreConstants.ATTR_EXPR_PREFIX.length()).trim();
+                return JsonTool.parseSimpleJsonValue(str);
+            } else if (str.startsWith(CoreConstants.ATTR_JSON_PREFIX)) {
                 str = str.substring(CoreConstants.ATTR_JSON_PREFIX.length()).trim();
                 if (StringHelper.isNumber(str)) {
                     return StringHelper.parseNumber(str);

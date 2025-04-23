@@ -172,7 +172,7 @@ public class XDefKeys implements Serializable {
                 UNKNOWN_ATTR, DEFAULT_OVERRIDE, INTERNAL, DEPRECATED);
 
         List<String> rootAttrs = new ArrayList<>(Arrays.asList(VERSION, PARSE_KEEP_COMMENT, PARSE_FOR_HTML,
-                TRANSFORMER_CLASS,
+                TRANSFORMER_CLASS, ALLOW_UNKNOWN_STD_DOMAIN,
                 PARSER_CLASS, DEFAULT_EXTENDS, BEAN_PACKAGE, CHECK_NS, PROP_NS, BASE, MODEL_NAME_PROP, MODEL_VERSION_PROP));
         rootAttrs.addAll(ATTR_NAMES);
 

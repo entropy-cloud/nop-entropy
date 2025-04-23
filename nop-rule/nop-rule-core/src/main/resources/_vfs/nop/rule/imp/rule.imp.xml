@@ -8,6 +8,10 @@
                     <schema stdDomain="string"/>
                 </field>
 
+                <field name="x:dump" displayName="输出调试">
+                    <schema stdDomain="boolean"/>
+                </field>
+
                 <field name="name" displayName="名称">
                     <schema stdDomain="string"/>
                 </field>

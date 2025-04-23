@@ -24,6 +24,7 @@ import io.nop.core.model.table.impl.BaseTable;
 import io.nop.core.model.table.tree.TreeCell;
 import io.nop.core.model.table.tree.TreeTableHelper;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.component.parse.AbstractResourceParser;
 import io.nop.excel.ExcelConstants;
 import io.nop.excel.imp.ImportModelHelper;
@@ -50,6 +51,8 @@ import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.exec.NullExecutable;
 import io.nop.xlang.expr.filter.ExpressionToFilterBeanTransformer;
+import io.nop.xlang.xdsl.DslModelHelper;
+import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xmeta.ObjVarDefineModel;
 
 import java.util.ArrayList;
@@ -103,6 +106,14 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
             RuleDecisionTreeModel decisionTable = parseDecisionTree(model, ruleSheet);
             model.setDecisionTree(decisionTable);
         }
+
+        boolean dump = ConvertHelper.toPrimitiveBoolean(model.prop_get(XDslKeys.DEFAULT.DUMP));
+        if (dump) {
+            XNode node = DslModelHelper.dslModelToXNode(RuleConstants.XDSL_SCHEMA_RULE, model);
+            IResource xmlResource = ResourceHelper.getSiblingWithExt(resource, "xml");
+            IResource dumpResource = ResourceHelper.getDumpResource(xmlResource.getPath());
+            ResourceHelper.writeXml(dumpResource, node);
+        }
         return model;
     }
 
@@ -132,7 +143,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
             throw new NopException(ERR_RULE_INVALID_DECISION_TREE_TABLE)
                     .source(ruleSheet);
 
-        ExcelCell outputCell = (ExcelCell) ruleSheet.getTable().getCell(0, 2);
+        ExcelCell outputCell = (ExcelCell) ruleSheet.getTable().getCell(0, 1 + inputCell.getColSpan());
         if (outputCell == null)
             throw new NopException(ERR_RULE_INVALID_DECISION_TREE_TABLE)
                     .source(ruleSheet);
