@@ -7,9 +7,8 @@ template: |
   ${promptModel.getOutput('RESULT').xdefForAi}
   ```
   
-  1. 根据具体业务需求选择tab或者group
-  2. handler表示触发的后台业务方法名，比如resetPassword等
-  3. role-set表示角色集合，比如admin,manager等
+  1. handler表示触发的后台业务方法名，比如resetPassword等
+  2. role-csv-set表示角色集合，比如admin,manager等。用到的角色必须在【role列表】中定义
   
   【form-layout格式规范】
   1. 基础规则：
@@ -58,7 +57,7 @@ template: |
   }
   
   function buildRoleList(){
-    return roleList.map2((role,i)=> (i+1)+'.'+ role.name + '[' + role.displayName+']').join('\n');
+    return roleList.map2((role,i)=> (i+1)+'.'+ role.name + '[' + role.displayName+']:'+role.description).join('\n');
   }
   </c:script>
   【字段列表】

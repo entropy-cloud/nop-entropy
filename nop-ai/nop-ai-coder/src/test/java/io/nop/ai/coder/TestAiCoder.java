@@ -7,6 +7,7 @@ import io.nop.ai.core.model.PromptModel;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.orm.model.IEntityModel;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -67,7 +69,7 @@ public class TestAiCoder extends BaseTestCase {
         IEvalScope scope = promptModel.prepareInputs(vars);
         String prompt = promptModel.generatePrompt(scope);
         System.out.println(prompt);
-        assertEquals(normalizeCRLF(attachmentText("prompt-orm-design.md")), normalizeCRLF(prompt));
+        assertEquals(normalizeCRLF(attachmentText("prompt-orm-design.md").trim()), normalizeCRLF(prompt.trim()));
 
         AiChatResponse response = new AiChatResponse();
         String content = attachmentText("response-orm-design.md");
@@ -127,7 +129,7 @@ public class TestAiCoder extends BaseTestCase {
         PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/extract-entity-requirements.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
         vars.put("requirements", attachmentText("response-refine-requirements.md"));
-        vars.put("entityName", "StockIn");
+        vars.put("entityName", "stock_operation(库存操作)");
 
         IEvalScope scope = promptModel.prepareInputs(vars);
         String prompt = promptModel.generatePrompt(scope);
@@ -147,8 +149,14 @@ public class TestAiCoder extends BaseTestCase {
         new AiOrmModelNormalizer().normalizeOrm(node, config);
 
         OrmModel ormModel = (OrmModel) new DslModelParser().parseFromNode(node);
-        IEntityModel entityModel = ormModel.requireEntityModel("StockIn");
+        IEntityModel entityModel = ormModel.requireEntityModel("StockOperation");
         vars.put("entityModel", entityModel);
+
+        XNode menuNode = attachmentXml("output-menu-design.xml");
+        menuNode.setAttr("x:schema", "/nop/ai/schema/auth.xdef");
+        Object site = new DslModelParser().parseFromNode(menuNode);
+        List<Object> roleList = (List<Object>) BeanTool.getProperty(site, "roles");
+        vars.put("roleList", roleList);
 
         IEvalScope scope = promptModel.prepareInputs(vars);
         String prompt = promptModel.generatePrompt(scope);

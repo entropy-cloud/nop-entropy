@@ -10,22 +10,22 @@
 
 ```xml
 <orm>
-  <dicts>
-    <dict name="string" label="string">
-      <description>string</description>
-      <option value="upper-case-english" label="chinese" description="string"/>
-    </dict>
-  </dicts>
-  <entities>
-    <entity name="english" displayName="chinese">
-      <comment>description</comment>
-      <columns>
-        <column name="english" displayName="chinese" mandatory="boolean" primary="boolean" ext:dict="dict-name"
-                stdDomain="std-domain" sqlType="sql-type" precision="int" scale="int" orm:ref-table="table-name"
-                orm:ref-prop="parent-to-children-prop" orm:ref-prop-display-name="chinese"/>
-      </columns>
-    </entity>
-  </entities>
+    <dicts>
+        <dict name="string" label="string">
+            <description>string</description>
+            <option value="upper-case-english" label="chinese" description="string"/>
+        </dict>
+    </dicts>
+    <entities>
+        <entity name="english" displayName="chinese">
+            <comment>description</comment>
+            <columns>
+                <column name="english" displayName="chinese" mandatory="boolean" primary="boolean" ext:dict="dict-name"
+                        stdDomain="std-domain" sqlType="sql-type" precision="int" scale="int" orm:ref-table="table-name"
+                        orm:ref-prop="parent-to-children-prop" orm:ref-prop-display-name="chinese"/>
+            </columns>
+        </entity>
+    </entities>
 </orm>
 ```
 
@@ -289,3 +289,4 @@ graph LR
 
 - 日偏差率 = (实际消耗 - 理论消耗)/理论消耗
 - 连续异常偏差触发预警
+

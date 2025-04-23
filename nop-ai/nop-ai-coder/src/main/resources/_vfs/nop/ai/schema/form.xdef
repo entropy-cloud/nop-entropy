@@ -5,16 +5,11 @@
 
     <cells xdef:body-type="list" xdef:key-attr="id">
         <cell id="!string" label="chinese">
-            <actions xdef:body-type="list" xdef:key-attr="name">
-                <action name="!english" label="!chinese" handler="service-method" xui:role="role-set">
-                    <visibleOn>conditional-expr</visibleOn>
-                </action>
-            </actions>
         </cell>
     </cells>
 
     <actions xdef:body-type="list" xdef:key-attr="name">
-        <action name="!english" label="!chinese" handler="service-method" xui:role="role-set">
+        <action name="!english" label="!chinese" handler="service-method" xui:role="role-csv-set">
             <visibleOn>conditional-expr</visibleOn>
         </action>
     </actions>

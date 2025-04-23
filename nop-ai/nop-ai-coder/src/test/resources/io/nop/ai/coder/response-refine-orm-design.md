@@ -1,20 +1,9 @@
 [NO_CHANGE]
 
-The existing table design already comprehensively covers all the requirements mentioned in the detailed design document, including:
+当前表设计已经非常完善，涵盖了食堂物资管理系统所需的全部核心功能，包括：
+1. 基础数据管理（物资、供应商、服务公司、菜单）
+2. 库存管理（库房、库存记录、出入库操作）
+3. 经营流程管理（每日菜单、盘点、结算）
+4. 统计分析基础（经营数据）
 
-1. All core entities for material management, supplier management, service company management, and basic menu management
-2. Complete inventory management with warehouses, stock in/out operations, and inventory checks
-3. Supplier settlement and payment tracking
-4. Operation data management for daily operations
-5. All necessary relationships between entities
-
-The schema supports:
-- Multi-level material categorization
-- Menu and recipe management
-- Daily menu planning
-- Inventory tracking with min/max levels
-- Full audit trails for all transactions
-- Financial settlement processes
-- Operational data analysis
-
-No additional tables are needed as the current design already implements all the business rules and workflows described in the requirements. The permission and role management aspects are explicitly excluded from scope as per the requirements.
+所有状态字段都已使用字典定义，表间关系清晰，能够支持权限矩阵中描述的各种业务场景。无需进一步修改。

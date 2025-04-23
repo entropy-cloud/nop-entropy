@@ -146,7 +146,7 @@
 
     <sqlDataTypes>
         <sqlDataType name="CHAR" precision="255" stdSqlType="CHAR"/>
-        <sqlDataType name="INTEGER" stdSqlType="INTEGER" alias="INT,INT UNSIGNED"/>
+        <sqlDataType name="INTEGER" stdSqlType="INTEGER" alias="INT,INT UNSIGNED,MEDIUMINT"/>
         <sqlDataType name="TINYINT" stdSqlType="TINYINT" />
         <sqlDataType name="TINYINT UNSIGNED" stdSqlType="INTEGER" deprecated="true"/>
         <sqlDataType name="SMALLINT" stdSqlType="SMALLINT" alias="SMALLINT UNSIGNED"/>

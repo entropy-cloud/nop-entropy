@@ -201,6 +201,8 @@
 /nop/schema/schema/var-define.xdef
 /nop/schema/site.xdef
 /nop/schema/stream/pattern.xdef
+/nop/schema/stream/resource-spec.xdef
+/nop/schema/stream/stream.xdef
 /nop/schema/task/batch.xdef
 /nop/schema/task/task.xdef
 /nop/schema/validator.xdef
