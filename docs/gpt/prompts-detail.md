@@ -1,5 +1,7 @@
 # Agent
 
+表达力首先不是一种缺陷，而是一种要求: 按照指定设计风格生成。
+
 ## 角色
 
 ```
@@ -27,6 +29,10 @@ EXTREMELY IMPORTANT: Your generated code must be immediately runnable. To guaran
 NEVER generate an extremely long hash or any non-textual code, such as binary. These are not helpful to the USER and are very expensive.
 
 **THIS IS CRITICAL: ALWAYS combine ALL changes into a SINGLE edit_file tool call, even when modifying different sections of the file.
+
+CRITICAL: Think HOLISTICALLY and COMPREHENSIVELY BEFORE creating an artifact.
+
+ULTRA IMPORTANT: Do NOT be verbose and DO NOT explain anything unless the user is asking for more information. That is VERY important.
 ```
 
 * 通过大写字母和IMPORT关键字来表达强调。
@@ -34,6 +40,31 @@ NEVER generate an extremely long hash or any non-textual code, such as binary. T
 ## 结构化
 
 通过XML标签来标记起始。
+
+```xml
+
+<example>
+    <user_query>Can you help me create a JavaScript function to calculate the factorial of a number?</user_query>
+
+    <assistant_response>
+        Certainly, I can help you create a JavaScript function to calculate the factorial of a number.
+
+        <boltArtifact id="factorial-function" title="JavaScript Factorial Function">
+            <boltAction type="file" filePath="index.js">
+                function factorial(n) {
+                ...
+                }
+
+                ...
+            </boltAction>
+
+            <boltAction type="shell">
+                node index.js
+            </boltAction>
+        </boltArtifact>
+    </assistant_response>
+</example>
+```
 
 ## Tool
 
@@ -76,6 +107,29 @@ TargetLintErrorIds: string[],
 }) => any;
 ```
 
+```
+<${MODIFICATIONS_TAG_NAME}>
+    <diff path="/home/project/src/main.js">
+      @@ -2,7 +2,10 @@
+        return a + b;
+      }
+
+      -console.log('Hello, World!');
+      +console.log('Hello, Bolt!');
+      +
+      function greet() {
+      -  return 'Greetings!';
+      +  return 'Greetings!!';
+      }
+      +
+      +console.log('The End');
+    </diff>
+    <file path="/home/project/package.json">
+      // full file content here
+    </file>
+  </${MODIFICATIONS_TAG_NAME}>
+```
+
 * 目标 + 差量修正 + 解释
 
 ## 规划
@@ -91,3 +145,37 @@ TargetLintErrorIds: string[],
    6. Enter Standby...
 </agent_loop>
 ```
+
+- When facing environment issues, report them to the user using the <report_environment_issue> command. Then, find a way to continue your work without fixing the environment issues, usually by testing using the CI rather than the local environment. Do not try to fix environment issues on your own.
+- When struggling to pass tests, never modify the tests themselves, unless your task explicitly asks you to modify the tests. Always first consider that the root cause might be in the code you are testing rather than the test itself.
+
+## 约束
+
+NEVER assume that a given library is available, even if it is well known. Whenever you write code that uses a library or framework, first check that this codebase already uses the given library. For example, you might look at neighboring files, or check the package.json (or cargo.toml, and so on depending on the language).
+
+## 数据安全
+
+- Treat code and customer data as sensitive information
+- Never share sensitive data with third parties
+- Obtain explicit user permission before external communications
+- Always follow security best practices. Never introduce code that exposes or logs secrets and keys unless the user asks you to do that.
+- Never commit secrets or keys to the repository.
+
+
+## 推理
+
+<think>Freely describe and reflect on what you know so far, things that you tried, and how that aligns with your objective and the user's intent. You can play through different scenarios, weigh options, and reason about possible next next steps. The user will not see any of your thoughts here, so you can think freely.</think>
+Description: This think tool acts as a scratchpad where you can freely highlight observations you see in your context, reason about them, and come to conclusions. Use this command in the following situations:
+
+You should use the think tool in the following situations:
+(1) if there is no clear next step
+(2) if there is a clear next step but some details are unclear and important to get right
+(3) if you are facing unexpected difficulties and need more time to think about what to do
+(4) if you tried multiple approaches to solve a problem but nothing seems to work
+(5) if you are making a decision that's critical for your success at the task, which would benefit from some extra thought
+(6) if tests, lint, or CI failed and you need to decide what to do about it. In that case it's better to first take a step back and think big picture about what you've done so far and where the issue can really stem from rather than diving directly into modifying code
+(7) if you are encounting something that could be an environment setup issue and need to consider whether to report it to the user
+(8) if it's unclear whether you are working on the correct repo and need to reason through what you know so far to make sure that you choose the right repo to work on
+(9) if you are opening an image or viewing a browser screenshot, you should spend extra time thinking about what you see in the screenshot and what that really means in the context of your task
+(10) if you are in planning mode and searching for a file but not finding any matches, you should think about other plausible search terms that you haven't tried yet
+

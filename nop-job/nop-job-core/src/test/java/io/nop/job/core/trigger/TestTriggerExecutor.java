@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestTriggerExecutor {
     @Test
-    public void testExecute() {
+    public void testExecute() throws Exception {
         TriggerExecutorImpl executor = new TriggerExecutorImpl(GlobalExecutors.globalTimer(),
                 ErrorMessageManager.instance());
 
@@ -37,6 +37,7 @@ public class TestTriggerExecutor {
 
         ITrigger trigger = TriggerBuilder.buildTrigger(spec, null);
         TriggerContextImpl context = new TriggerContextImpl("test", spec);
+        context.setScheduleEnabled(true);
         List<LocalDateTime> times = new CopyOnWriteArrayList<>();
 
         ITriggerExecution execution = executor.execute(trigger,
@@ -46,7 +47,7 @@ public class TestTriggerExecutor {
                     return null;
                 }, 100, TimeUnit.MILLISECONDS), context);
 
-        FutureHelper.syncGet(execution.getFinishPromise());
+        FutureHelper.toFuture(execution.getFinishPromise()).get(30, TimeUnit.SECONDS);
 
         System.out.println("times=" + StringHelper.join(times, "\n"));
         int size = times.size();

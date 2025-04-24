@@ -32500,6 +32500,12 @@
         ]
       },
       {
+        "name": "getExternalPath",
+        "parameterTypes": [
+          "io.nop.file.dao.entity.NopFileRecord"
+        ]
+      },
+      {
         "name": "getFile",
         "parameterTypes": [
           "java.lang.String"
@@ -32527,6 +32533,12 @@
           "java.lang.String",
           "java.lang.String",
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "getPreviewPath",
+        "parameterTypes": [
+          "io.nop.file.dao.entity.NopFileRecord"
         ]
       },
       {
@@ -33241,6 +33253,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.graphql.core.initialize.GraphQLCoreInitializer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.core.jsonrpc.JsonRpcService"
   },
   {
     "allDeclaredConstructors": true,
