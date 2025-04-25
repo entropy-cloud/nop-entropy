@@ -3,12 +3,12 @@ package io.nop.biz.report.importexport;
 import io.nop.api.core.annotations.data.DataBean;
 
 @DataBean
-public class BizEntityImportConfig {
+public class BizEntityImportConfig implements IBizEntityExecutorConfig{
     private String sheetName;
     private boolean allowUpdate;
     private boolean allowAdd;
     private int batchSize;
-    private int threadCount;
+    private int concurrency;
 
     public String getSheetName() {
         return sheetName;
@@ -42,11 +42,11 @@ public class BizEntityImportConfig {
         this.batchSize = batchSize;
     }
 
-    public int getThreadCount() {
-        return threadCount;
+    public int getConcurrency() {
+        return concurrency;
     }
 
-    public void setThreadCount(int threadCount) {
-        this.threadCount = threadCount;
+    public void setConcurrency(int concurrency) {
+        this.concurrency = concurrency;
     }
 }

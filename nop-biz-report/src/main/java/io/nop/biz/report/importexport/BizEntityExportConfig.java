@@ -7,7 +7,7 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import java.util.List;
 
 @DataBean
-public class BizEntityExportConfig {
+public class BizEntityExportConfig implements IBizEntityExecutorConfig{
     private TreeBean filter;
     private List<OrderFieldBean> orderBy;
     private int concurrency;
