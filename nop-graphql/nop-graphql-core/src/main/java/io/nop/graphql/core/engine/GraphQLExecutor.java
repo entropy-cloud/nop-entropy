@@ -82,7 +82,7 @@ public class GraphQLExecutor implements IGraphQLExecutor {
 
         if (graphQLHook != null) {
             future = future.whenComplete((ret, err) -> {
-                graphQLHook.endExecute(meter, err, context);
+                graphQLHook.endExecute(meter, ret, err, context);
             });
         }
 
@@ -147,6 +147,8 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         Map<String, Object> response = new LinkedHashMap<>();
         context.setResponse(response);
 
+        Object meter = graphQLHook == null ? null : graphQLHook.beginExecute(context);
+
         DataFetchingEnvironment env = new DataFetchingEnvironment();
         env.setExecutionContext(context);
         env.setSource(null);
@@ -154,6 +156,13 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         env.setSelectionBean(context.getFieldSelection());
 
         CompletionStage<Object> future = invokeOperations(env);
+
+
+        if (graphQLHook != null) {
+            future = future.whenComplete((ret, err) -> {
+                graphQLHook.endExecute(meter, ret, err, context);
+            });
+        }
 
         dispatchAll(context);
         return future;

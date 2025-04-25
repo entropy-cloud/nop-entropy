@@ -488,7 +488,7 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     @Override
     public CompletionStage<ApiResponse<?>> executeRpcAsync(IGraphQLExecutionContext gqlCtx) {
-        IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
+        IGraphQLExecutor executor = newGraphQLExecutor();
         IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(gqlCtx);
 
         Supplier<CompletionStage<Object>> task = () -> {
@@ -523,7 +523,7 @@ public class GraphQLEngine implements IGraphQLEngine {
 
     @Override
     public CompletionStage<GraphQLResponseBean> executeGraphQLAsync(IGraphQLExecutionContext gqlCtx) {
-        IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
+        IGraphQLExecutor executor = newGraphQLExecutor();
         IAsyncFunctionInvoker executionInvoker = getExecutionInvoker(gqlCtx);
 
         Supplier<CompletionStage<Object>> task = () -> {
@@ -645,7 +645,7 @@ public class GraphQLEngine implements IGraphQLEngine {
     @Override
     public CompletionStage<Object> fetchResultWithSelection(Object result, String resultType,
                                                             FieldSelectionBean selectionBean, IServiceContext ctx) {
-        IGraphQLExecutor executor = new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
+        IGraphQLExecutor executor = newGraphQLExecutor();
 
         GraphQLType gqlType = new GraphQLDocumentParser().parseType(null, resultType);
         if (result instanceof Collection) {
@@ -658,5 +658,9 @@ public class GraphQLEngine implements IGraphQLEngine {
         initForReturnType(context, GraphQLOperationType.query, SYS_OPERATION_FETCH_RESULTS, result, gqlType, selectionBean);
 
         return executor.fetchResult(result, context);
+    }
+
+    protected IGraphQLExecutor newGraphQLExecutor() {
+        return new GraphQLExecutor(operationInvoker, graphQLHook, flowControlRunner, this);
     }
 }

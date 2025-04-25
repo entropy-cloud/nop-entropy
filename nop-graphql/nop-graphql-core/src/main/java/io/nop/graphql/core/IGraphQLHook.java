@@ -10,7 +10,7 @@ package io.nop.graphql.core;
 public interface IGraphQLHook {
     Object beginExecute(IGraphQLExecutionContext context);
 
-    void endExecute(Object meter, Throwable exception, IGraphQLExecutionContext context);
+    void endExecute(Object meter, Object ret, Throwable exception, IGraphQLExecutionContext context);
 
     Object beginInvoke(IDataFetchingEnvironment env);
 
