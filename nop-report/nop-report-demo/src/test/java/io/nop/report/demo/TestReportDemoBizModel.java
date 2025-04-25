@@ -18,7 +18,6 @@ import io.nop.commons.util.FileHelper;
 import io.nop.report.core.XptConstants;
 import io.nop.report.demo.biz.ReportDemoBizModel;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -98,6 +97,10 @@ public class TestReportDemoBizModel extends JunitAutoTestCase {
         String reportName = "/base/09-套打.xpt.xlsx";
         String html = reportDemo.renderHtml(reportName);
         outputText(reportName + ".html", html);
+
+        String html2 = reportDemo.renderWithXmlModel(reportName, null);
+        System.out.println(html2);
+        // assertEquals(html, html2);
 
         WebContentBean result = reportDemo.download(reportName, XptConstants.RENDER_TYPE_XLSX);
         File file = (File) result.getContent();

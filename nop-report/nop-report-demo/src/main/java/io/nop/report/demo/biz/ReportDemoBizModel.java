@@ -18,15 +18,22 @@ import io.nop.api.core.util.Guard;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.impl.ByteArrayResource;
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
+import io.nop.excel.model.ExcelWorkbook;
+import io.nop.report.core.XptConstants;
+import io.nop.report.core.build.XptModelLoader;
 import io.nop.report.core.engine.IReportEngine;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.xdsl.DslModelHelper;
 import jakarta.inject.Inject;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -48,7 +55,7 @@ public class ReportDemoBizModel {
         List<? extends IResource> groups = VirtualFileSystem.instance().getChildren(REPORT_DEMO_PATH);
         List<TreeResultBean> nodes = new ArrayList<>();
         for (IResource resource : groups) {
-            if(resource.getName().equals("ext"))
+            if (resource.getName().equals("ext"))
                 continue;
             List<TreeResultBean> reports = getReportBeans(resource);
             if (!reports.isEmpty()) {
@@ -97,6 +104,28 @@ public class ReportDemoBizModel {
         // 通过scope可以给报表传参数
         if (data != null)
             scope.setLocalValues(data);
+        String text = output.generateText(scope);
+
+        return text;
+    }
+
+    public String renderWithXmlModel(String reportName, Map<String, Object> data) {
+
+        String path = REPORT_DEMO_PATH + reportName;
+
+        IEvalScope scope = XLang.newEvalScope();
+        // 通过scope可以给报表传参数
+        if (data != null)
+            scope.setLocalValues(data);
+
+        ExcelWorkbook xptModel = reportEngine.getXptModel(path);
+        XNode node = DslModelHelper.dslModelToXNode(XptConstants.XDSL_SCHEMA_WORKBOOK, xptModel);
+
+        path = StringHelper.removeTail(path, ".xlsx") + ".xml";
+        node.dump();
+        IResource resource = new ByteArrayResource(path, node.xml().getBytes(StandardCharsets.UTF_8), -1L);
+        xptModel = XptModelLoader.instance().loadModelFromResource(resource);
+        ITextTemplateOutput output = (ITextTemplateOutput) reportEngine.getRendererForXptModel(xptModel, XptConstants.RENDER_TYPE_HTML);
         return output.generateText(scope);
     }
 

@@ -38,6 +38,8 @@ import io.nop.xlang.ast.PropertyKind;
 import io.nop.xlang.ast.SequenceExpression;
 import io.nop.xlang.ast.SpreadElement;
 import io.nop.xlang.ast.TemplateExpression;
+import io.nop.xlang.ast.TemplateStringExpression;
+import io.nop.xlang.ast.TemplateStringLiteral;
 import io.nop.xlang.ast.UnaryExpression;
 import io.nop.xlang.ast.UpdateExpression;
 import io.nop.xlang.ast.XLangASTBuilder;
@@ -519,10 +521,21 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
     }
 
     protected Expression varFactorExpr(TextScanner sc) {
-        return arrowFuncExpr(sc, tokenExpr(sc));
+        Identifier tokenExpr = tokenExpr(sc);
+        return arrowFuncExpr(sc, tokenExpr);
+    }
+
+    protected Expression templateStringExpr(TextScanner sc, Identifier token) {
+        SourceLocation loc = sc.location();
+        String str = sc.nextDoubleEscapeString();
+        return newTemplateStringExpr(loc, token, str);
     }
 
     protected Expression arrowFuncExpr(TextScanner sc, Identifier x) {
+        if (sc.cur == '`') {
+            return templateStringExpr(sc, x);
+        }
+
         if (this.mayMatch(sc, XLangOperator.ARROW)) {
             Expression body = simpleExpr(sc);
             checkCondition(sc, body != null);
@@ -759,6 +772,13 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
         id.setLocation(loc);
         id.setName(name);
         return id;
+    }
+
+    protected TemplateStringExpression newTemplateStringExpr(SourceLocation loc, Identifier name, String str) {
+        TemplateStringLiteral literal = new TemplateStringLiteral();
+        literal.setLocation(loc);
+        literal.setValue(str);
+        return TemplateStringExpression.valueOf(loc, name, literal);
     }
 
     protected Identifier newIdExpr(SourceLocation loc, String name) {

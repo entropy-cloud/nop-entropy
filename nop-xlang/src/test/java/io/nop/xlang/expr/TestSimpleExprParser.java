@@ -46,6 +46,16 @@ public class TestSimpleExprParser {
     }
 
     @Test
+    public void testTpl() {
+        EvalGlobalRegistry.instance().registerStaticFunctions(GlobalFunctions.class);
+        String expr = "tpl`${name}`";
+        IEvalAction action = XLang.newCompileTool().allowUnregisteredScopeVar(true).compileSimpleExpr(null, expr);
+        IEvalScope scope = XLang.newEvalScope();
+        scope.setLocalValue("name", "abc");
+        assertEquals("abc", action.invoke(scope));
+    }
+
+    @Test
     public void testSpread() {
         assertEquals("{\n" + "  \"desc\": false,\n" + "  \"name\": \"a\",\n" + "  \"nullsFirst\": null,\n"
                 + "  \"owner\": null\n" + "}", JsonTool.serialize(eval("{...bean, ...NULL}"), true));
@@ -140,12 +150,12 @@ public class TestSimpleExprParser {
     }
 
     @Test
-    public void testIF(){
+    public void testIF() {
         ICancellable cancellable = EvalGlobalRegistry.instance().registerStaticFunctions(GlobalFunctions.class);
 
         IEvalScope scope = XLang.newEvalScope();
-        scope.setLocalValue("a",0);
-        scope.setLocalValue("b",4);
+        scope.setLocalValue("a", 0);
+        scope.setLocalValue("b", 4);
 
         String expr = "IF(a>0,1,IF(b>3,2,3))";
         IEvalAction action = XLang.newCompileTool().allowUnregisteredScopeVar(true).compileSimpleExpr(null, expr);

@@ -229,6 +229,8 @@ public class SimpleStdDomainHandlers {
         public String serializeToString(Object value) {
             if (value == null)
                 return null;
+            if (value instanceof byte[])
+                return StringHelper.encodeBase64((byte[]) value);
             ByteString bs = (ByteString) value;
             return bs.base64();
         }
