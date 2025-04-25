@@ -1,0 +1,53 @@
+template: |
+  【任务目标】
+  根据需求描述，确定【${entityModel.displayName}】实体的列表页面的字段和操作。
+
+  【返回格式】
+  ```xml
+  ${promptModel.getOutput('RESULT').xdefForAi}
+  ```
+  
+  1. handler表示触发的后台业务方法名，比如resetPassword等
+  2. role-csv-set表示角色集合，比如admin,manager等。用到的角色必须在【role列表】中定义
+  3. 针对单个实体的操作放到row-actions集合中，不针对单个实体的操作放到list-actions集合中。
+  4. xui:picker用于指定那些在picker页面中显示的最必要的3到5个字段
+  
+ 
+  <c:script>
+  function buildPropList() {
+    const props = [...entityModel.columns];
+  
+    return props.map2((p,i) => (i+1)+'. '+ p.name+'['+p.displayName+']'+(p.mandatory?',必填':'')
+                   ).join('\n');
+  }
+  
+  function buildRoleList(){
+    return roleList.map2((role,i)=> (i+1)+'.'+ role.name + '[' + role.displayName+']:'+role.description).join('\n');
+  }
+  </c:script>
+  【字段列表】
+  ${buildPropList()}
+  
+  【role列表】
+  ${buildRoleList()}
+  
+  【要求】
+  1. 严格检查语法合规性
+  2. 验证所有使用字段的合法性
+  3. 避免冗余visibleOn配置
+  
+  【需求描述】
+  ${requirements}
+
+inputs:
+  - name: entityModel
+    mandatory: true
+  - name: requirements
+    mandatory: true
+  - name: roleList
+    mandatory: true
+
+outputs:
+  - name: RESULT
+    xdefPath: /nop/ai/schema/grid.xdef
+    format: xml

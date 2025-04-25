@@ -102,7 +102,7 @@ public class TestAiCoder extends JunitAutoTestCase {
 
         IEvalScope scope = promptModel.prepareInputs(vars);
         String prompt = promptModel.generatePrompt(scope);
-        outputText("prompt-menu-design.md", prompt);
+        //outputText("prompt-menu-design.md", prompt);
 
         AiChatResponse response = new AiChatResponse();
         String content = inputText("response-menu-design.md");
@@ -152,5 +152,32 @@ public class TestAiCoder extends JunitAutoTestCase {
         IEvalScope scope = promptModel.prepareInputs(vars);
         String prompt = promptModel.generatePrompt(scope);
         outputText("prompt-form-design.md", prompt);
+    }
+
+    @EnableSnapshot
+    @Test
+    public void testGridDesign() {
+        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/grid-design.prompt.yaml");
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("requirements", inputText("response-extract-entity-requirements.md"));
+
+        XNode node = inputXml("output-orm-design.xml");
+        AiOrmConfig config = new AiOrmConfig();
+        config.setBasePackageName("app");
+        new AiOrmModelNormalizer().normalizeOrm(node, config);
+
+        OrmModel ormModel = (OrmModel) new DslModelParser().parseFromNode(node);
+        IEntityModel entityModel = ormModel.requireEntityModel("StockOperation");
+        vars.put("entityModel", entityModel);
+
+        XNode menuNode = inputXml("output-menu-design.xml");
+        menuNode.setAttr("x:schema", "/nop/ai/schema/auth.xdef");
+        Object site = new DslModelParser().parseFromNode(menuNode);
+        List<Object> roleList = (List<Object>) BeanTool.getProperty(site, "roles");
+        vars.put("roleList", roleList);
+
+        IEvalScope scope = promptModel.prepareInputs(vars);
+        String prompt = promptModel.generatePrompt(scope);
+        outputText("prompt-grid-design.md", prompt);
     }
 }

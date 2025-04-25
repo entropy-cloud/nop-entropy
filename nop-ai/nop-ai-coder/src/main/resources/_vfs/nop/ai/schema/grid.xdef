@@ -1,0 +1,20 @@
+<grid x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+      title="string" xmlns:xui="xui">
+
+    <cols xdef:body-type="list" xdef:key-attr="id">
+        <col id="!string" xui:picker="boolean">
+        </col>
+    </cols>
+
+    <xui:list-actions xdef:body-type="list" xdef:key-attr="name">
+        <action name="!english" label="!chinese" handler="service-method" xui:role="role-csv-set">
+            <visibleOn>conditional-expr</visibleOn>
+        </action>
+    </xui:list-actions>
+
+    <xui:row-actions xdef:body-type="list" xdef:key-attr="name">
+        <action name="!english" label="!chinese" handler="service-method" xui:role="role-csv-set">
+            <visibleOn>conditional-expr</visibleOn>
+        </action>
+    </xui:row-actions>
+</grid>
