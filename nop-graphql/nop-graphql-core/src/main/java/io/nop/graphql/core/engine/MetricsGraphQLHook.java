@@ -75,7 +75,7 @@ public class MetricsGraphQLHook implements IGraphQLHook {
     }
 
     @Override
-    public void endExecute(Object meter, Throwable exception, IGraphQLExecutionContext context) {
+    public void endExecute(Object meter, Object result, Throwable exception, IGraphQLExecutionContext context) {
         ((Timer.Sample) meter).stop(exception == null ? executeSuccessTimer : executeFailureTimer);
     }
 
