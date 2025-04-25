@@ -10,7 +10,7 @@
             <attr name="_dsl_root" implicit="true"/>
             <source>
                 <thisLib:ForceDynamicEntitySupport/>
-                <thisLib:DelTagSupport />
+                <thisLib:DelTagSupport/>
                 <thisLib:JsonComponentSupport/>
                 <thisLib:XmlComponentSupport/>
                 <thisLib:ExtFieldsSupport/>
@@ -20,7 +20,7 @@
         </DefaultPostExtends>
 
         <ForceDynamicEntitySupport outputMode="none">
-            <attr name="_dsl_root" implicit="true" />
+            <attr name="_dsl_root" implicit="true"/>
             <source><![CDATA[
                if(_dsl_root.attrBoolean('orm:forceDynamicEntity')){
                   _dsl_root.childByTag('entities').forEachChild(entityNode=>{
@@ -35,7 +35,7 @@
         </ForceDynamicEntitySupport>
 
         <ForceUseIdSupport outputMode="none">
-            <attr name="_dsl_root" implicit="true" />
+            <attr name="_dsl_root" implicit="true"/>
             <source>
                 <c:script><![CDATA[
                     _dsl_root.childByTag('entities').forEachChild(entityNode=>{
@@ -57,7 +57,7 @@
         </ForceUseIdSupport>
 
         <DelTagSupport>
-            <attr name="_dsl_root" implicit="true" />
+            <attr name="_dsl_root" implicit="true"/>
             <source>
                 <c:script><![CDATA[
                     _dsl_root.childByTag('entities')?.children?.forEach(entity=>{
@@ -374,7 +374,7 @@
         </TenantSupport>
 
         <NotAutoTenant>
-            <attr name="entityNode" />
+            <attr name="entityNode"/>
 
             <source>
                 <c:script><![CDATA[
@@ -384,8 +384,9 @@
         </NotAutoTenant>
 
         <GenModelFromExcel outputMode="node">
-            <attr name="path" stdDomain="v-path" />
+            <attr name="path" stdDomain="v-path"/>
             <attr name="markDelta" stdDomain="boolean" optional="true"/>
+            <attr name="defaultValueAsNull" stdDomain="boolean" optional="true"/>
 
             <source>
                 <c:script><![CDATA[
@@ -393,7 +394,7 @@
                     import io.nop.core.resource.component.ResourceComponentManager;
 
                     const ormModel =  ResourceComponentManager.instance().loadComponentModel(path);
-                    const ormNode = DslModelHelper.dslModelToXNode('/nop/schema/orm/orm.xdef',ormModel);
+                    const ormNode = DslModelHelper.dslModelToXNode('/nop/schema/orm/orm.xdef',ormModel, defaultValueAsNull ?? true);
 
                     ormNode.removeAttr('ext:extends');
                     ormNode.setAttr('xmlns:i18n-en','i18n-en');

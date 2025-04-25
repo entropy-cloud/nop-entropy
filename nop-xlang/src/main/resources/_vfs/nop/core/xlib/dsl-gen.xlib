@@ -5,6 +5,7 @@
     <tags>
         <GenModelFromExcel outputMode="node">
             <attr name="path" stdDomain="v-path"/>
+            <attr name="defaultValueAsNull" stdDomain="boolean" optional="true"/>
 
             <source>
                 <c:script><![CDATA[
@@ -13,7 +14,7 @@
 
                     const model =  ResourceComponentManager.instance().loadComponentModel(path);
                     const xdefPath = ResourceComponentManager.instance().getXDefPathByModelPath(path);
-                    const node = DslModelHelper.dslModelToXNode(xdefPath,model);
+                    const node = DslModelHelper.dslModelToXNode(xdefPath,model,defaultValueAsNull ?? true);
                     $out.appendChild(node);
                     ]]>
                 </c:script>

@@ -69,6 +69,10 @@ public class DslModelHelper {
     }
 
     public static XNode dslModelToXNode(String xdefPath, Object model) {
+        return dslModelToXNode(xdefPath, model, true);
+    }
+
+    public static XNode dslModelToXNode(String xdefPath, Object model, boolean defaultValueAsNull) {
         if (xdefPath == null) {
             if (model instanceof IXDslModel) {
                 xdefPath = ((IXDslModel) model).getXdslSchema();
@@ -79,7 +83,7 @@ public class DslModelHelper {
 
         Guard.notEmpty(xdefPath, "xdefPath");
         IObjMeta objMeta = SchemaLoader.loadXMeta(xdefPath);
-        XNode node = new DslModelToXNodeTransformer(objMeta).transformToXNode(model);
+        XNode node = new DslModelToXNodeTransformer(objMeta).defaultValueAsNull(defaultValueAsNull).transformToXNode(model);
         return node;
     }
 

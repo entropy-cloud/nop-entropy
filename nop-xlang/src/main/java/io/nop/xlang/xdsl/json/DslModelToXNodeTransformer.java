@@ -67,9 +67,15 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
     private final IObjMeta objMeta;
 
     private final Map<Object, XNode> objCache = new IdentityHashMap<>();
+    private boolean defaultValueAsNull;
 
     public DslModelToXNodeTransformer(IObjMeta objMeta) {
         this.objMeta = objMeta;
+    }
+
+    public DslModelToXNodeTransformer defaultValueAsNull(boolean b) {
+        this.defaultValueAsNull = b;
+        return this;
     }
 
     @Override
@@ -166,10 +172,10 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
         } else if (key.indexOf(':') > 0) {
             // 具有名字空间的属性
             if (value instanceof Map<?, ?>) {
-                Map<String,Object> mapValue = (Map<String, Object>) value;
-                if(mapValue.get(ApiConstants.TREE_BEAN_PROP_TYPE) == null){
+                Map<String, Object> mapValue = (Map<String, Object>) value;
+                if (mapValue.get(ApiConstants.TREE_BEAN_PROP_TYPE) == null) {
                     node.setAttr(key, JsonEncodeString.of(null, value));
-                }else {
+                } else {
                     TreeBean bean = TreeBean.createFromJson(mapValue);
                     node.appendChild(XNode.fromTreeBean(bean));
                 }
@@ -185,12 +191,15 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
         }
     }
 
-    private String serialize(IObjPropMeta propMeta, Object value) {
+    protected String serialize(IObjPropMeta propMeta, Object value) {
         if (value == null)
             return null;
 
-        if (Objects.equals(value, propMeta.getDefaultValue()))
-            return null;
+        if (Objects.equals(value, propMeta.getDefaultValue())) {
+            if (defaultValueAsNull) {
+                return null;
+            }
+        }
 
         String stdDomain = propMeta.getStdDomain();
         if (stdDomain != null) {
@@ -246,13 +255,13 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
             case child: {
                 XNode valueNode = parseXmlBody(propMeta, loc, value);
                 if (valueNode != null) {
-                    if(valueNode.isDummyNode()){
-                        if(node.hasChild() || valueNode.hasChild()){
+                    if (valueNode.isDummyNode()) {
+                        if (node.hasChild() || valueNode.hasChild()) {
                             node.appendChildren(valueNode.detachChildren());
-                        }else{
+                        } else {
                             node.content(valueNode.content());
                         }
-                    }else {
+                    } else {
                         node.appendChild(valueNode);
                     }
                 } else {
@@ -334,6 +343,7 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
         switch (schema.getSchemaKind()) {
             case SIMPLE: {
                 XNode child = XNode.make(propMeta.getXmlName());
+                value = serialize(propMeta, value);
                 child.content(value);
                 node.appendChild(child);
                 break;
