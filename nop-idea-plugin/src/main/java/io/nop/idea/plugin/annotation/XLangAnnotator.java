@@ -188,7 +188,7 @@ public class XLangAnnotator implements Annotator {
         value = StringHelper.unescapeXml(value);
 
         if (attrType.getStdDomain().equals(XDefConstants.STD_DOMAIN_ENUM)) {
-            String dictName = attrType.getDictName();
+            String dictName = attrType.getOptions();
             if (dictName != null) {
                 DictBean dict = DictProvider.instance().getDict(null, dictName, null,null);
                 if (dict != null) {
@@ -225,7 +225,7 @@ public class XLangAnnotator implements Annotator {
         String tagValue = getTagValue(tag);
 
         if (defNode.getXdefValue() != null) {
-            if (!defNode.hasChild() && !defNode.getXdefValue().isSupportBody()) {
+            if (!defNode.hasChild() && !defNode.getXdefValue().isSupportBody(StdDomainRegistry.instance())) {
                 // 不允许子节点
                 if (XmlPsiHelper.hasChild(tag)) {
                     holder.newAnnotation(HighlightSeverity.ERROR, NopPluginBundle.message("xlang.annotation.tag.not-allow-child", tag.getName()))

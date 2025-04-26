@@ -20,7 +20,7 @@
             </method>
             <method mutation="true" name="invokeAction" i18n-en:displayName="Invoke Action" displayName="执行动作">
                 <requestMessage>io.nop.wf.api.beans.WfActionRequestBean</requestMessage>
-                <responseMessage>java.lang.Object</responseMessage>
+                <responseMessage>Object</responseMessage>
             </method>
             <method mutation="true" name="killWorkflow" i18n-en:displayName="Kill" displayName="中止工作流">
                 <requestMessage>io.nop.wf.api.beans.WfCommandRequestBean</requestMessage>

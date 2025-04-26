@@ -172,7 +172,7 @@ public class XLangCompletionContributor extends CompletionContributor implements
                 result.addElement(buildAttrValue("true", null));
             }
         } else if (XDefConstants.STD_DOMAIN_ENUM.equals(type.getStdDomain())) {
-            String dictName = type.getDictName();
+            String dictName = type.getOptions();
             if (dictName != null) {
                 DictBean dict = DictProvider.instance().getDict(null, dictName, null,null);
                 if (dict != null && dict.getOptions() != null) {

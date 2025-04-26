@@ -11,6 +11,7 @@ import com.intellij.psi.xml.XmlTag;
 import io.nop.commons.util.StringHelper;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdef.domain.StdDomainRegistry;
 
 public class XmlTagInfo {
     private final XmlTag tag;
@@ -74,7 +75,7 @@ public class XmlTagInfo {
             return false;
         if (defNode.getXdefValue() == null)
             return false;
-        return defNode.getXdefValue().isSupportBody();
+        return defNode.getXdefValue().isSupportBody(StdDomainRegistry.instance());
     }
 
     public XmlTag getTag() {

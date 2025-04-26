@@ -78,8 +78,8 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
                 if (tagInfo != null && tagInfo.getDefNode() != null) {
                     XDefTypeDecl defType = tagInfo.getDefNode().getAttrType(attr.getName());
                     if (defType != null) {
-                        if (defType.getDictName() != null) {
-                            DictBean dictBean = DictProvider.instance().getDict(null, defType.getDictName(), null,null);
+                        if (defType.getOptions() != null) {
+                            DictBean dictBean = DictProvider.instance().getDict(null, defType.getOptions(), null,null);
                             if (dictBean != null) {
                                 DictOptionBean option = dictBean.getOptionByValue(attr.getValue());
                                 if (option != null) {
