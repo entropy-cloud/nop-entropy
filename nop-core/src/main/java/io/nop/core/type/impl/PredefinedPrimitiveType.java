@@ -37,6 +37,11 @@ public class PredefinedPrimitiveType extends PredefinedGenericType implements IR
     }
 
     @Override
+    public boolean isNumericType() {
+        return getStdDataType().isNumericType();
+    }
+
+    @Override
     public List<IGenericType> getTypeParameters() {
         return Collections.emptyList();
     }

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
+    <tags>
+        <Execute>
+            <attr name="promptName" stdDomain="string" optional="true">
+                <description>
+                    如果没有设置promptPath，则可以根据promptName构造。
+                    promptPath='/nop/ai/prompts/'+promptName+'.prompt.yaml'
+                </description>
+            </attr>
+            <attr name="promptPath" stdDomain="v-path" optional="true"/>
+
+            <attr name="provider" stdDomain="string" mandatory="true"/>
+            <attr name="model" stdDomain="string" mandatory="true"/>
+            <attr name="seed" stdDomain="string" optional="true"/>
+            <attr name="temperature" stdDomain="float" optional="true"/>
+            <attr name="topP" stdDomain="float" optional="true"/>
+            <attr name="topK" stdDomain="int" optional="true"/>
+            <attr name="maxTokens" stdDomain="int" optional="true"/>
+            <attr name="contextLength" stdDomain="int" optional="true"/>
+            <attr name="stop" stdDomain="csv-list" optional="true"/>
+            <attr name="requestTimeout" stdDomain="long" optional="true"/>
+            <attr name="stream" stdDomain="boolean" optional="true"/>
+
+            <attr name="asyncExecute" stdDomain="boolean" optional="true"/>
+            <attr name="retryTimesPerRequest" stdDomain="int" optional="true"/>
+            <attr name="inputs" type="Map" optional="true"/>
+            <attr name="cancelToken" optional="true"/>
+
+            <source><![CDATA[
+                import io.nop.ai.core.command.AiCommand;
+
+                let chatOptions = {
+                    provider, model, seed, temperature, topP, topK, maxTokens,
+                    contextLength, stop, requestTimeout, stream
+                };
+
+                const chatService = inject("nopAiChatService");
+                const promptTemplateManager = inject("nopPromptTemplateManager");
+                const cmd = new AiCommand(chatService);
+                const fullPath = promptPath ||  "/nop/ai/prompts/" + promptName + ".prompt.yaml";
+                $.notEmpty(fullPath,"promptPath");
+                cmd.setPromptTemplate(promptTemplateManager.getPromptTemplate(fullPath));
+                cmd.setChatOptions(chatOptions);
+
+                if(retryTimesPerRequest >= 0)
+                    cmd.setRetryTimesPerRequest(retryTimesPerRequest);
+
+                return asyncExecute ? cmd.executeAsync(inputs, cancelToken) : cmd.execute(inputs);
+            ]]></source>
+        </Execute>
+    </tags>
+</lib>

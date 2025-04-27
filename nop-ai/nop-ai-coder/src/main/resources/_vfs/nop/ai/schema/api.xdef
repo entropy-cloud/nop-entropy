@@ -1,0 +1,48 @@
+<api x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <description xdef:value="string"/>
+
+    <dicts xdef:body-type="list" xdef:key-attr="name">
+        <dict name="!string" label="!string">
+            <description xdef:value="string"/>
+            <option xdef:unique-attr="value" value="!four-or-two-letter-code" code="upper-case-java-var-name"
+                    label="!chinese" description="string"/>
+        </dict>
+    </dicts>
+
+    <!--
+    服务对象
+    -->
+    <services xdef:body-type="list" xdef:key-attr="name">
+        <service name="!java-class-name" displayName="chinese" xdef:unique-attr="name">
+            <description xdef:value="string"/>
+
+            <!--
+            服务方法。接收ApiRequest<T>类型的请求，返回ApiResponse<R>类型的响应
+            @mutation 如果为false，则表示为只读操作
+            -->
+            <method name="!var-name" displayName="string" xdef:unique-attr="name"
+                   mutation="!boolean=false">
+                <description xdef:value="string"/>
+                <requestMessage xdef:value="class-name"/>
+                <responseMessage xdef:value="!generic-type"/>
+            </method>
+
+        </service>
+    </services>
+
+    <!--
+    @name 服务消息的类名。在整个API定义范围内应该是唯一的。
+    -->
+    <messages xdef:body-type="list" xdef:key-attr="name">
+        <message name="!class-name" displayName="chinese" xdef:unique-attr="name">
+            <description xdef:value="string"/>
+
+            <field name="!var-name" mandatory="!boolean=false"
+                   displayName="chinese" xdef:unique-attr="name">
+                <description xdef:value="string"/>
+                <schema type="java-type" dict="dict-name"/>
+            </field>
+        </message>
+    </messages>
+</api>

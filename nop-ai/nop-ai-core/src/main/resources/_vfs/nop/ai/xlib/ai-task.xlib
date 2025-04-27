@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
+    <tags>
+        <Step>
+        </Step>
+    </tags>
+</lib>

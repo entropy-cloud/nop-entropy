@@ -36,7 +36,7 @@ import static io.nop.core.CoreErrors.ERR_TYPE_NOT_STRUCTURE_TYPE;
  * 泛型声明必须是Immutable的
  */
 @ImmutableBean
-public interface IGenericType extends Serializable, Type , IJsonString {
+public interface IGenericType extends Serializable, Type, IJsonString {
 
     /**
      * 对于泛型声明，包含所有泛型参数信息。对于StdDataType中包含的类型，因为系统中使用非常频繁，这里去除了包名部分以减少输出长度。 例如java.lang.String对应的typeName是String。
@@ -58,6 +58,10 @@ public interface IGenericType extends Serializable, Type , IJsonString {
      * 标准数据类型根据名称即可直接确定
      */
     StdDataType getStdDataType();
+
+    default boolean isNumericType() {
+        return Number.class.isAssignableFrom(getRawClass());
+    }
 
     String toString();
 

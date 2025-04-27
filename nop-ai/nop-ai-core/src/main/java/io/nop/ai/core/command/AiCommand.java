@@ -82,13 +82,17 @@ public class AiCommand {
         this.returnExceptionAsResponse = returnExceptionAsResponse;
     }
 
-    public CompletionStage<AiChatResponse> callAiAsync(Map<String, Object> vars, ICancelToken cancelToken) {
+    public AiChatResponse execute(Map<String, Object> vars, ICancelToken cancelToken) {
+        return FutureHelper.syncGet(executeAsync(vars, cancelToken));
+    }
+
+    public CompletionStage<AiChatResponse> executeAsync(Map<String, Object> vars, ICancelToken cancelToken) {
         IEvalScope scope = prepareInputs(vars);
         Prompt prompt = newPrompt(scope);
 
         return RetryHelper.retryNTimes((index) -> {
                     adjustTemperature(prompt, index);
-                    return callAiOnceAsync(prompt, scope, cancelToken);
+                    return executeOnceAsync(prompt, scope, cancelToken);
                 },
                 AiChatResponse::isValid, retryTimesPerRequest);
     }
@@ -105,7 +109,7 @@ public class AiCommand {
         }
     }
 
-    public CompletionStage<AiChatResponse> callAiOnceAsync(Prompt prompt, IEvalScope scope, ICancelToken cancelToken) {
+    public CompletionStage<AiChatResponse> executeOnceAsync(Prompt prompt, IEvalScope scope, ICancelToken cancelToken) {
         if (cancelToken != null && cancelToken.isCancelled()) {
             LOG.info("nop.ai.cancel-call-ai");
             return FutureHelper.reject(new CancellationException("cancel-call-ai"));

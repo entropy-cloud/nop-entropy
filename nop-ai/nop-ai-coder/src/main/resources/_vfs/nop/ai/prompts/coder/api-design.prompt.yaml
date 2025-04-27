@@ -1,0 +1,29 @@
+template: |
+  【任务目标】
+  作为兼具软件技术与业务领域专业知识的专家，依据给定需求完成API接口设计。
+  
+  【具体要求】
+  1. findPage/create/update/delete等通用的数据维护操作已经统一实现，不需要进行设计。
+  
+  【返回格式】
+  返回结果采用如下XML格式
+  
+  ```xml
+  ${promptModel.getOutput('RESULT').xdefForAi}
+  ```
+  
+  1. dict指定字段值的可选范围由字典定义。字典的名称必须在dicts集合中。
+  
+  【需求描述】
+  ${requirements}
+
+inputs:
+  - name: basePackageName
+    type: String
+    optional: true
+    defaultExpr: "'app'"
+
+outputs:
+  - name: RESULT
+    xdefPath: /nop/ai/schema/api.xdef
+    format: xml

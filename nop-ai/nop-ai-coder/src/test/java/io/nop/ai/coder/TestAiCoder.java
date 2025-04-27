@@ -116,6 +116,18 @@ public class TestAiCoder extends JunitAutoTestCase {
 
     @EnableSnapshot
     @Test
+    public void testApiDesign() {
+        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/api-design.prompt.yaml");
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("requirements", inputText("response-refine-requirements.md"));
+
+        IEvalScope scope = promptModel.prepareInputs(vars);
+        String prompt = promptModel.generatePrompt(scope);
+        outputText("prompt-api-design.md", prompt);
+    }
+
+    @EnableSnapshot
+    @Test
     public void testExtractEntityRequirements() {
         PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/extract-entity-requirements.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();

@@ -364,7 +364,7 @@ public class AiTranslateCommand extends AiCommand {
             return FutureHelper.success(response);
         }
 
-        return callAiAsync(vars, cancelToken);
+        return executeAsync(vars, cancelToken);
     }
 
 }

@@ -63,6 +63,6 @@ public class AiCheckTranslationCommand extends AiCommand {
         Map<String, Object> vars = Map.of(VAR_CONTENT, sourceText,
                 VAR_TO_LANG, toLang, VAR_FROM_LANG, fromLang,
                 VAR_TRANSLATED_TEXT, translatedText == null ? "" : translatedText);
-        return callAiAsync(vars, cancelToken);
+        return executeAsync(vars, cancelToken);
     }
 }

@@ -4,7 +4,7 @@
     <dicts xdef:body-type="list" xdef:key-attr="name">
         <dict name="!string" label="!string">
             <description xdef:value="string"/>
-            <option xdef:unique-attr="value" value="upper-case-english" label="!chinese" description="string"/>
+            <option xdef:unique-attr="value" value="!four-or-two-letter-code" code="upper-case-java-var-name" label="!chinese" description="string"/>
         </dict>
     </dicts>
 

@@ -1,0 +1,52 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:ai="ai" xmlns:xpl="xpl"
+      defaultUseParentScope="true">
+
+    <x:config>
+        <c:import from="/nop/ai/xlib/ai.xlib"/>
+    </x:config>
+
+    <input name="requirements" type="String" mandatory="true"/>
+    <input name="basePackageName" type="class-name" mandatory="true"/>
+
+    <steps>
+        <xpl name="refineRequirements">
+            <description>改进需求文档</description>
+            <source>
+                <ai:Execute asyncExec="true" promptName="coder/refine-requirements"
+                            inputs="${{requirements}}" xpl:return="chatResponse"/>
+                <c:script>
+                    return chatResponse.getResult('RESULT');
+                </c:script>
+            </source>
+
+            <output name="refinedRequirementsResult">
+                <source>RESULT</source>
+            </output>
+        </xpl>
+
+        <xpl name="designOrm">
+            <description>根据需求文档的描述，设计ORM模型</description>
+            <source>
+                <ai:Execute asyncExec="true" promptName="coder/orm-design"
+                            inputs="${{requirements:refinedRequirementsResult, basePackageName}}"/>
+            </source>
+        </xpl>
+
+        <xpl name="refineOrmDesign">
+            <description>检查ORM模型与需求文档是否一致，是否需要改进</description>
+
+            <source>
+                <ai:Execute asyncExec="true" promptName="coder/refine-orm-design"
+                            inputs="${{requirements:refinedRequirementsResult, ormModelText}}"/>
+            </source>
+        </xpl>
+
+        <xpl name="designMenu">
+            <description>根据需求文档的描述，设计菜单和角色权限</description>
+            <source>
+                <ai:Execute asyncExec="true" promptName="coder/menu-design"
+                            inputs="${{requirements:refinedRequirementsResult, ormModelText}}"/>
+            </source>
+        </xpl>
+    </steps>
+</task>
