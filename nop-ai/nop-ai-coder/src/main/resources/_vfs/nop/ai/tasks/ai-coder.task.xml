@@ -1,52 +1,38 @@
-<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c" xmlns:ai="ai" xmlns:xpl="xpl"
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:xpl="xpl" xmlns:ai="ai" x:dump="true"
       defaultUseParentScope="true">
 
-    <x:config>
-        <c:import from="/nop/ai/xlib/ai.xlib"/>
-    </x:config>
+    <x:post-extends>
+        <ai:GenTaskStep xpl:lib="/nop/ai/xlib/ai.xlib"/>
+    </x:post-extends>
 
     <input name="requirements" type="String" mandatory="true"/>
     <input name="basePackageName" type="class-name" mandatory="true"/>
+    <input name="targetDir" type="String" mandatory="true"/>
 
     <steps>
-        <xpl name="refineRequirements">
+        <ai:TaskStep name="refineRequirements" ai:promptName="/coder/refine-requirements">
             <description>改进需求文档</description>
-            <source>
-                <ai:Execute asyncExec="true" promptName="coder/refine-requirements"
-                            inputs="${{requirements}}" xpl:return="chatResponse"/>
-                <c:script>
-                    return chatResponse.getResult('RESULT');
-                </c:script>
-            </source>
+            <output name="RESULT" exportAs="requirements"/>
+        </ai:TaskStep>
 
-            <output name="refinedRequirementsResult">
-                <source>RESULT</source>
-            </output>
-        </xpl>
-
-        <xpl name="designOrm">
+        <ai:TaskStep name="designOrm" ai:promptName="coder/orm-design">
             <description>根据需求文档的描述，设计ORM模型</description>
+            <output name="RESULT" exportAs="ormNode"/>
+        </ai:TaskStep>
+
+        <xpl name="normalizeOrmModel">
             <source>
-                <ai:Execute asyncExec="true" promptName="coder/orm-design"
-                            inputs="${{requirements:refinedRequirementsResult, basePackageName}}"/>
+
             </source>
         </xpl>
 
-        <xpl name="refineOrmDesign">
+        <ai:TaskStep name="refineOrmDesign" ai:promptName="coder/refine-orm-design">
             <description>检查ORM模型与需求文档是否一致，是否需要改进</description>
+        </ai:TaskStep>
 
-            <source>
-                <ai:Execute asyncExec="true" promptName="coder/refine-orm-design"
-                            inputs="${{requirements:refinedRequirementsResult, ormModelText}}"/>
-            </source>
-        </xpl>
-
-        <xpl name="designMenu">
+        <ai:TaskStep name="designMenu" ai:promptName="coder/menu-design">
             <description>根据需求文档的描述，设计菜单和角色权限</description>
-            <source>
-                <ai:Execute asyncExec="true" promptName="coder/menu-design"
-                            inputs="${{requirements:refinedRequirementsResult, ormModelText}}"/>
-            </source>
-        </xpl>
+        </ai:TaskStep>
     </steps>
 </task>

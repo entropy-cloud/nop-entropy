@@ -1,5 +1,6 @@
 package io.nop.ai.coder.orm;
 
+import io.nop.ai.coder.utils.AiCoderHelper;
 import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
@@ -45,11 +46,11 @@ public class AiOrmModelNormalizer {
 
     public XNode normalizeEntity(XNode entity, AiOrmConfig config) {
         String entityName = entity.attrText("name");
-        String code = StringHelper.camelCaseToUnderscore(StringHelper.firstPart(entityName, '.'), true);
+        String code = AiCoderHelper.underscoreName(StringHelper.firstPart(entityName, '.'), true);
         entity.setAttr("tableName", code);
-        entity.setAttr("registerShortName",true);
+        entity.setAttr("registerShortName", true);
 
-        String name = StringHelper.camelCase(code, true);
+        String name = AiCoderHelper.camelCaseName(code, true);
         if (StringHelper.isEmpty(entity.attrText("displayName")))
             entity.setAttr("displayName", name);
 
@@ -74,14 +75,12 @@ public class AiOrmModelNormalizer {
         for (XNode col : columns.getChildren()) {
             String refTable = col.attrText("orm:ref-table");
             if (refTable != null) {
-                String refEntityName = StringHelper.camelCaseToUnderscore(StringHelper.firstPart(refTable, '.'), true);
-                refEntityName = StringHelper.camelCase(refEntityName, true);
+                String refEntityName = AiCoderHelper.camelCaseName(StringHelper.lastPart(refTable, '.'), true);
                 refEntityName = StringHelper.fullClassName(refEntityName, config.getBasePackageName());
 
                 String refProp = col.attrText("orm:ref-prop");
                 if (refProp != null) {
-                    refProp = StringHelper.camelCaseToUnderscore(refProp, false);
-                    refProp = StringHelper.camelCase(refProp, false);
+                    refProp = AiCoderHelper.camelCaseName(refProp, false);
                 }
                 String refPropDisplayName = col.attrText("orm:ref-prop-display-name");
                 if (refPropDisplayName == null)
@@ -89,7 +88,7 @@ public class AiOrmModelNormalizer {
 
                 XNode relations = entity.makeChild("relations");
                 String colCode = col.attrText("code");
-                String relName = getRelationNameFromColCode(colCode, refEntityName);
+                String relName = AiCoderHelper.getRelationNameFromColCode(colCode, refEntityName);
                 XNode relation = relations.makeChildWithAttr("to-one", "name", relName);
                 relation.setAttr("refEntityName", refEntityName);
                 relation.setAttr("refPropName", refProp);
@@ -104,8 +103,8 @@ public class AiOrmModelNormalizer {
 
     public XNode normalizeCol(XNode col) {
         String colName = col.attrText("name");
-        String code = StringHelper.camelCaseToUnderscore(colName, false);
-        String name = StringHelper.camelCase(code, false);
+        String code = AiCoderHelper.underscoreName(colName, true);
+        String name = AiCoderHelper.camelCaseName(code, false);
         String sqlType = col.attrText("sqlType");
         col.removeAttr("sqlType");
         if (!StringHelper.isEmpty(sqlType)) {
@@ -126,15 +125,5 @@ public class AiOrmModelNormalizer {
         col.setAttr("code", code);
 
         return col;
-    }
-
-    private String getRelationNameFromColCode(String colCode, String refEntityName) {
-        if (colCode.equalsIgnoreCase("_id") || colCode.endsWith("id"))
-            return StringHelper.firstPart(refEntityName, '.');
-
-        if (StringHelper.endsWithIgnoreCase(colCode, "_id")) {
-            return StringHelper.camelCase(colCode.substring(0, colCode.length() - "_id".length()), false);
-        }
-        return StringHelper.camelCase(colCode, false) + "Obj";
     }
 }

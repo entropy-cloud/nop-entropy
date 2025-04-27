@@ -8,11 +8,20 @@ import io.nop.core.lang.eval.IEvalScope;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public interface IPromptTemplate {
     List<PromptInputModel> getInputs();
 
+    default List<String> getInputNames() {
+        return getInputs().stream().map(PromptInputModel::getName).collect(Collectors.toList());
+    }
+
     List<PromptOutputModel> getOutputs();
+
+    default List<String> getOutputNames() {
+        return getOutputs().stream().map(PromptOutputModel::getName).collect(Collectors.toList());
+    }
 
     void applyChatOptions(AiChatOptions chatOptions);
 

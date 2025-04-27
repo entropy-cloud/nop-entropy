@@ -18,6 +18,7 @@ import io.nop.commons.text.CDataText;
 import io.nop.commons.util.StringHelper;
 
 import java.io.Serializable;
+import java.util.function.Function;
 
 /**
  * 记录了值所对应的源码位置
@@ -135,6 +136,11 @@ public class ValueWithLocation implements Serializable, ISourceLocationGetter, I
             return this;
 
         return ValueWithLocation.of(loc, trimmed);
+    }
+
+    public ValueWithLocation map(Function<Object, ?> fn) {
+        Object value = fn.apply(getValue());
+        return newValueWithLocation(loc, value);
     }
 
     @Override
