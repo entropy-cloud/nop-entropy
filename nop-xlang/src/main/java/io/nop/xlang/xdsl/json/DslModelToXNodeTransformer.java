@@ -67,7 +67,7 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
     private final IObjMeta objMeta;
 
     private final Map<Object, XNode> objCache = new IdentityHashMap<>();
-    private boolean defaultValueAsNull;
+    private boolean defaultValueAsNull = true;
 
     public DslModelToXNodeTransformer(IObjMeta objMeta) {
         this.objMeta = objMeta;
