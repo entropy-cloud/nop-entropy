@@ -92,7 +92,7 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
      * xml name: value
      * 
      */
-    private java.lang.String _value ;
+    private io.nop.core.lang.eval.IEvalAction _value ;
     
     /**
      * 
@@ -291,12 +291,12 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
      *  
      */
     
-    public java.lang.String getValue(){
+    public io.nop.core.lang.eval.IEvalAction getValue(){
       return _value;
     }
 
     
-    public void setValue(java.lang.String value){
+    public void setValue(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
         this._value = value;

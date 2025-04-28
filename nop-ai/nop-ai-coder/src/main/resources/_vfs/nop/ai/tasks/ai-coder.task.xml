@@ -1,38 +1,54 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-      xmlns:xpl="xpl" xmlns:ai="ai" x:dump="true"
-      defaultUseParentScope="true">
+      xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
+      x:extends="/nop/task/lib/common.task.xml">
 
-    <x:post-extends>
-        <ai:GenTaskStep xpl:lib="/nop/ai/xlib/ai.xlib"/>
-    </x:post-extends>
+    <ai:chatOptions provider="ollama" model="deepseek-r1:14b"/>
+    <ai-coder:config/>
 
     <input name="requirements" type="String" mandatory="true"/>
     <input name="basePackageName" type="class-name" mandatory="true"/>
-    <input name="targetDir" type="String" mandatory="true"/>
+    <input name="outputDir" type="String" mandatory="true"/>
 
     <steps>
-        <ai:TaskStep name="refineRequirements" ai:promptName="/coder/refine-requirements">
+        <custom name="refineRequirements" customType="ai:TaskStep" ai:promptName="/coder/refine-requirements">
             <description>改进需求文档</description>
+
+            <input name="requirements"/>
             <output name="RESULT" exportAs="requirements"/>
-        </ai:TaskStep>
+        </custom>
 
-        <ai:TaskStep name="designOrm" ai:promptName="coder/orm-design">
+        <custom name="saveRequirements" customType="ai-coder:SaveFile">
+            <input name="outputDir"/>
+            <input name="fileName" value="docs/requirements/full-requirements.md"/>
+            <input name="text" value="${requirements}"/>
+        </custom>
+
+        <custom name="designOrm" customType="ai:TaskStep" ai:promptName="coder/orm-design">
             <description>根据需求文档的描述，设计ORM模型</description>
+
+            <input name="requirements"/>
             <output name="RESULT" exportAs="ormNode"/>
-        </ai:TaskStep>
+        </custom>
 
-        <xpl name="normalizeOrmModel">
-            <source>
+        <custom name="normalizeOrmModel" customType="ai-coder:NormalizeOrmModel">
+            <input name="ormNode"/>
 
-            </source>
-        </xpl>
+            <output name="RESULT" exportAs="ormModelText"/>
+        </custom>
 
-        <ai:TaskStep name="refineOrmDesign" ai:promptName="coder/refine-orm-design">
+        <custom name="refineOrmDesign" customType="ai:TaskStep" ai:promptName="coder/refine-orm-design">
             <description>检查ORM模型与需求文档是否一致，是否需要改进</description>
-        </ai:TaskStep>
 
-        <ai:TaskStep name="designMenu" ai:promptName="coder/menu-design">
+            <input name="requirements"/>
+            <input name="ormModelText"/>
+        </custom>
+
+        <custom name="designMenu" customType="ai:TaskStep" ai:promptName="coder/menu-design">
             <description>根据需求文档的描述，设计菜单和角色权限</description>
-        </ai:TaskStep>
+
+            <input name="requirements"/>
+            <input name="ormModelText"/>
+            <output name="RESULT" exportAs="menuNode"/>
+        </custom>
     </steps>
 </task>

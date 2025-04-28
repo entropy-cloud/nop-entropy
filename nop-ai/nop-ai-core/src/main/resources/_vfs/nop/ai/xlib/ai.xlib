@@ -3,51 +3,38 @@
 <lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
 
     <tags>
-        <GenTaskStep>
-            <attr name="_dsl_root" type="XNode" implicit="true"/>
+        <TaskStep-generator>
+            <attr name="node" type="XNode" implicit="true"/>
+            <attr name="_dsl_root" implicit="true"/>
 
             <source>
                 <c:script><![CDATA[
-                    _dsl_root.transformChild(node=>node.tagName == 'ai:TaskStep', node=>{
-                        const options = node.removeChildByTag('chatOptions');
+                    const optionsNode = node.removeChildByTag('ai:chatOptions');
 
-                        node.tagName = 'xpl';
-                        const execNode = node.makeChild('source').makeChild('ai:Execute');
+                    node.tagName = 'xpl';
+                    const execNode = node.makeChild('source').makeChild('ai:Execute');
 
-                        if(options){
-                           execNode.attrValueLocs(options.attrValueLocs());
-                        }
+                    const options = {..._dsl_root?.childByTag('ai:chatOptions')?.attrValueLocs(), ...optionsNode?.attrValueLocs()};
+                    execNode.attrValueLocs(options);
 
-                        const promptPath = node.hasAttr('ai:promptPath') ? node.attrValueLoc('ai:promptPath')
-                                  : node.attrValueLoc('ai:promptName').map(promptName=> '/nop/ai/prompts/'+promptName+'.prompt.yaml');
+                    const promptPath = node.hasAttr('ai:promptPath') ? node.attrValueLoc('ai:promptPath')
+                              : node.attrValueLoc('ai:promptName').map(promptName=> '/nop/ai/prompts/'+promptName+'.prompt.yaml');
 
-                        const prompt = inject('nopPromptTemplateManager').getPromptTemplate(promptPath.asString());
+                    const inputNames = node.childrenByTag('input').map(input=> input.attrText('name'));
 
-                        execNode.setAttr('promptPath', promptPath);
-                        execNode.setAttr('asyncExec', true);
-                        execNode.setAttr('inputs', "${"+prompt.inputNames.join(',')+"}");
-                        execNode.setAttr('xpl:lib', '/nop/ai/xlib/ai.xlib');
-                        execNode.setAttr('xpl:return', 'chatResponse');
-                        execNode.addChild('c:script').content = "return chatResponse.validate().results;";
+                    execNode.setAttr('promptPath', promptPath);
+                    execNode.setAttr('asyncExec', true);
+                    execNode.setAttr('inputs', "${"+inputNames.join(',')+"}");
+                    execNode.setAttr('retryTimesPerRequest', node.getAttr('ai:retryTimesPerRequest'));
+                    execNode.setAttr('cancelToken',"${taskRt}");
+                    execNode.setAttr('xpl:lib', '/nop/ai/xlib/ai.xlib');
+                    execNode.setAttr('xpl:return', 'chatResponse');
+                    execNode.addChild('c:script').content = "return chatResponse.validate().results;";
 
-                        const inputsNode = node.makeChild('inputs');
-                        prompt.inputs.forEach(input=>{
-                            const inputNode = inputsNode.makeChildWithAttr('input','name',input.name);
-                            inputNode.setAttr('name', input.name);
-                            inputNode.setAttr('type', input.type);
-                            inputNode.setAttr('mandatory', input.mandatory);
-                        });
-
-                        const outputsNode = node.makeChild('outputs');
-                        prompt.outputs.forEach(output=>{
-                            const outputNode = outputsNode.makeChildWithAttr('output','name',output.name);
-                            outputNode.setAttr('name', output.name);
-                            outputNode.setAttr('type', output.type);
-                        }
-                    }, true);
+                    return node;
                 ]]></c:script>
             </source>
-        </GenTaskStep>
+        </TaskStep-generator>
 
         <Execute>
             <attr name="promptName" stdDomain="string" optional="true">

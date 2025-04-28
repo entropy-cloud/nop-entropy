@@ -8,6 +8,7 @@ import io.nop.core.lang.utils.XNodeHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.task.TaskConstants;
 import io.nop.task.utils.TaskGenHelper;
+import io.nop.xlang.XLangConstants;
 import io.nop.xlang.xpl.IXplTag;
 import io.nop.xlang.xpl.XplConstants;
 import io.nop.xlang.xpl.xlib.XplLibHelper;
@@ -32,7 +33,8 @@ public class TransformCustomStepHelper {
         IXplTag tag = getGeneratorTag(root, node, customType);
         if (tag != null) {
             Map<String, Object> args = new HashMap<>();
-            args.put("node", node);
+            args.put(TaskConstants.VAR_NODE, node);
+            args.put(XLangConstants.SCOPE_VAR_DSL_ROOT, root);
             XNode ret = tag.generateNode(scope, args);
             if (ret.isDummyNode())
                 return ret.getChildren();

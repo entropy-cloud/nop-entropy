@@ -65,6 +65,8 @@ public interface TaskConstants {
 
     String VAR_STEP_RESULT = "STEP_RESULT";
 
+    String VAR_NODE = "node";
+
     String STATE_ID_DEFAULT = "default";
 
     String PARAM_DELAY = "delay";
