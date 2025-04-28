@@ -716,6 +716,10 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return children;
     }
 
+    public Iterator<XNode> childIterator() {
+        return children.iterator();
+    }
+
     @Override
     public XNode getParent() {
         return parent;
@@ -1809,6 +1813,13 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         if (node == null)
             return null;
         return node.getContentValue();
+    }
+
+    public String childContentText(String name) {
+        XNode node = childByTag(name);
+        if (node == null)
+            return null;
+        return node.contentText();
     }
 
     public Object childAttr(String name, String attrName) {

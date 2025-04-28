@@ -7,6 +7,7 @@
  */
 package io.nop.orm.model;
 
+import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.model.graph.TopoEntry;
 import io.nop.core.reflect.hook.IPropGetMissingHook;
@@ -15,7 +16,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import static io.nop.orm.model.OrmModelErrors.*;
+import static io.nop.orm.model.OrmModelErrors.ARG_COLLECTION_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_TABLE_NAME;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLLECTION_NAME;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_ENTITY_MODEL_FOR_TABLE;
+import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_ENTITY_NAME;
 
 public interface IOrmModel extends IPropGetMissingHook {
     /**
@@ -67,4 +73,7 @@ public interface IOrmModel extends IPropGetMissingHook {
         return collectionModel;
     }
 
+    List<DictBean> getDicts();
+
+    DictBean getDict(String name);
 }

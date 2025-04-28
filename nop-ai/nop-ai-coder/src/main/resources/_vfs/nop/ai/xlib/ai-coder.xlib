@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <tags>
+
+        <NormalizeOrmModel>
+            <attr name="ormNode"/>
+            <attr name="basePackageName"/>
+
+            <source><![CDATA[
+                import io.nop.ai.coder.orm.AiOrmModelNormalizer;
+
+                new AiOrmModelNormalizer().normalizeOrm(ormNode, {basePackageName});
+
+                return ormNode;
+            ]]></source>
+        </NormalizeOrmModel>
+
+        <ValidateDslNode>
+            <description>根据XDef元模型验证dslNode节点满足格式要求</description>
+            <attr name="dslNode" mandatory="true"/>
+            <attr name="xdefPath" stdDomain="v-path" mandatory="true"/>
+            <attr name="removeUnknownAttrs" stdDomain="boolean" optional="true">
+                <description>是否移除dslNode节点上未知的属性</description>
+            </attr>
+
+            <source><![CDATA[
+                import io.nop.xlang.xdsl.XDslValidator;
+
+                new XDslValidator().removeUnknownAttrs(removeUnknownAttrs ?? true)
+                    .validateForXDef(xdefPath, dslNode);
+                return dslNode;
+            ]]></source>
+        </ValidateDslNode>
+
+        <CleanDslNode>
+            <description>根据XDef元模型，清理dslNode节点上未知的属性</description>
+            <attr name="dslNode" mandatory="true"/>
+            <attr name="xdefPath" stdDomain="v-path" mandatory="true"/>
+
+            <source><![CDATA[
+               import io.nop.xlang.xdsl.XDslCleaner;
+
+               new XDslCleaner().cleanForXDef(xdefPath, dslNode);
+               return dslNode;
+            ]]></source>
+        </CleanDslNode>
+
+    </tags>
+</lib>

@@ -10,6 +10,7 @@ package io.nop.orm.model;
 import io.nop.api.core.beans.query.OrderFieldBean;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public interface IEntityRelationModel extends IEntityPropModel {
 
@@ -58,6 +59,14 @@ public interface IEntityRelationModel extends IEntityPropModel {
      * join条件已经按照关联实体的主键字段的顺序排好序。
      */
     List<? extends IEntityJoinConditionModel> getJoin();
+
+    default String getJoinLeftProps() {
+        return getJoin().stream().map(IEntityJoinConditionModel::getLeftProp).collect(Collectors.joining(","));
+    }
+
+    default String getJoinRightProps() {
+        return getJoin().stream().map(IEntityJoinConditionModel::getRightProp).collect(Collectors.joining(","));
+    }
 
     boolean isCascadeDelete();
 

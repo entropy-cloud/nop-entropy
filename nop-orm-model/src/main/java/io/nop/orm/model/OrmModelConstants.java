@@ -127,6 +127,7 @@ public interface OrmModelConstants {
     String EXT_UI_SHOW = "ui:show";
 
     String EXT_KIND = "ext:kind";
+    String EXT_DICT = "ext:dict";
 
     String KIND_TO_MANY = "to-many";
 

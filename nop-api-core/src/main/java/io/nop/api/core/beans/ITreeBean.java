@@ -36,6 +36,7 @@ public interface ITreeBean extends ISourceLocationGetter, ISourceLocationSetter 
 
     List<? extends ITreeBean> getChildren();
 
+
     @JsonIgnore
     default int getChildCount() {
         List<?> children = getChildren();
