@@ -22,15 +22,16 @@
             <comment>description</comment>
             <columns>
                 <column name="english" displayName="chinese" mandatory="boolean" primary="boolean" ext:dict="dict-name"
-                        stdDomain="std-domain" sqlType="sql-type" precision="int" scale="int" orm:ref-table="table-name"
-                        orm:ref-prop="parent-to-children-prop" orm:ref-prop-display-name="chinese"/>
+                        stdDomain="std-domain" stdSqlType="sql-type" precision="int" scale="int"
+                        orm:ref-table="table-name" orm:ref-prop="parent-to-children-prop"
+                        orm:ref-prop-display-name="chinese"/>
             </columns>
         </entity>
     </entities>
 </orm>
 ```
 
-1. sql-type允许的值：VARCHAR, CHAR, DATE, TIME, DATETIME,TIMESTAMP, INT,BIGINT,DECIMAL,BOOLEAN,VARBINARY,BLOB,CLOB
+1. sql-type允许的值：VARCHAR, CHAR, DATE, TIME, DATETIME,TIMESTAMP, INTEGER,BIGINT,DECIMAL,BOOLEAN,VARBINARY,BLOB,CLOB
 2. `orm:ref-prop`是主表上引用子表的集合属性，比如子表上的`parent_id`字段，主表上应该有`children`这样的集合属性，用于反向关联子表。 数据字典表引用场景无需设置此属性，该属性主要用于支持主表记录创建时级联提交子表记录集合
 3. 当存在`orm:ref-prop`属性的时候，需要同时设置`orm:ref-prop-display-name`
 4. std-domain的可选范围image|file|fileList|imageList。图片字段、图片地址字段对应于image， 附件字段对应于file,附件列表字段对应于fileList。

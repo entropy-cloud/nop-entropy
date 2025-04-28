@@ -4,7 +4,8 @@
     <dicts xdef:body-type="list" xdef:key-attr="name">
         <dict name="!string" label="!string">
             <description xdef:value="string"/>
-            <option xdef:unique-attr="value" value="!four-or-two-letter-code" code="upper-case-java-var-name" label="!chinese" description="string"/>
+            <option xdef:unique-attr="value" value="!four-or-two-letter-code" code="upper-case-java-var-name"
+                    label="!chinese" description="string"/>
         </dict>
     </dicts>
 
@@ -14,7 +15,7 @@
             <columns xdef:body-type="list" xdef:key-attr="name">
                 <column name="!english" displayName="chinese" mandatory="boolean" primary="boolean"
                         ext:dict="dict-name"
-                        stdDomain="std-domain" sqlType="!sql-type" precision="int" scale="int"
+                        stdDomain="std-domain" stdSqlType="!sql-type" precision="int" scale="int"
                         orm:ref-table="table-name"
                         orm:ref-prop="parent-to-children-prop" orm:ref-prop-display-name="chinese"/>
             </columns>

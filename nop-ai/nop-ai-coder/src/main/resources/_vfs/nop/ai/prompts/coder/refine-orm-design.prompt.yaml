@@ -20,7 +20,10 @@ template: |
 outputs:
   - name: noChange
     parseFromResponse:
-      contains: [ NO_CHANGE ]
+      contains: "[NO_CHANGE]"
   - name: RESULT
     xdefPath: /nop/ai/schema/orm.xdef
     format: xml
+    normalizer: |
+      import io.nop.ai.coder.orm.AiOrmModelNormalizer;
+      return new AiOrmModelNormalizer().fixNameForOrmNode(value);

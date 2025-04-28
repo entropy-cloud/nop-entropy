@@ -2,6 +2,7 @@ package io.nop.ai.coder;
 
 import io.nop.ai.coder.orm.AiOrmConfig;
 import io.nop.ai.coder.orm.AiOrmModelNormalizer;
+import io.nop.ai.coder.orm.OrmModelToJava;
 import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.model.PromptModel;
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+//@NopTestConfig(disableSnapshot = true)
 public class TestAiCoder extends JunitAutoTestCase {
 
     PromptModel loadPrompt(String promptPath) {
@@ -149,11 +151,16 @@ public class TestAiCoder extends JunitAutoTestCase {
         XNode node = inputXml("output-orm-design.xml");
         AiOrmConfig config = new AiOrmConfig();
         config.setBasePackageName("app");
-        new AiOrmModelNormalizer().normalizeOrm(node, config);
+        AiOrmModelNormalizer normalizer = new AiOrmModelNormalizer();
+        normalizer.fixNameForOrmNode(node);
+        normalizer.normalizeOrm(node, config);
 
         OrmModel ormModel = (OrmModel) new DslModelParser().parseFromNode(node);
         IEntityModel entityModel = ormModel.requireEntityModel("StockOperation");
         vars.put("entityModel", entityModel);
+
+        String javaCode = new OrmModelToJava().appendOrmModel(ormModel).toString();
+        outputText("entity_model.java", javaCode);
 
         XNode menuNode = inputXml("output-menu-design.xml");
         menuNode.setAttr("x:schema", "/nop/ai/schema/auth.xdef");
@@ -176,7 +183,9 @@ public class TestAiCoder extends JunitAutoTestCase {
         XNode node = inputXml("output-orm-design.xml");
         AiOrmConfig config = new AiOrmConfig();
         config.setBasePackageName("app");
-        new AiOrmModelNormalizer().normalizeOrm(node, config);
+        AiOrmModelNormalizer normalizer = new AiOrmModelNormalizer();
+        normalizer.fixNameForOrmNode(node);
+        normalizer.normalizeOrm(node, config);
 
         OrmModel ormModel = (OrmModel) new DslModelParser().parseFromNode(node);
         IEntityModel entityModel = ormModel.requireEntityModel("StockOperation");
