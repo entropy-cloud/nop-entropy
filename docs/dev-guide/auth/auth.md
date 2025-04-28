@@ -386,3 +386,17 @@ authObjName对应不同的业务场景，一个业务场景下会存在多个操
 ## 常见问题
 1. 如何区分两个不同的查询
 `NopAuthUser:query`表示允许针对用户的所有查询，而`NopAuthUser:findPage_active`则只对应于`findPage_active`这一个方法。可以在action上通过Auth注解使得方法名对应于指定的permission。否则每个方法名都缺省对应于一个permission名。
+
+2. 如何获取到userId, userName, role等信息
+`IUserContext.get()`可以获取到当前用户上下文。后台服务函数中一般会传递 IServiceContext上下文对象，通过`svcCtx.getUserContext()`也可以获取到用户上下文
+
+```java
+class MyBizModel{
+  @BizQuery
+  public MyObject get(@Name("id") String id, IServiceContext svcCtx){
+     return ...;
+  }
+}
+```
+
+在报表引擎中，可以通过IEvalScope传递参数。svcCtx上的scope对象通过`svcCtx.getEvalScope()`获取，它已经内置了svcCtx这个变量，指向它关联的IServiceContext对象。
