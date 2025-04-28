@@ -22,6 +22,7 @@ import io.nop.xlang.xdef.XDefOverride;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.IStdDomainRegistry;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
+import io.nop.xlang.xmeta.SchemaLoader;
 import io.nop.xlang.xpl.XplConstants;
 
 import java.util.HashMap;
@@ -65,6 +66,10 @@ public class XDslValidator {
         this.keys = keys;
     }
 
+    public XDslValidator() {
+        this(XDslKeys.DEFAULT);
+    }
+
     public XDslValidator removeUnknownAttrs(boolean removeUnknownAttrs) {
         this.removeUnknownAttrs = removeUnknownAttrs;
         return this;
@@ -73,6 +78,11 @@ public class XDslValidator {
     public XDslValidator stdDomainRegistry(IStdDomainRegistry stdDomainRegistry) {
         this.stdDomainRegistry = stdDomainRegistry;
         return this;
+    }
+
+    public void validateForXDef(String xdefPath, XNode node) {
+        IXDefinition xdef = SchemaLoader.loadXDefinition(xdefPath);
+        validate(node, xdef, true);
     }
 
     public void validate(XNode node, IXDefNode defNode, boolean checkRootName) {
