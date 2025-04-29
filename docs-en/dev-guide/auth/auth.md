@@ -5,7 +5,7 @@
 * Configure `nop.auth.enable-action-auth=true` to enable operation permissions. Field-level permissions also utilize this switch.
 * Configure `nop.auth.enable-data-auth=true` to enable data permissions.
 * Configure `nop.auth.use-data-auth-table=true` to use the data permissions configuration table `NopAuthRoleDataAuth`. This allows merging of data permissions rules from both the database and configuration files.
-* By default, `/nop/main/auth/main.action-auth.xml` is loaded as a static permission configuration file. You can customize the path using `nop.auth.site-map.static-config-path`.
+* By default, `/nop/main/auth/app.action-auth.xml` is loaded as a static permission configuration file. You can customize the path using `nop.auth.site-map.static-config-path`.
 * In `main/action-auth.xml`, use `x:extends` to import existing permission configuration files.
 * If `nop.auth.skip-check-for-admin=true`, users with the `admin` role or `nop-admin` will bypass operation permission checks. The default is `true`.
 * Configure `nop.auth.service-public=true` to expose backend services without requiring login, allowing access to `/debug` and `/graphiql`.
@@ -75,7 +75,7 @@ For example:
 - Using siteId=MAIN for Web端等
 
 ### Adding Other Modules' Menus
-Create a file at `/nop/main/auth/main.action-auth.xml` and use `x:extends` to import menus from other modules.
+Create a file at `/nop/main/auth/app.action-auth.xml` and use `x:extends` to import menus from other modules.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" ?>

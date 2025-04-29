@@ -494,6 +494,26 @@ logInfo("data: {}",data);
 Nop平台通过统一的虚拟文件系统来统一管理所有DSL文件。在虚拟文件系统中，可以定义多个平级的delta目录，然后通过`nop.core.vfs.delta-layer-ids`配置来指定这些Delta层之间的覆盖关系。
 比如 `nop.core.vfs.delta-layer-ids=deploy,product`表示`_delta/deploy`目录下的文件覆盖`_delta/product`目录下的，然后再覆盖非Delta目录下的同名文件。
 
+## 43. x:override为什么没有生效？
+
+```xml
+
+<pages>
+  <crud name="main">
+    <listActions><action id="stat-button" label="数据分析" icon="fa fa-bar-chart pull-left" actionType="drawer"....
+    </listActions>
+  </crud>
+  <crud name="error-tags" grid="simple-list" x:prototype="main" filterForm="false"><table no0perations="true"...>
+    <listActions x:override="bounded-merge">
+      <action id="batch-delete-button"/>
+      <action id="add-button"/>
+    </listActions>
+  </crud>
+</pages>
+```
+
+`x:override`不是用来覆盖`x:prototye`继承的。`x:prototype-override`这个才是。override是覆盖从`x:extends`继承得到的内容
+
 ## 部署问题
 
 ## 设计问题
