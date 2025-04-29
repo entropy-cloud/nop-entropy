@@ -8,7 +8,7 @@ import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.StepResultBean;
 import io.nop.task.TaskStepReturn;
-import io.nop.task.model.ITaskInputModel;
+import io.nop.xlang.xdsl.action.IActionInputModel;
 
 import java.util.List;
 import java.util.concurrent.CompletionStage;
@@ -101,7 +101,7 @@ public abstract class AbstractForkTaskStep extends AbstractTaskStep {
         if (indexName != null)
             stepRt.setValue(indexName, index);
 
-        for (ITaskInputModel inputModel : getInputs()) {
+        for (IActionInputModel inputModel : getInputs()) {
             stepRt.setValue(inputModel.getName(), parentScope.getLocalValue(inputModel.getName()));
         }
 

@@ -7,8 +7,8 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.utils.XNodeHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.task.TaskConstants;
-import io.nop.task.utils.TaskGenHelper;
 import io.nop.xlang.XLangConstants;
+import io.nop.xlang.xdsl.action.BizActionGenHelper;
 import io.nop.xlang.xpl.IXplTag;
 import io.nop.xlang.xpl.XplConstants;
 import io.nop.xlang.xpl.xlib.XplLibHelper;
@@ -111,7 +111,7 @@ public class TransformCustomStepHelper {
         if (!StringHelper.isEmpty(path) && path.endsWith(XplConstants.POSTFIX_XLIB)) {
             bodyNode.setAttr(XplConstants.ATTR_XPL_LIB, path);
         }
-        List<String> names = TaskGenHelper.getInputNames(ret);
+        List<String> names = BizActionGenHelper.getInputNames(ret);
         for (String name : names) {
             bodyNode.setAttr(name, "${" + name + "}");
         }

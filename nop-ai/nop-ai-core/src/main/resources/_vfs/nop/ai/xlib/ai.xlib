@@ -3,6 +3,33 @@
 <lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
 
     <tags>
+        <AiActionSupport>
+            <attr name="_dsl_root" implicit="true"/>
+
+            <source>
+                <c:script>
+                    const aiActions = _dsl_root.childByTag('actions').findChildren(node=>node.attrText('ai:promptName'));
+                </c:script>
+                <biz xpl:if="!aiActions.empty">
+                    <c:script>
+                        import io.nop.task.utils.TaskGenHelper;
+                        const taskFlowManager = inject('nopTaskFlowManager');
+                    </c:script>
+                    <actions>
+                        <c:for var="taskAction" items="${taskActions}">
+                            <c:script>
+                                const taskName = taskAction.attrText('task:name');
+                                const taskVersion = taskAction.attrInt('task:version',0);
+                                const taskFlowModel = taskFlowManager.getTaskFlowModel(taskName, taskVersion);
+                            </c:script>
+                            <c:out escape="none"
+                                   value="${TaskGenHelper.buildBizActionFromTaskModel(taskAction, taskFlowModel)}"/>
+                        </c:for>
+                    </actions>
+                </biz>
+            </source>
+        </AiActionSupport>
+
         <TaskStep-generator>
             <attr name="node" type="XNode" implicit="true"/>
             <attr name="_dsl_root" implicit="true"/>
@@ -28,8 +55,8 @@
                     execNode.setAttr('retryTimesPerRequest', node.getAttr('ai:retryTimesPerRequest'));
                     execNode.setAttr('cancelToken',"${taskRt}");
                     execNode.setAttr('xpl:lib', '/nop/ai/xlib/ai.xlib');
-                    execNode.setAttr('xpl:return', 'chatResponse');
-                    execNode.addChild('c:script').content = "return chatResponse.validate().results;";
+                    execNode.setAttr('xpl:return', 'chatResponsePromise');
+                    execNode.addChild('c:script').content = "return chatResponsePromise.thenApply(res=> res.validate().results);";
 
                     return node;
                 ]]></c:script>

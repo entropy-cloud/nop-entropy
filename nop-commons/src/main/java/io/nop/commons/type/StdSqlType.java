@@ -71,7 +71,7 @@ public enum StdSqlType implements ISqlDataType {
 
     VARCHAR(true, false, Types.VARCHAR, StdDataType.STRING),
 
-    // BINARY(PrecScale.NO_NO | PrecScale.YES_NO, false, Types.BINARY,
+    BINARY(true, false, Types.BINARY, StdDataType.BYTES),
     // SqlTypeFamily.BINARY),
     VARBINARY(true, false, Types.VARBINARY, StdDataType.BYTES),
 
@@ -157,6 +157,8 @@ public enum StdSqlType implements ISqlDataType {
 
             stdTypeMap.put(type.getStdDataType(), type);
         }
+        stdTypeMap.put(StdDataType.STRING, StdSqlType.VARCHAR);
+        stdTypeMap.put(StdDataType.BYTES, StdSqlType.VARBINARY);
     }
 
     public boolean isCompatibleWith(StdSqlType type) {

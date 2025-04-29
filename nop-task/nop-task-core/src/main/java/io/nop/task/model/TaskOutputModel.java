@@ -7,21 +7,11 @@
  */
 package io.nop.task.model;
 
-import io.nop.core.lang.xml.XNode;
 import io.nop.task.model._gen._TaskOutputModel;
-import io.nop.xlang.xmeta.ISchema;
+import io.nop.xlang.xdsl.action.IActionOutputModel;
 
-import java.util.HashMap;
-
-public class TaskOutputModel extends _TaskOutputModel implements ITaskOutputModel {
+public class TaskOutputModel extends _TaskOutputModel implements IActionOutputModel {
     public TaskOutputModel() {
 
-    }
-
-    public XNode getSchemaNode() {
-        ISchema schema = getSchema();
-        if (schema == null)
-            return null;
-        return schema.toNode(new HashMap<>());
     }
 }

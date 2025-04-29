@@ -794,6 +794,9 @@ public interface XLangErrors {
     ErrorCode ERR_XDSL_UNDEFINED_META_CFG_VAR =
             define("nop.err.xlang.xdsl.undefined-meta-cfg-var", "没有定义配置变量：{configVars}", ARG_CONFIG_VARS);
 
+    ErrorCode ERR_XDSL_ATTR_NOT_BEAN_PROP =
+            define("nop.err.xlang.xdsl.attr-not-bean-prop", "属性[{attrName}]不是类[{className}]的属性", ARG_ATTR_NAME, ARG_CLASS_NAME);
+
     ErrorCode ERR_XDEF_DUPLICATE_LOCAL_REF = define("nop.err.xlang.xdef.duplicate-local-ref", "xdef:name引用名称不能重复",
             ARG_REF_NAME);
 

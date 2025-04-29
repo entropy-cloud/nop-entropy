@@ -16,6 +16,8 @@ public class AiOrmModelNormalizer {
     static final Logger LOG = LoggerFactory.getLogger(AiOrmModelNormalizer.class);
 
     public XNode fixNameForOrmNode(XNode node) {
+        if (node == null)
+            return null;
         XNode entities = normalizeEntities(node);
         if (entities != null) {
             for (XNode entity : entities.getChildren()) {

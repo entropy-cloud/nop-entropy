@@ -8,6 +8,8 @@
 package io.nop.ai.core;
 
 public interface AiCoreConstants {
+    String PATH_AI_PROMPTS = "/nop/ai/prompts/";
+
     String ROLE_USER = "user";
 
     String ROLE_SYSTEM = "system";
@@ -29,4 +31,12 @@ public interface AiCoreConstants {
     String PLACE_HOLDER_LLM_NAME = "{llmName}";
 
     String VAR_PROMPT_MODEL = "promptModel";
+
+    String ATTR_AI_PROMPT_NAME = "ai:promptName";
+
+    String ATTR_AI_RETRY_TIMES_PER_REQUEST = "ai:retryTimesPerRequest";
+
+    String TAG_AI_CHAT_OPTIONS = "ai:chatOptions";
+
+    String OUTPUT_VAR_RESULT = "RESULT";
 }

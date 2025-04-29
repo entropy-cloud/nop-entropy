@@ -9,6 +9,7 @@ package io.nop.dao.dialect;
 
 import io.nop.api.core.annotations.data.DataBean;
 
+import java.util.List;
 import java.util.Objects;
 
 @DataBean
@@ -19,6 +20,8 @@ public class DialectSelector implements Comparable<DialectSelector> {
     private String driverName;
     private int driverMinorVersion;
     private int driverMajorVersion;
+
+    private List<String> otherProductNames;
 
     /**
      * 用于匹配PowerDesigner模型中设置的目标数据库类型
@@ -42,6 +45,14 @@ public class DialectSelector implements Comparable<DialectSelector> {
             return false;
 
         return this.compareTo(((DialectSelector) o)) == 0;
+    }
+
+    public List<String> getOtherProductNames() {
+        return otherProductNames;
+    }
+
+    public void setOtherProductNames(List<String> otherProductNames) {
+        this.otherProductNames = otherProductNames;
     }
 
     // 针对具体版本的dialect排在前面
@@ -96,8 +107,10 @@ public class DialectSelector implements Comparable<DialectSelector> {
 
     public boolean match(String productName, String productVersion, String driverName, int driverMajorVersion,
                          int driverMinorVersion) {
-        if (!this.productName.equals(productName))
-            return false;
+        if (!this.productName.equals(productName)) {
+            if (this.otherProductNames == null || !this.otherProductNames.contains(productName))
+                return false;
+        }
 
         if (this.productVersion != null && !this.productVersion.equals(productVersion))
             return false;

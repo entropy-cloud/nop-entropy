@@ -14,7 +14,7 @@
     服务对象
     -->
     <services xdef:body-type="list" xdef:key-attr="name">
-        <service name="!java-class-name" displayName="chinese" xdef:unique-attr="name">
+        <service name="!java-class-name" displayName="chinese">
             <description xdef:value="string"/>
 
             <!--
@@ -35,7 +35,7 @@
     @name 服务消息的类名。在整个API定义范围内应该是唯一的。
     -->
     <messages xdef:body-type="list" xdef:key-attr="name">
-        <message name="!class-name" displayName="chinese" xdef:unique-attr="name">
+        <message name="!class-name" displayName="chinese">
             <description xdef:value="string"/>
 
             <field name="!var-name" mandatory="!boolean=false"

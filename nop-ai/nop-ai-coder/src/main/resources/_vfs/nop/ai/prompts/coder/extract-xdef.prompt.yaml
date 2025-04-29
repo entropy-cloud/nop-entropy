@@ -1,0 +1,50 @@
+template: |
+  【任务目标】
+  分析XML格式的DSL，定义它的XDef元模型。
+  
+  【XDef元模型规范】
+  示例：
+  
+  ```xml
+  <orm x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+     xmlns:orm="orm" xmlns:ext="ext">
+
+    <entities xdef:body-type="list" xdef:key-attr="name">
+        <entity name="!english" displayName="chinese">
+            <comment>description</comment>
+            <columns xdef:body-type="list" xdef:key-attr="name">
+                <column name="!english" displayName="chinese" mandatory="boolean" primary="boolean"
+                        ext:dict="dict-name"
+                        stdDomain="std-domain" stdSqlType="!sql-type" precision="int" scale="int"
+                        orm:ref-table="table-name"
+                        orm:ref-prop="parent-to-children-prop" orm:ref-prop-display-name="chinese"/>
+            </columns>
+        </entity>
+    </entities>
+  </orm>
+  ```
+  
+  上面的XDef元模型用于描述如下结构
+  
+  ```xml
+  <orm>
+    <entities>
+        <entity name="User" displayName="用户">
+           <comment>用户实体</comment>
+           <columns>
+              ...
+           </columns>
+        </entity>
+    </entities>
+  </orm>
+  ```
+  
+  1. IMPORTANT：xdef中的节点必须有稳定的唯一坐标，所以如果是个数不确定的列表，必须指定xdef:key-attr=name这种唯一标识属性。xdef:key-attr只能是name或者id.
+  2. 类似entity这种节点，如果它的子节点不是个数不确定的列表，不用增加xdef:body-type=list标注。
+  3. 必填属性通过!name来表达。
+  4. 枚举属性通过enum:A|B|C这种形式来表达
+  
+  IMPORTANT：返回之前再仔细检查一下所有标记了xdef:body-type的节点都必须具有xdef:key-attr属性。
+  
+  【待分析的DSL】
+  ${dslText}

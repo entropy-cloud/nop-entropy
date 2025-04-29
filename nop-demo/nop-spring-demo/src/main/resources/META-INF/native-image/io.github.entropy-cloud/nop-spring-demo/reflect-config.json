@@ -33056,6 +33056,10 @@
         ]
       },
       {
+        "name": "newGraphQLExecutor",
+        "parameterTypes": []
+      },
+      {
         "name": "newRpcContext",
         "parameterTypes": [
           "io.nop.graphql.core.ast.GraphQLOperationType",

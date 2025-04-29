@@ -11,8 +11,8 @@ import io.nop.task.ITaskStepFlagOperation;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
 import io.nop.task.metrics.ITaskFlowMetrics;
-import io.nop.task.model.ITaskInputModel;
-import io.nop.task.model.ITaskOutputModel;
+import io.nop.xlang.xdsl.action.IActionInputModel;
+import io.nop.xlang.xdsl.action.IActionOutputModel;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,15 +31,15 @@ public class TaskImpl implements ITask {
     private final boolean recordMetrics;
 
     private final ITaskStepFlagOperation flagOperation;
-    private final List<? extends ITaskInputModel> inputs;
+    private final List<? extends IActionInputModel> inputs;
 
-    private final List<? extends ITaskOutputModel> outputs;
+    private final List<? extends IActionOutputModel> outputs;
 
     private final ITaskBeanContainerFactory taskBeanContainerFactory;
 
     public TaskImpl(String taskName, long taskVersion, ITaskStep mainStep, boolean recordMetrics,
                     ITaskStepFlagOperation flagOperation, ITaskBeanContainerFactory taskBeanContainerFactory,
-                    List<? extends ITaskInputModel> inputs, List<? extends ITaskOutputModel> outputs) {
+                    List<? extends IActionInputModel> inputs, List<? extends IActionOutputModel> outputs) {
         this.inputs = inputs == null ? Collections.emptyList() : inputs;
         this.outputs = outputs == null ? Collections.emptyList() : outputs;
         this.flagOperation = flagOperation;
@@ -51,12 +51,12 @@ public class TaskImpl implements ITask {
     }
 
     @Override
-    public List<? extends ITaskInputModel> getInputs() {
+    public List<? extends IActionInputModel> getInputs() {
         return inputs;
     }
 
     @Override
-    public List<? extends ITaskOutputModel> getOutputs() {
+    public List<? extends IActionOutputModel> getOutputs() {
         return outputs;
     }
 
@@ -118,7 +118,7 @@ public class TaskImpl implements ITask {
     }
 
     void checkInputs(ITaskRuntime taskRt) {
-        for (ITaskInputModel input : inputs) {
+        for (IActionInputModel input : inputs) {
             String name = input.getName();
             Object value = taskRt.getInput(name);
             if (value == null) {

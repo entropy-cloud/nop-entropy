@@ -17,6 +17,7 @@ package io.nop.ai.core.api.messages;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.nop.ai.core.AiCoreConstants;
 import io.nop.ai.core.api.support.Metadata;
 import io.nop.ai.core.response.JsonResponseParser;
 import io.nop.ai.core.response.XmlResponseParser;
@@ -439,6 +440,10 @@ public class AiChatResponse extends Metadata {
         if (StringHelper.isEmpty(content))
             return null;
         return new JsonResponseParser().parseResponse(content);
+    }
+
+    public Object getResultValue() {
+        return getOutput(AiCoreConstants.OUTPUT_VAR_RESULT);
     }
 
     @Override

@@ -8,8 +8,9 @@
 package io.nop.task;
 
 import io.nop.api.core.util.ISourceLocationGetter;
-import io.nop.task.model.ITaskInputModel;
-import io.nop.task.model.ITaskOutputModel;
+import io.nop.xlang.xdsl.action.IActionInputModel;
+import io.nop.xlang.xdsl.action.IActionBaseModel;
+import io.nop.xlang.xdsl.action.IActionOutputModel;
 import jakarta.annotation.Nonnull;
 
 import java.util.List;
@@ -18,7 +19,7 @@ import java.util.Set;
 /**
  * 相当于是一种函数定义，支持多输入和多输出。
  */
-public interface ITaskStep extends ISourceLocationGetter {
+public interface ITaskStep extends ISourceLocationGetter, IActionBaseModel {
     /**
      * 步骤类型
      */
@@ -31,12 +32,12 @@ public interface ITaskStep extends ISourceLocationGetter {
     /**
      * 步骤执行所需要的输入变量
      */
-    List<? extends ITaskInputModel> getInputs();
+    List<? extends IActionInputModel> getInputs();
 
     /**
      * 步骤执行会返回Map，这里对应Map中的数据类型
      */
-    List<? extends ITaskOutputModel> getOutputs();
+    List<? extends IActionOutputModel> getOutputs();
 
     /**
      * 具体的执行动作

@@ -8,7 +8,6 @@
 package io.nop.task.model;
 
 import io.nop.api.core.util.INeedInit;
-import io.nop.core.lang.xml.XNode;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.task.ITask;
 import io.nop.task.ITaskStepLib;
@@ -18,8 +17,9 @@ import io.nop.task.builder.ITaskFlowBuilder;
 import io.nop.task.builder.ITaskStepLibBuilder;
 import io.nop.task.builder.TaskFlowAnalyzer;
 import io.nop.task.model._gen._TaskFlowModel;
+import io.nop.xlang.xdsl.action.IActionModel;
 
-public class TaskFlowModel extends _TaskFlowModel implements IGraphTaskStepModel, INeedInit {
+public class TaskFlowModel extends _TaskFlowModel implements IGraphTaskStepModel, INeedInit, IActionModel {
     private ITask task;
 
     private ITaskStepLib taskStepLib;
@@ -68,24 +68,6 @@ public class TaskFlowModel extends _TaskFlowModel implements IGraphTaskStepModel
     @Override
     public String getType() {
         return TaskConstants.STEP_TYPE_TASK;
-    }
-
-    public XNode getOutputSchemaNode() {
-        XNode schema = XNode.make("schema");
-        XNode props = schema.makeChild("props");
-        if (getOutputs() != null) {
-            for (TaskOutputModel output : getOutputs()) {
-                XNode prop = XNode.make("prop");
-                prop.setAttr("name", output.getName());
-                prop.setAttr("displayName", output.getDisplayName());
-                prop.setAttr("type", output.getType());
-                XNode propSchema = output.getSchemaNode();
-                if (propSchema != null)
-                    prop.appendChild(propSchema);
-                props.appendChild(prop);
-            }
-        }
-        return schema;
     }
 
     public synchronized IBeanContainerImplementor getBeanContainerTemplate(ITaskBeanContainerBuilder builder) {

@@ -11,8 +11,8 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.task.ITaskStep;
 import io.nop.task.TaskStepReturn;
-import io.nop.task.model.ITaskInputModel;
-import io.nop.task.model.ITaskOutputModel;
+import io.nop.xlang.xdsl.action.IActionInputModel;
+import io.nop.xlang.xdsl.action.IActionOutputModel;
 
 import java.util.Collections;
 import java.util.List;
@@ -28,9 +28,9 @@ public abstract class AbstractTaskStep implements ITaskStep {
 
     private boolean concurrent;
 
-    private List<? extends ITaskInputModel> inputs = Collections.emptyList();
+    private List<? extends IActionInputModel> inputs = Collections.emptyList();
 
-    private List<? extends ITaskOutputModel> outputs = Collections.emptyList();
+    private List<? extends IActionOutputModel> outputs = Collections.emptyList();
 
     public String getReturnAs() {
         return returnAs;
@@ -77,20 +77,20 @@ public abstract class AbstractTaskStep implements ITaskStep {
     }
 
     @Override
-    public List<? extends ITaskInputModel> getInputs() {
+    public List<? extends IActionInputModel> getInputs() {
         return inputs;
     }
 
-    public void setInputs(List<? extends ITaskInputModel> inputs) {
+    public void setInputs(List<? extends IActionInputModel> inputs) {
         this.inputs = inputs;
     }
 
     @Override
-    public List<? extends ITaskOutputModel> getOutputs() {
+    public List<? extends IActionOutputModel> getOutputs() {
         return outputs;
     }
 
-    public void setOutputs(List<? extends ITaskOutputModel> outputs) {
+    public void setOutputs(List<? extends IActionOutputModel> outputs) {
         this.outputs = outputs;
     }
 

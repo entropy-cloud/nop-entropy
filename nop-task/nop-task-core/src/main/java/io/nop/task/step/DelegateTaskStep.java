@@ -2,8 +2,8 @@ package io.nop.task.step;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.task.ITaskStep;
-import io.nop.task.model.ITaskInputModel;
-import io.nop.task.model.ITaskOutputModel;
+import io.nop.xlang.xdsl.action.IActionInputModel;
+import io.nop.xlang.xdsl.action.IActionOutputModel;
 
 import java.util.List;
 import java.util.Set;
@@ -35,12 +35,12 @@ public abstract class DelegateTaskStep implements ITaskStep {
     }
 
     @Override
-    public List<? extends ITaskInputModel> getInputs() {
+    public List<? extends IActionInputModel> getInputs() {
         return taskStep.getInputs();
     }
 
     @Override
-    public List<? extends ITaskOutputModel> getOutputs() {
+    public List<? extends IActionOutputModel> getOutputs() {
         return taskStep.getOutputs();
     }
 
