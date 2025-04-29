@@ -1,1 +1,259 @@
-# AI大模型
+# AI颠覆开发：开源框架NopAiCoder实现"输入需求文档输出完整应用”
+
+## 技术路线
+
+需求所在的问题空间 --> 我们使用的编程语言与框架所在的软件结构空间 --> AI大模型所知的所有语言（不同语言，不同版本）历史上所有编程知识所在的可行空间。
+
+这些空间本身是不匹配的。幻觉的问题：如果仔细分析，会发现在某个平行宇宙中AI的输出可能就是合理的，在那个宇宙中存在着一个这样的事实。仅从逻辑进行判断，是无法识别是否是幻觉的。
+我们所在的这个世界是对称自发破缺的结果。
+
+上下文窗口不够大的问题：注意力只能有限集中。
+
+解决方案：投影到不同的子空间，每次解决一个局部问题，然后再拼接为一个整体。并不需要是正交的。但是需要能够识别出重叠部分，自动的进行形式转换。
+
+可逆计算理论提供了一个系统化的投影-粘结方案。
+
+具有完善解决方案的问题直接要求回答。
+复杂的逻辑实现问题，要求AI选择一个自己认为最合适的XML格式来表达，并反复检查且改进该XML格式的实现。最后再映射到对应的TaskFlow实现。
+
+
+面向人类使用的XDef元模型：主要是表达格式信息。
+
+面向AI：根据语义可以自动推定一定的格式信息，不需要详细表达。
+
+如果局部可以进行纠正，没有必要和AI费口舌反复强调细节。实际上也很难严格遵守。比如字段大小写等。
+
+如果发现有多余输出，可以指定一个具有相关语义的字段引导它。
+
+调整表达格式，避免重复表达或者需要负责匹配。比如orm:ref_table属性。
+
+XDef元模型特别适合AI理解。
+
+```xml
+
+<orm x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+     xmlns:orm="orm" xmlns:ext="ext">
+
+  <entities xdef:body-type="list" xdef:key-attr="name">
+    <entity name="!english" displayName="chinese">
+      <comment>description</comment>
+      <columns xdef:body-type="list" xdef:key-attr="name">
+        <column name="!english" displayName="chinese" mandatory="boolean" primary="boolean"
+                ext:dict="dict-name"
+                stdDomain="std-domain" stdSqlType="!sql-type" precision="int" scale="int"
+                orm:ref-table="table-name"
+                orm:ref-prop="parent-to-children-prop" orm:ref-prop-display-name="chinese"/>
+      </columns>
+    </entity>
+  </entities>
+</orm>
+```
+
+简单的说，就是将DSL中重复的内容删除，只保留唯一的部分。然后将值替换为格式约束描述。
+
+注意到xdef文件中定义了`xdef:body-type`，`xdef:key-attr`等属性，这些属性是XDef元模型的一部分，用于精确指定属性的语义并在解析的时候自动校验。
+但是对于AI大模型来说，这些信息是多余的，而且会形成干扰。
+
+```xml
+
+<orm>
+  <entities>
+    <entity name="english" displayName="chinese">
+      <comment>description</comment>
+      <columns>
+        <column name="english" displayName="chinese" mandatory="boolean" primary="boolean" ext:dict="dict-name"
+                stdDomain="std-domain" stdSqlType="sql-type" precision="int" scale="int"
+                orm:ref-table="table-name" orm:ref-prop="parent-to-children-prop"
+                orm:ref-prop-display-name="chinese"/>
+      </columns>
+    </entity>
+  </entities>
+</orm>
+```
+
+AI使用的XDef元模型经过特殊定制，强调语义。与Nop平台内置的并不相同。但是格式保持兼容性。
+
+## Prompt模型设计
+
+prompt模板需要如下能力：
+
+1. 能够进行前处理，我们可能需要衍生数据
+2. 需要进行后处理
+
+只要切换promptName，就可以得到具有动态处理能力的prompt模板。
+
+Prompt相当于是一个函数实现，因此它应该具有输入和输出。目前Nop平台的所有可编配函数都是 Map func(Map)格式
+inputs => outputs 从Map映射到Map
+
+## AI集成
+
+因为是函数抽象，所以很容易通过元编程集成到Nop平台中。
+
+### NopTaskFlow编排
+
+```xml
+
+<task>
+  <steps>
+    <custom name="designOrm" customType="ai:TaskStep" ai:promptName="coder/orm-design">
+      <description>根据需求文档的描述，设计ORM模型</description>
+
+      <input name="requirements"/>
+
+      <output name="ormModelText" value="${RESULT.xml()}"/>
+    </custom>
+  </steps>
+</task>
+```
+
+### NopGraphQL服务集成
+
+将AI大模型调用封装为服务函数
+
+```
+<query name="designOrm" ai:promptName="coder/orm-design">
+  <ai:chatOptions provider="ollama" model="deepseek-r1:14b" />
+</query>
+```
+
+根据prompt模型中定义的input和output自动生成对应的action定义。
+
+## 基于领域知识的DSL结构空间划分
+
+首先按照对象分解，同一个对象名对应的相关概念属于一组。
+纵向分解：主分解维度。
+
+整体布局和字段展现分离。
+
+## 多种表象之间的自由转换
+
+领域模型可以自由的抽取信息。比如ORM模型简化为只包含必要字段。使用Java形式展现等。
+
+但是一般输出的时候我们可以强制要求使用XML，这样便于自动解析并局部验证。
+
+XML具有自校验能力。如果标签没有封闭，则解析失败，会自动重试。
+
+
+# AI颠覆开发：开源框架NopAiCoder实现"输入需求文档输出完整应用"
+
+## 引言：AI编程的新范式
+
+在软件开发领域，一个革命性的变革正在发生——通过开源框架NopAiCoder，开发者现在只需输入需求文档，系统就能自动输出完整的应用程序。这一突破性进展建立在可逆计算理论和XDef元模型的创新基础上，为解决AI编程中的"幻觉问题"和"上下文窗口限制"提供了系统化解决方案。
+
+## 技术架构：跨越三个认知空间
+
+NopAiCoder的核心创新在于建立了三个关键空间之间的映射关系：
+
+1. **问题空间**：用户需求所在的业务领域
+2. **结构空间**：具体编程语言和框架的技术实现
+3. **可行空间**：AI大模型掌握的所有编程知识
+
+传统AI编程工具面临的根本挑战在于这三个空间天然不匹配。NopAiCoder通过"投影-拼接"机制解决了这一问题：
+
+- **投影机制**：将复杂问题分解到不同子空间处理
+- **拼接机制**：通过可逆计算理论实现局部解决方案的有机整合
+- **重叠识别**：自动检测不同子空间解决方案的重叠部分并进行形式转换
+
+## XDef元模型：人机协作的关键
+
+NopAiCoder设计了两种XDef元模型变体，分别优化人机协作：
+
+### 面向人类的XDef
+```xml
+<orm x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     xmlns:xdef="/nop/schema/xdef.xdef" xmlns:orm="orm" xmlns:ext="ext">
+  <entities xdef:body-type="list" xdef:key-attr="name">
+    <entity name="!english" displayName="chinese">
+      <comment>description</comment>
+      <columns xdef:body-type="list" xdef:key-attr="name">
+        <column name="!english" displayName="chinese" mandatory="boolean"
+                primary="boolean" ext:dict="dict-name" stdDomain="std-domain"
+                stdSqlType="!sql-type" precision="int" scale="int"
+                orm:ref-table="table-name" orm:ref-prop="parent-to-children-prop"
+                orm:ref-prop-display-name="chinese"/>
+      </columns>
+    </entity>
+  </entities>
+</orm>
+```
+
+### 面向AI的简化XDef
+```xml
+<orm>
+  <entities>
+    <entity name="english" displayName="chinese">
+      <comment>description</comment>
+      <columns>
+        <column name="english" displayName="chinese" mandatory="boolean"
+                primary="boolean" ext:dict="dict-name" stdDomain="std-domain"
+                stdSqlType="sql-type" precision="int" scale="int"
+                orm:ref-table="table-name" orm:ref-prop="parent-to-children-prop"
+                orm:ref-prop-display-name="chinese"/>
+      </columns>
+    </entity>
+  </entities>
+</orm>
+```
+
+关键区别在于：
+- 人类版本包含完整的格式约束和校验信息
+- AI版本强调语义表达，去除冗余的元数据
+- 两者保持格式兼容，确保无缝转换
+
+## Prompt工程：动态函数式设计
+
+NopAiCoder将prompt设计为具有完整输入输出规范的函数单元：
+
+1. **前处理能力**：支持数据衍生和转换
+2. **后处理能力**：结果自动格式化和校验
+3. **动态切换**：通过promptName实现不同处理逻辑
+
+函数签名统一为Map到Map的转换：
+```typescript
+inputs: Map → outputs: Map
+```
+
+## 系统集成：无缝融入开发流程
+
+### 任务流编排示例
+```xml
+<task>
+  <steps>
+    <custom name="designOrm" customType="ai:TaskStep" ai:promptName="coder/orm-design">
+      <description>根据需求文档的描述，设计ORM模型</description>
+      <input name="requirements"/>
+      <output name="ormModelText" value="${RESULT.xml()}"/>
+    </custom>
+  </steps>
+</task>
+```
+
+### GraphQL服务集成
+```xml
+<query name="designOrm" ai:promptName="coder/orm-design">
+  <ai:chatOptions provider="ollama" model="deepseek-r1:14b" />
+</query>
+```
+
+系统自动根据prompt定义的输入输出生成对应的API接口，开发者无需额外编码。
+
+## 领域知识的结构化处理
+
+NopAiCoder采用创新的DSL空间划分策略：
+
+1. **对象中心分解**：相同对象名的相关概念自动归组
+2. **纵向分解**：作为主分解维度确保逻辑一致性
+3. **表现分离**：核心模型与展示逻辑解耦
+
+## 多模态自由转换
+
+系统支持领域模型在不同表现形式间的无损转换：
+- 可简化为仅含必要字段的ORM模型
+- 可转换为Java类实现
+- 默认输出标准化XML便于自动校验
+
+XML的自校验特性（标签闭合检查等）为AI输出提供了自动纠错机制，显著提高了生成代码的可靠性。
+
+## 结论：软件开发的新纪元
+
+NopAiCoder框架通过创新的技术路线，实现了从需求文档到完整应用的全自动生成。这一突破不仅大幅提升开发效率，更重新定义了人机协作编程的边界。随着技术的持续演进，AI辅助开发将从"工具"进化为"协作者"，开启软件开发的新纪元。
