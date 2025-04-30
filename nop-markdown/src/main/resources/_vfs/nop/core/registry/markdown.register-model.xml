@@ -1,0 +1,8 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="markdown">
+
+    <loaders>
+        <loader fileType="tpl.md" class="io.nop.markdown.simple.MarkdownDocumentParser"/>
+    </loaders>
+
+</model>

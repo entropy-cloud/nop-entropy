@@ -11,6 +11,7 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.component.ResourceComponentManager;
+import io.nop.markdown.simple.MarkdownDocument;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.OrmModel;
 import io.nop.xlang.xdsl.DslModelParser;
@@ -34,6 +35,27 @@ public class TestAiCoder extends JunitAutoTestCase {
 
     @EnableSnapshot
     @Test
+    public void testExpandRequirements() {
+        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/expand-requirements.prompt.yaml");
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("inputRequirements", inputText("input-requirements.md"));
+
+        IEvalScope scope = promptModel.prepareInputs(vars);
+        String prompt = promptModel.generatePrompt(scope);
+        outputText("prompt-expand-requirements.md", prompt);
+
+        AiChatResponse response = new AiChatResponse();
+        String content = inputText("response-expand-requirements.md");
+        response.setContent(content);
+        promptModel.processChatResponse(response, scope);
+
+        MarkdownDocument md = (MarkdownDocument) response.getResultValue();
+        System.out.println(md.toText());
+        assertTrue(response.isValid());
+    }
+
+    @EnableSnapshot
+    @Test
     public void testRefineRequirements() {
         PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/refine-requirements.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
@@ -49,6 +71,7 @@ public class TestAiCoder extends JunitAutoTestCase {
         response.setContent(content);
         promptModel.processChatResponse(response, scope);
 
+        assertTrue(response.isValid());
         System.out.println(response.getContent());
     }
 

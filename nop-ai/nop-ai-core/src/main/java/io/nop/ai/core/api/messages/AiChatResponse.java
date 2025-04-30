@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.ai.core.AiCoreConstants;
 import io.nop.ai.core.api.support.Metadata;
 import io.nop.ai.core.response.JsonResponseParser;
+import io.nop.ai.core.response.MarkdownResponseParser;
 import io.nop.ai.core.response.XmlResponseParser;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ErrorBean;
@@ -27,6 +28,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.NopRebuildException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.markdown.simple.MarkdownDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -433,6 +435,13 @@ public class AiChatResponse extends Metadata {
             return null;
 
         return new XmlResponseParser().parseResponse(content);
+    }
+
+    public MarkdownDocument parseMarkdownContent() {
+        String content = getContent();
+        if (StringHelper.isEmpty(content))
+            return null;
+        return new MarkdownResponseParser().parseResponse(content);
     }
 
     public Map<String, Object> parseJsonContent() {

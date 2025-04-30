@@ -46,6 +46,13 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: markdownPath
+     * 
+     */
+    private java.lang.String _markdownPath ;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -182,6 +189,25 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
         checkAllowChange();
         
         this._mandatory = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: markdownPath
+     *  
+     */
+    
+    public java.lang.String getMarkdownPath(){
+      return _markdownPath;
+    }
+
+    
+    public void setMarkdownPath(java.lang.String value){
+        checkAllowChange();
+        
+        this._markdownPath = value;
            
     }
 
@@ -383,6 +409,7 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("format",this.getFormat());
         out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("markdownPath",this.getMarkdownPath());
         out.putNotNull("name",this.getName());
         out.putNotNull("normalizer",this.getNormalizer());
         out.putNotNull("optional",this.isOptional());
@@ -407,6 +434,7 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
         instance.setDisplayName(this.getDisplayName());
         instance.setFormat(this.getFormat());
         instance.setMandatory(this.isMandatory());
+        instance.setMarkdownPath(this.getMarkdownPath());
         instance.setName(this.getName());
         instance.setNormalizer(this.getNormalizer());
         instance.setOptional(this.isOptional());

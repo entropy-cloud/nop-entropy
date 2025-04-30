@@ -4,7 +4,7 @@ import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.commons.debug.DebugMessageHelper;
 import io.nop.commons.util.FileHelper;
 import io.nop.markdown.simple.MarkdownBlock;
-import io.nop.markdown.simple.MarkdownBlockParser;
+import io.nop.markdown.simple.MarkdownDocumentParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +79,7 @@ public class FixMarkdownTranslation {
         if (sourceText == null)
             return null;
 
-        MarkdownBlockParser parser = new MarkdownBlockParser();
+        MarkdownDocumentParser parser = new MarkdownDocumentParser();
         List<MarkdownBlock> sourceBlocks = parser.parseBlocks(sourceText);
         List<MarkdownBlock> targetBlocks = parser.parseBlocks(translatedText);
 
@@ -124,12 +124,7 @@ public class FixMarkdownTranslation {
     String buildText(List<MarkdownBlock> blocks) {
         StringBuilder sb = new StringBuilder();
         for (MarkdownBlock block : blocks) {
-            if (block.getLevel() > 0) {
-                sb.append("#".repeat(block.getLevel())).append(" ").append(block.getTitle()).append("\n");
-            }
-
-            if (block.getText() != null)
-                sb.append(block.getText()).append("\n");
+            block.buildText(sb);
         }
 
         return sb.toString();

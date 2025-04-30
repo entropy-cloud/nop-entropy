@@ -38,6 +38,7 @@
             <schema xdef:ref="../schema/schema.xdef"/>
 
             <xdefPath>v-path</xdefPath>
+            <markdownPath>v-path</markdownPath>
 
             <!--
             没有指定format的情况下才会使用parseFromResponse配置

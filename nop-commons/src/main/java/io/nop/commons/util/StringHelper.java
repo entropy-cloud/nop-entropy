@@ -4523,12 +4523,14 @@ public class StringHelper extends ApiStringHelper {
         return false;
     }
 
+    @Deterministic
     public static boolean isChineseChar(char c) {
         // 判断基本汉字和扩展 A 区（可自行扩展其他区）
         return (c >= '\u4E00' && c <= '\u9FFF') ||
                 (c >= '\u3400' && c <= '\u4DBF');
     }
 
+    @Deterministic
     public static int countChinese(String text) {
         if (text == null || text.isEmpty())
             return 0;
@@ -4542,5 +4544,17 @@ public class StringHelper extends ApiStringHelper {
             }
         }
         return count;
+    }
+
+    // 判断是否是合法的数字编号（如 "2" 或 "3.2.1"）
+    @Deterministic
+    public static boolean isNumberedPrefix(String s) {
+        List<String> parts = StringHelper.split(s, '.');
+        for (String part : parts) {
+            if (!StringHelper.isAllDigit(part)) { // 每个部分必须是纯数字
+                return false;
+            }
+        }
+        return !s.isEmpty();
     }
 }

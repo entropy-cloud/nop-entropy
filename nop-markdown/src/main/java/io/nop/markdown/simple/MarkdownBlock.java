@@ -2,10 +2,17 @@ package io.nop.markdown.simple;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.util.StringHelper;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 @DataBean
 public class MarkdownBlock {
@@ -18,6 +25,8 @@ public class MarkdownBlock {
     private String text;
 
     private List<MarkdownBlock> children;
+
+    private Map<String, String> meta;
 
     public MarkdownBlock() {
     }
@@ -59,8 +68,151 @@ public class MarkdownBlock {
         return index;
     }
 
+    public boolean containsText(String text) {
+        if (this.text == null)
+            return false;
+        return this.text.contains(text);
+    }
+
+    public String getFullTitle() {
+        if (meta == null)
+            return title;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(title);
+        sb.append('(');
+        boolean first = true;
+        for (Map.Entry<String, String> entry : meta.entrySet()) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append(',');
+            }
+            sb.append(entry.getKey());
+            sb.append(':');
+            sb.append(entry.getValue());
+        }
+        sb.append(')');
+        return sb.toString();
+    }
+
+    public MarkdownBlock findByTitle(String title) {
+        if (title.equals(this.title))
+            return this;
+
+        if (this.children != null) {
+            for (MarkdownBlock child : this.children) {
+                MarkdownBlock found = child.findByTitle(title);
+                if (found != null)
+                    return found;
+            }
+        }
+        return null;
+    }
+
+    public MarkdownBlock findChildByTitle(String title) {
+        if (this.children != null) {
+            for (MarkdownBlock child : this.children) {
+                if (title.equals(child.title))
+                    return child;
+            }
+        }
+        return null;
+    }
+
+    public boolean removeBlock(Predicate<MarkdownBlock> filter, boolean multiple) {
+        if (filter.test(this))
+            return true;
+
+        boolean b = false;
+        if (this.children != null) {
+            for (int i = 0, n = this.children.size(); i < n; i++) {
+                MarkdownBlock block = this.children.get(i);
+                if (block.removeBlock(filter, multiple)) {
+                    if (!multiple)
+                        return true;
+                    b = true;
+                }
+            }
+        }
+
+        return b;
+    }
+
+    public Set<String> getAllTitles() {
+        Set<String> titles = new LinkedHashSet<>();
+        collectTitles(titles);
+        return titles;
+    }
+
+    public void collectTitles(Set<String> titles) {
+        if (this.title != null)
+            titles.add(this.title);
+
+        if (this.children != null) {
+            for (MarkdownBlock child : this.children) {
+                child.collectTitles(titles);
+            }
+        }
+    }
+
+    public void addMetaValue(String name, String value) {
+        if (meta == null)
+            meta = new LinkedHashMap<>();
+        meta.put(name, value);
+    }
+
+    public String getMetaValue(String name) {
+        return meta == null ? null : meta.get(name);
+    }
+
+    public int getMetaInt(String name, int defaultValue) {
+        Object v = getMetaValue(name);
+        return v == null ? defaultValue : ConvertHelper.toInt(v);
+    }
+
+    public double getMetaDouble(String name, double defaultValue) {
+        Object v = getMetaValue(name);
+        return v == null ? defaultValue : ConvertHelper.toDouble(v);
+    }
+
+    public Map<String, String> getMeta() {
+        return meta;
+    }
+
+    public void setMeta(Map<String, String> meta) {
+        this.meta = meta;
+    }
+
+    public void forEachBlock(Consumer<MarkdownBlock> action) {
+        action.accept(this);
+
+        if (this.children != null) {
+            for (MarkdownBlock child : children) {
+                child.forEachBlock(action);
+            }
+        }
+    }
+
     public String toString() {
         return "#".repeat(Math.max(0, level)) + ' ' + title;
+    }
+
+    public void buildText(StringBuilder sb) {
+        if (getLevel() > 0) {
+            sb.append("#".repeat(getLevel())).append(" ");
+            if (title != null)
+                sb.append(getFullTitle()).append("\n");
+        }
+
+        if (getText() != null)
+            sb.append(getText()).append("\n");
+
+        if (children != null) {
+            for (MarkdownBlock child : children) {
+                child.buildText(sb);
+            }
+        }
     }
 
     public void addChild(MarkdownBlock child) {

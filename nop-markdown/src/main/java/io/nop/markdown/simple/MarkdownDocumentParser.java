@@ -1,11 +1,62 @@
 package io.nop.markdown.simple;
 
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.mutable.MutableInt;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.component.parse.AbstractResourceParser;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MarkdownBlockParser {
+public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocument> {
+
+    @Override
+    protected MarkdownDocument doParseResource(IResource resource) {
+        String text = ResourceHelper.readText(resource, null);
+        return parseFromText(SourceLocation.fromPath(resource.getPath()), text);
+    }
+
+    public MarkdownDocument parseFromText(SourceLocation loc, String text) {
+        text = text.trim();
+
+        MarkdownDocument model = new MarkdownDocument();
+        model.setText(text);
+        model.setLocation(loc);
+
+        MarkdownBlock block = parseToBlockTree(text);
+        block.forEachBlock(this::normalizeTitle);
+        model.setBlock(block);
+        return model;
+    }
+
+    protected void normalizeTitle(MarkdownBlock block) {
+        String title = block.getTitle();
+        if (title != null) {
+            MarkdownTitle mt = new MarkdownTitleParser().parseTitle(title);
+            block.setTitle(mt.getNormalizedTitle());
+            block.setMeta(mt.getMeta());
+        }
+    }
+
+    public MarkdownBlock parseToBlockTree(String text) {
+        text = text.trim();
+        if (StringHelper.isEmpty(text))
+            return null;
+
+        List<MarkdownBlock> blocks = parseBlocks(text);
+        blocks = MarkdownBlock.buildTree(blocks);
+
+        if (blocks.size() == 1) {
+            return blocks.get(0);
+        } else {
+            MarkdownBlock block = new MarkdownBlock();
+            block.setChildren(blocks);
+            return block;
+        }
+    }
+
     public List<MarkdownBlock> parseBlocks(String text) {
         List<MarkdownBlock> blocks = new ArrayList<>();
         text = text.trim();

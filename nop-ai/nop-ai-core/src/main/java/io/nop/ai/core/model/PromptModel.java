@@ -21,6 +21,7 @@ import io.nop.core.model.object.DynamicObject;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.type.PredefinedGenericTypes;
+import io.nop.markdown.simple.MarkdownDocument;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.DslModelParser;
@@ -150,6 +151,8 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
             value = chatResponse.parseXmlContent();
         } else if (output.getFormat() == PromptOutputFormat.json) {
             value = chatResponse.parseJsonContent();
+        } else if (output.getFormat() == PromptOutputFormat.markdown) {
+            value = chatResponse.parseMarkdownContent();
         } else {
             PromptOutputParseModel parseModel = output.getParseFromResponse();
             Guard.notNull(parseModel, "parseFromResponse");
@@ -181,9 +184,10 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
 
             if (value instanceof XNode) {
                 XNode node = (XNode) value;
-                if (output.getXdefObj() != null) {
-                    new XDslValidator(XDslKeys.DEFAULT).removeUnknownAttrs(true).validate(node, output.getXdefObj(), true);
-                }
+                validateXml(node, output);
+            } else if (value instanceof MarkdownDocument) {
+                MarkdownDocument doc = (MarkdownDocument) value;
+                validateMarkdown(doc, output);
             }
 
             if (output.getType() != null) {
@@ -197,6 +201,11 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
                     } else {
                         value = transformNodeToMap(node, output);
                         value = BeanTool.castBeanToType(value, output.getType());
+                    }
+                } else if (value instanceof MarkdownDocument) {
+                    MarkdownDocument doc = (MarkdownDocument) value;
+                    if (output.getType() == PredefinedGenericTypes.STRING_TYPE) {
+                        value = doc.toText();
                     }
                 } else if (output.getType() == PredefinedGenericTypes.STRING_TYPE) {
                     value = JsonTool.serialize(value, true);
@@ -224,6 +233,17 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
         }
 
         return value;
+    }
+
+    protected void validateXml(XNode node, PromptOutputModel output) {
+        if (output.getXdefObj() != null) {
+            new XDslValidator(XDslKeys.DEFAULT).removeUnknownAttrs(true).validate(node, output.getXdefObj(), true);
+        }
+    }
+
+    protected void validateMarkdown(MarkdownDocument doc, PromptOutputModel output) {
+        if (output.getMarkdownTpl() != null)
+            doc.checkBlockInTemplate(output.getMarkdownTpl());
     }
 
     protected Map<String, Object> transformNodeToMap(XNode node, PromptOutputModel output) {

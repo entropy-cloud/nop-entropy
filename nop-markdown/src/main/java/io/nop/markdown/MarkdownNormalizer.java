@@ -39,7 +39,7 @@ public class MarkdownNormalizer {
     public String normalizeText(String text) {
         Parser parser = buildParser();
         Node document = parser.parse(text);
-        document.accept(new NormalizeVisitor());
+        document.accept(newNormalizeVisitor());
         String normalized = buildRenderer().render(document);
         return normalized;
     }
@@ -63,7 +63,11 @@ public class MarkdownNormalizer {
         }
     }
 
-    static class NormalizeVisitor extends AbstractVisitor {
+    protected NormalizeVisitor newNormalizeVisitor() {
+        return new NormalizeVisitor();
+    }
+
+    protected static class NormalizeVisitor extends AbstractVisitor {
         MutableIntArray levels = new MutableIntArray();
         boolean first = true;
 
@@ -112,7 +116,7 @@ public class MarkdownNormalizer {
             }
         }
 
-        private void normalizeMathNode(Text text) {
+        protected void normalizeMathNode(Text text) {
             String literal = text.getLiteral();
             TextScanner sc = TextScanner.fromString(null, literal);
             Node prev = text;
