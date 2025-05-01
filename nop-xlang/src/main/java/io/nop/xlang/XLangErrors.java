@@ -864,6 +864,9 @@ public interface XLangErrors {
     ErrorCode ERR_XDEF_INVALID_ENUM_VALUE_FOR_PROP = define("nop.err.xlang.xdef.invalid-enum-value",
             "属性[{propName}]的值[{value}]不是合法的[{dictName}]枚举值", ARG_PROP_NAME, ARG_VALUE, ARG_DICT_NAME, ARG_ALLOWED_VALUES);
 
+    ErrorCode ERR_XDEF_ENUM_VALUE_NOT_IN_OPTIONS =
+            define("nop.err.xlang.xdef.enum-value-not-in-options", "属性[{propName}]的值[{value}]不在选项列表[{options}]中");
+
     ErrorCode ERR_XDEF_STD_DOMAIN_NOT_SUPPORT_OPTIONS = define("nop.err.xlang.xdef.std-domain-not-support-options",
             "[{stdDomain}]不支持扩展选项", ARG_STD_DOMAIN);
 

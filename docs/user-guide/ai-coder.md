@@ -2,6 +2,40 @@
 
 ## 技术路线
 
+核心思想：
+
+1. 坐标化
+
+2. 局域函数+自适应纠正
+
+3. 元模型提供语义验证，语法采用通用语法
+
+AIGC的困境：幻觉 + 有限上下文
+
+分析：结构空间过大，推理深度有限
+
+解决方案：解空间与问题空间复杂度适配，投影到子空间，然后将多个子空间的结果粘结在一起。
+
+不同的逻辑主体修改同一份代码结构。蓝图叠加。
+
+生成骨架 + 局部抛光
+
+通过MCP实现信息补充。
+
+将整理后的规范性示例代码放到特定目录，然后建立RAG索引。
+
+确立自动化的验证标准，要求差量化修改。自动压缩对话过程。
+
+
+
+1. 多个方案判断哪个更优
+
+2. 对比多种AI模型的生成
+
+3. 
+
+
+
 需求所在的问题空间 --> 我们使用的编程语言与框架所在的软件结构空间 --> AI大模型所知的所有语言（不同语言，不同版本）历史上所有编程知识所在的可行空间。
 
 这些空间本身是不匹配的。幻觉的问题：如果仔细分析，会发现在某个平行宇宙中AI的输出可能就是合理的，在那个宇宙中存在着一个这样的事实。仅从逻辑进行判断，是无法识别是否是幻觉的。
@@ -16,7 +50,6 @@
 具有完善解决方案的问题直接要求回答。
 复杂的逻辑实现问题，要求AI选择一个自己认为最合适的XML格式来表达，并反复检查且改进该XML格式的实现。最后再映射到对应的TaskFlow实现。
 
-
 面向人类使用的XDef元模型：主要是表达格式信息。
 
 面向AI：根据语义可以自动推定一定的格式信息，不需要详细表达。
@@ -30,7 +63,6 @@
 XDef元模型特别适合AI理解。
 
 ```xml
-
 <orm x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
      xmlns:orm="orm" xmlns:ext="ext">
 
@@ -55,7 +87,6 @@ XDef元模型特别适合AI理解。
 但是对于AI大模型来说，这些信息是多余的，而且会形成干扰。
 
 ```xml
-
 <orm>
   <entities>
     <entity name="english" displayName="chinese">
@@ -92,7 +123,6 @@ inputs => outputs 从Map映射到Map
 ### NopTaskFlow编排
 
 ```xml
-
 <task>
   <steps>
     <custom name="designOrm" customType="ai:TaskStep" ai:promptName="coder/orm-design">
@@ -133,7 +163,6 @@ inputs => outputs 从Map映射到Map
 
 XML具有自校验能力。如果标签没有封闭，则解析失败，会自动重试。
 
-
 # AI颠覆开发：开源框架NopAiCoder实现"输入需求文档输出完整应用"
 
 ## 引言：AI编程的新范式
@@ -159,6 +188,7 @@ NopAiCoder的核心创新在于建立了三个关键空间之间的映射关系�
 NopAiCoder设计了两种XDef元模型变体，分别优化人机协作：
 
 ### 面向人类的XDef
+
 ```xml
 <orm x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
      xmlns:xdef="/nop/schema/xdef.xdef" xmlns:orm="orm" xmlns:ext="ext">
@@ -178,6 +208,7 @@ NopAiCoder设计了两种XDef元模型变体，分别优化人机协作：
 ```
 
 ### 面向AI的简化XDef
+
 ```xml
 <orm>
   <entities>
@@ -196,6 +227,7 @@ NopAiCoder设计了两种XDef元模型变体，分别优化人机协作：
 ```
 
 关键区别在于：
+
 - 人类版本包含完整的格式约束和校验信息
 - AI版本强调语义表达，去除冗余的元数据
 - 两者保持格式兼容，确保无缝转换
@@ -209,6 +241,7 @@ NopAiCoder将prompt设计为具有完整输入输出规范的函数单元：
 3. **动态切换**：通过promptName实现不同处理逻辑
 
 函数签名统一为Map到Map的转换：
+
 ```typescript
 inputs: Map → outputs: Map
 ```
@@ -216,6 +249,7 @@ inputs: Map → outputs: Map
 ## 系统集成：无缝融入开发流程
 
 ### 任务流编排示例
+
 ```xml
 <task>
   <steps>
@@ -229,6 +263,7 @@ inputs: Map → outputs: Map
 ```
 
 ### GraphQL服务集成
+
 ```xml
 <query name="designOrm" ai:promptName="coder/orm-design">
   <ai:chatOptions provider="ollama" model="deepseek-r1:14b" />
@@ -248,6 +283,7 @@ NopAiCoder采用创新的DSL空间划分策略：
 ## 多模态自由转换
 
 系统支持领域模型在不同表现形式间的无损转换：
+
 - 可简化为仅含必要字段的ORM模型
 - 可转换为Java类实现
 - 默认输出标准化XML便于自动校验

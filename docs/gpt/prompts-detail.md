@@ -66,6 +66,13 @@ ULTRA IMPORTANT: Do NOT be verbose and DO NOT explain anything unless the user i
 </example>
 ```
 
+IMPORTANT FORMATTING INSTRUCTIONS:
+- Return ONLY the valid XML structure specified above
+- DO NOT wrap the XML in markdown code blocks (no \`\`\` or \`\`\`xml)
+- DO NOT include any explanation text before or after the XML
+- Ensure the XML is properly formatted and valid
+- Start directly with <wiki_structure> and end with </wiki_structure>
+
 ## Tool
 
 ```

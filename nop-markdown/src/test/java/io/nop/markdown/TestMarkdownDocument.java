@@ -8,6 +8,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 public class TestMarkdownDocument {
     @BeforeAll
     public static void init() {
@@ -23,5 +25,13 @@ public class TestMarkdownDocument {
     public void testParse() {
         MarkdownDocument tpl = new MarkdownDocumentParser().parseFromVirtualPath("/test/test.tpl.md");
         System.out.println(StringHelper.join(tpl.getAllFullTitles(), "\n"));
+
+        MarkdownDocument doc = new MarkdownDocumentParser().parseFromVirtualPath("/test/test.md");
+        doc.matchTpl(tpl, true);
+
+        assertNotNull(doc.findBlockByTitle("2.2 核心功能模块"));
+
+        MarkdownDocument selected = doc.selectBlockByTplMark("[MAIN]");
+        System.out.println(selected.toText());
     }
 }

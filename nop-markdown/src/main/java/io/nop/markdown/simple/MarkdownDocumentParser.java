@@ -22,7 +22,6 @@ public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocum
         text = text.trim();
 
         MarkdownDocument model = new MarkdownDocument();
-        model.setText(text);
         model.setLocation(loc);
 
         MarkdownBlock block = parseToBlockTree(text);
@@ -88,10 +87,10 @@ public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocum
         int pos2 = text.indexOf("\n#", pos);
         if (pos2 < 0) {
             pos2 = text.length();
-        } else {
-            pos2++;
+            index.set(pos2);
+        }else {
+            index.set(pos2 + 1);
         }
-        index.set(pos2);
 
         MarkdownBlock block = new MarkdownBlock();
         block.setStartIndex(pos);

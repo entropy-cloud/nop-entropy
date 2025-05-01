@@ -243,7 +243,7 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
 
     protected void validateMarkdown(MarkdownDocument doc, PromptOutputModel output) {
         if (output.getMarkdownTpl() != null)
-            doc.checkBlockInTemplate(output.getMarkdownTpl());
+            doc.matchTpl(output.getMarkdownTpl(), true);
     }
 
     protected Map<String, Object> transformNodeToMap(XNode node, PromptOutputModel output) {

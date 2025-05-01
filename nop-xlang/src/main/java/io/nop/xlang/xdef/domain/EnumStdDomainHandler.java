@@ -23,12 +23,16 @@ import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.XDefConstants;
 
+import java.util.List;
+
 import static io.nop.xlang.XLangErrors.ARG_ALLOWED_NAMES;
 import static io.nop.xlang.XLangErrors.ARG_CLASS_NAME;
 import static io.nop.xlang.XLangErrors.ARG_DICT_NAME;
+import static io.nop.xlang.XLangErrors.ARG_OPTIONS;
 import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
 import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
 import static io.nop.xlang.XLangErrors.ARG_VALUE;
+import static io.nop.xlang.XLangErrors.ERR_XDEF_ENUM_VALUE_NOT_IN_OPTIONS;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_ILLEGAL_CLASS_NAME_FOR_ENUM_DOMAIN;
 import static io.nop.xlang.XLangErrors.ERR_XDEF_INVALID_ENUM_VALUE_FOR_PROP;
 
@@ -41,6 +45,9 @@ public class EnumStdDomainHandler implements IStdDomainHandler {
 
 
     public IGenericType parseOptions(SourceLocation loc, String options) {
+        if (options != null && options.indexOf('|') >= 0)
+            return PredefinedGenericTypes.STRING_TYPE;
+
         if (!StringHelper.isValidClassName(options))
             throw new NopException(ERR_XDEF_ILLEGAL_CLASS_NAME_FOR_ENUM_DOMAIN).loc(loc)
                     .param(ARG_STD_DOMAIN, this.getName()).param(ARG_CLASS_NAME, options);
@@ -64,7 +71,14 @@ public class EnumStdDomainHandler implements IStdDomainHandler {
         if (options == null)
             return null;
 
+        if (options.indexOf('|') >= 0) {
+            List<String> list = StringHelper.stripedSplit(options, '|');
+            if (!list.contains((String) text))
+                throw new NopException(ERR_XDEF_ENUM_VALUE_NOT_IN_OPTIONS).loc(loc).param(ARG_PROP_NAME, propName)
+                        .param(ARG_VALUE, text).param(ARG_OPTIONS, options);
+            return text;
 
+        }
         DictBean dict = EnumDictLoader.INSTANCE.loadDict(null, options, null);
         if (dict.getOptionByValue(text) == null)
             throw new NopException(ERR_XDEF_INVALID_ENUM_VALUE_FOR_PROP).loc(loc).param(ARG_PROP_NAME, propName)
