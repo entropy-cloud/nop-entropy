@@ -13,7 +13,6 @@
              stopPath="options.stop"
              maxTokensPath="options.num_predict"
              contextLengthPath="options.num_ctx"
-             perSeqContextLengthPath="options.n_ctx_per_seq"
     />
 
     <response contentPath="message.content"

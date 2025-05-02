@@ -32,6 +32,7 @@ public class TransformCustomStepHelper {
 
         IXplTag tag = getGeneratorTag(root, node, customType);
         if (tag != null) {
+            node.removeAttr(TaskConstants.ATTR_CUSTOM_TYPE);
             Map<String, Object> args = new HashMap<>();
             args.put(TaskConstants.VAR_NODE, node);
             args.put(XLangConstants.SCOPE_VAR_DSL_ROOT, root);

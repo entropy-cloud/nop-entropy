@@ -367,6 +367,11 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         this.sourceLocation = loc;
     }
 
+    public XNode loc(SourceLocation loc){
+        this.setLocation(loc);
+        return this;
+    }
+
     /**
      * 是否文本节点
      */
@@ -1701,6 +1706,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
 
             XNode node = XNode.make(CoreConstants.TAG_NAME_C_SCRIPT);
             node.content(loc, script);
+            appendChild(node);
         }
     }
 
@@ -1710,6 +1716,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         if (this.content.isNull())
             return;
         XNode child = XNode.make(CoreConstants.TAG_NAME_C_SCRIPT);
+        child.setLocation(content.getLocation());
         child.content(content);
         this.content = NULL_VALUE;
         appendChild(child);

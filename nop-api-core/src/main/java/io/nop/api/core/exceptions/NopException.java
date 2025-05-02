@@ -69,7 +69,7 @@ public class NopException extends RuntimeException implements IException {
      * 事务中发生此异常时是否需要回滚。ORM也会检查异常，如果需要回滚会自动清空OrmSession
      */
     public static boolean shouldRollback(Throwable e) {
-        if(e == null)
+        if (e == null)
             return false;
 
         if (e instanceof NopException)
@@ -132,6 +132,20 @@ public class NopException extends RuntimeException implements IException {
             throw (ThreadDeath) t;
         } else if (t instanceof LinkageError) {
             throw (LinkageError) t;
+        }
+    }
+
+    public static void addLoc(Exception e, SourceLocation loc) {
+        if(loc == null)
+            return;
+
+        if (e instanceof NopException) {
+            NopException ne = (NopException) e;
+            if (ne.getErrorLocation() == null) {
+                ne.loc(loc);
+            } else {
+                ne.addXplStack(loc);
+            }
         }
     }
 

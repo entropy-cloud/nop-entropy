@@ -83,6 +83,10 @@ public class MarkdownDocument implements IComponentModel {
         return sb.toString();
     }
 
+    public String toText() {
+        return toText(false);
+    }
+
     /**
      * 检查markdown文档的结构与模板中定义的结构一致，包含所有结构部分
      */

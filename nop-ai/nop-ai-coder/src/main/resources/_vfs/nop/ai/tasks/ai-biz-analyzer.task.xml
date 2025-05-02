@@ -6,11 +6,11 @@
     <ai-coder:config/>
 
     <input name="inputRequirements" type="String" mandatory="true"/>
-    <input name="basePackageName" type="class-name" mandatory="true"/>
+    <input name="basePackageName" type="String" mandatory="true"/>
     <input name="outputDir" type="String" mandatory="true"/>
 
     <steps>
-        <custom name="expandRequirements" customType="ai:TaskStep" ai:promptName="/coder/expand-requirements">
+        <custom name="expandRequirements" customType="ai:TaskStep" ai:promptName="coder/expand-requirements">
             <description>扩充需求文档</description>
 
             <input name="inputRequirements"/>
@@ -33,7 +33,7 @@
                 return requirementsDoc.findBlockByTitle('2.2 核心功能模块').children
             </producer>
 
-            <throttle maxConcurrency="2"/>
+            <throttle maxConcurrency="2" maxWait="1000000"/>
 
             <steps>
                 <custom name="expandOneModuleRequirement" customType="ai:TaskStep"
@@ -45,7 +45,7 @@
 
                 <custom name="saveModuleDoc" customType="ai-coder:SaveFile">
                     <input name="outputDir"/>
-                    <input name="fileName" value="docs/requirements/modules/${module.title}.md"/>
+                    <input name="fileName" value="docs/requirements/modules/${module.prefix}.md"/>
                     <input name="text" value="${moduleDoc.toText()}"/>
                 </custom>
             </steps>

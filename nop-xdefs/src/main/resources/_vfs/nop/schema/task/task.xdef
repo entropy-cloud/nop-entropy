@@ -103,7 +103,7 @@
         <!--
          限制对同一个key的调用并发数不能超过指定值
         -->
-        <throttle maxConcurrent="!int" maxWait="!int" keyExpr="expr" global="!boolean=false"
+        <throttle maxConcurrency="!int" maxWait="!int" keyExpr="expr" global="!boolean=false"
                   xdef:name="TaskThrottleModel"/>
 
         <!--

@@ -40,6 +40,7 @@ import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_LOG_MESSAGE;
 import static io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_API_KEY;
 import static io.nop.ai.core.AiCoreConstants.CONFIG_VAR_LLM_BASE_URL;
 import static io.nop.ai.core.AiCoreConstants.PLACE_HOLDER_LLM_NAME;
+import static io.nop.ai.core.AiCoreErrors.ARG_CONFIG_VAR;
 import static io.nop.ai.core.AiCoreErrors.ARG_HTTP_STATUS;
 import static io.nop.ai.core.AiCoreErrors.ARG_LLM_NAME;
 import static io.nop.ai.core.AiCoreErrors.ARG_OPTION_NAME;
@@ -180,7 +181,8 @@ public class DefaultAiChatService implements IAiChatService {
         if (StringHelper.isEmpty(baseUrl))
             baseUrl = llmModel.getBaseUrl();
         if (StringHelper.isEmpty(baseUrl))
-            throw new NopException(ERR_AI_SERVICE_NO_BASE_URL).param(ARG_LLM_NAME, llmName);
+            throw new NopException(ERR_AI_SERVICE_NO_BASE_URL).param(ARG_LLM_NAME, llmName)
+                    .param(ARG_CONFIG_VAR, baseUrlKey);
         return baseUrl;
     }
 

@@ -5,8 +5,8 @@ template: |
   【输出要求】
   1. 优先使用结构化表述（列表/表格）
   
-  【文档结构】
-  ${promptModel.getOutput('RESULT').markdownTitles.join('\n')}
+  【输出文档结构】
+  ${promptModel.getOutput('RESULT').markdownTpl.toText()}
   
   【输入】
   ${moduleRequirements}

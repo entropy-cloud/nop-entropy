@@ -661,27 +661,31 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
 
         ResourceComponentManager.instance().traceDepends(this.tag.resourcePath());
 
-        FunctionModel fn = new FunctionModel();
-        fn.setName(getTag().getTagFuncName());
-        fn.setLocation(tag.getLocation());
-        fn.setArgs(buildArgsModel());
+        try {
+            FunctionModel fn = new FunctionModel();
+            fn.setName(getTag().getTagFuncName());
+            fn.setLocation(tag.getLocation());
+            fn.setArgs(buildArgsModel());
 
-        XLangCompileTool cp = XLang.newCompileTool();
-        IXLangCompileScope scope = cp.getScope();
-        scope.setCurrentLib(lib);
-        scope.setCurrentTag(tag);
-        // scope.setSlotDefaults(new HashMap<>());
-        scope.setOutputMode(outputMode);
+            XLangCompileTool cp = XLang.newCompileTool();
+            IXLangCompileScope scope = cp.getScope();
+            scope.setCurrentLib(lib);
+            scope.setCurrentTag(tag);
+            // scope.setSlotDefaults(new HashMap<>());
+            scope.setOutputMode(outputMode);
 
-        CompiledTag compiledTag = new CompiledTag();
-        // compiledTag.slotDefaults = scope.getSlotDefaults();
-        compiledTag.functionModel = fn;
+            CompiledTag compiledTag = new CompiledTag();
+            // compiledTag.slotDefaults = scope.getSlotDefaults();
+            compiledTag.functionModel = fn;
 
-        fn.setInvoker(new LazyCompiledFunction(cp, compiledTag));
+            fn.setInvoker(new LazyCompiledFunction(cp, compiledTag));
 
-        // fn.freeze(true);
-
-        return compiledTag;
+            return compiledTag;
+        } catch (Exception e) {
+            LOG.error("nop.err.compile-tag-error:tagName={},tagLoc={}", getTag().getTagName(), getTag().getLocation(), e);
+            NopException.addLoc(e, getTag().getLocation());
+            throw NopException.adapt(e);
+        }
     }
 
     public class LazyCompiledFunction implements IEvalFunction {

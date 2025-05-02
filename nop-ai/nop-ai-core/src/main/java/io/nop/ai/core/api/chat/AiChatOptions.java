@@ -7,10 +7,12 @@
  */
 package io.nop.ai.core.api.chat;
 
+import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ExtensibleBean;
 
 import java.util.List;
 
+@DataBean
 public class AiChatOptions extends ExtensibleBean {
     private String provider;
     private String model;

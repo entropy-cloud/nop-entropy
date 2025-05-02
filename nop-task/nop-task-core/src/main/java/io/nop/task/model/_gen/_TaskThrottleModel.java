@@ -32,10 +32,10 @@ public abstract class _TaskThrottleModel extends io.nop.core.resource.component.
     
     /**
      *  
-     * xml name: maxConcurrent
+     * xml name: maxConcurrency
      * 
      */
-    private int _maxConcurrent ;
+    private int _maxConcurrency ;
     
     /**
      *  
@@ -84,19 +84,19 @@ public abstract class _TaskThrottleModel extends io.nop.core.resource.component.
     
     /**
      * 
-     * xml name: maxConcurrent
+     * xml name: maxConcurrency
      *  
      */
     
-    public int getMaxConcurrent(){
-      return _maxConcurrent;
+    public int getMaxConcurrency(){
+      return _maxConcurrency;
     }
 
     
-    public void setMaxConcurrent(int value){
+    public void setMaxConcurrency(int value){
         checkAllowChange();
         
-        this._maxConcurrent = value;
+        this._maxConcurrency = value;
            
     }
 
@@ -137,7 +137,7 @@ public abstract class _TaskThrottleModel extends io.nop.core.resource.component.
         
         out.putNotNull("global",this.isGlobal());
         out.putNotNull("keyExpr",this.getKeyExpr());
-        out.putNotNull("maxConcurrent",this.getMaxConcurrent());
+        out.putNotNull("maxConcurrency",this.getMaxConcurrency());
         out.putNotNull("maxWait",this.getMaxWait());
     }
 
@@ -152,7 +152,7 @@ public abstract class _TaskThrottleModel extends io.nop.core.resource.component.
         
         instance.setGlobal(this.isGlobal());
         instance.setKeyExpr(this.getKeyExpr());
-        instance.setMaxConcurrent(this.getMaxConcurrent());
+        instance.setMaxConcurrency(this.getMaxConcurrency());
         instance.setMaxWait(this.getMaxWait());
     }
 

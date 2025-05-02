@@ -11,16 +11,16 @@ import jakarta.annotation.Nonnull;
 public class ThrottleTaskStepWrapper extends DelegateTaskStep {
 
     private final boolean global;
-    private final int maxConcurrent;
+    private final int maxConcurrency;
     private final int maxWait;
 
     private final IEvalAction keyExpr;
 
     public ThrottleTaskStepWrapper(ITaskStep taskStep, boolean global,
-                                   int maxConcurrent, int maxWait, IEvalAction keyExpr) {
+                                   int maxConcurrency, int maxWait, IEvalAction keyExpr) {
         super(taskStep);
         this.global = global;
-        this.maxConcurrent = maxConcurrent;
+        this.maxConcurrency = maxConcurrency;
         this.maxWait = maxWait;
         this.keyExpr = keyExpr;
     }

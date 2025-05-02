@@ -10,3 +10,13 @@ nop:
     jdbc-url: jdbc:h2:mem:test
     username: sa
     password:
+
+  ai:
+    llm:
+      ollama:
+        base-url: "http://localhost:11434/"
+
+
+  http:
+    client:
+      read-timeout: 5M

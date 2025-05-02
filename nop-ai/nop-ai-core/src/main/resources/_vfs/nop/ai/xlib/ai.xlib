@@ -31,7 +31,7 @@
         </AiActionSupport>
 
         <TaskStep-generator>
-            <attr name="node" type="XNode" implicit="true"/>
+            <attr name="node" type="io.nop.core.lang.xml.XNode" implicit="true"/>
             <attr name="_dsl_root" implicit="true"/>
 
             <source>
@@ -39,7 +39,9 @@
                     const optionsNode = node.removeChildByTag('ai:chatOptions');
 
                     node.tagName = 'xpl';
-                    const execNode = node.makeChild('source').makeChild('ai:Execute');
+                    const sourceNode = node.makeChild('source');
+                    const execNode = sourceNode.makeChild('ai:Execute');
+                    execNode.loc(location());
 
                     const options = {..._dsl_root?.childByTag('ai:chatOptions')?.attrValueLocs(), ...optionsNode?.attrValueLocs()};
                     execNode.attrValueLocs(options);
@@ -51,12 +53,12 @@
 
                     execNode.setAttr('promptPath', promptPath);
                     execNode.setAttr('asyncExec', true);
-                    execNode.setAttr('inputs', "${"+inputNames.join(',')+"}");
+                    execNode.setAttr('inputs', "${{"+inputNames.join(',')+"}}");
                     execNode.setAttr('retryTimesPerRequest', node.getAttr('ai:retryTimesPerRequest'));
                     execNode.setAttr('cancelToken',"${taskRt}");
                     execNode.setAttr('xpl:lib', '/nop/ai/xlib/ai.xlib');
                     execNode.setAttr('xpl:return', 'chatResponsePromise');
-                    execNode.addChild('c:script').content = "return chatResponsePromise.thenApply(res=> res.validate().results);";
+                    sourceNode.appendScript(location(), 'return chatResponsePromise.thenApply(res=> res.validate().results);');
 
                     return node;
                 ]]></c:script>
@@ -84,7 +86,7 @@
             <attr name="requestTimeout" stdDomain="long" optional="true"/>
             <attr name="stream" stdDomain="boolean" optional="true"/>
 
-            <attr name="asyncExecute" stdDomain="boolean" optional="true"/>
+            <attr name="asyncExec" stdDomain="boolean" optional="true"/>
             <attr name="retryTimesPerRequest" stdDomain="int" optional="true"/>
             <attr name="inputs" type="Map" optional="true"/>
             <attr name="cancelToken" optional="true"/>
@@ -100,15 +102,18 @@
                 const chatService = inject("nopAiChatService");
                 const promptTemplateManager = inject("nopPromptTemplateManager");
                 const cmd = new AiCommand(chatService);
+                if(promptName != null){
+                    $.checkArgument(!promptName.startsWith('/') and !promptName.endsWith('.yaml'),"invalid promptName")
+                }
                 const fullPath = promptPath ||  "/nop/ai/prompts/" + promptName + ".prompt.yaml";
                 $.notEmpty(fullPath,"promptPath");
-                cmd.setPromptTemplate(promptTemplateManager.getPromptTemplate(fullPath));
+                cmd.setPromptTemplate(promptTemplateManager.loadPromptTemplateFromPath(fullPath));
                 cmd.setChatOptions(chatOptions);
 
                 if(retryTimesPerRequest >= 0)
                     cmd.setRetryTimesPerRequest(retryTimesPerRequest);
 
-                return asyncExecute ? cmd.executeAsync(inputs, cancelToken) : cmd.execute(inputs);
+                return asyncExec ? cmd.executeAsync(inputs, cancelToken) : cmd.execute(inputs);
             ]]></source>
         </Execute>
     </tags>

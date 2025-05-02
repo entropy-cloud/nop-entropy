@@ -1053,4 +1053,13 @@ public class ResourceHelper {
         }
         return resource;
     }
+
+    public static IResource resolveResourceInDir(String dir, String fileName) {
+        fileName = fileName.replace('\\', '/');
+        if (fileName.contains("../"))
+            throw new IllegalArgumentException("nop.err.invalid-file-name:" + fileName);
+        String path = StringHelper.appendPath(dir, fileName);
+
+        return resolveRelativePathResource(path);
+    }
 }
