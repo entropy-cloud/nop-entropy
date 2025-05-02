@@ -3,9 +3,11 @@ package io.nop.markdown.simple;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.mutable.MutableInt;
 import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.TagsHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.component.parse.AbstractResourceParser;
+import io.nop.markdown.MarkdownConstants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,62 +26,86 @@ public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocum
         MarkdownDocument model = new MarkdownDocument();
         model.setLocation(loc);
 
-        MarkdownBlock block = parseToBlockTree(text);
-        block.forEachBlock(this::normalizeTitle);
-        model.setBlock(block);
+        MarkdownSection section = parseRootSection(text);
+        section.forEachSection(this::normalizeSectionContent);
+        model.setRootSection(section);
         return model;
     }
 
-    protected void normalizeTitle(MarkdownBlock block) {
-        String title = block.getTitle();
-        if (title != null) {
-            MarkdownTitle mt = new MarkdownTitleParser().parseTitle(title);
-            block.setTitle(mt.getNormalizedTitle());
-            block.setMeta(mt.getMeta());
+    protected void normalizeSectionContent(MarkdownSection section) {
+        normalizeTitle(section);
+
+        String text = section.getText();
+        if (text != null) {
+            text = text.trim();
+            if (text.startsWith(MarkdownConstants.TAGS_PREFIX)) {
+                int pos = text.indexOf('\n');
+                if (pos < 0)
+                    pos = text.length();
+
+                String tags = text.substring(MarkdownConstants.TAGS_PREFIX.length(), pos);
+                section.setTagSet(TagsHelper.parse(tags, ','));
+
+                if (pos == text.length()) {
+                    text = null;
+                } else {
+                    text = text.substring(pos + 1).trim();
+                }
+            }
+            section.setText(text);
         }
     }
 
-    public MarkdownBlock parseToBlockTree(String text) {
+    protected void normalizeTitle(MarkdownSection section) {
+        String title = section.getTitle();
+        if (title != null) {
+            MarkdownTitle mt = new MarkdownTitleParser().parseTitle(title);
+            section.setTitle(mt.getNormalizedTitle());
+            section.setMeta(mt.getMeta());
+        }
+    }
+
+    public MarkdownSection parseRootSection(String text) {
         text = text.trim();
         if (StringHelper.isEmpty(text))
             return null;
 
-        List<MarkdownBlock> blocks = parseBlocks(text);
-        blocks = MarkdownBlock.buildTree(blocks);
+        List<MarkdownSection> sections = parseSections(text);
+        sections = MarkdownSection.buildTree(sections);
 
-        if (blocks.size() == 1) {
-            return blocks.get(0);
+        if (sections.size() == 1) {
+            return sections.get(0);
         } else {
-            MarkdownBlock block = new MarkdownBlock();
-            block.setChildren(blocks);
-            return block;
+            MarkdownSection section = new MarkdownSection();
+            section.setChildren(sections);
+            return section;
         }
     }
 
-    public List<MarkdownBlock> parseBlocks(String text) {
-        List<MarkdownBlock> blocks = new ArrayList<>();
+    public List<MarkdownSection> parseSections(String text) {
+        List<MarkdownSection> sections = new ArrayList<>();
         text = text.trim();
 
         MutableInt index = new MutableInt();
 
         if (text.startsWith("#")) {
-            MarkdownBlock block = parseBlock(text, index);
-            blocks.add(block);
+            MarkdownSection section = parseSection(text, index);
+            sections.add(section);
         } else if (text.startsWith("\n#")) {
             index.set(1);
         }
 
         do {
-            MarkdownBlock block = parseBlock(text, index);
-            if (block == null)
+            MarkdownSection section = parseSection(text, index);
+            if (section == null)
                 break;
-            blocks.add(block);
+            sections.add(section);
         } while (true);
 
-        return blocks;
+        return sections;
     }
 
-    MarkdownBlock parseBlock(String text, MutableInt index) {
+    MarkdownSection parseSection(String text, MutableInt index) {
         int pos = index.get();
         if (text.length() <= pos)
             return null;
@@ -88,16 +114,14 @@ public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocum
         if (pos2 < 0) {
             pos2 = text.length();
             index.set(pos2);
-        }else {
+        } else {
             index.set(pos2 + 1);
         }
 
-        MarkdownBlock block = new MarkdownBlock();
-        block.setStartIndex(pos);
-        block.setEndIndex(pos2);
+        MarkdownSection section = new MarkdownSection();
 
-        int level = countBlockLevel(text, pos);
-        block.setLevel(level);
+        int level = countSectionLevel(text, pos);
+        section.setLevel(level);
 
         if (level > 0) {
             int pos3 = text.indexOf("\n", pos);
@@ -105,18 +129,18 @@ public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocum
                 pos3 = text.length();
 
             String title = text.substring(pos + level, pos3).trim();
-            block.setTitle(title);
+            section.setTitle(title);
             pos = pos3 + 1;
         }
 
         if (pos < pos2) {
-            block.setText(text.substring(pos, pos2));
+            section.setText(text.substring(pos, pos2));
         }
 
-        return block;
+        return section;
     }
 
-    int countBlockLevel(String text, int pos) {
+    int countSectionLevel(String text, int pos) {
         int count = 0;
         for (int i = pos, n = text.length(); i < n; i++) {
             char c = text.charAt(i);

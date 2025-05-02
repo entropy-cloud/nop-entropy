@@ -6,6 +6,7 @@ import io.nop.ai.coder.orm.OrmModelToJava;
 import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.model.PromptModel;
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
+import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
@@ -15,6 +16,7 @@ import io.nop.markdown.simple.MarkdownDocument;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.OrmModel;
 import io.nop.xlang.xdsl.DslModelParser;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -26,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 //@NopTestConfig(disableSnapshot = true)
+//@Disabled
 public class TestAiCoder extends JunitAutoTestCase {
 
     PromptModel loadPrompt(String promptPath) {
@@ -50,7 +53,7 @@ public class TestAiCoder extends JunitAutoTestCase {
         promptModel.processChatResponse(response, scope);
 
         MarkdownDocument md = (MarkdownDocument) response.getResultValue();
-        System.out.println(md.toText());
+        System.out.println(md.toText(true));
         assertTrue(response.isValid());
     }
 

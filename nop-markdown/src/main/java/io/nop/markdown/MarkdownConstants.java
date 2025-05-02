@@ -1,7 +1,9 @@
 package io.nop.markdown;
 
 public interface MarkdownConstants {
-    String MARK_OPTIONAL = "[OPTIONAL]";
+    String TAGS_PREFIX = "[TAGS]:";
 
-    String MARK_DYNAMIC = "[DYNAMIC]";
+    String TAG_OPTIONAL = "OPTIONAL";
+
+    String TAG_DYNAMIC = "DYNAMIC";
 }

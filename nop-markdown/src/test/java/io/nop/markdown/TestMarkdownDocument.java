@@ -29,9 +29,9 @@ public class TestMarkdownDocument {
         MarkdownDocument doc = new MarkdownDocumentParser().parseFromVirtualPath("/test/test.md");
         doc.matchTpl(tpl, true);
 
-        assertNotNull(doc.findBlockByTitle("2.2 核心功能模块"));
+        assertNotNull(doc.findSectionByTitle("2.2 核心功能模块"));
 
-        MarkdownDocument selected = doc.selectBlockByTplMark("[MAIN]");
-        System.out.println(selected.toText());
+        MarkdownDocument selected = doc.filterSectionByTag("MAIN");
+        System.out.println(selected.toText(false));
     }
 }

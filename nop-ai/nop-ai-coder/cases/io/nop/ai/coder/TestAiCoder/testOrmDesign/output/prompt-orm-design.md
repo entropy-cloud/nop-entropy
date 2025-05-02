@@ -4,21 +4,21 @@
 【具体要求】
 1. 设计范围不包含User、Role, Permission、页面资源等通用公共表
 2. 所有字段命名需严格避免与 SQL 关键字冲突
-3. 主键名使用sid，而不是id
+3. 主键名固定使用id
+4. 只用返回XML，不需要额外解释
 
 【返回格式】
-返回结果采用如下XML格式
 
 ```xml
 <orm>
     <dicts>
-        <dict name="string" label="string">
+        <dict name="string" label="chinese">
             <description>string</description>
             <option value="four-or-two-letter-code" code="upper-case-java-var-name" label="chinese" description="string"/>
         </dict>
     </dicts>
     <entities>
-        <entity name="english" displayName="chinese">
+        <entity name="english" displayName="chinese" ddd:aggRoot="boolean" ddd:boundedContext="string">
             <comment>description</comment>
             <columns>
                 <column name="english" displayName="chinese" mandatory="boolean" primary="boolean" ext:dict="dict-name"

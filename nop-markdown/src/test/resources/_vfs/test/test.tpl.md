@@ -1,15 +1,14 @@
 # 1. 需求概述
-[MAIN]
 
 # 2. 系统功能需求
 
 ## 2.1 用户角色与权限
-[MAIN]
+[TAGS]: MAIN
 
 ## 2.2 核心功能模块
 
 ### 2.2.1 具体模块(Priority:1到5, Effort:n)
-[DYNAMIC] [MAIN]
+[TAGS]: DYNAMIC, MAIN
 
 # 3. 接口设计
 

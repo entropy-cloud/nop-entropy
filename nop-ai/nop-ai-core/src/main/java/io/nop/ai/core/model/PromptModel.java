@@ -205,7 +205,7 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
                 } else if (value instanceof MarkdownDocument) {
                     MarkdownDocument doc = (MarkdownDocument) value;
                     if (output.getType() == PredefinedGenericTypes.STRING_TYPE) {
-                        value = doc.toText();
+                        value = doc.toText(true);
                     }
                 } else if (output.getType() == PredefinedGenericTypes.STRING_TYPE) {
                     value = JsonTool.serialize(value, true);

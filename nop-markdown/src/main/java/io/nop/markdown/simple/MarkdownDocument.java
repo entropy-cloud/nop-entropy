@@ -14,23 +14,18 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import static io.nop.markdown.MarkdownErrors.ARG_TITLE;
-import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_BLOCK_NOT_DEFINED_IN_TPL;
-import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_MISSING_BLOCK;
+import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_MISSING_SECTION;
+import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_SECTION_NOT_DEFINED_IN_TPL;
 
 public class MarkdownDocument implements IComponentModel {
     private SourceLocation location;
-    private MarkdownBlock block;
-    private Set<String> allTitles;
-
-    public void reset() {
-        allTitles = null;
-    }
+    private MarkdownSection rootSection;
 
     public MarkdownDocument cloneInstance() {
         MarkdownDocument ret = new MarkdownDocument();
         ret.setLocation(location);
-        if (block != null)
-            ret.setBlock(block.cloneInstance());
+        if (rootSection != null)
+            ret.setRootSection(rootSection.cloneInstance());
         return ret;
     }
 
@@ -44,9 +39,7 @@ public class MarkdownDocument implements IComponentModel {
     }
 
     public Set<String> getAllTitles() {
-        if (allTitles == null && block != null)
-            allTitles = block.getAllTitles();
-        return allTitles;
+        return rootSection != null ? rootSection.getAllTitles() : null;
     }
 
     public boolean containsTitle(String title) {
@@ -56,37 +49,37 @@ public class MarkdownDocument implements IComponentModel {
         return allTitles.contains(title);
     }
 
-    public MarkdownBlock findBlockByTitle(String title) {
-        if (block == null)
+    public MarkdownSection findSectionByTitle(String title) {
+        if (rootSection == null)
             return null;
-        return block.findByTitle(title);
+        return rootSection.findByTitle(title);
     }
 
-    public MarkdownBlock getBlock() {
-        return block;
+    public MarkdownSection getRootSection() {
+        return rootSection;
     }
 
-    public void setBlock(MarkdownBlock block) {
-        this.block = Guard.notNull(block, "block");
+    public void setRootSection(MarkdownSection section) {
+        this.rootSection = Guard.notNull(section, "section");
     }
 
-    public void forEachBlock(Consumer<MarkdownBlock> action) {
-        this.block.forEachBlock(action);
+    public void forEachSection(Consumer<MarkdownSection> action) {
+        this.rootSection.forEachSection(action);
     }
 
     public List<String> getAllFullTitles() {
         List<String> ret = new ArrayList<>();
-        forEachBlock(block -> {
-            if (block.getTitle() != null) {
-                ret.add(block.getFullTitle());
+        forEachSection(section -> {
+            if (section.getTitle() != null) {
+                ret.add(section.getFullTitle());
             }
         });
         return ret;
     }
 
-    public String toText() {
+    public String toText(boolean includeTags) {
         StringBuilder sb = new StringBuilder();
-        block.buildText(sb);
+        rootSection.buildText(sb, includeTags);
         return sb.toString();
     }
 
@@ -94,47 +87,47 @@ public class MarkdownDocument implements IComponentModel {
      * 检查markdown文档的结构与模板中定义的结构一致，包含所有结构部分
      */
     public boolean matchTpl(MarkdownDocument tpl, boolean throwError) {
-        if (this.block == null || !this.block.hasChild()) {
-            throw new NopException(ERR_MARKDOWN_MISSING_BLOCK)
-                    .param(ARG_TITLE, block.getTitle());
+        if (this.rootSection == null || !this.rootSection.hasChild()) {
+            throw new NopException(ERR_MARKDOWN_MISSING_SECTION)
+                    .param(ARG_TITLE, rootSection.getTitle());
         }
 
-        return matchBlockChildren(this.getBlock().getChildren(), tpl.getBlock(), throwError);
+        return matchSectionChildren(this.getRootSection().getChildren(), tpl.getRootSection(), throwError);
     }
 
-    private boolean matchBlockChildren(List<MarkdownBlock> blocks, MarkdownBlock tplBlock, boolean throwError) {
+    private boolean matchSectionChildren(List<MarkdownSection> sections, MarkdownSection tplSection, boolean throwError) {
         boolean match = true;
 
-        Map<String, MarkdownBlock> byTitle = new HashMap<>();
-        if (tplBlock.hasChild()) {
-            for (MarkdownBlock child : tplBlock.getChildren()) {
+        Map<String, MarkdownSection> byTitle = new HashMap<>();
+        if (tplSection.hasChild()) {
+            for (MarkdownSection child : tplSection.getChildren()) {
                 byTitle.put(child.getTitle(), child);
             }
         }
 
-        if (blocks != null) {
-            for (MarkdownBlock block : blocks) {
-                MarkdownBlock tpl = byTitle.remove(block.getTitle());
+        if (sections != null) {
+            for (MarkdownSection section : sections) {
+                MarkdownSection tpl = byTitle.remove(section.getTitle());
                 if (tpl != null) {
-                    block.setTpl(tpl);
+                    section.setTpl(tpl);
                 } else {
-                    tpl = tplBlock.findChildByMark(MarkdownConstants.MARK_DYNAMIC);
+                    tpl = tplSection.findChildByTag(MarkdownConstants.TAG_DYNAMIC);
                     if (tpl != null) {
-                        block.setTpl(tpl);
+                        section.setTpl(tpl);
                     } else {
                         if (throwError)
-                            throw new NopException(ERR_MARKDOWN_BLOCK_NOT_DEFINED_IN_TPL)
-                                    .param(ARG_TITLE, block.getTitle());
+                            throw new NopException(ERR_MARKDOWN_SECTION_NOT_DEFINED_IN_TPL)
+                                    .param(ARG_TITLE, section.getTitle());
                     }
                 }
 
-                match = match && matchBlockChildren(block.getChildren(), tpl, throwError);
+                match = match && matchSectionChildren(section.getChildren(), tpl, throwError);
             }
         }
 
-        for (MarkdownBlock tpl : byTitle.values()) {
-            if (!tpl.containsText(MarkdownConstants.MARK_OPTIONAL) && !tpl.containsText(MarkdownConstants.MARK_DYNAMIC)) {
-                throw new NopException(ERR_MARKDOWN_MISSING_BLOCK)
+        for (MarkdownSection tpl : byTitle.values()) {
+            if (!tpl.containsTag(MarkdownConstants.TAG_OPTIONAL) && !tpl.containsTag(MarkdownConstants.TAG_DYNAMIC)) {
+                throw new NopException(ERR_MARKDOWN_MISSING_SECTION)
                         .param(ARG_TITLE, tpl.getTitle());
             }
         }
@@ -142,18 +135,23 @@ public class MarkdownDocument implements IComponentModel {
         return match;
     }
 
-    public boolean removeBlockNoTpl() {
-        return block.removeBlock(blk -> {
-            if (block == blk)
+    public boolean removeSectionNoTpl() {
+        return rootSection.removeSection(blk -> {
+            if (rootSection == blk)
                 return false;
             return blk.getTpl() == null;
         }, true);
     }
 
-    public MarkdownDocument selectBlockByTplMark(String mark) {
-        MarkdownDocument ret = cloneInstance();
-        if (ret.getBlock() != null)
-            ret.getBlock().removeBlock(blk -> !blk.hasChild() && !blk.tplContainsText(mark), true);
+    public MarkdownDocument filterSectionByTag(String tag) {
+        MarkdownDocument ret = new MarkdownDocument();
+        ret.setLocation(location);
+        if (rootSection != null)
+            ret.setRootSection(rootSection.filterSection(section -> {
+                if (section.containsTag(tag))
+                    return true;
+                return section.hasChild() ? null : false;
+            }));
         return ret;
     }
 }

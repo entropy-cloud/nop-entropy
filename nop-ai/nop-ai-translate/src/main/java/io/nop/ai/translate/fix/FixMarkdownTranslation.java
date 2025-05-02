@@ -3,8 +3,8 @@ package io.nop.ai.translate.fix;
 import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.commons.debug.DebugMessageHelper;
 import io.nop.commons.util.FileHelper;
-import io.nop.markdown.simple.MarkdownBlock;
 import io.nop.markdown.simple.MarkdownDocumentParser;
+import io.nop.markdown.simple.MarkdownSection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,12 +80,12 @@ public class FixMarkdownTranslation {
             return null;
 
         MarkdownDocumentParser parser = new MarkdownDocumentParser();
-        List<MarkdownBlock> sourceBlocks = parser.parseBlocks(sourceText);
-        List<MarkdownBlock> targetBlocks = parser.parseBlocks(translatedText);
+        List<MarkdownSection> sourceBlocks = parser.parseSections(sourceText);
+        List<MarkdownSection> targetBlocks = parser.parseSections(translatedText);
 
         if (sourceBlocks.size() + 1 == targetBlocks.size()) {
-            MarkdownBlock targetBlock = targetBlocks.get(0);
-            MarkdownBlock sourceBlock = sourceBlocks.get(0);
+            MarkdownSection targetBlock = targetBlocks.get(0);
+            MarkdownSection sourceBlock = sourceBlocks.get(0);
             if (!targetBlock.hasContent() && sourceBlock.getLevel() != targetBlock.getLevel()) {
                 targetBlocks.remove(0);
             } else {
@@ -99,8 +99,8 @@ public class FixMarkdownTranslation {
 
         int n = Math.min(sourceBlocks.size(), targetBlocks.size());
         for (int i = 0; i < n; i++) {
-            MarkdownBlock sourceBlock = sourceBlocks.get(i);
-            MarkdownBlock targetBlock = targetBlocks.get(i);
+            MarkdownSection sourceBlock = sourceBlocks.get(i);
+            MarkdownSection targetBlock = targetBlocks.get(i);
             if (targetBlock.getLevel() != sourceBlock.getLevel())
                 changed = true;
 
@@ -118,13 +118,13 @@ public class FixMarkdownTranslation {
         if (!changed)
             return null;
 
-        return buildText(targetBlocks);
+        return buildText(targetBlocks, false);
     }
 
-    String buildText(List<MarkdownBlock> blocks) {
+    String buildText(List<MarkdownSection> blocks, boolean includeTags) {
         StringBuilder sb = new StringBuilder();
-        for (MarkdownBlock block : blocks) {
-            block.buildText(sb);
+        for (MarkdownSection block : blocks) {
+            block.buildText(sb, includeTags);
         }
 
         return sb.toString();

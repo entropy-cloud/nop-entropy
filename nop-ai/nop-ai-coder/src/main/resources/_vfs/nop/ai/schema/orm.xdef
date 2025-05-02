@@ -1,8 +1,8 @@
 <orm x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
-     xmlns:orm="orm" xmlns:ext="ext">
+     xmlns:orm="orm" xmlns:ext="ext" xmlns:ddd="ddd">
 
     <dicts xdef:body-type="list" xdef:key-attr="name">
-        <dict name="!string" label="!string">
+        <dict name="!string" label="!chinese">
             <description xdef:value="string"/>
             <option xdef:unique-attr="value" value="!four-or-two-letter-code" code="upper-case-java-var-name"
                     label="!chinese" description="string"/>
@@ -10,7 +10,7 @@
     </dicts>
 
     <entities xdef:body-type="list" xdef:key-attr="name">
-        <entity name="!english" displayName="chinese">
+        <entity name="!english" displayName="chinese" ddd:aggRoot="boolean" ddd:boundedContext="string">
             <comment>description</comment>
             <columns xdef:body-type="list" xdef:key-attr="name">
                 <column name="!english" displayName="chinese" mandatory="boolean" primary="boolean"

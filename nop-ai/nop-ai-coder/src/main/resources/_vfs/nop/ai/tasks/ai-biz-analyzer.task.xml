@@ -1,0 +1,54 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
+      x:extends="/nop/task/lib/common.task.xml">
+
+    <ai:chatOptions provider="ollama" model="qwen3"/>
+    <ai-coder:config/>
+
+    <input name="inputRequirements" type="String" mandatory="true"/>
+    <input name="basePackageName" type="class-name" mandatory="true"/>
+    <input name="outputDir" type="String" mandatory="true"/>
+
+    <steps>
+        <custom name="expandRequirements" customType="ai:TaskStep" ai:promptName="/coder/expand-requirements">
+            <description>扩充需求文档</description>
+
+            <input name="inputRequirements"/>
+            <output name="RESULT" exportAs="requirementsDoc"/>
+
+            <output name="requirements">
+                <source>RESULT.toText()</source>
+            </output>
+        </custom>
+
+        <custom name="saveRequirements" customType="ai-coder:SaveFile">
+            <input name="outputDir"/>
+            <input name="fileName" value="docs/requirements/full-requirements.md"/>
+            <input name="text" value="${requirements}"/>
+        </custom>
+
+        <fork name="expandModuleRequirements" varName="module">
+            <input name="requirementsDoc"/>
+            <producer>
+                return requirementsDoc.findBlockByTitle('2.2 核心功能模块').children
+            </producer>
+
+            <throttle maxConcurrency="2"/>
+
+            <steps>
+                <custom name="expandOneModuleRequirement" customType="ai:TaskStep"
+                        ai:promptName="coder/expand-module-design">
+                    <input name="requirements"/>
+                    <input name="moduleTitle" value="${module.title}"/>
+                    <output name="RESULT" exportAs="moduleDoc"/>
+                </custom>
+
+                <custom name="saveModuleDoc" customType="ai-coder:SaveFile">
+                    <input name="outputDir"/>
+                    <input name="fileName" value="docs/requirements/modules/${module.title}.md"/>
+                    <input name="text" value="${moduleDoc.toText()}"/>
+                </custom>
+            </steps>
+        </fork>
+    </steps>
+</task>

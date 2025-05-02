@@ -1,0 +1,22 @@
+template: |
+  【任务目标】
+  将用户提供的原始模块需求扩展为一个详细的功能需求说明
+
+  【输出要求】
+  1. 优先使用结构化表述（列表/表格）
+  
+  【文档结构】
+  ${promptModel.getOutput('RESULT').markdownTitles.join('\n')}
+  
+  【输入】
+  ${moduleRequirements}
+
+inputs:
+  - name: moduleRequirements
+    type: String
+    mandatory: true
+
+outputs:
+  - name: RESULT
+    format: markdown
+    markdownPath: /nop/ai/schema/module-requirements.tpl.md
