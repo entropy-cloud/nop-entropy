@@ -10,10 +10,12 @@ package io.nop.task;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.ICancellable;
+import io.nop.commons.concurrent.semaphore.ISemaphore;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.commons.lang.IEditableTagSetSupport;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
 import io.nop.task.metrics.ITaskFlowMetrics;
@@ -35,6 +37,10 @@ public interface ITaskRuntime extends IEvalContext, ICancellable, IEditableTagSe
     IServiceContext getSvcCtx();
 
     IContext getContext();
+
+    default String newStepInstanceId() {
+        return StringHelper.generateUUID();
+    }
 
     default String getLocale() {
         IServiceContext ctx = getSvcCtx();
@@ -130,6 +136,8 @@ public interface ITaskRuntime extends IEvalContext, ICancellable, IEditableTagSe
     ITaskStepRuntime newMainStepRuntime();
 
     IRateLimiter getRateLimiter(String key, double requestsPerSecond, boolean global);
+
+    ISemaphore getSemaphore(String key, int maxPermits, boolean global);
 
     /**
      * 任务执行完毕之后清理资源

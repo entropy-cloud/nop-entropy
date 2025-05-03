@@ -2,11 +2,15 @@ package io.nop.task.impl;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanProvider;
+import io.nop.commons.cache.CacheConfig;
+import io.nop.commons.cache.LocalCache;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
+import io.nop.commons.concurrent.semaphore.DefaultSemaphore;
+import io.nop.commons.concurrent.semaphore.ISemaphore;
 import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
@@ -30,6 +34,11 @@ import io.nop.xlang.xdsl.DslModelParser;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import static io.nop.task.TaskConfigs.CFG_TASK_MAX_GLOBAL_RATE_LIMITERS;
+import static io.nop.task.TaskConfigs.CFG_TASK_MAX_GLOBAL_SEMAPHORES;
 import static io.nop.task.TaskErrors.ARG_TASK_INSTANCE_ID;
 import static io.nop.task.TaskErrors.ERR_TASK_NO_PERSIST_STATE_STORE;
 import static io.nop.task.TaskErrors.ERR_TASK_UNKNOWN_TASK_INSTANCE;
@@ -40,6 +49,12 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     private ITaskStateStore taskStateStore;
 
     private ITaskStateStore nonPersistStateStore = DefaultTaskStateStore.INSTANCE;
+
+    private final LocalCache<String, IRateLimiter> globalRateLimiters = LocalCache.newCache(
+            "task-global-rate-limiter", CacheConfig.newConfig(CFG_TASK_MAX_GLOBAL_RATE_LIMITERS.get()));
+
+    private final LocalCache<String, ISemaphore> globalSemaphores = LocalCache.newCache(
+            "task-global-semaphore", CacheConfig.newConfig(CFG_TASK_MAX_GLOBAL_SEMAPHORES.get()));
 
     public void setNonPersistStateStore(ITaskStateStore stateStore) {
         this.nonPersistStateStore = stateStore;
@@ -139,8 +154,45 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
 
     @Override
     public IRateLimiter getRateLimiter(ITaskRuntime taskRt, String key, double requestPerSecond, boolean global) {
+        if (global) {
+            return globalRateLimiters.computeIfAbsent(taskRt.getTaskName() + ":" + key, k -> new DefaultRateLimiter(requestPerSecond));
+        }
         return (IRateLimiter) taskRt.computeAttributeIfAbsent("rate-limit:" + key, k -> {
             return new DefaultRateLimiter(requestPerSecond);
+        });
+    }
+
+    @Override
+    public ISemaphore getSemaphore(ITaskRuntime taskRt, String key, int maxPermits, boolean global) {
+        if (global)
+            return globalSemaphores.computeIfAbsent(taskRt.getTaskName() + ":" + key, k -> new DefaultSemaphore(maxPermits));
+        return (ISemaphore) taskRt.computeAttributeIfAbsent("semaphore:" + key, k -> {
+            return new DefaultSemaphore(maxPermits);
+        });
+    }
+
+    @Override
+    public Map<String, ISemaphore.SemaphoreStats> getGlobalSemaphoreStats() {
+        Map<String, ISemaphore.SemaphoreStats> ret = new HashMap<>();
+        globalSemaphores.forEachEntry((k, v) -> {
+            ret.put(k, v.getStats());
+        });
+        return ret;
+    }
+
+    @Override
+    public Map<String, IRateLimiter.RateLimiterStats> getGlobalRateLimiterStats() {
+        Map<String, IRateLimiter.RateLimiterStats> ret = new HashMap<>();
+        globalRateLimiters.forEachEntry((k, v) -> {
+            ret.put(k, v.getStats());
+        });
+        return ret;
+    }
+
+    @Override
+    public void resetGlobalStats() {
+        globalSemaphores.forEachEntry((k, v) -> {
+            v.resetStats();
         });
     }
 

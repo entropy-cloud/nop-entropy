@@ -3,6 +3,7 @@ package io.nop.task.impl;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.Guard;
+import io.nop.commons.concurrent.semaphore.ISemaphore;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
@@ -207,6 +208,11 @@ public class TaskRuntimeImpl extends Cancellable implements ITaskRuntime {
     @Override
     public IRateLimiter getRateLimiter(String key, double requestsPerSecond, boolean global) {
         return taskManager.getRateLimiter(this, key, requestsPerSecond, global);
+    }
+
+    @Override
+    public ISemaphore getSemaphore(String key, int maxPermits, boolean global) {
+        return taskManager.getSemaphore(this, key, maxPermits, global);
     }
 
     @Override

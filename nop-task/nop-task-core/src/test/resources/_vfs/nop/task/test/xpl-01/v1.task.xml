@@ -1,8 +1,22 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <steps>
-        <xpl name="test">
+        <xpl name="init">
             <source>
-                return "OK"
+                return { RESULT: 10, status: 'data'}
+            </source>
+
+            <output name="RESULT" />
+            <output name="RESULT2">
+                <source>
+                    return STEP_RESULT.RESULT + 1;
+                </source>
+            </output>
+        </xpl>
+
+        <xpl name="test">
+            <input name="RESULT2" />
+            <source>
+                return RESULT2 == 11 and RESULT == 10 ? "OK" : 'FAIL'
             </source>
         </xpl>
     </steps>

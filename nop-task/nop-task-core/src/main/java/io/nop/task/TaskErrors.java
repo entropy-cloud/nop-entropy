@@ -142,4 +142,7 @@ public interface TaskErrors {
     ErrorCode ERR_TASK_STATIC_METHOD_NOT_FOUND =
             define("nop.err.task.static-method-not-found", "类[{className}]中没有找到静态方法[{methodName}({argCount})]",
                     ARG_CLASS_NAME, ARG_METHOD_NAME);
+
+    ErrorCode ERR_TASK_THROTTLE_TIMEOUT = define("nop.err.task.throttle-timeout",
+            "任务[{taskName}]的步骤[{stepPath}]的限流等待超时", ARG_TASK_NAME, ARG_STEP_PATH);
 }

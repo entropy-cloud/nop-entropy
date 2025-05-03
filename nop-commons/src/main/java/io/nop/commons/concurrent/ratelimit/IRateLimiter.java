@@ -7,6 +7,8 @@
  */
 package io.nop.commons.concurrent.ratelimit;
 
+import io.nop.api.core.annotations.data.DataBean;
+
 public interface IRateLimiter {
     /**
      * Acquires the given number of permits from this {@code RateLimiter} if it can be obtained without exceeding the
@@ -28,9 +30,42 @@ public interface IRateLimiter {
         return tryAcquire(1);
     }
 
-    void release(int permits, long durationNanos, Throwable exception);
+    double getPermitsPerSecond();
 
-    default void release(int permits) {
-        release(permits, 0, null);
+    long getAcquireSuccessCount();
+
+    long getAcquireFailCount();
+
+    default RateLimiterStats getStats() {
+        return new RateLimiterStats(getPermitsPerSecond(), getAcquireSuccessCount(), getAcquireFailCount());
+    }
+
+    void resetStats();
+
+    @DataBean
+    class RateLimiterStats {
+        private final double permitsPerSecond;
+        private final long acquireSuccessCount;
+        private final long acquireFailCount;
+
+        public RateLimiterStats(double permitsPerSecond,
+                                long acquireSuccessCount,
+                                long acquireFailCount) {
+            this.permitsPerSecond = permitsPerSecond;
+            this.acquireSuccessCount = acquireSuccessCount;
+            this.acquireFailCount = acquireFailCount;
+        }
+
+        public double getPermitsPerSecond() {
+            return permitsPerSecond;
+        }
+
+        public long getAcquireSuccessCount() {
+            return acquireSuccessCount;
+        }
+
+        public long getAcquireFailCount() {
+            return acquireFailCount;
+        }
     }
 }

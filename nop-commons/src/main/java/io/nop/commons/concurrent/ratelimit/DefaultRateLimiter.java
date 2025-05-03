@@ -10,9 +10,12 @@ package io.nop.commons.concurrent.ratelimit;
 import com.google.common.util.concurrent.RateLimiter;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class DefaultRateLimiter implements IRateLimiter {
     private final RateLimiter rateLimiter;
+    private final AtomicLong acquireSuccessCount = new AtomicLong();
+    private final AtomicLong acquireFailCount = new AtomicLong();
 
     public DefaultRateLimiter(double permitsPerSecond) {
         this.rateLimiter = RateLimiter.create(permitsPerSecond);
@@ -23,8 +26,35 @@ public class DefaultRateLimiter implements IRateLimiter {
     }
 
     @Override
+    public double getPermitsPerSecond() {
+        return rateLimiter.getRate();
+    }
+
+    @Override
+    public long getAcquireSuccessCount() {
+        return acquireSuccessCount.get();
+    }
+
+    @Override
+    public long getAcquireFailCount() {
+        return acquireSuccessCount.get();
+    }
+
+    @Override
+    public void resetStats() {
+        acquireFailCount.set(0);
+        acquireSuccessCount.set(0);
+    }
+
+    @Override
     public boolean tryAcquire(int permits, long timeout) {
-        return rateLimiter.tryAcquire(permits, timeout, TimeUnit.MILLISECONDS);
+        boolean b = rateLimiter.tryAcquire(permits, timeout, TimeUnit.MILLISECONDS);
+        if (b) {
+            acquireSuccessCount.incrementAndGet();
+        } else {
+            acquireFailCount.incrementAndGet();
+        }
+        return b;
     }
 
     public double getRate() {
@@ -33,9 +63,5 @@ public class DefaultRateLimiter implements IRateLimiter {
 
     public void setRate(double permitsPerSecond) {
         rateLimiter.setRate(permitsPerSecond);
-    }
-
-    @Override
-    public void release(int permits, long duration, Throwable exception) {
     }
 }
