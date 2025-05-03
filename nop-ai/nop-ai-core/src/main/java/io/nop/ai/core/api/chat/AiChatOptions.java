@@ -35,6 +35,9 @@ public class AiChatOptions extends ExtensibleBean {
 
     private boolean stream;
 
+    private boolean enableThinking = false;
+
+
     public String getProvider() {
         return provider;
     }
@@ -145,5 +148,13 @@ public class AiChatOptions extends ExtensibleBean {
 
     public void setStream(boolean stream) {
         this.stream = stream;
+    }
+
+    public boolean isEnableThinking() {
+        return enableThinking;
+    }
+
+    public void setEnableThinking(boolean enableThinking) {
+        this.enableThinking = enableThinking;
     }
 }

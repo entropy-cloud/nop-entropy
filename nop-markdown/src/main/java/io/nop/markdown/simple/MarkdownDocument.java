@@ -5,6 +5,8 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.markdown.MarkdownConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,9 +17,10 @@ import java.util.function.Consumer;
 
 import static io.nop.markdown.MarkdownErrors.ARG_TITLE;
 import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_MISSING_SECTION;
-import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_SECTION_NOT_DEFINED_IN_TPL;
 
 public class MarkdownDocument implements IComponentModel {
+    static final Logger LOG = LoggerFactory.getLogger(MarkdownDocument.class);
+
     private SourceLocation location;
     private MarkdownSection rootSection;
 
@@ -119,9 +122,7 @@ public class MarkdownDocument implements IComponentModel {
                     if (tpl != null) {
                         section.setTpl(tpl);
                     } else {
-                        if (throwError)
-                            throw new NopException(ERR_MARKDOWN_SECTION_NOT_DEFINED_IN_TPL)
-                                    .param(ARG_TITLE, section.getTitle());
+                        LOG.info("nop.markdown.section-not-in-tpl:{}", section.getTitle());
                     }
                 }
 
@@ -131,6 +132,8 @@ public class MarkdownDocument implements IComponentModel {
 
         for (MarkdownSection tpl : byTitle.values()) {
             if (!tpl.containsTag(MarkdownConstants.TAG_OPTIONAL) && !tpl.containsTag(MarkdownConstants.TAG_DYNAMIC)) {
+                if (!throwError)
+                    return false;
                 throw new NopException(ERR_MARKDOWN_MISSING_SECTION)
                         .param(ARG_TITLE, tpl.getTitle());
             }

@@ -6,9 +6,9 @@
 
 ## 2.2 核心功能模块
 
-### 2.2.1 模块名 {Priority:1到5, Effort:n}
+### 2.2.1 具体模块1 {Priority:1到5, Effort:n}
 [TAGS]: DYNAMIC
-[简要描述模块功能]
+这里简要描述模块功能
 
 #### 子功能列表
 [TAGS]: OPTIONAL

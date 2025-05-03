@@ -12,6 +12,7 @@ import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.INeedInit;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
@@ -79,8 +80,13 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
     }
 
     @Override
-    public IEvalScope prepareInputs(Map<String, Object> vars) {
-        IEvalScope scope = XLang.newEvalScope(vars);
+    public IEvalScope prepareInputs(Map<String, Object> vars, IEvalContext ctx) {
+        IEvalScope scope;
+        if (ctx == null) {
+            scope = XLang.newEvalScope(vars);
+        } else {
+            scope = ctx.getEvalScope().newChildScope(vars);
+        }
         scope.setLocalValue(AiCoreConstants.VAR_PROMPT_MODEL, this);
 
         if (getInputs() != null) {

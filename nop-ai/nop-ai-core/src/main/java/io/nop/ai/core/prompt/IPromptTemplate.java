@@ -4,6 +4,7 @@ import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.model.PromptInputModel;
 import io.nop.ai.core.model.PromptOutputModel;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.xlang.xdsl.action.IActionModel;
 
@@ -30,7 +31,11 @@ public interface IPromptTemplate extends IActionModel {
 
     void applyChatOptions(AiChatOptions chatOptions);
 
-    IEvalScope prepareInputs(Map<String, Object> vars);
+    default IEvalScope prepareInputs(Map<String, Object> vars) {
+        return prepareInputs(vars, null);
+    }
+
+    IEvalScope prepareInputs(Map<String, Object> vars, IEvalContext ctx);
 
     String generatePrompt(IEvalScope scope);
 

@@ -22,6 +22,7 @@ public class AiGenHelper {
         executeNode.setAttr(XLangConstants.ATTR_XPL_RETURN, "chatResponsePromise");
         if (retryTimesPerRequest != null)
             executeNode.setAttr("retryTimesPerRequest", retryTimesPerRequest);
+        executeNode.setAttr("asyncExec", true);
         executeNode.setAttr("cancelToken", "${svcCtx}");
 
         XNode chatOptionsNode = actionNode.childByTag(AiCoreConstants.TAG_AI_CHAT_OPTIONS);
@@ -32,10 +33,10 @@ public class AiGenHelper {
 
         return BizActionGenHelper.buildBizActionFromActionModel(actionNode, promptTemplate, (argNames, useResult) -> {
             String source = executeNode.xml();
-            if( useResult) {
+            if (useResult) {
                 source += "<c:script>chatResponsePromise.thenApply(res=> res.validate().resultValue)</c:script>";
-            }else{
-                source += "<c:script>chatResponsePromise.thenApply(res=> res.validate().results)</c:script>";
+            } else {
+                source += "<c:script>chatResponsePromise.thenApply(res=> res.validate().outputs)</c:script>";
             }
             return source;
         });

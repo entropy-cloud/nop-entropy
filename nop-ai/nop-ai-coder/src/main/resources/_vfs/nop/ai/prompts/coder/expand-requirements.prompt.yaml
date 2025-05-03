@@ -21,4 +21,4 @@ inputs:
 outputs:
   - name: RESULT
     format: markdown
-    markdownPath: /nop/ai/schema/requirements.tpl.md
+    markdownPath: /nop/ai/schema/coder/requirements.tpl.md

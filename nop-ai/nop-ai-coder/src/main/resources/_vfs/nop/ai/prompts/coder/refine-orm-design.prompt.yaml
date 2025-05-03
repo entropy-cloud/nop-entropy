@@ -22,7 +22,7 @@ outputs:
     parseFromResponse:
       contains: "[NO_CHANGE]"
   - name: RESULT
-    xdefPath: /nop/ai/schema/orm.xdef
+    xdefPath: /nop/ai/schema/coder/orm.xdef
     format: xml
     normalizer: |
       import io.nop.ai.coder.orm.AiOrmModelNormalizer;

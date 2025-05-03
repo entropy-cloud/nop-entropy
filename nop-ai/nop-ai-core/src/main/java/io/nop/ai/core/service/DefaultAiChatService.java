@@ -294,6 +294,7 @@ public class DefaultAiChatService implements IAiChatService {
 
         try {
             AiChatResponse ret = new AiChatResponse();
+            ret.setPrompt(prompt);
             parseToResult(ret, llmModel, response);
             checkThink(ret);
             return ret;

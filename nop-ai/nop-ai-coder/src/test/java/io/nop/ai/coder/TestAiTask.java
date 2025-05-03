@@ -17,7 +17,7 @@ public class TestAiTask extends JunitBaseTestCase {
     public void testBizAnalyzer() {
         ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-biz-analyzer.task.xml");
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
-        taskRt.setInput("inputRequirements", "一个简单的请假系统");
+        taskRt.setInput("inputRequirements", "一个简单的请假系统 /no_think");
         taskRt.setInput("outputDir", getTargetDir().getAbsolutePath());
         taskRt.setInput("basePackageName", "app.demo");
         task.execute(taskRt).syncGetOutputs();

@@ -25,5 +25,5 @@ inputs:
 
 outputs:
   - name: RESULT
-    xdefPath: /nop/ai/schema/api.xdef
+    xdefPath: /nop/ai/schema/coder/api.xdef
     format: xml

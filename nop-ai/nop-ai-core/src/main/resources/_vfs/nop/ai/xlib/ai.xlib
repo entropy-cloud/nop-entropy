@@ -8,22 +8,22 @@
 
             <source>
                 <c:script>
-                    const aiActions = _dsl_root.childByTag('actions').findChildren(node=>node.attrText('ai:promptName'));
+                    const aiActions =
+                    _dsl_root.childByTag('actions').findChildren(node=>node.attrText('ai:promptName'));
                 </c:script>
                 <biz xpl:if="!aiActions.empty">
                     <c:script>
-                        import io.nop.task.utils.TaskGenHelper;
-                        const taskFlowManager = inject('nopTaskFlowManager');
+                        import io.nop.ai.core.utils.AiGenHelper
+                        const promptTemplateManager = inject('nopPromptTemplateManager');
                     </c:script>
                     <actions>
-                        <c:for var="taskAction" items="${taskActions}">
+                        <c:for var="aiAction" items="${aiActions}">
                             <c:script>
-                                const taskName = taskAction.attrText('task:name');
-                                const taskVersion = taskAction.attrInt('task:version',0);
-                                const taskFlowModel = taskFlowManager.getTaskFlowModel(taskName, taskVersion);
+                                const promptName = aiAction.attrText('ai:promptName');
+                                const prompt = promptTemplateManager.getTemplate(promptName);
                             </c:script>
                             <c:out escape="none"
-                                   value="${TaskGenHelper.buildBizActionFromTaskModel(taskAction, taskFlowModel)}"/>
+                                   value="${AiGenHelper.buildBizActionFromPromptTemplate(aiAction, prompt)}"/>
                         </c:for>
                     </actions>
                 </biz>
@@ -58,7 +58,7 @@
                     execNode.setAttr('cancelToken',"${taskRt}");
                     execNode.setAttr('xpl:lib', '/nop/ai/xlib/ai.xlib');
                     execNode.setAttr('xpl:return', 'chatResponsePromise');
-                    sourceNode.appendScript(location(), 'return chatResponsePromise.thenApply(res=> res.validate().results);');
+                    sourceNode.appendScript(location(), 'return chatResponsePromise.thenApply(res=> res.validate().outputs);');
 
                     return node;
                 ]]></c:script>
@@ -101,19 +101,18 @@
 
                 const chatService = inject("nopAiChatService");
                 const promptTemplateManager = inject("nopPromptTemplateManager");
-                const cmd = new AiCommand(chatService);
+                const cmd = new AiCommand(chatOptions, chatService);
                 if(promptName != null){
                     $.checkArgument(!promptName.startsWith('/') and !promptName.endsWith('.yaml'),"invalid promptName")
                 }
                 const fullPath = promptPath ||  "/nop/ai/prompts/" + promptName + ".prompt.yaml";
                 $.notEmpty(fullPath,"promptPath");
                 cmd.setPromptTemplate(promptTemplateManager.loadPromptTemplateFromPath(fullPath));
-                cmd.setChatOptions(chatOptions);
 
                 if(retryTimesPerRequest >= 0)
                     cmd.setRetryTimesPerRequest(retryTimesPerRequest);
 
-                return asyncExec ? cmd.executeAsync(inputs, cancelToken) : cmd.execute(inputs);
+                return asyncExec ? cmd.executeAsync(inputs, cancelToken,$scope) : cmd.execute(inputs,cancelToken,$scope);
             ]]></source>
         </Execute>
     </tags>

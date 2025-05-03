@@ -12,6 +12,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.retry.RetryHelper;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.eval.IEvalScope;
 import org.slf4j.Logger;
@@ -30,11 +31,16 @@ public class AiCommand {
     private IPromptTemplate promptTemplate;
     private IAiChatResponseProcessor chatResponseProcessor;
     private int retryTimesPerRequest = 3;
-    private AiChatOptions chatOptions = new AiChatOptions();
+    private AiChatOptions chatOptions;
 
     private boolean returnExceptionAsResponse = true;
 
     public AiCommand(IAiChatService chatService) {
+        this(new AiChatOptions(), chatService);
+    }
+
+    public AiCommand(AiChatOptions chatOptions, IAiChatService chatService) {
+        this.chatOptions = chatOptions;
         this.chatService = chatService;
     }
 
@@ -83,11 +89,19 @@ public class AiCommand {
     }
 
     public AiChatResponse execute(Map<String, Object> vars, ICancelToken cancelToken) {
-        return FutureHelper.syncGet(executeAsync(vars, cancelToken));
+        return execute(vars, cancelToken, null);
     }
 
     public CompletionStage<AiChatResponse> executeAsync(Map<String, Object> vars, ICancelToken cancelToken) {
-        IEvalScope scope = prepareInputs(vars);
+        return executeAsync(vars, cancelToken, null);
+    }
+
+    public AiChatResponse execute(Map<String, Object> vars, ICancelToken cancelToken, IEvalContext ctx) {
+        return FutureHelper.syncGet(executeAsync(vars, cancelToken, ctx));
+    }
+
+    public CompletionStage<AiChatResponse> executeAsync(Map<String, Object> vars, ICancelToken cancelToken, IEvalContext ctx) {
+        IEvalScope scope = prepareInputs(vars, ctx);
         Prompt prompt = newPrompt(scope);
 
         return RetryHelper.retryNTimes((index) -> {
@@ -97,8 +111,8 @@ public class AiCommand {
                 AiChatResponse::isValid, retryTimesPerRequest);
     }
 
-    protected IEvalScope prepareInputs(Map<String, Object> vars) {
-        return promptTemplate.prepareInputs(vars);
+    protected IEvalScope prepareInputs(Map<String, Object> vars, IEvalContext ctx) {
+        return promptTemplate.prepareInputs(vars, ctx);
     }
 
     protected void adjustTemperature(Prompt prompt, int index) {
@@ -116,7 +130,6 @@ public class AiCommand {
         }
 
         CompletionStage<AiChatResponse> future = chatService.sendChatAsync(prompt, chatOptions, cancelToken).thenApply(ret -> {
-            ret.setPrompt(prompt);
             promptTemplate.processChatResponse(ret, scope);
             return ret;
         });

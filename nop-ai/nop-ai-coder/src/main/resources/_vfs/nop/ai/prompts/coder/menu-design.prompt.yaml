@@ -27,5 +27,5 @@ template: |
 
 outputs:
   - name: RESULT
-    xdefPath: /nop/ai/schema/auth.xdef
+    xdefPath: /nop/ai/schema/coder/auth.xdef
     format: xml

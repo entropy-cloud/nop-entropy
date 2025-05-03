@@ -10,7 +10,7 @@
     <input name="outputDir" type="String" mandatory="true"/>
 
     <steps>
-        <custom name="refineRequirements" customType="ai:TaskStep" ai:promptName="/coder/refine-requirements">
+        <custom name="refineRequirements" customType="ai:TaskStep" ai:promptName="coder/refine-requirements">
             <description>改进需求文档</description>
 
             <input name="requirements"/>

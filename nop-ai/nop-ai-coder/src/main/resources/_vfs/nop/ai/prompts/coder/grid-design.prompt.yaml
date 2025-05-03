@@ -49,5 +49,5 @@ inputs:
 
 outputs:
   - name: RESULT
-    xdefPath: /nop/ai/schema/grid.xdef
+    xdefPath: /nop/ai/schema/coder/grid.xdef
     format: xml

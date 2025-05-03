@@ -84,5 +84,5 @@ inputs:
 
 outputs:
   - name: RESULT
-    xdefPath: /nop/ai/schema/form.xdef
+    xdefPath: /nop/ai/schema/coder/form.xdef
     format: xml

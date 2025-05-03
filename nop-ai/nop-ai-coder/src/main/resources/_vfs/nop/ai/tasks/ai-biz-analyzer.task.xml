@@ -2,7 +2,7 @@
       xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
       x:extends="/nop/task/lib/common.task.xml">
 
-    <ai:chatOptions provider="ollama" model="qwen3"/>
+    <ai:chatOptions provider="ollama" model="qwen3:4b"/>
     <ai-coder:config/>
 
     <input name="inputRequirements" type="String" mandatory="true"/>
@@ -17,7 +17,7 @@
             <output name="RESULT" exportAs="requirementsDoc"/>
 
             <output name="requirements">
-                <source>RESULT.toText()</source>
+                <source>STEP_RESULT.RESULT.toText()</source>
             </output>
         </custom>
 
@@ -30,7 +30,7 @@
         <fork name="expandModuleRequirements" varName="module">
             <input name="requirementsDoc"/>
             <producer>
-                return requirementsDoc.findBlockByTitle('2.2 核心功能模块').children
+                return requirementsDoc.findSectionByTitle('2.2 核心功能模块').children
             </producer>
 
             <throttle maxConcurrency="2" maxWait="1000000"/>
