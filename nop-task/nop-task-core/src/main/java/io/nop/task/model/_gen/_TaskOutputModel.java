@@ -88,6 +88,13 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     private io.nop.core.type.IGenericType _type ;
     
     /**
+     *  
+     * xml name: value
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _value ;
+    
+    /**
      * 
      * xml name: description
      *  
@@ -278,6 +285,25 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     }
 
     
+    /**
+     * 
+     * xml name: value
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getValue(){
+      return _value;
+    }
+
+    
+    public void setValue(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._value = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -305,6 +331,7 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         out.putNotNull("source",this.getSource());
         out.putNotNull("toTaskScope",this.isToTaskScope());
         out.putNotNull("type",this.getType());
+        out.putNotNull("value",this.getValue());
     }
 
     public TaskOutputModel cloneInstance(){
@@ -326,6 +353,7 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         instance.setSource(this.getSource());
         instance.setToTaskScope(this.isToTaskScope());
         instance.setType(this.getType());
+        instance.setValue(this.getValue());
     }
 
     protected TaskOutputModel newInstance(){

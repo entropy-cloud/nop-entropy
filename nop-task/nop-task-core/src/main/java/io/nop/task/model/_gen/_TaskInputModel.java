@@ -52,6 +52,13 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     private java.lang.String _name ;
     
     /**
+     *  
+     * xml name: optional
+     * 
+     */
+    private boolean _optional  = false;
+    
+    /**
      *  是否持久化保存
      * xml name: persist
      * 标记为persist的变量会自动保存，支持中断后恢复执行
@@ -185,6 +192,25 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._name = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: optional
+     *  
+     */
+    
+    public boolean isOptional(){
+      return _optional;
+    }
+
+    
+    public void setOptional(boolean value){
+        checkAllowChange();
+        
+        this._optional = value;
            
     }
 
@@ -326,6 +352,7 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         out.putNotNull("fromTaskScope",this.isFromTaskScope());
         out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("name",this.getName());
+        out.putNotNull("optional",this.isOptional());
         out.putNotNull("persist",this.isPersist());
         out.putNotNull("role",this.getRole());
         out.putNotNull("schema",this.getSchema());
@@ -348,6 +375,7 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         instance.setFromTaskScope(this.isFromTaskScope());
         instance.setMandatory(this.isMandatory());
         instance.setName(this.getName());
+        instance.setOptional(this.isOptional());
         instance.setPersist(this.isPersist());
         instance.setRole(this.getRole());
         instance.setSchema(this.getSchema());

@@ -53,6 +53,8 @@ public interface TaskErrors {
     String ARG_CLASS_NAME = "className";
     String ARG_ARG_COUNT = "argCount";
 
+    String ARG_KEY = "key";
+
     ErrorCode ERR_TASK_STEP_NOT_RESTARTABLE = define("nop.err.task.step.not-restartable",
             "步骤[{stepName}]不允许多次执行", ARG_TASK_NAME, ARG_STEP_NAME);
 

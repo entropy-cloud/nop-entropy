@@ -1,19 +1,28 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-      xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
-      x:extends="/nop/task/lib/common.task.xml">
+      xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib"
+      xmlns:file-utils="/nop/task/xlib/file-utils.xlib" xmlns:task="/nop/task/xlib/task.xlib"
+      x:dump="true" x:extends="/nop/task/lib/common.task.xml">
 
-    <ai:chatOptions provider="ollama" model="qwen3:4b"/>
-    <ai-coder:config/>
+    <ai:chatOptions provider="ollama" model="qwen3:8b"/>
 
-    <input name="inputRequirements" type="String" mandatory="true"/>
+    <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
+
+    <input name="inputRequirementsPath" type="String" mandatory="true"/>
     <input name="basePackageName" type="String" mandatory="true"/>
     <input name="outputDir" type="String" mandatory="true"/>
+    <input name="needExpand" type="Boolean" optional="true" />
 
     <steps>
-        <custom name="expandRequirements" customType="ai:TaskStep" ai:promptName="coder/expand-requirements">
-            <description>扩充需求文档</description>
+        <custom name="loadRequirements" customType="file-utils:ReadText">
+            <input name="fileName" value="${inputRequirementsPath}"/>
+            <output name="RESULT" exportAs="inputRequirements"/>
+        </custom>
+
+        <custom name="refactorRequirements" customType="ai:TaskStep" ai:promptName="coder/refactor-requirements">
+            <description>重构需求文档，按照标准格式输出</description>
 
             <input name="inputRequirements"/>
+            <input name="needExpand" />
             <output name="RESULT" exportAs="requirementsDoc"/>
 
             <output name="requirements">
@@ -21,7 +30,19 @@
             </output>
         </custom>
 
-        <custom name="saveRequirements" customType="ai-coder:SaveFile">
+        <!--        <custom name="correctMarkdown" customType="ai:TaskStep" ai:promptName="coder/correct-markdown">-->
+        <!--            <input name="markdownDoc">-->
+        <!--                <source>requirementsDoc</source>-->
+        <!--            </input>-->
+        <!--            <input name="markdownTplPath" value="/nop/ai/schema/coder/requirements.tpl.md"/>-->
+
+        <!--            <output name="RESULT" exportAs="requirementsDoc"/>-->
+        <!--            <output name="requirements">-->
+        <!--                <source>STEP_RESULT.RESULT.toText()</source>-->
+        <!--            </output>-->
+        <!--        </custom>-->
+
+        <custom name="saveRequirements" customType="file-utils:WriteText">
             <input name="outputDir"/>
             <input name="fileName" value="docs/requirements/full-requirements.md"/>
             <input name="text" value="${requirements}"/>
@@ -33,17 +54,25 @@
                 return requirementsDoc.findSectionByTitle('2.2 核心功能模块').children
             </producer>
 
-            <throttle maxConcurrency="2" maxWait="1000000"/>
-
             <steps>
-                <custom name="expandOneModuleRequirement" customType="ai:TaskStep"
-                        ai:promptName="coder/expand-module-design">
-                    <input name="requirements"/>
+                <custom name="expandOneModuleRequirements" customType="ai:TaskStep"
+                        ai:promptName="coder/expand-module-requirements">
+
+                    <!-- 限制调用AI的频度 -->
+                    <throttle maxConcurrency="1" maxWait="100000000"/>
+
+                    <input name="moduleRequirements">
+                        <source><![CDATA[
+                            return requirementsDoc.filterSection(
+                                section=> section.prefix == '1' or module == section or (section.hasChild() ? null :
+                                    false)).toText()
+                        ]]></source>
+                    </input>
                     <input name="moduleTitle" value="${module.title}"/>
                     <output name="RESULT" exportAs="moduleDoc"/>
                 </custom>
 
-                <custom name="saveModuleDoc" customType="ai-coder:SaveFile">
+                <custom name="saveModuleDoc" customType="file-utils:WriteText">
                     <input name="outputDir"/>
                     <input name="fileName" value="docs/requirements/modules/${module.prefix}.md"/>
                     <input name="text" value="${moduleDoc.toText()}"/>

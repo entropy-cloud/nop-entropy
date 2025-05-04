@@ -1,6 +1,7 @@
 package io.nop.markdown.simple;
 
 import io.nop.commons.util.StringHelper;
+import io.nop.markdown.MarkdownConstants;
 
 import java.util.Map;
 
@@ -47,8 +48,8 @@ public class MarkdownTitleParser {
 
         Map<String, String> meta = null;
 
-        if (text.endsWith(")")) {
-            int pos = text.lastIndexOf('(');
+        if (text.endsWith(MarkdownConstants.META_TITLE_SUFFIX)) {
+            int pos = text.lastIndexOf(MarkdownConstants.META_TITLE_PREFIX);
             if (pos > 0) {
                 String suffix = text.substring(pos + 1, text.length() - 1);
                 text = text.substring(0, pos).trim();

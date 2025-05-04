@@ -47,16 +47,6 @@
             ]]></source>
         </CleanDslNode>
 
-        <SaveFile>
-            <attr name="outputDir" type="String" mandatory="true"/>
-            <attr name="fileName" type="String" mandatory="true"/>
-            <attr name="text" type="String"/>
 
-            <source>
-                import io.nop.core.resource.ResourceHelper;
-                const file = ResourceHelper.resolveResourceInDir(outputDir, fileName);
-                ResourceHelper.writeText(file, text, null);
-            </source>
-        </SaveFile>
     </tags>
 </lib>

@@ -1,0 +1,30 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+>
+    <tags>
+        <WriteText>
+            <attr name="fileName" type="String" mandatory="true"/>
+            <attr name="text" type="String"/>
+            <attr name="outputDir" type="String" optional="true"/>
+            <attr name="encoding" type="String" optional="true"/>
+
+            <source>
+                import io.nop.core.resource.ResourceHelper;
+                const file = ResourceHelper.resolveResourceInDir(outputDir, fileName);
+                ResourceHelper.writeText(file, text, encoding);
+            </source>
+        </WriteText>
+
+        <ReadText>
+            <attr name="fileName" type="String" mandatory="true"/>
+            <attr name="inputDir" type="String" optional="true"/>
+            <attr name="encoding" type="String" optional="true"/>
+
+            <source>
+                import io.nop.core.resource.ResourceHelper;
+                const file = ResourceHelper.resolveResourceInDir(inputDir, fileName);
+                return ResourceHelper.readText(file, encoding);
+            </source>
+        </ReadText>
+
+    </tags>
+</lib>

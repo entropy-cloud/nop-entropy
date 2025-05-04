@@ -1,9 +1,13 @@
 template: |
   【任务目标】
-  将用户提供的原始模块需求扩展为一个详细的功能需求说明
+  将用户提供的原始需求中的子模块【${moduleTitle}】扩展为一个详细的功能需求说明。
 
   【输出要求】
   1. 优先使用结构化表述（列表/表格）
+  2. 故事ID的格式为 US-{moduleNo}-xxx，全局唯一
+  3. 用例ID的格式为 UC-{moduleNo}-xxx，全局唯一
+  4. IMPORTANT: 生成的文档只针对指定的子模块
+  5. 简单的增删改查流程不用详细解释，直接写标准CRUD即可
   
   【输出文档结构】
   ${promptModel.getOutput('RESULT').markdownTpl.toText()}
@@ -13,6 +17,10 @@ template: |
 
 inputs:
   - name: moduleRequirements
+    type: String
+    mandatory: true
+
+  - name: moduleTitle
     type: String
     mandatory: true
 

@@ -23,7 +23,6 @@ import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.RawText;
 import io.nop.commons.util.ClassHelper;
-import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.MaskedValue;
 import io.nop.commons.util.objects.OptionalValue;
 import io.nop.core.lang.eval.EvalRuntime;
@@ -36,20 +35,16 @@ import io.nop.core.lang.xml.IXSelector;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.xlang.api.IXLangCompileScope;
-import io.nop.xlang.ast.AssignmentExpression;
 import io.nop.xlang.ast.CallExpression;
 import io.nop.xlang.ast.ConcatExpression;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.Identifier;
-import io.nop.xlang.ast.IdentifierKind;
 import io.nop.xlang.ast.IfStatement;
 import io.nop.xlang.ast.Literal;
 import io.nop.xlang.ast.LogicalExpression;
 import io.nop.xlang.ast.SwitchCase;
 import io.nop.xlang.ast.SwitchStatement;
-import io.nop.xlang.ast.XLangASTKind;
 import io.nop.xlang.ast.XLangOperator;
-import io.nop.xlang.ast.definition.ScopeVarDefinition;
 import io.nop.xlang.utils.ExprEvalHelper;
 
 import java.sql.Timestamp;
@@ -59,22 +54,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static io.nop.xlang.XLangErrors.ARG_ACTUAL_TYPE;
 import static io.nop.xlang.XLangErrors.ARG_ARG_COUNT;
 import static io.nop.xlang.XLangErrors.ARG_EXPECTED;
-import static io.nop.xlang.XLangErrors.ARG_EXPECTED_TYPE;
 import static io.nop.xlang.XLangErrors.ARG_EXPR;
 import static io.nop.xlang.XLangErrors.ARG_INJECT_PARAM;
 import static io.nop.xlang.XLangErrors.ARG_MAX_COUNT;
 import static io.nop.xlang.XLangErrors.ARG_MIN_COUNT;
-import static io.nop.xlang.XLangErrors.ARG_VAR_NAME;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_INJECT_PARAM_NOT_NAME_OR_TYPE;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_INVALID_ARG_COUNT;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_NOT_LITERAL_VALUE;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_TOO_FEW_ARGS;
 import static io.nop.xlang.XLangErrors.ERR_EXEC_TOO_MANY_ARGS;
-import static io.nop.xlang.XLangErrors.ERR_MACRO_INVALID_ARG_AST;
-import static io.nop.xlang.XLangErrors.ERR_XLANG_INVALID_VAR_NAME;
 
 @Locale("zh-CN")
 public class GlobalFunctions {
@@ -169,7 +159,7 @@ public class GlobalFunctions {
 
     @Description("设置scope变量。在表达式中无法直接调用$scope.setLocalValue函数来设置变量值，只能通过assign函数进行。例如 assign(\"a\",1)")
     @EvalMethod
-    public static void assign(IEvalScope scope, String name, Object value){
+    public static void assign(IEvalScope scope, String name, Object value) {
         scope.setLocalValue(name, value);
     }
 
@@ -419,5 +409,10 @@ public class GlobalFunctions {
     @Description("判断是否存在指定的Java类")
     public static boolean hasClass(@Name("className") String className) {
         return ClassHelper.getSafeClassLoader().hasClass(className);
+    }
+
+    @Description("加载DSL模型")
+    public static IComponentModel loadDslModel(@Name("modelPath") String modelPath) {
+        return ResourceComponentManager.instance().requireComponentModel(modelPath);
     }
 }

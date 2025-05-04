@@ -49,7 +49,27 @@
                     const promptPath = node.hasAttr('ai:promptPath') ? node.attrValueLoc('ai:promptPath')
                               : node.attrValueLoc('ai:promptName').map(promptName=> '/nop/ai/prompts/'+promptName+'.prompt.yaml');
 
-                    const inputNames = node.childrenByTag('input').map(input=> input.attrText('name'));
+                    const promptTemplateManager = inject('nopPromptTemplateManager');
+                    const prompt = promptTemplateManager.loadPromptTemplateFromPath(promptPath.asString());
+
+                    const inputNames = node.childrenByTag('input').map(input=> {
+                                const inputName = input.attrText('name');
+                                if(prompt.getInput(inputName) == null)
+                                    throw new NopScriptError("nop.err.ai.prompt.undefined-input").loc(location())
+                                         .param('inputName',inputName).param('promptPath',promptPath.asString())
+                                         .param('allowedNames', prompt.inputNames);
+                                return inputName;
+                            });
+
+                    node.childrenByTag('output').forEach(output=> {
+                        if(output.attrText('value') == null && output.childByTag('source') == null){
+                            const outputName = output.attrText('name');
+                            if(prompt.getOutput(outputName) == null)
+                                throw new NopScriptError("nop.err.ai.prompt.undefined-output").loc(location())
+                                     .param('outputName',outputName).param('promptPath',promptPath.asString())
+                                     .param('allowedNames', prompt.outputNames);
+                        }
+                    });
 
                     execNode.setAttr('promptPath', promptPath);
                     execNode.setAttr('asyncExec', true);
@@ -85,6 +105,7 @@
             <attr name="stop" stdDomain="csv-list" optional="true"/>
             <attr name="requestTimeout" stdDomain="long" optional="true"/>
             <attr name="stream" stdDomain="boolean" optional="true"/>
+            <attr name="enableThinking" stdDomain="boolean" optional="true" />
 
             <attr name="asyncExec" stdDomain="boolean" optional="true"/>
             <attr name="retryTimesPerRequest" stdDomain="int" optional="true"/>
@@ -101,7 +122,9 @@
 
                 const chatService = inject("nopAiChatService");
                 const promptTemplateManager = inject("nopPromptTemplateManager");
-                const cmd = new AiCommand(chatOptions, chatService);
+                const cmd = new AiCommand(chatService);
+                cmd.setChatOptions(chatOptions);
+
                 if(promptName != null){
                     $.checkArgument(!promptName.startsWith('/') and !promptName.endsWith('.yaml'),"invalid promptName")
                 }

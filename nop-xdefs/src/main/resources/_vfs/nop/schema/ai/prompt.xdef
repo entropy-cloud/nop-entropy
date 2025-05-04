@@ -40,6 +40,11 @@
             <xdefPath>v-path</xdefPath>
             <markdownPath>v-path</markdownPath>
 
+            <when>xpl-fn:(chatResponse)=>boolean</when>
+
+            <!-- 当不满足解析条件时，执行defaultExpr返回缺省值 -->
+            <defaultExpr>xpl-fn:(chatResponse)=>any</defaultExpr>
+
             <!--
             没有指定format的情况下才会使用parseFromResponse配置
             如果指定了source，则执行代码来解析变量。如果没有指定source，但是指定了blockBegin和blockEnd，则从响应消息中截取相关信息。
@@ -69,6 +74,8 @@
     通过额外增加一些特殊的标记提示，可以简化结果解析并识别AI输出质量。如果不能严格按照格式要求输出，则往往质量不高。
     -->
     <endResponseMarker>string</endResponseMarker>
+
+    <prepareInputs>xpl-fn:()=>void</prepareInputs>
 
     <!--
     执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。

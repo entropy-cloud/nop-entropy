@@ -45,7 +45,7 @@
         @persist [是否持久化保存] 标记为persist的变量会自动保存，支持中断后恢复执行
         -->
         <input name="!var-name" displayName="string" xdef:name="TaskInputModel"
-               type="generic-type" mandatory="!boolean=false" role="string" value="t-expr"
+               type="generic-type" mandatory="!boolean=false" role="string" value="t-expr" optional="!boolean=false"
                xdef:unique-attr="name" persist="!boolean=true" fromTaskScope="!boolean=false">
             <description xdef:value="string"/>
             <schema xdef:ref="../schema/schema.xdef"/>
@@ -57,7 +57,7 @@
         @exportAs 返回时会将output中的变量设置到parentScope中，一般情况下设置的变量名与output变量名相同。可以通过exportAs来改变这个变量名
         @toTaskScope 如果为true，则输出变量到整个task共享的scope中，否则输出到parentScope中
         -->
-        <output name="!var-name" displayName="string" persist="!boolean=false"
+        <output name="!var-name" displayName="string" persist="!boolean=false" value="t-expr"
                 xdef:name="TaskOutputModel" toTaskScope="!boolean=false" type="generic-type"
                 xdef:unique-attr="name" exportAs="var-name" roles="csv-set">
             <description xdef:value="string"/>

@@ -1,6 +1,10 @@
 template: |
   【任务目标】
-  将用户提供的原始需求扩展为一个详细的需求文档。覆盖SDLC全技术要素，但排除项目管理内容
+  <c:iif test="${needExpand}">
+    <c:unit>将用户提供的原始需求扩展为一个详细的需求文档。</c:unit>
+    <c:unit>将用户提供的原始需求按照指定格式改写为一个标准的需求文档。</c:unit>
+  </c:iif>
+  覆盖SDLC全技术要素，但排除项目管理内容
 
   【输出要求】
   1. 包含角色矩阵（表格形式：角色|权限|操作范围）
@@ -16,6 +20,9 @@ template: |
 inputs:
   - name: inputRequirements
     type: String
+    mandatory: true
+  - name: needExpand
+    type: Boolean
     mandatory: true
 
 outputs:

@@ -10,6 +10,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.markdown.MarkdownConstants;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -108,11 +109,16 @@ public class MarkdownSection implements ITagSetSupport {
     }
 
     public MarkdownSection cloneInstance() {
+        return cloneInstance(true);
+    }
+
+    public MarkdownSection cloneInstance(boolean includeChildren) {
         MarkdownSection ret = new MarkdownSection();
         ret.setLevel(level);
         ret.setTitle(title);
         ret.setText(text);
-        if (children != null) {
+
+        if (includeChildren && children != null) {
             ret.setChildren(children.stream().map(MarkdownSection::cloneInstance).collect(Collectors.toList()));
         }
         if (meta != null) {
@@ -169,7 +175,7 @@ public class MarkdownSection implements ITagSetSupport {
 
         StringBuilder sb = new StringBuilder();
         sb.append(title);
-        sb.append('(');
+        sb.append(MarkdownConstants.META_TITLE_PREFIX);
         boolean first = true;
         for (Map.Entry<String, String> entry : meta.entrySet()) {
             if (first) {
@@ -178,10 +184,12 @@ public class MarkdownSection implements ITagSetSupport {
                 sb.append(',');
             }
             sb.append(entry.getKey());
-            sb.append(':');
-            sb.append(entry.getValue());
+            if (!StringHelper.isEmpty(entry.getValue()) && !entry.getKey().equals(entry.getValue())) {
+                sb.append(':');
+                sb.append(entry.getValue());
+            }
         }
-        sb.append(')');
+        sb.append(MarkdownConstants.META_TITLE_SUFFIX);
         return sb.toString();
     }
 
@@ -268,18 +276,28 @@ public class MarkdownSection implements ITagSetSupport {
             MarkdownSection newChild = child.filterSection(filter);
             if (newChild != child) {
                 if (ret == null) {
-                    ret = new MarkdownSection();
+                    ret = this.cloneInstance(false);
+
                     for (int j = 0; j < i; j++) {
                         ret.addChild(children.get(j));
                     }
-                } else {
-                    if (newChild != null)
-                        ret.addChild(newChild);
                 }
+
+                if (newChild != null)
+                    ret.addChild(newChild);
+            } else {
+                if (ret != null)
+                    ret.addChild(newChild);
             }
         }
 
-        return ret == null ? this : ret;
+        if (ret == null)
+            return this;
+
+        if (!ret.hasChild())
+            return null;
+
+        return ret;
     }
 
     public Boolean removeSection(Function<MarkdownSection, Boolean> filter, boolean multiple) {
@@ -376,6 +394,16 @@ public class MarkdownSection implements ITagSetSupport {
         return tagSet != null && !tagSet.isEmpty();
     }
 
+    public String toText() {
+        return toText(false);
+    }
+
+    public String toText(boolean includeTags) {
+        StringBuilder sb = new StringBuilder();
+        buildText(sb, includeTags);
+        return sb.toString();
+    }
+
     public void buildText(StringBuilder sb, boolean includeTags) {
         if (getLevel() > 0) {
             sb.append("#".repeat(getLevel())).append(" ");
@@ -392,7 +420,8 @@ public class MarkdownSection implements ITagSetSupport {
         if (getText() != null)
             sb.append(getText()).append("\n");
 
-        sb.append("\n");
+        if (sb.length() > 0)
+            sb.append("\n");
 
         if (children != null) {
             for (MarkdownSection child : children) {
@@ -406,6 +435,11 @@ public class MarkdownSection implements ITagSetSupport {
         if (children == null)
             children = new ArrayList<>();
         children.add(child);
+    }
+
+    public void addChildren(Collection<MarkdownSection> list) {
+        if (list != null)
+            list.forEach(this::addChild);
     }
 
     public void resetLevel(int level) {

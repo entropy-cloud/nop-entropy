@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static io.nop.markdown.MarkdownErrors.ARG_TITLE;
 import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_MISSING_SECTION;
@@ -126,7 +127,9 @@ public class MarkdownDocument implements IComponentModel {
                     }
                 }
 
-                match = match && matchSectionChildren(section.getChildren(), tpl, throwError);
+                if(tpl != null) {
+                    match = match && matchSectionChildren(section.getChildren(), tpl, throwError);
+                }
             }
         }
 
@@ -160,5 +163,33 @@ public class MarkdownDocument implements IComponentModel {
                 return section.hasChild() ? null : false;
             }));
         return ret;
+    }
+
+    public MarkdownDocument filterSectionByTitle(String title) {
+        MarkdownDocument ret = new MarkdownDocument();
+        ret.setLocation(location);
+        if (rootSection != null)
+            ret.setRootSection(rootSection.filterSection(section -> {
+                if (title.equals(section.getTitle()))
+                    return true;
+                return section.hasChild() ? null : false;
+            }));
+        return ret;
+    }
+
+    public MarkdownDocument filterSection(Function<MarkdownSection, Boolean> filter) {
+        MarkdownDocument ret = new MarkdownDocument();
+        ret.setLocation(location);
+        if (rootSection != null)
+            ret.setRootSection(rootSection.filterSection(filter));
+        return ret;
+    }
+
+    public MarkdownDocument filterRelatedSection(MarkdownSection section) {
+        return filterSection(child -> {
+            if (section == child)
+                return true;
+            return child.hasChild() ? null : false;
+        });
     }
 }

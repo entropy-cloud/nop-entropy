@@ -21,13 +21,6 @@ public class TaskInputModel extends _TaskInputModel implements IActionInputModel
 
     }
 
-    public XNode getSchemaNode() {
-        ISchema schema = getSchema();
-        if (schema == null)
-            return null;
-        return schema.toNode(new HashMap<>());
-    }
-
     public void normalize() {
 
     }

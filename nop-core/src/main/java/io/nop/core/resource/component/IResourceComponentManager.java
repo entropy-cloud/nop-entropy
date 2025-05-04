@@ -18,6 +18,8 @@ import java.util.Collection;
 import java.util.function.Supplier;
 
 import static io.nop.core.CoreErrors.ARG_FILE_TYPE;
+import static io.nop.core.CoreErrors.ARG_MODEL_PATH;
+import static io.nop.core.CoreErrors.ERR_COMPONENT_LOAD_MODEL_NOT_EXIST;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_UNKNOWN_MODEL_FILE_TYPE;
 
 /**
@@ -65,6 +67,14 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
     void removeCachedModel(String path);
 
     IComponentModel loadComponentModel(String modelPath);
+
+    default IComponentModel requireComponentModel(String modelPath) {
+        IComponentModel model = loadComponentModel(modelPath);
+        if (model == null)
+            throw new NopException(ERR_COMPONENT_LOAD_MODEL_NOT_EXIST)
+                    .param(ARG_MODEL_PATH, modelPath);
+        return model;
+    }
 
     /**
      * 根据componentModel装载模型，并转换为指定类型的模型对象

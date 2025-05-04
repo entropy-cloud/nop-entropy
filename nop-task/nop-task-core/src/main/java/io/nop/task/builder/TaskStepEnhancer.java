@@ -158,7 +158,7 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
 
         Map<String, IEvalAction> outputExprs = new LinkedHashMap<>();
         stepModel.getOutputs().forEach(output -> {
-            outputExprs.put(output.getName(), output.getSource());
+            outputExprs.put(output.getName(), output.getValueExpr());
         });
 
         return new BuildOutputTaskStepWrapper(step, outputExprs);

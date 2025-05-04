@@ -1055,10 +1055,13 @@ public class ResourceHelper {
     }
 
     public static IResource resolveResourceInDir(String dir, String fileName) {
+        String path = fileName;
         fileName = fileName.replace('\\', '/');
-        if (fileName.contains("../"))
-            throw new IllegalArgumentException("nop.err.invalid-file-name:" + fileName);
-        String path = StringHelper.appendPath(dir, fileName);
+        if (!StringHelper.isEmpty(dir)) {
+            if (fileName.contains("../"))
+                throw new IllegalArgumentException("nop.err.invalid-file-name:" + fileName);
+            path = StringHelper.appendPath(dir, fileName);
+        }
 
         return resolveRelativePathResource(path);
     }

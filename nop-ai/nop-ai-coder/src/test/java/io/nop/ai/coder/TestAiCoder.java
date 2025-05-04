@@ -6,13 +6,14 @@ import io.nop.ai.coder.orm.OrmModelToJava;
 import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.model.PromptModel;
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
-import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.markdown.simple.MarkdownDocument;
+import io.nop.markdown.simple.MarkdownDocumentParser;
+import io.nop.markdown.simple.MarkdownSection;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.OrmModel;
 import io.nop.xlang.xdsl.DslModelParser;
@@ -28,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 //@NopTestConfig(disableSnapshot = true)
-//@Disabled
+@Disabled
 public class TestAiCoder extends JunitAutoTestCase {
 
     PromptModel loadPrompt(String promptPath) {
@@ -189,7 +190,7 @@ public class TestAiCoder extends JunitAutoTestCase {
         outputText("entity_model.java", javaCode);
 
         XNode menuNode = inputXml("output-menu-design.xml");
-        menuNode.setAttr("x:schema", "/nop/ai/schema/auth.xdef");
+        menuNode.setAttr("x:schema", "/nop/ai/schema/coder/auth.xdef");
         Object site = new DslModelParser().parseFromNode(menuNode);
         List<Object> roleList = (List<Object>) BeanTool.getProperty(site, "roles");
         vars.put("roleList", roleList);
@@ -218,7 +219,7 @@ public class TestAiCoder extends JunitAutoTestCase {
         vars.put("entityModel", entityModel);
 
         XNode menuNode = inputXml("output-menu-design.xml");
-        menuNode.setAttr("x:schema", "/nop/ai/schema/auth.xdef");
+        menuNode.setAttr("x:schema", "/nop/ai/schema/coder/auth.xdef");
         Object site = new DslModelParser().parseFromNode(menuNode);
         List<Object> roleList = (List<Object>) BeanTool.getProperty(site, "roles");
         vars.put("roleList", roleList);
@@ -226,5 +227,32 @@ public class TestAiCoder extends JunitAutoTestCase {
         IEvalScope scope = promptModel.prepareInputs(vars);
         String prompt = promptModel.generatePrompt(scope);
         outputText("prompt-grid-design.md", prompt);
+    }
+
+    @EnableSnapshot
+    @Test
+    public void testExpandModuleRequirements() {
+        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/expand-module-requirements.prompt.yaml");
+        MarkdownDocument doc = new MarkdownDocumentParser().parseFromText(null, inputText("response-requirements.md"));
+        MarkdownSection section = doc.findSectionByTitle("2.2 核心功能模块");
+        MarkdownSection child = section.getChild(0);
+
+        MarkdownDocument filteredDoc = doc.filterSection(sec -> {
+            if ("1".equals(sec.getPrefix()) || sec == child)
+                return true;
+            return sec.hasChild() ? null : false;
+        });
+
+        outputText("filtered-requirements.md", filteredDoc.toText());
+
+        MarkdownSection child2 = section.getChild(1);
+
+        filteredDoc = doc.filterSection(sec -> {
+            if ("1".equals(sec.getPrefix()) || sec == child2)
+                return true;
+            return sec.hasChild() ? null : false;
+        });
+
+        outputText("filtered-requirements2.md", filteredDoc.toText());
     }
 }
