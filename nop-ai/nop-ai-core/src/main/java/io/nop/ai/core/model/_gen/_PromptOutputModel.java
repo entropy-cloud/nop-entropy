@@ -18,6 +18,13 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: defaultExpr
+     * 当不满足解析条件时，执行defaultExpr返回缺省值
+     */
+    private io.nop.core.lang.eval.IEvalFunction _defaultExpr ;
+    
+    /**
+     *  
      * xml name: description
      * 
      */
@@ -112,10 +119,36 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: when
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _when ;
+    
+    /**
+     *  
      * xml name: xdefPath
      * 
      */
     private java.lang.String _xdefPath ;
+    
+    /**
+     * 
+     * xml name: defaultExpr
+     *  当不满足解析条件时，执行defaultExpr返回缺省值
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getDefaultExpr(){
+      return _defaultExpr;
+    }
+
+    
+    public void setDefaultExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._defaultExpr = value;
+           
+    }
+
     
     /**
      * 
@@ -369,6 +402,25 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      * 
+     * xml name: when
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getWhen(){
+      return _when;
+    }
+
+    
+    public void setWhen(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._when = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: xdefPath
      *  
      */
@@ -405,6 +457,7 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("defaultExpr",this.getDefaultExpr());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("format",this.getFormat());
@@ -418,6 +471,7 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
         out.putNotNull("schema",this.getSchema());
         out.putNotNull("skipWhenResponseInvalid",this.isSkipWhenResponseInvalid());
         out.putNotNull("type",this.getType());
+        out.putNotNull("when",this.getWhen());
         out.putNotNull("xdefPath",this.getXdefPath());
     }
 
@@ -430,6 +484,7 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     protected void copyTo(PromptOutputModel instance){
         super.copyTo(instance);
         
+        instance.setDefaultExpr(this.getDefaultExpr());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
         instance.setFormat(this.getFormat());
@@ -443,6 +498,7 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
         instance.setSchema(this.getSchema());
         instance.setSkipWhenResponseInvalid(this.isSkipWhenResponseInvalid());
         instance.setType(this.getType());
+        instance.setWhen(this.getWhen());
         instance.setXdefPath(this.getXdefPath());
     }
 

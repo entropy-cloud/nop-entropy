@@ -8,6 +8,7 @@ import io.nop.ai.core.api.messages.AiMessage;
 import io.nop.ai.core.api.messages.MessageStatus;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.model.LlmModel;
+import io.nop.ai.core.model.LlmModelModel;
 import io.nop.ai.core.model.LlmRequestModel;
 import io.nop.ai.core.model.LlmResponseModel;
 import io.nop.api.core.config.AppConfig;
@@ -242,10 +243,35 @@ public class DefaultAiChatService implements IAiChatService {
 
         setOptions(llmModel, body, prompt, options);
 
+        LlmModelModel modelModel = getModelModel(llmModel, model);
         List<AiMessage> msgs = prompt.getMessages();
+        AiMessage lastMessage = prompt.getLastMessage();
         for (AiMessage msg : msgs) {
-            messages.add(Map.of("content", msg.getContent(), "role", getRole(msg)));
+            String content = msg.getContent();
+            if (modelModel != null && lastMessage == msg) {
+                if (options.isEnableThinking()) {
+                    if (modelModel.getEnableThinkingPrompt() != null) {
+                        content += "\n" + modelModel.getEnableThinkingPrompt();
+                    }
+                } else {
+                    if (modelModel.getDisableThinkingPrompt() != null) {
+                        content += "\n" + modelModel.getDisableThinkingPrompt();
+                    }
+                }
+            }
+            messages.add(Map.of("content", content, "role", getRole(msg)));
         }
+    }
+
+    protected LlmModelModel getModelModel(LlmModel llmModel, String modelName) {
+        LlmModelModel model = llmModel.getModel(modelName);
+        if (model == null) {
+            String baseModel = StringHelper.firstPart(modelName, ':');
+            if (!baseModel.equals(modelName)) {
+                model = llmModel.getModel(baseModel);
+            }
+        }
+        return model;
     }
 
     protected String getModel(String llmName, LlmModel llmModel, AiChatOptions options) {

@@ -6,6 +6,7 @@ import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.ai.core.model._gen._PromptModel;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.api.core.beans.ErrorBean;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.IComponentModel;
@@ -111,6 +112,10 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
                 }
             }
         }
+
+        if (getPrepareInputs() != null)
+            this.getPrepareInputs().call0(null, scope);
+
         return scope;
     }
 
@@ -139,16 +144,27 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
     void parseOutputs(AiChatResponse chatResponse, boolean beforeProcess, IEvalScope scope) {
         if (getOutputs() != null) {
             for (PromptOutputModel output : getOutputs()) {
-
-                if (chatResponse.isInvalid() && output.isSkipWhenResponseInvalid())
-                    continue;
-
                 if (output.isParseBeforeProcess() == beforeProcess) {
-                    Object value = parseOutput(chatResponse, output, scope);
-                    chatResponse.setOutput(output.getName(), value);
+                    if (isAllowParse(chatResponse, output, scope)) {
+                        Object value = parseOutput(chatResponse, output, scope);
+                        chatResponse.setOutput(output.getName(), value);
+                    } else if (output.getDefaultExpr() != null) {
+                        Object value = output.getDefaultExpr().call1(null, chatResponse, scope);
+                        chatResponse.setOutput(output.getName(), value);
+                    }
                 }
             }
         }
+    }
+
+    protected boolean isAllowParse(AiChatResponse chatResponse, PromptOutputModel output, IEvalScope scope) {
+        if (chatResponse.isInvalid() && output.isSkipWhenResponseInvalid())
+            return false;
+        if (output.getWhen() != null) {
+            boolean b = ConvertHelper.toTruthy(output.getWhen().call1(null, chatResponse, scope));
+            return b;
+        }
+        return true;
     }
 
     protected Object parseOutput(AiChatResponse chatResponse, PromptOutputModel output, IEvalScope scope) {

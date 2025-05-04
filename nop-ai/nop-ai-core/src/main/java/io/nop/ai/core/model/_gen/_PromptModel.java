@@ -61,6 +61,13 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: prepareInputs
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _prepareInputs ;
+    
+    /**
+     *  
      * xml name: processChatResponse
      * 执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
      * 这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
@@ -243,6 +250,25 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
+     * xml name: prepareInputs
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getPrepareInputs(){
+      return _prepareInputs;
+    }
+
+    
+    public void setPrepareInputs(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._prepareInputs = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: processChatResponse
      *  执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
      * 这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
@@ -307,6 +333,7 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("endResponseMarker",this.getEndResponseMarker());
         out.putNotNull("inputs",this.getInputs());
         out.putNotNull("outputs",this.getOutputs());
+        out.putNotNull("prepareInputs",this.getPrepareInputs());
         out.putNotNull("processChatResponse",this.getProcessChatResponse());
         out.putNotNull("template",this.getTemplate());
     }
@@ -326,6 +353,7 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
         instance.setEndResponseMarker(this.getEndResponseMarker());
         instance.setInputs(this.getInputs());
         instance.setOutputs(this.getOutputs());
+        instance.setPrepareInputs(this.getPrepareInputs());
         instance.setProcessChatResponse(this.getProcessChatResponse());
         instance.setTemplate(this.getTemplate());
     }

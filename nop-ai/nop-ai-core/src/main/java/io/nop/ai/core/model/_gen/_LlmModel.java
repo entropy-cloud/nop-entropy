@@ -81,6 +81,13 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
+     * xml name: models
+     * 
+     */
+    private KeyedList<io.nop.ai.core.model.LlmModelModel> _models = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: parseHttpResponse
      * 
      */
@@ -287,6 +294,51 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     
     /**
      * 
+     * xml name: models
+     *  
+     */
+    
+    public java.util.List<io.nop.ai.core.model.LlmModelModel> getModels(){
+      return _models;
+    }
+
+    
+    public void setModels(java.util.List<io.nop.ai.core.model.LlmModelModel> value){
+        checkAllowChange();
+        
+        this._models = KeyedList.fromList(value, io.nop.ai.core.model.LlmModelModel::getName);
+           
+    }
+
+    
+    public io.nop.ai.core.model.LlmModelModel getModel(String name){
+        return this._models.getByKey(name);
+    }
+
+    public boolean hasModel(String name){
+        return this._models.containsKey(name);
+    }
+
+    public void addModel(io.nop.ai.core.model.LlmModelModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.ai.core.model.LlmModelModel> list = this.getModels();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.ai.core.model.LlmModelModel::getName);
+            setModels(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_models(){
+        return this._models.keySet();
+    }
+
+    public boolean hasModels(){
+        return !this._models.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: parseHttpResponse
      *  
      */
@@ -388,6 +440,8 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._models = io.nop.api.core.util.FreezeHelper.deepFreeze(this._models);
+            
            this._request = io.nop.api.core.util.FreezeHelper.deepFreeze(this._request);
             
            this._response = io.nop.api.core.util.FreezeHelper.deepFreeze(this._response);
@@ -408,6 +462,7 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
         out.putNotNull("embedUrl",this.getEmbedUrl());
         out.putNotNull("generateUrl",this.getGenerateUrl());
         out.putNotNull("logMessage",this.isLogMessage());
+        out.putNotNull("models",this.getModels());
         out.putNotNull("parseHttpResponse",this.getParseHttpResponse());
         out.putNotNull("rateLimit",this.getRateLimit());
         out.putNotNull("request",this.getRequest());
@@ -433,6 +488,7 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
         instance.setEmbedUrl(this.getEmbedUrl());
         instance.setGenerateUrl(this.getGenerateUrl());
         instance.setLogMessage(this.isLogMessage());
+        instance.setModels(this.getModels());
         instance.setParseHttpResponse(this.getParseHttpResponse());
         instance.setRateLimit(this.getRateLimit());
         instance.setRequest(this.getRequest());

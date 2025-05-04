@@ -17,6 +17,10 @@
     -->
     <supportModels xdef:value="csv-set"/>
 
+    <models xdef:body-type="list" xdef:key-attr="name">
+        <model name="!string" xdef:name="LlmModelModel" enableThinkingPrompt="string" disableThinkingPrompt="string"/>
+    </models>
+
     <!--
     服务的基础url，比如http://localhost:11342
     -->

@@ -6,6 +6,10 @@
     <generateUrl>/api/generate</generateUrl>
     <embedUrl>/api/embed</embedUrl>
 
+    <models>
+        <model name="qwen3" disableThinkingPrompt="/no_think"/>
+    </models>
+
     <request seedPath="options.seed"
              topKPath="options.top_k"
              topPPath="options.top_p"
