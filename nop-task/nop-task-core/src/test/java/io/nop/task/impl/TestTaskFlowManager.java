@@ -3,6 +3,7 @@ package io.nop.task.impl;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.ioc.IBeanContainer;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
@@ -22,6 +23,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestTaskFlowManager extends AbstractTaskTestCase {
     @Test
@@ -151,6 +153,14 @@ public class TestTaskFlowManager extends AbstractTaskTestCase {
     @Test
     public void testTransform() {
         runTask("test/transform");
+    }
+
+    @Test
+    public void testThrottle() {
+        long begin = CoreMetrics.currentTimeMillis();
+        runTask("test/throttle-01");
+        long end = CoreMetrics.currentTimeMillis();
+        assertTrue(end - begin >= 2000);
     }
 
     public static class MyHandler {

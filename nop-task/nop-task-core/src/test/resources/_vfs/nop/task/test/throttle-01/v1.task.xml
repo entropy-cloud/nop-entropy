@@ -1,0 +1,17 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <fork name="test" varName="item">
+            <producer>
+                return [1,2,3,4];
+            </producer>
+
+            <steps>
+                <sleep name="sleep" sleepMillisExpr="1000" executor="nop-global-worker">
+                    <throttle maxConcurrency="1" maxWait="10000"/>
+                </sleep>
+            </steps>
+        </fork>
+    </steps>
+
+    <output name="RESULT" value="OK"/>
+</task>

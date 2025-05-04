@@ -36,11 +36,6 @@ public class AiCommand {
     private boolean returnExceptionAsResponse = true;
 
     public AiCommand(IAiChatService chatService) {
-        this(new AiChatOptions(), chatService);
-    }
-
-    public AiCommand(AiChatOptions chatOptions, IAiChatService chatService) {
-        this.chatOptions = chatOptions;
         this.chatService = chatService;
     }
 
@@ -73,6 +68,8 @@ public class AiCommand {
     }
 
     public AiChatOptions getChatOptions() {
+        if (chatOptions == null)
+            chatOptions = new AiChatOptions();
         return chatOptions;
     }
 

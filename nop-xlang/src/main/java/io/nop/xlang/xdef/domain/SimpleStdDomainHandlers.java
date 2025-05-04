@@ -285,7 +285,7 @@ public class SimpleStdDomainHandlers {
             // 系统自动生成的名称
             if (text.startsWith("$"))
                 return true;
-            return StringHelper.isValidClassName(text);
+            return StringHelper.isValidXmlName(text);
         }
     }
 

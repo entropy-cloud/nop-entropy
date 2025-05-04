@@ -10,6 +10,7 @@ import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
+import static io.nop.task.TaskErrors.ARG_KEY;
 import static io.nop.task.TaskErrors.ERR_TASK_REQUEST_RATE_EXCEED_LIMIT;
 
 public class RateLimitTaskStepWrapper extends DelegateTaskStep {
@@ -36,7 +37,8 @@ public class RateLimitTaskStepWrapper extends DelegateTaskStep {
         IRateLimiter rateLimiter = stepRt.getTaskRuntime().getRateLimiter(key, requestPerSecond, global);
 
         if (!rateLimiter.tryAcquire(1, maxWait))
-            throw TaskStepHelper.newError(getLocation(), stepRt, ERR_TASK_REQUEST_RATE_EXCEED_LIMIT);
+            throw TaskStepHelper.newError(getLocation(), stepRt, ERR_TASK_REQUEST_RATE_EXCEED_LIMIT)
+                    .param(ARG_KEY, key);
 
         return getTaskStep().execute(stepRt);
     }

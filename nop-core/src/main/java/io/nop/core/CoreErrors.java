@@ -190,6 +190,8 @@ public interface CoreErrors {
 
     String ARG_NODE_NAMES = "nodeNames";
 
+    String ARG_MODEL_PATH = "modelPath";
+
     ErrorCode ERR_JSON_VALUE_NOT_NODE =
             define("nop.err.core.json-value-not-node", "值无法转换为XNode类型");
 
@@ -357,6 +359,9 @@ public interface CoreErrors {
 
     ErrorCode ERR_COMPONENT_UNKNOWN_COMPONENT_FILE_TYPE = define("nop.err.core.component.unknown-component-file-type",
             "未知的组件文件类型:{fileType}", ARG_FILE_TYPE, ARG_COMPONENT_PATH);
+
+    ErrorCode ERR_COMPONENT_LOAD_MODEL_NOT_EXIST = define("nop.err.core.component.load-model-not-exist",
+            "模型文件不存在:{resourcePath}", ARG_MODEL_PATH);
 
     ErrorCode ERR_COMPONENT_UNDEFINED_COMPONENT_MODEL_TRANSFORM = define(
             "nop.err.core.component.undefined-component-model-transform",
