@@ -109,7 +109,9 @@ public class EnumDictLoader implements IDictLoader {
     List<DictOptionBean> buildOptions(IClassModel classModel) {
         List<DictOptionBean> options = new ArrayList<>();
 
-        for (IFieldModel field : classModel.getStaticFields().values()) {
+        Enum[] items = (Enum[]) classModel.getRawClass().getEnumConstants();
+        for (Enum item: items) {
+            IFieldModel field = classModel.getStaticField(item.name());
             if (field.isEnumConstant()) {
                 DictOptionBean option = new DictOptionBean();
                 Object fieldValue = field.getValue(null);
