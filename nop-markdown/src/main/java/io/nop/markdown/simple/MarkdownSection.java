@@ -48,6 +48,13 @@ public class MarkdownSection implements ITagSetSupport {
         this.setTitle(title);
     }
 
+    public MarkdownSection shallowCopy() {
+        MarkdownSection ret = cloneInstance(false);
+        if (getChildren() != null)
+            ret.setChildren(new ArrayList<>(getChildren()));
+        return ret;
+    }
+
     public static List<MarkdownSection> buildTree(List<MarkdownSection> sections) {
         if (sections.size() <= 1)
             return new ArrayList<>(sections);
@@ -193,7 +200,7 @@ public class MarkdownSection implements ITagSetSupport {
         return sb.toString();
     }
 
-    public String getPrefix() {
+    public String getSectionNo() {
         if (title == null)
             return null;
         int pos = title.indexOf(' ');
@@ -202,8 +209,8 @@ public class MarkdownSection implements ITagSetSupport {
         return title.substring(0, pos).trim();
     }
 
-    public String getParentPrefix() {
-        String prefix = getPrefix();
+    public String getParentSectionNo() {
+        String prefix = getSectionNo();
         if (prefix == null)
             return null;
 
@@ -217,12 +224,12 @@ public class MarkdownSection implements ITagSetSupport {
         return prefix.substring(0, pos + 1);
     }
 
-    public MarkdownSection find(Predicate<MarkdownSection> filter) {
+    public MarkdownSection findSection(Predicate<MarkdownSection> filter) {
         if (filter.test(this))
             return this;
         if (this.children != null) {
             for (MarkdownSection child : this.children) {
-                MarkdownSection found = child.find(filter);
+                MarkdownSection found = child.findSection(filter);
                 if (found != null)
                     return found;
             }
@@ -240,12 +247,16 @@ public class MarkdownSection implements ITagSetSupport {
         return null;
     }
 
-    public MarkdownSection findByTitle(String title) {
-        return find(section -> title.equals(section.getTitle()));
+    public MarkdownSection findSectionBySectionNo(String sectionNo) {
+        return findSection(section -> sectionNo.equals(section.getSectionNo()));
     }
 
-    public MarkdownSection findByTag(String tag) {
-        return find(section -> section.containsTag(tag));
+    public MarkdownSection findSectionByTitle(String title) {
+        return findSection(section -> title.equals(section.getTitle()));
+    }
+
+    public MarkdownSection findSectionByTag(String tag) {
+        return findSection(section -> section.containsTag(tag));
     }
 
     public MarkdownSection findChildByTitle(String title) {
@@ -260,6 +271,42 @@ public class MarkdownSection implements ITagSetSupport {
         return findChild(section -> section.containsTag(tag));
     }
 
+    public MarkdownSection selectSectionByTag(String tag) {
+        return selectSection(section ->
+                section.containsTag(tag));
+    }
+
+    public MarkdownSection selectSectionByTplTag(String tag) {
+        return selectSection(section -> section.tplContainsTag(tag));
+    }
+
+    public boolean tplContainsTag(String tag) {
+        return getTpl() != null && getTpl().containsTag(tag);
+    }
+
+    public MarkdownSection selectSectionByTitle(String title) {
+        return selectSection(section -> title.equals(section.getTitle()));
+    }
+
+    /**
+     * 与filterSection的区别在于，selectSelection会包含filter返回为true的节点及其父节点
+     *
+     * @param filter 返回为false只是表示没有明确指定要包含当前节点，需要检查它的子节点。如果子节点满足选中条件，则当前节点也要被包含
+     */
+    public MarkdownSection selectSection(Predicate<MarkdownSection> filter) {
+        return filterSection(section -> {
+            if (filter.test(section))
+                return true;
+            return section.hasChild() ? null : false;
+        });
+    }
+
+    /**
+     * 根据过滤条件过滤本节及其子节
+     *
+     * @param filter 返回true表示包含，返回false表示排除，返回null则检查子节点。如果所有子节点都不包含，且当前节点没有被明确指定包含，则不包含
+     * @return null如果当前节以及子节都不包含
+     */
     public MarkdownSection filterSection(Function<MarkdownSection, Boolean> filter) {
         Boolean b = filter.apply(this);
         if (Boolean.TRUE.equals(b))
@@ -298,6 +345,14 @@ public class MarkdownSection implements ITagSetSupport {
             return null;
 
         return ret;
+    }
+
+    public Boolean removeSectionBySectionNo(String sectionNo) {
+        return removeSection(section -> sectionNo.equals(section.getSectionNo()), false);
+    }
+
+    public Boolean removeSectionByTitle(String title) {
+        return removeSection(section -> title.equals(section.getTitle()), false);
     }
 
     public Boolean removeSection(Function<MarkdownSection, Boolean> filter, boolean multiple) {

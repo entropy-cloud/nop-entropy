@@ -3,7 +3,7 @@
       xmlns:file-utils="/nop/task/xlib/file-utils.xlib" xmlns:task="/nop/task/xlib/task.xlib"
       x:dump="true" x:extends="/nop/task/lib/common.task.xml">
 
-    <ai:chatOptions provider="ollama" model="qwen3:8b"/>
+    <ai:chatOptions provider="ollama" model="qwen3:8b" contextLength="8192" maxTokens="16000"/>
 
     <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 
@@ -44,14 +44,14 @@
 
         <custom name="saveRequirements" customType="file-utils:WriteText">
             <input name="outputDir"/>
-            <input name="fileName" value="docs/requirements/full-requirements.md"/>
+            <input name="fileName" value="docs/requirements/refactored-requirements.md"/>
             <input name="text" value="${requirements}"/>
         </custom>
 
         <fork name="expandModuleRequirements" varName="module">
             <input name="requirementsDoc"/>
             <producer>
-                return requirementsDoc.findSectionByTitle('2.2 核心功能模块').children
+                return requirementsDoc.findSectionByTitle('3.2 核心功能模块').children
             </producer>
 
             <steps>
@@ -63,9 +63,9 @@
 
                     <input name="moduleRequirements">
                         <source><![CDATA[
-                            return requirementsDoc.filterSection(
-                                section=> section.prefix == '1' or module == section or (section.hasChild() ? null :
-                                    false)).toText()
+                            // 获取核心需求部分以及当前模块的需求
+                            return requirementsDoc.selectSection(
+                                section=> section.tplContainsTag('CORE') or module == section).toText()
                         ]]></source>
                     </input>
                     <input name="moduleTitle" value="${module.title}"/>
@@ -74,7 +74,7 @@
 
                 <custom name="saveModuleDoc" customType="file-utils:WriteText">
                     <input name="outputDir"/>
-                    <input name="fileName" value="docs/requirements/modules/${module.prefix}.md"/>
+                    <input name="fileName" value="docs/requirements/sections/${module.sectionNo}.md"/>
                     <input name="text" value="${moduleDoc.toText()}"/>
                 </custom>
             </steps>

@@ -18,6 +18,7 @@ package io.nop.ai.core.api.messages;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.ai.core.AiCoreConstants;
+import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.support.Metadata;
 import io.nop.ai.core.response.JsonResponseParser;
 import io.nop.ai.core.response.MarkdownResponseParser;
@@ -54,6 +55,11 @@ public class AiChatResponse extends Metadata {
      * 此次消息所对应的prompt
      */
     private Prompt prompt;
+
+    /**
+     * 实际使用的ChatOptions参数
+     */
+    private AiChatOptions chatOptions;
 
     private Integer index;
     private MessageStatus status;
@@ -192,6 +198,14 @@ public class AiChatResponse extends Metadata {
                     .param(ARG_CONTENT, StringHelper.limitLen(getContent(), 255));
         }
         return this;
+    }
+
+    public AiChatOptions getChatOptions() {
+        return chatOptions;
+    }
+
+    public void setChatOptions(AiChatOptions chatOptions) {
+        this.chatOptions = chatOptions;
     }
 
     public Integer getIndex() {
@@ -434,21 +448,21 @@ public class AiChatResponse extends Metadata {
         if (StringHelper.isEmpty(content))
             return null;
 
-        return new XmlResponseParser().parseResponse(content);
+        return XmlResponseParser.instance().parseResponse(content);
     }
 
     public MarkdownDocument parseMarkdownContent() {
         String content = getContent();
         if (StringHelper.isEmpty(content))
             return null;
-        return new MarkdownResponseParser().parseResponse(content);
+        return MarkdownResponseParser.instance().parseResponse(content);
     }
 
     public Map<String, Object> parseJsonContent() {
         String content = getContent();
         if (StringHelper.isEmpty(content))
             return null;
-        return new JsonResponseParser().parseResponse(content);
+        return JsonResponseParser.instance().parseResponse(content);
     }
 
     public Object getResultValue() {

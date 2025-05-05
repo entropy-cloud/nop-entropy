@@ -32,7 +32,7 @@ public class TestGptOrmModelParser extends BaseTestCase {
     @Test
     public void testParse() {
         String response = classpathResource("orm-response1.txt").readText();
-        XNode node = new XmlResponseParser().parseResponse(response);
+        XNode node = XmlResponseParser.instance().parseResponse(response);
         OrmModel ormModel = new GptOrmModelParser().parseOrmModel(node);
 
         XNode ormNode = DslModelHelper.dslModelToXNode(OrmModelConstants.XDSL_SCHEMA_ORM, ormModel);

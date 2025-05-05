@@ -14,6 +14,7 @@ import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.markdown.simple.MarkdownDocument;
 import io.nop.markdown.simple.MarkdownDocumentParser;
 import io.nop.markdown.simple.MarkdownSection;
+import io.nop.markdown.utils.MarkdownTool;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.OrmModel;
 import io.nop.xlang.xdsl.DslModelParser;
@@ -40,9 +41,10 @@ public class TestAiCoder extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testExpandRequirements() {
-        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/expand-requirements.prompt.yaml");
+        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/refactor-requirements.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
         vars.put("inputRequirements", inputText("input-requirements.md"));
+        vars.put("needExpand",true);
 
         IEvalScope scope = promptModel.prepareInputs(vars);
         String prompt = promptModel.generatePrompt(scope);
@@ -233,24 +235,21 @@ public class TestAiCoder extends JunitAutoTestCase {
     @Test
     public void testExpandModuleRequirements() {
         PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/expand-module-requirements.prompt.yaml");
-        MarkdownDocument doc = new MarkdownDocumentParser().parseFromText(null, inputText("response-requirements.md"));
+        MarkdownDocument doc = MarkdownTool.instance().parseFromText(null, inputText("response-requirements.md"));
         MarkdownSection section = doc.findSectionByTitle("2.2 核心功能模块");
         MarkdownSection child = section.getChild(0);
 
-        MarkdownDocument filteredDoc = doc.filterSection(sec -> {
-            if ("1".equals(sec.getPrefix()) || sec == child)
-                return true;
-            return sec.hasChild() ? null : false;
+        MarkdownDocument filteredDoc = doc.selectSection(sec -> {
+            boolean b = "1".equals(sec.getSectionNo()) || sec == child;
+            return b;
         });
 
         outputText("filtered-requirements.md", filteredDoc.toText());
 
         MarkdownSection child2 = section.getChild(1);
 
-        filteredDoc = doc.filterSection(sec -> {
-            if ("1".equals(sec.getPrefix()) || sec == child2)
-                return true;
-            return sec.hasChild() ? null : false;
+        filteredDoc = doc.selectSection(sec -> {
+            return ("1".equals(sec.getSectionNo()) || sec == child2);
         });
 
         outputText("filtered-requirements2.md", filteredDoc.toText());

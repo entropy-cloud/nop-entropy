@@ -7,7 +7,7 @@ import java.util.Map;
 @DataBean
 public class MarkdownTitle {
     private int level;
-    private String prefix;
+    private String sectionNo;
     private String text;
     private Map<String, String> meta;
 
@@ -20,17 +20,17 @@ public class MarkdownTitle {
     }
 
     public String getNormalizedTitle() {
-        if (prefix == null)
+        if (sectionNo == null)
             return text;
-        return prefix + " " + text;
+        return sectionNo + " " + text;
     }
 
-    public String getPrefix() {
-        return prefix;
+    public String getSectionNo() {
+        return sectionNo;
     }
 
-    public void setPrefix(String prefix) {
-        this.prefix = prefix;
+    public void setSectionNo(String sectionNo) {
+        this.sectionNo = sectionNo;
     }
 
     public String getText() {

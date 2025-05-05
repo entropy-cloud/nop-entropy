@@ -23,4 +23,15 @@ public class TestAiTask extends JunitBaseTestCase {
         taskRt.setInput("needExpand", true);
         task.execute(taskRt).syncGetOutputs();
     }
+
+    @Test
+    public void testRefactorRequirements() {
+        ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-biz-analyzer.task.xml");
+        ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
+        taskRt.setInput("inputRequirementsPath", attachmentFile("input-requirements2.md").getAbsolutePath());
+        taskRt.setInput("outputDir", getTargetDir().getAbsolutePath());
+        taskRt.setInput("basePackageName", "app.demo");
+        taskRt.setInput("needExpand", false);
+        task.execute(taskRt).syncGetOutputs();
+    }
 }

@@ -1,6 +1,8 @@
 package io.nop.ai.core.api.messages;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.ai.core.api.support.Metadata;
+import io.nop.api.core.annotations.data.DataBean;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -9,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@DataBean
 public class Prompt extends Metadata {
     private Float temperature;
     private Map<String, Object> variables;
@@ -46,6 +49,7 @@ public class Prompt extends Metadata {
         this.variables = variables;
     }
 
+    @JsonIgnore
     public boolean isSingleMessage() {
         return getMessages().size() == 1;
     }
@@ -54,6 +58,7 @@ public class Prompt extends Metadata {
         return messages;
     }
 
+    @JsonIgnore
     public AiMessage getLastMessage() {
         return messages.get(messages.size() - 1);
     }

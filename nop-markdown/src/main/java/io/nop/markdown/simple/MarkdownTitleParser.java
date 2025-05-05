@@ -59,7 +59,7 @@ public class MarkdownTitleParser {
 
         MarkdownTitle title = new MarkdownTitle();
         title.setLevel(level);
-        title.setPrefix(prefix);
+        title.setSectionNo(prefix);
         title.setText(text);
         title.setMeta(meta);
         return title;

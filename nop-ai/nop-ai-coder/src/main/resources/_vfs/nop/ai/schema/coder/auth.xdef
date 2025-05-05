@@ -5,7 +5,7 @@
                   routePath="unique-module-path">
             <children xdef:body-type="list" xdef:key-attr="id">
                 <resource id="!unique-page-id" displayName="!chinese" icon="awesome-font"
-                          app:entityName="entity-name" app:pageName="string" role="csv-set">
+                          app:moduleNo="string" app:entityName="entity-name" app:pageName="string" role="csv-set">
                     <description>string</description>
                 </resource>
             </children>

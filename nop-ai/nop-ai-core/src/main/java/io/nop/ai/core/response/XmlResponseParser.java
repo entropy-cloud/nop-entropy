@@ -20,6 +20,19 @@ import java.util.Map;
 public class XmlResponseParser {
     static final Logger LOG = LoggerFactory.getLogger(XmlResponseParser.class);
 
+    private static XmlResponseParser s_instance = new XmlResponseParser();
+
+    protected XmlResponseParser() {
+    }
+
+    public static void registerInstance(XmlResponseParser parser) {
+        s_instance = parser;
+    }
+
+    public static XmlResponseParser instance() {
+        return s_instance;
+    }
+
     public XNode parseResponse(String response) {
         if (StringHelper.isEmpty(response))
             return null;
@@ -54,7 +67,7 @@ public class XmlResponseParser {
     }
 
     XNode trimAttrs(XNode node) {
-        if(node == null)
+        if (node == null)
             return null;
         node.forEachNode(n -> {
             for (Map.Entry<String, ValueWithLocation> entry : n.attrValueLocs().entrySet()) {

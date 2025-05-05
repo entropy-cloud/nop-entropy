@@ -7,14 +7,14 @@
  */
 package io.nop.dyn.service.codegen;
 
-import io.nop.core.lang.xml.XNode;
 import io.nop.ai.core.response.XmlResponseParser;
 import io.nop.ai.dsl.orm.GptOrmModelParser;
+import io.nop.core.lang.xml.XNode;
 import io.nop.orm.model.OrmModel;
 
 public class GptCodeGen {
     public OrmModel generateOrmModel(String response) {
-        XNode node = new XmlResponseParser().parseResponse(response);
+        XNode node = XmlResponseParser.instance().parseResponse(response);
         OrmModel ormModel = new GptOrmModelParser().parseOrmModel(node);
         return ormModel;
     }

@@ -8,6 +8,18 @@ import io.nop.core.lang.json.utils.JsonTransformHelper;
 import java.util.Map;
 
 public class JsonResponseParser {
+    private static JsonResponseParser s_instance = new JsonResponseParser();
+
+    public static JsonResponseParser instance() {
+        return s_instance;
+    }
+
+    public static void registerInstance(JsonResponseParser parser) {
+        s_instance = parser;
+    }
+
+    protected JsonResponseParser() {
+    }
 
     public Map<String, Object> parseResponse(String response) {
         if (StringHelper.isEmpty(response))

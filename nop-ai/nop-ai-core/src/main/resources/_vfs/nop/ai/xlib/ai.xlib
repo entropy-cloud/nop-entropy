@@ -53,13 +53,14 @@
                     const prompt = promptTemplateManager.loadPromptTemplateFromPath(promptPath.asString());
 
                     const inputNames = node.childrenByTag('input').map(input=> {
-                                const inputName = input.attrText('name');
-                                if(prompt.getInput(inputName) == null)
-                                    throw new NopScriptError("nop.err.ai.prompt.undefined-input").loc(location())
-                                         .param('inputName',inputName).param('promptPath',promptPath.asString())
-                                         .param('allowedNames', prompt.inputNames);
-                                return inputName;
-                            });
+                        const inputName = input.attrText('name');
+                        if(prompt.getInput(inputName) == null){
+                            throw new NopScriptError("nop.err.ai.prompt.undefined-input").loc(location())
+                                 .param('inputName',inputName).param('promptPath',promptPath.asString())
+                                 .param('allowedNames', prompt.inputNames);
+                        }
+                        return inputName;
+                    });
 
                     node.childrenByTag('output').forEach(output=> {
                         if(output.attrText('value') == null && output.childByTag('source') == null){
@@ -74,8 +75,16 @@
                     execNode.setAttr('promptPath', promptPath);
                     execNode.setAttr('asyncExec', true);
                     execNode.setAttr('inputs', "${{"+inputNames.join(',')+"}}");
-                    execNode.setAttr('retryTimesPerRequest', node.getAttr('ai:retryTimesPerRequest'));
-                    execNode.setAttr('cancelToken',"${taskRt}");
+                    execNode.setAttr('retryTimesPerRequest', node.attrValueLoc('ai:retryTimesPerRequest'));
+                    if(node.hasAttr('ai:streamListener')){
+                        execNode.setAttr('streamListener', node.attrValueLoc('ai:streamListener'));
+                    }
+
+                    if(node.hasAttr('ai:cancelToken')){
+                        execNode.setAttr('cancelToken', node.attrValueLoc('ai:cancelToken'));
+                    }else{
+                        execNode.setAttr('cancelToken',"${taskRt}");
+                    }
                     execNode.setAttr('xpl:lib', '/nop/ai/xlib/ai.xlib');
                     execNode.setAttr('xpl:return', 'chatResponsePromise');
                     sourceNode.appendScript(location(), 'return chatResponsePromise.thenApply(res=> res.validate().outputs);');
@@ -102,10 +111,13 @@
             <attr name="topK" stdDomain="int" optional="true"/>
             <attr name="maxTokens" stdDomain="int" optional="true"/>
             <attr name="contextLength" stdDomain="int" optional="true"/>
+            <attr name="frequencyPenalty" stdDomain="float" optional="true"/>
             <attr name="stop" stdDomain="csv-list" optional="true"/>
             <attr name="requestTimeout" stdDomain="long" optional="true"/>
             <attr name="stream" stdDomain="boolean" optional="true"/>
-            <attr name="enableThinking" stdDomain="boolean" optional="true" />
+            <attr name="enableThinking" stdDomain="boolean" optional="true"/>
+            <attr name="responseFormat" stdDomain="string" optional="true" />
+            <attr name="streamListener" optional="true"/>
 
             <attr name="asyncExec" stdDomain="boolean" optional="true"/>
             <attr name="retryTimesPerRequest" stdDomain="int" optional="true"/>
@@ -116,8 +128,8 @@
                 import io.nop.ai.core.command.AiCommand;
 
                 let chatOptions = {
-                    provider, model, seed, temperature, topP, topK, maxTokens,
-                    contextLength, stop, requestTimeout, stream
+                    provider, model, seed, temperature, topP, topK, maxTokens, responseFormat,
+                    contextLength, stop, requestTimeout, stream, frequencyPenalty, enableThinking, streamListener
                 };
 
                 const chatService = inject("nopAiChatService");

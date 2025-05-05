@@ -7,10 +7,13 @@
  */
 package io.nop.ai.core.api.chat;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ExtensibleBean;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 @DataBean
 public class AiChatOptions extends ExtensibleBean {
@@ -22,9 +25,18 @@ public class AiChatOptions extends ExtensibleBean {
     private Integer topK;
     private Integer maxTokens;
     private Integer contextLength;
+    private Float frequencyPenalty;
     private List<String> stop;
 
     private Long requestTimeout;
+
+    private boolean stream;
+
+    private boolean enableThinking = false;
+
+    private String responseFormat;
+
+    private Consumer<AiChatResponse> streamListener;
 
     //============= 以下为coze支持的参数 =====
     private String botId;
@@ -32,11 +44,6 @@ public class AiChatOptions extends ExtensibleBean {
     private String conversationId;
 
     private String userId;
-
-    private boolean stream;
-
-    private boolean enableThinking = false;
-
 
     public String getProvider() {
         return provider;
@@ -60,6 +67,31 @@ public class AiChatOptions extends ExtensibleBean {
 
     public void setRequestTimeout(Long requestTimeout) {
         this.requestTimeout = requestTimeout;
+    }
+
+    @JsonIgnore
+    public Consumer<AiChatResponse> getStreamListener() {
+        return streamListener;
+    }
+
+    public void setStreamListener(Consumer<AiChatResponse> streamListener) {
+        this.streamListener = streamListener;
+    }
+
+    public Float getFrequencyPenalty() {
+        return frequencyPenalty;
+    }
+
+    public void setFrequencyPenalty(Float frequencyPenalty) {
+        this.frequencyPenalty = frequencyPenalty;
+    }
+
+    public String getResponseFormat() {
+        return responseFormat;
+    }
+
+    public void setResponseFormat(String responseFormat) {
+        this.responseFormat = responseFormat;
     }
 
     public Integer getContextLength() {
