@@ -8,7 +8,25 @@ import java.util.Map;
 @DataBean
 public class ExcelSheetData {
     private String name;
+    private List<String> headers;
+    private List<String> headerLabels;
     private List<Map<String, Object>> data;
+
+    public List<String> getHeaders() {
+        return headers;
+    }
+
+    public void setHeaders(List<String> headers) {
+        this.headers = headers;
+    }
+
+    public List<String> getHeaderLabels() {
+        return headerLabels;
+    }
+
+    public void setHeaderLabels(List<String> headerLabels) {
+        this.headerLabels = headerLabels;
+    }
 
     public String getName() {
         return name;

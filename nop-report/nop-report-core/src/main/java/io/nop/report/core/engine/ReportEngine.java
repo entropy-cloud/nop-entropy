@@ -10,16 +10,25 @@ package io.nop.report.core.engine;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
+import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.tpl.ITemplateOutput;
+import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.excel.model.IExcelSheet;
+import io.nop.ooxml.xlsx.output.ExcelSheetBuilder;
+import io.nop.ooxml.xlsx.output.ExcelTemplate;
 import io.nop.ooxml.xlsx.output.IExcelSheetGenerator;
+import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
+import io.nop.ooxml.xlsx.util.ExcelSheetData;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.engine.renderer.ReportRenderHelper;
 import io.nop.report.core.util.ExcelReportHelper;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 import static io.nop.report.core.XptErrors.ARG_ALLOWED_FILE_TYPES;
 import static io.nop.report.core.XptErrors.ARG_FILE_TYPE;
@@ -80,5 +89,24 @@ public class ReportEngine implements IReportEngine {
     @Override
     public ExcelWorkbook buildXptModelFromImpModel(String impModelPath) {
         return ExcelReportHelper.buildXptModelFromImpModel(impModelPath);
+    }
+
+    @Override
+    public ITemplateOutput getRendererForExcelData(Iterator<ExcelSheetData> sheetDataIterator, IResource template) {
+        ExcelWorkbook tpl = new ExcelWorkbookParser().parseFromResource(template);
+        ExcelSheet sheetTpl = tpl.getSheets().get(0);
+        tpl.clearSheets();
+        return new ExcelTemplate(tpl, new IExcelSheetGenerator() {
+            @Override
+            public void generate(IEvalContext context, BiConsumer<IExcelSheet, IEvalContext> consumer) {
+                ExcelSheetBuilder sheetBuilder = new ExcelSheetBuilder(sheetTpl);
+
+                while (sheetDataIterator.hasNext()) {
+                    ExcelSheetData sheetData = sheetDataIterator.next();
+                    IExcelSheet sheet = sheetBuilder.buildSheet(sheetData);
+                    consumer.accept(sheet, context);
+                }
+            }
+        });
     }
 }

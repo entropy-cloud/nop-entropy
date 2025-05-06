@@ -35,6 +35,14 @@ public class HeaderListRecordOutput<R> implements IRecordOutput<List<Object>> {
         this.rowBuilder = rowBuilder;
     }
 
+    public List<String> getHeaders() {
+        return headers;
+    }
+
+    public List<String> getHeaderLabels() {
+        return headerLabels;
+    }
+
     public void setHeaders(List<String> headers) {
         this.headers = headers;
     }

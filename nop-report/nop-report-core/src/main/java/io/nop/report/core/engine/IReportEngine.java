@@ -8,10 +8,16 @@
 package io.nop.report.core.engine;
 
 import io.nop.core.context.IEvalContext;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.ooxml.xlsx.XlsxConstants;
+import io.nop.ooxml.xlsx.util.ExcelSheetData;
 import io.nop.report.core.XptConstants;
+
+import java.util.Iterator;
 
 public interface IReportEngine {
     /**
@@ -25,7 +31,6 @@ public interface IReportEngine {
 
     ITemplateOutput getRendererForExcel(ExcelWorkbook workbook, String renderType);
 
-
     default ITemplateOutput getRenderer(String reportPath, String renderType) {
         return getRendererForXptModel(getXptModel(reportPath), renderType);
     }
@@ -38,4 +43,11 @@ public interface IReportEngine {
      * 根据导入模板自动生成报表模型
      */
     ExcelWorkbook buildXptModelFromImpModel(String impModelPath);
+
+    ITemplateOutput getRendererForExcelData(Iterator<ExcelSheetData> sheetDataIterator, IResource template);
+
+    default ITemplateOutput getRendererForExcelData(Iterator<ExcelSheetData> sheetDataIterator) {
+        IResource template = VirtualFileSystem.instance().getResource(XlsxConstants.SIMPLE_DATA_TEMPLATE_PATH);
+        return getRendererForExcelData(sheetDataIterator, template);
+    }
 }

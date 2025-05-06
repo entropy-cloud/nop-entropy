@@ -11,12 +11,15 @@ import io.nop.commons.util.FileHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
+import io.nop.ooxml.xlsx.util.ExcelHelper;
+import io.nop.ooxml.xlsx.util.ExcelSheetData;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.engine.renderer.HtmlReportRendererFactory;
 import io.nop.report.core.engine.renderer.XlsxReportRendererFactory;
@@ -28,9 +31,13 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class TestReportEngine extends BaseTestCase {
@@ -114,6 +121,24 @@ public class TestReportEngine extends BaseTestCase {
         ExcelWorkbook workbook = reportEngine.getXptModel("/nop/report/demo/test-image.xpt.xlsx");
         ITemplateOutput output = reportEngine.getRendererForXptModel(workbook, "xlsx");
         output.generateToFile(getTargetFile("test-image.xlsx"), XLang.newEvalScope());
+    }
+
+    @Test
+    public void testExcelSheetData() {
+        IReportEngine reportEngine = newReportEngine();
+        List<ExcelSheetData> list = new ArrayList<>();
+        ExcelSheetData sheet1 = new ExcelSheetData();
+        sheet1.setName("X1");
+        sheet1.setHeaders(Arrays.asList("a", "b", "c"));
+        sheet1.setData(Arrays.asList(Map.of("a", 1, "b", 2)));
+        list.add(sheet1);
+
+        ITemplateOutput output = reportEngine.getRendererForExcelData(list.iterator());
+        IResource resource = getTargetResource("sheet-data.xlsx");
+        output.generateToResource(resource, XLang.newEvalScope());
+
+        List<Map<String, Object>> sheetData = ExcelHelper.readSheet(resource, "X1", 0);
+        assertEquals("[{a=1, b=2, c=null}]", sheetData.toString());
     }
 
     private IReportEngine newReportEngine() {

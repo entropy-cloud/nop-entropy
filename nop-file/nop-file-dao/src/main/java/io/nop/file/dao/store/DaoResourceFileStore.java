@@ -68,6 +68,18 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
 
     private boolean keepFileExt = true;
 
+    public IDaoProvider getDaoProvider() {
+        return daoProvider;
+    }
+
+    public IResourceStore getResourceStore() {
+        return resourceStore;
+    }
+
+    public boolean isKeepFileExt() {
+        return keepFileExt;
+    }
+
     public void setKeepFileExt(boolean keepFileExt) {
         this.keepFileExt = keepFileExt;
     }
@@ -128,6 +140,10 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         return new DaoFileRecord(record, resource);
     }
 
+    protected boolean isDefaultPublic(UploadRequestBean record) {
+        return false;
+    }
+
     public String saveFile(UploadRequestBean record, long maxLength) {
         checkMaxSize(record.getLength(), maxLength);
 
@@ -137,7 +153,7 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         entity.setFieldName(record.getFieldName());
         entity.setFileExt(record.getFileExt());
         entity.setFileLength(record.getLength());
-        entity.setIsPublic(false);
+        entity.setIsPublic(isDefaultPublic(record));
         if (StringHelper.isEmpty(record.getBizObjId())) {
             // 标记为临时对象。如果最终没有提交，则会应该自动删除这些记录
             entity.setBizObjId(FileConstants.TEMP_BIZ_OBJ_ID);

@@ -59,6 +59,8 @@ public class ExcelHelper {
             public void close() {
                 ExcelSheetData data = new ExcelSheetData();
                 data.setName(sheetName);
+                data.setHeaders(this.getHeaders());
+                data.setHeaderLabels(this.getHeaderLabels());
                 data.setData(this.getResult());
                 ret.add(data);
             }
