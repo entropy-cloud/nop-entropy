@@ -1,0 +1,7 @@
+template: |
+  【任务目标】
+
+outputs:
+  - name: noChange
+    parseFromResponse2:
+      containsText: "[NO_CHANGE]"

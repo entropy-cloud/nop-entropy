@@ -57,6 +57,7 @@ import static io.nop.xlang.XLangErrors.ERR_XDSL_PROP_VALUE_NOT_LIST;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_PROP_VALUE_NOT_MAP;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_SUB_TYPE_PROP_IS_EMPTY;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_SUB_TYPE_PROP_VALUE_NOT_STRING;
+import static io.nop.xlang.XLangErrors.ERR_XDSL_UNKNOWN_PROP;
 
 /**
  * 根据XDefinition设置，将json对象转换为XNode结构
@@ -185,6 +186,11 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
         } else {
             if (key.equals("location"))
                 return;
+
+            if (map instanceof Map)
+                throw new NopException(ERR_XDSL_UNKNOWN_PROP).loc(getLocation(map, key, value))
+                        .param(ARG_PROP_NAME, key).param(ARG_VALUE, value);
+
             if (LOG.isTraceEnabled())
                 LOG.trace("nop.dsl.ignore-unknown-prop:key={},value={},loc={},class={}", key, value,
                         getLocation(map, key, value), map.getClass());

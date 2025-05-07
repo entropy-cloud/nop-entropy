@@ -1,6 +1,7 @@
 package io.nop.ai.coder;
 
 import io.nop.ai.core.prompt.IPromptTemplateManager;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.eval.IEvalAction;
@@ -22,6 +23,10 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.List;
+
+import static io.nop.xlang.XLangErrors.ERR_XDSL_UNKNOWN_PROP;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestAiCoderHelper extends JunitBaseTestCase {
     @Inject
@@ -56,6 +61,16 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
             } else if (resource.getName().endsWith(".tpl.md")) {
                 MarkdownTool.loadMarkdownTpl(resource.getStdPath());
             }
+        }
+    }
+
+    @Test
+    public void testInvalidPrompt() {
+        try {
+            promptTemplateManager.loadPromptTemplateFromPath("/test/invalid.prompt.yaml");
+            fail();
+        } catch (NopException e) {
+            assertEquals(ERR_XDSL_UNKNOWN_PROP.getErrorCode(), e.getErrorCode());
         }
     }
 

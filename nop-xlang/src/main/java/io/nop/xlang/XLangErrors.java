@@ -674,6 +674,8 @@ public interface XLangErrors {
     ErrorCode ERR_XDSL_NO_SUB_SCHEMA_DEFINITION = define("nop.err.xlang.xdsl.no-sub-schema-definition",
             "没有找到针对子类型[{subTypeValue}]的子对象定义", ARG_SUB_TYPE_VALUE);
 
+    ErrorCode ERR_XDSL_UNKNOWN_PROP = define("nop.err.xlang.xdsl.unknown-prop", "未知属性:{propName}", ARG_PROP_NAME);
+
     ErrorCode ERR_XDSL_NOT_SUPPORTED_SCHEMA_KIND = define("nop.err.xlang.xdsl.not-supported-schema-kind",
             "属性[{propName}]不支持schema类型[{schemaKind}]", ARG_PROP_NAME, ARG_SCHEMA_KIND);
 
