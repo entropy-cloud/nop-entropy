@@ -18,13 +18,6 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
-     * xml name: beginThink
-     * 
-     */
-    private java.lang.String _beginThink ;
-    
-    /**
-     *  
      * xml name: disableThinkingPrompt
      * 
      */
@@ -39,36 +32,24 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
-     * xml name: endThink
-     * 
-     */
-    private java.lang.String _endThink ;
-    
-    /**
-     *  
      * xml name: name
      * 
      */
     private java.lang.String _name ;
     
     /**
-     * 
-     * xml name: beginThink
      *  
+     * xml name: thinkEndMarker
+     * 
      */
+    private java.lang.String _thinkEndMarker ;
     
-    public java.lang.String getBeginThink(){
-      return _beginThink;
-    }
-
-    
-    public void setBeginThink(java.lang.String value){
-        checkAllowChange();
-        
-        this._beginThink = value;
-           
-    }
-
+    /**
+     *  
+     * xml name: thinkStartMarker
+     * 
+     */
+    private java.lang.String _thinkStartMarker ;
     
     /**
      * 
@@ -110,25 +91,6 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     
     /**
      * 
-     * xml name: endThink
-     *  
-     */
-    
-    public java.lang.String getEndThink(){
-      return _endThink;
-    }
-
-    
-    public void setEndThink(java.lang.String value){
-        checkAllowChange();
-        
-        this._endThink = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: name
      *  
      */
@@ -142,6 +104,44 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
         checkAllowChange();
         
         this._name = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: thinkEndMarker
+     *  
+     */
+    
+    public java.lang.String getThinkEndMarker(){
+      return _thinkEndMarker;
+    }
+
+    
+    public void setThinkEndMarker(java.lang.String value){
+        checkAllowChange();
+        
+        this._thinkEndMarker = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: thinkStartMarker
+     *  
+     */
+    
+    public java.lang.String getThinkStartMarker(){
+      return _thinkStartMarker;
+    }
+
+    
+    public void setThinkStartMarker(java.lang.String value){
+        checkAllowChange();
+        
+        this._thinkStartMarker = value;
            
     }
 
@@ -161,11 +161,11 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("beginThink",this.getBeginThink());
         out.putNotNull("disableThinkingPrompt",this.getDisableThinkingPrompt());
         out.putNotNull("enableThinkingPrompt",this.getEnableThinkingPrompt());
-        out.putNotNull("endThink",this.getEndThink());
         out.putNotNull("name",this.getName());
+        out.putNotNull("thinkEndMarker",this.getThinkEndMarker());
+        out.putNotNull("thinkStartMarker",this.getThinkStartMarker());
     }
 
     public LlmModelModel cloneInstance(){
@@ -177,11 +177,11 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     protected void copyTo(LlmModelModel instance){
         super.copyTo(instance);
         
-        instance.setBeginThink(this.getBeginThink());
         instance.setDisableThinkingPrompt(this.getDisableThinkingPrompt());
         instance.setEnableThinkingPrompt(this.getEnableThinkingPrompt());
-        instance.setEndThink(this.getEndThink());
         instance.setName(this.getName());
+        instance.setThinkEndMarker(this.getThinkEndMarker());
+        instance.setThinkStartMarker(this.getThinkStartMarker());
     }
 
     protected LlmModelModel newInstance(){

@@ -88,12 +88,12 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      *  
-     * xml name: responseParser
+     * xml name: parseFromResponse
      * 没有指定format的情况下才会使用parseFromResponse配置
      * 如果指定了source，则执行代码来解析变量。如果没有指定source，但是指定了startMarker和endMarker，则从响应消息中截取相关信息。
      * 如果以上配置都没有，但是配置了contains，则只要响应消息中包含此字符串，就设置为true。
      */
-    private io.nop.ai.core.model.PromptOutputParseModel _responseParser ;
+    private io.nop.ai.core.model.PromptOutputParseModel _parseFromResponse ;
     
     /**
      *  
@@ -330,21 +330,21 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      * 
-     * xml name: responseParser
+     * xml name: parseFromResponse
      *  没有指定format的情况下才会使用parseFromResponse配置
      * 如果指定了source，则执行代码来解析变量。如果没有指定source，但是指定了startMarker和endMarker，则从响应消息中截取相关信息。
      * 如果以上配置都没有，但是配置了contains，则只要响应消息中包含此字符串，就设置为true。
      */
     
-    public io.nop.ai.core.model.PromptOutputParseModel getResponseParser(){
-      return _responseParser;
+    public io.nop.ai.core.model.PromptOutputParseModel getParseFromResponse(){
+      return _parseFromResponse;
     }
 
     
-    public void setResponseParser(io.nop.ai.core.model.PromptOutputParseModel value){
+    public void setParseFromResponse(io.nop.ai.core.model.PromptOutputParseModel value){
         checkAllowChange();
         
-        this._responseParser = value;
+        this._parseFromResponse = value;
            
     }
 
@@ -472,7 +472,7 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._responseParser = io.nop.api.core.util.FreezeHelper.deepFreeze(this._responseParser);
+           this._parseFromResponse = io.nop.api.core.util.FreezeHelper.deepFreeze(this._parseFromResponse);
             
            this._schema = io.nop.api.core.util.FreezeHelper.deepFreeze(this._schema);
             
@@ -493,7 +493,7 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
         out.putNotNull("optional",this.isOptional());
         out.putNotNull("outputBuilder",this.getOutputBuilder());
         out.putNotNull("parseAfterPostProcess",this.isParseAfterPostProcess());
-        out.putNotNull("responseParser",this.getResponseParser());
+        out.putNotNull("parseFromResponse",this.getParseFromResponse());
         out.putNotNull("schema",this.getSchema());
         out.putNotNull("skipWhenResponseInvalid",this.isSkipWhenResponseInvalid());
         out.putNotNull("type",this.getType());
@@ -521,7 +521,7 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
         instance.setOptional(this.isOptional());
         instance.setOutputBuilder(this.getOutputBuilder());
         instance.setParseAfterPostProcess(this.isParseAfterPostProcess());
-        instance.setResponseParser(this.getResponseParser());
+        instance.setParseFromResponse(this.getParseFromResponse());
         instance.setSchema(this.getSchema());
         instance.setSkipWhenResponseInvalid(this.isSkipWhenResponseInvalid());
         instance.setType(this.getType());

@@ -322,7 +322,7 @@ public class DefaultAiChatService implements IAiChatService {
             AiChatResponse ret = new AiChatResponse();
             ret.setPrompt(prompt);
             parseToResult(ret, llmModel, response);
-            checkThink(ret);
+            checkThink(ret, llmModel, options.getModel());
             return ret;
         } catch (Exception e) {
             LOG.info("nop.ai.parse-result-fail", e);
@@ -367,16 +367,20 @@ public class DefaultAiChatService implements IAiChatService {
                 err -> new NopException(err).param(ARG_PROP_PATH, path));
     }
 
-    protected void checkThink(AiChatResponse message) {
+    protected void checkThink(AiChatResponse message, LlmModel model, String modelName) {
+        LlmModelModel modelModel = getModelModel(model, modelName);
+        String startMarker = modelModel == null || modelModel.getThinkStartMarker() == null ? "<think>\n" : modelModel.getThinkStartMarker();
+        String endMarker = modelModel == null || modelModel.getThinkEndMarker() == null ? "\n</think>\n" : modelModel.getThinkEndMarker();
+
         String content = message.getContent();
         if (content != null) {
-            boolean bThink = content.startsWith("<think>\n");
+            boolean bThink = content.startsWith(startMarker);
             if (bThink) {
-                int pos2 = content.indexOf("\n</think>\n");
+                int pos2 = content.indexOf(endMarker);
                 if (pos2 > 0) {
-                    String think = content.substring("<think>\n".length(), pos2);
+                    String think = content.substring(startMarker.length(), pos2);
                     message.setThink(think);
-                    pos2 += "\n</think>\n".length();
+                    pos2 += endMarker.length();
                     if (pos2 < content.length() && content.charAt(pos2) == '\n')
                         pos2++;
 

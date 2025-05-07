@@ -28,7 +28,7 @@ inputs:
 
 outputs:
   - name: noChange
-    responseParser:
+    parseFromResponse:
       containsText: "[NO_CHANGE]"
   - name: RESULT
     xdefPath: /nop/ai/schema/coder/orm.xdef

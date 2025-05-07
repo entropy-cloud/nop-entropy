@@ -18,9 +18,9 @@
 
             <defaultExpr>xpl-fn:()=>any</defaultExpr>
 
-            <messageParser xdef:name="PromptInputParseModel" blockStartMarker="string" blockEndMarker="string">
+            <parseFromMessage xdef:name="PromptInputParseModel" blockStartMarker="string" blockEndMarker="string">
                 <parseFunction>xpl-fn:(message)=>any</parseFunction>
-            </messageParser>
+            </parseFromMessage>
         </input>
     </inputs>
 
@@ -53,11 +53,11 @@
             @startMarkerOptional 如果为true，则允许响应消息中没有startMarker，此时认为startMarker在消息的最前方
             @includeStartMarker 如果为true，则将startMarker包含在解析结果中
             -->
-            <responseParser xdef:name="PromptOutputParseModel" containsText="string"
+            <parseFromResponse xdef:name="PromptOutputParseModel" containsText="string"
                             startMarkerOptional="!boolean=false" blockStartMarker="string" blockEndMarker="string"
                             includeStartMarker="!boolean=false" includeEndMarker="!boolean=false">
                 <parseFunction>xpl-fn:(chatResponse)=>any</parseFunction>
-            </responseParser>
+            </parseFromResponse>
 
             <!-- 对解析得到的value进行后处理。处理之后再执行XDef元模型验证 -->
             <valueNormalizer>xpl-fn:(value,chatResponse)=>any</valueNormalizer>
