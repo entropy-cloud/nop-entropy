@@ -139,7 +139,7 @@ public class ChildNodeMap {
                             .param(ARG_NODE, child).param(ARG_XDEF_NODE, defNode)
                             .param(ARG_XDEF_NODE_NAME, defNode.getTagName());
 
-                // 如果没有def模型，则查找x:name/v:id/id/name等属性
+                // 如果没有def模型，则查找x:id/v:id/id/name等属性
                 String name, key;
                 if (StringHelper.isEmpty(defaultKeyAttr)) {
                     Pair<String, String> keyPair = DeltaMergeHelper.buildUniqueKey(child);

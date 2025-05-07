@@ -31,7 +31,7 @@ public class TestMarkdownDocument {
 
         assertNotNull(doc.findSectionByTitle("2.2 核心功能模块"));
 
-        MarkdownDocument selected = doc.selectSectionByTplTag("MAIN");
+        MarkdownDocument selected = doc.selectSectionByTplTag("MAIN", true);
         System.out.println(selected.toText(false));
     }
 }

@@ -11,28 +11,30 @@ import java.util.List;
 
 public class DefaultMarkdownTool implements IMarkdownTool {
     @Override
-    public void loadSectionExtForDocument(MarkdownDocument doc) {
+    public MarkdownDocumentExt loadDocumentExt(MarkdownDocument doc) {
         String path = doc.resourcePath();
         if (path == null)
-            return;
+            return null;
 
         IResource resource = ResourceHelper.resolveRelativePathResource(path);
         IResource sectionsDir = ResourceHelper.getSibling(resource, "sections");
 
         List<? extends IResource> children = VirtualFileSystem.instance().getChildren(sectionsDir.getStdPath());
         if (children == null)
-            return;
+            return new MarkdownDocumentExt();
 
+        MarkdownDocumentExt ext = new MarkdownDocumentExt();
         for (IResource child : children) {
             String fileName = child.getName();
             if (fileName.endsWith(".md")) {
                 String sectionNo = StringHelper.fileNameNoExt(fileName);
                 if (StringHelper.isNumberedPrefix(sectionNo)) {
                     MarkdownDocument sectionDoc = parseFromResource(child);
-                    doc.addSectionExt(sectionNo, sectionDoc.getRootSection());
+                    ext.addSection(sectionNo, sectionDoc.getRootSection());
                 }
             }
         }
+        return ext;
     }
 
     @Override

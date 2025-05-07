@@ -9,25 +9,39 @@ import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.IOrmModel;
 import io.nop.orm.model.OrmModelConstants;
 
+import java.util.Set;
+
 /**
  * 将OrmModel转换为Java语言形式，精简表达形式
  */
 public class OrmModelToJava {
     private final StringBuilder sb;
+    private final Set<String> selectedEntityNames;
 
     public OrmModelToJava() {
-        this(new StringBuilder());
+        this(null);
     }
 
-    public OrmModelToJava(StringBuilder sb) {
+    public OrmModelToJava(Set<String> selectedEntityNames) {
+        this(selectedEntityNames, new StringBuilder());
+    }
+
+    public OrmModelToJava(Set<String> selectedEntityNames, StringBuilder sb) {
+        this.selectedEntityNames = selectedEntityNames;
         this.sb = sb;
     }
 
     public OrmModelToJava appendOrmModel(IOrmModel ormModel) {
         for (IEntityModel entityModel : ormModel.getEntityModels()) {
+            if (!isSelected(entityModel))
+                continue;
             appendEntityModel(entityModel, ormModel);
         }
         return this;
+    }
+
+    protected boolean isSelected(IEntityModel entityModel) {
+        return selectedEntityNames == null || selectedEntityNames.contains(entityModel.getShortName());
     }
 
     public String toString() {

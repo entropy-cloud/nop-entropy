@@ -16,14 +16,19 @@ template: |
   6. resource的role属性的值必须在roles集合中定义
   
   
-  【表定义】
-  
-  ```xml
-  ${ormModelText}
-  ```
+  【实体定义】
+  ${ormModel.entityListInfo}
   
   【需求描述】
   ${requirements}
+
+inputs:
+  - name: requirements
+    type: String
+    mandatory: true
+
+  - name: ormModel
+    mandatory: true
 
 outputs:
   - name: RESULT

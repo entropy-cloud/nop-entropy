@@ -25,7 +25,7 @@ public final class XDslKeys implements Serializable {
 
     public final String SCHEMA;
 
-    public final String NAME;
+    public final String ID;
 
     public final String VALIDATED;
 
@@ -46,9 +46,11 @@ public final class XDslKeys implements Serializable {
     public final String ABSTRACT;
     public final String FINAL;
     public final String OVERRIDE;
+    public final String BEFORE;
+    public final String AFTER;
     public final String VIRTUAL;
     public final String INHERIT;
-    // public final String ORDER;
+    public final String ORDER;
     public final String ARGS;
 
     public final String SUPER;
@@ -61,7 +63,7 @@ public final class XDslKeys implements Serializable {
     public XDslKeys(String ns) {
         this.X_NS_PREFIX = ns + ':';
         this.SCHEMA = getFullName(ns, "schema");
-        this.NAME = getFullName(ns, "name");
+        this.ID = getFullName(ns, "id");
         this.KEY_ATTR = getFullName(ns, "key-attr");
         // this.DYNAMIC = getFullName(ns, "dynamic");
         this.EXTENDS = getFullName(ns, "extends");
@@ -77,16 +79,18 @@ public final class XDslKeys implements Serializable {
         this.ABSTRACT = getFullName(ns, "abstract");
         this.FINAL = getFullName(ns, "final");
         this.OVERRIDE = getFullName(ns, "override");
+        this.BEFORE = getFullName(ns, "before");
+        this.AFTER = getFullName(ns, "after");
         this.VIRTUAL = getFullName(ns, "virtual");
         this.INHERIT = getFullName(ns, "inherit");
-        // this.ORDER = getFullName(ns, "order");
+        this.ORDER = getFullName(ns, "order");
         this.DUMP = getFullName(ns, "dump");
         this.SUPER = getFullName(ns, "super");
         this.VALIDATED = getFullName(ns, "validated");
         this.ARGS = getFullName(ns, "args");
 
-        this.ATTR_NAMES = CollectionHelper.buildImmutableSet(NAME, EXTENDS, PROTOTYPE, PROTOTYPE_OVERRIDE, ABSTRACT,
-                SCHEMA, KEY_ATTR, VALIDATED, VIRTUAL, INHERIT, FINAL, OVERRIDE, DUMP);
+        this.ATTR_NAMES = CollectionHelper.buildImmutableSet(ID, EXTENDS, PROTOTYPE, PROTOTYPE_OVERRIDE, ABSTRACT,
+                SCHEMA, KEY_ATTR, VALIDATED, VIRTUAL, INHERIT, FINAL, OVERRIDE, BEFORE, AFTER, ORDER, DUMP);
 
         this.CHILD_NAMES = CollectionHelper.buildImmutableSet(ARGS, GEN_EXTENDS, CONFIG, POST_EXTENDS,
                 PRE_PARSE, POST_PARSE,

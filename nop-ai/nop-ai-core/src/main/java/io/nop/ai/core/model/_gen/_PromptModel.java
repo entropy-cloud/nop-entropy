@@ -39,14 +39,6 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
-     * xml name: endResponseMarker
-     * 用于标记整个输出结束的标记，必须以这个字符串为结尾才是合法输出。最终结果会自动删除这个标记
-     * 通过额外增加一些特殊的标记提示，可以简化结果解析并识别AI输出质量。如果不能严格按照格式要求输出，则往往质量不高。
-     */
-    private java.lang.String _endResponseMarker ;
-    
-    /**
-     *  
      * xml name: inputs
      * 
      */
@@ -61,18 +53,26 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
-     * xml name: prepareInputs
-     * 
-     */
-    private io.nop.core.lang.eval.IEvalFunction _prepareInputs ;
-    
-    /**
-     *  
-     * xml name: processChatResponse
+     * xml name: postProcess
      * 执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
      * 这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
      */
-    private io.nop.core.lang.eval.IEvalFunction _processChatResponse ;
+    private io.nop.core.lang.eval.IEvalFunction _postProcess ;
+    
+    /**
+     *  
+     * xml name: preProcess
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _preProcess ;
+    
+    /**
+     *  
+     * xml name: responseEndMarker
+     * 用于标记整个输出结束的标记，必须以这个字符串为结尾才是合法输出。最终结果会自动删除这个标记
+     * 通过额外增加一些特殊的标记提示，可以简化结果解析并识别AI输出质量。如果不能严格按照格式要求输出，则往往质量不高。
+     */
+    private java.lang.String _responseEndMarker ;
     
     /**
      *  
@@ -134,26 +134,6 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._displayName = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: endResponseMarker
-     *  用于标记整个输出结束的标记，必须以这个字符串为结尾才是合法输出。最终结果会自动删除这个标记
-     * 通过额外增加一些特殊的标记提示，可以简化结果解析并识别AI输出质量。如果不能严格按照格式要求输出，则往往质量不高。
-     */
-    
-    public java.lang.String getEndResponseMarker(){
-      return _endResponseMarker;
-    }
-
-    
-    public void setEndResponseMarker(java.lang.String value){
-        checkAllowChange();
-        
-        this._endResponseMarker = value;
            
     }
 
@@ -250,39 +230,59 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
-     * xml name: prepareInputs
-     *  
+     * xml name: postProcess
+     *  执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
+     * 这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getPrepareInputs(){
-      return _prepareInputs;
+    public io.nop.core.lang.eval.IEvalFunction getPostProcess(){
+      return _postProcess;
     }
 
     
-    public void setPrepareInputs(io.nop.core.lang.eval.IEvalFunction value){
+    public void setPostProcess(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._prepareInputs = value;
+        this._postProcess = value;
            
     }
 
     
     /**
      * 
-     * xml name: processChatResponse
-     *  执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
-     * 这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
+     * xml name: preProcess
+     *  
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getProcessChatResponse(){
-      return _processChatResponse;
+    public io.nop.core.lang.eval.IEvalFunction getPreProcess(){
+      return _preProcess;
     }
 
     
-    public void setProcessChatResponse(io.nop.core.lang.eval.IEvalFunction value){
+    public void setPreProcess(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._processChatResponse = value;
+        this._preProcess = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: responseEndMarker
+     *  用于标记整个输出结束的标记，必须以这个字符串为结尾才是合法输出。最终结果会自动删除这个标记
+     * 通过额外增加一些特殊的标记提示，可以简化结果解析并识别AI输出质量。如果不能严格按照格式要求输出，则往往质量不高。
+     */
+    
+    public java.lang.String getResponseEndMarker(){
+      return _responseEndMarker;
+    }
+
+    
+    public void setResponseEndMarker(java.lang.String value){
+        checkAllowChange();
+        
+        this._responseEndMarker = value;
            
     }
 
@@ -330,11 +330,11 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("defaultChatOptions",this.getDefaultChatOptions());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
-        out.putNotNull("endResponseMarker",this.getEndResponseMarker());
         out.putNotNull("inputs",this.getInputs());
         out.putNotNull("outputs",this.getOutputs());
-        out.putNotNull("prepareInputs",this.getPrepareInputs());
-        out.putNotNull("processChatResponse",this.getProcessChatResponse());
+        out.putNotNull("postProcess",this.getPostProcess());
+        out.putNotNull("preProcess",this.getPreProcess());
+        out.putNotNull("responseEndMarker",this.getResponseEndMarker());
         out.putNotNull("template",this.getTemplate());
     }
 
@@ -350,11 +350,11 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
         instance.setDefaultChatOptions(this.getDefaultChatOptions());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
-        instance.setEndResponseMarker(this.getEndResponseMarker());
         instance.setInputs(this.getInputs());
         instance.setOutputs(this.getOutputs());
-        instance.setPrepareInputs(this.getPrepareInputs());
-        instance.setProcessChatResponse(this.getProcessChatResponse());
+        instance.setPostProcess(this.getPostProcess());
+        instance.setPreProcess(this.getPreProcess());
+        instance.setResponseEndMarker(this.getResponseEndMarker());
         instance.setTemplate(this.getTemplate());
     }
 

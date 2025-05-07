@@ -44,7 +44,9 @@ public enum AiOrmSqlType {
 
     VARCHAR("VARCHAR", StdSqlType.VARCHAR),
 
-    TEXT("TEXT", StdSqlType.VARCHAR);
+    TEXT("TEXT", StdSqlType.VARCHAR),
+    CLOB("CLOB", StdSqlType.CLOB),
+    BLOB("BLOB", StdSqlType.BLOB);
 
     private final String text;
     private final StdSqlType stdSqlType;

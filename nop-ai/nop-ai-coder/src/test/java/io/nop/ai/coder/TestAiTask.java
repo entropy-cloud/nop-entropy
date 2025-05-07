@@ -1,6 +1,7 @@
 package io.nop.ai.coder;
 
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.commons.util.FileHelper;
 import io.nop.task.ITask;
 import io.nop.task.ITaskFlowManager;
 import io.nop.task.ITaskRuntime;
@@ -8,13 +9,15 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+
 @Disabled
 public class TestAiTask extends JunitBaseTestCase {
     @Inject
     ITaskFlowManager taskFlowManager;
 
     @Test
-    public void testBizAnalyzer() {
+    public void testExpandRequirements() {
         ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-biz-analyzer.task.xml");
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
         taskRt.setInput("inputRequirementsPath", attachmentFile("input-requirements.md").getAbsolutePath());
@@ -32,6 +35,23 @@ public class TestAiTask extends JunitBaseTestCase {
         taskRt.setInput("outputDir", getTargetDir().getAbsolutePath());
         taskRt.setInput("basePackageName", "app.demo");
         taskRt.setInput("needExpand", false);
+        task.execute(taskRt).syncGetOutputs();
+    }
+
+    @Test
+    public void testAiCoder() {
+        File targetDir = getTargetFile("demo");
+        FileHelper.deleteAll(targetDir);
+
+        File demoDir = new File(getModuleDir(), "demo");
+
+
+        ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-coder.task.xml");
+        ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
+        taskRt.setInput("requirementsPath", new File(demoDir, "refactored-requirements.md").getAbsolutePath());
+        taskRt.setInput("outputDir", targetDir.getAbsolutePath());
+        taskRt.setInput("basePackageName", "app.demo");
+        taskRt.setInput("appName", "app-demo");
         task.execute(taskRt).syncGetOutputs();
     }
 }

@@ -3,15 +3,12 @@ package io.nop.markdown.simple;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.markdown.MarkdownConstants;
 import io.nop.markdown.utils.MarkdownTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -26,35 +23,12 @@ public class MarkdownDocument implements IComponentModel {
     private SourceLocation location;
     private MarkdownSection rootSection;
 
-    private Map<String, MarkdownSection> sectionExtMap;
-
     public MarkdownDocument cloneInstance() {
         MarkdownDocument ret = new MarkdownDocument();
         ret.setLocation(location);
         if (rootSection != null)
             ret.setRootSection(rootSection.cloneInstance());
         return ret;
-    }
-
-    public MarkdownDocument loadSectionExt() {
-        if (location != null) {
-            MarkdownTool.instance().loadSectionExtForDocument(this);
-        }
-        return this;
-    }
-
-    public MarkdownDocument mergeSectionExt() {
-        if (sectionExtMap != null && rootSection != null) {
-            rootSection.forEachSection(section -> {
-                String sectionNo = section.getSectionNo();
-                if (sectionNo != null && sectionExtMap.containsKey(sectionNo)) {
-                    MarkdownSection ext = sectionExtMap.get(sectionNo);
-                    if (ext != null)
-                        section.addChildren(ext.getChildren());
-                }
-            });
-        }
-        return this;
     }
 
     @Override
@@ -130,49 +104,11 @@ public class MarkdownDocument implements IComponentModel {
                     .param(ARG_TITLE, rootSection.getTitle());
         }
 
-        return matchSectionChildren(this.getRootSection().getChildren(), tpl.getRootSection(), throwError);
+        return this.getRootSection().matchTpl(tpl.getRootSection(), throwError);
     }
 
-    private boolean matchSectionChildren(List<MarkdownSection> sections, MarkdownSection tplSection, boolean throwError) {
-        boolean match = true;
-
-        Map<String, MarkdownSection> byTitle = new HashMap<>();
-        if (tplSection.hasChild()) {
-            for (MarkdownSection child : tplSection.getChildren()) {
-                byTitle.put(child.getTitle(), child);
-            }
-        }
-
-        if (sections != null) {
-            for (MarkdownSection section : sections) {
-                MarkdownSection tpl = byTitle.remove(section.getTitle());
-                if (tpl != null) {
-                    section.setTpl(tpl);
-                } else {
-                    tpl = tplSection.findChildByTag(MarkdownConstants.TAG_DYNAMIC);
-                    if (tpl != null) {
-                        section.setTpl(tpl);
-                    } else {
-                        LOG.info("nop.markdown.section-not-in-tpl:{}", section.getTitle());
-                    }
-                }
-
-                if (tpl != null) {
-                    match = match && matchSectionChildren(section.getChildren(), tpl, throwError);
-                }
-            }
-        }
-
-        for (MarkdownSection tpl : byTitle.values()) {
-            if (!tpl.containsTag(MarkdownConstants.TAG_OPTIONAL) && !tpl.containsTag(MarkdownConstants.TAG_DYNAMIC)) {
-                if (!throwError)
-                    return false;
-                throw new NopException(ERR_MARKDOWN_MISSING_SECTION)
-                        .param(ARG_TITLE, tpl.getTitle());
-            }
-        }
-
-        return match;
+    public boolean matchTplFromPath(String tplPath, boolean throwError) {
+        return matchTpl(MarkdownTool.loadMarkdownTpl(tplPath), throwError);
     }
 
     public boolean removeSectionNoTpl() {
@@ -184,18 +120,26 @@ public class MarkdownDocument implements IComponentModel {
     }
 
     public MarkdownDocument selectSectionByTag(String tag) {
+        return selectSectionByTag(tag, false);
+    }
+
+    public MarkdownDocument selectSectionByTag(String tag, boolean autoIncludeChild) {
         MarkdownDocument ret = new MarkdownDocument();
         ret.setLocation(location);
         if (rootSection != null)
-            ret.setRootSection(rootSection.selectSectionByTag(tag));
+            ret.setRootSection(rootSection.selectSectionByTag(tag, autoIncludeChild));
         return ret;
     }
 
     public MarkdownDocument selectSectionByTplTag(String tag) {
+        return selectSectionByTplTag(tag, false);
+    }
+
+    public MarkdownDocument selectSectionByTplTag(String tag, boolean autoIncludeChild) {
         MarkdownDocument ret = new MarkdownDocument();
         ret.setLocation(location);
         if (rootSection != null)
-            ret.setRootSection(rootSection.selectSectionByTplTag(tag));
+            ret.setRootSection(rootSection.selectSectionByTplTag(tag, autoIncludeChild));
         return ret;
     }
 
@@ -213,39 +157,5 @@ public class MarkdownDocument implements IComponentModel {
         if (rootSection != null)
             ret.setRootSection(rootSection.filterSection(filter));
         return ret;
-    }
-
-    public Map<String, MarkdownSection> getSectionExtMap() {
-        return sectionExtMap;
-    }
-
-    public void setSectionExtMap(Map<String, MarkdownSection> sectionExtMap) {
-        this.sectionExtMap = sectionExtMap;
-    }
-
-    public void addSectionExt(String sectionNo, MarkdownSection section) {
-        if (section == null)
-            return;
-
-        if (sectionExtMap == null)
-            sectionExtMap = new HashMap<>();
-        sectionExtMap.put(sectionNo, section);
-    }
-
-    public MarkdownSection getSectionExt(String sectionNo) {
-        return sectionExtMap == null ? null : sectionExtMap.get(sectionNo);
-    }
-
-    public MarkdownSection getSectionWithExt(String sectionNo) {
-        MarkdownSection section = findSectionBySectionNo(sectionNo);
-        MarkdownSection sectionExt = getSectionExt(sectionNo);
-        if (section == null)
-            return sectionExt;
-        if (sectionExt == null)
-            return section;
-
-        section = sectionExt.shallowCopy();
-        section.addChildren(sectionExt.getChildren());
-        return section;
     }
 }

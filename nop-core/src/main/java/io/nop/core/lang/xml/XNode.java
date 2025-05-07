@@ -367,7 +367,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         this.sourceLocation = loc;
     }
 
-    public XNode loc(SourceLocation loc){
+    public XNode loc(SourceLocation loc) {
         this.setLocation(loc);
         return this;
     }
@@ -818,6 +818,10 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
             }
         }
         return b;
+    }
+
+    public void removeNoneAttributes() {
+        removeAttrsIf((name, vl) -> "none".equals(vl.getValue()));
     }
 
     public void renameAttr(String srcName, String targetName) {

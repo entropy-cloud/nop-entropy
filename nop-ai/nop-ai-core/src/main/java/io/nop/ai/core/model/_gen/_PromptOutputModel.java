@@ -67,13 +67,6 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      *  
-     * xml name: normalizer
-     * 对解析得到的value进行后处理
-     */
-    private io.nop.core.lang.eval.IEvalFunction _normalizer ;
-    
-    /**
-     *  
      * xml name: optional
      * 
      */
@@ -81,19 +74,26 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      *  
-     * xml name: parseBeforeProcess
-     * 是否在processChatResponse调用之前解析
+     * xml name: outputBuilder
+     * 
      */
-    private boolean _parseBeforeProcess  = false;
+    private io.nop.core.lang.eval.IEvalFunction _outputBuilder ;
     
     /**
      *  
-     * xml name: parseFromResponse
+     * xml name: parseAfterPostProcess
+     * 是否在postProcess调用之前解析
+     */
+    private boolean _parseAfterPostProcess  = false;
+    
+    /**
+     *  
+     * xml name: responseParser
      * 没有指定format的情况下才会使用parseFromResponse配置
-     * 如果指定了source，则执行代码来解析变量。如果没有指定source，但是指定了blockBegin和blockEnd，则从响应消息中截取相关信息。
+     * 如果指定了source，则执行代码来解析变量。如果没有指定source，但是指定了startMarker和endMarker，则从响应消息中截取相关信息。
      * 如果以上配置都没有，但是配置了contains，则只要响应消息中包含此字符串，就设置为true。
      */
-    private io.nop.ai.core.model.PromptOutputParseModel _parseFromResponse ;
+    private io.nop.ai.core.model.PromptOutputParseModel _responseParser ;
     
     /**
      *  
@@ -116,6 +116,13 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
      * 
      */
     private io.nop.core.type.IGenericType _type ;
+    
+    /**
+     *  
+     * xml name: valueNormalizer
+     * 对解析得到的value进行后处理。处理之后再执行XDef元模型验证
+     */
+    private io.nop.core.lang.eval.IEvalFunction _valueNormalizer ;
     
     /**
      *  
@@ -266,25 +273,6 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      * 
-     * xml name: normalizer
-     *  对解析得到的value进行后处理
-     */
-    
-    public io.nop.core.lang.eval.IEvalFunction getNormalizer(){
-      return _normalizer;
-    }
-
-    
-    public void setNormalizer(io.nop.core.lang.eval.IEvalFunction value){
-        checkAllowChange();
-        
-        this._normalizer = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: optional
      *  
      */
@@ -304,40 +292,59 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      * 
-     * xml name: parseBeforeProcess
-     *  是否在processChatResponse调用之前解析
+     * xml name: outputBuilder
+     *  
      */
     
-    public boolean isParseBeforeProcess(){
-      return _parseBeforeProcess;
+    public io.nop.core.lang.eval.IEvalFunction getOutputBuilder(){
+      return _outputBuilder;
     }
 
     
-    public void setParseBeforeProcess(boolean value){
+    public void setOutputBuilder(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._parseBeforeProcess = value;
+        this._outputBuilder = value;
            
     }
 
     
     /**
      * 
-     * xml name: parseFromResponse
-     *  没有指定format的情况下才会使用parseFromResponse配置
-     * 如果指定了source，则执行代码来解析变量。如果没有指定source，但是指定了blockBegin和blockEnd，则从响应消息中截取相关信息。
-     * 如果以上配置都没有，但是配置了contains，则只要响应消息中包含此字符串，就设置为true。
+     * xml name: parseAfterPostProcess
+     *  是否在postProcess调用之前解析
      */
     
-    public io.nop.ai.core.model.PromptOutputParseModel getParseFromResponse(){
-      return _parseFromResponse;
+    public boolean isParseAfterPostProcess(){
+      return _parseAfterPostProcess;
     }
 
     
-    public void setParseFromResponse(io.nop.ai.core.model.PromptOutputParseModel value){
+    public void setParseAfterPostProcess(boolean value){
         checkAllowChange();
         
-        this._parseFromResponse = value;
+        this._parseAfterPostProcess = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: responseParser
+     *  没有指定format的情况下才会使用parseFromResponse配置
+     * 如果指定了source，则执行代码来解析变量。如果没有指定source，但是指定了startMarker和endMarker，则从响应消息中截取相关信息。
+     * 如果以上配置都没有，但是配置了contains，则只要响应消息中包含此字符串，就设置为true。
+     */
+    
+    public io.nop.ai.core.model.PromptOutputParseModel getResponseParser(){
+      return _responseParser;
+    }
+
+    
+    public void setResponseParser(io.nop.ai.core.model.PromptOutputParseModel value){
+        checkAllowChange();
+        
+        this._responseParser = value;
            
     }
 
@@ -402,6 +409,25 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      * 
+     * xml name: valueNormalizer
+     *  对解析得到的value进行后处理。处理之后再执行XDef元模型验证
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getValueNormalizer(){
+      return _valueNormalizer;
+    }
+
+    
+    public void setValueNormalizer(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._valueNormalizer = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: when
      *  
      */
@@ -446,7 +472,7 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._parseFromResponse = io.nop.api.core.util.FreezeHelper.deepFreeze(this._parseFromResponse);
+           this._responseParser = io.nop.api.core.util.FreezeHelper.deepFreeze(this._responseParser);
             
            this._schema = io.nop.api.core.util.FreezeHelper.deepFreeze(this._schema);
             
@@ -464,13 +490,14 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
         out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("markdownPath",this.getMarkdownPath());
         out.putNotNull("name",this.getName());
-        out.putNotNull("normalizer",this.getNormalizer());
         out.putNotNull("optional",this.isOptional());
-        out.putNotNull("parseBeforeProcess",this.isParseBeforeProcess());
-        out.putNotNull("parseFromResponse",this.getParseFromResponse());
+        out.putNotNull("outputBuilder",this.getOutputBuilder());
+        out.putNotNull("parseAfterPostProcess",this.isParseAfterPostProcess());
+        out.putNotNull("responseParser",this.getResponseParser());
         out.putNotNull("schema",this.getSchema());
         out.putNotNull("skipWhenResponseInvalid",this.isSkipWhenResponseInvalid());
         out.putNotNull("type",this.getType());
+        out.putNotNull("valueNormalizer",this.getValueNormalizer());
         out.putNotNull("when",this.getWhen());
         out.putNotNull("xdefPath",this.getXdefPath());
     }
@@ -491,13 +518,14 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
         instance.setMandatory(this.isMandatory());
         instance.setMarkdownPath(this.getMarkdownPath());
         instance.setName(this.getName());
-        instance.setNormalizer(this.getNormalizer());
         instance.setOptional(this.isOptional());
-        instance.setParseBeforeProcess(this.isParseBeforeProcess());
-        instance.setParseFromResponse(this.getParseFromResponse());
+        instance.setOutputBuilder(this.getOutputBuilder());
+        instance.setParseAfterPostProcess(this.isParseAfterPostProcess());
+        instance.setResponseParser(this.getResponseParser());
         instance.setSchema(this.getSchema());
         instance.setSkipWhenResponseInvalid(this.isSkipWhenResponseInvalid());
         instance.setType(this.getType());
+        instance.setValueNormalizer(this.getValueNormalizer());
         instance.setWhen(this.getWhen());
         instance.setXdefPath(this.getXdefPath());
     }

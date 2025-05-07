@@ -27,6 +27,7 @@ import java.net.URL;
  * IResource接口封装了根据path可以唯一确定的资源对象。 引入标准路径概念，从而支持资源定制。 资源接口不包含父子关系定义，因此更容易封装分布式存储等大数据资源。
  */
 public interface IResource extends IResourceReference {
+
     /**
      * 资源对象相等的条件是类型和path都相等
      */

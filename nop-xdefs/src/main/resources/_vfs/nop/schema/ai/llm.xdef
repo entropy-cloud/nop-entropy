@@ -18,7 +18,9 @@
     <supportModels xdef:value="csv-set"/>
 
     <models xdef:body-type="list" xdef:key-attr="name">
-        <model name="!string" xdef:name="LlmModelModel" enableThinkingPrompt="string" disableThinkingPrompt="string"/>
+        <model name="!string" xdef:name="LlmModelModel"
+               enableThinkingPrompt="string" disableThinkingPrompt="string"
+               beginThink="string" endThink="string"/>
     </models>
 
     <!--

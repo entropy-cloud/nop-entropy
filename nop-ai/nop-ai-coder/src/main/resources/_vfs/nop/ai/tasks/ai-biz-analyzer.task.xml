@@ -65,7 +65,7 @@
                         <source><![CDATA[
                             // 获取核心需求部分以及当前模块的需求
                             return requirementsDoc.selectSection(
-                                section=> section.tplContainsTag('CORE') or module == section).toText()
+                                section=> section.containsTplTag('CORE') or module == section).toText()
                         ]]></source>
                     </input>
                     <input name="moduleTitle" value="${module.title}"/>

@@ -54,8 +54,8 @@ x名字空间下的所有属性和子节点都只在合并过程中存在。合�
     <x:config xdef:value="xpl" xdef:default-override="append"/>
 
     <!--
-    @x:key-attr [子节点唯一属性] 对于无schema约束的节点，可以通过x:key-attr和x:name来补充唯一标识信息，从而辅助完成节点合并
-    @x:name 在节点合并阶段存在的辅助性标识。
+    @x:key-attr [子节点唯一属性] 对于无schema约束的节点，可以通过x:key-attr和x:id来补充唯一标识信息，从而辅助完成节点合并
+    @x:id 在节点合并阶段存在的辅助性标识。
     @x:override [合并算子] 指定与继承的父结构进行合并时使用的合并算子
     @x:abstract [是否抽象节点] 抽象节点只是作为模板在dsl文件中存在，其他节点从抽象节点继承，并追加新的内容。
     没有被覆盖的抽象节点在合并整理阶段会自动被删除。这一用法类似于spring配置文件中的abstract的概念。
@@ -68,7 +68,7 @@ x名字空间下的所有属性和子节点都只在合并过程中存在。合�
     -->
     <xdef:unknown-tag xdef:value="any" xdef:unknown-attr="any" xdef:allow-multiple="true" xdef:name="DslNode"
                       x:extends="v-path-list" x:override="enum:io.nop.xlang.xdef.XDefOverride=merge"
-                      x:key-attr="xml-name" x:name="string"
+                      x:key-attr="xml-name" x:id="string" x:before="string" x:after="string"
                       x:abstract="boolean" x:final="boolean" x:virtual="boolean"
                       x:prototype="!string" x:prototype-override="enum:io.nop.xlang.xdef.XDefOverride=merge"
     >

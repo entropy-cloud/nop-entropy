@@ -8,9 +8,12 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.lang.ITagSetSupport;
 import io.nop.commons.util.StringHelper;
 import io.nop.markdown.MarkdownConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -22,9 +25,13 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static io.nop.core.CoreErrors.ERR_COMPONENT_NOT_ALLOW_CHANGE;
+import static io.nop.markdown.MarkdownErrors.ARG_TITLE;
+import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_MISSING_SECTION;
 
 @DataBean
 public class MarkdownSection implements ITagSetSupport {
+    static final Logger LOG = LoggerFactory.getLogger(MarkdownSection.class);
+
     private int level;
     private String title;
 
@@ -271,16 +278,23 @@ public class MarkdownSection implements ITagSetSupport {
         return findChild(section -> section.containsTag(tag));
     }
 
-    public MarkdownSection selectSectionByTag(String tag) {
-        return selectSection(section ->
-                section.containsTag(tag));
+    public MarkdownSection selectSectionByTag(String tag, boolean autoIncludeChild) {
+        return selectSection(section -> {
+            if (autoIncludeChild)
+                return section.containsTag(tag);
+            return !section.hasChild() && section.containsTag(tag);
+        });
     }
 
-    public MarkdownSection selectSectionByTplTag(String tag) {
-        return selectSection(section -> section.tplContainsTag(tag));
+    public MarkdownSection selectSectionByTplTag(String tag, boolean autoIncludeChild) {
+        return selectSection(section -> {
+            if (autoIncludeChild)
+                return section.containsTplTag(tag);
+            return !section.hasChild() && section.containsTplTag(tag);
+        });
     }
 
-    public boolean tplContainsTag(String tag) {
+    public boolean containsTplTag(String tag) {
         return getTpl() != null && getTpl().containsTag(tag);
     }
 
@@ -439,6 +453,52 @@ public class MarkdownSection implements ITagSetSupport {
                 child.forEachSection(action);
             }
         }
+    }
+
+    public boolean matchTpl(MarkdownSection tpl, boolean throwError) {
+        return matchSectionChildren(this.getChildren(), tpl, throwError);
+    }
+
+    private boolean matchSectionChildren(List<MarkdownSection> sections, MarkdownSection tplSection, boolean throwError) {
+        boolean match = true;
+
+        Map<String, MarkdownSection> byTitle = new HashMap<>();
+        if (tplSection.hasChild()) {
+            for (MarkdownSection child : tplSection.getChildren()) {
+                byTitle.put(child.getTitle(), child);
+            }
+        }
+
+        if (sections != null) {
+            for (MarkdownSection section : sections) {
+                MarkdownSection tpl = byTitle.remove(section.getTitle());
+                if (tpl != null) {
+                    section.setTpl(tpl);
+                } else {
+                    tpl = tplSection.findChildByTag(MarkdownConstants.TAG_DYNAMIC);
+                    if (tpl != null) {
+                        section.setTpl(tpl);
+                    } else {
+                        LOG.info("nop.markdown.section-not-in-tpl:{}", section.getTitle());
+                    }
+                }
+
+                if (tpl != null) {
+                    match = match && matchSectionChildren(section.getChildren(), tpl, throwError);
+                }
+            }
+        }
+
+        for (MarkdownSection tpl : byTitle.values()) {
+            if (!tpl.containsTag(MarkdownConstants.TAG_OPTIONAL) && !tpl.containsTag(MarkdownConstants.TAG_DYNAMIC)) {
+                if (!throwError)
+                    return false;
+                throw new NopException(ERR_MARKDOWN_MISSING_SECTION)
+                        .param(ARG_TITLE, tpl.getTitle());
+            }
+        }
+
+        return match;
     }
 
     public String toString() {

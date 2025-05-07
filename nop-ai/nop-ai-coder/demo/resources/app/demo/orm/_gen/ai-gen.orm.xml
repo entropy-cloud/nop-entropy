@@ -1,0 +1,308 @@
+<orm x:schema="/nop/schema/orm/orm.xdef" xmlns:x="/nop/schema/xdsl.xdef" ext:basePackageName="app.demo">
+    <dicts>
+        <dict name="status" label="状态">
+            <description>记录状态</description>
+            <option value="active" code="ACTIVE" label="启用" description="该记录处于启用状态"/>
+            <option value="disabled" code="DISABLED" label="禁用" description="该记录处于禁用状态"/>
+            <option value="locked" code="LOCKED" label="锁定" description="该记录处于锁定状态"/>
+        </dict>
+        <dict name="menu_type" label="菜单类型">
+            <description>基础菜单类型</description>
+            <option value="main_course" code="MAIN_COURSE" label="主菜" description="主菜类型"/>
+            <option value="side_dish" code="SIDE_DISH" label="配菜" description="配菜类型"/>
+            <option value="dessert" code="DESSERT" label="甜点" description="甜点类型"/>
+        </dict>
+        <dict name="warehouse_type" label="库房类型">
+            <description>库房类型</description>
+            <option value="cold" code="COLD" label="冷藏库" description="冷藏库"/>
+            <option value="normal" code="NORMAL" label="常温库" description="常温库"/>
+        </dict>
+        <dict name="stock_type" label="出入库类型">
+            <description>出入库类型</description>
+            <option value="in" code="IN" label="入库" description="入库操作"/>
+            <option value="out" code="OUT" label="出库" description="出库操作"/>
+        </dict>
+        <dict name="inventory_check_type" label="盘库类型">
+            <description>盘库类型</description>
+            <option value="initial" code="INITIAL" label="初始盘库" description="初始盘库"/>
+            <option value="periodic" code="PERIODIC" label="周期盘库" description="周期盘库"/>
+        </dict>
+    </dicts>
+    <entities>
+        <entity name="app.demo.Material" displayName="物资" tableName="material" registerShortName="true"
+                className="app.demo.Material">
+            <comment>存储食堂所用的各类食材信息</comment>
+            <columns>
+                <column name="id" displayName="物资ID" mandatory="true" primary="true" stdSqlType="VARCHAR" precision="50"
+                        code="id" propId="1"/>
+                <column name="materialCode" displayName="物资编码" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="material_code" propId="2"/>
+                <column name="materialName" displayName="物资名称" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="material_name" propId="3"/>
+                <column name="unit" displayName="计量单位" mandatory="true" stdSqlType="VARCHAR" precision="50" code="unit"
+                        propId="4"/>
+                <column name="specification" displayName="规格型号" stdSqlType="VARCHAR" precision="50" code="specification"
+                        propId="5"/>
+                <column name="materialImage" displayName="物资图片" stdSqlType="VARCHAR" precision="50"
+                        code="material_image" propId="6"/>
+                <column name="brand" displayName="品牌" stdSqlType="VARCHAR" precision="50" code="brand" propId="7"/>
+                <column name="remark" displayName="备注" stdSqlType="VARCHAR" precision="50" code="remark" propId="8"/>
+            </columns>
+        </entity>
+        <entity name="app.demo.Supplier" displayName="供应商" tableName="supplier" registerShortName="true"
+                className="app.demo.Supplier">
+            <comment>存储各类食材的供货单位信息</comment>
+            <columns>
+                <column name="id" displayName="供应商ID" mandatory="true" primary="true" stdSqlType="VARCHAR"
+                        precision="50" code="id" propId="1"/>
+                <column name="supplierCode" displayName="供应商编码" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="supplier_code" propId="2"/>
+                <column name="supplierName" displayName="供应商名称" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="supplier_name" propId="3"/>
+                <column name="socialCreditCode" displayName="社会信用代码" mandatory="true" stdSqlType="VARCHAR"
+                        precision="50" code="social_credit_code" propId="4"/>
+                <column name="foodSafetyCertification" displayName="食品安全认证" stdSqlType="VARCHAR" precision="50"
+                        code="food_safety_certification" propId="5"/>
+                <column name="contactInfo" displayName="联系人信息" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="contact_info" propId="6"/>
+                <column name="companyProfile" displayName="企业简介" stdSqlType="VARCHAR" precision="50"
+                        code="company_profile" propId="7"/>
+                <column name="remark" displayName="备注" stdSqlType="VARCHAR" precision="50" code="remark" propId="8"/>
+                <column name="status" displayName="状态" ext:dict="status" mandatory="true" stdSqlType="VARCHAR"
+                        precision="50" code="status" propId="9"/>
+            </columns>
+        </entity>
+        <entity name="app.demo.ServiceCompany" displayName="服务公司" tableName="service_company" registerShortName="true"
+                className="app.demo.ServiceCompany">
+            <comment>存储学校食堂的经营单位信息</comment>
+            <columns>
+                <column name="id" displayName="服务公司ID" mandatory="true" primary="true" stdSqlType="VARCHAR"
+                        precision="50" code="id" propId="1"/>
+                <column name="companyCode" displayName="公司编码" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="company_code" propId="2"/>
+                <column name="companyName" displayName="公司名称" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="company_name" propId="3"/>
+                <column name="socialCreditCode" displayName="社会信用代码" mandatory="true" stdSqlType="VARCHAR"
+                        precision="50" code="social_credit_code" propId="4"/>
+                <column name="foodSafetyCertification" displayName="食品安全认证" stdSqlType="VARCHAR" precision="50"
+                        code="food_safety_certification" propId="5"/>
+                <column name="contactInfo" displayName="联系人信息" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="contact_info" propId="6"/>
+                <column name="companyProfile" displayName="企业简介" stdSqlType="VARCHAR" precision="50"
+                        code="company_profile" propId="7"/>
+                <column name="remark" displayName="备注" stdSqlType="VARCHAR" precision="50" code="remark" propId="8"/>
+                <column name="status" displayName="状态" ext:dict="status" mandatory="true" stdSqlType="VARCHAR"
+                        precision="50" code="status" propId="9"/>
+            </columns>
+        </entity>
+        <entity name="app.demo.Menu" displayName="基础菜单" tableName="menu" registerShortName="true"
+                className="app.demo.Menu">
+            <comment>存储学校食堂的基础菜单信息</comment>
+            <columns>
+                <column name="id" displayName="菜单ID" mandatory="true" primary="true" stdSqlType="VARCHAR" precision="50"
+                        code="id" propId="1"/>
+                <column name="menuCode" displayName="菜单编号" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="menu_code" propId="2"/>
+                <column name="menuName" displayName="菜单名称" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="menu_name" propId="3"/>
+                <column name="menuType" displayName="菜单类型" ext:dict="menu_type" mandatory="true" stdSqlType="VARCHAR"
+                        precision="50" code="menu_type" propId="4"/>
+                <column name="menuImage" displayName="菜单图片" stdSqlType="VARCHAR" precision="50" code="menu_image"
+                        propId="5"/>
+                <column name="ingredients" displayName="配餐材料" stdSqlType="VARCHAR" precision="50" code="ingredients"
+                        propId="6"/>
+                <column name="remark" displayName="备注" stdSqlType="VARCHAR" precision="50" code="remark" propId="7"/>
+            </columns>
+        </entity>
+        <entity name="app.demo.DailyMenu" displayName="每日菜单" tableName="daily_menu" registerShortName="true"
+                className="app.demo.DailyMenu">
+            <comment>存储服务公司每日菜单信息</comment>
+            <columns>
+                <column name="id" displayName="每日菜单ID" mandatory="true" primary="true" stdSqlType="VARCHAR"
+                        precision="50" code="id" propId="1"/>
+                <column name="menuDate" displayName="菜单日期" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="menu_date" propId="2"/>
+                <column name="menuCategory" displayName="类别" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="menu_category" propId="3"/>
+                <column name="menuCode" displayName="菜单编码" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="menu_code" propId="4"/>
+                <column name="menuName" displayName="菜单名称" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="menu_name" propId="5"/>
+                <column name="menuImage" displayName="菜单图片" stdSqlType="VARCHAR" precision="50" code="menu_image"
+                        propId="6"/>
+                <column name="ingredients" displayName="菜单配料" stdSqlType="VARCHAR" precision="50" code="ingredients"
+                        propId="7"/>
+                <column name="menuId" displayName="基础菜单ID" orm:ref-table="Menu" orm:ref-prop="menu"
+                        orm:ref-prop-display-name="菜单名称" stdSqlType="VARCHAR" precision="50" code="menu_id" propId="8"/>
+            </columns>
+            <relations>
+                <to-one name="menu" refEntityName="app.demo.Menu" refPropName="menu" refDisplayName="菜单名称">
+                    <join>
+                        <on leftProp="menuId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity name="app.demo.Warehouse" displayName="库房" tableName="warehouse" registerShortName="true"
+                className="app.demo.Warehouse">
+            <comment>存储服务公司的库房信息</comment>
+            <columns>
+                <column name="id" displayName="库房ID" mandatory="true" primary="true" stdSqlType="VARCHAR" precision="50"
+                        code="id" propId="1"/>
+                <column name="warehouseCode" displayName="库房编码" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="warehouse_code" propId="2"/>
+                <column name="warehouseName" displayName="库房名称" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="warehouse_name" propId="3"/>
+                <column name="companyId" displayName="所属公司ID" orm:ref-table="ServiceCompany"
+                        orm:ref-prop="serviceCompany" orm:ref-prop-display-name="公司名称" stdSqlType="VARCHAR"
+                        precision="50" code="company_id" propId="4"/>
+                <column name="warehouseType" displayName="库房类型" ext:dict="warehouse_type" stdSqlType="VARCHAR"
+                        precision="50" code="warehouse_type" propId="5"/>
+                <column name="remark" displayName="备注" stdSqlType="VARCHAR" precision="50" code="remark" propId="6"/>
+            </columns>
+            <relations>
+                <to-one name="company" refEntityName="app.demo.ServiceCompany" refPropName="serviceCompany"
+                        refDisplayName="公司名称">
+                    <join>
+                        <on leftProp="companyId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity name="app.demo.InOutStock" displayName="出入库" tableName="in_out_stock" registerShortName="true"
+                className="app.demo.InOutStock">
+            <comment>存储出入库记录信息</comment>
+            <columns>
+                <column name="id" displayName="出入库ID" mandatory="true" primary="true" stdSqlType="VARCHAR"
+                        precision="50" code="id" propId="1"/>
+                <column name="stockCode" displayName="出入库编码" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="stock_code" propId="2"/>
+                <column name="stockDate" displayName="出入库日期" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="stock_date" propId="3"/>
+                <column name="warehouseId" displayName="库房ID" orm:ref-table="Warehouse" orm:ref-prop="warehouse"
+                        orm:ref-prop-display-name="库房名称" stdSqlType="VARCHAR" precision="50" code="warehouse_id"
+                        propId="4"/>
+                <column name="handler" displayName="经手人" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="handler" propId="5"/>
+                <column name="supplierId" displayName="供应商ID" orm:ref-table="Supplier" orm:ref-prop="supplier"
+                        orm:ref-prop-display-name="供应商名称" stdSqlType="VARCHAR" precision="50" code="supplier_id"
+                        propId="6"/>
+                <column name="amountPaid" displayName="已付金额" stdSqlType="DECIMAL" precision="10" scale="2"
+                        code="amount_paid" propId="7"/>
+                <column name="totalAmount" displayName="合计金额" stdSqlType="DECIMAL" precision="10" scale="2"
+                        code="total_amount" propId="8"/>
+                <column name="attachments" displayName="附件材料" stdSqlType="VARCHAR" precision="50" code="attachments"
+                        propId="9"/>
+                <column name="status" displayName="状态" ext:dict="status" mandatory="true" stdSqlType="VARCHAR"
+                        precision="50" code="status" propId="10"/>
+            </columns>
+            <relations>
+                <to-one name="warehouse" refEntityName="app.demo.Warehouse" refPropName="warehouse"
+                        refDisplayName="库房名称">
+                    <join>
+                        <on leftProp="warehouseId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="supplier" refEntityName="app.demo.Supplier" refPropName="supplier" refDisplayName="供应商名称">
+                    <join>
+                        <on leftProp="supplierId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity name="app.demo.InOutDetail" displayName="出入库明细" tableName="in_out_detail" registerShortName="true"
+                className="app.demo.InOutDetail">
+            <comment>存储出入库明细信息</comment>
+            <columns>
+                <column name="id" displayName="明细ID" mandatory="true" primary="true" stdSqlType="VARCHAR" precision="50"
+                        code="id" propId="1"/>
+                <column name="materialId" displayName="物资ID" orm:ref-table="Material" orm:ref-prop="material"
+                        orm:ref-prop-display-name="物资名称" stdSqlType="VARCHAR" precision="50" code="material_id"
+                        propId="2"/>
+                <column name="materialName" displayName="物资名称" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="material_name" propId="3"/>
+                <column name="specification" displayName="规格" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="specification" propId="4"/>
+                <column name="unit" displayName="单位" mandatory="true" stdSqlType="VARCHAR" precision="50" code="unit"
+                        propId="5"/>
+                <column name="price" displayName="单价" stdSqlType="DECIMAL" precision="10" scale="2" code="price"
+                        propId="6"/>
+                <column name="quantity" displayName="数量" stdSqlType="DECIMAL" precision="10" scale="2" code="quantity"
+                        propId="7"/>
+                <column name="amount" displayName="金额" stdSqlType="DECIMAL" precision="10" scale="2" code="amount"
+                        propId="8"/>
+                <column name="inOutStockId" displayName="出入库ID" orm:ref-table="InOutStock" orm:ref-prop="inOutStock"
+                        orm:ref-prop-display-name="出入库编码" stdSqlType="VARCHAR" precision="50" code="in_out_stock_id"
+                        propId="9"/>
+            </columns>
+            <relations>
+                <to-one name="material" refEntityName="app.demo.Material" refPropName="material" refDisplayName="物资名称">
+                    <join>
+                        <on leftProp="materialId" rightProp="id"/>
+                    </join>
+                </to-one>
+                <to-one name="inOutStock" refEntityName="app.demo.InOutStock" refPropName="inOutStock"
+                        refDisplayName="出入库编码">
+                    <join>
+                        <on leftProp="inOutStockId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity name="app.demo.InventoryCheck" displayName="盘库" tableName="inventory_check" registerShortName="true"
+                className="app.demo.InventoryCheck">
+            <comment>存储盘库操作记录信息</comment>
+            <columns>
+                <column name="id" displayName="盘库ID" mandatory="true" primary="true" stdSqlType="VARCHAR" precision="50"
+                        code="id" propId="1"/>
+                <column name="checkCode" displayName="盘库编码" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="check_code" propId="2"/>
+                <column name="checkDate" displayName="盘库日期" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="check_date" propId="3"/>
+                <column name="warehouseId" displayName="库房ID" orm:ref-table="Warehouse" orm:ref-prop="warehouse"
+                        orm:ref-prop-display-name="库房名称" stdSqlType="VARCHAR" precision="50" code="warehouse_id"
+                        propId="4"/>
+                <column name="handler" displayName="经手人" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="handler" propId="5"/>
+                <column name="checkType" displayName="盘库类型" ext:dict="inventory_check_type" mandatory="true"
+                        stdSqlType="VARCHAR" precision="50" code="check_type" propId="6"/>
+                <column name="differenceAmount" displayName="差异金额" stdSqlType="DECIMAL" precision="10" scale="2"
+                        code="difference_amount" propId="7"/>
+            </columns>
+            <relations>
+                <to-one name="warehouse" refEntityName="app.demo.Warehouse" refPropName="warehouse"
+                        refDisplayName="库房名称">
+                    <join>
+                        <on leftProp="warehouseId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+        <entity name="app.demo.OperatingData" displayName="经营数据" tableName="operating_data" registerShortName="true"
+                className="app.demo.OperatingData">
+            <comment>存储服务公司的经营数据信息</comment>
+            <columns>
+                <column name="id" displayName="经营数据ID" mandatory="true" primary="true" stdSqlType="VARCHAR"
+                        precision="50" code="id" propId="1"/>
+                <column name="operatingDate" displayName="经营日期" mandatory="true" stdSqlType="VARCHAR" precision="50"
+                        code="operating_date" propId="2"/>
+                <column name="companyId" displayName="服务公司ID" orm:ref-table="ServiceCompany"
+                        orm:ref-prop="serviceCompany" orm:ref-prop-display-name="公司名称" stdSqlType="VARCHAR"
+                        precision="50" code="company_id" propId="3"/>
+                <column name="diningPeople" displayName="订餐人数" stdSqlType="INTEGER" code="dining_people" propId="4"/>
+                <column name="operatingCost" displayName="经营成本" stdSqlType="DECIMAL" precision="10" scale="2"
+                        code="operating_cost" propId="5"/>
+                <column name="dailyDeviation" displayName="日偏差数据" stdSqlType="DECIMAL" precision="10" scale="2"
+                        code="daily_deviation" propId="6"/>
+            </columns>
+            <relations>
+                <to-one name="company" refEntityName="app.demo.ServiceCompany" refPropName="serviceCompany"
+                        refDisplayName="公司名称">
+                    <join>
+                        <on leftProp="companyId" rightProp="id"/>
+                    </join>
+                </to-one>
+            </relations>
+        </entity>
+    </entities>
+</orm>

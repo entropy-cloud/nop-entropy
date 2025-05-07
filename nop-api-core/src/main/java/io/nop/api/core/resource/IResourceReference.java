@@ -7,6 +7,8 @@
  */
 package io.nop.api.core.resource;
 
+import io.nop.api.core.util.SourceLocation;
+
 import java.io.InputStream;
 import java.io.Serializable;
 
@@ -18,4 +20,8 @@ public interface IResourceReference extends Serializable {
     long length();
 
     InputStream getInputStream();
+
+    default SourceLocation location() {
+        return SourceLocation.fromPath(getPath());
+    }
 }

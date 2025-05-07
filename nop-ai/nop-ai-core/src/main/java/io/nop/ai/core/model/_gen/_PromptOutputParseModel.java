@@ -11,7 +11,7 @@ import io.nop.commons.util.ClassHelper;
 /**
  * generate from /nop/schema/ai/prompt.xdef <p>
  * 没有指定format的情况下才会使用parseFromResponse配置
- * 如果指定了source，则执行代码来解析变量。如果没有指定source，但是指定了blockBegin和blockEnd，则从响应消息中截取相关信息。
+ * 如果指定了source，则执行代码来解析变量。如果没有指定source，但是指定了startMarker和endMarker，则从响应消息中截取相关信息。
  * 如果以上配置都没有，但是配置了contains，则只要响应消息中包含此字符串，就设置为true。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -20,182 +20,182 @@ public abstract class _PromptOutputParseModel extends io.nop.core.resource.compo
     
     /**
      *  
-     * xml name: beginBlockOptional
+     * xml name: blockEndMarker
      * 
      */
-    private boolean _beginBlockOptional  = false;
+    private java.lang.String _blockEndMarker ;
     
     /**
      *  
-     * xml name: blockBegin
+     * xml name: blockStartMarker
      * 
      */
-    private java.lang.String _blockBegin ;
+    private java.lang.String _blockStartMarker ;
     
     /**
      *  
-     * xml name: blockEnd
+     * xml name: containsText
      * 
      */
-    private java.lang.String _blockEnd ;
+    private java.lang.String _containsText ;
     
     /**
      *  
-     * xml name: contains
+     * xml name: includeEndMarker
      * 
      */
-    private java.lang.String _contains ;
+    private boolean _includeEndMarker  = false;
     
     /**
      *  
-     * xml name: includeBlockBegin
-     * 如果为true，则将blockBegin包含在解析结果中
+     * xml name: includeStartMarker
+     * 如果为true，则将startMarker包含在解析结果中
      */
-    private boolean _includeBlockBegin  = false;
+    private boolean _includeStartMarker  = false;
     
     /**
      *  
-     * xml name: includeBlockEnd
+     * xml name: parseFunction
      * 
      */
-    private boolean _includeBlockEnd  = false;
+    private io.nop.core.lang.eval.IEvalFunction _parseFunction ;
     
     /**
      *  
-     * xml name: parser
-     * 
+     * xml name: startMarkerOptional
+     * 如果为true，则允许响应消息中没有startMarker，此时认为startMarker在消息的最前方
      */
-    private io.nop.core.lang.eval.IEvalFunction _parser ;
+    private boolean _startMarkerOptional  = false;
     
     /**
      * 
-     * xml name: beginBlockOptional
+     * xml name: blockEndMarker
      *  
      */
     
-    public boolean isBeginBlockOptional(){
-      return _beginBlockOptional;
+    public java.lang.String getBlockEndMarker(){
+      return _blockEndMarker;
     }
 
     
-    public void setBeginBlockOptional(boolean value){
+    public void setBlockEndMarker(java.lang.String value){
         checkAllowChange();
         
-        this._beginBlockOptional = value;
+        this._blockEndMarker = value;
            
     }
 
     
     /**
      * 
-     * xml name: blockBegin
+     * xml name: blockStartMarker
      *  
      */
     
-    public java.lang.String getBlockBegin(){
-      return _blockBegin;
+    public java.lang.String getBlockStartMarker(){
+      return _blockStartMarker;
     }
 
     
-    public void setBlockBegin(java.lang.String value){
+    public void setBlockStartMarker(java.lang.String value){
         checkAllowChange();
         
-        this._blockBegin = value;
+        this._blockStartMarker = value;
            
     }
 
     
     /**
      * 
-     * xml name: blockEnd
+     * xml name: containsText
      *  
      */
     
-    public java.lang.String getBlockEnd(){
-      return _blockEnd;
+    public java.lang.String getContainsText(){
+      return _containsText;
     }
 
     
-    public void setBlockEnd(java.lang.String value){
+    public void setContainsText(java.lang.String value){
         checkAllowChange();
         
-        this._blockEnd = value;
+        this._containsText = value;
            
     }
 
     
     /**
      * 
-     * xml name: contains
+     * xml name: includeEndMarker
      *  
      */
     
-    public java.lang.String getContains(){
-      return _contains;
+    public boolean isIncludeEndMarker(){
+      return _includeEndMarker;
     }
 
     
-    public void setContains(java.lang.String value){
+    public void setIncludeEndMarker(boolean value){
         checkAllowChange();
         
-        this._contains = value;
+        this._includeEndMarker = value;
            
     }
 
     
     /**
      * 
-     * xml name: includeBlockBegin
-     *  如果为true，则将blockBegin包含在解析结果中
+     * xml name: includeStartMarker
+     *  如果为true，则将startMarker包含在解析结果中
      */
     
-    public boolean isIncludeBlockBegin(){
-      return _includeBlockBegin;
+    public boolean isIncludeStartMarker(){
+      return _includeStartMarker;
     }
 
     
-    public void setIncludeBlockBegin(boolean value){
+    public void setIncludeStartMarker(boolean value){
         checkAllowChange();
         
-        this._includeBlockBegin = value;
+        this._includeStartMarker = value;
            
     }
 
     
     /**
      * 
-     * xml name: includeBlockEnd
+     * xml name: parseFunction
      *  
      */
     
-    public boolean isIncludeBlockEnd(){
-      return _includeBlockEnd;
+    public io.nop.core.lang.eval.IEvalFunction getParseFunction(){
+      return _parseFunction;
     }
 
     
-    public void setIncludeBlockEnd(boolean value){
+    public void setParseFunction(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._includeBlockEnd = value;
+        this._parseFunction = value;
            
     }
 
     
     /**
      * 
-     * xml name: parser
-     *  
+     * xml name: startMarkerOptional
+     *  如果为true，则允许响应消息中没有startMarker，此时认为startMarker在消息的最前方
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getParser(){
-      return _parser;
+    public boolean isStartMarkerOptional(){
+      return _startMarkerOptional;
     }
 
     
-    public void setParser(io.nop.core.lang.eval.IEvalFunction value){
+    public void setStartMarkerOptional(boolean value){
         checkAllowChange();
         
-        this._parser = value;
+        this._startMarkerOptional = value;
            
     }
 
@@ -215,13 +215,13 @@ public abstract class _PromptOutputParseModel extends io.nop.core.resource.compo
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("beginBlockOptional",this.isBeginBlockOptional());
-        out.putNotNull("blockBegin",this.getBlockBegin());
-        out.putNotNull("blockEnd",this.getBlockEnd());
-        out.putNotNull("contains",this.getContains());
-        out.putNotNull("includeBlockBegin",this.isIncludeBlockBegin());
-        out.putNotNull("includeBlockEnd",this.isIncludeBlockEnd());
-        out.putNotNull("parser",this.getParser());
+        out.putNotNull("blockEndMarker",this.getBlockEndMarker());
+        out.putNotNull("blockStartMarker",this.getBlockStartMarker());
+        out.putNotNull("containsText",this.getContainsText());
+        out.putNotNull("includeEndMarker",this.isIncludeEndMarker());
+        out.putNotNull("includeStartMarker",this.isIncludeStartMarker());
+        out.putNotNull("parseFunction",this.getParseFunction());
+        out.putNotNull("startMarkerOptional",this.isStartMarkerOptional());
     }
 
     public PromptOutputParseModel cloneInstance(){
@@ -233,13 +233,13 @@ public abstract class _PromptOutputParseModel extends io.nop.core.resource.compo
     protected void copyTo(PromptOutputParseModel instance){
         super.copyTo(instance);
         
-        instance.setBeginBlockOptional(this.isBeginBlockOptional());
-        instance.setBlockBegin(this.getBlockBegin());
-        instance.setBlockEnd(this.getBlockEnd());
-        instance.setContains(this.getContains());
-        instance.setIncludeBlockBegin(this.isIncludeBlockBegin());
-        instance.setIncludeBlockEnd(this.isIncludeBlockEnd());
-        instance.setParser(this.getParser());
+        instance.setBlockEndMarker(this.getBlockEndMarker());
+        instance.setBlockStartMarker(this.getBlockStartMarker());
+        instance.setContainsText(this.getContainsText());
+        instance.setIncludeEndMarker(this.isIncludeEndMarker());
+        instance.setIncludeStartMarker(this.isIncludeStartMarker());
+        instance.setParseFunction(this.getParseFunction());
+        instance.setStartMarkerOptional(this.isStartMarkerOptional());
     }
 
     protected PromptOutputParseModel newInstance(){

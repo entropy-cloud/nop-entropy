@@ -26,5 +26,15 @@
             </source>
         </ReadText>
 
+        <ResolveResource>
+            <attr name="fileName" type="String" mandatory="true"/>
+            <attr name="inputDir" type="String" optional="true"/>
+
+            <source>
+                import io.nop.core.resource.ResourceHelper;
+                return ResourceHelper.resolveResourceInDir(inputDir, fileName);
+            </source>
+        </ResolveResource>
+
     </tags>
 </lib>

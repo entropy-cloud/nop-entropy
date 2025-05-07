@@ -46,6 +46,13 @@ public abstract class _PromptInputModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: messageParser
+     * 
+     */
+    private io.nop.ai.core.model.PromptInputParseModel _messageParser ;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -57,13 +64,6 @@ public abstract class _PromptInputModel extends io.nop.core.resource.component.A
      * 
      */
     private boolean _optional  = false;
-    
-    /**
-     *  
-     * xml name: parseFromMessage
-     * 
-     */
-    private io.nop.ai.core.model.PromptInputParseModel _parseFromMessage ;
     
     /**
      *  
@@ -151,6 +151,25 @@ public abstract class _PromptInputModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: messageParser
+     *  
+     */
+    
+    public io.nop.ai.core.model.PromptInputParseModel getMessageParser(){
+      return _messageParser;
+    }
+
+    
+    public void setMessageParser(io.nop.ai.core.model.PromptInputParseModel value){
+        checkAllowChange();
+        
+        this._messageParser = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: name
      *  
      */
@@ -189,25 +208,6 @@ public abstract class _PromptInputModel extends io.nop.core.resource.component.A
     
     /**
      * 
-     * xml name: parseFromMessage
-     *  
-     */
-    
-    public io.nop.ai.core.model.PromptInputParseModel getParseFromMessage(){
-      return _parseFromMessage;
-    }
-
-    
-    public void setParseFromMessage(io.nop.ai.core.model.PromptInputParseModel value){
-        checkAllowChange();
-        
-        this._parseFromMessage = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: schema
      *  schema包含如下几种情况：1. 简单数据类型 2. Map（命名属性集合） 3. List（顺序结构，重复结构） 4. Union（switch选择结构）
      * Map对应props配置,  List对应item配置, Union对应oneOf配置
@@ -234,7 +234,7 @@ public abstract class _PromptInputModel extends io.nop.core.resource.component.A
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._parseFromMessage = io.nop.api.core.util.FreezeHelper.deepFreeze(this._parseFromMessage);
+           this._messageParser = io.nop.api.core.util.FreezeHelper.deepFreeze(this._messageParser);
             
            this._schema = io.nop.api.core.util.FreezeHelper.deepFreeze(this._schema);
             
@@ -249,9 +249,9 @@ public abstract class _PromptInputModel extends io.nop.core.resource.component.A
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("mandatory",this.isMandatory());
+        out.putNotNull("messageParser",this.getMessageParser());
         out.putNotNull("name",this.getName());
         out.putNotNull("optional",this.isOptional());
-        out.putNotNull("parseFromMessage",this.getParseFromMessage());
         out.putNotNull("schema",this.getSchema());
     }
 
@@ -268,9 +268,9 @@ public abstract class _PromptInputModel extends io.nop.core.resource.component.A
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
         instance.setMandatory(this.isMandatory());
+        instance.setMessageParser(this.getMessageParser());
         instance.setName(this.getName());
         instance.setOptional(this.isOptional());
-        instance.setParseFromMessage(this.getParseFromMessage());
         instance.setSchema(this.getSchema());
     }
 

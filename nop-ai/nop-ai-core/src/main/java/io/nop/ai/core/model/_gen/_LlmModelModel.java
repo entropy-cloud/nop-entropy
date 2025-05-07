@@ -18,6 +18,13 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: beginThink
+     * 
+     */
+    private java.lang.String _beginThink ;
+    
+    /**
+     *  
      * xml name: disableThinkingPrompt
      * 
      */
@@ -32,10 +39,36 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: endThink
+     * 
+     */
+    private java.lang.String _endThink ;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
     private java.lang.String _name ;
+    
+    /**
+     * 
+     * xml name: beginThink
+     *  
+     */
+    
+    public java.lang.String getBeginThink(){
+      return _beginThink;
+    }
+
+    
+    public void setBeginThink(java.lang.String value){
+        checkAllowChange();
+        
+        this._beginThink = value;
+           
+    }
+
     
     /**
      * 
@@ -77,6 +110,25 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     
     /**
      * 
+     * xml name: endThink
+     *  
+     */
+    
+    public java.lang.String getEndThink(){
+      return _endThink;
+    }
+
+    
+    public void setEndThink(java.lang.String value){
+        checkAllowChange();
+        
+        this._endThink = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: name
      *  
      */
@@ -109,8 +161,10 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("beginThink",this.getBeginThink());
         out.putNotNull("disableThinkingPrompt",this.getDisableThinkingPrompt());
         out.putNotNull("enableThinkingPrompt",this.getEnableThinkingPrompt());
+        out.putNotNull("endThink",this.getEndThink());
         out.putNotNull("name",this.getName());
     }
 
@@ -123,8 +177,10 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     protected void copyTo(LlmModelModel instance){
         super.copyTo(instance);
         
+        instance.setBeginThink(this.getBeginThink());
         instance.setDisableThinkingPrompt(this.getDisableThinkingPrompt());
         instance.setEnableThinkingPrompt(this.getEnableThinkingPrompt());
+        instance.setEndThink(this.getEndThink());
         instance.setName(this.getName());
     }
 

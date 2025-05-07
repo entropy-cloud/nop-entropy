@@ -1,5 +1,5 @@
 <orm x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
-     xmlns:orm="orm" xmlns:ext="ext" xmlns:ddd="ddd">
+     xmlns:orm="orm" xmlns:ext="ext">
 
     <dicts xdef:body-type="list" xdef:key-attr="name">
         <dict name="!string" label="!chinese">
@@ -10,7 +10,7 @@
     </dicts>
 
     <entities xdef:body-type="list" xdef:key-attr="name">
-        <entity name="!english" displayName="chinese" ddd:aggRoot="boolean" ddd:boundedContext="string">
+        <entity name="!english" displayName="chinese">
             <comment>description</comment>
             <columns xdef:body-type="list" xdef:key-attr="name">
                 <column name="!english" displayName="chinese" mandatory="boolean" primary="boolean"

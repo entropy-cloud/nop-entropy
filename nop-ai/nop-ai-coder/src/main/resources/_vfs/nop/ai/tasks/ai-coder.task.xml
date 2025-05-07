@@ -1,54 +1,84 @@
-<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:task="task"
       xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
+      xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
       x:extends="/nop/task/lib/common.task.xml">
 
-    <ai:chatOptions provider="ollama" model="deepseek-r1:14b"/>
-    <ai-coder:config/>
+    <ai:chatOptions provider="ollama" model="qwen3:14b" contextLength="8192" maxTokens="8192"/>
 
-    <input name="requirements" type="String" mandatory="true"/>
-    <input name="basePackageName" type="class-name" mandatory="true"/>
+    <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
+
+    <input name="requirementsPath" type="String" mandatory="true"/>
+    <input name="appName" type="String" mandatory="true"/>
+    <input name="basePackageName" type="String" mandatory="true"/>
     <input name="outputDir" type="String" mandatory="true"/>
 
     <steps>
-        <custom name="refineRequirements" customType="ai:TaskStep" ai:promptName="coder/refine-requirements">
-            <description>改进需求文档</description>
+        <xpl name="init">
+            <input name="appName"/>
+            <output name="appId">
+                <source>
+                    return appName.replace('-','/');
+                </source>
+            </output>
+        </xpl>
 
-            <input name="requirements"/>
-            <output name="RESULT" exportAs="requirements"/>
+        <custom name="loadRequirements" customType="ai-coder:LoadMarkdown">
+            <input name="fileName" value="${requirementsPath}"/>
+            <input name="tplPath" value="/nop/ai/schema/coder/requirements.tpl.md"/>
+
+            <input name="loadDocumentExt" value="true"/>
+            <input name="sectionExtTplPath" value="/nop/ai/schema/coder/module-requirements.tpl.md"/>
+
+            <output name="RESULT" exportAs="requirementsDoc"/>
         </custom>
 
-        <custom name="saveRequirements" customType="ai-coder:SaveFile">
-            <input name="outputDir"/>
-            <input name="fileName" value="docs/requirements/full-requirements.md"/>
-            <input name="text" value="${requirements}"/>
-        </custom>
+        <xpl name="splitRequirements">
+            <input name="requirementsDoc"/>
+            <output name="ormRequirements">
+                <source>
+                    return requirementsDoc.selectSectionByTplTag('ORM').toText();
+                </source>
+            </output>
+
+            <output name="menuRequirements">
+                <source>
+                    return requirementsDoc.selectSectionByTplTag('MENU').toText();
+                </source>
+            </output>
+        </xpl>
 
         <custom name="designOrm" customType="ai:TaskStep" ai:promptName="coder/orm-design">
             <description>根据需求文档的描述，设计ORM模型</description>
 
-            <input name="requirements"/>
-            <output name="RESULT" exportAs="ormNode"/>
+            <input name="requirements" value="${ormRequirements}"/>
+            <output name="RESULT" exportAs="ormModel"/>
         </custom>
 
-        <custom name="normalizeOrmModel" customType="ai-coder:NormalizeOrmModel">
-            <input name="ormNode"/>
-
-            <output name="RESULT" exportAs="ormModelText"/>
+        <custom name="saveOrmXml" customType="file-utils:WriteText">
+            <input name="outputDir"/>
+            <input name="fileName" value="src/main/resources/${appId}/orm/_gen/ai-gen.orm.xml"/>
+            <input name="text" value="${ormModel.ormModelXml}"/>
         </custom>
 
-        <custom name="refineOrmDesign" customType="ai:TaskStep" ai:promptName="coder/refine-orm-design">
-            <description>检查ORM模型与需求文档是否一致，是否需要改进</description>
-
-            <input name="requirements"/>
-            <input name="ormModelText"/>
+        <custom name="saveOrmExcel" customType="ai-coder:SaveDslModelAsExcel">
+            <input name="outputDir"/>
+            <input name="fileName" value="model/${appName}.orm.xlsx"/>
+            <input name="dslModel" value="${ormModel.ormModel}"/>
+            <input name="impModelPath" value="/nop/orm/imp/orm.imp.xml" />
         </custom>
 
         <custom name="designMenu" customType="ai:TaskStep" ai:promptName="coder/menu-design">
             <description>根据需求文档的描述，设计菜单和角色权限</description>
 
-            <input name="requirements"/>
-            <input name="ormModelText"/>
+            <input name="requirements" value="${menuRequirements}"/>
+            <input name="ormModel"/>
             <output name="RESULT" exportAs="menuNode"/>
+        </custom>
+
+        <custom name="saveMenuXml" customType="file-utils:WriteText">
+            <input name="outputDir"/>
+            <input name="fileName" value="src/main/resources/${appId}/orm/_gen/ai-gen.action-auth.xml"/>
+            <input name="text" value="${menuNode.xml()}"/>
         </custom>
     </steps>
 </task>

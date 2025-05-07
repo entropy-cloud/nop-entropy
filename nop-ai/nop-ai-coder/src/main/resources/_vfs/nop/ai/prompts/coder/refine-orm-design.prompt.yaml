@@ -17,13 +17,22 @@ template: |
   【需求描述】
   ${requirements}
 
+inputs:
+  - name: requirements
+    type: String
+    mandatory: true
+
+  - name: ormModelText
+    type: String
+    mandatory: true
+
 outputs:
   - name: noChange
-    parseFromResponse:
-      contains: "[NO_CHANGE]"
+    responseParser:
+      containsText: "[NO_CHANGE]"
   - name: RESULT
     xdefPath: /nop/ai/schema/coder/orm.xdef
     format: xml
-    normalizer: |
+    valueNormalizer: |
       import io.nop.ai.coder.orm.AiOrmModelNormalizer;
       return new AiOrmModelNormalizer().fixNameForOrmNode(value);

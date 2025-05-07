@@ -1,11 +1,11 @@
 <auth x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
       xmlns:xdef="/nop/schema/xdef.xdef" xmlns:app="app" xdef:allow-unknown-std-domain="true">
-    <site>
+    <site id="main">
         <resource id="!unique-english" displayName="!chinese" icon="awesome-font" xdef:unique-attr="id"
                   routePath="unique-module-path">
             <children xdef:body-type="list" xdef:key-attr="id">
                 <resource id="!unique-page-id" displayName="!chinese" icon="awesome-font"
-                          app:moduleNo="string" app:entityName="entity-name" app:pageName="string" role="csv-set">
+                          app:useCaseNo="string" app:entityName="entity-name" app:pageName="string" role="csv-set">
                     <description>string</description>
                 </resource>
             </children>

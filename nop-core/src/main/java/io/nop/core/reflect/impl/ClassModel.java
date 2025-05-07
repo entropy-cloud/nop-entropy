@@ -116,6 +116,9 @@ public class ClassModel extends AnnotatedElement implements IClassModel {
 
     @Override
     public IFunctionModel getConstructorForArgs(Object[] argValues) {
+        IFunctionModel func = constructors.getUniqueMethod(argValues.length);
+        if(func != null)
+            return func;
         return constructors.getMethodForArgValues(argValues);
     }
 

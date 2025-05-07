@@ -18,78 +18,78 @@ public abstract class _PromptInputParseModel extends io.nop.core.resource.compon
     
     /**
      *  
-     * xml name: blockBegin
+     * xml name: blockEndMarker
      * 
      */
-    private java.lang.String _blockBegin ;
+    private java.lang.String _blockEndMarker ;
     
     /**
      *  
-     * xml name: blockEnd
+     * xml name: blockStartMarker
      * 
      */
-    private java.lang.String _blockEnd ;
+    private java.lang.String _blockStartMarker ;
     
     /**
      *  
-     * xml name: parser
+     * xml name: parseFunction
      * 
      */
-    private io.nop.core.lang.eval.IEvalFunction _parser ;
+    private io.nop.core.lang.eval.IEvalFunction _parseFunction ;
     
     /**
      * 
-     * xml name: blockBegin
+     * xml name: blockEndMarker
      *  
      */
     
-    public java.lang.String getBlockBegin(){
-      return _blockBegin;
+    public java.lang.String getBlockEndMarker(){
+      return _blockEndMarker;
     }
 
     
-    public void setBlockBegin(java.lang.String value){
+    public void setBlockEndMarker(java.lang.String value){
         checkAllowChange();
         
-        this._blockBegin = value;
+        this._blockEndMarker = value;
            
     }
 
     
     /**
      * 
-     * xml name: blockEnd
+     * xml name: blockStartMarker
      *  
      */
     
-    public java.lang.String getBlockEnd(){
-      return _blockEnd;
+    public java.lang.String getBlockStartMarker(){
+      return _blockStartMarker;
     }
 
     
-    public void setBlockEnd(java.lang.String value){
+    public void setBlockStartMarker(java.lang.String value){
         checkAllowChange();
         
-        this._blockEnd = value;
+        this._blockStartMarker = value;
            
     }
 
     
     /**
      * 
-     * xml name: parser
+     * xml name: parseFunction
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getParser(){
-      return _parser;
+    public io.nop.core.lang.eval.IEvalFunction getParseFunction(){
+      return _parseFunction;
     }
 
     
-    public void setParser(io.nop.core.lang.eval.IEvalFunction value){
+    public void setParseFunction(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._parser = value;
+        this._parseFunction = value;
            
     }
 
@@ -109,9 +109,9 @@ public abstract class _PromptInputParseModel extends io.nop.core.resource.compon
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("blockBegin",this.getBlockBegin());
-        out.putNotNull("blockEnd",this.getBlockEnd());
-        out.putNotNull("parser",this.getParser());
+        out.putNotNull("blockEndMarker",this.getBlockEndMarker());
+        out.putNotNull("blockStartMarker",this.getBlockStartMarker());
+        out.putNotNull("parseFunction",this.getParseFunction());
     }
 
     public PromptInputParseModel cloneInstance(){
@@ -123,9 +123,9 @@ public abstract class _PromptInputParseModel extends io.nop.core.resource.compon
     protected void copyTo(PromptInputParseModel instance){
         super.copyTo(instance);
         
-        instance.setBlockBegin(this.getBlockBegin());
-        instance.setBlockEnd(this.getBlockEnd());
-        instance.setParser(this.getParser());
+        instance.setBlockEndMarker(this.getBlockEndMarker());
+        instance.setBlockStartMarker(this.getBlockStartMarker());
+        instance.setParseFunction(this.getParseFunction());
     }
 
     protected PromptInputParseModel newInstance(){

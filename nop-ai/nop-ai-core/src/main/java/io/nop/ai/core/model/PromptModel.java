@@ -113,8 +113,8 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
             }
         }
 
-        if (getPrepareInputs() != null)
-            this.getPrepareInputs().call0(null, scope);
+        if (getPreProcess() != null)
+            this.getPreProcess().call0(null, scope);
 
         return scope;
     }
@@ -127,24 +127,24 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
 
     @Override
     public void processChatResponse(AiChatResponse chatResponse, IEvalScope scope) {
-        if (this.getEndResponseMarker() != null) {
-            chatResponse.checkAndRemoveEndLine(this.getEndResponseMarker());
+        if (this.getResponseEndMarker() != null) {
+            chatResponse.checkAndRemoveEndLine(this.getResponseEndMarker());
         }
 
-        parseOutputs(chatResponse, true, scope);
+        parseOutputs(chatResponse, false, scope);
 
-        IEvalFunction fn = this.getProcessChatResponse();
+        IEvalFunction fn = this.getPostProcess();
         if (fn != null)
             fn.call1(null, chatResponse, scope);
 
-        parseOutputs(chatResponse, false, scope);
+        parseOutputs(chatResponse, true, scope);
     }
 
 
-    void parseOutputs(AiChatResponse chatResponse, boolean beforeProcess, IEvalScope scope) {
+    void parseOutputs(AiChatResponse chatResponse, boolean afterPostProcess, IEvalScope scope) {
         if (getOutputs() != null) {
             for (PromptOutputModel output : getOutputs()) {
-                if (output.isParseBeforeProcess() == beforeProcess) {
+                if (output.isParseAfterPostProcess() == afterPostProcess) {
                     if (isAllowParse(chatResponse, output, scope)) {
                         Object value = parseOutput(chatResponse, output, scope);
                         chatResponse.setOutput(output.getName(), value);
@@ -176,20 +176,20 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
         } else if (output.getFormat() == PromptOutputFormat.markdown) {
             value = chatResponse.parseMarkdownContent();
         } else {
-            PromptOutputParseModel parseModel = output.getParseFromResponse();
+            PromptOutputParseModel parseModel = output.getResponseParser();
             Guard.notNull(parseModel, "parseFromResponse");
 
-            if (parseModel.getParser() != null) {
-                value = parseModel.getParser().call1(null, chatResponse, scope);
-            } else if (parseModel.getBlockBegin() != null && parseModel.getBlockEnd() != null) {
-                value = chatResponse.getBlock(parseModel.getBlockBegin(), parseModel.getBlockEnd(),
-                        parseModel.isBeginBlockOptional(), output.isOptional());
-                if (parseModel.isIncludeBlockBegin() || parseModel.isIncludeBlockEnd()) {
-                    value = (parseModel.isIncludeBlockBegin() ? parseModel.getBlockBegin() : "")
-                            + value + (parseModel.isIncludeBlockEnd() ? parseModel.getBlockEnd() : "");
+            if (parseModel.getParseFunction() != null) {
+                value = parseModel.getParseFunction().call1(null, chatResponse, scope);
+            } else if (parseModel.getBlockStartMarker() != null && parseModel.getBlockEndMarker() != null) {
+                value = chatResponse.getBlock(parseModel.getBlockStartMarker(), parseModel.getBlockEndMarker(),
+                        parseModel.isStartMarkerOptional(), output.isOptional());
+                if (parseModel.isIncludeStartMarker() || parseModel.isIncludeEndMarker()) {
+                    value = (parseModel.isIncludeStartMarker() ? parseModel.getBlockStartMarker() : "")
+                            + value + (parseModel.isIncludeEndMarker() ? parseModel.getBlockEndMarker() : "");
                 }
-            } else if (parseModel.getContains() != null) {
-                value = chatResponse.contentContains(parseModel.getContains());
+            } else if (parseModel.getContainsText() != null) {
+                value = chatResponse.contentContains(parseModel.getContainsText());
             } else {
                 throw new IllegalArgumentException("unsupported parseFromResponse: " + parseModel);
             }
@@ -200,8 +200,8 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
 
     protected Object validateValue(AiChatResponse chatResponse, PromptOutputModel output, Object value, IEvalScope scope) {
         try {
-            if (output.getNormalizer() != null) {
-                value = output.getNormalizer().call2(null, value, chatResponse, scope);
+            if (output.getValueNormalizer() != null) {
+                value = output.getValueNormalizer().call2(null, value, chatResponse, scope);
             }
 
             if (value instanceof XNode) {
@@ -235,6 +235,10 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
                     value = BeanTool.castBeanToType(value, output.getType());
                 }
             }
+
+            if (output.getOutputBuilder() != null)
+                value = output.getOutputBuilder().call2(null, value, chatResponse, scope);
+
         } catch (Exception e) {
             LOG.info("nop.err.ai.parse-output-failed:name={},value={}", output.getName(), value, e);
             if (!chatResponse.isInvalid()) {

@@ -1,0 +1,104 @@
+<auth>
+    <site id="main">
+        <resource id="base-data-management" displayName="基础数据管理" icon="fa-cogs" routePath="/base-data">
+            <children>
+                <resource id="material" displayName="物资管理" icon="fa-box" app:useCaseNo="UC-3.2.1-001"
+                          app:entityName="Material" app:pageName="main" role="school-admin">
+                    <description>对物资信息进行新增、编辑、删除和查询操作</description>
+                </resource>
+                <resource id="supplier" displayName="供应商管理" icon="fa-truck" app:useCaseNo="UC-3.2.1-002"
+                          app:entityName="Supplier" app:pageName="main" role="school-admin">
+                    <description>对供应商信息进行新增、编辑、删除和查询操作</description>
+                </resource>
+                <resource id="service-company" displayName="服务公司管理" icon="fa-building" app:useCaseNo="UC-3.2.1-003"
+                          app:entityName="ServiceCompany" app:pageName="main" role="school-admin">
+                    <description>对服务公司信息进行新增、编辑、删除和查询操作</description>
+                </resource>
+                <resource id="menu" displayName="基础菜单管理" icon="fa-bars" app:useCaseNo="UC-3.2.1-004"
+                          app:entityName="Menu" app:pageName="main" role="school-admin">
+                    <description>对基础菜单信息进行新增、编辑、删除和查询操作</description>
+                </resource>
+            </children>
+        </resource>
+        <resource id="warehouse-management" displayName="库房管理" icon="fa-warehouse" routePath="/warehouse">
+            <children>
+                <resource id="warehouse" displayName="库房管理" icon="fa-boxes" app:useCaseNo="UC-3.2.2-001"
+                          app:entityName="Warehouse" app:pageName="main" role="service-admin">
+                    <description>展示所有库房信息，支持新增、编辑、删除操作</description>
+                </resource>
+            </children>
+        </resource>
+        <resource id="daily-menu-management" displayName="每日菜单管理" icon="fa-calendar" routePath="/daily-menu">
+            <children>
+                <resource id="daily-menu" displayName="每日菜单管理" icon="fa-utensils" app:useCaseNo="UC-3.2.3-004"
+                          app:entityName="DailyMenu" app:pageName="main" role="service-admin">
+                    <description>显示每日菜单列表，支持查询、新增、编辑、删除操作</description>
+                </resource>
+                <resource id="audit-menu" displayName="基础菜单审核" icon="fa-check" app:useCaseNo="UC-3.2.3-005"
+                          app:entityName="Menu" app:pageName="audit" role="school-admin">
+                    <description>学校管理员审核并补充基础菜单</description>
+                </resource>
+                <resource id="settlement-menu" displayName="菜单结算绑定" icon="fa-link" app:useCaseNo="UC-3.2.3-006"
+                          app:entityName="DailyMenu" app:pageName="settlement" role="system-admin">
+                    <description>系统管理员设置每日菜单与结算日的绑定关系</description>
+                </resource>
+            </children>
+        </resource>
+        <resource id="in-out-stock-management" displayName="出入库管理" icon="fa-truck-pickup" routePath="/in-out-stock">
+            <children>
+                <resource id="in-out-stock" displayName="出入库管理" icon="fa-box" app:useCaseNo="UC-3.2.4-004"
+                          app:entityName="InOutStock" app:pageName="main" role="service-admin">
+                    <description>显示出入库记录列表，支持新增、编辑、删除、查询、查看明细、上传附件、锁定等操作</description>
+                </resource>
+                <resource id="in-out-detail" displayName="出入库明细" icon="fa-list" app:useCaseNo="UC-3.2.4-005"
+                          app:entityName="InOutDetail" app:pageName="detail" role="service-admin">
+                    <description>显示出入库记录的明细信息，包括物资编码、物资名称、单价、数量、金额等</description>
+                </resource>
+            </children>
+        </resource>
+        <resource id="inventory-check" displayName="盘库管理" icon="fa-balance-scale" routePath="/inventory-check">
+            <children>
+                <resource id="inventory-check" displayName="盘库操作" icon="fa-check" app:useCaseNo="UC-3.2.5-001"
+                          app:entityName="InventoryCheck" app:pageName="main" role="service-admin">
+                    <description>进行盘库操作，记录库存差异</description>
+                </resource>
+                <resource id="inventory-check-detail" displayName="盘库记录详情" icon="fa-eye" app:useCaseNo="UC-3.2.5-003"
+                          app:entityName="InventoryCheck" app:pageName="detail" role="service-admin">
+                    <description>查看盘库记录的详细信息</description>
+                </resource>
+                <resource id="inventory-check-role" displayName="盘库权限管理" icon="fa-shield" app:useCaseNo="UC-3.2.5-005"
+                          app:entityName="InventoryCheck" app:pageName="role" role="system-admin">
+                    <description>管理盘库操作的权限设置</description>
+                </resource>
+            </children>
+        </resource>
+        <resource id="supplier-settlement" displayName="供应商结算" icon="fa-money-bill" routePath="/supplier-settlement">
+            <children>
+                <resource id="supplier-settlement" displayName="结算数据管理" icon="fa-calculator"
+                          app:useCaseNo="UC-3.2.6-002" app:entityName="SupplierSettlement" app:pageName="main"
+                          role="service-admin">
+                    <description>展示所有结算数据，支持查询、过滤、排序、分页</description>
+                </resource>
+            </children>
+        </resource>
+        <resource id="operating-data" displayName="经营数据管理" icon="fa-chart-line" routePath="/operating-data">
+            <children>
+                <resource id="operating-data" displayName="经营数据管理" icon="fa-chart-pie" app:useCaseNo="UC-3.2.7-001"
+                          app:entityName="OperatingData" app:pageName="main" role="service-admin">
+                    <description>查看、录入、编辑、删除经营数据</description>
+                </resource>
+            </children>
+        </resource>
+    </site>
+    <roles>
+        <role name="school-admin" displayName="学校管理员">
+            <description>负责基础数据维护与管理，包括物资、供应商、服务公司、基础菜单等</description>
+        </role>
+        <role name="service-admin" displayName="服务公司管理员">
+            <description>负责库房、每日菜单、出入库、盘库、结算、经营数据等操作</description>
+        </role>
+        <role name="system-admin" displayName="系统管理员">
+            <description>负责系统级操作，包括权限设置、菜单绑定等</description>
+        </role>
+    </roles>
+</auth>

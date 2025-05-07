@@ -26,13 +26,13 @@ inputs:
 outputs:
   - name: noChange
     type: Boolean
-    parseFromResponse:
-      contains: "[NO_CHANGE]"
+    responseParser:
+      containsText: "[NO_CHANGE]"
   - name: RESULT
     format: markdown
     when: |
       !chatResponse.outputs.noChange
     defaultExpr: markdownDoc
-    normalizer: |
+    valueNormalizer: |
       value.matchTpl(markdownTpl, true);
       return value;

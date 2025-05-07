@@ -4,6 +4,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.markdown.simple.MarkdownDocument;
+import io.nop.markdown.simple.MarkdownDocumentExt;
 
 public interface IMarkdownTool extends IResourceObjectLoader<MarkdownDocument> {
 
@@ -13,5 +14,5 @@ public interface IMarkdownTool extends IResourceObjectLoader<MarkdownDocument> {
 
     MarkdownDocument parseFromText(SourceLocation loc, String text);
 
-    void loadSectionExtForDocument(MarkdownDocument doc);
+    MarkdownDocumentExt loadDocumentExt(MarkdownDocument doc);
 }
