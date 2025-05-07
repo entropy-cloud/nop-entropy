@@ -19,8 +19,6 @@ package io.nop.commons.cache;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import org.checkerframework.checker.index.qual.NonNegative;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.io.Serializable;
 
@@ -86,9 +84,9 @@ public final class CacheStats implements Serializable {
      * @param evictionCount    the number of entries evicted from the cache
      * @param evictionWeight   the sum of weights of entries evicted from the cache
      */
-    public CacheStats(@NonNegative long hitCount, @NonNegative long missCount, @NonNegative long loadSuccessCount,
-                      @NonNegative long loadFailureCount, @NonNegative long totalLoadTime, @NonNegative long evictionCount,
-                      @NonNegative long evictionWeight, long cacheGets, long cachePuts) {
+    public CacheStats(long hitCount, long missCount, long loadSuccessCount,
+                      long loadFailureCount, long totalLoadTime, long evictionCount,
+                      long evictionWeight, long cacheGets, long cachePuts) {
         if ((hitCount < 0) || (missCount < 0) || (loadSuccessCount < 0) || (loadFailureCount < 0) || (totalLoadTime < 0)
                 || (evictionCount < 0) || (evictionWeight < 0)) {
             throw new IllegalArgumentException();
@@ -153,7 +151,7 @@ public final class CacheStats implements Serializable {
      *
      * @return an empty statistics instance
      */
-    @NonNull
+
     public static CacheStats empty() {
         return EMPTY_STATS;
     }
@@ -164,7 +162,7 @@ public final class CacheStats implements Serializable {
      *
      * @return the {@code hitCount + missCount}
      */
-    @NonNegative
+
     public long requestCount() {
         return hitCount + missCount;
     }
@@ -174,7 +172,7 @@ public final class CacheStats implements Serializable {
      *
      * @return the number of times {@link Cache} lookup methods have returned a cached value
      */
-    @NonNegative
+
     public long getHitCount() {
         return hitCount;
     }
@@ -185,7 +183,7 @@ public final class CacheStats implements Serializable {
      *
      * @return the ratio of cache requests which were hits
      */
-    @NonNegative
+
     public double hitRate() {
         long requestCount = requestCount();
         return (requestCount == 0) ? 1.0 : (double) hitCount / requestCount;
@@ -198,7 +196,7 @@ public final class CacheStats implements Serializable {
      *
      * @return the number of times {@link Cache} lookup methods have returned an uncached (newly loaded) value, or null
      */
-    @NonNegative
+
     public long getMissCount() {
         return missCount;
     }
@@ -213,7 +211,7 @@ public final class CacheStats implements Serializable {
      *
      * @return the ratio of cache requests which were misses
      */
-    @NonNegative
+
     public double missRate() {
         long requestCount = requestCount();
         return (requestCount == 0) ? 0.0 : (double) missCount / requestCount;
@@ -226,7 +224,7 @@ public final class CacheStats implements Serializable {
      *
      * @return the {@code loadSuccessCount + loadFailureCount}
      */
-    @NonNegative
+
     public long loadCount() {
         return loadSuccessCount + loadFailureCount;
     }
@@ -239,7 +237,7 @@ public final class CacheStats implements Serializable {
      *
      * @return the number of times {@link Cache} lookup methods have successfully loaded a new value
      */
-    @NonNegative
+
     public long getLoadSuccessCount() {
         return loadSuccessCount;
     }
@@ -252,7 +250,7 @@ public final class CacheStats implements Serializable {
      *
      * @return the number of times {@link Cache} lookup methods failed to load a new value
      */
-    @NonNegative
+
     public long getLoadFailureCount() {
         return loadFailureCount;
     }
@@ -264,7 +262,7 @@ public final class CacheStats implements Serializable {
      *
      * @return the ratio of cache loading attempts which threw exceptions
      */
-    @NonNegative
+
     public double loadFailureRate() {
         long totalLoadCount = loadSuccessCount + loadFailureCount;
         return (totalLoadCount == 0) ? 0.0 : (double) loadFailureCount / totalLoadCount;
@@ -277,7 +275,7 @@ public final class CacheStats implements Serializable {
      *
      * @return the total number of nanoseconds the cache has spent loading new values
      */
-    @NonNegative
+
     public long getTotalLoadTime() {
         return totalLoadTime;
     }
@@ -288,7 +286,7 @@ public final class CacheStats implements Serializable {
      *
      * @return the average time spent loading new values
      */
-    @NonNegative
+
     public double averageLoadPenalty() {
         long totalLoadCount = loadSuccessCount + loadFailureCount;
         return (totalLoadCount == 0) ? 0.0 : (double) totalLoadTime / totalLoadCount;
@@ -300,7 +298,7 @@ public final class CacheStats implements Serializable {
      *
      * @return the number of times an entry has been evicted
      */
-    @NonNegative
+
     public long getEvictionCount() {
         return evictionCount;
     }
@@ -311,7 +309,7 @@ public final class CacheStats implements Serializable {
      *
      * @return the sum of weights of evicted entities
      */
-    @NonNegative
+
     public long getEvictionWeight() {
         return evictionWeight;
     }
@@ -323,8 +321,8 @@ public final class CacheStats implements Serializable {
      * @param other the statistics to subtract with
      * @return the difference between this instance and {@code other}
      */
-    @NonNull
-    public CacheStats minus(@NonNull CacheStats other) {
+
+    public CacheStats minus(CacheStats other) {
         return new CacheStats(Math.max(0L, hitCount - other.hitCount), Math.max(0L, missCount - other.missCount),
                 Math.max(0L, loadSuccessCount - other.loadSuccessCount),
                 Math.max(0L, loadFailureCount - other.loadFailureCount),
@@ -339,8 +337,8 @@ public final class CacheStats implements Serializable {
      * @param other the statistics to add with
      * @return the sum of the statistics
      */
-    @NonNull
-    public CacheStats plus(@NonNull CacheStats other) {
+
+    public CacheStats plus(CacheStats other) {
         return new CacheStats(hitCount + other.hitCount, missCount + other.missCount,
                 loadSuccessCount + other.loadSuccessCount, loadFailureCount + other.loadFailureCount,
                 totalLoadTime + other.totalLoadTime, evictionCount + other.evictionCount,

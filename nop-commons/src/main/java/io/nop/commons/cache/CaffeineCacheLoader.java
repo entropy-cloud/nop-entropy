@@ -8,9 +8,9 @@
 package io.nop.commons.cache;
 
 import com.github.benmanes.caffeine.cache.CacheLoader;
-import org.checkerframework.checker.nullness.qual.NonNull;
-
 import jakarta.annotation.Nullable;
+import org.jspecify.annotations.NonNull;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
