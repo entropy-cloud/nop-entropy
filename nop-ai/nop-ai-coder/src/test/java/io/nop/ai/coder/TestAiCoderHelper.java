@@ -77,7 +77,7 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
     @Test
     public void testExpr() {
         String expr = "import io.nop.ai.coder.orm.AiOrmModel;\n" +
-                "      return new AiOrmModel(value,{basePackageName: 'app.demo'});";
+                "      return AiOrmModel.buildFromAiResult(value,{basePackageName: 'app.demo'});";
 
         IEvalScope scope = XLang.newEvalScope();
         scope.setLocalValue("value", XNode.make("orm"));

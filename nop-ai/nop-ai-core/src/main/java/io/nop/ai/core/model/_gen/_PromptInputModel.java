@@ -74,6 +74,13 @@ public abstract class _PromptInputModel extends io.nop.core.resource.component.A
     private io.nop.xlang.xmeta.ISchema _schema ;
     
     /**
+     *  
+     * xml name: type
+     * 
+     */
+    private io.nop.core.type.IGenericType _type ;
+    
+    /**
      * 
      * xml name: defaultExpr
      *  
@@ -226,6 +233,25 @@ public abstract class _PromptInputModel extends io.nop.core.resource.component.A
     }
 
     
+    /**
+     * 
+     * xml name: type
+     *  
+     */
+    
+    public io.nop.core.type.IGenericType getType(){
+      return _type;
+    }
+
+    
+    public void setType(io.nop.core.type.IGenericType value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -253,6 +279,7 @@ public abstract class _PromptInputModel extends io.nop.core.resource.component.A
         out.putNotNull("optional",this.isOptional());
         out.putNotNull("parseFromMessage",this.getParseFromMessage());
         out.putNotNull("schema",this.getSchema());
+        out.putNotNull("type",this.getType());
     }
 
     public PromptInputModel cloneInstance(){
@@ -272,6 +299,7 @@ public abstract class _PromptInputModel extends io.nop.core.resource.component.A
         instance.setOptional(this.isOptional());
         instance.setParseFromMessage(this.getParseFromMessage());
         instance.setSchema(this.getSchema());
+        instance.setType(this.getType());
     }
 
     protected PromptInputModel newInstance(){

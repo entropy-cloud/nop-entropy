@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import static io.nop.xlang.XLangErrors.ARG_ALLOWED_NAMES;
 import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
 import static io.nop.xlang.XLangErrors.ARG_SCHEMA_KIND;
 import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
@@ -189,7 +190,8 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
 
             if (map instanceof Map)
                 throw new NopException(ERR_XDSL_UNKNOWN_PROP).loc(getLocation(map, key, value))
-                        .param(ARG_PROP_NAME, key).param(ARG_VALUE, value);
+                        .param(ARG_PROP_NAME, key).param(ARG_VALUE, value)
+                        .param(ARG_ALLOWED_NAMES, schema.getPropNames());
 
             if (LOG.isTraceEnabled())
                 LOG.trace("nop.dsl.ignore-unknown-prop:key={},value={},loc={},class={}", key, value,

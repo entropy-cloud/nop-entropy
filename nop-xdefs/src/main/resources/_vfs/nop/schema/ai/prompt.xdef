@@ -12,7 +12,7 @@
         声明模板中使用的变量信息。主要用于模板管理
         -->
         <input name="!var-name" displayName="string" xdef:name="PromptInputModel"
-               optional="!boolean=false" mandatory="!boolean=false">
+               type="generic-type" optional="!boolean=false" mandatory="!boolean=false">
             <schema xdef:ref="../schema/schema.xdef"/>
             <description>string</description>
 
@@ -54,8 +54,8 @@
             @includeStartMarker 如果为true，则将startMarker包含在解析结果中
             -->
             <parseFromResponse xdef:name="PromptOutputParseModel" containsText="string"
-                            startMarkerOptional="!boolean=false" blockStartMarker="string" blockEndMarker="string"
-                            includeStartMarker="!boolean=false" includeEndMarker="!boolean=false">
+                               startMarkerOptional="!boolean=false" blockStartMarker="string" blockEndMarker="string"
+                               includeStartMarker="!boolean=false" includeEndMarker="!boolean=false">
                 <parseFunction>xpl-fn:(chatResponse)=>any</parseFunction>
             </parseFromResponse>
 

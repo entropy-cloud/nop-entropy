@@ -1,6 +1,5 @@
 {
   "xmlns:x": "/nop/schema/xdsl.xdef",
-  "defaultOutputMode": "none",
   "tags": {
     "Add": {
       "tagName": "Add",

@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -79,6 +80,13 @@ public interface IObjSchema extends ISchemaNode {
     List<? extends IObjPropMeta> getProps();
 
     IObjPropMeta getProp(String name);
+
+    default Set<String> getPropNames() {
+        if (getProps() == null)
+            return Collections.emptySet();
+
+        return getProps().stream().map(IObjPropMeta::getName).collect(Collectors.toSet());
+    }
 
     default IObjPropMeta requireProp(String name) {
         IObjPropMeta propMeta = getProp(name);

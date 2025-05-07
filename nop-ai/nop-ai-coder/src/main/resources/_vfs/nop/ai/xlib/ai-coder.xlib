@@ -38,13 +38,13 @@
             <attr name="fileName" mandatory="true"/>
             <attr name="dslModel" mandatory="true"/>
             <attr name="impModelPath" stdDomain="v-path" mandatory="true"/>
-            <attr name="inputDir" optional="true"/>
+            <attr name="outputDir" optional="true"/>
 
             <source><![CDATA[
                 import io.nop.report.core.util.ExcelReportHelper;
                 import io.nop.core.resource.ResourceHelper;
 
-                const resource = ResourceHelper.resolveResourceInDir(inputDir, fileName);
+                const resource = ResourceHelper.resolveResourceInDir(outputDir, fileName);
 
                 ExcelReportHelper.saveXlsxObject(impModelPath, resource, dslModel);
             ]]></source>
