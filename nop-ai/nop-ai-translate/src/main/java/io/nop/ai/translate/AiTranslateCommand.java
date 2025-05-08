@@ -20,6 +20,7 @@ import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.retry.RetryHelper;
+import io.nop.xlang.api.XLang;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -358,7 +359,7 @@ public class AiTranslateCommand extends AiCommand {
 
         if (StringHelper.isBlank(text)) {
             AiChatResponse response = new AiChatResponse();
-            Prompt prompt = newPrompt(prepareInputs(vars));
+            Prompt prompt = newPrompt(prepareInputs(vars, XLang.newEvalScope()));
             response.setPrompt(prompt);
             response.setContent(text);
             return FutureHelper.success(response);
