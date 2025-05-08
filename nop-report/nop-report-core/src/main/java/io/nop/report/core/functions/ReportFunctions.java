@@ -69,6 +69,27 @@ public class ReportFunctions {
         return ret;
     }
 
+    @Description("两列相乘求和")
+    public static Number SUMPRODUCT(@Name("valuesA") Object valuesA, @Name("valuesB") Object valuesB) {
+        if (valuesA == null || valuesB == null)
+            return null;
+
+        Iterator<Object> it = CollectionHelper.toIterator(valuesA, true);
+        Iterator<Object> it2 = CollectionHelper.toIterator(valuesB, true);
+        Number ret = 0;
+
+        while (it.hasNext() && it2.hasNext()) {
+            Object value = it.next();
+            Object value2 = it2.next();
+            if (!(value instanceof Number))
+                continue;
+            if (!(value2 instanceof Number))
+                continue;
+            ret = MathHelper.add(ret, MathHelper.multiply(value, value2));
+        }
+        return ret;
+    }
+
     @Description("对数值单元格进行计数")
     public static Number COUNT(@Name("values") Object values) {
         if (values == null)

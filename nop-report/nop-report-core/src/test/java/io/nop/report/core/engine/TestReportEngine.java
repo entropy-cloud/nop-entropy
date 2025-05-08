@@ -96,6 +96,22 @@ public class TestReportEngine extends BaseTestCase {
     }
 
     @Test
+    public void testRangeFormula() {
+        IReportEngine reportEngine = newReportEngine();
+
+
+        ExcelWorkbook workbook = reportEngine.getXptModel("/nop/report/demo/test-range-formula.xpt.xlsx");
+        ITextTemplateOutput htmlRenderer = (ITextTemplateOutput) reportEngine.getRendererForXptModel(workbook, "html");
+        String html = htmlRenderer.generateText(XLang.newEvalScope());
+        System.out.println(html);
+
+        FileHelper.writeText(getTargetFile("test-range-formula.html"), html, null);
+
+        ITemplateOutput output = reportEngine.getRendererForXptModel(workbook, "xlsx");
+        output.generateToFile(getTargetFile("test-range-formula.xpt.xlsx"), XLang.newEvalScope());
+    }
+
+    @Test
     public void testHidden() {
         IReportEngine reportEngine = newReportEngine();
 
