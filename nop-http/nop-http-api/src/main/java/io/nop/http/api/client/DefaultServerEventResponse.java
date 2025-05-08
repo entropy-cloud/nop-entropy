@@ -6,6 +6,7 @@ import java.util.Map;
 public class DefaultServerEventResponse implements IServerEventResponse {
     private Map<String, String> headers = Collections.emptyMap();
     private int httpStatus;
+    private String id;
     private String event;
     private String data;
 
@@ -43,5 +44,14 @@ public class DefaultServerEventResponse implements IServerEventResponse {
 
     public void setData(String data) {
         this.data = data;
+    }
+
+    @Override
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 }

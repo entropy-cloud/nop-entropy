@@ -6,7 +6,7 @@ import io.nop.api.core.util.ICancelToken;
 import io.nop.api.core.util.ResolvedPromise;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.util.IoHelper;
-import io.nop.http.api.client.DefaultServerEventResponse;
+import io.nop.http.api.client.AbstractServerEventSubscription;
 import io.nop.http.api.client.IServerEventResponse;
 import io.nop.http.api.utils.HttpHelper;
 import org.slf4j.Logger;
@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Flow;
+import java.util.concurrent.Future;
 
 import static io.nop.http.api.HttpApiErrors.ARG_BODY;
 import static io.nop.http.api.HttpApiErrors.ARG_EXCEPTION;
@@ -55,50 +56,22 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
     }
 
     // 内部Subscription实现
-    protected class ServerEventSubscription implements Flow.Subscription {
-        private final Flow.Subscriber<? super IServerEventResponse> subscriber;
-
-        private volatile boolean isCancelled;
-        private long demand;
-        private CompletableFuture<HttpResponse<InputStream>> future;
+    protected class ServerEventSubscription extends AbstractServerEventSubscription {
 
         ServerEventSubscription(
                 Flow.Subscriber<? super IServerEventResponse> subscriber
         ) {
-            this.subscriber = subscriber;
-            this.isCancelled = false;
-            this.demand = 0;
+            super(subscriber);
         }
 
         @Override
-        public void request(long n) {
-            if (n <= 0) {
-                subscriber.onError(new IllegalArgumentException("request count must be positive"));
-                return;
-            }
-
-            synchronized (this) {
-                demand += n;
-                if (future == null) {
-                    startRequest();
-                } else {
-                    notifyAll();
-                }
-            }
-        }
-
-        @Override
-        public void cancel() {
-            cleanup(null);
-        }
-
-        private void startRequest() {
+        protected Future<?> startRequest() {
             // 发送异步HTTP请求
-            future = client.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream());
+            CompletableFuture<HttpResponse<InputStream>> future = client.sendAsync(request, HttpResponse.BodyHandlers.ofInputStream());
 
             CompletableFuture<?> promise = future.whenComplete((response, ex) -> {
                 if (ex != null) {
-                    subscriber.onError(wrapException(ex));
+                    onError(wrapException(ex));
                     return;
                 }
 
@@ -106,7 +79,7 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
             });
 
             FutureHelper.bindCancelToken(cancelToken, this::cleanup, promise);
-
+            return future;
         }
 
         private void processResponse(HttpResponse<InputStream> response) {
@@ -125,100 +98,29 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
             }
 
             executor().execute(() -> {
-                if (isCancelled)
+                if (isCancelled())
                     return;
 
                 try {
-                    DefaultServerEventResponse ret = new DefaultServerEventResponse();
-                    ret.setHttpStatus(status);
-                    ret.setHeaders(headers);
-                    waitForDemand();
-                    if (isCancelled) return;
+                    onStart(status, headers);
 
-                    subscriber.onNext(ret);
+                    parseEvents(reader);
 
-                    parseEvents(status, headers, reader, this);
-
-                    if (isCancelled)
+                    if (isCancelled())
                         return;
 
-                    subscriber.onComplete();
+                    onComplete();
                 } catch (Exception e) {
-                    if (!isCancelled) subscriber.onError(wrapException(e));
+                    if (!isCancelled()) onError(wrapException(e));
                 }
             });
         }
 
-        protected boolean isCancelled() {
-            return isCancelled;
-        }
-
-        protected synchronized void waitForDemand() {
-            while (demand <= 0 && !isCancelled) {
-                try {
-                    wait();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    cleanup(null);
-                }
+        protected void parseEvents(BufferedReader reader) throws IOException {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                processLine(line);
             }
-            demand--;
-        }
-
-        private synchronized void cleanup(String reason) {
-            isCancelled = true;
-            if (future != null) {
-                future.cancel(true);
-            }
-            notifyAll();
-        }
-    }
-
-    protected void parseEvents(int status, Map<String, String> headers, BufferedReader reader,
-                               ServerEventSubscription subscription) throws IOException {
-        Flow.Subscriber<? super IServerEventResponse> subscriber = subscription.subscriber;
-
-        String event = null;
-        StringBuilder data = new StringBuilder();
-
-        String line;
-        while ((line = reader.readLine()) != null) {
-            if (line.isEmpty()) {
-                if (data.length() > 0) {
-
-                    subscription.waitForDemand();
-                    if (subscription.isCancelled())
-                        return;
-
-                    subscriber.onNext(newResponse(status, headers, event, data.toString()));
-                    event = null;
-                    data.setLength(0);
-                }
-                continue;
-            }
-
-            if (line.startsWith("event:")) {
-                event = line.substring("event:".length()).trim();
-            } else if (line.startsWith("data:")) {
-                String content = line.substring("data:".length());
-                if (data.length() > 0) {
-                    data.append("\n");
-                }
-                data.append(content.trim());
-            } else {
-                subscription.waitForDemand();
-                if (subscription.isCancelled())
-                    return;
-
-                subscriber.onNext(newResponse(status, headers, event, line));
-            }
-        }
-
-        if (data.length() > 0) {
-            subscription.waitForDemand();
-            if (subscription.isCancelled())
-                return;
-            subscriber.onNext(newResponse(status, headers, event, data.toString()));
         }
     }
 
@@ -230,15 +132,5 @@ public class ServerEventPublisher implements Flow.Publisher<IServerEventResponse
             NopException.logIfNotTraced(LOG, "nop.err.http.error", e);
             return e;
         }
-    }
-
-    protected DefaultServerEventResponse newResponse(int status, Map<String, String> headers,
-                                                     String event, String data) {
-        DefaultServerEventResponse ret = new DefaultServerEventResponse();
-        ret.setHttpStatus(status);
-        ret.setHeaders(headers);
-        ret.setEvent(event);
-        ret.setData(data);
-        return ret;
     }
 }

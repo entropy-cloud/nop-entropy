@@ -45,6 +45,14 @@ public abstract class LineAsyncDataConsumer extends AbstractCharDataConsumer
         this.success = HttpHelper.isOk(response.getCode());
     }
 
+    public int getHttpStatus() {
+        return response.getCode();
+    }
+
+    public Map<String, String> getHeaders() {
+        return headers;
+    }
+
     public String getContentBody() {
         return buf.toString();
     }
