@@ -1,21 +1,21 @@
 package io.nop.ai.core.persist;
 
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.core.unittest.BaseTestCase;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ChatResponseMarkdownPersisterTest extends BaseTestCase {
+public class ChatExchangeMarkdownPersisterTest extends BaseTestCase {
 
 
     @Test
     public void testSerializeAndDeserialize() {
-        ChatResponseMarkdownPersister persister = ChatResponseMarkdownPersister.instance();
+        ChatExchangeMarkdownPersister persister = ChatExchangeMarkdownPersister.instance();
         String expectedText = attachmentText("persist-message.md");
 
         // 反序列化
-        AiChatResponse response = persister.deserialize(expectedText);
+        AiChatExchange response = persister.deserialize(expectedText);
 
         // 再次序列化
         String actualText = persister.serialize(response);

@@ -2,7 +2,7 @@ package io.nop.ai.core.model;
 
 import io.nop.ai.core.AiCoreConstants;
 import io.nop.ai.core.api.chat.AiChatOptions;
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.model._gen._PromptModel;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.api.core.beans.ErrorBean;
@@ -126,7 +126,7 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
     }
 
     @Override
-    public void processChatResponse(AiChatResponse chatResponse, IEvalScope scope) {
+    public void processChatResponse(AiChatExchange chatResponse, IEvalScope scope) {
         if (this.getResponseEndMarker() != null) {
             chatResponse.checkAndRemoveEndLine(this.getResponseEndMarker());
         }
@@ -141,7 +141,7 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
     }
 
 
-    void parseOutputs(AiChatResponse chatResponse, boolean afterPostProcess, IEvalScope scope) {
+    void parseOutputs(AiChatExchange chatResponse, boolean afterPostProcess, IEvalScope scope) {
         if (getOutputs() != null) {
             for (PromptOutputModel output : getOutputs()) {
                 if (output.isParseAfterPostProcess() == afterPostProcess) {
@@ -157,7 +157,7 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
         }
     }
 
-    protected boolean isAllowParse(AiChatResponse chatResponse, PromptOutputModel output, IEvalScope scope) {
+    protected boolean isAllowParse(AiChatExchange chatResponse, PromptOutputModel output, IEvalScope scope) {
         if (chatResponse.isInvalid() && output.isSkipWhenResponseInvalid())
             return false;
         if (output.getWhen() != null) {
@@ -167,7 +167,7 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
         return true;
     }
 
-    protected Object parseOutput(AiChatResponse chatResponse, PromptOutputModel output, IEvalScope scope) {
+    protected Object parseOutput(AiChatExchange chatResponse, PromptOutputModel output, IEvalScope scope) {
         Object value;
         if (output.getFormat() == PromptOutputFormat.xml) {
             value = chatResponse.parseXmlContent();
@@ -198,7 +198,7 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
         return validateValue(chatResponse, output, value, scope);
     }
 
-    protected Object validateValue(AiChatResponse chatResponse, PromptOutputModel output, Object value, IEvalScope scope) {
+    protected Object validateValue(AiChatExchange chatResponse, PromptOutputModel output, Object value, IEvalScope scope) {
         try {
             if (output.getValueNormalizer() != null) {
                 value = output.getValueNormalizer().call2(null, value, chatResponse, scope);

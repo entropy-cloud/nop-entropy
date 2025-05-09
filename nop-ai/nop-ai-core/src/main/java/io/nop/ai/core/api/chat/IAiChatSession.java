@@ -7,7 +7,7 @@
  */
 package io.nop.ai.core.api.chat;
 
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.AiMessage;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.api.core.util.FutureHelper;
@@ -30,9 +30,9 @@ public interface IAiChatSession extends AutoCloseable {
 
     Prompt newPrompt(boolean includeHistory);
 
-    CompletionStage<AiChatResponse> sendChatAsync(Prompt prompt, ICancelToken cancelToken);
+    CompletionStage<AiChatExchange> sendChatAsync(Prompt prompt, ICancelToken cancelToken);
 
-    default AiChatResponse sendChat(Prompt prompt, ICancelToken cancelToken) {
+    default AiChatExchange sendChat(Prompt prompt, ICancelToken cancelToken) {
         return FutureHelper.syncGet(sendChatAsync(prompt, cancelToken));
     }
 }

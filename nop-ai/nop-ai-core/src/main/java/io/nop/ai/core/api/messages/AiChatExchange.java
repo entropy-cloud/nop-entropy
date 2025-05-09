@@ -19,7 +19,7 @@ package io.nop.ai.core.api.messages;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.ai.core.AiCoreConstants;
 import io.nop.ai.core.api.chat.AiChatOptions;
-import io.nop.ai.core.persist.ChatResponseMarkdownPersister;
+import io.nop.ai.core.persist.ChatExchangeMarkdownPersister;
 import io.nop.ai.core.response.JsonResponseParser;
 import io.nop.ai.core.response.MarkdownResponseParser;
 import io.nop.ai.core.response.XmlResponseParser;
@@ -48,10 +48,8 @@ import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_NO_EXPECTED_PART;
 import static io.nop.ai.core.api.messages.AiMessage.indexOfMark;
 
 @DataBean
-public class AiChatResponse {
-    static final Logger LOG = LoggerFactory.getLogger(AiChatResponse.class);
-
-    private int retryTimes;
+public class AiChatExchange {
+    static final Logger LOG = LoggerFactory.getLogger(AiChatExchange.class);
 
     private long beginTime;
     private String chatId;
@@ -85,11 +83,11 @@ public class AiChatResponse {
     private boolean invalid;
     private ErrorBean invalidReason;
 
-    public AiChatResponse() {
+    public AiChatExchange() {
         this.response = new AiAssistantMessage();
     }
 
-    public AiChatResponse(AiAssistantMessage response) {
+    public AiChatExchange(AiAssistantMessage response) {
         this.response = response;
     }
 
@@ -102,11 +100,9 @@ public class AiChatResponse {
     }
 
     public int getRetryTimes() {
-        return retryTimes;
-    }
-
-    public void setRetryTimes(int retryTimes) {
-        this.retryTimes = retryTimes;
+        if (prompt == null)
+            return 0;
+        return prompt.getRetryTimes();
     }
 
     public void clearResponse() {
@@ -229,7 +225,7 @@ public class AiChatResponse {
         return !invalid;
     }
 
-    public AiChatResponse validate() {
+    public AiChatExchange validate() {
         if (!isValid()) {
             if (invalidReason != null)
                 throw NopRebuildException.rebuild(invalidReason);
@@ -293,7 +289,7 @@ public class AiChatResponse {
     }
 
     public String toText() {
-        return ChatResponseMarkdownPersister.instance().serialize(this);
+        return ChatExchangeMarkdownPersister.instance().serialize(this);
     }
 
     public boolean checkNotEmpty() {

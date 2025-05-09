@@ -2,7 +2,7 @@ package io.nop.ai.core.command;
 
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.chat.IAiChatService;
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.commons.processor.IAiChatResponseProcessor;
 import io.nop.ai.core.prompt.IPromptTemplate;
@@ -85,19 +85,19 @@ public class AiCommand {
         this.returnExceptionAsResponse = returnExceptionAsResponse;
     }
 
-    public AiChatResponse execute(Map<String, Object> vars, ICancelToken cancelToken) {
+    public AiChatExchange execute(Map<String, Object> vars, ICancelToken cancelToken) {
         return execute(vars, cancelToken, null);
     }
 
-    public CompletionStage<AiChatResponse> executeAsync(Map<String, Object> vars, ICancelToken cancelToken) {
+    public CompletionStage<AiChatExchange> executeAsync(Map<String, Object> vars, ICancelToken cancelToken) {
         return executeAsync(vars, cancelToken, null);
     }
 
-    public AiChatResponse execute(Map<String, Object> vars, ICancelToken cancelToken, IEvalContext ctx) {
+    public AiChatExchange execute(Map<String, Object> vars, ICancelToken cancelToken, IEvalContext ctx) {
         return FutureHelper.syncGet(executeAsync(vars, cancelToken, ctx));
     }
 
-    public CompletionStage<AiChatResponse> executeAsync(Map<String, Object> vars, ICancelToken cancelToken, IEvalContext ctx) {
+    public CompletionStage<AiChatExchange> executeAsync(Map<String, Object> vars, ICancelToken cancelToken, IEvalContext ctx) {
         IEvalScope scope = prepareInputs(vars, ctx);
         Prompt prompt = newPrompt(scope);
         AiChatOptions options = this.chatOptions.cloneInstance();
@@ -107,7 +107,7 @@ public class AiCommand {
                     adjustTemperature(options, index);
                     return executeOnceAsync(prompt, options, scope, cancelToken);
                 },
-                AiChatResponse::isValid, retryTimesPerRequest);
+                AiChatExchange::isValid, retryTimesPerRequest);
     }
 
     protected IEvalScope prepareInputs(Map<String, Object> vars, IEvalContext ctx) {
@@ -122,14 +122,14 @@ public class AiCommand {
         }
     }
 
-    public CompletionStage<AiChatResponse> executeOnceAsync(Prompt prompt, AiChatOptions chatOptions,
+    public CompletionStage<AiChatExchange> executeOnceAsync(Prompt prompt, AiChatOptions chatOptions,
                                                             IEvalScope scope, ICancelToken cancelToken) {
         if (cancelToken != null && cancelToken.isCancelled()) {
             LOG.info("nop.ai.cancel-call-ai");
             return FutureHelper.reject(new CancellationException("cancel-call-ai"));
         }
 
-        CompletionStage<AiChatResponse> future = chatService.sendChatAsync(prompt, chatOptions, cancelToken).thenApply(ret -> {
+        CompletionStage<AiChatExchange> future = chatService.sendChatAsync(prompt, chatOptions, cancelToken).thenApply(ret -> {
             promptTemplate.processChatResponse(ret, scope);
             return ret;
         });
@@ -140,7 +140,7 @@ public class AiCommand {
         future = FutureHelper.thenCompleteAsync(future.thenApply(this::postProcess), (r, err) -> {
             if (err != null) {
                 if (returnExceptionAsResponse) {
-                    AiChatResponse response = new AiChatResponse();
+                    AiChatExchange response = new AiChatExchange();
                     response.setPrompt(prompt);
                     response.setInvalid(true);
                     response.setInvalidReason(ErrorMessageManager.instance()
@@ -158,7 +158,7 @@ public class AiCommand {
         return future;
     }
 
-    protected AiChatResponse postProcess(AiChatResponse ret) {
+    protected AiChatExchange postProcess(AiChatExchange ret) {
         return ret;
     }
 

@@ -3,7 +3,7 @@ package io.nop.ai.coder;
 import io.nop.ai.coder.orm.AiOrmConfig;
 import io.nop.ai.coder.orm.AiOrmModelNormalizer;
 import io.nop.ai.coder.orm.OrmModelToJava;
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.model.PromptModel;
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.autotest.junit.JunitAutoTestCase;
@@ -12,7 +12,6 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.markdown.simple.MarkdownDocument;
-import io.nop.markdown.simple.MarkdownDocumentParser;
 import io.nop.markdown.simple.MarkdownSection;
 import io.nop.markdown.utils.MarkdownTool;
 import io.nop.orm.model.IEntityModel;
@@ -50,7 +49,7 @@ public class TestAiCoder extends JunitAutoTestCase {
         String prompt = promptModel.generatePrompt(scope);
         outputText("prompt-expand-requirements.md", prompt);
 
-        AiChatResponse response = new AiChatResponse();
+        AiChatExchange response = new AiChatExchange();
         String content = inputText("response-expand-requirements.md");
         response.setContent(content);
         promptModel.processChatResponse(response, scope);
@@ -72,7 +71,7 @@ public class TestAiCoder extends JunitAutoTestCase {
         String prompt = promptModel.generatePrompt(scope);
         outputText("prompt-refine-requirements.md", prompt);
 
-        AiChatResponse response = new AiChatResponse();
+        AiChatExchange response = new AiChatExchange();
         String content = inputText("response-refine-requirements.md");
         response.setContent(content);
         promptModel.processChatResponse(response, scope);
@@ -92,7 +91,7 @@ public class TestAiCoder extends JunitAutoTestCase {
         String prompt = promptModel.generatePrompt(scope);
         outputText("prompt-orm-design.md", prompt);
 
-        AiChatResponse response = new AiChatResponse();
+        AiChatExchange response = new AiChatExchange();
         String content = inputText("response-orm-design.md");
         response.setContent(content);
         promptModel.processChatResponse(response, scope);
@@ -113,7 +112,7 @@ public class TestAiCoder extends JunitAutoTestCase {
         String prompt = promptModel.generatePrompt(scope);
         outputText("prompt-refine-orm-design.md", prompt);
 
-        AiChatResponse response = new AiChatResponse();
+        AiChatExchange response = new AiChatExchange();
         String content = inputText("response-refine-orm-design.md");
         response.setContent(content);
         promptModel.processChatResponse(response, scope);
@@ -135,7 +134,7 @@ public class TestAiCoder extends JunitAutoTestCase {
         String prompt = promptModel.generatePrompt(scope);
         //outputText("prompt-menu-design.md", prompt);
 
-        AiChatResponse response = new AiChatResponse();
+        AiChatExchange response = new AiChatExchange();
         String content = inputText("response-menu-design.md");
         response.setContent(content);
         promptModel.processChatResponse(response, scope);

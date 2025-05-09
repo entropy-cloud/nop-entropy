@@ -1,7 +1,7 @@
 package io.nop.ai.core.service;
 
 import io.nop.ai.core.api.chat.IAiChatService;
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.api.core.util.ICancelToken;
 
@@ -15,7 +15,7 @@ public class DefaultAiChatSession extends AbstractAiChatSession {
     }
 
     @Override
-    public CompletionStage<AiChatResponse> sendChatAsync(Prompt prompt, ICancelToken cancelToken) {
+    public CompletionStage<AiChatExchange> sendChatAsync(Prompt prompt, ICancelToken cancelToken) {
         return chatService.sendChatAsync(prompt, getChatOptions(), cancelToken);
     }
 }

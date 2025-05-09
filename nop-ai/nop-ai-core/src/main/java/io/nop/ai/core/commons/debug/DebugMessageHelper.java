@@ -1,6 +1,6 @@
 package io.nop.ai.core.commons.debug;
 
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.commons.util.FileHelper;
@@ -25,7 +25,7 @@ public class DebugMessageHelper {
     public static final String METADATA_BEGIN = "<AI_META_DATA>\n";
     public static final String METADATA_END = "\n</AI_META_DATA>\n";
 
-    public static void collectDebugText(StringBuilder sb, AiChatResponse message) {
+    public static void collectDebugText(StringBuilder sb, AiChatExchange message) {
         if (message.getMetadata() != null && !message.getMetadata().isEmpty()) {
             sb.append(METADATA_BEGIN);
             sb.append(JsonTool.stringify(message.getMetadata()));
@@ -60,18 +60,18 @@ public class DebugMessageHelper {
             sb.append(content);
     }
 
-    public static String buildDebugText(List<AiChatResponse> messages) {
+    public static String buildDebugText(List<AiChatExchange> messages) {
         StringBuilder sb = new StringBuilder();
-        for (AiChatResponse message : messages) {
+        for (AiChatExchange message : messages) {
             collectDebugText(sb, message);
             sb.append(DebugMessageHelper.MESSAGE_SEPARATOR);
         }
         return sb.toString();
     }
 
-    public static String getText(List<AiChatResponse> messages) {
+    public static String getText(List<AiChatExchange> messages) {
         StringBuilder sb = new StringBuilder();
-        for (AiChatResponse message : messages) {
+        for (AiChatExchange message : messages) {
             String content = message.getContent();
             if (content != null)
                 sb.append(content).append('\n');
@@ -79,31 +79,31 @@ public class DebugMessageHelper {
         return sb.toString();
     }
 
-    public static void writeDebugFile(File file, List<AiChatResponse> messages) {
+    public static void writeDebugFile(File file, List<AiChatExchange> messages) {
         String text = buildDebugText(messages);
         FileHelper.writeText(file, text, null);
     }
 
-    public static List<AiChatResponse> parseDebugFile(File file) {
+    public static List<AiChatExchange> parseDebugFile(File file) {
         return parseDebugText(FileHelper.readText(file, null));
     }
 
-    public static List<AiChatResponse> parseDebugText(String text) {
+    public static List<AiChatExchange> parseDebugText(String text) {
         List<String> parts = StringHelper.splitBy(text, MESSAGE_SEPARATOR);
-        List<AiChatResponse> ret = new ArrayList<>();
+        List<AiChatExchange> ret = new ArrayList<>();
         for (String part : parts) {
             if (StringHelper.isBlank(part))
                 continue;
-            AiChatResponse res = parseMessage(part);
+            AiChatExchange res = parseMessage(part);
             ret.add(res);
         }
         return ret;
     }
 
-    static AiChatResponse parseMessage(String text) {
+    static AiChatExchange parseMessage(String text) {
         text = StringHelper.replace(text, "\r\n", "\n");
 
-        AiChatResponse res = new AiChatResponse();
+        AiChatExchange res = new AiChatExchange();
 
         int pos = 0;
         if (text.startsWith(METADATA_BEGIN, pos)) {

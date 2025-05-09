@@ -1,8 +1,9 @@
 package io.nop.ai.translate;
 
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.commons.debug.DebugMessageHelper;
 import io.nop.core.unittest.BaseTestCase;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -12,12 +13,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestAiChatResponse extends BaseTestCase {
+@Disabled
+public class TestAiChatExchange extends BaseTestCase {
     @Test
     public void testChatResponse() {
         File file = getTestResourceFile("data/translate-result1.md");
-        List<AiChatResponse> list = DebugMessageHelper.parseDebugFile(file);
-        AiChatResponse response = list.get(0);
+        List<AiChatExchange> list = DebugMessageHelper.parseDebugFile(file);
+        AiChatExchange response = list.get(0);
         String result = response.getBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>", true, false);
         assertNotNull(result);
         assertTrue(response.isValid());

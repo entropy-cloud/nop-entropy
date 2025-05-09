@@ -54,7 +54,7 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     /**
      *  
      * xml name: postProcess
-     * 执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
+     * 执行完AI模型调用后得到AichatExchange对象，可以通过模板内置的后处理器对返回结果进行再加工。
      * 这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
      */
     private io.nop.core.lang.eval.IEvalFunction _postProcess ;
@@ -231,7 +231,7 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: postProcess
-     *  执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
+     *  执行完AI模型调用后得到AichatExchange对象，可以通过模板内置的后处理器对返回结果进行再加工。
      * 这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
      */
     

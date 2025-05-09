@@ -1,6 +1,6 @@
 package io.nop.ai.core.commons.processor;
 
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 
 import java.util.concurrent.CompletionStage;
 
@@ -14,7 +14,7 @@ public class ChainAiChatResponseProcessor implements IAiChatResponseProcessor {
     }
 
     @Override
-    public CompletionStage<AiChatResponse> processAsync(AiChatResponse message) {
+    public CompletionStage<AiChatExchange> processAsync(AiChatExchange message) {
         return processor.processAsync(message).thenCompose(next::processAsync);
     }
 }

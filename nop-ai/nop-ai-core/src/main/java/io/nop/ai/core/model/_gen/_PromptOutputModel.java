@@ -106,7 +106,7 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     /**
      *  
      * xml name: skipWhenResponseInvalid
-     * 当AiChatResponse为invalid状态时，跳过此输出变量的解析
+     * 当AichatExchange为invalid状态时，跳过此输出变量的解析
      */
     private boolean _skipWhenResponseInvalid  = false;
     
@@ -372,7 +372,7 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     /**
      * 
      * xml name: skipWhenResponseInvalid
-     *  当AiChatResponse为invalid状态时，跳过此输出变量的解析
+     *  当AichatExchange为invalid状态时，跳过此输出变量的解析
      */
     
     public boolean isSkipWhenResponseInvalid(){

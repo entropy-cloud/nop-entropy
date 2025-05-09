@@ -26,7 +26,7 @@
 
     <outputs xdef:body-type="list" xdef:key-attr="name">
         <!-- 解析响应消息，得到结果变量保存到AiResultMessage上
-          @skipWhenResponseInvalid 当AiChatResponse为invalid状态时，跳过此输出变量的解析
+          @skipWhenResponseInvalid 当AichatExchange为invalid状态时，跳过此输出变量的解析
           @parseAfterPostProcess 是否在postProcess调用之前解析
           @format 如果是xml，则尝试从content中解析得到XML节点。如果是json，则尝试解析得到json数据。解析中会自动忽略一些无关的输出信息。
         -->
@@ -40,10 +40,10 @@
             <xdefPath>v-path</xdefPath>
             <markdownPath>v-path</markdownPath>
 
-            <when>xpl-fn:(chatResponse)=>boolean</when>
+            <when>xpl-fn:(chatExchange)=>boolean</when>
 
             <!-- 当不满足解析条件时，执行defaultExpr返回缺省值 -->
-            <defaultExpr>xpl-fn:(chatResponse)=>any</defaultExpr>
+            <defaultExpr>xpl-fn:(chatExchange)=>any</defaultExpr>
 
             <!--
             没有指定format的情况下才会使用parseFromResponse配置
@@ -56,13 +56,13 @@
             <parseFromResponse xdef:name="PromptOutputParseModel" containsText="string"
                                startMarkerOptional="!boolean=false" blockStartMarker="string" blockEndMarker="string"
                                includeStartMarker="!boolean=false" includeEndMarker="!boolean=false">
-                <parseFunction>xpl-fn:(chatResponse)=>any</parseFunction>
+                <parseFunction>xpl-fn:(chatExchange)=>any</parseFunction>
             </parseFromResponse>
 
             <!-- 对解析得到的value进行后处理。处理之后再执行XDef元模型验证 -->
-            <valueNormalizer>xpl-fn:(value,chatResponse)=>any</valueNormalizer>
+            <valueNormalizer>xpl-fn:(value,chatExchange)=>any</valueNormalizer>
 
-            <outputBuilder>xpl-fn:(value,chatResponse)=>any</outputBuilder>
+            <outputBuilder>xpl-fn:(value,chatExchange)=>any</outputBuilder>
         </output>
     </outputs>
 
@@ -80,8 +80,8 @@
     <preProcess>xpl-fn:()=>void</preProcess>
 
     <!--
-    执行完AI模型调用后得到AiChatResponse对象，可以通过模板内置的后处理器对返回结果进行再加工。
+    执行完AI模型调用后得到AichatExchange对象，可以通过模板内置的后处理器对返回结果进行再加工。
     这样在切换不同的Prompt模板的时候可以自动切换使用不同的后处理器。
     -->
-    <postProcess>xpl-fn:(chatResponse)=>void</postProcess>
+    <postProcess>xpl-fn:(chatExchange)=>void</postProcess>
 </prompt>

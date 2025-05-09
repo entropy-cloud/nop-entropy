@@ -9,7 +9,7 @@ package io.nop.ai.core.api.chat;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ExtensibleBean;
 
@@ -39,7 +39,7 @@ public class AiChatOptions extends ExtensibleBean {
 
     private String responseFormat;
 
-    private Consumer<AiChatResponse> streamListener;
+    private Consumer<AiChatExchange> streamListener;
 
     //============= 以下为coze支持的参数 =====
     private String botId;
@@ -110,11 +110,11 @@ public class AiChatOptions extends ExtensibleBean {
     }
 
     @JsonIgnore
-    public Consumer<AiChatResponse> getStreamListener() {
+    public Consumer<AiChatExchange> getStreamListener() {
         return streamListener;
     }
 
-    public void setStreamListener(Consumer<AiChatResponse> streamListener) {
+    public void setStreamListener(Consumer<AiChatExchange> streamListener) {
         this.streamListener = streamListener;
     }
 

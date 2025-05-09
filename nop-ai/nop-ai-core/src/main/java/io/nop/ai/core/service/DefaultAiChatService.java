@@ -3,7 +3,7 @@ package io.nop.ai.core.service;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.chat.IAiChatSession;
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.AiChatUsage;
 import io.nop.ai.core.api.messages.AiMessage;
 import io.nop.ai.core.api.messages.MessageStatus;
@@ -110,7 +110,7 @@ public class DefaultAiChatService implements IAiChatService {
     }
 
     @Override
-    public CompletionStage<AiChatResponse> sendChatAsync(Prompt prompt, AiChatOptions options, ICancelToken cancelToken) {
+    public CompletionStage<AiChatExchange> sendChatAsync(Prompt prompt, AiChatOptions options, ICancelToken cancelToken) {
         Guard.notNull(options, "chatOptions");
 
         String llmName = getLlmName(options);
@@ -123,11 +123,11 @@ public class DefaultAiChatService implements IAiChatService {
         return doSendChat(llmName, llmModel, prompt, options, cancelToken);
     }
 
-    protected CompletionStage<AiChatResponse> doSendChat(String llmName,
+    protected CompletionStage<AiChatExchange> doSendChat(String llmName,
                                                          LlmModel llmModel,
                                                          Prompt prompt, AiChatOptions options,
                                                          ICancelToken cancelToken) {
-        AiChatResponse chatResponse = new AiChatResponse();
+        AiChatExchange chatResponse = new AiChatExchange();
         chatResponse.setPrompt(prompt);
         chatResponse.setChatOptions(options);
 
@@ -318,7 +318,7 @@ public class DefaultAiChatService implements IAiChatService {
     }
 
     protected void parseHttpResponse(String llmName, LlmModel llmModel,
-                                     Map<String, Object> response, AiChatResponse chatResponse) {
+                                     Map<String, Object> response, AiChatExchange chatResponse) {
 
         try {
             parseToResult(chatResponse, llmModel, response);
@@ -329,7 +329,7 @@ public class DefaultAiChatService implements IAiChatService {
         }
     }
 
-    protected void parseToResult(AiChatResponse ret, LlmModel llmModel,
+    protected void parseToResult(AiChatExchange ret, LlmModel llmModel,
                                  Map<String, Object> result) {
         LlmResponseModel responseModel = llmModel.getResponse();
 
@@ -369,7 +369,7 @@ public class DefaultAiChatService implements IAiChatService {
                 err -> new NopException(err).param(ARG_PROP_PATH, path));
     }
 
-    protected void checkThink(AiChatResponse message, LlmModel model, String modelName) {
+    protected void checkThink(AiChatExchange message, LlmModel model, String modelName) {
         LlmModelModel modelModel = getModelModel(model, modelName);
         String startMarker = modelModel == null || modelModel.getThinkStartMarker() == null ? "<think>\n" : modelModel.getThinkStartMarker();
         String endMarker = modelModel == null || modelModel.getThinkEndMarker() == null ? "\n</think>\n" : modelModel.getThinkEndMarker();
@@ -396,7 +396,7 @@ public class DefaultAiChatService implements IAiChatService {
         LOG.info("request:role={},content=\n{}", getRole(message), message.getContent());
     }
 
-    protected void logResponse(AiChatResponse response) {
+    protected void logResponse(AiChatExchange response) {
         LOG.info("response:promptTokens={},completionTokens={},content=\n{}",
                 response.getPromptTokens(), response.getCompletionTokens(), response.getContent());
     }

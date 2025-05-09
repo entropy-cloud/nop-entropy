@@ -1,6 +1,6 @@
 package io.nop.ai.core.api.chat;
 
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.api.core.util.ICancelToken;
 
@@ -11,5 +11,5 @@ public interface IAiChatService {
 
     IAiChatSession getSession(String sessionId);
 
-    CompletionStage<AiChatResponse> sendChatAsync(Prompt prompt, AiChatOptions options, ICancelToken cancelToken);
+    CompletionStage<AiChatExchange> sendChatAsync(Prompt prompt, AiChatOptions options, ICancelToken cancelToken);
 }

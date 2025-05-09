@@ -1,7 +1,7 @@
 package io.nop.ai.core.prompt;
 
 import io.nop.ai.core.api.chat.AiChatOptions;
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.model.PromptInputModel;
 import io.nop.ai.core.model.PromptOutputModel;
 import io.nop.core.context.IEvalContext;
@@ -34,5 +34,5 @@ public interface IPromptTemplate extends IActionModel {
 
     String generatePrompt(IEvalScope scope);
 
-    void processChatResponse(AiChatResponse chatResponse, IEvalScope scope);
+    void processChatResponse(AiChatExchange chatResponse, IEvalScope scope);
 }

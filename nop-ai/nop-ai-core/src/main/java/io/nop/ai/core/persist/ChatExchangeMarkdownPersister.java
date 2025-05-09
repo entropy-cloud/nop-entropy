@@ -3,7 +3,7 @@ package io.nop.ai.core.persist;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.messages.AbstractTextMessage;
 import io.nop.ai.core.api.messages.AiAssistantMessage;
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.AiChatUsage;
 import io.nop.ai.core.api.messages.AiMessage;
 import io.nop.ai.core.api.messages.Prompt;
@@ -15,7 +15,7 @@ import io.nop.core.lang.json.JsonTool;
 import java.sql.Timestamp;
 import java.util.List;
 
-public class ChatResponseMarkdownPersister implements IChatResponsePersister {
+public class ChatExchangeMarkdownPersister implements IChatExchangePersister {
     static final String TITLE_CHAT = "# Chat: ";
 
     static final String TITLE_CHAT_OPTIONS = "## ChatOptions\n";
@@ -42,62 +42,62 @@ public class ChatResponseMarkdownPersister implements IChatResponsePersister {
 
     static final String MARKER_CHAT_END = "=======**==**=======\n";
 
-    public static ChatResponseMarkdownPersister s_instance = new ChatResponseMarkdownPersister();
+    public static ChatExchangeMarkdownPersister s_instance = new ChatExchangeMarkdownPersister();
 
-    public static ChatResponseMarkdownPersister instance() {
+    public static ChatExchangeMarkdownPersister instance() {
         return s_instance;
     }
 
-    public static void registerInstance(ChatResponseMarkdownPersister persister) {
+    public static void registerInstance(ChatExchangeMarkdownPersister persister) {
         s_instance = persister;
     }
 
     @Override
-    public String serialize(AiChatResponse response) {
+    public String serialize(AiChatExchange exchange) {
         StringBuilder sb = new StringBuilder();
-        sb.append(TITLE_CHAT).append(response.getRetryTimes())
-                .append('-').append(response.getChatId());
-        sb.append('@').append(new Timestamp(response.getBeginTime()));
+        sb.append(TITLE_CHAT).append(exchange.getRetryTimes())
+                .append('-').append(exchange.getChatId());
+        sb.append('@').append(new Timestamp(exchange.getBeginTime()));
         sb.append("\n\n");
 
-        if (response.getChatOptions() != null) {
+        if (exchange.getChatOptions() != null) {
             sb.append(TITLE_CHAT_OPTIONS);
-            appendJson(sb, response.getChatOptions());
+            appendJson(sb, exchange.getChatOptions());
         }
 
-        if (response.getMetadata() != null) {
+        if (exchange.getMetadata() != null) {
             sb.append(TITLE_METADATA);
-            appendJson(sb, response.getMetadata());
+            appendJson(sb, exchange.getMetadata());
         }
 
-        if (response.getVariables() != null) {
+        if (exchange.getVariables() != null) {
             sb.append(TITLE_VARIABLES);
-            appendJson(sb, response.getVariables());
+            appendJson(sb, exchange.getVariables());
         }
 
-        if (response.isInvalid()) {
+        if (exchange.isInvalid()) {
             sb.append(TITLE_ERROR);
-            ErrorBean errorBean = response.getInvalidReason();
+            ErrorBean errorBean = exchange.getInvalidReason();
             if (errorBean == null)
                 errorBean = new ErrorBean("invalid");
             appendJson(sb, errorBean);
         }
 
-        AiChatUsage usage = response.getUsage();
+        AiChatUsage usage = exchange.getUsage();
         if (usage != null) {
             sb.append(TITLE_USAGE);
             appendJson(sb, usage);
         }
 
-        if (response.getPrompt() != null) {
-            List<AiMessage> messages = response.getPrompt().getMessages();
+        if (exchange.getPrompt() != null) {
+            List<AiMessage> messages = exchange.getPrompt().getMessages();
             for (AiMessage message : messages) {
                 appendMessage(sb, TITLE_MESSAGE, message);
             }
         }
 
-        if (response.getResponse() != null) {
-            appendMessage(sb, TITLE_RESPONSE, response.getResponse());
+        if (exchange.getResponse() != null) {
+            appendMessage(sb, TITLE_RESPONSE, exchange.getResponse());
         }
 
         sb.append(MARKER_CHAT_END);
@@ -130,16 +130,18 @@ public class ChatResponseMarkdownPersister implements IChatResponsePersister {
     }
 
     @Override
-    public AiChatResponse deserialize(String text) {
+    public AiChatExchange deserialize(String text) {
         text = StringHelper.replace(text, "\r\n", "\n");
 
-        AiChatResponse response = new AiChatResponse();
+        AiChatExchange response = new AiChatExchange();
         TextScanner scanner = TextScanner.fromString(null, text);
+
+        Prompt prompt = new Prompt();
 
         // 解析Chat标题行
         if (scanner.tryMatch(TITLE_CHAT)) {
             int retryTimes = scanner.nextInt();
-            response.setRetryTimes(retryTimes);
+            prompt.setRetryTimes(retryTimes);
             scanner.consume('-');
             String chatId = scanner.nextUntil("@", false).toString();
             response.setChatId(chatId);
@@ -156,7 +158,6 @@ public class ChatResponseMarkdownPersister implements IChatResponsePersister {
             response.setChatOptions(JsonTool.parseBeanFromText(json, AiChatOptions.class));
         }
 
-        Prompt prompt = new Prompt();
         // 解析Metadata
         if (scanner.tryMatch(TITLE_METADATA)) {
             String json = consumeJsonBlock(scanner);

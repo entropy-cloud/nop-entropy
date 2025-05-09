@@ -1,7 +1,7 @@
 package io.nop.ai.translate;
 
 import io.nop.ai.core.api.chat.IAiChatService;
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.command.AiCommand;
 import io.nop.ai.core.commons.aggregator.IAiTextAggregator;
@@ -193,7 +193,7 @@ public class AiTranslateCommand extends AiCommand {
             if (!debugFile.getName().endsWith(".md"))
                 return FileVisitResult.CONTINUE;
 
-            List<AiChatResponse> messages = DebugMessageHelper.parseDebugFile(debugFile);
+            List<AiChatExchange> messages = DebugMessageHelper.parseDebugFile(debugFile);
             String aggText = DebugMessageHelper.getText(messages);
 
             String text = FileHelper.readText(outFile, null);
@@ -255,21 +255,21 @@ public class AiTranslateCommand extends AiCommand {
                                                                     ICancelToken cancelToken, Semaphore limit) {
         LOG.info("nop.ai.translate-file-with-recover-mode:debugFile={}", FileHelper.getAbsolutePath(debugFile));
 
-        List<AiChatResponse> messages = DebugMessageHelper.parseDebugFile(debugFile);
+        List<AiChatExchange> messages = DebugMessageHelper.parseDebugFile(debugFile);
 
         Cancellable cancellable = new Cancellable();
         Consumer<String> cleanup = cancellable::cancel;
         if (cancelToken != null) {
             cancelToken.appendOnCancel(cleanup);
         }
-        List<CompletionStage<AiChatResponse>> promises = new ArrayList<>(messages.size());
-        for (AiChatResponse message : messages) {
+        List<CompletionStage<AiChatExchange>> promises = new ArrayList<>(messages.size());
+        for (AiChatExchange message : messages) {
             if (message.isValid()) {
                 promises.add(FutureHelper.success(message));
                 continue;
             }
 
-            CompletionStage<AiChatResponse> promise = FutureHelper.executeWithThrottling(() ->
+            CompletionStage<AiChatExchange> promise = FutureHelper.executeWithThrottling(() ->
                     translateTextAsync(message.getPrompt().getLastMessage().getContent(), cancellable), limit);
 
             promises.add(promise);
@@ -300,9 +300,9 @@ public class AiTranslateCommand extends AiCommand {
         if (textSplitter != null && text.length() > maxChunkSize) {
             List<IAiTextSplitter.SplitChunk> chunks = textSplitter.split(text, maxChunkSize);
 
-            List<CompletionStage<AiChatResponse>> promises = new ArrayList<>(chunks.size());
+            List<CompletionStage<AiChatExchange>> promises = new ArrayList<>(chunks.size());
             for (IAiTextSplitter.SplitChunk chunk : chunks) {
-                CompletionStage<AiChatResponse> promise = FutureHelper.executeWithThrottling(() ->
+                CompletionStage<AiChatExchange> promise = FutureHelper.executeWithThrottling(() ->
                         translateTextAsync(chunk.getContent(), cancelToken), limit);
 
                 promises.add(promise);
@@ -321,17 +321,17 @@ public class AiTranslateCommand extends AiCommand {
         }
     }
 
-    AggregateText aggregateResults(List<AiChatResponse> messages) {
+    AggregateText aggregateResults(List<AiChatExchange> messages) {
         String text;
         if (textAggregator != null) {
             text = textAggregator.aggregate(messages);
         } else {
-            text = messages.stream().map(AiChatResponse::getContent).collect(Collectors.joining("\n\n"));
+            text = messages.stream().map(AiChatExchange::getContent).collect(Collectors.joining("\n\n"));
         }
         return new AggregateText(messages, text);
     }
 
-    public CompletionStage<AiChatResponse> translateTextAsync(String text, ICancelToken cancelToken) {
+    public CompletionStage<AiChatExchange> translateTextAsync(String text, ICancelToken cancelToken) {
         if (checkTranslationTool != null) {
             return RetryHelper.retryNTimes(index -> {
                         return doTranslateTextAsync(text, cancelToken).thenCompose(ret -> {
@@ -342,23 +342,23 @@ public class AiTranslateCommand extends AiCommand {
                             return checkTranslationTool.fixTranslationAsync(text, ret.getContent(), cancelToken);
                         });
                     },
-                    AiChatResponse::isValid, 1);
+                    AiChatExchange::isValid, 1);
         }
         return doTranslateTextAsync(text, cancelToken);
     }
 
-    protected boolean needCheck(AiChatResponse message) {
+    protected boolean needCheck(AiChatExchange message) {
         if (needFixChecker != null)
             return needFixChecker.isAccepted(message);
         return false;
     }
 
-    protected CompletionStage<AiChatResponse> doTranslateTextAsync(String text, ICancelToken cancelToken) {
+    protected CompletionStage<AiChatExchange> doTranslateTextAsync(String text, ICancelToken cancelToken) {
         Map<String, Object> vars = Map.of(VAR_CONTENT, text,
                 VAR_FROM_LANG, fromLang, VAR_TO_LANG, toLang);
 
         if (StringHelper.isBlank(text)) {
-            AiChatResponse response = new AiChatResponse();
+            AiChatExchange response = new AiChatExchange();
             Prompt prompt = newPrompt(prepareInputs(vars, XLang.newEvalScope()));
             response.setPrompt(prompt);
             response.setContent(text);

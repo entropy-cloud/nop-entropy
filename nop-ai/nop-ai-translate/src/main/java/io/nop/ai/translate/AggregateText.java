@@ -1,6 +1,6 @@
 package io.nop.ai.translate;
 
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.commons.debug.DebugMessageHelper;
 import io.nop.api.core.annotations.data.DataBean;
 
@@ -8,23 +8,23 @@ import java.util.List;
 
 @DataBean
 public class AggregateText {
-    private List<AiChatResponse> messages;
+    private List<AiChatExchange> messages;
     private String text;
 
     public AggregateText() {
     }
 
-    public static AggregateText fromResultMessage(AiChatResponse message) {
+    public static AggregateText fromResultMessage(AiChatExchange message) {
         return new AggregateText(List.of(message), message.getContent());
     }
 
-    public AggregateText(List<AiChatResponse> messages, String text) {
+    public AggregateText(List<AiChatExchange> messages, String text) {
         this.messages = messages;
         this.text = text;
     }
 
     public boolean isAllValid() {
-        for (AiChatResponse message : messages) {
+        for (AiChatExchange message : messages) {
             if (!message.isValid())
                 return false;
         }
@@ -36,11 +36,11 @@ public class AggregateText {
     }
 
 
-    public List<AiChatResponse> getMessages() {
+    public List<AiChatExchange> getMessages() {
         return messages;
     }
 
-    public void setMessages(List<AiChatResponse> messages) {
+    public void setMessages(List<AiChatExchange> messages) {
         this.messages = messages;
     }
 

@@ -1,6 +1,6 @@
 package io.nop.ai.translate.fix;
 
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.commons.debug.DebugMessageHelper;
 import io.nop.commons.util.FileHelper;
 import io.nop.markdown.simple.MarkdownDocumentParser;
@@ -21,8 +21,8 @@ public class FixMarkdownTranslation {
                 return FileVisitResult.CONTINUE;
 
             boolean changed = false;
-            List<AiChatResponse> messages = DebugMessageHelper.parseDebugFile(f1);
-            for (AiChatResponse message : messages) {
+            List<AiChatExchange> messages = DebugMessageHelper.parseDebugFile(f1);
+            for (AiChatExchange message : messages) {
                 String sourceText = getSourceText(message);
                 String resultText = getResultText(message);
 
@@ -43,7 +43,7 @@ public class FixMarkdownTranslation {
         });
     }
 
-    protected String getSourceText(AiChatResponse message) {
+    protected String getSourceText(AiChatExchange message) {
         String text = message.getBlockFromPrompt("待翻译的内容如下：\n", "\n[EndOfData]");
         if (text == null) {
             text = message.getBlockFromPrompt("<TRANSLATE_SOURCE>\n", "\n</TRANSLATE_SOURCE>", 1);
@@ -53,7 +53,7 @@ public class FixMarkdownTranslation {
         return text;
     }
 
-    protected String getResultText(AiChatResponse message) {
+    protected String getResultText(AiChatExchange message) {
         String content = message.getContent();
         if (content == null)
             content = "";

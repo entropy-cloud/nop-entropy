@@ -1,7 +1,7 @@
 package io.nop.ai.translate;
 
 import io.nop.ai.core.api.chat.IAiChatService;
-import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.commons.debug.DebugMessageHelper;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.ai.core.prompt.PromptTemplateManager;
@@ -92,7 +92,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
     public void testTranslateResult() {
         File file = getTargetFile("test-classes/data/translate-result0.md");
         String text = FileHelper.readText(file, null);
-        AiChatResponse response = new AiChatResponse();
+        AiChatExchange response = new AiChatExchange();
         response.setContent(text);
         response.getBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>", true, false);
     }
@@ -117,9 +117,9 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
 
         FileHelper.walk2(docsEnDir, docsEnDebugDir, (f1, f2) -> {
             if (f2.getName().endsWith(".md") && f2.exists()) {
-                List<AiChatResponse> messages = DebugMessageHelper.parseDebugFile(f2);
+                List<AiChatExchange> messages = DebugMessageHelper.parseDebugFile(f2);
                 boolean changed = false;
-                for (AiChatResponse message : messages) {
+                for (AiChatExchange message : messages) {
                     message.checkNotEmpty();
 
                     if (message.isInvalid())
@@ -136,7 +136,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
                     changed = true;
                     try {
 
-                        AiChatResponse scoreMessage = FutureHelper.syncGet(check.executeAsync(source, message.getContent(), null));
+                        AiChatExchange scoreMessage = FutureHelper.syncGet(check.executeAsync(source, message.getContent(), null));
                         Number score = (Number) scoreMessage.getOutput("score");
                         if (score != null)
                             message.setOutput("score", score);
@@ -155,7 +155,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         });
     }
 
-    String getSourceText(AiChatResponse message) {
+    String getSourceText(AiChatExchange message) {
         String text = message.getBlockFromPrompt("待翻译的内容如下：\n", "\n[EndOfData]");
         if (text == null) {
             text = message.getBlockFromPrompt("<TRANSLATE_SOURCE>\n", "\n</TRANSLATE_SOURCE>", 1);
@@ -255,8 +255,8 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         File docsEnDebugDir = new File(docsDir.getParentFile(), "docs-en-debug");
 
         File file = new File(docsEnDebugDir, "theory/why-xlang-is-innovative.md");
-        List<AiChatResponse> responses = DebugMessageHelper.parseDebugFile(file);
-        for (AiChatResponse response : responses) {
+        List<AiChatExchange> responses = DebugMessageHelper.parseDebugFile(file);
+        for (AiChatExchange response : responses) {
             System.out.println(response.getContent());
         }
     }
@@ -282,9 +282,9 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
     void fixDebugFileForDir(File dir) {
         FileHelper.walk(dir, f1 -> {
             if (f1.getName().endsWith(".md")) {
-                List<AiChatResponse> messages = DebugMessageHelper.parseDebugFile(f1);
+                List<AiChatExchange> messages = DebugMessageHelper.parseDebugFile(f1);
                 boolean changed = false;
-                for (AiChatResponse message : messages) {
+                for (AiChatExchange message : messages) {
                     String content = message.getContent();
                     if (content != null && content.contains("<TRANSLATE_RESULT>")) {
                         message.parseContentBlock("<TRANSLATE_RESULT>\n", "\n</TRANSLATE_RESULT>", false, false);
