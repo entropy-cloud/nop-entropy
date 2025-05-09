@@ -43,4 +43,12 @@ public abstract class ExtensibleBean implements Serializable {
         if (attrs != null)
             attrs.remove(name);
     }
+
+    public void addAttrs(Map<String, Object> attrs) {
+        if (attrs != null) {
+            if (this.attrs == null)
+                this.attrs = new LinkedHashMap<>();
+            this.attrs.putAll(attrs);
+        }
+    }
 }

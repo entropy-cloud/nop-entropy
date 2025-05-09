@@ -100,10 +100,12 @@ public class AiCommand {
     public CompletionStage<AiChatResponse> executeAsync(Map<String, Object> vars, ICancelToken cancelToken, IEvalContext ctx) {
         IEvalScope scope = prepareInputs(vars, ctx);
         Prompt prompt = newPrompt(scope);
+        AiChatOptions options = this.chatOptions.cloneInstance();
+        promptTemplate.applyChatOptions(options);
 
         return RetryHelper.retryNTimes((index) -> {
-                    adjustTemperature(prompt, index);
-                    return executeOnceAsync(prompt, scope, cancelToken);
+                    adjustTemperature(options, index);
+                    return executeOnceAsync(prompt, options, scope, cancelToken);
                 },
                 AiChatResponse::isValid, retryTimesPerRequest);
     }
@@ -112,15 +114,16 @@ public class AiCommand {
         return promptTemplate.prepareInputs(vars, ctx);
     }
 
-    protected void adjustTemperature(Prompt prompt, int index) {
+    protected void adjustTemperature(AiChatOptions options, int index) {
         if (index == 1) {
-            prompt.setTemperature(0f);
+            options.setTemperature(0f);
         } else if (index > 0) {
-            prompt.setTemperature((float) (0.6f + ((1.2 - 0.6) * index) / retryTimesPerRequest));
+            options.setTemperature((float) (0.6f + ((1.2 - 0.6) * index) / retryTimesPerRequest));
         }
     }
 
-    public CompletionStage<AiChatResponse> executeOnceAsync(Prompt prompt, IEvalScope scope, ICancelToken cancelToken) {
+    public CompletionStage<AiChatResponse> executeOnceAsync(Prompt prompt, AiChatOptions chatOptions,
+                                                            IEvalScope scope, ICancelToken cancelToken) {
         if (cancelToken != null && cancelToken.isCancelled()) {
             LOG.info("nop.ai.cancel-call-ai");
             return FutureHelper.reject(new CancellationException("cancel-call-ai"));

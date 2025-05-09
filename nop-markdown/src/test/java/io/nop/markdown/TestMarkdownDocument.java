@@ -26,7 +26,7 @@ public class TestMarkdownDocument {
         MarkdownDocument tpl = MarkdownTool.instance().parseFromVirtualPath("/test/test.tpl.md");
         System.out.println(StringHelper.join(tpl.getAllFullTitles(), "\n"));
 
-        MarkdownDocument doc = MarkdownTool.instance().parseFromText(null, "/test/test.md");
+        MarkdownDocument doc = MarkdownTool.instance().parseFromVirtualPath("/test/test.md");
         doc.matchTpl(tpl, true);
 
         assertNotNull(doc.findSectionByTitle("2.2 核心功能模块"));

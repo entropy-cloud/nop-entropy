@@ -535,6 +535,207 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "normalizePromptPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.ai.core.prompt.PromptTemplateManager"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "buildHttpRequest",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.ai.core.model.LlmModel",
+          "io.nop.ai.core.api.messages.Prompt",
+          "io.nop.ai.core.api.chat.AiChatOptions"
+        ]
+      },
+      {
+        "name": "buildLlmModelPath",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "checkThink",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiChatResponse",
+          "io.nop.ai.core.model.LlmModel",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "doSendChat",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.ai.core.model.LlmModel",
+          "io.nop.ai.core.api.messages.Prompt",
+          "io.nop.ai.core.api.chat.AiChatOptions",
+          "io.nop.api.core.util.ICancelToken"
+        ]
+      },
+      {
+        "name": "generateSessionId",
+        "parameterTypes": []
+      },
+      {
+        "name": "getApiKey",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getBaseUrl",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.ai.core.model.LlmModel"
+        ]
+      },
+      {
+        "name": "getInteger",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getLlmName",
+        "parameterTypes": [
+          "io.nop.ai.core.api.chat.AiChatOptions"
+        ]
+      },
+      {
+        "name": "getMessageStatus",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getModel",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.ai.core.model.LlmModel",
+          "io.nop.ai.core.api.chat.AiChatOptions"
+        ]
+      },
+      {
+        "name": "getModelModel",
+        "parameterTypes": [
+          "io.nop.ai.core.model.LlmModel",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRateLimiter",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getRole",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiMessage"
+        ]
+      },
+      {
+        "name": "getString",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "initBody",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.ai.core.model.LlmModel",
+          "java.util.Map",
+          "io.nop.ai.core.api.messages.Prompt",
+          "io.nop.ai.core.api.chat.AiChatOptions"
+        ]
+      },
+      {
+        "name": "initHeaders",
+        "parameterTypes": [
+          "io.nop.http.api.client.HttpRequest",
+          "io.nop.ai.core.api.chat.AiChatOptions"
+        ]
+      },
+      {
+        "name": "loadLlmModel",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "logRequest",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiMessage"
+        ]
+      },
+      {
+        "name": "logResponse",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiChatResponse"
+        ]
+      },
+      {
+        "name": "parseHttpResponse",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.ai.core.model.LlmModel",
+          "java.util.Map",
+          "io.nop.ai.core.api.messages.AiChatResponse"
+        ]
+      },
+      {
+        "name": "parseToResult",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiChatResponse",
+          "io.nop.ai.core.model.LlmModel",
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "setIfNotNull",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.lang.String",
+          "java.lang.Object"
+        ]
+      },
+      {
+        "name": "setOptions",
+        "parameterTypes": [
+          "io.nop.ai.core.model.LlmModel",
+          "java.util.Map",
+          "io.nop.ai.core.api.messages.Prompt",
+          "io.nop.ai.core.api.chat.AiChatOptions"
+        ]
+      }
+    ],
+    "name": "io.nop.ai.core.service.DefaultAiChatService"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "name": "API_STATUS_BAD_REQUEST"
@@ -17202,6 +17403,52 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "ignoreSslCerts"
+      }
+    ],
+    "methods": [],
+    "name": "io.nop.http.api.client.HttpClientConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.http.api.support.DefaultHttpClientFactory"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newSSLContext",
+        "parameterTypes": []
+      },
+      {
+        "name": "toJdkHttpRequest",
+        "parameterTypes": [
+          "io.nop.http.api.client.HttpRequest"
+        ]
+      }
+    ],
+    "name": "io.nop.http.client.jdk.JdkHttpClient"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [],
     "methods": [],
     "name": "io.nop.ioc.initialize.IocCoreInitializer"
@@ -17257,6 +17504,16 @@
       }
     ],
     "name": "io.nop.ioc.model.BeanConditionModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.ioc.model.BeanConfigModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -17756,6 +18013,33 @@
       }
     ],
     "name": "io.nop.ioc.model._gen._BeanConditionModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.ioc.model.BeanConfigModel"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.ioc.model._gen._BeanConfigModel"
   },
   {
     "allDeclaredConstructors": true,
@@ -19266,6 +19550,35 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.log.java.JavaLoggerConfiguratorInitializer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "doParseResource",
+        "parameterTypes": [
+          "io.nop.core.resource.IResource"
+        ]
+      },
+      {
+        "name": "normalizeSectionContent",
+        "parameterTypes": [
+          "io.nop.markdown.simple.MarkdownSection"
+        ]
+      },
+      {
+        "name": "normalizeTitle",
+        "parameterTypes": [
+          "io.nop.markdown.simple.MarkdownSection"
+        ]
+      }
+    ],
+    "name": "io.nop.markdown.simple.MarkdownDocumentParser"
   },
   {
     "allDeclaredConstructors": true,

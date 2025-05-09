@@ -115,6 +115,16 @@
             <artifactId>nop-batch-dao</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ai-coder</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-http-client-jdk</artifactId>
+        </dependency>
+
         <!--    <dependency>-->
         <!--      <groupId>io.quarkus</groupId>-->
         <!--      <artifactId>quarkus-resteasy-reactive</artifactId>-->

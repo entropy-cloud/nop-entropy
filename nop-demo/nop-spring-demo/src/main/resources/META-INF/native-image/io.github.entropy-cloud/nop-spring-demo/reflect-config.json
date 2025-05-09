@@ -32546,6 +32546,12 @@
         "parameterTypes": []
       },
       {
+        "name": "isDefaultPublic",
+        "parameterTypes": [
+          "io.nop.file.core.UploadRequestBean"
+        ]
+      },
+      {
         "name": "isUniqueRef",
         "parameterTypes": [
           "io.nop.dao.api.IEntityDao",

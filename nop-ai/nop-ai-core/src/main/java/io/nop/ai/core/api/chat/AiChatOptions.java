@@ -12,11 +12,13 @@ import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ExtensibleBean;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
 @DataBean
 public class AiChatOptions extends ExtensibleBean {
+    private String sessionId;
     private String provider;
     private String model;
     private String seed;
@@ -44,6 +46,40 @@ public class AiChatOptions extends ExtensibleBean {
     private String conversationId;
 
     private String userId;
+
+    public AiChatOptions cloneInstance() {
+        AiChatOptions clone = new AiChatOptions();
+
+        clone.setSessionId(this.sessionId);
+        clone.setProvider(this.provider);
+        clone.setModel(this.model);
+        clone.setSeed(this.seed);
+        clone.setTemperature(this.temperature);
+        clone.setTopP(this.topP);
+        clone.setTopK(this.topK);
+        clone.setMaxTokens(this.maxTokens);
+        clone.setContextLength(this.contextLength);
+        clone.setFrequencyPenalty(this.frequencyPenalty);
+
+        if (this.stop != null) {
+            clone.setStop(new ArrayList<>(this.stop)); // Create a new ArrayList with the same elements
+        }
+
+        clone.setRequestTimeout(this.requestTimeout);
+        clone.setStream(this.stream);
+        clone.setEnableThinking(this.enableThinking);
+        clone.setResponseFormat(this.responseFormat);
+        clone.setStreamListener(this.streamListener);
+
+        // Coze-specific parameters
+        clone.setBotId(this.botId);
+        clone.setConversationId(this.conversationId);
+        clone.setUserId(this.userId);
+
+        clone.addAttrs(this.getAttrs());
+
+        return clone;
+    }
 
     public String getProvider() {
         return provider;
@@ -76,6 +112,14 @@ public class AiChatOptions extends ExtensibleBean {
 
     public void setStreamListener(Consumer<AiChatResponse> streamListener) {
         this.streamListener = streamListener;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
     }
 
     public Float getFrequencyPenalty() {

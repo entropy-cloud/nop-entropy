@@ -13,7 +13,6 @@ import java.util.Map;
 
 @DataBean
 public class Prompt extends Metadata {
-    private Float temperature;
     private Map<String, Object> variables;
     private List<AiMessage> messages = Collections.emptyList();
 
@@ -21,14 +20,6 @@ public class Prompt extends Metadata {
         Prompt prompt = new Prompt();
         prompt.addUserMessage(text);
         return prompt;
-    }
-
-    public Float getTemperature() {
-        return temperature;
-    }
-
-    public void setTemperature(Float temperature) {
-        this.temperature = temperature;
     }
 
     public Object getVariable(String name) {

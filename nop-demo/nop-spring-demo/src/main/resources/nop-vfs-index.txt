@@ -282,6 +282,7 @@
 /nop/dao/beans/dao-defaults.beans.xml
 /nop/dao/dialect/db2.dialect.xml
 /nop/dao/dialect/default.dialect.xml
+/nop/dao/dialect/dm.dialect.xml
 /nop/dao/dialect/es.dialect.xml
 /nop/dao/dialect/geo-support.dialect.xml
 /nop/dao/dialect/h2.dialect.xml
@@ -295,6 +296,7 @@
 /nop/dao/dialect/postgis.dialect.xml
 /nop/dao/dialect/postgresql.dialect.xml
 /nop/dao/dialect/selector/db2.selector.yaml
+/nop/dao/dialect/selector/dm.selector.yaml
 /nop/dao/dialect/selector/h2.selector.yaml
 /nop/dao/dialect/selector/mariadb.selector.yaml
 /nop/dao/dialect/selector/mssql.selector.yaml

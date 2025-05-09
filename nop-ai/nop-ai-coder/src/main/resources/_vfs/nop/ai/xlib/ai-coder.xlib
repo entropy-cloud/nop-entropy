@@ -79,5 +79,18 @@
             ]]>
             </source>
         </LoadMarkdown>
+
+        <RunCodeGen>
+            <attr name="template" stdDomain="v-path" mandatory="true"/>
+            <attr name="args" stdDomain="map" optional="true"/>
+            <attr name="outputDir" stdDomain="string" implicit="true"/>
+
+            <source><![CDATA[
+                import io.nop.codegen.XCodeGenerator;
+
+                const codeGen = new XCodeGenerator(template, outputDir);
+                codeGen.execute("/", args || {}, $scope);
+            ]]></source>
+        </RunCodeGen>
     </tags>
 </lib>

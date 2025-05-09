@@ -126,6 +126,10 @@ public class DefaultAiChatService implements IAiChatService {
                                                          LlmModel llmModel,
                                                          Prompt prompt, AiChatOptions options,
                                                          ICancelToken cancelToken) {
+        AiChatResponse chatResponse = new AiChatResponse();
+        chatResponse.setPrompt(prompt);
+        chatResponse.setChatOptions(options);
+
         boolean logMessage = CFG_AI_SERVICE_LOG_MESSAGE.get();
         if (logMessage) {
             for (AiMessage message : prompt.getMessages()) {
@@ -149,7 +153,7 @@ public class DefaultAiChatService implements IAiChatService {
 
                     Map<String, Object> response = res.getBodyAsBean(Map.class);
 
-                    AiChatResponse chatResponse = parseHttpResponse(llmName, llmModel, response, prompt, options);
+                    parseHttpResponse(llmName, llmModel, response, chatResponse);
                     if (llmModel.getParseHttpResponse() != null) {
                         llmModel.getParseHttpResponse().call3(null, response, chatResponse, options, scope);
                     }
@@ -291,11 +295,9 @@ public class DefaultAiChatService implements IAiChatService {
 
         setIfNotNull(body, requestModel.getSeedPath(), options.getSeed());
         setIfNotNull(body, requestModel.getMaxTokensPath(), options.getMaxTokens());
-        if (prompt.getTemperature() != null) {
-            setIfNotNull(body, requestModel.getTemperaturePath(), prompt.getTemperature());
-        } else {
-            setIfNotNull(body, requestModel.getTemperaturePath(), options.getTemperature());
-        }
+
+        setIfNotNull(body, requestModel.getTemperaturePath(), options.getTemperature());
+
         setIfNotNull(body, requestModel.getTopPPath(), options.getTopP());
         setIfNotNull(body, requestModel.getTopKPath(), options.getTopK());
         setIfNotNull(body, requestModel.getStopPath(), options.getStop());
@@ -314,16 +316,12 @@ public class DefaultAiChatService implements IAiChatService {
         return message.getRole();
     }
 
-    protected AiChatResponse parseHttpResponse(String llmName, LlmModel llmModel,
-                                               Map<String, Object> response, Prompt prompt,
-                                               AiChatOptions options) {
+    protected void parseHttpResponse(String llmName, LlmModel llmModel,
+                                     Map<String, Object> response, AiChatResponse chatResponse) {
 
         try {
-            AiChatResponse ret = new AiChatResponse();
-            ret.setPrompt(prompt);
-            parseToResult(ret, llmModel, response);
-            checkThink(ret, llmModel, options.getModel());
-            return ret;
+            parseToResult(chatResponse, llmModel, response);
+            checkThink(chatResponse, llmModel, chatResponse.getChatOptions().getModel());
         } catch (Exception e) {
             LOG.info("nop.ai.parse-result-fail", e);
             throw NopException.adapt(e);

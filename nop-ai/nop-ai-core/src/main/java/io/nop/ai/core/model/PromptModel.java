@@ -305,6 +305,7 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
 
             if (chatOptions.getSeed() == null)
                 chatOptions.setSeed(optionsModel.getSeed());
+
         }
     }
 }

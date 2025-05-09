@@ -20,6 +20,8 @@ template: |
   4. std-domain的可选范围image|file|fileList|imageList。图片字段、图片地址字段对应于image， 附件字段对应于file,附件列表字段对应于fileList。
   5. ext:dict指定字段值的可选范围由字典定义。字典的名称必须在dicts集合中。status等字段应该指定ext:dict。
   6. 不需要为表增加【创建时间】等审计字段
+  7. biz:type的可选值有txn|txn-detail|report|report-detail|config|config-detail，区分表格是用于记录交易记录、报表数据还是配置数据，并且区分是主表还是明细表 
+  8. 假定系统有100个常用用户，使用1年时间，db:estimatedRowCount用于估计此表中累积的数据行数
   
   【需求描述】
   ${requirements}
