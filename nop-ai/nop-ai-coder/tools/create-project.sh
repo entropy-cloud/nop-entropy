@@ -1,0 +1,1 @@
+./cli.sh run-task /nop/ai/task/tasks/ai-create-project.task.xml -i="{appName:'app.demo',mavenGroupId:'com.demo',outputDir:'target'}"

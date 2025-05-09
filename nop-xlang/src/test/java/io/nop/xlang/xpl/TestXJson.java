@@ -10,6 +10,7 @@ package io.nop.xlang.xpl;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.lang.xml.json.CompactXNodeToJsonTransformer;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.XLang;
@@ -40,6 +41,14 @@ public class TestXJson {
         action = newTool().compileXjson(node);
         Map<String, Object> obj = (Map<String, Object>) action.invoke(scope);
         assertEquals("{\"type\":\"root\",\"title\":null}", JsonTool.serialize(obj, false));
+    }
+
+    @Test
+    public void testSpecialKey() {
+        String xml = "<form><data><_ j:key='&amp;'>$$</_></data></form>";
+        XNode node = XNodeParser.instance().parseFromText(null, xml);
+        Object json = new CompactXNodeToJsonTransformer().transformToObject(node);
+        assertEquals("{\"type\":\"form\",\"data\":{\"&\":\"$$\"}}", JsonTool.serialize(json, false));
     }
 
     XLangCompileTool newTool() {

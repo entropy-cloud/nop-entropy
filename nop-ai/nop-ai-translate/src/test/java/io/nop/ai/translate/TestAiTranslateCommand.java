@@ -125,7 +125,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
                     if (message.isInvalid())
                         continue;
 
-                    Object scoreValue = message.getMetadata("score");
+                    Object scoreValue = message.getOutput("score");
                     if (scoreValue != null)
                         continue;
 
@@ -139,7 +139,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
                         AiChatResponse scoreMessage = FutureHelper.syncGet(check.executeAsync(source, message.getContent(), null));
                         Number score = (Number) scoreMessage.getOutput("score");
                         if (score != null)
-                            message.addMetadata("score", score);
+                            message.setOutput("score", score);
                         if (score != null && score.intValue() < 7) {
                             message.setInvalid(true);
                             message.setInvalidReason(new ErrorBean("score.too-low").param("score", score));

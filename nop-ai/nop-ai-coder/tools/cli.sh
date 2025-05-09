@@ -1,0 +1,1 @@
+java "-Dnop.config.location=application.yaml" -Dfile.encoding=UTF-8 -Dlogback.configurationFile=./logback.xml -jar ../../nop-cli/target/nop-cli-2.0.0-BETA.1.jar  "$@"

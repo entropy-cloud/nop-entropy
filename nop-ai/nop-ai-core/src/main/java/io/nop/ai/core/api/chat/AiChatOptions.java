@@ -8,6 +8,7 @@
 package io.nop.ai.core.api.chat;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.ai.core.api.messages.AiChatResponse;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ExtensibleBean;
@@ -34,7 +35,7 @@ public class AiChatOptions extends ExtensibleBean {
 
     private boolean stream;
 
-    private boolean enableThinking = false;
+    private Boolean enableThinking;
 
     private String responseFormat;
 
@@ -81,6 +82,7 @@ public class AiChatOptions extends ExtensibleBean {
         return clone;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getProvider() {
         return provider;
     }
@@ -89,6 +91,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.provider = provider;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getModel() {
         return model;
     }
@@ -97,6 +100,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.model = model;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public Long getRequestTimeout() {
         return requestTimeout;
     }
@@ -114,6 +118,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.streamListener = streamListener;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getSessionId() {
         return sessionId;
     }
@@ -122,6 +127,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.sessionId = sessionId;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public Float getFrequencyPenalty() {
         return frequencyPenalty;
     }
@@ -130,6 +136,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.frequencyPenalty = frequencyPenalty;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getResponseFormat() {
         return responseFormat;
     }
@@ -138,6 +145,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.responseFormat = responseFormat;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public Integer getContextLength() {
         return contextLength;
     }
@@ -146,6 +154,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.contextLength = contextLength;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getSeed() {
         return seed;
     }
@@ -154,6 +163,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.seed = seed;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public Float getTemperature() {
         return temperature;
     }
@@ -162,6 +172,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.temperature = temperature;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public Float getTopP() {
         return topP;
     }
@@ -170,6 +181,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.topP = topP;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public Integer getTopK() {
         return topK;
     }
@@ -178,6 +190,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.topK = topK;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public Integer getMaxTokens() {
         return maxTokens;
     }
@@ -186,6 +199,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.maxTokens = maxTokens;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public List<String> getStop() {
         return stop;
     }
@@ -194,6 +208,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.stop = stop;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getBotId() {
         return botId;
     }
@@ -202,6 +217,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.botId = botId;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getConversationId() {
         return conversationId;
     }
@@ -210,6 +226,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.conversationId = conversationId;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getUserId() {
         return userId;
     }
@@ -226,11 +243,12 @@ public class AiChatOptions extends ExtensibleBean {
         this.stream = stream;
     }
 
-    public boolean isEnableThinking() {
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Boolean getEnableThinking() {
         return enableThinking;
     }
 
-    public void setEnableThinking(boolean enableThinking) {
+    public void setEnableThinking(Boolean enableThinking) {
         this.enableThinking = enableThinking;
     }
 }

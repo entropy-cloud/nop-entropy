@@ -111,7 +111,7 @@ public class DebugMessageHelper {
             if (pos2 > 0) {
                 String block = text.substring(pos + METADATA_BEGIN.length(), pos2);
                 Map<String, Object> metadata = JsonTool.parseMap(block);
-                res.setMetadata(metadata);
+               // res.setMetadata(metadata);
                 pos = pos2 + METADATA_END.length();
             }
         }

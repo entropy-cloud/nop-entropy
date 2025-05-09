@@ -89,7 +89,7 @@ public class JsonTool {
         return serializeToJson(o, false);
     }
 
-    public static Object parseBeanFromText(String text, Type targetType) {
+    public static <T> T parseBeanFromText(String text, Type targetType) {
         JsonParseOptions options = new JsonParseOptions();
         options.setTargetType(targetType);
         options.setStrictMode(false);
@@ -97,7 +97,7 @@ public class JsonTool {
         if (JavaTypeHelper.getRawClass(options.getTargetType()) == JObject.class) {
             options.setKeepLocation(true);
         }
-        return instance().parseFromText(null, text, options);
+        return (T)instance().parseFromText(null, text, options);
     }
 
     public static <T> T parseBeanFromYaml(String text, Type targetType) {

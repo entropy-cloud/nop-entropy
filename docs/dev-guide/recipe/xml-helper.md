@@ -7,10 +7,11 @@ XNode node = XNodeParser.instance().parseFromText(loc, text);
 XNode解析结果与DOM解析不同。DOM总是保留节点之间的空白节点。而XNode解析时如果两个节点之间只有空白文本，则该空白文本会被忽略。例如
 
 ```xml
+
 <root>
-	<child1/>
-	<child2/>
-</root>	
+  <child1/>
+  <child2/>
+</root>
 ```
 
 XNode解析得到的root节点，它具有两个子节点child1和child2。
@@ -110,22 +111,23 @@ node.toJsonObject() // 按照标准格式转换为json
 例如:
 
 ```xml
+
 <div class='a'>
-	<span />
-</div>	
+  <span/>
+</div>
 ```
 
 转换为
 
 ```json
 {
-	"$type": "div",
-	"class": "a",
-	"$body": [
-		{
-			"$type": "span"
-		}
-	]
+  "$type": "div",
+  "class": "a",
+  "$body": [
+    {
+      "$type": "span"
+    }
+  ]
 }
 ```
 
@@ -135,23 +137,24 @@ XJson规定如下：
 2. 如果节点上标记了j:list='true'表示当前节点对应于一个列表对象
 3. 如果节点名为 `_`，则表示节点名被忽略
 4. 如果节点没有属性，且没有子节点，则它的内容作为它的值
-5. 如果节点具有j:key属性，则它替代节点名作为属性名
+5. 如果节点具有`j:key`属性，则它替代节点名作为属性名
 6. 列表节点的子节点的tagName对应于type属性。但有个例外，如果节点名为 `_`，则表示节点名被忽略
 
 例如:
 
 ```xml
-<root a="1">
-	<buttons j:list="true">
-		<button id="a" >
-			<description>aa</description>
-		</button>
-	</buttons>
 
-	<options j:list="true">
-		 <_>A</_>
-		 <_>B</_>
-	</options>	
+<root a="1">
+  <buttons j:list="true">
+    <button id="a">
+      <description>aa</description>
+    </button>
+  </buttons>
+
+  <options j:list="true">
+    <_>A</_>
+    <_>B</_>
+  </options>
 </root>
 ```
 
@@ -159,15 +162,27 @@ XJson规定如下：
 
 ```json
 {
-	"type": "root",
-	"a": "1",
-	"buttons": [
-		{
-			"type": "button",
-			"id": "a",
-			"description": "aa"
-		}
-	],
-	"options": ["A","B"]
+  "type": "root",
+  "a": "1",
+  "buttons": [
+    {
+      "type": "button",
+      "id": "a",
+      "description": "aa"
+    }
+  ],
+  "options": [
+    "A",
+    "B"
+  ]
 }
+```
+
+### 常见问题
+
+1. 如何输出 `{"&":"$$"}`
+   使用`j:key`来指定包含特殊字符的key
+
+```xml
+<_ j:key="&amp;">$$</_>
 ```

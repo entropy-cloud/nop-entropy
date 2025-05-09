@@ -1,0 +1,20 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      x:dump="true" defaultUseParentScope="true" xmlns:c="c" xmlns:ai-coder="ai-coder"
+      x:extends="/nop/task/lib/common.task.xml">
+
+    <input name="outputDir" type="String" mandatory="true"/>
+    <input name="appName" type="String" mandatory="true"/>
+    <input name="mavenGroupId" type="String" mandatory="true"/>
+
+    <x:config>
+        <c:import from="/nop/ai/xlib/ai-coder.xlib"/>
+    </x:config>
+
+    <steps>
+        <xpl name="runCodeGen">
+            <source>
+                <ai-coder:RunCodeGen template="/nop/ai/templates/ai-project" args="${{appName,mavenGroupId}}" outputDir="${outputDir}"/>
+            </source>
+        </xpl>
+    </steps>
+</task>

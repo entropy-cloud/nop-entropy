@@ -4,6 +4,7 @@ import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.chat.IAiChatSession;
 import io.nop.ai.core.api.messages.AiChatResponse;
+import io.nop.ai.core.api.messages.AiChatUsage;
 import io.nop.ai.core.api.messages.AiMessage;
 import io.nop.ai.core.api.messages.MessageStatus;
 import io.nop.ai.core.api.messages.Prompt;
@@ -253,7 +254,7 @@ public class DefaultAiChatService implements IAiChatService {
         for (AiMessage msg : msgs) {
             String content = msg.getContent();
             if (modelModel != null && lastMessage == msg) {
-                if (options.isEnableThinking()) {
+                if (Boolean.TRUE.equals(options.getEnableThinking())) {
                     if (modelModel.getEnableThinkingPrompt() != null) {
                         content += "\n" + modelModel.getEnableThinkingPrompt();
                     }
@@ -335,10 +336,13 @@ public class DefaultAiChatService implements IAiChatService {
         String content = getString(result, responseModel.getContentPath());
         ret.setContent(content);
 
-        ret.setPromptTokens(getInteger(result, responseModel.getPromptTokensPath()));
-        ret.setTotalTokens(getInteger(result, responseModel.getTotalTokensPath()));
-        ret.setCompletionTokens(getInteger(result, responseModel.getCompletionTokensPath()));
+        AiChatUsage usage = new AiChatUsage();
+
+        usage.setPromptTokens(getInteger(result, responseModel.getPromptTokensPath()));
+        usage.setTotalTokens(getInteger(result, responseModel.getTotalTokensPath()));
+        usage.setCompletionTokens(getInteger(result, responseModel.getCompletionTokensPath()));
         ret.setStatus(getMessageStatus(result, responseModel.getStatusPath()));
+        ret.setUsage(usage);
 
         if (CFG_AI_SERVICE_LOG_MESSAGE.get()) {
             logResponse(ret);

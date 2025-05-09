@@ -19,7 +19,7 @@ package io.nop.ai.core.api.messages;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.ai.core.AiCoreConstants;
 import io.nop.ai.core.api.chat.AiChatOptions;
-import io.nop.ai.core.api.support.Metadata;
+import io.nop.ai.core.persist.ChatResponseMarkdownPersister;
 import io.nop.ai.core.response.JsonResponseParser;
 import io.nop.ai.core.response.MarkdownResponseParser;
 import io.nop.ai.core.response.XmlResponseParser;
@@ -45,11 +45,16 @@ import static io.nop.ai.core.AiCoreErrors.ERR_AI_INVALID_RESPONSE;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_INVALID_END_LINE;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_NO_EXPECTED_PART;
-import static io.nop.ai.core.commons.debug.DebugMessageHelper.collectDebugText;
+import static io.nop.ai.core.api.messages.AiMessage.indexOfMark;
 
 @DataBean
-public class AiChatResponse extends Metadata {
+public class AiChatResponse {
     static final Logger LOG = LoggerFactory.getLogger(AiChatResponse.class);
+
+    private int retryTimes;
+
+    private long beginTime;
+    private String chatId;
 
     /**
      * 此次消息所对应的prompt
@@ -64,21 +69,15 @@ public class AiChatResponse extends Metadata {
     private Integer index;
     private MessageStatus status;
 
-    private AiAssistantMessage message;
+    private AiAssistantMessage response;
 
-    private Integer promptTokens;
-    private Integer completionTokens;
-    private Integer totalTokens;
+    private AiChatUsage usage;
 
     /**
      * 接下响应消息得到的结果对象
      */
     private Map<String, Object> outputs;
 
-    /**
-     * 用于保存上下文相关变量
-     */
-    private Map<String, Object> attributes;
 
     /**
      * 解析output失败会设置invalid为true
@@ -87,21 +86,97 @@ public class AiChatResponse extends Metadata {
     private ErrorBean invalidReason;
 
     public AiChatResponse() {
-        this.message = new AiAssistantMessage();
+        this.response = new AiAssistantMessage();
     }
 
-    public AiChatResponse(AiAssistantMessage message) {
-        this.message = message;
+    public AiChatResponse(AiAssistantMessage response) {
+        this.response = response;
+    }
+
+    public long getBeginTime() {
+        return beginTime;
+    }
+
+    public void setBeginTime(long beginTime) {
+        this.beginTime = beginTime;
+    }
+
+    public int getRetryTimes() {
+        return retryTimes;
+    }
+
+    public void setRetryTimes(int retryTimes) {
+        this.retryTimes = retryTimes;
+    }
+
+    public void clearResponse() {
+        this.usage = null;
+        this.status = null;
+        this.response = null;
+    }
+
+    public Integer getUsedTime() {
+        return usage != null ? usage.getUsedTime() : null;
+    }
+
+    public void setUsedTime(Integer usedTime) {
+        if (usage == null)
+            usage = new AiChatUsage();
+        usage.setUsedTime(usedTime);
+    }
+
+    public Integer getPromptTokens() {
+        return usage != null ? usage.getPromptTokens() : null;
+    }
+
+
+    public Integer getCompletionTokens() {
+        return usage != null ? usage.getCompletionTokens() : null;
+    }
+
+    public Integer getTotalTokens() {
+        return usage != null ? usage.getTotalTokens() : null;
+    }
+
+    public AiChatUsage getUsage() {
+        return usage;
+    }
+
+    public void setUsage(AiChatUsage usage) {
+        this.usage = usage;
+    }
+
+    public String getChatId() {
+        return chatId;
+    }
+
+    public void setChatId(String chatId) {
+        this.chatId = chatId;
+    }
+
+    @JsonIgnore
+    public Map<String, Object> getMetadata() {
+        if (prompt == null)
+            return null;
+        return prompt.getMetadata();
+    }
+
+    @JsonIgnore
+    public Map<String, Object> getVariables() {
+        if (prompt == null)
+            return null;
+        return prompt.getVariables();
     }
 
     public String getContent() {
-        return message.getContent();
+        return response.getContent();
     }
 
     public void setContent(String content) {
-        this.message.setContent(content);
+        this.response.setContent(content);
     }
 
+    @JsonIgnore
     public boolean isEmpty() {
         return StringHelper.isEmpty(getContent()) && outputs == null;
     }
@@ -114,59 +189,23 @@ public class AiChatResponse extends Metadata {
         if (prompt == null)
             return null;
 
-        String message = prompt.getLastMessage().getContent();
-        if (message == null)
-            return null;
-
-        int[] pos = indexOfMark(message, 0, blockBegin, blockIndex);
-        if (pos == null)
-            return null;
-
-        int[] pos2 = indexOfMark(message, pos[1], blockEnd);
-        if (pos2 == null)
-            return null;
-
-        return message.substring(pos[1], pos2[0]);
+        return prompt.getLastMessage().getBlock(blockBegin, blockEnd, blockIndex);
     }
 
     public String getThink() {
-        return message.getThink();
+        return response.getThink();
     }
 
     public void setThink(String think) {
-        this.message.setThink(think);
+        this.response.setThink(think);
     }
 
-    public Integer getPromptTokens() {
-        return promptTokens;
+    public AiAssistantMessage getResponse() {
+        return response;
     }
 
-    public void setPromptTokens(Integer promptTokens) {
-        this.promptTokens = promptTokens;
-    }
-
-    public Integer getCompletionTokens() {
-        return completionTokens;
-    }
-
-    public void setCompletionTokens(Integer completionTokens) {
-        this.completionTokens = completionTokens;
-    }
-
-    public Integer getTotalTokens() {
-        return totalTokens;
-    }
-
-    public void setTotalTokens(Integer totalTokens) {
-        this.totalTokens = totalTokens;
-    }
-
-    public AiAssistantMessage getMessage() {
-        return message;
-    }
-
-    public void setMessage(AiAssistantMessage message) {
-        this.message = message;
+    public void setResponse(AiAssistantMessage response) {
+        this.response = response;
     }
 
     public boolean isInvalid() {
@@ -253,31 +292,8 @@ public class AiChatResponse extends Metadata {
         outputs.put(name, value);
     }
 
-    @JsonIgnore
-    public Map<String, Object> getAttributes() {
-        return attributes;
-    }
-
-    public void setAttributes(Map<String, Object> attributes) {
-        this.attributes = attributes;
-    }
-
-    public Object getAttribute(String name) {
-        if (attributes == null)
-            return null;
-        return attributes.get(name);
-    }
-
-    public void setAttribute(String name, Object value) {
-        if (attributes == null)
-            attributes = new HashMap<>();
-        attributes.put(name, value);
-    }
-
-    public String toDebugText() {
-        StringBuilder sb = new StringBuilder();
-        collectDebugText(sb, this);
-        return sb.toString();
+    public String toText() {
+        return ChatResponseMarkdownPersister.instance().serialize(this);
     }
 
     public boolean checkNotEmpty() {
@@ -395,46 +411,6 @@ public class AiChatResponse extends Metadata {
         return content.substring(pos, pos2);
     }
 
-    public static int[] indexOfMark(String content, int start, String mark, int blockIndex) {
-        int startPos = start;
-        for (int i = 0; i < blockIndex; i++) {
-            int[] pos = indexOfMark(content, startPos, mark);
-            if (pos == null)
-                return null;
-            startPos = pos[1];
-        }
-        return indexOfMark(content, startPos, mark);
-    }
-
-    // 忽略无关紧要的空格
-    public static int[] indexOfMark(String content, int start, String mark) {
-        int pos = content.indexOf(mark, start);
-        if (pos >= 0)
-            return new int[]{pos, pos + mark.length()};
-        String trimmedMark = mark.trim();
-        pos = content.indexOf(trimmedMark, start);
-        if (pos >= 0) {
-            int pos0 = pos, pos1 = pos + trimmedMark.length();
-            if (mark.startsWith("\n")) {
-                int pos2 = content.lastIndexOf('\n', pos);
-                if (!StringHelper.onlyContainsWhitespace(content.substring(pos2 + 1, pos)))
-                    return null;
-                pos0 = pos2 + 1;
-            }
-
-            if (mark.endsWith("\n")) {
-                int pos2 = content.indexOf('\n', pos1);
-                if (pos2 < 0)
-                    pos2 = content.length();
-                if (!StringHelper.onlyContainsWhitespace(content.substring(pos1, pos2)))
-                    return null;
-                pos1 = pos2;
-            }
-
-            return new int[]{pos0, pos1};
-        }
-        return null;
-    }
 
     public boolean contentContains(String str) {
         String content = getContent();

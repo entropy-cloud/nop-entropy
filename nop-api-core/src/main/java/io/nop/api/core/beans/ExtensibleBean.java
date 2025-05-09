@@ -7,6 +7,8 @@
  */
 package io.nop.api.core.beans;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -17,6 +19,7 @@ public abstract class ExtensibleBean implements Serializable {
 
     private Map<String, Object> attrs;
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public Map<String, Object> getAttrs() {
         return attrs;
     }
