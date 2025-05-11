@@ -1,6 +1,7 @@
 /_delta/default/nop/sys/model/NopSysNoticeTemplate/NopSysNoticeTemplate.xmeta
 /_delta/default/nop/sys/orm/app.orm.xml
 /_delta/default/nop/sys/pages/NopSysNoticeTemplate/NopSysNoticeTemplate.view.xml
+/dict/ai/ai-std-domain.dict.yaml
 /dict/auth/gender.dict.yaml
 /dict/auth/login-status.dict.yaml
 /dict/auth/login-type.dict.yaml
@@ -79,6 +80,7 @@
 /nop/ai/beans/ai-defaults.beans.xml
 /nop/ai/llm/default.llm.xml
 /nop/ai/llm/ollama.llm.xml
+/nop/ai/xlib/ai.xlib
 /nop/aop/nop-api-core.annotations
 /nop/aop/nop-quarkus-demo.annotations
 /nop/auth/_module
@@ -271,6 +273,7 @@
 /nop/auth/sql/NopAuthRole.sql-lib.xml
 /nop/auth/sql/NopAuthUser.sql-lib.xml
 /nop/auth/xlib/auth-gen.xlib
+/nop/autoconfig/nop-ai-core.beans
 /nop/autoconfig/nop-auth-core.beans
 /nop/autoconfig/nop-auth-sso.beans
 /nop/autoconfig/nop-biz.beans
@@ -309,6 +312,7 @@
 /nop/core/registry/graph-designer.register-model.xml
 /nop/core/registry/imp.register-model.xml
 /nop/core/registry/llm.register-model.xml
+/nop/core/registry/markdown.register-model.xml
 /nop/core/registry/orm.register-model.xml
 /nop/core/registry/prompt.register-model.xml
 /nop/core/registry/rule.register-model.xml
@@ -335,6 +339,7 @@
 /nop/dao/beans/dao-defaults.beans.xml
 /nop/dao/dialect/db2.dialect.xml
 /nop/dao/dialect/default.dialect.xml
+/nop/dao/dialect/dm.dialect.xml
 /nop/dao/dialect/es.dialect.xml
 /nop/dao/dialect/geo-support.dialect.xml
 /nop/dao/dialect/h2.dialect.xml
@@ -348,6 +353,7 @@
 /nop/dao/dialect/postgis.dialect.xml
 /nop/dao/dialect/postgresql.dialect.xml
 /nop/dao/dialect/selector/db2.selector.yaml
+/nop/dao/dialect/selector/dm.selector.yaml
 /nop/dao/dialect/selector/h2.selector.yaml
 /nop/dao/dialect/selector/mariadb.selector.yaml
 /nop/dao/dialect/selector/mssql.selector.yaml
@@ -969,6 +975,7 @@
 /nop/task/beans/task-defaults.beans.xml
 /nop/task/lib/common.task.xml
 /nop/task/test/DemoTask/v1.task.xml
+/nop/task/xlib/file-utils.xlib
 /nop/task/xlib/task-gen.xlib
 /nop/task/xlib/task.xlib
 /nop/templates/antlr/@init.xrun

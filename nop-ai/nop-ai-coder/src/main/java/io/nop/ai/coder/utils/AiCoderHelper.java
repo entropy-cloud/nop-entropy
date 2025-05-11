@@ -2,6 +2,13 @@ package io.nop.ai.coder.utils;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.xml.XNode;
+import io.nop.xlang.delta.DeltaMerger;
+import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdsl.XDslCleaner;
+import io.nop.xlang.xdsl.XDslKeys;
+import io.nop.xlang.xdsl.XDslValidator;
+import io.nop.xlang.xmeta.SchemaLoader;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -61,5 +68,31 @@ public class AiCoderHelper {
             ret.put(part, item);
         }
         return ret;
+    }
+
+    public static XNode validateDslNode(String xdefPath, XNode dslNode, boolean removeUnknownAttrs) {
+        new XDslValidator().removeUnknownAttrs(removeUnknownAttrs)
+                .validateForXDef(xdefPath, dslNode);
+        return dslNode;
+    }
+
+    public static XNode cleanDslNode(String xdefPath, XNode dslNode) {
+        new XDslCleaner().cleanForXDef(xdefPath, dslNode);
+        return dslNode;
+    }
+
+    public static XNode validateAndCleanDslNode(String xdefPath, XNode dslNode) {
+        IXDefinition xdef = SchemaLoader.loadXDefinition(xdefPath);
+        new XDslValidator().removeUnknownAttrs(true).validate(dslNode, xdef.getRootNode(), true);
+        new XDslCleaner().clean(dslNode, xdef.getRootNode());
+        return dslNode;
+    }
+
+    public static XNode mergeDslNode(String xdefPath, XNode dslNodeA, XNode dslNodeB) {
+        IXDefinition xdef = SchemaLoader.loadXDefinition(xdefPath);
+        dslNodeA = dslNodeA.cloneInstance();
+        dslNodeB = dslNodeB.cloneInstance();
+        new DeltaMerger(XDslKeys.DEFAULT).merge(dslNodeA, dslNodeB, xdef.getRootNode(), false);
+        return dslNodeA;
     }
 }

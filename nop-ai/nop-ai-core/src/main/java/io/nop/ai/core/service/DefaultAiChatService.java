@@ -1,6 +1,8 @@
 package io.nop.ai.core.service;
 
+import io.nop.ai.core.AiCoreConstants;
 import io.nop.ai.core.api.chat.AiChatOptions;
+import io.nop.ai.core.api.chat.IAiChatLogger;
 import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.chat.IAiChatSession;
 import io.nop.ai.core.api.messages.AiChatExchange;
@@ -15,6 +17,7 @@ import io.nop.ai.core.model.LlmResponseModel;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
@@ -57,7 +60,16 @@ public class DefaultAiChatService implements IAiChatService {
 
     private IHttpClient httpClient;
 
+    private IAiChatLogger chatLogger;
+
     private Map<String, IRateLimiter> rateLimiters = new ConcurrentHashMap<>();
+
+    protected MockAiChatService mockService = new MockAiChatService();
+
+    @Inject
+    public void setChatLogger(IAiChatLogger chatLogger) {
+        this.chatLogger = chatLogger;
+    }
 
     @Inject
     public void setHttpClient(IHttpClient httpClient) {
@@ -113,6 +125,10 @@ public class DefaultAiChatService implements IAiChatService {
     public CompletionStage<AiChatExchange> sendChatAsync(Prompt prompt, AiChatOptions options, ICancelToken cancelToken) {
         Guard.notNull(options, "chatOptions");
 
+        if (AiCoreConstants.MODEL_MOCK.equals(options.getModel())) {
+            return mockService.sendChatAsync(prompt, options, cancelToken);
+        }
+
         String llmName = getLlmName(options);
         LlmModel llmModel = loadLlmModel(llmName);
 
@@ -127,15 +143,15 @@ public class DefaultAiChatService implements IAiChatService {
                                                          LlmModel llmModel,
                                                          Prompt prompt, AiChatOptions options,
                                                          ICancelToken cancelToken) {
-        AiChatExchange chatResponse = new AiChatExchange();
-        chatResponse.setPrompt(prompt);
-        chatResponse.setChatOptions(options);
+        AiChatExchange chatExchange = new AiChatExchange();
+        chatExchange.setPrompt(prompt);
+        chatExchange.setChatOptions(options);
+        chatExchange.setBeginTime(CoreMetrics.currentTimeMillis());
+        chatExchange.setExchangeId(StringHelper.generateUUID());
 
         boolean logMessage = CFG_AI_SERVICE_LOG_MESSAGE.get();
         if (logMessage) {
-            for (AiMessage message : prompt.getMessages()) {
-                logRequest(message);
-            }
+            chatLogger.logRequest(chatExchange);
         }
 
         HttpRequest request = buildHttpRequest(llmName, llmModel, prompt, options);
@@ -154,11 +170,11 @@ public class DefaultAiChatService implements IAiChatService {
 
                     Map<String, Object> response = res.getBodyAsBean(Map.class);
 
-                    parseHttpResponse(llmName, llmModel, response, chatResponse);
+                    parseHttpResponse(llmName, llmModel, response, chatExchange);
                     if (llmModel.getParseHttpResponse() != null) {
-                        llmModel.getParseHttpResponse().call3(null, response, chatResponse, options, scope);
+                        llmModel.getParseHttpResponse().call3(null, response, chatExchange, options, scope);
                     }
-                    return chatResponse;
+                    return chatExchange;
                 });
     }
 
@@ -329,23 +345,23 @@ public class DefaultAiChatService implements IAiChatService {
         }
     }
 
-    protected void parseToResult(AiChatExchange ret, LlmModel llmModel,
+    protected void parseToResult(AiChatExchange chatExchange, LlmModel llmModel,
                                  Map<String, Object> result) {
         LlmResponseModel responseModel = llmModel.getResponse();
 
         String content = getString(result, responseModel.getContentPath());
-        ret.setContent(content);
+        chatExchange.setContent(content);
 
         AiChatUsage usage = new AiChatUsage();
 
         usage.setPromptTokens(getInteger(result, responseModel.getPromptTokensPath()));
         usage.setTotalTokens(getInteger(result, responseModel.getTotalTokensPath()));
         usage.setCompletionTokens(getInteger(result, responseModel.getCompletionTokensPath()));
-        ret.setStatus(getMessageStatus(result, responseModel.getStatusPath()));
-        ret.setUsage(usage);
+        chatExchange.setStatus(getMessageStatus(result, responseModel.getStatusPath()));
+        chatExchange.setUsage(usage);
 
         if (CFG_AI_SERVICE_LOG_MESSAGE.get()) {
-            logResponse(ret);
+            chatLogger.logResponse(chatExchange);
         }
     }
 
@@ -390,15 +406,6 @@ public class DefaultAiChatService implements IAiChatService {
                 }
             }
         }
-    }
-
-    protected void logRequest(AiMessage message) {
-        LOG.info("request:role={},content=\n{}", getRole(message), message.getContent());
-    }
-
-    protected void logResponse(AiChatExchange response) {
-        LOG.info("response:promptTokens={},completionTokens={},content=\n{}",
-                response.getPromptTokens(), response.getCompletionTokens(), response.getContent());
     }
 
     @Override

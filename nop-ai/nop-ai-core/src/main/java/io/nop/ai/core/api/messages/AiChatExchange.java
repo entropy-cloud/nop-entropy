@@ -19,7 +19,7 @@ package io.nop.ai.core.api.messages;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.ai.core.AiCoreConstants;
 import io.nop.ai.core.api.chat.AiChatOptions;
-import io.nop.ai.core.persist.ChatExchangeMarkdownPersister;
+import io.nop.ai.core.persist.DefaultAiChatExchangePersister;
 import io.nop.ai.core.response.JsonResponseParser;
 import io.nop.ai.core.response.MarkdownResponseParser;
 import io.nop.ai.core.response.XmlResponseParser;
@@ -52,17 +52,17 @@ public class AiChatExchange {
     static final Logger LOG = LoggerFactory.getLogger(AiChatExchange.class);
 
     private long beginTime;
-    private String chatId;
-
-    /**
-     * 此次消息所对应的prompt
-     */
-    private Prompt prompt;
+    private String exchangeId;
 
     /**
      * 实际使用的ChatOptions参数
      */
     private AiChatOptions chatOptions;
+
+    /**
+     * 此次消息所对应的prompt
+     */
+    private Prompt prompt;
 
     private Integer index;
     private MessageStatus status;
@@ -105,10 +105,16 @@ public class AiChatExchange {
         return prompt.getRetryTimes();
     }
 
+    public String getPromptName() {
+        return prompt == null ? null : prompt.getName();
+    }
+
     public void clearResponse() {
         this.usage = null;
         this.status = null;
         this.response = null;
+        this.invalid = false;
+        this.invalidReason = null;
     }
 
     public Integer getUsedTime() {
@@ -142,12 +148,12 @@ public class AiChatExchange {
         this.usage = usage;
     }
 
-    public String getChatId() {
-        return chatId;
+    public String getExchangeId() {
+        return exchangeId;
     }
 
-    public void setChatId(String chatId) {
-        this.chatId = chatId;
+    public void setExchangeId(String exchangeId) {
+        this.exchangeId = exchangeId;
     }
 
     @JsonIgnore
@@ -289,7 +295,7 @@ public class AiChatExchange {
     }
 
     public String toText() {
-        return ChatExchangeMarkdownPersister.instance().serialize(this);
+        return DefaultAiChatExchangePersister.instance().serialize(this);
     }
 
     public boolean checkNotEmpty() {

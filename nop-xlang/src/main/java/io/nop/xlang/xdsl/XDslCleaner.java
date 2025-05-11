@@ -13,12 +13,13 @@ import java.util.Map;
  * 清除XDSL上的多余属性，只保留xdef元模型上允许的属性
  */
 public class XDslCleaner {
+
     public void cleanForXDef(String xdefPath, XNode node) {
         IXDefinition xdef = SchemaLoader.loadXDefinition(xdefPath);
-        clean(xdef.getRootNode(), node);
+        clean(node, xdef.getRootNode());
     }
 
-    public void clean(IXDefNode defNode, XNode node) {
+    public void clean(XNode node, IXDefNode defNode) {
         if (defNode == null)
             return;
 
@@ -31,7 +32,7 @@ public class XDslCleaner {
             if (childDef == null) {
                 childIt.remove();
             } else {
-                clean(childDef, child);
+                clean(child, childDef);
             }
         }
     }
@@ -44,7 +45,6 @@ public class XDslCleaner {
         while (it.hasNext()) {
             Map.Entry<String, ValueWithLocation> entry = it.next();
             String name = entry.getKey();
-            ValueWithLocation vl = entry.getValue();
 
             if (defNode.getAttribute(name) != null)
                 continue;

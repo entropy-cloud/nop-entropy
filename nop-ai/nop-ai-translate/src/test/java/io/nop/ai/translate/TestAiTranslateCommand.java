@@ -73,11 +73,11 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
 
         AiTranslateCommand translator = new AiTranslateCommand(chatService, templateManager, promptName);
         translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(2048);
-        translator.getChatOptions().setProvider("ollama");
-        translator.getChatOptions().setModel(model);
-        translator.getChatOptions().setTemperature(0.6f);
-        translator.getChatOptions().setRequestTimeout(600 * 1000L);
-        translator.getChatOptions().setContextLength(8192);
+        translator.makeChatOptions().setProvider("ollama");
+        translator.makeChatOptions().setModel(model);
+        translator.makeChatOptions().setTemperature(0.6f);
+        translator.makeChatOptions().setRequestTimeout(600 * 1000L);
+        translator.makeChatOptions().setContextLength(8192);
         //translator.getChatOptions().setMaxTokens(4096);
         translator.setDebug(true);
         translator.recoverMode(true);
@@ -109,11 +109,11 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
 
         AiCheckTranslationCommand check = new AiCheckTranslationCommand(chatService, templateManager, "translate/score");
         check.fromLang("中文").toLang("英文");
-        check.getChatOptions().setProvider("ollama");
-        check.getChatOptions().setModel(model);
-        check.getChatOptions().setTemperature(0.6f);
-        check.getChatOptions().setRequestTimeout(600 * 1000L);
-        check.getChatOptions().setContextLength(8192);
+        check.makeChatOptions().setProvider("ollama");
+        check.makeChatOptions().setModel(model);
+        check.makeChatOptions().setTemperature(0.6f);
+        check.makeChatOptions().setRequestTimeout(600 * 1000L);
+        check.makeChatOptions().setContextLength(8192);
 
         FileHelper.walk2(docsEnDir, docsEnDebugDir, (f1, f2) -> {
             if (f2.getName().endsWith(".md") && f2.exists()) {
@@ -229,11 +229,11 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         AiTranslateCommand translator = new AiTranslateCommand(chatService, templateManager, promptName);
         translator.fromLang("中文").toLang("英文").concurrencyLimit(1).maxChunkSize(2048);
         translator.setReturnExceptionAsResponse(true);
-        translator.getChatOptions().setProvider("ollama");
-        translator.getChatOptions().setModel(model);
-        translator.getChatOptions().setTemperature(0.6f);
-        translator.getChatOptions().setRequestTimeout(600 * 1000L);
-        translator.getChatOptions().setContextLength(contextLength);
+        translator.makeChatOptions().setProvider("ollama");
+        translator.makeChatOptions().setModel(model);
+        translator.makeChatOptions().setTemperature(0.6f);
+        translator.makeChatOptions().setRequestTimeout(600 * 1000L);
+        translator.makeChatOptions().setContextLength(contextLength);
         //translator.getChatOptions().setMaxTokens(4096);
         translator.setDebug(true);
 
@@ -243,7 +243,7 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
 
         File srcFile = new File(docsDir, "compare/nop-vs-apijson.md");
         String normalizedName = model.replace(':', '-') + '-' + CoreMetrics.currentTimeMillis() + "-" + promptName
-                + "-" + translator.getChatOptions().getContextLength() + "," + translator.getChatOptions().getTemperature();
+                + "-" + translator.makeChatOptions().getContextLength() + "," + translator.makeChatOptions().getTemperature();
         File targetFile = getTargetFile("translated/" + normalizedName + ".md");
         targetFile.delete();
         translator.translateFile(srcFile, targetFile, null, null, new Semaphore(1));
@@ -350,20 +350,20 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
 
     @Test
     public void testDeepSeek8B32K() {
-        translateFile("deepseek-r1:8b", translator -> translator.getChatOptions().setContextLength(32768));
+        translateFile("deepseek-r1:8b", translator -> translator.makeChatOptions().setContextLength(32768));
     }
 
     @Test
     public void testDeepSeek14B() {
-        translateFile("deepseek-r1:14b", translator -> translator.getChatOptions().setContextLength(4096));
+        translateFile("deepseek-r1:14b", translator -> translator.makeChatOptions().setContextLength(4096));
     }
 
     @Test
     public void testFixTranslate() {
         translateFile("deepseek-r1:14b", translator -> {
-            translator.getChatOptions().setContextLength(4096);
+            translator.makeChatOptions().setContextLength(4096);
             AiCheckTranslationCommand checkTool = newCheckTool();
-            checkTool.getChatOptions().setContextLength(4096);
+            checkTool.makeChatOptions().setContextLength(4096);
             translator.checkTranslationTool(checkTool);
             translator.needFixChecker(msg -> {
                 return true; //StringHelper.containsChinese(msg.getContent());

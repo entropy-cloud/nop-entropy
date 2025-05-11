@@ -4,4 +4,15 @@
     <bean id="nopPromptTemplateManager" class="io.nop.ai.core.prompt.PromptTemplateManager" ioc:default="true"/>
 
     <bean id="nopAiChatService" class="io.nop.ai.core.service.DefaultAiChatService" ioc:default="true"/>
+
+    <bean id="nopAiChatLogger" class="io.nop.ai.core.service.DefaultAiChatLogger" ioc:default="true"/>
+
+    <bean id="nopAiChatResponseCache" class="io.nop.ai.core.persist.DefaultAiChatResponseCache" ioc:default="true">
+        <property name="cacheDir" value="/nop/ai/cache"/>
+        <property name="chatExchangePersister" ref="nopAiChatExchangePersister"/>
+    </bean>
+
+    <bean id="nopAiChatExchangePersister" class="io.nop.ai.core.persist.DefaultAiChatExchangePersister"
+          ioc:default="true">
+    </bean>
 </beans>

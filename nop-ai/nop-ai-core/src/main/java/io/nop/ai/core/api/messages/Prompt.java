@@ -14,13 +14,24 @@ import java.util.Map;
 @DataBean
 public class Prompt extends Metadata {
     private int retryTimes;
+    private String name;
     private Map<String, Object> variables;
     private List<AiMessage> messages = Collections.emptyList();
+
+    private String requestHash;
 
     public static Prompt userText(String text) {
         Prompt prompt = new Prompt();
         prompt.addUserMessage(text);
         return prompt;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public int getRetryTimes() {
@@ -86,5 +97,13 @@ public class Prompt extends Metadata {
 
     public void removeMessages(Collection<String> messageIds) {
         messages.removeIf(msg -> messageIds.contains(msg.getMessageId()));
+    }
+
+    public String getRequestHash() {
+        return requestHash;
+    }
+
+    public void setRequestHash(String requestHash) {
+        this.requestHash = requestHash;
     }
 }

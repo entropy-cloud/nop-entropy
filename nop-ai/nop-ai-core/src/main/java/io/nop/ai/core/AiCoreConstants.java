@@ -39,4 +39,8 @@ public interface AiCoreConstants {
     String TAG_AI_CHAT_OPTIONS = "ai:chatOptions";
 
     String OUTPUT_VAR_RESULT = "RESULT";
+
+    String MODEL_MOCK = "mock";
+
+    String BEAN_NOP_AI_CHAT_SERVICE = "nopAiChatService";
 }

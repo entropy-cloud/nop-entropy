@@ -5,9 +5,12 @@ import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.commons.processor.IAiChatResponseProcessor;
+import io.nop.ai.core.persist.IAiChatResponseCache;
 import io.nop.ai.core.prompt.IPromptTemplate;
+import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
@@ -32,11 +35,15 @@ public class AiCommand {
     private IAiChatResponseProcessor chatResponseProcessor;
     private int retryTimesPerRequest = 3;
     private AiChatOptions chatOptions;
-
+    private IAiChatResponseCache chatCache;
     private boolean returnExceptionAsResponse = true;
 
     public AiCommand(IAiChatService chatService) {
         this.chatService = chatService;
+    }
+
+    public static AiCommand create() {
+        return new AiCommand(BeanContainer.getBeanByType(IAiChatService.class));
     }
 
     public IAiChatService getChatService() {
@@ -59,6 +66,10 @@ public class AiCommand {
         this.chatResponseProcessor = chatResponseProcessor;
     }
 
+    public void setChatResponseCache(IAiChatResponseCache chatCache) {
+        this.chatCache = chatCache;
+    }
+
     public int getRetryTimesPerRequest() {
         return retryTimesPerRequest;
     }
@@ -68,6 +79,10 @@ public class AiCommand {
     }
 
     public AiChatOptions getChatOptions() {
+        return chatOptions;
+    }
+
+    public AiChatOptions makeChatOptions() {
         if (chatOptions == null)
             chatOptions = new AiChatOptions();
         return chatOptions;
@@ -75,6 +90,52 @@ public class AiCommand {
 
     public void setChatOptions(AiChatOptions chatOptions) {
         this.chatOptions = chatOptions;
+    }
+
+    public AiCommand chatOptions(AiChatOptions chatOptions) {
+        setChatOptions(Guard.notNull(chatOptions, "chatOptions"));
+        return this;
+    }
+
+    public AiCommand provider(String provider) {
+        makeChatOptions().setProvider(provider);
+        return this;
+    }
+
+    public AiCommand model(String model) {
+        makeChatOptions().setModel(model);
+        return this;
+    }
+
+    public AiCommand temperature(Float temperature) {
+        makeChatOptions().setTemperature(temperature);
+        return this;
+    }
+
+    public AiCommand promptName(String promptName) {
+        IPromptTemplateManager promptTemplateManager = BeanContainer.getBeanByType(IPromptTemplateManager.class);
+        this.promptTemplate = promptTemplateManager.getPromptTemplate(promptName);
+        return this;
+    }
+
+    public AiCommand promptPath(String promptPath) {
+        IPromptTemplateManager promptTemplateManager = BeanContainer.getBeanByType(IPromptTemplateManager.class);
+        this.promptTemplate = promptTemplateManager.loadPromptTemplateFromPath(promptPath);
+        return this;
+    }
+
+    public AiCommand useResponseCache(boolean useResponseCache) {
+        if (useResponseCache) {
+            this.chatCache = BeanContainer.getBeanByType(IAiChatResponseCache.class);
+        } else {
+            this.chatCache = null;
+        }
+        return this;
+    }
+
+    public AiCommand retryTimesPerRequest(int retryTimesPerRequest) {
+        this.setRetryTimesPerRequest(retryTimesPerRequest);
+        return this;
     }
 
     public boolean isReturnExceptionAsResponse() {
@@ -103,11 +164,28 @@ public class AiCommand {
         AiChatOptions options = this.chatOptions.cloneInstance();
         promptTemplate.applyChatOptions(options);
 
-        return RetryHelper.retryNTimes((index) -> {
+        if (chatCache != null) {
+            AiChatExchange exchange = chatCache.loadCachedResponse(prompt, options);
+            if (exchange != null)
+                return FutureHelper.success(exchange);
+        }
+
+        CompletionStage<AiChatExchange> promise = RetryHelper.retryNTimes((index) -> {
                     adjustTemperature(options, index);
                     return executeOnceAsync(prompt, options, scope, cancelToken);
                 },
                 AiChatExchange::isValid, retryTimesPerRequest);
+
+        if (chatCache != null) {
+            return promise.thenApply(res -> {
+                if (res.isValid()) {
+                    chatCache.saveCachedResponse(res);
+                }
+                return res;
+            });
+        }
+
+        return promise;
     }
 
     protected IEvalScope prepareInputs(Map<String, Object> vars, IEvalContext ctx) {
@@ -165,6 +243,8 @@ public class AiCommand {
     protected Prompt newPrompt(IEvalScope scope) {
         String promptText = promptTemplate.generatePrompt(scope);
         Guard.notEmpty(promptText, "promptText");
-        return Prompt.userText(promptText);
+        Prompt prompt = Prompt.userText(promptText);
+        prompt.setName(promptTemplate.getName());
+        return prompt;
     }
 }

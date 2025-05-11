@@ -6,38 +6,55 @@
 
         <ValidateDslNode>
             <description>根据XDef元模型验证dslNode节点满足格式要求</description>
-            <attr name="dslNode" mandatory="true"/>
             <attr name="xdefPath" stdDomain="v-path" mandatory="true"/>
+            <attr name="dslNode" mandatory="true"/>
             <attr name="removeUnknownAttrs" stdDomain="boolean" optional="true">
                 <description>是否移除dslNode节点上未知的属性</description>
             </attr>
 
             <source><![CDATA[
-                import io.nop.xlang.xdsl.XDslValidator;
-
-                new XDslValidator().removeUnknownAttrs(removeUnknownAttrs ?? true)
-                    .validateForXDef(xdefPath, dslNode);
-                return dslNode;
+                import io.nop.ai.coder.utils.AiCoderHelper;
+                return AiCoderHelper.validateDslNode(xdefPath, dslNode, removeUnknownAttrs ?? true);
             ]]></source>
         </ValidateDslNode>
 
         <CleanDslNode>
             <description>根据XDef元模型，清理dslNode节点上未知的属性</description>
-            <attr name="dslNode" mandatory="true"/>
             <attr name="xdefPath" stdDomain="v-path" mandatory="true"/>
+            <attr name="dslNode" mandatory="true"/>
 
             <source><![CDATA[
-               import io.nop.xlang.xdsl.XDslCleaner;
-
-               new XDslCleaner().cleanForXDef(xdefPath, dslNode);
-               return dslNode;
+               import io.nop.ai.coder.utils.AiCoderHelper;
+               return AiCoderHelper.cleanDslNode(xdefPath, dslNode);
             ]]></source>
         </CleanDslNode>
 
+        <ValidateAndCleanDslNode>
+            <description>根据XDef元模型，验证dslNode节点满足格式要求，并清理dslNode节点上未知的属性</description>
+            <attr name="xdefPath" stdDomain="v-path" mandatory="true"/>
+            <attr name="dslNode" mandatory="true"/>
+
+            <source><![CDATA[
+               import io.nop.ai.coder.utils.AiCoderHelper;
+               return AiCoderHelper.validateAndCleanDslNode(xdefPath, dslNode);
+            ]]></source>
+        </ValidateAndCleanDslNode>
+
+        <MergeDslNode>
+            <attr name="xdefPath" stdDomain="v-path" mandatory="true"/>
+            <attr name="dslNodeA" mandatory="true"/>
+            <attr name="dslNodeB" mandatory="true"/>
+
+            <source><![CDATA[
+               import io.nop.ai.coder.utils.AiCoderHelper;
+               return AiCoderHelper.mergeDslNode(xdefPath, dslNodeA,dslNodeB);
+            ]]></source>
+        </MergeDslNode>
+
         <SaveDslModelAsExcel>
+            <attr name="impModelPath" stdDomain="v-path" mandatory="true"/>
             <attr name="fileName" mandatory="true"/>
             <attr name="dslModel" mandatory="true"/>
-            <attr name="impModelPath" stdDomain="v-path" mandatory="true"/>
             <attr name="outputDir" optional="true"/>
 
             <source><![CDATA[

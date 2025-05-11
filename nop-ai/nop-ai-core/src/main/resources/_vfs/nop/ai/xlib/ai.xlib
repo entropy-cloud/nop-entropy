@@ -79,6 +79,8 @@
                     if(node.hasAttr('ai:streamListener')){
                         execNode.setAttr('streamListener', node.attrValueLoc('ai:streamListener'));
                     }
+                    if(node.hasAttr('ai:useResponseCache'))
+                        execNode.setAttr('useResponseCache', node.attrValueLoc('ai:useResponseCache'));
 
                     if(node.hasAttr('ai:cancelToken')){
                         execNode.setAttr('cancelToken', node.attrValueLoc('ai:cancelToken'));
@@ -102,6 +104,7 @@
                 </description>
             </attr>
             <attr name="promptPath" stdDomain="v-path" optional="true"/>
+            <attr name="useResponseCache" stdDomain="boolean" optional="true"/>
 
             <attr name="provider" stdDomain="string" mandatory="true"/>
             <attr name="model" stdDomain="string" mandatory="true"/>
@@ -116,7 +119,7 @@
             <attr name="requestTimeout" stdDomain="long" optional="true"/>
             <attr name="stream" stdDomain="boolean" optional="true"/>
             <attr name="enableThinking" stdDomain="boolean" optional="true"/>
-            <attr name="responseFormat" stdDomain="string" optional="true" />
+            <attr name="responseFormat" stdDomain="string" optional="true"/>
             <attr name="streamListener" optional="true"/>
 
             <attr name="asyncExec" stdDomain="boolean" optional="true"/>
@@ -132,20 +135,18 @@
                     contextLength, stop, requestTimeout, stream, frequencyPenalty, enableThinking, streamListener
                 };
 
-                const chatService = inject("nopAiChatService");
-                const promptTemplateManager = inject("nopPromptTemplateManager");
-                const cmd = new AiCommand(chatService);
-                cmd.setChatOptions(chatOptions);
+                const cmd = AiCommand.create();
+                cmd.chatOptions(chatOptions).useResponseCache(useResponseCache);
 
                 if(promptName != null){
                     $.checkArgument(!promptName.startsWith('/') and !promptName.endsWith('.yaml'),"invalid promptName")
                 }
                 const fullPath = promptPath ||  "/nop/ai/prompts/" + promptName + ".prompt.yaml";
                 $.notEmpty(fullPath,"promptPath");
-                cmd.setPromptTemplate(promptTemplateManager.loadPromptTemplateFromPath(fullPath));
+                cmd.promptPath(fullPath);
 
                 if(retryTimesPerRequest >= 0)
-                    cmd.setRetryTimesPerRequest(retryTimesPerRequest);
+                    cmd.retryTimesPerRequest(retryTimesPerRequest);
 
                 return asyncExec ? cmd.executeAsync(inputs, cancelToken,$scope) : cmd.execute(inputs,cancelToken,$scope);
             ]]></source>

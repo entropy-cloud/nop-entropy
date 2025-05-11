@@ -6,12 +6,12 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ChatExchangeMarkdownPersisterTest extends BaseTestCase {
+public class DefaultAiChatExchangePersisterTest extends BaseTestCase {
 
 
     @Test
     public void testSerializeAndDeserialize() {
-        ChatExchangeMarkdownPersister persister = ChatExchangeMarkdownPersister.instance();
+        DefaultAiChatExchangePersister persister = DefaultAiChatExchangePersister.instance();
         String expectedText = attachmentText("persist-message.md");
 
         // 反序列化

@@ -33,7 +33,7 @@ public class AiChatOptions extends ExtensibleBean {
 
     private Long requestTimeout;
 
-    private boolean stream;
+    private Boolean stream;
 
     private Boolean enableThinking;
 
@@ -80,6 +80,76 @@ public class AiChatOptions extends ExtensibleBean {
         clone.addAttrs(this.getAttrs());
 
         return clone;
+    }
+
+    public void update(AiChatOptions options) {
+        if (options == null) {
+            return;
+        }
+
+        if (options.getSessionId() != null) {
+            this.setSessionId(options.getSessionId());
+        }
+        if (options.getProvider() != null) {
+            this.setProvider(options.getProvider());
+        }
+        if (options.getModel() != null) {
+            this.setModel(options.getModel());
+        }
+        if (options.getSeed() != null) {
+            this.setSeed(options.getSeed());
+        }
+        if (options.getTemperature() != null) {
+            this.setTemperature(options.getTemperature());
+        }
+        if (options.getTopP() != null) {
+            this.setTopP(options.getTopP());
+        }
+        if (options.getTopK() != null) {
+            this.setTopK(options.getTopK());
+        }
+        if (options.getMaxTokens() != null) {
+            this.setMaxTokens(options.getMaxTokens());
+        }
+        if (options.getContextLength() != null) {
+            this.setContextLength(options.getContextLength());
+        }
+        if (options.getFrequencyPenalty() != null) {
+            this.setFrequencyPenalty(options.getFrequencyPenalty());
+        }
+        if (options.getStop() != null) {
+            this.setStop(new ArrayList<>(options.getStop()));
+        }
+        if (options.getRequestTimeout() != null) {
+            this.setRequestTimeout(options.getRequestTimeout());
+        }
+        if (options.getStream() != null) {
+            this.setStream(options.getStream());
+        }
+        if (options.getEnableThinking() != null) {
+            this.setEnableThinking(options.getEnableThinking());
+        }
+        if (options.getResponseFormat() != null) {
+            this.setResponseFormat(options.getResponseFormat());
+        }
+        if (options.getStreamListener() != null) {
+            this.setStreamListener(options.getStreamListener());
+        }
+
+        // Coze-specific parameters
+        if (options.getBotId() != null) {
+            this.setBotId(options.getBotId());
+        }
+        if (options.getConversationId() != null) {
+            this.setConversationId(options.getConversationId());
+        }
+        if (options.getUserId() != null) {
+            this.setUserId(options.getUserId());
+        }
+
+        if (options.getAttrs() != null) {
+            this.addAttrs(options.getAttrs());
+        }
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -235,11 +305,11 @@ public class AiChatOptions extends ExtensibleBean {
         this.userId = userId;
     }
 
-    public boolean isStream() {
+    public Boolean getStream() {
         return stream;
     }
 
-    public void setStream(boolean stream) {
+    public void setStream(Boolean stream) {
         this.stream = stream;
     }
 

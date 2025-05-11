@@ -47,7 +47,7 @@
             </output>
         </xpl>
 
-        <custom name="designOrm" customType="ai:TaskStep" ai:promptName="coder/orm-design">
+        <custom name="designOrm" customType="ai:TaskStep" ai:promptName="coder/orm-design" ai:useResponseCache="true">
             <description>根据需求文档的描述，设计ORM模型</description>
 
             <input name="requirements" value="${ormRequirements}"/>
@@ -67,7 +67,7 @@
             <input name="impModelPath" value="/nop/orm/imp/orm.imp.xml" />
         </custom>
 
-        <custom name="designMenu" customType="ai:TaskStep" ai:promptName="coder/menu-design">
+        <custom name="designMenu" customType="ai:TaskStep" ai:promptName="coder/menu-design" ai:useResponseCache="true">
             <description>根据需求文档的描述，设计菜单和角色权限</description>
 
             <input name="requirements" value="${menuRequirements}"/>

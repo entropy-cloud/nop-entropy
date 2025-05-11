@@ -1,4 +1,4 @@
-# Chat: 1-12345@2024-01-01 00:00:00.0
+# Chat: 1-[12345@2024-01-01 00:00:00.0]
 
 ## ChatOptions
 
@@ -26,17 +26,6 @@
 }
 ```
 
-## Usage
-
-```json
-{
-  "completionTokens": 20,
-  "promptTokens": 10,
-  "totalTokens": 30,
-  "usedTime": null
-}
-```
-
 ## ****Message****: [user]
 
 Hello
@@ -60,6 +49,17 @@ Hi there
 ```json
 {
   "timestamp": "2024-01-01 00:00:01"
+}
+```
+
+## Usage
+
+```json
+{
+  "completionTokens": 20,
+  "promptTokens": 10,
+  "totalTokens": 30,
+  "usedTime": null
 }
 ```
 
