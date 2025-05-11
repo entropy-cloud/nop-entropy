@@ -99,7 +99,7 @@
 
         <RunCodeGen>
             <attr name="template" stdDomain="v-path" mandatory="true"/>
-            <attr name="args" stdDomain="map" optional="true"/>
+            <attr name="args"  optional="true"/>
             <attr name="outputDir" stdDomain="string" implicit="true"/>
 
             <source><![CDATA[

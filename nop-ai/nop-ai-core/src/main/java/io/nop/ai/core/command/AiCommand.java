@@ -165,9 +165,13 @@ public class AiCommand {
         promptTemplate.applyChatOptions(options);
 
         if (chatCache != null) {
-            AiChatExchange exchange = chatCache.loadCachedResponse(prompt, options);
-            if (exchange != null)
-                return FutureHelper.success(exchange);
+            try {
+                AiChatExchange exchange = chatCache.loadCachedResponse(prompt, options);
+                if (exchange != null)
+                    return FutureHelper.success(exchange);
+            } catch (Exception e) {
+                LOG.info("nop.ai.load-cache-fail:promptName={},requestHash={}", prompt.getName(), prompt.getRequestHash());
+            }
         }
 
         CompletionStage<AiChatExchange> promise = RetryHelper.retryNTimes((index) -> {
