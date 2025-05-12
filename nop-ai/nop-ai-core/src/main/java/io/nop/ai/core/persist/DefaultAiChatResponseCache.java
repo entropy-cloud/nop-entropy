@@ -5,10 +5,14 @@ import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.FileResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 
 public class DefaultAiChatResponseCache implements IAiChatResponseCache {
+    static final Logger LOG = LoggerFactory.getLogger(DefaultAiChatResponseCache.class);
+
     private String cacheDir;
 
     private IAiChatExchangePersister chatExchangePersister;
@@ -27,6 +31,7 @@ public class DefaultAiChatResponseCache implements IAiChatResponseCache {
         if (!resource.exists())
             return null;
 
+        LOG.info("nop.ai.use-cached-response:promptName={},cachedPath={}", prompt.getName(), resource.getPath());
         return chatExchangePersister.load(resource);
     }
 
@@ -48,6 +53,9 @@ public class DefaultAiChatResponseCache implements IAiChatResponseCache {
     IResource getCacheResource(Prompt prompt, AiChatOptions options) {
         String hash = makeRequestHash(prompt, options);
         String cachePath = hash.substring(0, 2) + '/' + hash.substring(2, 4) + '/' + hash + "-exchange.md";
-        return new FileResource(new File(cacheDir, cachePath));
+        String promptName = prompt.getName();
+        if (promptName == null)
+            promptName = "unnamed";
+        return new FileResource(new File(cacheDir, promptName + '/' + cachePath));
     }
 }

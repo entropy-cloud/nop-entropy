@@ -18,7 +18,7 @@
 [TAGS]: DYNAMIC
 
 #### 基本信息
-[TAGS]: MENU,ORM
+[TAGS]: MENU
 - menuId: {{菜单项对应的唯一路径名/A/B，多个用例可能对应同一个页面菜单入口}}
 - 参与者:
 - 简要描述:
@@ -33,7 +33,7 @@
 
 ### {{页面名称}} (pageType: detail|list|report|wizard|tabs)
 
-[TAGS]: DYNAMIC,MENU,ORM
+[TAGS]: DYNAMIC,MENU
 - menuId: {{菜单项对应的唯一路径名/A/B，多个页面可能对应同一个页面菜单入口}}
 - 功能:
 - 交互元素:

@@ -668,8 +668,11 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
         parseNode();
         handler.endNode(CoreConstants.DUMMY_TAG_NAME);
         XNode node = handler.endDoc();
-        if (node.hasChild())
-            return node.child(0);
+        if (node.hasChild()) {
+            XNode child = node.child(0);
+            child.detach();
+            return child;
+        }
         return null;
     }
 

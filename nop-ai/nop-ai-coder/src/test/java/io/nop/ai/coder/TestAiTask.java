@@ -46,7 +46,7 @@ public class TestAiTask extends JunitBaseTestCase {
         File demoDir = new File(getModuleDir(), "demo");
 
 
-        ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-coder.task.xml");
+        ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-create-orm-and-menu.task.xml");
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
         taskRt.setInput("requirementsPath", new File(demoDir, "refactored-requirements.md").getAbsolutePath());
         taskRt.setInput("outputDir", targetDir.getAbsolutePath());

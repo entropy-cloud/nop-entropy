@@ -147,15 +147,27 @@ public class AiOrmModelNormalizer {
         XNode columns = entity.makeChild("columns");
         int nextId = 1;
         for (XNode col : columns.getChildren()) {
-            String colName = col.attrText("name");
-            col.setAttr("code", AiCoderHelper.underscoreName(colName, true));
-
-            col.setAttr("propId", nextId++);
+            normalizeCol(col, nextId++);
 
             normalizeRelation(col, entity, config);
         }
 
         return entity;
+    }
+
+    void normalizeCol(XNode col, int propId) {
+        String colName = col.attrText("name");
+        col.setAttr("code", AiCoderHelper.underscoreName(colName, true));
+
+        col.setAttr("propId", propId);
+        String stdDomain = col.attrText("stdDomain");
+        if ("image".equals(stdDomain) || "file".equals(stdDomain)) {
+            col.setAttr("stdSqlType", StdSqlType.VARCHAR);
+            col.setAttr("precision", 200);
+        } else if ("imageList".equals(stdDomain) || "fileList".equals(stdDomain)) {
+            col.setAttr("stdSqlType", StdSqlType.VARCHAR);
+            col.setAttr("precision", 1000);
+        }
     }
 
     void normalizeRelation(XNode col, XNode entity, AiOrmConfig config) {

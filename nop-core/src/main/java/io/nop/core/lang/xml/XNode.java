@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -180,6 +181,23 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
                 extension.syncFromNode(this);
             }
         }
+    }
+
+    public Set<String> getAllNamespaces() {
+        Set<String> namespaces = new HashSet<>();
+        this.forEachNode(node -> {
+            String tagName = node.getTagName();
+            String ns = StringHelper.getNamespace(tagName);
+            if (ns != null)
+                namespaces.add(ns);
+
+            node.forEachAttr((name, vl) -> {
+                int pos = name.indexOf(':');
+                if (pos > 0 && !name.startsWith("xmlns:"))
+                    namespaces.add(name.substring(0, pos));
+            });
+        });
+        return namespaces;
     }
 
     public String toString() {

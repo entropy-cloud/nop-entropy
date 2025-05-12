@@ -1,0 +1,37 @@
+template: |
+  【任务描述】
+  仔细分析如下resource节点的属性设置，判断它的属性值与需求描述是否相符，并输出修正后的XML
+  
+  ```xml
+  ${resourceNode.xml()}
+  ```
+  
+  【要求】
+  1. app:useCaseNo必须是需求中定义的用例编号，对应多个用例时用逗号分隔，必须确认resource对应的功能确实与指定用例相关
+  2. app:entityName必须在实体定义中，一个菜单只能对应一个实体（例如主表所对应的实体） 
+  3. 仅输出修改后的XML，不需要额外的解释
+  
+  【实体定义】
+  ${ormModel.entityListInfo}
+  
+  【需求描述】
+  ${requirements}
+  
+  【修正后的XML】
+
+inputs:
+  - name: resourceNode
+    type: XNode
+    mandatory: true
+
+  - name: ormModel
+    mandatory: true
+
+  - name: requirements
+    type: String
+    mandatory: true
+
+outputs:
+  - name: RESULT
+    xdefPath: /nop/ai/schema/coder/resource.xdef
+    format: xml

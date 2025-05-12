@@ -167,8 +167,14 @@ public class AiCommand {
         if (chatCache != null) {
             try {
                 AiChatExchange exchange = chatCache.loadCachedResponse(prompt, options);
-                if (exchange != null)
-                    return FutureHelper.success(exchange);
+                if (exchange != null) {
+                    promptTemplate.processChatResponse(exchange, scope);
+                    CompletionStage<AiChatExchange> future = FutureHelper.success(exchange);
+                    if (chatResponseProcessor != null)
+                        future = future.thenCompose(ret -> chatResponseProcessor.processAsync(ret));
+
+                    return future.thenApply(this::postProcess);
+                }
             } catch (Exception e) {
                 LOG.info("nop.ai.load-cache-fail:promptName={},requestHash={}", prompt.getName(), prompt.getRequestHash());
             }

@@ -67,6 +67,49 @@
             ]]></source>
         </SaveDslModelAsExcel>
 
+        <SaveDslModelAsXml>
+            <attr name="xdefPath" stdDomain="v-path" mandatory="true"/>
+            <attr name="fileName" mandatory="true"/>
+            <attr name="dslModel" mandatory="true"/>
+            <attr name="outputDir" optional="true"/>
+
+            <source><![CDATA[
+                import io.nop.xlang.xdsl.DslModelHelper;
+                import io.nop.core.resource.ResourceHelper;
+
+                const resource = ResourceHelper.resolveResourceInDir(outputDir, fileName);
+
+                DslModelHelper.saveDslModel(xdefPath, dslModel,resource);
+            ]]></source>
+        </SaveDslModelAsXml>
+
+        <SaveDslNode>
+            <attr name="xdefPath" stdDomain="v-path" mandatory="true"/>
+            <attr name="fileName" mandatory="true"/>
+            <attr name="dslNode" mandatory="true"/>
+            <attr name="outputDir" optional="true"/>
+
+            <source><![CDATA[
+                import io.nop.ai.coder.utils.AiCoderHelper
+                import io.nop.core.resource.ResourceHelper;
+
+                const resource = ResourceHelper.resolveResourceInDir(outputDir, fileName);
+
+                AiCoderHelper.saveDslNode(xdefPath, dslNode,resource);
+            ]]></source>
+
+        </SaveDslNode>
+
+        <LoadDslModel>
+            <attr name="fileName" mandatory="true"/>
+            <attr name="inputDir" optional="true"/>
+
+            <source>
+                const resource = ResourceHelper.resolveResourceInDir(outputDir, fileName);
+                return loadDslModel(resource.path);
+            </source>
+        </LoadDslModel>
+
         <LoadMarkdown>
             <attr name="fileName" mandatory="true"/>
             <attr name="inputDir" optional="true"/>
@@ -99,7 +142,7 @@
 
         <RunCodeGen>
             <attr name="template" stdDomain="v-path" mandatory="true"/>
-            <attr name="args"  optional="true"/>
+            <attr name="args" optional="true"/>
             <attr name="outputDir" stdDomain="string" implicit="true"/>
 
             <source><![CDATA[

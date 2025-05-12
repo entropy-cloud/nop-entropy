@@ -28,6 +28,8 @@ public interface XDslConstants {
     String XMLNS_NAME = "xmlns";
     String NS_INFO = "info";
 
+    String XMLNS_X = "xmlns:x";
+
     String NS_INFO_PREFIX = "info:";
     String NS_EXT_PREFIX = "ext:";
 

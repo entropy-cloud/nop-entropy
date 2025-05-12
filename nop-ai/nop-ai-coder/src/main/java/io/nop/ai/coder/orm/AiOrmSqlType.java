@@ -43,6 +43,7 @@ public enum AiOrmSqlType {
     CHAR("CHAR", StdSqlType.VARCHAR),
 
     VARCHAR("VARCHAR", StdSqlType.VARCHAR),
+    VARBINARY("VARBINARY", StdSqlType.VARBINARY),
 
     TEXT("TEXT", StdSqlType.VARCHAR),
     CLOB("CLOB", StdSqlType.CLOB),

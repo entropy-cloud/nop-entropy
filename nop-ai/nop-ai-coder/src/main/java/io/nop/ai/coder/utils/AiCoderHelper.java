@@ -3,6 +3,8 @@ package io.nop.ai.coder.utils;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.resource.IResource;
+import io.nop.xlang.XLangConstants;
 import io.nop.xlang.delta.DeltaMerger;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.XDslCleaner;
@@ -13,6 +15,7 @@ import io.nop.xlang.xmeta.SchemaLoader;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.nop.ai.coder.AiCoderErrors.ARG_DATA;
 import static io.nop.ai.coder.AiCoderErrors.ARG_HEADERS;
@@ -94,5 +97,23 @@ public class AiCoderHelper {
         dslNodeB = dslNodeB.cloneInstance();
         new DeltaMerger(XDslKeys.DEFAULT).merge(dslNodeA, dslNodeB, xdef.getRootNode(), false);
         return dslNodeA;
+    }
+
+    public static void saveDslNode(String xdefPath, XNode dslNode, IResource resource) {
+        // 这里并不要求dslNode中的属性都在xdef定义范围内。因为可能是将Ai生成的模型保存为平台可识别的文件。
+        // AI生成的模型可能会具有额外的扩展属性。
+        addXmlNs(dslNode);
+        dslNode.setAttr(XDslKeys.DEFAULT.SCHEMA, xdefPath);
+        dslNode.setAttr(XLangConstants.XMLNS_X, XLangConstants.XDSL_SCHEMA_XDSL);
+        dslNode.saveToResource(resource, null);
+    }
+
+    public static void addXmlNs(XNode dslNode) {
+        Set<String> namespaces = dslNode.getAllNamespaces();
+        for (String namespace : namespaces) {
+            String nsAttr = XLangConstants.NS_XMLNS_PREFIX + namespace;
+            if (!dslNode.hasAttr(nsAttr))
+                dslNode.setAttr(nsAttr, namespace);
+        }
     }
 }

@@ -37,7 +37,16 @@ public class XmlResponseParser {
         if (StringHelper.isEmpty(response))
             return null;
 
+
         TextScanner sc = TextScanner.fromString(null, response);
+        int pos = response.indexOf("\n```");
+        if (pos >= 0) {
+            int pos2 = response.indexOf('<', pos);
+            if (pos2 > 0) {
+                sc.next(pos);
+            }
+        }
+
         sc.skipUntil('<', true);
         if (sc.isEnd())
             return null;
