@@ -153,3 +153,12 @@ quarkus:
 
   redis:
     hosts: redis://localhost/
+
+
+  dev:
+    watch:
+      enabled: false
+
+
+  live-reload:
+    enabled: false
