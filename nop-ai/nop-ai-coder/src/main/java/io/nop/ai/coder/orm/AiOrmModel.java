@@ -3,9 +3,14 @@ package io.nop.ai.coder.orm;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.OrmModel;
+import io.nop.orm.model.OrmModelConstants;
+import io.nop.report.core.util.ExcelReportHelper;
+import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.DslModelParser;
 
 import java.util.LinkedHashSet;
@@ -37,23 +42,45 @@ public class AiOrmModel {
         return model;
     }
 
-    public static AiOrmModel buildFromOrmFile(String path) {
+    public static AiOrmModel buildFromOrmModel(OrmModel ormModel) {
+        AiOrmModel model = new AiOrmModel();
+        model.ormModel = ormModel;
+        return model;
+    }
+
+    public static AiOrmModel buildFromOrmModelFile(String path) {
+        if (path.endsWith(".xlsx")) {
+            IResource resource = VirtualFileSystem.instance().getResource(path);
+            OrmModel ormModel = (OrmModel) ExcelReportHelper.loadXlsxObject(OrmModelConstants.ORM_IMPL_PATH, resource);
+            return buildFromOrmModel(ormModel);
+        }
         XNode node = XNodeParser.instance().parseFromVirtualPath(path);
         return buildFromOrmNode(node);
     }
 
     public XNode getOrmNodeForAi() {
+        if (node == null) {
+            XNode normalized = getOrmNode();
+            node = new AiOrmModelSimplifier().simplify(normalized.cloneInstance());
+        }
         return node;
     }
 
     public XNode getOrmNode() {
         if (normalizedNode == null) {
-            this.normalize();
+            if (ormModel != null) {
+                this.normalizedNode = DslModelHelper.dslModelToXNode(OrmModelConstants.XDSL_SCHEMA_ORM, ormModel);
+            } else {
+                this.normalize();
+            }
         }
         return normalizedNode;
     }
 
     public AiOrmModel normalize() {
+        if (normalizedNode != null)
+            return this;
+
         AiOrmConfig config = this.config;
         if (config == null) {
             config = new AiOrmConfig();
@@ -155,5 +182,11 @@ public class AiOrmModel {
 
     public IEntityModel getEntityModel(String entityName) {
         return getOrmModel().requireEntityModel(entityName);
+    }
+
+    public String getDictsXml(){
+        XNode node = getOrmNode();
+        XNode dicts = node.childByTag("dicts");
+        return dicts == null ? null : dicts.xml();
     }
 }

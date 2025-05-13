@@ -13,7 +13,7 @@
 
 ### 3.2.1 {{具体模块名}} (Priority:1到5, Effort:n)
 
-[TAGS]: DYNAMIC,MENU,ORM
+[TAGS]: DYNAMIC,MENU,ORM,API
 {{文字描述}}
 
 #### 子功能列表
@@ -52,5 +52,5 @@
 [TAGS]: OPTIONAL
 
 # 7 原始需求中的额外要求
-[TAGS]: OPTIONAL, CORE,ORM
+[TAGS]: OPTIONAL, CORE,ORM,API
 {{原始需求中明确提到，但是整理后的高层描述中没有包含的细节要求，按照列表格式显示}}

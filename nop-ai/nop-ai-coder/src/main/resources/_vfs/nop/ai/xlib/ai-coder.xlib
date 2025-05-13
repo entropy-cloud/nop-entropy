@@ -100,6 +100,16 @@
 
         </SaveDslNode>
 
+        <ParseDslNode>
+            <attr name="xdefPath" stdDomain="v-path" mandatory="true"/>
+            <attr name="dslNode" mandatory="true"/>
+
+            <source>
+                import io.nop.ai.coder.utils.AiCoderHelper;
+                return AiCoderHelper.parseDslNode(xdefPath, dslNode);
+            </source>
+        </ParseDslNode>
+
         <LoadDslModel>
             <attr name="fileName" mandatory="true"/>
             <attr name="inputDir" optional="true"/>
@@ -139,6 +149,20 @@
             ]]>
             </source>
         </LoadMarkdown>
+
+        <LoadOrmModel>
+            <attr name="fileName" mandatory="true"/>
+            <attr name="inputDir" optional="true"/>
+
+            <source><![CDATA[
+                import io.nop.core.resource.ResourceHelper;
+                import io.nop.ai.coder.orm.AiOrmModel;
+
+                const resource = ResourceHelper.resolveResourceInDir(inputDir, fileName);
+
+                return AiOrmModel.buildFromOrmModelFile(resource.path);
+            ]]></source>
+        </LoadOrmModel>
 
         <RunCodeGen>
             <attr name="template" stdDomain="v-path" mandatory="true"/>

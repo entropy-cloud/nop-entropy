@@ -54,4 +54,22 @@ public class TestAiTask extends JunitBaseTestCase {
         taskRt.setInput("appName", "app-demo");
         task.execute(taskRt).syncGetOutputs();
     }
+
+    @Test
+    public void testApiDesign() {
+        File targetDir = getTargetFile("demo");
+        FileHelper.deleteAll(targetDir);
+
+        File demoDir = new File(getModuleDir(), "demo");
+
+
+        ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-api-design.task.xml");
+        ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
+        taskRt.setInput("requirementsPath", new File(demoDir, "refactored-requirements.md").getAbsolutePath());
+        taskRt.setInput("modelDir", new File(demoDir, "model").getAbsolutePath());
+        taskRt.setInput("outputDir", targetDir.getAbsolutePath());
+        taskRt.setInput("basePackageName", "app.demo");
+        taskRt.setInput("appName", "app-demo");
+        task.execute(taskRt).syncGetOutputs();
+    }
 }

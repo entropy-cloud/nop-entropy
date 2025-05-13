@@ -7,6 +7,7 @@ import io.nop.core.resource.IResource;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.delta.DeltaMerger;
 import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.XDslCleaner;
 import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xdsl.XDslValidator;
@@ -106,6 +107,13 @@ public class AiCoderHelper {
         dslNode.setAttr(XDslKeys.DEFAULT.SCHEMA, xdefPath);
         dslNode.setAttr(XLangConstants.XMLNS_X, XLangConstants.XDSL_SCHEMA_XDSL);
         dslNode.saveToResource(resource, null);
+    }
+
+    public static Object parseDslNode(String xdefPath, XNode dslNode){
+        if(!dslNode.hasAttr(XDslKeys.DEFAULT.SCHEMA)){
+            dslNode.setAttr(XDslKeys.DEFAULT.SCHEMA, xdefPath);
+        }
+        return DslModelHelper.parseDslNode(xdefPath, dslNode);
     }
 
     public static void addXmlNs(XNode dslNode) {

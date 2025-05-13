@@ -112,6 +112,8 @@ public class AiOrmModelNormalizer {
             }
         }
 
+        AiCoderHelper.addXmlNs(node);
+
         if (LOG.isDebugEnabled())
             LOG.debug("nop.ai.normalize:node=\n{}", node.xml());
 

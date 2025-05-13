@@ -18,7 +18,7 @@
 [TAGS]: DYNAMIC
 
 #### 基本信息
-[TAGS]: MENU
+[TAGS]: MENU,API
 - menuId: {{菜单项对应的唯一路径名/A/B，多个用例可能对应同一个页面菜单入口}}
 - 参与者:
 - 简要描述:

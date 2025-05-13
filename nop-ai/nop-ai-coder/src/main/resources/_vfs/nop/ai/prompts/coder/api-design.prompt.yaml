@@ -2,26 +2,67 @@ template: |
   【任务目标】
   作为兼具软件技术与业务领域专业知识的专家，依据给定需求完成API接口设计。
   
-  【具体要求】
-  1. findPage/create/update/delete等通用的数据维护操作已经统一实现，不需要进行设计。
-  
   【返回格式】
-  返回结果采用如下XML格式
-  
   ```xml
   ${promptModel.getOutput('RESULT').xdefForAi}
   ```
   
-  1. dict指定字段值的可选范围由字典定义。字典的名称必须在dicts集合中。
+  【API设计规范】
+  ## 1. 基础数据操作规范
+    **自动化实现部分**
+    所有实体默认获得以下通用CRUD操作，无需重复声明：
+  - `findPage(pagination)`：分页查询
+  - `findFirst(conditions)`：条件查询首条
+  - `create(data)`：创建数据
+  - `update(id, data)`：更新数据
+  - `delete(id)`：删除数据
+  
+    **需自定义的场景**
+    当操作涉及以下情况时，需在实体服务中显式定义：
+  - 业务逻辑复杂（如`Order.cancelOrder()`需校验状态、触发退款）
+  - 跨实体事务操作（如`Payment.refund()`需联动更新订单状态）
+  - 非标准参数（如`User.resetPassword()`需验证旧密码） 
+  
+  ## 2. 采用DDD和充血模型设计服务对象
+    service的description需要详细说明触发时机和触发方式，是页面触发还是自动触发。
+    **2.1 实体服务**
+  - **命名**：直接使用实体名（如`Product`、`Order`）
+  - **设计原则**：
+    - 充血模型：领域逻辑内聚在实体服务中（如`Product.checkStock()`包含库存计算规则）
+    - 单一职责：每个方法只解决一个领域问题（避免`Order.processPaymentAndNotify()`）
+    - 所有针对单个实体的操作的requestMessage中永远使用id来表示实体id（如`Order.doXXX({id,其他参数})`）
+  
+    **2.2 System服务**
+  - **命名**：固定为`System`
+  - **限制**: 尽量少使用System服务，比如审批操作等一般通过实体服务进行。
+  - **适用场景**：
+    - 非实体操作（如`System.sendEmail()`）
+  
+  
+  ## 3. 输出要求  
+      - 仅需提交**新增字典**和**非CRUD服务方法**，已存在的内容无需重复。
+      - generic-type表示该部分可以使用Java泛型语法，比如`List&lt;Order>`等
+
+  【已有字典定义】
+  ```xml
+  ${ormModel.dictsXml}
+  ```
+  
+  【数据库实体】
+  ```java
+  ${ormModel.ormModelJava}
+  ```
   
   【需求描述】
   ${requirements}
 
 inputs:
-  - name: basePackageName
+  - name: ormModel
+    mandatory: true
+
+  - name: requirements
     type: String
-    optional: true
-    defaultExpr: "'app'"
+    mandatory: true
 
 outputs:
   - name: RESULT
