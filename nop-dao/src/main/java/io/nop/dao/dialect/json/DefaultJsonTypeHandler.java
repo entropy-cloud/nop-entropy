@@ -14,8 +14,6 @@ import io.nop.dao.dialect.IDataTypeHandler;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dataset.binder.IDataParameters;
 
-import java.nio.charset.StandardCharsets;
-
 public class DefaultJsonTypeHandler implements IDataTypeHandler {
     @Override
     public String toLiteral(Object value, IDialect dialect) {

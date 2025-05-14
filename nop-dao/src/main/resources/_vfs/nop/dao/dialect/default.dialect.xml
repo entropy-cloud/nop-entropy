@@ -10,6 +10,8 @@
 
     <paginationHandler>io.nop.dao.dialect.pagination.LimitOffsetPaginationHandler</paginationHandler>
 
+    <jsonTypeHandler>io.nop.dao.dialect.json.DefaultJsonTypeHandler</jsonTypeHandler>
+
     <features
             supportExecuteLargeUpdate="false" supportLargeMaxRows="false"
             supportTransaction="true" supportSavePoint="true"
