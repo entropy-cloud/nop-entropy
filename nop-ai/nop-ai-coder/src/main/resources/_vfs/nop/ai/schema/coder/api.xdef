@@ -1,5 +1,5 @@
 <api x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
-    xmlns:app="app">
+     xmlns:app="app">
 
     <dicts xdef:body-type="list" xdef:key-attr="name">
         <dict name="!english" label="!chinese">
@@ -10,7 +10,7 @@
     </dicts>
 
     <services xdef:body-type="list" xdef:key-attr="name">
-        <service name="!entity-name" displayName="chinese" >
+        <service name="!entity-name" displayName="chinese">
             <description xdef:value="string"/>
 
             <!--
@@ -18,10 +18,9 @@
             @mutation 如果为false，则表示为只读操作
             -->
             <method name="!var-name" displayName="string" xdef:unique-attr="name"
-                    mutation="!boolean=false" app:useCaseNo="csv-set"  app:pageNo="csv-set">
+                    requestMessage="class-name" responseMessage="!generic-type"
+                    mutation="!boolean=false" app:useCaseNo="csv-set">
                 <description xdef:value="string"/>
-                <requestMessage xdef:value="class-name"/>
-                <responseMessage xdef:value="!generic-type"/>
             </method>
 
         </service>

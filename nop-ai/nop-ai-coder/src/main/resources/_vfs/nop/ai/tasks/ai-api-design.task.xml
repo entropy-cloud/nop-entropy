@@ -48,12 +48,54 @@
         </custom>
 
         <custom name="designApi" customType="ai:TaskStep" ai:promptName="coder/api-design" ai:useResponseCache="true">
-            <description>根据需求文档的描述，设计ORM模型</description>
+            <description>根据需求文档的描述，设计API模型</description>
 
             <input name="requirements" value="${apiRequirements}"/>
             <input name="ormModel"/>
             <output name="RESULT" exportAs="apiNode"/>
         </custom>
+
+        <custom name="fixAiNode" customType="ai:TaskStep" ai:promptName="coder/fix-api-model"
+                ai:useResponseCache="true">
+            <input name="ormModel"/>
+            <input name="apiNode"/>
+
+            <output name="RESULT" exportAs="apiNode"/>
+        </custom>
+
+        <custom name="getSimpleApiNode" customType="ai-coder:CleanDslNode">
+            <input name="dslNode" value="${apiNode}"/>
+            <input name="xdefPath" value="/nop/ai/schema/coder/simple-api.xdef"/>
+            <output name="RESULT" exportAs="simpleApiNode"/>
+        </custom>
+
+        <custom name="checkSimpleApiNode" customType="ai:TaskStep" ai:promptName="coder/check-simple-api-model">
+            <input name="apiNode" value="${simpleApiNode}"/>
+            <input name="requirements" value="${apiRequirements}"/>
+            <output name="RESULT" exportAs="simpleApiNode"/>
+        </custom>
+
+        <custom name="mergeApiNode" customType="ai-coder:MergeDslNode">
+            <input name="xdefPath" value="/nop/ai/schema/coder/api.xdef"/>
+            <input name="dslNodeA" value="${apiNode}"/>
+            <input name="dslNodeB" value="${simpleApiNode}"/>
+            <output name="RESULT" exportAs="apiNode"/>
+        </custom>
+
+        <xpl name="normalizeApi">
+            <input name="apiNode"/>
+            <source><![CDATA[
+               apiNode.childByTag('services').forEachChild(node=>{
+                   node.setAttr('className', basePackageName + '.api.' + node.attrText('name'));
+               });
+
+               apiNode.childByTag('messages').forEachChild(node=>{
+                   node.childrenByTag('field').forEach(field=>{
+                       field.setAttr('propId', field.childIndex());
+                   })
+               });
+            ]]></source>
+        </xpl>
 
         <custom name="parseDslNode" customType="ai-coder:ParseDslNode">
             <input name="xdefPath" value="/nop/schema/api.xdef"/>
@@ -71,7 +113,7 @@
         <custom name="saveApiExcel" customType="ai-coder:SaveDslModelAsExcel">
             <input name="outputDir"/>
             <input name="fileName" value="model/${appName}.api.xlsx"/>
-            <input name="dslModel"/>
+            <input name="dslModel" value="${apiModel}"/>
             <input name="impModelPath" value="/nop/rpc/imp/api.imp.xml"/>
         </custom>
     </steps>

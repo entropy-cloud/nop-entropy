@@ -1,0 +1,19 @@
+<api x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+     xmlns:app="app">
+
+    <services xdef:body-type="list" xdef:key-attr="name">
+        <service name="!entity-name" displayName="chinese">
+            <description xdef:value="string"/>
+
+            <!--
+            @mutation 如果为false，则表示为只读操作
+            -->
+            <method name="!var-name" displayName="string" xdef:unique-attr="name"
+                    mutation="!boolean=false" app:useCaseNo="csv-set">
+                <description xdef:value="string"/>
+            </method>
+
+        </service>
+    </services>
+
+</api>

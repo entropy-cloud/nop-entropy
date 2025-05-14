@@ -5,9 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.github.entropy-cloud</groupId>
-        <artifactId>nop-entropy</artifactId>
+        <artifactId>nop-ai</artifactId>
         <version>2.0.0-SNAPSHOT</version>
-        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>nop-ai-coder</artifactId>
@@ -31,6 +30,11 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-orm-model</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-rpc-model</artifactId>
         </dependency>
 
         <dependency>

@@ -14,6 +14,7 @@ import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
 import io.nop.ai.core.model.LlmRequestModel;
 import io.nop.ai.core.model.LlmResponseModel;
+import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
@@ -22,6 +23,7 @@ import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
+import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.bean.BeanTool;
@@ -33,6 +35,7 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -65,6 +68,13 @@ public class DefaultAiChatService implements IAiChatService {
     private Map<String, IRateLimiter> rateLimiters = new ConcurrentHashMap<>();
 
     protected MockAiChatService mockService = new MockAiChatService();
+
+    private File secretDir;
+
+    @InjectValue("@cfg:nop.ai.secret-dir|/nop/ai/secret")
+    public void setSecretDir(File secretDir) {
+        this.secretDir = secretDir;
+    }
 
     @Inject
     public void setChatLogger(IAiChatLogger chatLogger) {
@@ -143,6 +153,7 @@ public class DefaultAiChatService implements IAiChatService {
                                                          LlmModel llmModel,
                                                          Prompt prompt, AiChatOptions options,
                                                          ICancelToken cancelToken) {
+        long beginTime = CoreMetrics.currentTimeMillis();
         AiChatExchange chatExchange = new AiChatExchange();
         chatExchange.setPrompt(prompt);
         chatExchange.setChatOptions(options);
@@ -171,6 +182,10 @@ public class DefaultAiChatService implements IAiChatService {
                     Map<String, Object> response = res.getBodyAsBean(Map.class);
 
                     parseHttpResponse(llmName, llmModel, response, chatExchange);
+
+                    long endTime = CoreMetrics.currentTimeMillis();
+                    chatExchange.setUsedTime((int) (endTime - beginTime));
+
                     if (llmModel.getParseHttpResponse() != null) {
                         llmModel.getParseHttpResponse().call3(null, response, chatExchange, options, scope);
                     }
@@ -211,6 +226,16 @@ public class DefaultAiChatService implements IAiChatService {
     protected String getApiKey(String llmName) {
         String apiKeyName = StringHelper.replace(CONFIG_VAR_LLM_API_KEY, PLACE_HOLDER_LLM_NAME, llmName);
         String apiKey = (String) AppConfig.var(apiKeyName);
+        if (StringHelper.isEmpty(apiKey)) {
+            File secretFile = new File(secretDir, llmName + ".txt");
+            if (secretFile.exists()) {
+                String secret = StringHelper.strip(FileHelper.readText(secretFile, null));
+                if (secret != null) {
+                    AppConfig.getConfigProvider().assignConfigValue(apiKeyName, secret);
+                    return secret;
+                }
+            }
+        }
         return apiKey;
     }
 

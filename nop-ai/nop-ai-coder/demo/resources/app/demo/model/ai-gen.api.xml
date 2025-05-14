@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<api x:schema="/nop/schema/api.xdef" xmlns:app="app" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <dicts>
+        <dict name="settlementStatus" label="结算状态">
+            <description>结算状态</description>
+            <option value="unprocessed" code="UNPROCESSED" label="未结算" description="未结算"/>
+            <option value="partially_settled" code="PARTIALLY_SETTLED" label="部分结算" description="部分结算"/>
+            <option value="fully_settled" code="FULLY_SETTLED" label="已结算" description="已结算"/>
+        </dict>
+        <dict name="menuLockStatus" label="菜单锁定状态">
+            <description>菜单锁定状态</description>
+            <option value="unlocked" code="UNLOCKED" label="未锁定" description="未锁定"/>
+            <option value="locked" code="LOCKED" label="已锁定" description="已锁定"/>
+        </dict>
+        <dict name="stockLockStatus" label="出入库锁定状态">
+            <description>出入库锁定状态</description>
+            <option value="unlocked" code="UNLOCKED" label="未锁定" description="未锁定"/>
+            <option value="locked" code="LOCKED" label="已锁定" description="已锁定"/>
+        </dict>
+    </dicts>
+
+    <services>
+        <service name="DailyMenu" displayName="每日菜单" className="app.demo.api.DailyMenu">
+            <description>每日菜单服务，用于管理每日菜单的新增、编辑、删除及查询操作，菜单只能从基础菜单中选择，且在结算日不可编辑或删除。</description>
+            <method name="bindToSettlementDate" displayName="绑定结算日" requestMessage="BindSettlementDateRequest"
+                    responseMessage="BindSettlementDateResponse" mutation="true" app:useCaseNo="UC-3.2.3-006">
+                <description>绑定每日菜单与结算日，由系统管理员操作。</description>
+            </method>
+        </service>
+        <service name="InOutStock" displayName="出入库记录" className="app.demo.api.InOutStock">
+            <description>出入库记录服务，用于管理出入库记录的新增、编辑、删除、查询、附件上传及锁定操作。</description>
+            <method name="lock" displayName="锁定出入库记录" requestMessage="LockInOutStockRequest"
+                    responseMessage="LockInOutStockResponse" mutation="true" app:useCaseNo="UC-3.2.4-008">
+                <description>锁定出入库记录，防止被修改或删除，由系统管理员或服务公司管理员操作。</description>
+            </method>
+            <method name="uploadAttachment" displayName="上传附件材料" requestMessage="UploadAttachmentRequest"
+                    responseMessage="UploadAttachmentResponse" mutation="true" app:useCaseNo="UC-3.2.4-006">
+                <description>上传出入库时的附件材料，由服务公司管理员操作。</description>
+            </method>
+            <method name="viewAttachment" displayName="查看附件材料" requestMessage="ViewAttachmentRequest"
+                    responseMessage="ViewAttachmentResponse" mutation="false" app:useCaseNo="UC-3.2.4-007">
+                <description>查看出入库时上传的附件材料，由服务公司管理员操作。</description>
+            </method>
+        </service>
+        <service name="InventoryCheck" displayName="盘库记录" className="app.demo.api.InventoryCheck">
+            <description>盘库记录服务，用于管理盘库操作、记录库存差异、查询、查看详细信息及导出盘库记录。</description>
+            <method name="performCheck" displayName="执行盘库操作" requestMessage="PerformInventoryCheckRequest"
+                    responseMessage="PerformInventoryCheckResponse" mutation="true" app:useCaseNo="UC-3.2.5-001">
+                <description>执行盘库操作，记录库存差异，由服务公司管理员操作。</description>
+            </method>
+            <method name="exportCheck" displayName="导出盘库记录" requestMessage="ExportInventoryCheckRequest"
+                    responseMessage="ExportInventoryCheckResponse" mutation="false" app:useCaseNo="UC-3.2.5-004">
+                <description>导出盘库记录为Excel或PDF格式，由服务公司管理员操作。</description>
+            </method>
+        </service>
+        <service name="SupplierSettlement" displayName="供应商结算" className="app.demo.api.SupplierSettlement">
+            <description>供应商结算服务，用于管理结算数据的录入、查询、修改及删除。</description>
+            <method name="recordSettlement" displayName="结算数据录入" requestMessage="RecordSupplierSettlementRequest"
+                    responseMessage="RecordSupplierSettlementResponse" mutation="true" app:useCaseNo="UC-3.2.6-001">
+                <description>新增结算数据，支持选择入库单、填写总金额、已结金额等信息，由服务公司管理员操作。</description>
+            </method>
+        </service>
+        <service name="OperatingData" displayName="经营数据" className="app.demo.api.OperatingData">
+            <description>经营数据服务，用于管理经营数据的录入、查看、编辑及删除。</description>
+            <method name="calculateDailyDeviation" displayName="自动计算日偏差数据"
+                    requestMessage="CalculateDailyDeviationRequest" responseMessage="CalculateDailyDeviationResponse"
+                    mutation="false" app:useCaseNo="UC-3.2.7-001">
+                <description>根据每日出库单和成本核算自动计算日偏差数据。</description>
+            </method>
+        </service>
+        <service name="Menu" displayName="基础菜单" className="app.demo.api.Menu">
+            <description>基础菜单服务，用于管理基础菜单的新增、编辑、删除及查询操作，同时支持审核操作。</description>
+            <method name="auditMenu" displayName="审核基础菜单" requestMessage="AuditMenuRequest"
+                    responseMessage="AuditMenuResponse" mutation="true" app:useCaseNo="UC-3.2.3-005">
+                <description>学校管理员审核并补充基础菜单。</description>
+            </method>
+        </service>
+    </services>
+
+    <messages>
+        <message name="BindSettlementDateRequest" displayName="绑定结算日请求">
+            <field name="dailyMenuId" mandatory="true" displayName="每日菜单ID" propId="0">
+                <schema type="String" dict=""/>
+            </field>
+            <field name="settlementDate" mandatory="true" displayName="结算日期" propId="1">
+                <schema type="LocalDate" dict=""/>
+            </field>
+        </message>
+        <message name="BindSettlementDateResponse" displayName="绑定结算日响应">
+            <field name="success" mandatory="true" displayName="操作是否成功" propId="0">
+                <schema type="Boolean" dict=""/>
+            </field>
+            <field name="message" mandatory="false" displayName="操作结果描述" propId="1">
+                <schema type="String" dict=""/>
+            </field>
+        </message>
+        <message name="LockInOutStockRequest" displayName="锁定出入库记录请求">
+            <field name="inOutStockId" mandatory="true" displayName="出入库记录ID" propId="0">
+                <schema type="String" dict=""/>
+            </field>
+            <field name="lockedBy" mandatory="true" displayName="锁定人" propId="1">
+                <schema type="String" dict=""/>
+            </field>
+        </message>
+        <message name="LockInOutStockResponse" displayName="锁定出入库记录响应">
+            <field name="success" mandatory="true" displayName="操作是否成功" propId="0">
+                <schema type="Boolean" dict=""/>
+            </field>
+            <field name="message" mandatory="false" displayName="操作结果描述" propId="1">
+                <schema type="String" dict=""/>
+            </field>
+        </message>
+        <message name="UploadAttachmentRequest" displayName="上传附件材料请求">
+            <field name="inOutStockId" mandatory="true" displayName="出入库记录ID" propId="0">
+                <schema type="String" dict=""/>
+            </field>
+            <field name="attachment" mandatory="true" displayName="附件材料" propId="1">
+                <schema type="String" dict=""/>
+            </field>
+        </message>
+        <message name="UploadAttachmentResponse" displayName="上传附件材料响应">
+            <field name="success" mandatory="true" displayName="操作是否成功" propId="0">
+                <schema type="Boolean" dict=""/>
+            </field>
+            <field name="message" mandatory="false" displayName="操作结果描述" propId="1">
+                <schema type="String" dict=""/>
+            </field>
+        </message>
+        <message name="ViewAttachmentRequest" displayName="查看附件材料请求">
+            <field name="inOutStockId" mandatory="true" displayName="出入库记录ID" propId="0">
+                <schema type="String" dict=""/>
+            </field>
+        </message>
+        <message name="ViewAttachmentResponse" displayName="查看附件材料响应">
+            <field name="attachment" mandatory="true" displayName="附件材料" propId="0">
+                <schema type="String" dict=""/>
+            </field>
+        </message>
+        <message name="PerformInventoryCheckRequest" displayName="执行盘库操作请求">
+            <field name="warehouseId" mandatory="true" displayName="库房ID" propId="0">
+                <schema type="String" dict=""/>
+            </field>
+            <field name="checkType" mandatory="true" displayName="盘库类型" propId="1">
+                <schema type="String" dict="checkType"/>
+            </field>
+            <field name="differenceAmount" mandatory="true" displayName="差异金额" propId="2">
+                <schema type="BigDecimal" dict=""/>
+            </field>
+        </message>
+        <message name="PerformInventoryCheckResponse" displayName="执行盘库操作响应">
+            <field name="success" mandatory="true" displayName="操作是否成功" propId="0">
+                <schema type="Boolean" dict=""/>
+            </field>
+            <field name="message" mandatory="false" displayName="操作结果描述" propId="1">
+                <schema type="String" dict=""/>
+            </field>
+        </message>
+        <message name="ExportInventoryCheckRequest" displayName="导出盘库记录请求">
+            <field name="checkId" mandatory="true" displayName="盘库记录ID" propId="0">
+                <schema type="String" dict=""/>
+            </field>
+            <field name="format" mandatory="true" displayName="导出格式" propId="1">
+                <schema type="String" dict=""/>
+            </field>
+        </message>
+        <message name="ExportInventoryCheckResponse" displayName="导出盘库记录响应">
+            <field name="fileUrl" mandatory="true" displayName="文件下载地址" propId="0">
+                <schema type="String" dict=""/>
+            </field>
+        </message>
+        <message name="RecordSupplierSettlementRequest" displayName="结算数据录入请求">
+            <field name="inOutStockId" mandatory="true" displayName="出入库记录ID" propId="0">
+                <schema type="String" dict=""/>
+            </field>
+            <field name="totalAmount" mandatory="true" displayName="总金额" propId="1">
+                <schema type="BigDecimal" dict=""/>
+            </field>
+            <field name="paidAmount" mandatory="true" displayName="已结金额" propId="2">
+                <schema type="BigDecimal" dict=""/>
+            </field>
+        </message>
+        <message name="RecordSupplierSettlementResponse" displayName="结算数据录入响应">
+            <field name="success" mandatory="true" displayName="操作是否成功" propId="0">
+                <schema type="Boolean" dict=""/>
+            </field>
+            <field name="message" mandatory="false" displayName="操作结果描述" propId="1">
+                <schema type="String" dict=""/>
+            </field>
+        </message>
+        <message name="CalculateDailyDeviationRequest" displayName="计算日偏差数据请求">
+            <field name="dailyMenuId" mandatory="true" displayName="每日菜单ID" propId="0">
+                <schema type="String" dict=""/>
+            </field>
+        </message>
+        <message name="CalculateDailyDeviationResponse" displayName="计算日偏差数据响应">
+            <field name="dailyDeviation" mandatory="true" displayName="日偏差数据" propId="0">
+                <schema type="BigDecimal" dict=""/>
+            </field>
+        </message>
+        <message name="AuditMenuRequest" displayName="审核基础菜单请求">
+            <field name="menuId" mandatory="true" displayName="基础菜单ID" propId="0">
+                <schema type="String" dict=""/>
+            </field>
+            <field name="approved" mandatory="true" displayName="是否通过审核" propId="1">
+                <schema type="Boolean" dict=""/>
+            </field>
+        </message>
+        <message name="AuditMenuResponse" displayName="审核基础菜单响应">
+            <field name="success" mandatory="true" displayName="操作是否成功" propId="0">
+                <schema type="Boolean" dict=""/>
+            </field>
+            <field name="message" mandatory="false" displayName="操作结果描述" propId="1">
+                <schema type="String" dict=""/>
+            </field>
+        </message>
+    </messages>
+</api>

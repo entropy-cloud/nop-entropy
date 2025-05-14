@@ -10,6 +10,8 @@ package io.nop.core.reflect.bean;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.hook.IPropGetMissingHook;
 import io.nop.core.type.IGenericType;
@@ -18,11 +20,8 @@ import jakarta.annotation.Nonnull;
 import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
 import static io.nop.core.CoreErrors.ARG_INDEX;
@@ -105,6 +104,10 @@ public class BeanToolImpl implements IBeanTool {
             if (Collection.class.isAssignableFrom(clazz)) {
                 return ((Collection<?>) bean).contains(propName.substring(1));
             }
+        }
+
+        if (StringHelper.isDigit(propName.charAt(0)) && bean instanceof List) {
+            return CollectionHelper.get((List<? extends Object>) bean, Integer.parseInt(propName));
         }
         return getBeanModel(bean).getProperty(bean, propName, scope);
     }

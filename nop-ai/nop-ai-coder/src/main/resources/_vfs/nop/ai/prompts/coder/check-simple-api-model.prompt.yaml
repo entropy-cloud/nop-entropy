@@ -1,0 +1,31 @@
+template: |
+  【任务目标】
+  检查API设计与需求的一致性，返回修正后的XML文本。若设计完全符合要求，则返回`[NO_CHANGE]`
+  
+  【审查标准】
+  1. app:useCaseNo必须是需求文档中的用例编号，采用逗号分隔
+  
+  【API模型】
+  ```xml
+  ${apiNode.xml()}
+  ```
+  
+  【需求文档】
+  ${requirements}
+
+inputs:
+  - name: apiNode
+    mandatory: true
+
+  - name: requirements
+    mandatory: true
+
+outputs:
+  - name: noChange
+    type: Boolean
+    parseFromResponse:
+      containsText: [NO_CHANGE]
+
+  - name: RESULT
+    xdefPath: /nop/ai/schema/coder/simple-api.xdef
+    format: xml

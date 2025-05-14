@@ -42,10 +42,9 @@
             -->
             <method name="!var-name" displayName="string" tagSet="word-set" xdef:unique-attr="name"
                     streamRequest="!boolean=false" streamResponse="!boolean=false"
+                    requestMessage="class-name" responseMessage="!generic-type"
                     xdef:name="ApiMethodModel" mutation="!boolean=false">
                 <description xdef:value="string"/>
-                <requestMessage xdef:value="class-name"/>
-                <responseMessage xdef:value="!generic-type"/>
 
                 <option name="!string" xdef:ref="ApiOptionModel" xdef:unique-attr="name"/>
 

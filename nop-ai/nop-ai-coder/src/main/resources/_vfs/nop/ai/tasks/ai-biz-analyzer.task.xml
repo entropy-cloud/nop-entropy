@@ -3,7 +3,10 @@
       xmlns:file-utils="/nop/task/xlib/file-utils.xlib" xmlns:task="/nop/task/xlib/task.xlib"
       x:dump="true" x:extends="/nop/task/lib/common.task.xml">
 
-    <ai:chatOptions provider="ollama" model="qwen3:8b" contextLength="8192" maxTokens="16000"/>
+<!--    <ai:chatOptions provider="ollama" model="qwen3:8b" contextLength="8192" maxTokens="16000"/>-->
+
+    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>
+
 
     <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 

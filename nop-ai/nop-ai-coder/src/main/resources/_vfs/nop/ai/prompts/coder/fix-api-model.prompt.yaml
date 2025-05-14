@@ -1,0 +1,52 @@
+template: |
+  【任务目标】
+  对提供的API设计进行全面检查，返回符合规范的优化后的XML文本。若设计完全符合要求，则返回`[NO_CHANGE]`。
+  
+  【审查标准】
+  1. **字典使用规范**
+  - [强制] 所有API模型中的`dict`必须被至少一个`message`引用，如果没有被使用则不应该存在
+  - [强制] 禁止创建重复字典，优先使用已有字典定义（见下方【已有字典定义】）
+  - [强制] message的字段有必要时应该通过dict属性引用字典
+  - [建议] 新字典命名需遵循`业务域_用途`格式（如`user_status`）
+  
+  2. **字段命名一致性**
+  - [强制] `message`字段必须与数据库实体字段保持语义一致
+  - [强制] 优先使用数据库实体中的原始字段名
+  - [例外] 仅当字段存在明确业务表述差异时方可采用不同命名
+  
+  3. **函数设计**
+  - 检查服务函数设计的合理性和请求响应消息的合理性
+  - 其他通用要求
+
+
+  【已有字典定义】
+  ```xml
+  ${ormModel.dictsXml}
+  ```
+  
+  【数据库实体】
+  ```java
+  ${ormModel.ormModelJava}
+  ```
+  
+  【API模型】
+  ```xml
+  ${apiNode.xml()}
+  ```
+
+inputs:
+  - name: ormModel
+    mandatory: true
+
+  - name: apiNode
+    mandatory: true
+
+outputs:
+  - name: noChange
+    type: Boolean
+    parseFromResponse:
+      containsText: [NO_CHANGE]
+
+  - name: RESULT
+    xdefPath: /nop/ai/schema/coder/api.xdef
+    format: xml

@@ -87,8 +87,8 @@ public class AiCoderHelper {
 
     public static XNode validateAndCleanDslNode(String xdefPath, XNode dslNode) {
         IXDefinition xdef = SchemaLoader.loadXDefinition(xdefPath);
-        new XDslValidator().removeUnknownAttrs(true).validate(dslNode, xdef.getRootNode(), true);
         new XDslCleaner().clean(dslNode, xdef.getRootNode());
+        new XDslValidator().removeUnknownAttrs(true).validate(dslNode, xdef.getRootNode(), true);
         return dslNode;
     }
 

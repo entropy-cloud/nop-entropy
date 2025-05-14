@@ -336,10 +336,6 @@
                             <schema stdDomain="json"/>
                         </field>
 
-                        <field name="defaultValue" displayName="缺省值">
-                            <schema stdDomain="string"/>
-                        </field>
-
                         <field name="ui:control" displayName="控件">
                             <schema stdDomain="string"/>
                         </field>

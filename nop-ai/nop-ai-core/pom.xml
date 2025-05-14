@@ -29,6 +29,12 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-http-client-jdk</artifactId>
+            <scope>optional</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-xlang</artifactId>
         </dependency>
 
@@ -38,10 +44,11 @@
         </dependency>
 
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-autotest-junit</artifactId>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>
