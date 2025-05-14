@@ -6,6 +6,9 @@ import io.nop.core.lang.json.JsonTool;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestRecordMappingManager extends JunitBaseTestCase {
@@ -27,6 +30,10 @@ public class TestRecordMappingManager extends JunitBaseTestCase {
         mapping.map(t1, t2, new RecordMappingContext());
 
         assertEquals("{\"base\":{\"name1\":\"f1\"},\"ext\":{\"name2\":\"f2\",\"name3\":123},\"name4\":\"f4\"}", JsonTool.stringify(t2));
+
+        Map<String,Object> map = new LinkedHashMap<>();
+        mapping.map(t1, map, new RecordMappingContext());
+        assertEquals("{\"base\":{\"name1\":\"f1\"},\"ext\":{\"name2\":\"f2\",\"name3\":123},\"name4\":\"f4\"}", JsonTool.stringify(map));
     }
 
     @DataBean

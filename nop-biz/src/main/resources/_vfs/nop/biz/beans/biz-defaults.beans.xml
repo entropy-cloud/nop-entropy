@@ -130,4 +130,13 @@
 
     <bean id="nopDummyGraphQLArgsNormalizer" class="io.nop.graphql.core.reflection.DummyGraphQLArgsNormalizer"/>
 
+    <bean id="nopRpcServiceOnGraphQL" class="io.nop.graphql.core.rpc.RpcServiceOnGraphQL">
+        <constructor-arg index="0" ref="nopGraphQLEngine"/>
+        <constructor-arg index="1" value="ROOT"/>
+        <constructor-arg index="2">
+            <ioc:collect-beans only-concrete-classes="true"
+                               name-prefix="nopRpcServiceOnGraphQLInterceptor_"/>
+        </constructor-arg>
+    </bean>
+
 </beans>

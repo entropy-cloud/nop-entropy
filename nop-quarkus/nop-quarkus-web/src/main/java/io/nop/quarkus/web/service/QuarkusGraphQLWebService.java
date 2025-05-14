@@ -11,6 +11,7 @@ import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.web.GraphQLWebService;
 import io.nop.http.api.server.IHttpServerContext;
 import io.nop.quarkus.web.utils.QuarkusExecutorHelper;
+import io.quarkus.arc.properties.IfBuildProperty;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.GET;
@@ -33,6 +34,7 @@ import static io.nop.quarkus.web.utils.QuarkusExecutorHelper.withRoutingContext;
 
 @Path("")
 @ApplicationScoped
+@IfBuildProperty(name = "nop.quarkus.graphql-web-service.enabled", stringValue = "true", enableIfMissing = true) // 条件注解
 public class QuarkusGraphQLWebService extends GraphQLWebService {
     // static final Logger LOG = LoggerFactory.getLogger(QuarkusGraphQLWebService.class);
 

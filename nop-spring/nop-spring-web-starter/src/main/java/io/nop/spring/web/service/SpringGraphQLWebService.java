@@ -17,6 +17,7 @@ import io.nop.spring.core.resource.SpringResource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.InputStreamResource;
@@ -44,6 +45,7 @@ import static io.nop.graphql.core.GraphQLConstants.SYS_PARAM_ARGS;
 import static io.nop.graphql.core.GraphQLConstants.SYS_PARAM_SELECTION;
 
 @RestController
+@ConditionalOnProperty(name = "nop.spring.graphql-web-service.enabled", havingValue = "true", matchIfMissing = true)
 public class SpringGraphQLWebService extends GraphQLWebService {
     static final Logger LOG = LoggerFactory.getLogger(SpringGraphQLWebService.class);
 

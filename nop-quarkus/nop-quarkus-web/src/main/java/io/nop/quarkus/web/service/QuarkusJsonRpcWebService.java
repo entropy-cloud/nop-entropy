@@ -18,7 +18,7 @@ import static io.nop.quarkus.web.utils.QuarkusExecutorHelper.withRoutingContext;
 
 @Path("")
 @ApplicationScoped
-@IfBuildProperty(name = "nop.graphql.json-rpc.enabled", stringValue = "true", enableIfMissing = true) // 条件注解
+@IfBuildProperty(name = "nop.quarkus.json-rpc.enabled", stringValue = "true", enableIfMissing = true) // 条件注解
 public class QuarkusJsonRpcWebService extends GraphQLWebService {
 
     @POST

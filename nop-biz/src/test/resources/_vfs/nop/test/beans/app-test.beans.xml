@@ -8,4 +8,6 @@
           class="io.nop.biz.crud.DynamicCrudBizModel">
         <property name="bizObjName" value="MyBean"/>
     </bean>
+
+    <bean id="MyObjectBizModel" class="io.nop.biz.impl.MyObjectBizModel" />
 </beans>
