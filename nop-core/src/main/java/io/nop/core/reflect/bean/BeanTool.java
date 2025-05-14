@@ -118,6 +118,12 @@ public class BeanTool {
         return BeanPropHelper.getIn(instance(), bean, propPath);
     }
 
+    public static Object makeComplexProperty(Object bean, String propPath) {
+        if (bean == null)
+            return null;
+        return BeanPropHelper.makeIn(instance(), bean, propPath);
+    }
+
     public static void setComplexProperty(Object bean, String propPath, Object value) {
         Guard.notNull(bean, "null bean");
         BeanPropHelper.setIn(instance(), bean, propPath, value);

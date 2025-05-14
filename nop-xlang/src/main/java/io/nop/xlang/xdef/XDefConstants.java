@@ -29,6 +29,8 @@ public interface XDefConstants {
 
     String STD_DOMAIN_METHOD_REF = "method-ref";
 
+    String STD_DOMAIN_VALUE_MAPPER = "value-mapper";
+
     String STD_DOMAIN_TOKEN_NAME = "token-name";
     String STD_DOMAIN_PACKAGE_NAME = "package-name";
     String STD_DOMAIN_NUMBER = "number";

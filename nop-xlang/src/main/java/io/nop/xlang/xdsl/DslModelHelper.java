@@ -101,6 +101,10 @@ public class DslModelHelper {
         return new DslXNodeToJsonTransformer(true, null, null).transformToObject(defNode, node, null);
     }
 
+    public static Object parseDslNode(String xdefPath, XNode node) {
+        return new DslModelParser(xdefPath).parseFromNode(node);
+    }
+
     public static String getXdefPath(Object model, String defaultXdefPath) {
         String xdefPath = defaultXdefPath;
         if (model instanceof IXDslModel) {

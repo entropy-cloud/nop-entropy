@@ -88,4 +88,24 @@ public class BeanPropHelper {
             pos = pos2 + 1;
         } while (true);
     }
+
+    public static Object makeIn(IBeanTool beanTool, Object original, String path) {
+        if (isSimple(path)) {
+            return makeSimple(beanTool, original, path);
+        }
+        Object obj = original;
+        int pos = 0;
+        do {
+            int pos2 = path.indexOf('.', pos);
+            if (pos2 < 0) {
+                return makeSimple(beanTool, obj, path.substring(pos));
+            }
+
+            obj = makeSimple(beanTool, obj, path.substring(pos, pos2));
+            if (obj == null)
+                throw new NopException(ERR_REFLECT_SET_PROP_FAIL).param(ARG_PROP_PATH, path).param(ARG_BEAN, original);
+            // c == '['
+            pos = pos2 + 1;
+        } while (true);
+    }
 }

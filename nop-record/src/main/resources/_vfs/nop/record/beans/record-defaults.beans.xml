@@ -5,4 +5,6 @@
     <bean id="nopRecordTemplateManager"
           class="io.nop.record.template.RecordTemplateManager">
     </bean>
+
+    <bean id="nopRecordMappingManager" class="io.nop.record.mapping.RecordMappingManagerImpl"/>
 </beans>

@@ -1,0 +1,6 @@
+nop:
+  application:
+    name: nop-spring-proxy
+
+server:
+  port: 8097

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+ 数据对象属性映射规则
+-->
+<mapping x:schema="/nop/schema/xdef.xdef" name="!var-name" displayName="string" tagSet="csv-set"
+         xmlns:x="/nop/schema/xdsl.xdef"
+         xmlns:xdef="/nop/schema/xdef.xdef"
+         xdef:name="RecordMappingConfig" xdef:bean-package="io.nop.record.model"
+         fromClass="class-name">
+
+    <description xdef:value="string"/>
+
+    <beforeMapping xdef:value="xpl-fn:(source,target,ctx)=>void"/>
+
+    <afterMapping xdef:value="xpl-fn:(source,target,ctx)=>void"/>
+
+    <fieldMappings xdef:key-attr="to" xdef:body-type="list">
+        <!--
+        @mapping 引用其他RecordMapping映射规则。
+        -->
+        <fieldMapping to="!prop-path" from="prop-path" displayName="string" tagSet="csv-set"
+                      defaultValue="string" mapping="var-name" virtual="!boolean=false"
+                      type="generic-type" mandatory="!boolean=false"
+                      xdef:name="RecordFieldMappingConfig">
+            <when xdef:value="xpl-fn:(source,target,ctx)=>boolean"/>
+            <computeExpr xdef:value="xpl-fn:(source,target,ctx)=>any"/>
+            <schema xdef:ref="../schema/schema.xdef"/>
+
+            <valueMapper xdef:value="value-mapper"/>
+        </fieldMapping>
+    </fieldMappings>
+
+</mapping>

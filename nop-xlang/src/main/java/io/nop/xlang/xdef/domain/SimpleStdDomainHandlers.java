@@ -32,6 +32,8 @@ import io.nop.core.lang.xml.XJsonNode;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.XPathProvider;
 import io.nop.core.lang.xml.parse.XNodeParser;
+import io.nop.core.model.mapper.IValueMapper;
+import io.nop.core.model.mapper.ValueMapperParser;
 import io.nop.core.model.query.QueryBeanHelper;
 import io.nop.core.model.selection.FieldSelectionBeanParser;
 import io.nop.core.model.table.CellPosition;
@@ -42,6 +44,7 @@ import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.core.type.parse.GenericTypeParser;
 import io.nop.core.type.utils.GenericTypeHelper;
+import io.nop.core.type.utils.JavaGenericTypeBuilder;
 import io.nop.core.type.utils.TypeReference;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.api.XLangCompileTool;
@@ -61,6 +64,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -417,6 +421,30 @@ public class SimpleStdDomainHandlers {
         public Object parseProp(String options, SourceLocation loc, String propName, Object value,
                                 XLangCompileTool cp) {
             return MethodRef.parse(value.toString());
+        }
+    }
+
+    public static class ValueMapperType extends SimpleStdDomainHandler {
+        @Override
+        public String getName() {
+            return XDefConstants.STD_DOMAIN_VALUE_MAPPER;
+        }
+
+        @Override
+        public IGenericType getGenericType(boolean mandatory, String options) {
+            return JavaGenericTypeBuilder.buildParameterizedType(IValueMapper.class, String.class, Object.class);
+        }
+
+        @Override
+        public boolean isFixedType() {
+            return true;
+        }
+
+        @Override
+        public Object parseProp(String options, SourceLocation loc, String propName, Object value,
+                                XLangCompileTool cp) {
+            Map<String, Object> config = JsonTool.parseMap(value.toString());
+            return ValueMapperParser.INSTANCE.parseMapper(config);
         }
     }
 

@@ -215,6 +215,7 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
                 IResource resource = VirtualFileSystem.instance().getResource(fullPath + "." + fileType);
                 if (resource.exists())
                     return Pair.of(resource.getPath(), entry.getValue());
+                LOG.info("nop.resource.try-resolve-file-not-exists:{}", resource.getPath());
             }
 
             // 如果支持版本且当前传入的路径没有包含版本，则尝试查找版本号最大的数据返回

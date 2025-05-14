@@ -125,6 +125,8 @@ public class StdDomainRegistry implements IStdDomainRegistry {
         registerStdDomainHandler(new SimpleStdDomainHandlers.LongRangeType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.MethodRefType());
 
+        registerStdDomainHandler(new SimpleStdDomainHandlers.ValueMapperType());
+
         for (int i = 0; i <= StdDataType.DURATION.ordinal(); i++) {
             StdDataType type = StdDataType.values()[i];
             registerStdDomainHandler(ConverterStdDomainHandler.stdTypeHandler(type));
