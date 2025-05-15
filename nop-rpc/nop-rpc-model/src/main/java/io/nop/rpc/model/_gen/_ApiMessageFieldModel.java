@@ -25,6 +25,13 @@ public abstract class _ApiMessageFieldModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: defaultValue
+     * 
+     */
+    private java.lang.String _defaultValue ;
+    
+    /**
+     *  
      * xml name: description
      * 
      */
@@ -95,6 +102,25 @@ public abstract class _ApiMessageFieldModel extends io.nop.core.resource.compone
         checkAllowChange();
         
         this._binaryScalarType = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: defaultValue
+     *  
+     */
+    
+    public java.lang.String getDefaultValue(){
+      return _defaultValue;
+    }
+
+    
+    public void setDefaultValue(java.lang.String value){
+        checkAllowChange();
+        
+        this._defaultValue = value;
            
     }
 
@@ -298,6 +324,7 @@ public abstract class _ApiMessageFieldModel extends io.nop.core.resource.compone
         super.outputJson(out);
         
         out.putNotNull("binaryScalarType",this.getBinaryScalarType());
+        out.putNotNull("defaultValue",this.getDefaultValue());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("mandatory",this.isMandatory());
@@ -318,6 +345,7 @@ public abstract class _ApiMessageFieldModel extends io.nop.core.resource.compone
         super.copyTo(instance);
         
         instance.setBinaryScalarType(this.getBinaryScalarType());
+        instance.setDefaultValue(this.getDefaultValue());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
         instance.setMandatory(this.isMandatory());

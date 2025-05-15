@@ -9,31 +9,20 @@
     <services>
         <service name="WorkflowService" displayName="工作流服务" i18n-en:displayName="Worflow Service"
                  className="io.nop.wf.api.WorkflowService">
-            <method mutation="true" name="startWorkflow" i18n-en:displayName="Start" displayName="启动工作流">
-                <requestMessage>io.nop.wf.api.beans.WfStartRequestBean</requestMessage>
-                <responseMessage>io.nop.wf.api.beans.WfStartResponseBean</responseMessage>
-            </method>
+            <method mutation="true" name="startWorkflow" i18n-en:displayName="Start" displayName="启动工作流"
+                    requestMessage="io.nop.wf.api.beans.WfStartRequestBean"
+                    responseMessage="io.nop.wf.api.beans.WfStartResponseBean"/>
             <method mutation="true" name="notifySubFlowEnd" i18n-en:displayName="Notify SubFlow End"
-                    displayName="通知子工作流结束">
-                <requestMessage>io.nop.wf.api.beans.WfSubFlowEndRequestBean</requestMessage>
-                <responseMessage>void</responseMessage>
-            </method>
-            <method mutation="true" name="invokeAction" i18n-en:displayName="Invoke Action" displayName="执行动作">
-                <requestMessage>io.nop.wf.api.beans.WfActionRequestBean</requestMessage>
-                <responseMessage>Object</responseMessage>
-            </method>
-            <method mutation="true" name="killWorkflow" i18n-en:displayName="Kill" displayName="中止工作流">
-                <requestMessage>io.nop.wf.api.beans.WfCommandRequestBean</requestMessage>
-                <responseMessage>void</responseMessage>
-            </method>
-            <method mutation="true" name="suspendWorkflow" i18n-en:displayName="Suspend" displayName="暂停工作流">
-                <requestMessage>io.nop.wf.api.beans.WfCommandRequestBean</requestMessage>
-                <responseMessage>void</responseMessage>
-            </method>
-            <method mutation="true" name="resumeWorkflow" i18n-en:displayName="Resume" displayName="继续工作流">
-                <requestMessage>io.nop.wf.api.beans.WfCommandRequestBean</requestMessage>
-                <responseMessage>void</responseMessage>
-            </method>
+                    displayName="通知子工作流结束" requestMessage="io.nop.wf.api.beans.WfSubFlowEndRequestBean"
+                    responseMessage="void"/>
+            <method mutation="true" name="invokeAction" i18n-en:displayName="Invoke Action" displayName="执行动作"
+                    requestMessage="io.nop.wf.api.beans.WfActionRequestBean" responseMessage="Object"/>
+            <method mutation="true" name="killWorkflow" i18n-en:displayName="Kill" displayName="中止工作流"
+                    requestMessage="io.nop.wf.api.beans.WfCommandRequestBean" responseMessage="void"/>
+            <method mutation="true" name="suspendWorkflow" i18n-en:displayName="Suspend" displayName="暂停工作流"
+                    requestMessage="io.nop.wf.api.beans.WfCommandRequestBean" responseMessage="void"/>
+            <method mutation="true" name="resumeWorkflow" i18n-en:displayName="Resume" displayName="继续工作流"
+                    requestMessage="io.nop.wf.api.beans.WfCommandRequestBean" responseMessage="void"/>
         </service>
     </services>
 

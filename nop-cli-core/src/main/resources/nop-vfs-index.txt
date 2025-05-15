@@ -25,9 +25,11 @@
 /meta/test/_NopAuthUser.xmeta
 /meta/test/_NopAuthUser2.xmeta
 /nop/ai/beans/ai-defaults.beans.xml
+/nop/ai/llm/deepseek.llm.xml
 /nop/ai/llm/default.llm.xml
 /nop/ai/llm/ollama.llm.xml
 /nop/ai/prompts/coder/api-design.prompt.yaml
+/nop/ai/prompts/coder/check-simple-api-model.prompt.yaml
 /nop/ai/prompts/coder/correct-markdown.prompt.yaml
 /nop/ai/prompts/coder/delta-merge.md
 /nop/ai/prompts/coder/delta-modification.prompt.yaml
@@ -35,6 +37,7 @@
 /nop/ai/prompts/coder/expand-module-requirements.prompt.yaml
 /nop/ai/prompts/coder/extract-entity-requirements.prompt.yaml
 /nop/ai/prompts/coder/extract-xdef.prompt.yaml
+/nop/ai/prompts/coder/fix-api-model.prompt.yaml
 /nop/ai/prompts/coder/form-design.prompt.yaml
 /nop/ai/prompts/coder/grid-design.prompt.yaml
 /nop/ai/prompts/coder/menu-design.prompt.yaml
@@ -43,6 +46,7 @@
 /nop/ai/prompts/coder/refactor-requirements.prompt.yaml
 /nop/ai/prompts/coder/refine-orm-design.prompt.yaml
 /nop/ai/prompts/coder/refine-requirements.prompt.yaml
+/nop/ai/prompts/coder/validate-site-resource.prompt.yaml
 /nop/ai/schema/coder/api.xdef
 /nop/ai/schema/coder/auth.xdef
 /nop/ai/schema/coder/form.xdef
@@ -50,8 +54,12 @@
 /nop/ai/schema/coder/module-requirements.tpl.md
 /nop/ai/schema/coder/orm.xdef
 /nop/ai/schema/coder/requirements.tpl.md
+/nop/ai/schema/coder/resource.xdef
+/nop/ai/schema/coder/simple-api.xdef
+/nop/ai/tasks/ai-api-design.task.xml
 /nop/ai/tasks/ai-biz-analyzer.task.xml
 /nop/ai/tasks/ai-coder.task.xml
+/nop/ai/tasks/ai-create-orm-and-menu.task.xml
 /nop/ai/tasks/ai-create-project.task.xml
 /nop/ai/tasks/ai-ui-designer.task.xml
 /nop/ai/templates/ai-project/@init.xrun
@@ -104,6 +112,7 @@
 /nop/core/registry/packet-codec.register-model.xml
 /nop/core/registry/prompt.register-model.xml
 /nop/core/registry/record-file.register-model.xml
+/nop/core/registry/record-mappings.register-model.xml
 /nop/core/registry/record.register-model.xml
 /nop/core/registry/task.register-model.xml
 /nop/core/registry/validator.register-model.xml
@@ -182,8 +191,9 @@
 /nop/orm/xlib/sql.xlib
 /nop/record/beans/record-defaults.beans.xml
 /nop/record/imp/record-file.imp.xml
+/nop/record/imp/record-mappings.imp.xml
 /nop/record/imp/template.record-file.xlsx
-/nop/record/imp/test.json5
+/nop/record/imp/template.record-mappings.xlsx
 /nop/report/beans/report-defaults.beans.xml
 /nop/report/imp/xpt.imp.xml
 /nop/report/xlib/xpt-rt.xlib
@@ -234,6 +244,8 @@
 /nop/schema/record/record-enum.xdef
 /nop/schema/record/record-field.xdef
 /nop/schema/record/record-file.xdef
+/nop/schema/record/record-mapping.xdef
+/nop/schema/record/record-mappings.xdef
 /nop/schema/record/record-object.xdef
 /nop/schema/record/record-param.xdef
 /nop/schema/record/record-simple-field.xdef

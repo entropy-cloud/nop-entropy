@@ -417,6 +417,8 @@
 /nop/schema/record/record-enum.xdef
 /nop/schema/record/record-field.xdef
 /nop/schema/record/record-file.xdef
+/nop/schema/record/record-mapping.xdef
+/nop/schema/record/record-mappings.xdef
 /nop/schema/record/record-object.xdef
 /nop/schema/record/record-param.xdef
 /nop/schema/record/record-simple-field.xdef

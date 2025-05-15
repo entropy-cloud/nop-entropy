@@ -10,14 +10,11 @@
         <service name="RuleService" displayName="规则引擎服务" i18n-en:displayName="Rule Service"
                  className="io.nop.rule.api.RuleService">
             <method mutation="true" tagSet="sync" name="executeRule" i18n-en:displayName="Execute Rule"
-                    displayName="执行规则">
-                <requestMessage>io.nop.rule.api.beans.RuleRequestBean</requestMessage>
-                <responseMessage>io.nop.rule.api.beans.RuleResultBean</responseMessage>
-            </method>
-            <method tagSet="sync" name="getRuleMeta" i18n-en:displayName="Get Rule Meta" displayName="得到规则元数据">
-                <requestMessage>io.nop.rule.api.beans.RuleKeyBean</requestMessage>
-                <responseMessage>io.nop.rule.api.beans.RuleMetaBean</responseMessage>
-            </method>
+                    displayName="执行规则" requestMessage="io.nop.rule.api.beans.RuleRequestBean"
+                    responseMessage="io.nop.rule.api.beans.RuleResultBean"/>
+            <method tagSet="sync" name="getRuleMeta" i18n-en:displayName="Get Rule Meta" displayName="得到规则元数据"
+                    requestMessage="io.nop.rule.api.beans.RuleKeyBean"
+                    responseMessage="io.nop.rule.api.beans.RuleMetaBean"/>
         </service>
     </services>
 

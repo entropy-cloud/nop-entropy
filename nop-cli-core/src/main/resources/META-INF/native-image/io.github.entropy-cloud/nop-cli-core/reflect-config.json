@@ -538,6 +538,37 @@
     "fields": [],
     "methods": [
       {
+        "name": "writeRequest",
+        "parameterTypes": [
+          "java.lang.StringBuilder",
+          "io.nop.ai.core.api.messages.Prompt",
+          "io.nop.ai.core.api.chat.AiChatOptions",
+          "long",
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.ai.core.persist.DefaultAiChatExchangePersister"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.ai.core.persist.DefaultAiChatResponseCache"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "normalizePromptPath",
         "parameterTypes": [
           "java.lang.String"
@@ -553,6 +584,29 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [
+      {
+        "name": "getResource",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiChatExchange",
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.ai.core.service.DefaultAiChatLogger"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [
+      {
+        "allowWrite": true,
+        "name": "mockService"
+      }
+    ],
     "methods": [
       {
         "name": "buildHttpRequest",
@@ -25590,6 +25644,16 @@
       }
     ],
     "name": "io.nop.orm.utils.SingleSessionFunctionInvoker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record.mapping.RecordMappingManagerImpl"
   },
   {
     "allDeclaredConstructors": true,

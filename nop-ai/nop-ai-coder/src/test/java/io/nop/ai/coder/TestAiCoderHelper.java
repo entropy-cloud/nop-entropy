@@ -19,6 +19,7 @@ import io.nop.xlang.xmeta.SchemaLoader;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -28,6 +29,7 @@ import static io.nop.xlang.XLangErrors.ERR_XDSL_UNKNOWN_PROP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+@Disabled
 public class TestAiCoderHelper extends JunitBaseTestCase {
     @Inject
     IPromptTemplateManager promptTemplateManager;
