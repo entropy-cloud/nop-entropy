@@ -41,14 +41,12 @@ public class TestAiTask extends JunitBaseTestCase {
     @Test
     public void testAiCoder() {
         File targetDir = getTargetFile("demo");
-        FileHelper.deleteAll(targetDir);
 
-        File demoDir = new File(getModuleDir(), "demo");
-
+        File docsDir = getTargetFile("docs");
 
         ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-create-orm-and-menu.task.xml");
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
-        taskRt.setInput("requirementsPath", new File(demoDir, "refactored-requirements.md").getAbsolutePath());
+        taskRt.setInput("requirementsPath", new File(docsDir, "requirements/refactored-requirements.md").getAbsolutePath());
         taskRt.setInput("outputDir", targetDir.getAbsolutePath());
         taskRt.setInput("basePackageName", "app.demo");
         taskRt.setInput("appName", "app-demo");
@@ -58,15 +56,14 @@ public class TestAiTask extends JunitBaseTestCase {
     @Test
     public void testApiDesign() {
         File targetDir = getTargetFile("demo");
-        FileHelper.deleteAll(targetDir);
 
-        File demoDir = new File(getModuleDir(), "demo");
-
+        File docsDir = getTargetFile("docs");
+        File projectDir = getTargetFile("demo");
 
         ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-api-design.task.xml");
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
-        taskRt.setInput("requirementsPath", new File(demoDir, "refactored-requirements.md").getAbsolutePath());
-        taskRt.setInput("modelDir", new File(demoDir, "model").getAbsolutePath());
+        taskRt.setInput("requirementsPath", new File(docsDir, "requirements/refactored-requirements.md").getAbsolutePath());
+        taskRt.setInput("modelDir", new File(projectDir, "model").getAbsolutePath());
         taskRt.setInput("outputDir", targetDir.getAbsolutePath());
         taskRt.setInput("basePackageName", "app.demo");
         taskRt.setInput("appName", "app-demo");

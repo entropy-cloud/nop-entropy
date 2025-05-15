@@ -64,7 +64,7 @@
             <option name="!string" xdef:ref="ApiOptionModel" xdef:unique-attr="name"/>
 
             <field name="!string" mandatory="!boolean=false" tagSet="word-set" propId="!int"
-                   displayName="string" binaryScalarType="enum:io.nop.commons.type.BinaryScalarType"
+                   displayName="string" binaryScalarType="enum:io.nop.commons.type.BinaryScalarType" defaultValue="string"
                    xdef:unique-attr="name" xdef:name="ApiMessageFieldModel">
                 <description xdef:value="string"/>
                 <schema xdef:ref="/nop/schema/schema/schema.xdef"/>

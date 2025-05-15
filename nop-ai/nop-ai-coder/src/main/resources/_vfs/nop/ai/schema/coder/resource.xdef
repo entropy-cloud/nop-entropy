@@ -1,6 +1,10 @@
-<resource x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+<resource x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xdef:name="AuthResource"
           xmlns:xdef="/nop/schema/xdef.xdef" xmlns:app="app" xdef:allow-unknown-std-domain="true"
           id="!unique-page-id" displayName="!chinese" icon="awesome-font"
           app:useCaseNo="string" app:entityName="entity-name" app:pageName="string" role="csv-set">
     <description>string</description>
+
+    <children xdef:body-type="list" xdef:key-attr="id">
+        <resource id="!unique-page-id" xdef:ref="AuthResource" />
+    </children>
 </resource>

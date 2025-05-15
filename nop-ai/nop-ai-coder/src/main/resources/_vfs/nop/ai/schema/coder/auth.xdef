@@ -3,10 +3,12 @@
     <site id="main">
         <resource id="!unique-english" displayName="!chinese" icon="awesome-font" xdef:unique-attr="id"
                   routePath="unique-module-path">
-            <children xdef:body-type="list" xdef:key-attr="id">
+            <children xdef:body-type="list" xdef:key-attr="id" xdef:name="AuthResourceChildren">
                 <resource id="!unique-page-id" displayName="!chinese" icon="awesome-font"
                           app:useCaseNo="string" app:entityName="entity-name" app:pageName="string" role="csv-set">
                     <description>string</description>
+
+                    <children xdef:ref="AuthResourceChildren"/>
                 </resource>
             </children>
         </resource>

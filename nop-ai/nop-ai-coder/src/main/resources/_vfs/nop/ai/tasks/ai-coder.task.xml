@@ -1,0 +1,9 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      x:dump="true"
+      x:extends="/nop/task/lib/common.task.xml">
+    <steps>
+        <call-task taskName="">
+
+        </call-task>
+    </steps>
+</task>
