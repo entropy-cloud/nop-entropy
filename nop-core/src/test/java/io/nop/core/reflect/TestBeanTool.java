@@ -12,13 +12,11 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.beans.query.QueryBean;
-import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.collections.KeyedList;
 import io.nop.core.lang.json.JObject;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.object.DynamicObject;
-import io.nop.core.reflect.bean.BeanCopier;
 import io.nop.core.reflect.bean.BeanCopyOptions;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.reflect.hook.IPropGetMissingHook;
@@ -32,11 +30,12 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestBeanTool extends BaseTestCase {
     @Test
-    public void testTagSet(){
+    public void testTagSet() {
         String expr = "a.@data";
         List<String> a = new ArrayList<>();
         a.add("data");
@@ -44,6 +43,7 @@ public class TestBeanTool extends BaseTestCase {
         map.put("a", a);
         assertEquals(true, BeanTool.getComplexProperty(map, expr));
     }
+
     @Test
     public void testBeanCopier() {
         String str = "{a:1,b:[1,2,3],c:'3',map:{x:{a:'a1'}}}";
@@ -116,28 +116,28 @@ public class TestBeanTool extends BaseTestCase {
     }
 
     @Test
-    public void testBuildBean(){
+    public void testBuildBean() {
         DynamicObject obj = new DynamicObject("obj");
-        obj.addProp("name","a");
+        obj.addProp("name", "a");
         KeyedList<DynamicObject> list = new KeyedList<>(DynamicObject::key);
-        DynamicObject option = new DynamicObject("option","value");
-        option.addProp("label","A");
+        DynamicObject option = new DynamicObject("option", "value");
+        option.addProp("label", "A");
         list.add(option);
-        obj.addProp("options",list);
+        obj.addProp("options", list);
 
         DictBean bean = BeanTool.buildBean(obj, DictBean.class);
         assertEquals(1, bean.getOptions().size());
         assertTrue(bean.getOptions().get(0) instanceof DictOptionBean);
     }
 
-    public static class MyObjectA{
+    public static class MyObjectA {
         String fieldA;
 
         public void setFieldA(String fieldA) {
             this.fieldA = fieldA;
         }
 
-        public String getFieldA(){
+        public String getFieldA() {
             return fieldA;
         }
     }
@@ -149,7 +149,7 @@ public class TestBeanTool extends BaseTestCase {
             this.fieldA = fieldA;
         }
 
-        public String getFieldA(){
+        public String getFieldA() {
             return fieldA;
         }
 
@@ -194,8 +194,9 @@ public class TestBeanTool extends BaseTestCase {
             this.fieldB = fieldB;
         }
     }
+
     @Test
-    public void testCopyIgnoreUnknown(){
+    public void testCopyIgnoreUnknown() {
         MyObjectB b = new MyObjectB();
         b.setFieldA("s");
         b.setFieldB(3);
@@ -203,13 +204,13 @@ public class TestBeanTool extends BaseTestCase {
         MyObjectA a = new MyObjectA();
         BeanCopyOptions options = new BeanCopyOptions();
         options.setIgnoreUnknownProp(true);
-        BeanTool.instance().copyBean(b,a,BeanTool.getGenericType(MyObjectA.class),false,options);
+        BeanTool.instance().copyBean(b, a, BeanTool.getGenericType(MyObjectA.class), false, options);
 
         assertEquals("s", a.getFieldA());
     }
 
     @Test
-    public void testCopyIgnoreUnknownForExtField(){
+    public void testCopyIgnoreUnknownForExtField() {
         MyObjectB b = new MyObjectB();
         b.setFieldA("s");
         b.setFieldB(3);
@@ -217,8 +218,14 @@ public class TestBeanTool extends BaseTestCase {
         MyObjectExt a = new MyObjectExt();
         BeanCopyOptions options = new BeanCopyOptions();
         options.setIgnoreUnknownProp(true);
-        BeanTool.instance().copyBean(b,a,BeanTool.getGenericType(MyObjectExt.class),false,options);
+        BeanTool.instance().copyBean(b, a, BeanTool.getGenericType(MyObjectExt.class), false, options);
 
         assertEquals("s", a.getFieldA());
+    }
+
+    @Test
+    public void testMakeProperty() {
+        Map<String, Object> map = new HashMap<>();
+        assertNull(BeanTool.instance().makeProperty(map, "a"));
     }
 }

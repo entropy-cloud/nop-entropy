@@ -6,7 +6,9 @@ import io.nop.core.lang.json.JsonTool;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,15 +27,69 @@ public class TestRecordMappingManager extends JunitBaseTestCase {
         SubType s1 = new SubType();
         s1.setField2("f2");
         t1.setSub(s1);
+        t1.setListB(Arrays.asList(new ItemB("b1", "b2")));
+        t1.setMapB(Map.of("k1", new ItemB("b3", "b4")));
 
         Type2 t2 = new Type2();
         mapping.map(t1, t2, new RecordMappingContext());
 
-        assertEquals("{\"base\":{\"name1\":\"f1\"},\"ext\":{\"name2\":\"f2\",\"name3\":123},\"name4\":\"f4\"}", JsonTool.stringify(t2));
+        assertEquals("{\"base\":{\"name1\":\"f1\"},\"ext\":{\"name2\":\"f2\",\"name3\":123},\"listA\":[{\"a\":\"b1\",\"b\":\"b2\"}],\"mapA\":{\"k1\":{\"a\":\"b3\",\"b\":\"b4\"}},\"name4\":\"f4\"}", JsonTool.stringify(t2));
 
-        Map<String,Object> map = new LinkedHashMap<>();
+        Map<String, Object> map = new LinkedHashMap<>();
         mapping.map(t1, map, new RecordMappingContext());
-        assertEquals("{\"base\":{\"name1\":\"f1\"},\"ext\":{\"name2\":\"f2\",\"name3\":123},\"name4\":\"f4\"}", JsonTool.stringify(map));
+        assertEquals("{\"base\":{\"name1\":\"f1\"},\"ext\":{\"name2\":\"f2\",\"name3\":123},\"name4\":\"f4\",\"listA\":[{\"a\":\"b1\",\"b\":\"b2\"}],\"mapA\":{\"k1\":{\"a\":\"b3\",\"b\":\"b4\"}}}", JsonTool.stringify(map));
+    }
+
+    @DataBean
+    static class ItemA {
+        String a;
+        String b;
+
+        public String getA() {
+            return a;
+        }
+
+        public void setA(String a) {
+            this.a = a;
+        }
+
+        public String getB() {
+            return b;
+        }
+
+        public void setB(String b) {
+            this.b = b;
+        }
+    }
+
+    @DataBean
+    static class ItemB {
+        String c;
+        String d;
+
+        public ItemB() {
+        }
+
+        public ItemB(String c, String d) {
+            this.c = c;
+            this.d = d;
+        }
+
+        public String getC() {
+            return c;
+        }
+
+        public void setC(String c) {
+            this.c = c;
+        }
+
+        public String getD() {
+            return d;
+        }
+
+        public void setD(String d) {
+            this.d = d;
+        }
     }
 
     @DataBean
@@ -41,6 +97,8 @@ public class TestRecordMappingManager extends JunitBaseTestCase {
         String name4;
         BaseType base;
         ExtType ext;
+        List<ItemA> listA;
+        Map<String, ItemA> mapA;
 
         public String getName4() {
             return name4;
@@ -76,6 +134,22 @@ public class TestRecordMappingManager extends JunitBaseTestCase {
 
         public void setExt(ExtType ext) {
             this.ext = ext;
+        }
+
+        public List<ItemA> getListA() {
+            return listA;
+        }
+
+        public void setListA(List<ItemA> listA) {
+            this.listA = listA;
+        }
+
+        public Map<String, ItemA> getMapA() {
+            return mapA;
+        }
+
+        public void setMapA(Map<String, ItemA> mapA) {
+            this.mapA = mapA;
         }
     }
 
@@ -119,6 +193,8 @@ public class TestRecordMappingManager extends JunitBaseTestCase {
         String field1;
         String field4;
         SubType sub;
+        List<ItemB> listB;
+        Map<String, ItemB> mapB;
 
         public String getField1() {
             return field1;
@@ -142,6 +218,22 @@ public class TestRecordMappingManager extends JunitBaseTestCase {
 
         public void setSub(SubType sub) {
             this.sub = sub;
+        }
+
+        public List<ItemB> getListB() {
+            return listB;
+        }
+
+        public void setListB(List<ItemB> listB) {
+            this.listB = listB;
+        }
+
+        public Map<String, ItemB> getMapB() {
+            return mapB;
+        }
+
+        public void setMapB(Map<String, ItemB> mapB) {
+            this.mapB = mapB;
         }
     }
 

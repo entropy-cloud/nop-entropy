@@ -7,7 +7,7 @@
     <sheets>
         <sheet name="目录" ignore="true"/>
 
-        <sheet name="配置" ignore="true" />
+        <sheet name="配置" ignore="true"/>
 
         <sheet name="RecordMapping" namePattern=".*" field="mappings" multiple="true" keyProp="name">
 
@@ -82,6 +82,10 @@
                         </field>
 
                         <field name="mapping" displayName="映射规则">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="itemMapping" displayName="子项目映射规则">
                             <schema stdDomain="string"/>
                         </field>
 

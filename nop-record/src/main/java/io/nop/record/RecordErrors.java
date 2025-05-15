@@ -107,4 +107,7 @@ public interface RecordErrors {
 
     ErrorCode ERR_RECORD_MAPPING_NOT_FOUND = define("nop.err.record.mapping-not-found",
             "未找到映射:{mappingName}", ARG_MAPPING_NAME);
+
+    ErrorCode ERR_RECORD_FIELD_NOT_COLLECTION_TYPE = define("nop.err.record.field-not-collection-type",
+            "字段[{fieldName}]的值不是合法的集合类型", ARG_FIELD_NAME);
 }

@@ -18,16 +18,31 @@
     <fieldMappings xdef:key-attr="to" xdef:body-type="list">
         <!--
         @mapping 引用其他RecordMapping映射规则。
+        @itemMapping 如果to和from对应的属性是Map类型或者List类型，可以通过itemMapping来指定每个条目所对应的映射规则
         -->
         <fieldMapping to="!prop-path" from="prop-path" displayName="string" tagSet="csv-set"
                       defaultValue="string" mapping="var-name" virtual="!boolean=false"
-                      type="generic-type" mandatory="!boolean=false"
+                      type="generic-type" mandatory="!boolean=false" itemMapping="var-name"
                       xdef:name="RecordFieldMappingConfig">
             <when xdef:value="xpl-fn:(source,target,ctx)=>boolean"/>
             <computeExpr xdef:value="xpl-fn:(source,target,ctx)=>any"/>
+
+            <newItemExpr xdef:value="xpl-fn:(source,target,ctx)=>any"/>
+
+            <newInstanceExpr xdef:value="xpl-fn:(source,target,ctx)=>any"/>
+
+            <!--
+            当Map或者Collection结构进行映射时，可以判断每个条目是否需要映射
+            -->
+            <itemFilterExpr xdef:value="xpl-fn:(item,key,ctx)=>boolean"/>
+
             <schema xdef:ref="../schema/schema.xdef"/>
 
             <valueMapper xdef:value="value-mapper"/>
+
+            <beforeFieldMapping xdef:value="xpl-fn:(source,target,ctx)=>void"/>
+
+            <afterFieldMapping xdef:value="xpl-fn:(source,target,ctx)=>void"/>
         </fieldMapping>
     </fieldMappings>
 

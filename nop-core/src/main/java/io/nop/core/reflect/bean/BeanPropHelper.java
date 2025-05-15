@@ -11,6 +11,7 @@ import io.nop.api.core.exceptions.NopException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static io.nop.core.CoreErrors.ARG_BEAN;
 import static io.nop.core.CoreErrors.ARG_PROP_PATH;
@@ -50,10 +51,13 @@ public class BeanPropHelper {
         return beanTool.getProperty(obj, name);
     }
 
-    static Object makeSimple(IBeanObjectAdapter beanTool, Object obj, String name) {
+    static Object makeSimple(IBeanObjectAdapter beanTool, Object obj, String name, Supplier<?> constructor) {
         Object value = beanTool.makeProperty(obj, name);
         if (value == null) {
-            if (obj instanceof Map) {
+            if (constructor != null) {
+                value = constructor.get();
+                beanTool.setProperty(obj, name, value);
+            } else if (obj instanceof Map) {
                 Map<String, Object> map = new LinkedHashMap<>();
                 ((Map) obj).put(name, map);
                 value = map;
@@ -81,7 +85,7 @@ public class BeanPropHelper {
                 return;
             }
 
-            obj = makeSimple(beanTool, obj, path.substring(pos, pos2));
+            obj = makeSimple(beanTool, obj, path.substring(pos, pos2), null);
             if (obj == null)
                 throw new NopException(ERR_REFLECT_SET_PROP_FAIL).param(ARG_PROP_PATH, path).param(ARG_BEAN, original);
             // c == '['
@@ -89,19 +93,19 @@ public class BeanPropHelper {
         } while (true);
     }
 
-    public static Object makeIn(IBeanTool beanTool, Object original, String path) {
+    public static Object makeIn(IBeanTool beanTool, Object original, String path, Supplier<?> maker) {
         if (isSimple(path)) {
-            return makeSimple(beanTool, original, path);
+            return makeSimple(beanTool, original, path, maker);
         }
         Object obj = original;
         int pos = 0;
         do {
             int pos2 = path.indexOf('.', pos);
             if (pos2 < 0) {
-                return makeSimple(beanTool, obj, path.substring(pos));
+                return makeSimple(beanTool, obj, path.substring(pos), maker);
             }
 
-            obj = makeSimple(beanTool, obj, path.substring(pos, pos2));
+            obj = makeSimple(beanTool, obj, path.substring(pos, pos2), null);
             if (obj == null)
                 throw new NopException(ERR_REFLECT_SET_PROP_FAIL).param(ARG_PROP_PATH, path).param(ARG_BEAN, original);
             // c == '['

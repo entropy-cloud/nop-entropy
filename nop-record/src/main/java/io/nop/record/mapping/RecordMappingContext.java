@@ -9,6 +9,7 @@ import io.nop.xlang.api.XLang;
 public class RecordMappingContext implements IEvalContext {
     private final IEvalScope scope;
     private ICache<Object, Object> cache;
+    private boolean skipValidation;
 
     private Object sourceRoot;
     private Object sourceParent;
@@ -28,6 +29,14 @@ public class RecordMappingContext implements IEvalContext {
             cache = new MapCache<>("record-mapping-cache", true);
         }
         return cache;
+    }
+
+    public boolean isSkipValidation() {
+        return skipValidation;
+    }
+
+    public void setSkipValidation(boolean skipValidation) {
+        this.skipValidation = skipValidation;
     }
 
     @Override

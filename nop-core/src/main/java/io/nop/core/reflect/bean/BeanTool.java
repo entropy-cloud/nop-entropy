@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Supplier;
 
 import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
 import static io.nop.core.CoreErrors.ERR_REFLECT_UNKNOWN_BEAN_CLASS;
@@ -118,10 +119,10 @@ public class BeanTool {
         return BeanPropHelper.getIn(instance(), bean, propPath);
     }
 
-    public static Object makeComplexProperty(Object bean, String propPath) {
+    public static Object makeComplexProperty(Object bean, String propPath, Supplier<?> constructor) {
         if (bean == null)
             return null;
-        return BeanPropHelper.makeIn(instance(), bean, propPath);
+        return BeanPropHelper.makeIn(instance(), bean, propPath, constructor);
     }
 
     public static void setComplexProperty(Object bean, String propPath, Object value) {

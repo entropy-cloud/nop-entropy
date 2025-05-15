@@ -308,6 +308,8 @@
 
                         <field name="displayName" displayName="中文名" mandatory="true"/>
 
+                        <field name="defaultValue" displayName="缺省值" />
+
                         <field name="i18n-en:displayName" displayName="英文名"/>
 
                         <field name="schema.domain" displayName="数据域">

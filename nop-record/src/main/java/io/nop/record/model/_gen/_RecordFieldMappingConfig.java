@@ -18,6 +18,20 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     
     /**
      *  
+     * xml name: afterFieldMapping
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _afterFieldMapping ;
+    
+    /**
+     *  
+     * xml name: beforeFieldMapping
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _beforeFieldMapping ;
+    
+    /**
+     *  
      * xml name: computeExpr
      * 
      */
@@ -46,6 +60,20 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     
     /**
      *  
+     * xml name: itemFilterExpr
+     * 当Map或者Collection结构进行映射时，可以判断每个条目是否需要映射
+     */
+    private io.nop.core.lang.eval.IEvalFunction _itemFilterExpr ;
+    
+    /**
+     *  
+     * xml name: itemMapping
+     * 如果to和from对应的属性是Map类型或者List类型，可以通过itemMapping来指定每个条目所对应的映射规则
+     */
+    private java.lang.String _itemMapping ;
+    
+    /**
+     *  
      * xml name: mandatory
      * 
      */
@@ -57,6 +85,20 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
      * 引用其他RecordMapping映射规则。
      */
     private java.lang.String _mapping ;
+    
+    /**
+     *  
+     * xml name: newInstanceExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _newInstanceExpr ;
+    
+    /**
+     *  
+     * xml name: newItemExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _newItemExpr ;
     
     /**
      *  
@@ -107,6 +149,44 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
      * 
      */
     private io.nop.core.lang.eval.IEvalFunction _when ;
+    
+    /**
+     * 
+     * xml name: afterFieldMapping
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getAfterFieldMapping(){
+      return _afterFieldMapping;
+    }
+
+    
+    public void setAfterFieldMapping(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._afterFieldMapping = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: beforeFieldMapping
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getBeforeFieldMapping(){
+      return _beforeFieldMapping;
+    }
+
+    
+    public void setBeforeFieldMapping(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._beforeFieldMapping = value;
+           
+    }
+
     
     /**
      * 
@@ -186,6 +266,44 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     
     /**
      * 
+     * xml name: itemFilterExpr
+     *  当Map或者Collection结构进行映射时，可以判断每个条目是否需要映射
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getItemFilterExpr(){
+      return _itemFilterExpr;
+    }
+
+    
+    public void setItemFilterExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._itemFilterExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: itemMapping
+     *  如果to和from对应的属性是Map类型或者List类型，可以通过itemMapping来指定每个条目所对应的映射规则
+     */
+    
+    public java.lang.String getItemMapping(){
+      return _itemMapping;
+    }
+
+    
+    public void setItemMapping(java.lang.String value){
+        checkAllowChange();
+        
+        this._itemMapping = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: mandatory
      *  
      */
@@ -218,6 +336,44 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
         checkAllowChange();
         
         this._mapping = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: newInstanceExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getNewInstanceExpr(){
+      return _newInstanceExpr;
+    }
+
+    
+    public void setNewInstanceExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._newInstanceExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: newItemExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getNewItemExpr(){
+      return _newItemExpr;
+    }
+
+    
+    public void setNewItemExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._newItemExpr = value;
            
     }
 
@@ -373,12 +529,18 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("afterFieldMapping",this.getAfterFieldMapping());
+        out.putNotNull("beforeFieldMapping",this.getBeforeFieldMapping());
         out.putNotNull("computeExpr",this.getComputeExpr());
         out.putNotNull("defaultValue",this.getDefaultValue());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("from",this.getFrom());
+        out.putNotNull("itemFilterExpr",this.getItemFilterExpr());
+        out.putNotNull("itemMapping",this.getItemMapping());
         out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("mapping",this.getMapping());
+        out.putNotNull("newInstanceExpr",this.getNewInstanceExpr());
+        out.putNotNull("newItemExpr",this.getNewItemExpr());
         out.putNotNull("schema",this.getSchema());
         out.putNotNull("tagSet",this.getTagSet());
         out.putNotNull("to",this.getTo());
@@ -397,12 +559,18 @@ public abstract class _RecordFieldMappingConfig extends io.nop.core.resource.com
     protected void copyTo(RecordFieldMappingConfig instance){
         super.copyTo(instance);
         
+        instance.setAfterFieldMapping(this.getAfterFieldMapping());
+        instance.setBeforeFieldMapping(this.getBeforeFieldMapping());
         instance.setComputeExpr(this.getComputeExpr());
         instance.setDefaultValue(this.getDefaultValue());
         instance.setDisplayName(this.getDisplayName());
         instance.setFrom(this.getFrom());
+        instance.setItemFilterExpr(this.getItemFilterExpr());
+        instance.setItemMapping(this.getItemMapping());
         instance.setMandatory(this.isMandatory());
         instance.setMapping(this.getMapping());
+        instance.setNewInstanceExpr(this.getNewInstanceExpr());
+        instance.setNewItemExpr(this.getNewItemExpr());
         instance.setSchema(this.getSchema());
         instance.setTagSet(this.getTagSet());
         instance.setTo(this.getTo());
