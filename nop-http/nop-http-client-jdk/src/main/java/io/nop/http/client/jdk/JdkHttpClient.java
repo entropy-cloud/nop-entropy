@@ -31,6 +31,7 @@ import io.nop.http.api.client.UploadOptions;
 import io.nop.http.api.contenttype.ContentType;
 import io.nop.http.api.support.CompositeX509TrustManager;
 import io.nop.http.api.support.DefaultHttpResponse;
+import io.nop.http.api.utils.HttpHelper;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
@@ -62,6 +63,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 
+import static io.nop.http.api.HttpApiConfigs.CFG_HTTP_LOG_PRINT_ALL_HEADERS;
 import static io.nop.http.api.HttpApiErrors.ERR_HTTP_CONNECT_FAIL;
 
 public class JdkHttpClient implements IHttpClient {
@@ -229,13 +231,21 @@ public class JdkHttpClient implements IHttpClient {
         LOG.debug("http.request:method={},url={}", req.method(), req.uri());
         HttpHeaders headers = req.headers();
         headers.map().forEach((key, values) -> {
-            LOG.debug("Header: {} = {}", key, String.join(", ", values));
+            if (!CFG_HTTP_LOG_PRINT_ALL_HEADERS.get() && isSecretHeader(key)) {
+                LOG.debug("Header:{} = {}", key, "******");
+            } else {
+                LOG.debug("Header: {} = {}", key, String.join(", ", values));
+            }
         });
 
         LOG.debug("Request body: {}", body);
     }
 
-    Object normalizeBody(String dataType, Object body) {
+    protected boolean isSecretHeader(String headerName) {
+        return HttpHelper.isSecretHeader(headerName);
+    }
+
+    protected Object normalizeBody(String dataType, Object body) {
         if (body == null)
             return BodyPublishers.noBody();
 

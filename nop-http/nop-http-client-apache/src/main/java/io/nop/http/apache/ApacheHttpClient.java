@@ -17,6 +17,7 @@ import io.nop.http.api.client.IHttpOutputFile;
 import io.nop.http.api.client.IHttpResponse;
 import io.nop.http.api.client.IServerEventResponse;
 import io.nop.http.api.client.UploadOptions;
+import io.nop.http.api.utils.HttpHelper;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
@@ -29,9 +30,12 @@ import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
 import org.apache.hc.client5.http.protocol.HttpClientContext;
 import org.apache.hc.core5.concurrent.FutureCallback;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.Method;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.List;
@@ -43,8 +47,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static io.nop.http.apache.ApacheHttpClientHelper.fromSimpleResponse;
+import static io.nop.http.api.HttpApiConfigs.CFG_HTTP_LOG_PRINT_ALL_HEADERS;
 
 public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
+    static final Logger LOG = LoggerFactory.getLogger(ApacheHttpClient.class);
 
     private final HttpClientConfig clientConfig;
 
@@ -180,7 +186,9 @@ public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
         }
 
         addBody(builder, request.getBody(), getContentType(request));
-        return builder.build();
+        SimpleHttpRequest req = builder.build();
+        logRequest(req, request.getBody());
+        return req;
     }
 
     private void addBody(SimpleRequestBuilder builder, Object body, ContentType contentType) {
@@ -247,6 +255,29 @@ public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
 
         FutureHelper.bindCancelToken(cancelToken, promise);
         return promise;
+    }
+
+    private void logRequest(SimpleHttpRequest req, Object body) {
+        if (!LOG.isDebugEnabled())
+            return;
+
+        LOG.debug("http.request:method={},url={}", req.getMethod(), req.getRequestUri());
+        Header[] headers = req.getHeaders();
+        for (Header header : headers) {
+            String key = header.getName();
+            String value = header.getValue();
+            if (!CFG_HTTP_LOG_PRINT_ALL_HEADERS.get() && isSecretHeader(key)) {
+                LOG.debug("Header:{} = {}", key, "******");
+            } else {
+                LOG.debug("Header: {} = {}", key, value);
+            }
+        }
+
+        LOG.debug("Request body: {}", body);
+    }
+
+    protected boolean isSecretHeader(String headerName) {
+        return HttpHelper.isSecretHeader(headerName);
     }
 
     @Override
