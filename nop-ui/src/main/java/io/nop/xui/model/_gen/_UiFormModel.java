@@ -70,7 +70,7 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
      * xml name: data
      * 表单的静态初始化数据
      */
-    private java.util.Map<java.lang.String,java.lang.Object> _data ;
+    private java.lang.Object _data ;
     
     /**
      *  
@@ -507,22 +507,18 @@ public abstract class _UiFormModel extends io.nop.core.resource.component.Abstra
      *  表单的静态初始化数据
      */
     
-    public java.util.Map<java.lang.String,java.lang.Object> getData(){
+    public java.lang.Object getData(){
       return _data;
     }
 
     
-    public void setData(java.util.Map<java.lang.String,java.lang.Object> value){
+    public void setData(java.lang.Object value){
         checkAllowChange();
         
         this._data = value;
            
     }
 
-    
-    public boolean hasData(){
-        return this._data != null && !this._data.isEmpty();
-    }
     
     /**
      * 

@@ -15,7 +15,6 @@ import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xdef.IStdDomainHandler;
-import io.nop.xlang.xdef.IStdDomainOptions;
 import io.nop.xlang.xdef.XDefConstants;
 
 import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
@@ -30,7 +29,7 @@ public class XJsonDomainHandler implements IStdDomainHandler {
 
     @Override
     public IGenericType getGenericType(boolean mandatory, String options) {
-        return PredefinedGenericTypes.MAP_STRING_ANY_TYPE;
+        return PredefinedGenericTypes.ANY_TYPE;
     }
 
     @Override

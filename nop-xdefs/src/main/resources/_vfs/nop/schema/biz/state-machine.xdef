@@ -67,7 +67,7 @@
         <!-- 子状态 -->
         <state id="!var-name" xdef:unique-attr="id" xdef:ref="StateModel"/>
 
-        <meta xdef:value="xjson"/>
+        <meta xdef:value="xjson-map"/>
 
         <!-- 进入状态时触发的监听函数 -->
         <on-entry xdef:value="xpl"/>
@@ -95,7 +95,7 @@
     -->
     <handle-error xdef:value="xpl-fn:(err,ctx)=>boolean"/>
 
-    <meta xdef:value="xjson"/>
+    <meta xdef:value="xjson-map"/>
 
     <invoke-action xdef:value="xpl-fn:(action)=>any"/>
 

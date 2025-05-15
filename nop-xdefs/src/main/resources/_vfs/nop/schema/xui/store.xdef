@@ -17,10 +17,10 @@
 >
     <import id="!string" from="!string" items="string" as="string" xdef:unique-attr="id"/>
 
-    <state xdef:value="xjson" schema="string"/>
+    <state xdef:value="xjson-map" schema="string"/>
 
     <apis xdef:body-type="list" xdef:key-attr="name">
-        <api name="!string" xdef:value="xjson"/>
+        <api name="!string" xdef:value="xjson-map"/>
     </apis>
 
     <methods xdef:body-type="list" xdef:key-attr="name">

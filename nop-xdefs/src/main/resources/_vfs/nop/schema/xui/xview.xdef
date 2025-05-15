@@ -109,10 +109,10 @@
             -->
             <itemAction xdef:ref="action.xdef"/>
 
-            <defaultParams xdef:value="xjson"/>
+            <defaultParams xdef:value="xjson-map"/>
 
-            <beforeTable xdef:value="xjson"/>
-            <afterTable xdef:value="xjson"/>
+            <beforeTable xdef:value="xjson-map"/>
+            <afterTable xdef:value="xjson-map"/>
         </crud>
 
         <!--

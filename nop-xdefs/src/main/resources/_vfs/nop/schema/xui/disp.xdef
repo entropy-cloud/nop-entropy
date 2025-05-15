@@ -65,7 +65,7 @@
     -->
     <gen-control xdef:value="xpl-xjson"/>
 
-    <validator xdef:value="xjson"/>
+    <validator xdef:value="xjson-map"/>
 
     <className xdef:value="string"/>
     <classNameExpr xdef:value="string"/>

@@ -35,7 +35,7 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
      * xml name: data
      * 
      */
-    private java.util.Map<java.lang.String,java.lang.Object> _data ;
+    private java.lang.Object _data ;
     
     /**
      *  
@@ -132,22 +132,18 @@ public abstract class _UiRefViewModel extends io.nop.core.resource.component.Abs
      *  
      */
     
-    public java.util.Map<java.lang.String,java.lang.Object> getData(){
+    public java.lang.Object getData(){
       return _data;
     }
 
     
-    public void setData(java.util.Map<java.lang.String,java.lang.Object> value){
+    public void setData(java.lang.Object value){
         checkAllowChange();
         
         this._data = value;
            
     }
 
-    
-    public boolean hasData(){
-        return this._data != null && !this._data.isEmpty();
-    }
     
     /**
      * 

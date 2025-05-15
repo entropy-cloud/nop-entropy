@@ -89,6 +89,7 @@ public interface XDefConstants {
 
     String STD_DOMAIN_XJSON = "xjson";
     String STD_DOMAIN_XJSON_LIST = "xjson-list";
+    String STD_DOMAIN_XJSON_MAP = "xjson-map";
 
     String STD_DOMAIN_FILE = "file";
 

@@ -59,7 +59,7 @@
                 <disabledOn xdef:value="string"/>
                 <visibleOn xdef:value="string"/>
                 <action id="!string" xdef:ref="UiActionModel" xdef:unique-attr="id"/>
-                <onEvent xdef:value="xjson"/>
+                <onEvent xdef:value="xjson-map"/>
             </actionGroup>
         </actions>
     </dialog>
@@ -68,5 +68,5 @@
 
     <feedback xdef:ref="UiDialogModel"/>
 
-    <onEvent xdef:value="xjson"/>
+    <onEvent xdef:value="xjson-map"/>
 </action>

@@ -77,7 +77,7 @@ public abstract class _UiActionModel extends io.nop.core.resource.component.Abst
      * xml name: body
      * 可以通过body定制按钮的显示
      */
-    private java.util.Map<java.lang.String,java.lang.Object> _body ;
+    private java.lang.Object _body ;
     
     /**
      *  
@@ -482,22 +482,18 @@ public abstract class _UiActionModel extends io.nop.core.resource.component.Abst
      *  可以通过body定制按钮的显示
      */
     
-    public java.util.Map<java.lang.String,java.lang.Object> getBody(){
+    public java.lang.Object getBody(){
       return _body;
     }
 
     
-    public void setBody(java.util.Map<java.lang.String,java.lang.Object> value){
+    public void setBody(java.lang.Object value){
         checkAllowChange();
         
         this._body = value;
            
     }
 
-    
-    public boolean hasBody(){
-        return this._body != null && !this._body.isEmpty();
-    }
     
     /**
      * 

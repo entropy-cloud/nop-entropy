@@ -78,7 +78,6 @@ public class StdDomainRegistry implements IStdDomainRegistry {
         registerStdDomainHandler(new SimpleStdDomainHandlers.FileType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.FileListType());
 
-        registerStdDomainHandler(new XJsonListDomainHandler());
         registerStdDomainHandler(new SimpleStdDomainHandlers.BooleanOrNumberType());
         registerStdDomainHandler(new SimpleStdDomainHandlers.IntOrStringType());
 
@@ -163,6 +162,9 @@ public class StdDomainRegistry implements IStdDomainRegistry {
         registerStdDomainHandler(new DictStdDomainHandler());
 
         registerStdDomainHandler(new XJsonDomainHandler());
+        registerStdDomainHandler(new XJsonMapDomainHandler());
+        registerStdDomainHandler(new XJsonListDomainHandler());
+
 
         registerStdDomainHandler(new SimpleStdDomainHandlers.FormLayoutType());
     }

@@ -1,0 +1,5 @@
+<action x:schema="/nop/schema/xui/action.xdef" id="a">
+    <api url="test">
+        <data>${dataSource}</data>
+    </api>
+</action>
