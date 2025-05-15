@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class OssFileServiceClient implements IFileServiceClient {
+    static final String BUCKET_PREFIX = "bkt_";
     static final Logger LOG = LoggerFactory.getLogger(OssFileServiceClient.class);
     private final AmazonS3 client;
     private final OssConfig ossConfig;
@@ -71,6 +72,10 @@ public class OssFileServiceClient implements IFileServiceClient {
     }
 
     protected String getBucketName(String remotePath) {
+        if (remotePath.startsWith(BUCKET_PREFIX)) {
+            int pos = remotePath.indexOf('/', 1);
+            return remotePath.substring(BUCKET_PREFIX.length(), pos);
+        }
         return ossConfig.getDefaultBucketName();
     }
 
