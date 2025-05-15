@@ -65,7 +65,7 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         List<TaskStepExecution.InputConfig> inputs = new ArrayList<>(stepModel.getInputs().size());
         for (TaskInputModel inputModel : stepModel.getInputs()) {
             inputs.add(new TaskStepExecution.InputConfig(inputModel.getLocation(), inputModel.getName(),
-                    inputModel.getValueExpr(), inputModel.isFromTaskScope(), inputModel.isMandatory()));
+                    inputModel.getValueExpr(), inputModel.isFromTaskScope(), inputModel.isMandatory(), inputModel.isDump()));
         }
 
         List<TaskStepExecution.OutputConfig> outputs = new ArrayList<>(stepModel.getOutputs().size() + 1);
@@ -74,12 +74,12 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
             outputVars.add(outputModel.getName());
             String exportName = outputModel.getExportAs() == null ? outputModel.getName() : outputModel.getExportAs();
             outputs.add(new TaskStepExecution.OutputConfig(outputModel.getLocation(), exportName,
-                    outputModel.getName(), outputModel.isToTaskScope()));
+                    outputModel.getName(), outputModel.isToTaskScope(), outputModel.isDump()));
         }
 
         if (!StringHelper.isEmpty(stepModel.getReturnAs()) && !stepModel.hasOutput(stepModel.getReturnAs())) {
             outputs.add(new TaskStepExecution.OutputConfig(stepModel.getLocation(), stepModel.getReturnAs(),
-                    stepModel.getReturnAs(), false));
+                    stepModel.getReturnAs(), false, false));
         }
 
         return new TaskStepExecution(stepModel.getLocation(), stepModel.getName(), inputs, outputs, outputVars,

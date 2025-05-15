@@ -13,6 +13,7 @@ import java.util.Map;
  * 清除XDSL上的多余属性，只保留xdef元模型上允许的属性
  */
 public class XDslCleaner {
+    public static XDslCleaner INSTANCE = new XDslCleaner();
 
     public void cleanForXDef(String xdefPath, XNode node) {
         IXDefinition xdef = SchemaLoader.loadXDefinition(xdefPath);

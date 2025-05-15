@@ -29,6 +29,17 @@
             ]]></source>
         </CleanDslNode>
 
+        <ExtractDslNode>
+            <description>根据XDef元模型，选择dslNode节点上部分节点和属性</description>
+            <attr name="xdefPath" stdDomain="v-path" mandatory="true"/>
+            <attr name="dslNode" mandatory="true"/>
+
+            <source><![CDATA[
+               import io.nop.ai.coder.utils.AiCoderHelper;
+               return AiCoderHelper.extractDslNode(xdefPath, dslNode);
+            ]]></source>
+        </ExtractDslNode>
+
         <ValidateAndCleanDslNode>
             <description>根据XDef元模型，验证dslNode节点满足格式要求，并清理dslNode节点上未知的属性</description>
             <attr name="xdefPath" stdDomain="v-path" mandatory="true"/>

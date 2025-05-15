@@ -327,6 +327,11 @@ public class DefaultAiChatService implements IAiChatService {
         if (StringHelper.isEmpty(model))
             throw new NopException(ERR_AI_SERVICE_OPTION_NOT_SET)
                     .param(ARG_LLM_NAME, llmName).param(ARG_OPTION_NAME, "model");
+        if (llmModel.getAliasMap() != null) {
+            String realName = llmModel.getAliasMap().get(model);
+            if (realName != null)
+                model = realName;
+        }
         return model;
     }
 
@@ -363,7 +368,7 @@ public class DefaultAiChatService implements IAiChatService {
 
         try {
             parseToResult(chatResponse, llmModel, response);
-            checkThink(chatResponse, llmModel, chatResponse.getChatOptions().getModel());
+            checkThink(chatResponse, llmModel, chatResponse.getChatOptions().getModel(), response);
         } catch (Exception e) {
             LOG.info("nop.ai.parse-result-fail", e);
             throw NopException.adapt(e);
@@ -410,24 +415,35 @@ public class DefaultAiChatService implements IAiChatService {
                 err -> new NopException(err).param(ARG_PROP_PATH, path));
     }
 
-    protected void checkThink(AiChatExchange message, LlmModel model, String modelName) {
+    protected void checkThink(AiChatExchange chatResponse, LlmModel model, String modelName, Map<String, Object> result) {
+        if (chatResponse.getThink() != null)
+            return;
+
+        if (model.getResponse().getReasoningContentPath() != null) {
+            String thinking = (String) BeanTool.getComplexProperty(result, model.getResponse().getReasoningContentPath());
+            if (!StringHelper.isEmpty(thinking)) {
+                chatResponse.setThink(thinking);
+                return;
+            }
+        }
+
         LlmModelModel modelModel = getModelModel(model, modelName);
         String startMarker = modelModel == null || modelModel.getThinkStartMarker() == null ? "<think>\n" : modelModel.getThinkStartMarker();
         String endMarker = modelModel == null || modelModel.getThinkEndMarker() == null ? "\n</think>\n" : modelModel.getThinkEndMarker();
 
-        String content = message.getContent();
+        String content = chatResponse.getContent();
         if (content != null) {
             boolean bThink = content.startsWith(startMarker);
             if (bThink) {
                 int pos2 = content.indexOf(endMarker);
                 if (pos2 > 0) {
                     String think = content.substring(startMarker.length(), pos2);
-                    message.setThink(think);
+                    chatResponse.setThink(think);
                     pos2 += endMarker.length();
                     if (pos2 < content.length() && content.charAt(pos2) == '\n')
                         pos2++;
 
-                    message.setContent(content.substring(pos2));
+                    chatResponse.setContent(content.substring(pos2));
                 }
             }
         }

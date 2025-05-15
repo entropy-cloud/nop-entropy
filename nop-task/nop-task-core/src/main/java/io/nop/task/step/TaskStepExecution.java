@@ -42,14 +42,20 @@ public class TaskStepExecution implements ITaskStepExecution {
         private final IEvalAction expr;
         private final boolean fromTaskScope;
         private final boolean mandatory;
+        private final boolean dump;
 
         public InputConfig(SourceLocation loc, String name, IEvalAction expr,
-                           boolean fromTaskScope, boolean mandatory) {
+                           boolean fromTaskScope, boolean mandatory, boolean dump) {
             this.location = loc;
             this.name = name;
             this.expr = expr;
             this.fromTaskScope = fromTaskScope;
             this.mandatory = mandatory;
+            this.dump = dump;
+        }
+
+        public boolean isDump() {
+            return dump;
         }
 
         public boolean isMandatory() {
@@ -78,13 +84,19 @@ public class TaskStepExecution implements ITaskStepExecution {
         private final String exportName;
         private final String name;
         private final boolean toTaskScope;
+        private final boolean dump;
 
         public OutputConfig(SourceLocation location,
-                            String exportName, String name, boolean toTaskScope) {
+                            String exportName, String name, boolean toTaskScope, boolean dump) {
             this.exportName = Guard.notEmpty(exportName, "exportName");
             this.name = Guard.notEmpty(name, "name");
             this.toTaskScope = toTaskScope;
             this.location = location;
+            this.dump = dump;
+        }
+
+        public boolean isDump() {
+            return dump;
         }
 
         public SourceLocation getLocation() {
@@ -304,6 +316,11 @@ public class TaskStepExecution implements ITaskStepExecution {
                         .param(ARG_STEP_PATH, stepRt.getStepPath())
                         .param(ARG_INPUT_NAME, name);
             stepRt.setValue(name, value);
+
+            if (inputConfig.isDump()) {
+                Object dumpValue = TaskStepHelper.getDumpValue(value);
+                LOG.info("nop.task.step-input:step={},name={},value={}", getStepName(), name, dumpValue);
+            }
         });
     }
 
@@ -315,6 +332,11 @@ public class TaskStepExecution implements ITaskStepExecution {
                 stepRt.getTaskRuntime().getEvalScope().setLocalValue(exportName, value);
             } else {
                 parentScope.setLocalValue(exportName, value);
+            }
+
+            if (config.isDump()) {
+                Object dumpValue = TaskStepHelper.getDumpValue(value);
+                LOG.info("nop.task.step-output:name={},value={}", exportName, dumpValue);
             }
         });
     }

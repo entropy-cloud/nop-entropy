@@ -50,3 +50,6 @@ outputs:
   - name: RESULT
     xdefPath: /nop/ai/schema/coder/api.xdef
     format: xml
+    when: |
+      !chatExchange.outputs.noChange
+    defaultExpr: apiNode

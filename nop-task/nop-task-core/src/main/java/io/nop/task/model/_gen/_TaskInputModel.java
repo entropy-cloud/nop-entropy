@@ -32,6 +32,13 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: dump
+     * 
+     */
+    private boolean _dump  = false;
+    
+    /**
+     *  
      * xml name: fromTaskScope
      * 
      */
@@ -135,6 +142,25 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._displayName = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: dump
+     *  
+     */
+    
+    public boolean isDump(){
+      return _dump;
+    }
+
+    
+    public void setDump(boolean value){
+        checkAllowChange();
+        
+        this._dump = value;
            
     }
 
@@ -349,6 +375,7 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("dump",this.isDump());
         out.putNotNull("fromTaskScope",this.isFromTaskScope());
         out.putNotNull("mandatory",this.isMandatory());
         out.putNotNull("name",this.getName());
@@ -372,6 +399,7 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
+        instance.setDump(this.isDump());
         instance.setFromTaskScope(this.isFromTaskScope());
         instance.setMandatory(this.isMandatory());
         instance.setName(this.getName());

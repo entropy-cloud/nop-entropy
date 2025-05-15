@@ -1,0 +1,35 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     apiStyle="openai" defaultModel="deepseek-chat">
+
+    <baseUrl>https://ark.cn-beijing.volces.com</baseUrl>
+    <chatUrl>/api/v3/chat/completions</chatUrl>
+    <generateUrl>/api/generate</generateUrl>
+    <embedUrl>/api/embed</embedUrl>
+
+    <models>
+        <model name="qwen3" disableThinkingPrompt="/no_think"/>
+    </models>
+
+    <aliasMap>
+        deepseek-chat=deepseek-v3-250324
+    </aliasMap>
+
+    <request seedPath="options.seed"
+             topPPath="top_p"
+             temperaturePath="temperature"
+             stopPath="stop"
+             maxTokensPath="max_tokens"
+             thinkingPath="thinking"
+    />
+
+    <response contentPath="choices.0.message.content"
+              rolePath="choices.0.message.role"
+              reasoningContentPath="choices.0.message.reasoning_content"
+              promptTokensPath="usage.prompt_tokens"
+              completionTokensPath="usage.completion_tokens"
+              totalTokensPath="usage.total_tokens"
+              statusPath="done"
+              errorPath="error"
+    />
+
+</llm>

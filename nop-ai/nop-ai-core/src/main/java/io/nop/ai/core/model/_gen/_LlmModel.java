@@ -18,6 +18,13 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
+     * xml name: aliasMap
+     * 
+     */
+    private java.util.Map<java.lang.String,java.lang.String> _aliasMap ;
+    
+    /**
+     *  
      * xml name: apiStyle
      * 
      */
@@ -120,6 +127,29 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
      * 大模型服务所支持的模型列表。通过defaultModel来指定缺省使用的模型
      */
     private java.util.Set<java.lang.String> _supportModels ;
+    
+    /**
+     * 
+     * xml name: aliasMap
+     *  
+     */
+    
+    public java.util.Map<java.lang.String,java.lang.String> getAliasMap(){
+      return _aliasMap;
+    }
+
+    
+    public void setAliasMap(java.util.Map<java.lang.String,java.lang.String> value){
+        checkAllowChange();
+        
+        this._aliasMap = value;
+           
+    }
+
+    
+    public boolean hasAliasMap(){
+        return this._aliasMap != null && !this._aliasMap.isEmpty();
+    }
     
     /**
      * 
@@ -453,6 +483,7 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("aliasMap",this.getAliasMap());
         out.putNotNull("apiStyle",this.getApiStyle());
         out.putNotNull("baseUrl",this.getBaseUrl());
         out.putNotNull("buildHttpRequest",this.getBuildHttpRequest());
@@ -479,6 +510,7 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     protected void copyTo(LlmModel instance){
         super.copyTo(instance);
         
+        instance.setAliasMap(this.getAliasMap());
         instance.setApiStyle(this.getApiStyle());
         instance.setBaseUrl(this.getBaseUrl());
         instance.setBuildHttpRequest(this.getBuildHttpRequest());

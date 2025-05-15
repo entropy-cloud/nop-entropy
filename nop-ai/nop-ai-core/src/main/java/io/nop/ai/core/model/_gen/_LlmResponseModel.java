@@ -60,10 +60,10 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
     
     /**
      *  
-     * xml name: reasoningTokensPath
+     * xml name: reasoningContentPath
      * 
      */
-    private java.lang.String _reasoningTokensPath ;
+    private java.lang.String _reasoningContentPath ;
     
     /**
      *  
@@ -202,19 +202,19 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
     
     /**
      * 
-     * xml name: reasoningTokensPath
+     * xml name: reasoningContentPath
      *  
      */
     
-    public java.lang.String getReasoningTokensPath(){
-      return _reasoningTokensPath;
+    public java.lang.String getReasoningContentPath(){
+      return _reasoningContentPath;
     }
 
     
-    public void setReasoningTokensPath(java.lang.String value){
+    public void setReasoningContentPath(java.lang.String value){
         checkAllowChange();
         
-        this._reasoningTokensPath = value;
+        this._reasoningContentPath = value;
            
     }
 
@@ -297,7 +297,7 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
         out.putNotNull("promptCacheHitTokensPath",this.getPromptCacheHitTokensPath());
         out.putNotNull("promptCacheMissTokensPath",this.getPromptCacheMissTokensPath());
         out.putNotNull("promptTokensPath",this.getPromptTokensPath());
-        out.putNotNull("reasoningTokensPath",this.getReasoningTokensPath());
+        out.putNotNull("reasoningContentPath",this.getReasoningContentPath());
         out.putNotNull("rolePath",this.getRolePath());
         out.putNotNull("statusPath",this.getStatusPath());
         out.putNotNull("totalTokensPath",this.getTotalTokensPath());
@@ -318,7 +318,7 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
         instance.setPromptCacheHitTokensPath(this.getPromptCacheHitTokensPath());
         instance.setPromptCacheMissTokensPath(this.getPromptCacheMissTokensPath());
         instance.setPromptTokensPath(this.getPromptTokensPath());
-        instance.setReasoningTokensPath(this.getReasoningTokensPath());
+        instance.setReasoningContentPath(this.getReasoningContentPath());
         instance.setRolePath(this.getRolePath());
         instance.setStatusPath(this.getStatusPath());
         instance.setTotalTokensPath(this.getTotalTokensPath());

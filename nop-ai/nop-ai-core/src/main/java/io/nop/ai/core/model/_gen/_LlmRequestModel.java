@@ -53,6 +53,13 @@ public abstract class _LlmRequestModel extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: thinkingPath
+     * 
+     */
+    private java.lang.String _thinkingPath ;
+    
+    /**
+     *  
      * xml name: topKPath
      * 
      */
@@ -162,6 +169,25 @@ public abstract class _LlmRequestModel extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: thinkingPath
+     *  
+     */
+    
+    public java.lang.String getThinkingPath(){
+      return _thinkingPath;
+    }
+
+    
+    public void setThinkingPath(java.lang.String value){
+        checkAllowChange();
+        
+        this._thinkingPath = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: topKPath
      *  
      */
@@ -218,6 +244,7 @@ public abstract class _LlmRequestModel extends io.nop.core.resource.component.Ab
         out.putNotNull("seedPath",this.getSeedPath());
         out.putNotNull("stopPath",this.getStopPath());
         out.putNotNull("temperaturePath",this.getTemperaturePath());
+        out.putNotNull("thinkingPath",this.getThinkingPath());
         out.putNotNull("topKPath",this.getTopKPath());
         out.putNotNull("topPPath",this.getTopPPath());
     }
@@ -236,6 +263,7 @@ public abstract class _LlmRequestModel extends io.nop.core.resource.component.Ab
         instance.setSeedPath(this.getSeedPath());
         instance.setStopPath(this.getStopPath());
         instance.setTemperaturePath(this.getTemperaturePath());
+        instance.setThinkingPath(this.getThinkingPath());
         instance.setTopKPath(this.getTopKPath());
         instance.setTopPPath(this.getTopPPath());
     }

@@ -9,6 +9,7 @@ import io.nop.xlang.delta.DeltaMerger;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.XDslCleaner;
+import io.nop.xlang.xdsl.XDslExtracter;
 import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xdsl.XDslValidator;
 import io.nop.xlang.xmeta.SchemaLoader;
@@ -81,18 +82,25 @@ public class AiCoderHelper {
     }
 
     public static XNode cleanDslNode(String xdefPath, XNode dslNode) {
-        new XDslCleaner().cleanForXDef(xdefPath, dslNode);
+        XDslCleaner.INSTANCE.cleanForXDef(xdefPath, dslNode);
         return dslNode;
+    }
+
+    public static XNode extractDslNode(String xdefPath, XNode dslNode) {
+        return XDslExtracter.INSTANCE.extractForXDef(xdefPath, dslNode);
     }
 
     public static XNode validateAndCleanDslNode(String xdefPath, XNode dslNode) {
         IXDefinition xdef = SchemaLoader.loadXDefinition(xdefPath);
-        new XDslCleaner().clean(dslNode, xdef.getRootNode());
+        XDslCleaner.INSTANCE.clean(dslNode, xdef.getRootNode());
         new XDslValidator().removeUnknownAttrs(true).validate(dslNode, xdef.getRootNode(), true);
         return dslNode;
     }
 
     public static XNode mergeDslNode(String xdefPath, XNode dslNodeA, XNode dslNodeB) {
+        if (dslNodeA == dslNodeB)
+            return dslNodeA;
+
         IXDefinition xdef = SchemaLoader.loadXDefinition(xdefPath);
         dslNodeA = dslNodeA.cloneInstance();
         dslNodeB = dslNodeB.cloneInstance();
@@ -109,8 +117,8 @@ public class AiCoderHelper {
         dslNode.saveToResource(resource, null);
     }
 
-    public static Object parseDslNode(String xdefPath, XNode dslNode){
-        if(!dslNode.hasAttr(XDslKeys.DEFAULT.SCHEMA)){
+    public static Object parseDslNode(String xdefPath, XNode dslNode) {
+        if (!dslNode.hasAttr(XDslKeys.DEFAULT.SCHEMA)) {
             dslNode.setAttr(XDslKeys.DEFAULT.SCHEMA, xdefPath);
         }
         return DslModelHelper.parseDslNode(xdefPath, dslNode);

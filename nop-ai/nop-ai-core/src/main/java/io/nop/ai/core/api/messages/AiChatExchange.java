@@ -112,6 +112,7 @@ public class AiChatExchange {
     public void clearResponse() {
         this.usage = null;
         this.status = null;
+        this.setThink(null);
         this.response = null;
         this.invalid = false;
         this.invalidReason = null;

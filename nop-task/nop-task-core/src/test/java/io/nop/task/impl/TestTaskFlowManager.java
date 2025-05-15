@@ -156,6 +156,11 @@ public class TestTaskFlowManager extends AbstractTaskTestCase {
     }
 
     @Test
+    public void testScope() {
+        runTask("test/scope");
+    }
+
+    @Test
     public void testThrottle() {
         long begin = CoreMetrics.currentTimeMillis();
         runTask("test/throttle-01");

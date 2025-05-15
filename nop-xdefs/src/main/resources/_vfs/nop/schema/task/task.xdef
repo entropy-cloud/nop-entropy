@@ -46,7 +46,7 @@
         -->
         <input name="!var-name" displayName="string" xdef:name="TaskInputModel"
                type="generic-type" mandatory="!boolean=false" role="string" value="t-expr" optional="!boolean=false"
-               xdef:unique-attr="name" persist="!boolean=true" fromTaskScope="!boolean=false">
+               xdef:unique-attr="name" persist="!boolean=true" fromTaskScope="!boolean=false" dump="!boolean=false">
             <description xdef:value="string"/>
             <schema xdef:ref="../schema/schema.xdef"/>
             <source xdef:value="xpl"/>
@@ -59,7 +59,7 @@
         -->
         <output name="!var-name" displayName="string" persist="!boolean=false" value="t-expr"
                 xdef:name="TaskOutputModel" toTaskScope="!boolean=false" type="generic-type"
-                xdef:unique-attr="name" exportAs="var-name" roles="csv-set">
+                xdef:unique-attr="name" exportAs="var-name" roles="csv-set" dump="!boolean=false">
             <description xdef:value="string"/>
             <schema xdef:ref="../schema/schema.xdef"/>
             <source xdef:value="xpl"/>

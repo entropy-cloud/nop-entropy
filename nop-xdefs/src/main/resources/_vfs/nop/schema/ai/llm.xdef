@@ -17,6 +17,8 @@
     -->
     <supportModels xdef:value="csv-set"/>
 
+    <aliasMap xdef:value="string-map" />
+
     <models xdef:body-type="list" xdef:key-attr="name">
         <model name="!string" xdef:name="LlmModelModel"
                enableThinkingPrompt="string" disableThinkingPrompt="string"
@@ -48,6 +50,7 @@
              maxTokensPath="prop-path"
              stopPath="prop-path"
              contextLengthPath="prop-path"
+             thinkingPath="prop-path"
     />
 
     <response xdef:name="LlmResponseModel" xdef:mandatory="true"
@@ -58,7 +61,7 @@
               completionTokensPath="prop-path"
               promptCacheHitTokensPath="prop-path"
               promptCacheMissTokensPath="prop-path"
-              reasoningTokensPath="prop-path"
+              reasoningContentPath="prop-path"
               errorPath="prop-path"
               statusPath="prop-path"
     />

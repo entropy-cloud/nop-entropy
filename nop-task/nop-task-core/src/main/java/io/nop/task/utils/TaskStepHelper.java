@@ -1,5 +1,6 @@
 package io.nop.task.utils;
 
+import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
@@ -11,6 +12,8 @@ import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.retry.IRetryPolicy;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.core.lang.xml.XNode;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskErrors;
@@ -219,4 +222,12 @@ public class TaskStepHelper {
         return value == null ? 0 : value;
     }
 
+    public static Object getDumpValue(Object value) {
+        if (value instanceof XNode)
+            return ((XNode) value).xml();
+        if (value.getClass().isAnnotationPresent(DataBean.class)) {
+            return JsonTool.serialize(value, true);
+        }
+        return value;
+    }
 }

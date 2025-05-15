@@ -32,6 +32,13 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: dump
+     * 
+     */
+    private boolean _dump  = false;
+    
+    /**
+     *  
      * xml name: exportAs
      * 返回时会将output中的变量设置到parentScope中，一般情况下设置的变量名与output变量名相同。可以通过exportAs来改变这个变量名
      */
@@ -128,6 +135,25 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         checkAllowChange();
         
         this._displayName = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: dump
+     *  
+     */
+    
+    public boolean isDump(){
+      return _dump;
+    }
+
+    
+    public void setDump(boolean value){
+        checkAllowChange();
+        
+        this._dump = value;
            
     }
 
@@ -323,6 +349,7 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("dump",this.isDump());
         out.putNotNull("exportAs",this.getExportAs());
         out.putNotNull("name",this.getName());
         out.putNotNull("persist",this.isPersist());
@@ -345,6 +372,7 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
+        instance.setDump(this.isDump());
         instance.setExportAs(this.getExportAs());
         instance.setName(this.getName());
         instance.setPersist(this.isPersist());
