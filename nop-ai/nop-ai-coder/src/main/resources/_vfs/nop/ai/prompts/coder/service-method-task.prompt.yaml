@@ -1,0 +1,53 @@
+template: |
+  【任务目标】
+  作为NopTaskFlow流程编排DSL，实现如下服务方法，要求：
+  1. 按照指定的NopTaskFlow格式生成
+  2. 分解为多个step
+  3. 添加必要的注释
+  4. 完整实现需求中要求的全部逻辑，包括定时调度等
+  
+  【服务方法定义】
+  ${apiModel.getMethodJava(serviceName,methodName)}
+  
+  【NopTaskFlow语法】
+  ${promptModel.getOutput('RESULT').xdefForAi}
+  
+  1. xpl表示该部分使用【Xpl模板语法】， 可以在一个xpl段中调用多个xpl标签
+  2. t-expr表示该部分使用模板表达式语法，格式为${'$'}{expr}或者simple_string
+  3. 通过next和nextOnError表示成功和失败时如何迁移到下一步骤。如果不指定，则按照顺序执行
+ 
+  【Xpl模板语法】
+  <ai-coder:IncludeText fileName="v:/nop/ai/schema/coder/xpl-tags.md" xpl:lib="/nop/ai/xlib/ai-coder.xlib" />
+  
+  【重要：变量作用域】
+  1. 通过xpl:return属性返回的变量在其他step中看不见，只有通过task:assign设置的变量或者输入的request才能跨步骤访问
+  2. c:script中的临时变量必须先通过let声明然后才能使用
+  3. xpl:return会自动声明变量并赋值，因此它对应的变量不需要事前声明
+  
+  
+  【业务实体定义】
+  ${ormModel.ormModelJava}
+  
+  【需求文档】
+  ${requirements}
+
+inputs:
+  - name: ormModel
+    mandatory: true
+
+  - name: apiModel
+    mandatory: true
+
+  - name: serviceName
+    mandatory: true
+
+  - name: methodName
+    mandatory: true
+
+  - name: requirements
+    mandatory: true
+
+outputs:
+  - name: RESULT
+    format: xml
+    xdefPath: /nop/ai/schema/coder/x-task.xdef

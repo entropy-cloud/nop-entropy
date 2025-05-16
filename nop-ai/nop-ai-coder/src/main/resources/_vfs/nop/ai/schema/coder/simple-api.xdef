@@ -9,7 +9,7 @@
             @mutation 如果为false，则表示为只读操作
             -->
             <method name="!var-name" displayName="string" xdef:unique-attr="name"
-                    mutation="!boolean=false" app:useCaseNo="csv-set">
+                    mutation="!boolean=false" app:useCaseNo="string">
                 <description xdef:value="string"/>
             </method>
 

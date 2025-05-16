@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
 
     <tags>
 
@@ -171,9 +171,37 @@
 
                 const resource = ResourceHelper.resolveResourceInDir(inputDir, fileName);
 
-                return AiOrmModel.buildFromOrmModelFile(resource.path);
+                return AiOrmModel.buildFromOrmModelPath(resource.path);
             ]]></source>
         </LoadOrmModel>
+
+        <LoadApiModel>
+            <attr name="fileName" mandatory="true"/>
+            <attr name="inputDir" optional="true"/>
+
+            <source><![CDATA[
+                import io.nop.core.resource.ResourceHelper;
+                import io.nop.ai.coder.service.AiApiModel;
+
+                const resource = ResourceHelper.resolveResourceInDir(inputDir, fileName);
+
+                return AiApiModel.buildFromApiModelPath(resource.path);
+            ]]></source>
+        </LoadApiModel>
+
+        <IncludeText outputMode="text">
+            <attr name="fileName" mandatory="true"/>
+            <attr name="inputDir" optional="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                import io.nop.core.resource.ResourceHelper;
+
+                const resource = ResourceHelper.resolveResourceInDir(inputDir, fileName);
+                $out.text(location(), resource.readText(null));
+            ]]></c:script>
+            </source>
+        </IncludeText>
 
         <RunCodeGen>
             <attr name="template" stdDomain="v-path" mandatory="true"/>

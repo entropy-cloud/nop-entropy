@@ -144,6 +144,9 @@ auth可以配置`skipWhenNoAuth=true`，它表示当不具有访问权限时自�
 所有的用户都自动具有角色user，所以如果配置`@Auth(roles="user")`则表示允许所有登录用户访问。这种方式与publicAccess的区别在于，如果标记为
 publicAccess的方法不会检查当前访问用户是否已经登录。
 
+* 注意，缺省情况下`/r/`和`/graphql`链接本身需要登录才能访问，所以还需要额外配置`nop.auth.service-public=true`，这样所有的服务路径都允许匿名访问，此时必须开启权限认证，依靠IActionAuthChecker来保证安全性。
+具体参见auth-service.beans.xml中的nopAuthFilterConfig配置。
+
 ## 操作权限检查接口
 
 系统通过`IActionAuthChecker`接口来检查操作权限。

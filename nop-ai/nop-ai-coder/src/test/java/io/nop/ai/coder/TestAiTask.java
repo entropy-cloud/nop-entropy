@@ -1,7 +1,6 @@
 package io.nop.ai.coder;
 
 import io.nop.autotest.junit.JunitBaseTestCase;
-import io.nop.commons.util.FileHelper;
 import io.nop.task.ITask;
 import io.nop.task.ITaskFlowManager;
 import io.nop.task.ITaskRuntime;
@@ -39,7 +38,7 @@ public class TestAiTask extends JunitBaseTestCase {
     }
 
     @Test
-    public void testAiCoder() {
+    public void testOrmDesign() {
         File targetDir = getTargetFile("demo");
 
         File docsDir = getTargetFile("docs");
@@ -61,6 +60,23 @@ public class TestAiTask extends JunitBaseTestCase {
         File projectDir = getTargetFile("demo");
 
         ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-api-design.task.xml");
+        ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
+        taskRt.setInput("requirementsPath", new File(docsDir, "requirements/refactored-requirements.md").getAbsolutePath());
+        taskRt.setInput("modelDir", new File(projectDir, "model").getAbsolutePath());
+        taskRt.setInput("outputDir", targetDir.getAbsolutePath());
+        taskRt.setInput("basePackageName", "app.demo");
+        taskRt.setInput("appName", "app-demo");
+        task.execute(taskRt).syncGetOutputs();
+    }
+
+    @Test
+    public void testServiceDesign() {
+        File targetDir = getTargetFile("demo");
+
+        File docsDir = getTargetFile("docs");
+        File projectDir = getTargetFile("demo");
+
+        ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-service-design.task.xml");
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
         taskRt.setInput("requirementsPath", new File(docsDir, "requirements/refactored-requirements.md").getAbsolutePath());
         taskRt.setInput("modelDir", new File(projectDir, "model").getAbsolutePath());

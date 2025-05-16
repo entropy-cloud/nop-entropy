@@ -46,7 +46,7 @@
         </xpl>
 
         <custom name="loadOrmModel" customType="ai-coder:LoadOrmModel">
-            <input name="fileName" value="${appName}.orm.xlsx"/>
+            <input name="fileName" value="${appName}.orm.xml"/>
             <input name="inputDir" value="${modelDir}"/>
             <output name="RESULT" exportAs="ormModel"/>
         </custom>
@@ -110,7 +110,7 @@
 
         <custom name="saveApiXml" customType="ai-coder:SaveDslNode">
             <input name="outputDir"/>
-            <input name="fileName" value="src/main/resources/${appId}/model/ai-gen.api.xml"/>
+            <input name="fileName" value="model/${appName}.api.xml"/>
             <input name="dslNode" value="${apiNode}"/>
             <input name="xdefPath" value="/nop/schema/api.xdef"/>
         </custom>

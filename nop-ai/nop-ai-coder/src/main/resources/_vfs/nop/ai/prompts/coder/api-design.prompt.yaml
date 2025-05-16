@@ -38,8 +38,10 @@ template: |
   - **适用场景**：
     - 非实体操作（如`System.sendEmail()`）
   
+  ## 3. 关联用例
+  IMPORTANT: app:useCaseNo必须对应于需求文档中的用例编号，并且需要确保method的具体业务逻辑确实由该用例所定义。
   
-  ## 3. 输出要求  
+  ## 4. 输出要求  
       - 仅需提交**新增字典**和**非CRUD服务方法**，已存在的内容无需重复。
       - generic-type表示该部分可以使用Java泛型语法，比如`List&lt;Order>`等
 

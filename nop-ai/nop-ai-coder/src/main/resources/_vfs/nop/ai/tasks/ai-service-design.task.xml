@@ -1,0 +1,87 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:task="task"
+      xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
+      xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
+      x:extends="/nop/task/lib/common.task.xml">
+
+    <ai:chatOptions provider="ollama" model="qwen3:8b" contextLength="8192" maxTokens="8192" temperature="0"/>
+
+    <!--    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>-->
+
+    <!--    <ai:chatOptions provider="volcengine" model="deepseek-chat" contextLength="8192" maxTokens="8192" temperature="0" />-->
+
+    <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
+
+    <input name="requirementsPath" type="String" mandatory="true"/>
+    <input name="appName" type="String" mandatory="true"/>
+    <input name="outputDir" type="String" mandatory="true"/>
+
+    <steps>
+        <custom name="loadRequirements" customType="ai-coder:LoadMarkdown">
+            <input name="fileName" value="${requirementsPath}"/>
+            <input name="tplPath" value="/nop/ai/schema/coder/requirements.tpl.md"/>
+
+            <input name="loadDocumentExt" value="true"/>
+            <input name="sectionExtTplPath" value="/nop/ai/schema/coder/module-requirements.tpl.md"/>
+
+            <output name="RESULT" exportAs="requirementsDoc"/>
+        </custom>
+
+        <custom name="loadOrmModel" customType="ai-coder:LoadOrmModel">
+            <input name="fileName" value="${appName}.orm.xml"/>
+            <input name="inputDir" value="${modelDir}"/>
+            <output name="RESULT" exportAs="ormModel"/>
+        </custom>
+
+        <custom name="loadApiModel" customType="ai-coder:LoadApiModel">
+            <input name="fileName" value="${appName}.api.xml"/>
+            <input name="inputDir" value="${modelDir}"/>
+            <output name="RESULT" exportAs="apiModel"/>
+        </custom>
+
+        <fork name="generateMethods" varName="methodInfo">
+            <input name="apiModel"/>
+
+            <producer>
+                return apiModel.methodInfos;
+            </producer>
+
+            <steps>
+                <xpl name="getUseCaseRequirements">
+                    <input name="methodInfo"/>
+                    <input name="apiModel"/>
+                    <input name="requirementsDoc"/>
+
+                    <source><![CDATA[
+                        const method = apiModel.getServiceMethodModel(methodInfo.serviceName, methodInfo.methodName);
+                        const useCaseNos = method['app:useCaseNo'].$toCsvSet();
+                        return requirementsDoc.selectSection(section=>{
+                            return useCaseNos?.contains(section.refId);
+                        }).toText();
+                    ]]></source>
+
+                    <output name="RESULT" exportAs="useCaseRequirements"/>
+                </xpl>
+
+                <custom name="generateMethodXml" customType="ai:TaskStep" ai:promptName="coder/service-method-task"
+                        ai:useResponseCache="true">
+                    <throttle maxConcurrency="1" maxWait="100000000"/>
+
+                    <input name="requirements" value="${useCaseRequirements}"/>
+                    <input name="ormModel"/>
+                    <input name="apiModel"/>
+                    <input name="serviceName" value="${methodInfo.serviceName}"/>
+                    <input name="methodName" value="${methodInfo.methodName}"/>
+                    <output name="RESULT" exportAs="methodNode"/>
+                </custom>
+
+                <custom name="saveMethodXml" customType="file-utils:WriteText">
+                    <input name="outputDir"/>
+                    <input name="fileName"
+                           value="ai-coder/${methodInfo.serviceName}/${methodInfo.methodName}.code.xml"/>
+                    <input name="text" value="${methodNode.xml()}"/>
+                </custom>
+            </steps>
+        </fork>
+
+    </steps>
+</task>

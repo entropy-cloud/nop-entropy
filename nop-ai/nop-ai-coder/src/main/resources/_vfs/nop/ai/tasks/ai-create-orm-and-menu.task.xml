@@ -58,14 +58,14 @@
 
         <custom name="saveOrmXml" customType="file-utils:WriteText">
             <input name="outputDir"/>
-            <input name="fileName" value="src/main/resources/${appId}/orm/_gen/ai-gen.orm.xml"/>
+            <input name="fileName" value="model/${appName}.orm.xml"/>
             <input name="text" value="${ormModel.ormModelXml}"/>
         </custom>
 
         <custom name="saveOrmExcel" customType="ai-coder:SaveDslModelAsExcel">
             <input name="outputDir"/>
             <input name="fileName" value="model/${appName}.orm.xlsx"/>
-            <input name="dslModel" value="${ormModel.ormModel}"/>
+            <input name="dslModel" value="${ormModel.ormModelBean}"/>
             <input name="impModelPath" value="/nop/orm/imp/orm.imp.xml"/>
         </custom>
 
