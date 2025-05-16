@@ -48,7 +48,7 @@ public class AiOrmModel {
         return model;
     }
 
-    public static AiOrmModel buildFromOrmModelFile(String path) {
+    public static AiOrmModel buildFromOrmModelPath(String path) {
         if (path.endsWith(".xlsx")) {
             IResource resource = VirtualFileSystem.instance().getResource(path);
             OrmModel ormModel = (OrmModel) ExcelReportHelper.loadXlsxObject(OrmModelConstants.ORM_IMPL_PATH, resource);
@@ -96,7 +96,7 @@ public class AiOrmModel {
         return this;
     }
 
-    public OrmModel getOrmModel() {
+    public OrmModel getOrmModelBean() {
         if (ormModel == null)
             parse();
         return ormModel;
@@ -128,7 +128,7 @@ public class AiOrmModel {
     }
 
     public String getOrmModelJava(Set<String> selectedEntityNames) {
-        return new OrmModelToJava(selectedEntityNames).appendOrmModel(getOrmModel()).toString();
+        return new OrmModelToJava(selectedEntityNames).appendOrmModel(getOrmModelBean()).toString();
     }
 
     public Set<String> getAllRelatedEntityNames(Set<String> names) {
@@ -143,7 +143,7 @@ public class AiOrmModel {
         if (!ret.add(StringHelper.simpleClassName(name)))
             return;
 
-        IEntityModel entityModel = getOrmModel().getEntityModel(name);
+        IEntityModel entityModel = getOrmModelBean().getEntityModel(name);
         if (entityModel != null) {
             for (IEntityRelationModel relModel : entityModel.getRelations()) {
                 addRelatedEntityNames(relModel.getRefEntityName(), ret);
@@ -162,7 +162,7 @@ public class AiOrmModel {
     public String getEntityListInfo(boolean includeComment, Set<String> selectedNames) {
         StringBuilder sb = new StringBuilder();
         int index = 0;
-        for (IEntityModel entityModel : getOrmModel().getEntityModels()) {
+        for (IEntityModel entityModel : getOrmModelBean().getEntityModels()) {
             if (selectedNames != null && !selectedNames.contains(entityModel.getShortName()))
                 continue;
             index++;
@@ -181,7 +181,7 @@ public class AiOrmModel {
     }
 
     public IEntityModel getEntityModel(String entityName) {
-        return getOrmModel().requireEntityModel(entityName);
+        return getOrmModelBean().requireEntityModel(entityName);
     }
 
     public String getDictsXml(){

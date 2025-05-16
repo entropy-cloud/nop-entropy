@@ -216,6 +216,22 @@ public class MarkdownSection implements ITagSetSupport {
         return title.substring(0, pos).trim();
     }
 
+    public String getRefId() {
+        if (title == null)
+            return null;
+
+        int pos = title.indexOf(':');
+        if (pos < 0)
+            return null;
+
+        String refId = title.substring(0, pos).trim();
+        int pos2 = refId.indexOf(' ');
+        if (pos2 > 0) {
+            refId = refId.substring(pos2 + 1, pos).trim();
+        }
+        return refId;
+    }
+
     public String getParentSectionNo() {
         String prefix = getSectionNo();
         if (prefix == null)

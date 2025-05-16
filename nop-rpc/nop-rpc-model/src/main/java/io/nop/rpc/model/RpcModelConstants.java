@@ -8,6 +8,10 @@
 package io.nop.rpc.model;
 
 public interface RpcModelConstants {
+    String API_IMPL_PATH = "/nop/rpc/imp/api.imp.xml";
+
+    String XDSL_SCHEMA_API = "/nop/schema/api.xdef";
+
     String EXT_PROTO_VERSION = "ext:protoVersion";
 
 

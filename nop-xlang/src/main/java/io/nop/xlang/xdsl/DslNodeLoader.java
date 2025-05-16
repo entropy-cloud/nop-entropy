@@ -45,13 +45,16 @@ public class DslNodeLoader implements IXDslNodeLoader {
     public XDslExtendResult loadFromNode(XNode node, String requiredSchema, XDslExtendPhase phase) {
         XDslKeys keys = XDslKeys.of(node);
         String schemaPath = node.attrText(keys.SCHEMA);
+        if (schemaPath == null)
+            schemaPath = requiredSchema;
+
         if (StringHelper.isEmpty(schemaPath))
             throw new NopException(ERR_XDSL_NO_SCHEMA).param(ARG_NODE, node);
         IXDefinition def = SchemaLoader.loadXDefinition(schemaPath);
 
         if (requiredSchema != null) {
-            if (!requiredSchema.equals(def.getXdefBase()) && !def.getAllRefSchemas().contains(requiredSchema)
-                    && !requiredSchema.equals(schemaPath)) {
+            if (!requiredSchema.equals(schemaPath) &&
+                    !requiredSchema.equals(def.getXdefBase()) && !def.getAllRefSchemas().contains(requiredSchema)) {
                 throw new NopException(ERR_XDSL_NOT_REQUIRED_SCHEMA).param(ARG_REQUIRED_SCHEMA, requiredSchema)
                         .param(ARG_SCHEMA_PATH, schemaPath);
             }

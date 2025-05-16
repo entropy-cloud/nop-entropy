@@ -3,13 +3,23 @@ package io.nop.ai.core.xdef;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.xlang.xdef.XDefTypeDecl;
+import io.nop.xlang.xdsl.DslNodeLoader;
 import io.nop.xlang.xdsl.XDslParseHelper;
 
 import java.util.Iterator;
 import java.util.Map;
 
 public class AiXDefHelper {
+
+    public static XNode loadXDefForAi(String path) {
+        IResource resource = VirtualFileSystem.instance().getResource(path);
+        XNode node = DslNodeLoader.INSTANCE.loadFromResource(resource).getNode();
+        return transformForAi(node);
+    }
+
     public static XNode transformForAi(XNode defNode) {
         ValueWithLocation xdefValue = defNode.attrValueLoc("xdef:value");
         if (!xdefValue.isNull()) {
@@ -33,6 +43,8 @@ public class AiXDefHelper {
             }
         }
 
+        defNode.getChildren().removeIf(node -> node.getTagName().startsWith("xdef:"));
+
         for (XNode child : defNode.getChildren()) {
             transformForAi(child);
         }
@@ -41,6 +53,9 @@ public class AiXDefHelper {
 
     static String transformDefType(SourceLocation loc, String propName, String defType) {
         XDefTypeDecl typeDecl = XDslParseHelper.parseDefType(loc, propName, defType);
-        return typeDecl.getStdDomain();
+        String stdDomain = typeDecl.getStdDomain();
+        if (typeDecl.getOptions() != null)
+            return stdDomain + ":" + typeDecl.getOptions();
+        return stdDomain;
     }
 }
