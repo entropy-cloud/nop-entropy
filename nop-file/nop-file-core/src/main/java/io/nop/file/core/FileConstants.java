@@ -15,6 +15,8 @@ public interface FileConstants {
     String PARAM_BIZ_OBJ_NAME = "bizObjName";
     String PARAM_FIELD_NAME = "fieldName";
 
+    String BUCKET_PREFIX = "bkt_";
+
     String TEMP_BIZ_OBJ_ID = "__TEMP__"; // 与BizConstants中的TEMP_BIZ_OBJ_ID保持一致
 
     String MEDIA_TYPE_CONFIG_PATH = "/nop/file/media-type.json";

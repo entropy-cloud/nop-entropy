@@ -15,6 +15,8 @@ import java.io.OutputStream;
 import java.util.List;
 
 public interface IFileServiceClient extends AutoCloseable {
+    String BUCKET_PREFIX = "bkt_";
+    
     List<FileStatusBean> listFiles(String remotePath);
 
     boolean deleteFile(String remotePath);

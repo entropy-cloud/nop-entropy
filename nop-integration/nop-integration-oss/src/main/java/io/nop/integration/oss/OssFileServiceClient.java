@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class OssFileServiceClient implements IFileServiceClient {
-    static final String BUCKET_PREFIX = "bkt_";
     static final Logger LOG = LoggerFactory.getLogger(OssFileServiceClient.class);
     private final AmazonS3 client;
     private final OssConfig ossConfig;
@@ -58,8 +57,9 @@ public class OssFileServiceClient implements IFileServiceClient {
 
     @Override
     public List<FileStatusBean> listFiles(String remotePath) {
+        String bucketName = getBucketName(remotePath);
         remotePath = normalizePath(remotePath);
-        ObjectListing listing = client.listObjects(getBucketName(remotePath), remotePath);
+        ObjectListing listing = client.listObjects(bucketName, remotePath);
         List<FileStatusBean> ret = new ArrayList<>();
         for (S3ObjectSummary summary : listing.getObjectSummaries()) {
             FileStatusBean status = new FileStatusBean();
@@ -81,16 +81,18 @@ public class OssFileServiceClient implements IFileServiceClient {
 
     @Override
     public boolean deleteFile(String remotePath) {
+        String bucketName = getBucketName(remotePath);
         remotePath = normalizePath(remotePath);
-        client.deleteObject(getBucketName(remotePath), remotePath);
+        client.deleteObject(bucketName, remotePath);
         return true;
     }
 
     @Override
     public FileStatusBean getFileStatus(String remotePath) {
+        String bucketName = getBucketName(remotePath);
         remotePath = normalizePath(remotePath);
 
-        ObjectMetadata obj = client.getObjectMetadata(getBucketName(remotePath), remotePath);
+        ObjectMetadata obj = client.getObjectMetadata(bucketName, remotePath);
 
         FileStatusBean status = new FileStatusBean();
         status.setLastModified(obj.getLastModified().getTime());
@@ -108,9 +110,9 @@ public class OssFileServiceClient implements IFileServiceClient {
 
     @Override
     public String uploadFile(String localPath, String remotePath) {
+        String bucketName = getBucketName(remotePath);
         remotePath = normalizePath(remotePath);
 
-        String bucketName = getBucketName(remotePath);
         makeBucket(bucketName);
         client.putObject(bucketName, remotePath, new File(localPath));
         return remotePath;
@@ -118,22 +120,23 @@ public class OssFileServiceClient implements IFileServiceClient {
 
     @Override
     public String downloadFile(String remotePath, String localPath) {
+        String bucketName = getBucketName(remotePath);
         remotePath = normalizePath(remotePath);
 
-        GetObjectRequest req = new GetObjectRequest(getBucketName(remotePath), remotePath);
+        GetObjectRequest req = new GetObjectRequest(bucketName, remotePath);
         client.getObject(req, new File(localPath));
         return localPath;
     }
 
     @Override
     public String uploadResource(IResourceReference file, String remotePath) {
+        String bucketName = getBucketName(remotePath);
         remotePath = normalizePath(remotePath);
         InputStream is = file.getInputStream();
         try {
             ObjectMetadata meta = new ObjectMetadata();
             meta.setContentLength(file.length());
             meta.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            String bucketName = getBucketName(remotePath);
             makeBucket(bucketName);
             client.putObject(bucketName, remotePath, is, meta);
         } finally {
@@ -151,8 +154,9 @@ public class OssFileServiceClient implements IFileServiceClient {
 
     @Override
     public void downloadToStream(String remotePath, OutputStream out) {
+        String bucketName = getBucketName(remotePath);
         remotePath = normalizePath(remotePath);
-        GetObjectRequest req = new GetObjectRequest(getBucketName(remotePath), remotePath);
+        GetObjectRequest req = new GetObjectRequest(bucketName, remotePath);
         S3Object obj = client.getObject(req);
         try {
             IoHelper.copy(obj.getObjectContent(), out);
@@ -165,8 +169,9 @@ public class OssFileServiceClient implements IFileServiceClient {
 
     @Override
     public InputStream getInputStream(String remotePath) {
+        String bucketName = getBucketName(remotePath);
         remotePath = normalizePath(remotePath);
-        GetObjectRequest req = new GetObjectRequest(getBucketName(remotePath), remotePath);
+        GetObjectRequest req = new GetObjectRequest(bucketName, remotePath);
         S3Object obj = client.getObject(req);
         return obj.getObjectContent();
     }

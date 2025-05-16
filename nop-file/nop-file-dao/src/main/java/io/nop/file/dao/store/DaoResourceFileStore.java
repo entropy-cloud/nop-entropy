@@ -29,6 +29,7 @@ import io.nop.file.core.IFileRecord;
 import io.nop.file.core.IFileStore;
 import io.nop.file.core.UploadRequestBean;
 import io.nop.file.dao.entity.NopFileRecord;
+import io.nop.integration.api.file.IFileServiceClient;
 import io.nop.orm.IOrmEntityFileStore;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
@@ -225,6 +226,12 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
     protected String newPath(String bizObjName, String fileId, String fileExt) {
         LocalDate now = DateHelper.currentDate();
         StringBuilder sb = new StringBuilder();
+
+        // 支持不同的业务实体保存到不同的bucket中
+        String bucketName = getBucketName(bizObjName, fileExt);
+        if (bucketName != null)
+            sb.append(IFileServiceClient.BUCKET_PREFIX + bucketName).append('/');
+
         sb.append('/').append(bizObjName);
         sb.append("/").append(StringHelper.leftPad(String.valueOf(now.getYear()), 4, '0'));
         sb.append('/').append(StringHelper.leftPad(String.valueOf(now.getMonthValue()), 2, '0'));
@@ -233,6 +240,10 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         if (keepFileExt && !StringHelper.isEmpty(fileExt))
             sb.append('.').append(fileExt);
         return sb.toString();
+    }
+
+    protected String getBucketName(String bizObjName, String fileExt) {
+        return null;
     }
 
     @Override
