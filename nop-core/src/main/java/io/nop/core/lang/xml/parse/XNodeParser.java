@@ -73,6 +73,9 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
     private int maxDepth = CFG_XML_MAX_NESTED_LEVEL.get();
     private boolean intern;
 
+    // AI返回的XML可能有错误，这里进行一定的容错
+    private boolean loopMode;
+
     protected XNodeParser() {
     }
 
@@ -102,6 +105,11 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
     private String prevText;
 
     private boolean hasNode;
+
+    public IXNodeParser looseMode(boolean looseMode) {
+        this.loopMode = looseMode;
+        return this;
+    }
 
     @Override
     public IXNodeParser forHtml(boolean forHtml) {
@@ -448,7 +456,14 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
             if (sc.cur == endChar) {
                 return buf.toString();
             }
-            if (sc.cur == '<') {
+
+            if (loopMode) {
+                if (sc.cur == '&') {
+                    buf.append(parseEntity());
+                } else {
+                    sc.consumeToBuf(buf);
+                }
+            } else if (sc.cur == '<') {
                 throw newError(ERR_XML_STRING_NOT_END_PROPERLY).param(CommonErrors.ARG_EXPECTED, endChar)
                         .param(ARG_START_LOC, startPos);
             } else if (sc.cur == '&') {
@@ -575,6 +590,9 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
                 }
                 return (char) num;
             default:
+                if (loopMode)
+                    return '&';
+
                 throw newError(ERR_XML_UNKNOWN_XML_ENTITY);
         }
     }

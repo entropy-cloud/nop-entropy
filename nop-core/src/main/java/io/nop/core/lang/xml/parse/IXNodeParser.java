@@ -25,6 +25,8 @@ public interface IXNodeParser extends IResourceParser<XNode> {
 
     IXNodeParser defaultEncoding(String defaultEncoding);
 
+    IXNodeParser looseMode(boolean looseMode);
+
     /**
      * 解析得到的标签名和属性名是否通过String.intern()函数调用来去除重复
      */

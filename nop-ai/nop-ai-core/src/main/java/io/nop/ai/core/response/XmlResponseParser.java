@@ -52,7 +52,7 @@ public class XmlResponseParser {
             return null;
 
         try {
-            return trimAttrs(XNodeParser.instance().parseSingleNode(sc));
+            return trimAttrs(XNodeParser.instance().looseMode(true).parseSingleNode(sc));
         } catch (Exception e) {
             return trimAttrs(tryParseAgain(response));
         }
@@ -68,7 +68,7 @@ public class XmlResponseParser {
             return null;
 
         try {
-            return XNodeParser.instance().parseSingleNode(sc);
+            return XNodeParser.instance().looseMode(true).parseSingleNode(sc);
         } catch (Exception e) {
             LOG.debug("nop.err.parse-response-xml-fail", e);
             return null;

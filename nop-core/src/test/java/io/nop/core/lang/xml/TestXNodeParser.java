@@ -13,6 +13,7 @@ import io.nop.core.resource.IFile;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.unittest.BaseTestCase;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -21,7 +22,32 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+
 public class TestXNodeParser extends BaseTestCase {
+
+    @Test
+    public void testLooseModeParser() {
+        // 1. Test that unhandled XML entities are preserved as-is in loose mode
+        XNode entityNode = XNodeParser.instance().looseMode(true)
+                .parseFromText(null, "<a attr=\"&unknown;\">&unknown;</a>");
+        assertEquals("<a attr=\"&amp;unknown;\">&amp;unknown;</a>", entityNode.xml());
+
+        // 2. Test that < characters in attribute values are allowed in loose mode
+        XNode attrNode = XNodeParser.instance().looseMode(true)
+                .parseFromText(null, "<a attr=\"value<test\">content</a>");
+        assertEquals("<a attr=\"value&lt;test\">content</a>", attrNode.xml());
+
+        // 3. Test normal XML still works in loose mode
+        XNode normalNode = XNodeParser.instance().looseMode(true)
+                .parseFromText(null, "<a><b>1</b></a>");
+        assertEquals("<a><b>1</b></a>", normalNode.outerXml(false,false));
+
+        // 4. Test that standard XML entities still work in loose mode
+        XNode stdEntityNode = XNodeParser.instance().looseMode(true)
+                .parseFromText(null, "<a>&amp;</a>");
+        assertEquals("<a>&amp;</a>", stdEntityNode.xml());
+    }
+
     @ParameterizedTest
     @MethodSource
     public void runTest(IFile file) {

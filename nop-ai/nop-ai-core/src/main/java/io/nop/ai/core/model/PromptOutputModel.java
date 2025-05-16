@@ -27,8 +27,8 @@ public class PromptOutputModel extends _PromptOutputModel implements INeedInit, 
             xdefObj = SchemaLoader.loadXDefinition(getXdefPath());
         }
 
-        if (xdefObj != null) {
-            this.xdefForAi = AiXDefHelper.transformForAi(xdefObj.toNode()).xml();
+        if (getXdefPath() != null) {
+            this.xdefForAi = AiXDefHelper.loadXDefForAi(getXdefPath()).xml();
         }
 
         if (getMarkdownPath() != null) {
