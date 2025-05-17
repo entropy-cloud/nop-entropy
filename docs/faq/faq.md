@@ -487,14 +487,14 @@ logInfo函数的第一个参数是模板消息字符串，使用slf4j日志框�
 logInfo("data: {}",data);
 ```
 
-## 41. 在`_delta`目录下定义了已经有的view文件 是按照覆盖的逻辑还是合并的
+### 41. 在`_delta`目录下定义了已经有的view文件 是按照覆盖的逻辑还是合并的
 覆盖，需要在根节点上标记`x:extends="super"`才会合并。DSL文件具有自说明性，只要查看DSL文件本身就知道它的XDef元模型以及它所继承的基础模型。
 
-## 42. 如果有多个定制的情况是按照什么顺序进行合并。比如NopAuthUser视图文件，首先是在nop内置的，经过层层的个性化，中间框架定制 ->产品定制->衍生产品定制
+### 42. 如果有多个定制的情况是按照什么顺序进行合并。比如NopAuthUser视图文件，首先是在nop内置的，经过层层的个性化，中间框架定制 ->产品定制->衍生产品定制
 Nop平台通过统一的虚拟文件系统来统一管理所有DSL文件。在虚拟文件系统中，可以定义多个平级的delta目录，然后通过`nop.core.vfs.delta-layer-ids`配置来指定这些Delta层之间的覆盖关系。
 比如 `nop.core.vfs.delta-layer-ids=deploy,product`表示`_delta/deploy`目录下的文件覆盖`_delta/product`目录下的，然后再覆盖非Delta目录下的同名文件。
 
-## 43. x:override为什么没有生效？
+### 43. x:override为什么没有生效？
 
 ```xml
 
@@ -513,6 +513,10 @@ Nop平台通过统一的虚拟文件系统来统一管理所有DSL文件。在�
 ```
 
 `x:override`不是用来覆盖`x:prototye`继承的。`x:prototype-override`这个才是。override是覆盖从`x:extends`继承得到的内容
+
+### 43. graphql可以单独用在springboot项目里面吗，还是要引入nop orm？
+NopGraphQL可以单独使用。nop-graphql-orm引入两者的集成。只集成NopGraphQL的示例参加nop-spring-simple-demo模块
+
 
 ## 部署问题
 
@@ -687,7 +691,8 @@ Nop提出一系列的结构规则和使用模式，使得这种能力的使用�
 
 ### 11. NopIoC为什么不支持类扫描机制？
 
-内置扫描会破坏可定制性。要实现扫描也很简单，在`x:gen-extends`段中自己写一个scan标签函数即可，类似于spring2.0中的命名标签。这对性能有一定影响，Nop平台不会内置这个功能
+内置扫描会破坏可定制性。类注解无法像XML配置文件那样通过简单的方式进行定制。
+要实现扫描也很简单，在`x:gen-extends`段中自己写一个scan标签函数即可，类似于spring2.0中的命名标签。这对性能有一定影响，Nop平台不会内置这个功能
 
 
 ### 12. 在Excel模型中为字段指定了not-pub标签，它是怎么起作用的？只在BizObjectBuilder只找到了整个meta级的not-pub，没有字段级的
@@ -711,9 +716,14 @@ prop级别实际上是在代码生成的时候根据`not-pub`标签生成了`pub
    ...
 </model>
 ```
-对应的合并策略为  Result = E x-extends Model x-extends D x-extends C x-extends B x-extends Axml格式的模型文件，下划线开头的自动生成的源码，手动编写的源码，还有Generator工具等。其中模型文件对应DSL，那么Generator工具对应的就是公式中的Genetator吗？如果不是，那公式中的Generator对应的是Nop中的哪些部分？
+对应的合并策略为  Result = E x-extends Model x-extends D x-extends C x-extends B x-extends A
+
+xml格式的模型文件，下划线开头的自动生成的源码，手动编写的源码，还有Generator工具等。其中模型文件对应DSL，那么Generator工具对应的就是公式中的Genetator吗？如果不是，那公式中的Generator对应的是Nop中的哪些部分？
 
 ### 14. 企业级特别重视防御性编程 比如防腐层。有必要再去弄一个针对nop的防腐层吗
 
 Nop本身支持差量定制，可以在不修改Nop源码的情况下实现深度定制。这极大降低了对防腐层的需求。另外一般人的设计远达不到nop的程度，本身NopGraphQL和NopORM已经实现了最小化信息表达，自己再设计防腐层很难提供真正的变动隔离价值。Nop对于第三方包的依赖也非常小，基本不会因为第三方包的升级间接应用应用侧。不建议针对Nop设计防腐层。
 比如说，Nop的XML解析器没有使用JDK内置的，而是自己手工编写的解析器，性能高且没有复杂特性带来的安全漏洞
+
+### 15. nop-entropy项目是推荐使用quarkus还是springboot？
+随便，没有倾向性。国产框架solon也支持
