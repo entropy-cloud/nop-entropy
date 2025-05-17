@@ -91,6 +91,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         String type = stepModel.getType();
         switch (type) {
             case TaskConstants.STEP_TYPE_XPL:
+            case TaskConstants.STEP_TYPE_STEP:
                 step = buildXplStep((XplTaskStepModel) stepModel);
                 break;
             case TaskConstants.STEP_TYPE_END:

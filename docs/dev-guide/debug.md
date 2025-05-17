@@ -222,6 +222,8 @@ nop-config模块负责从多个配置来源收集配置信息，并按照优先�
 `/p/DevDoc__graphql`
 返回graphql定义
 
+如果引入了nop-rpc-grpc模块，还可以通过`/p/DevDoc__proto`查看以gRPC格式暴露的服务说明
+
 ### 6. 调试模型合并过程
 
 在  `x:gen-extends`或者 `x:post-extends`段中增加日志输出代码或者通过扩展属性来输出调试信息。

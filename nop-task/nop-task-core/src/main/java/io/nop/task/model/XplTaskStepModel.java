@@ -17,6 +17,6 @@ public class XplTaskStepModel extends _XplTaskStepModel {
 
     @Override
     public String getType() {
-        return TaskConstants.STEP_TYPE_XPL;
+        return TaskConstants.STEP_TYPE_STEP;
     }
 }

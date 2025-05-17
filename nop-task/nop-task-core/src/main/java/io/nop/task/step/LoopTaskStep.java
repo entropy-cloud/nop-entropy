@@ -108,10 +108,10 @@ public class LoopTaskStep extends AbstractTaskStep {
             stepRt.setStateBean(stateBean);
         }
 
-        do {
-            if (!shouldContinue(stateBean, stepRt))
-                return RETURN_RESULT(stepRt.getResult());
+        if (CollectionHelper.isEmpty(stateBean.getItems()))
+            return RETURN_RESULT_END(stepRt.getResult());
 
+        do {
             if (varName != null) {
                 int index = stateBean.getIndex();
                 Object item = stateBean.getItems().get(index);
@@ -151,9 +151,17 @@ public class LoopTaskStep extends AbstractTaskStep {
 
                     if (ret.isExit())
                         return RETURN_RESULT(stepRt.getResult());
+
+                    if (shouldContinue(stateParam, stepRt))
+                        return RETURN_RESULT_END(stepRt.getResult());
+
                     return execute(stepRt);
                 });
             }
+
+            if (!shouldContinue(stateBean, stepRt))
+                return RETURN_RESULT(stepRt.getResult());
+
         } while (true);
     }
 
@@ -164,7 +172,7 @@ public class LoopTaskStep extends AbstractTaskStep {
         }
 
         if (untilExpr != null) {
-            return untilExpr.passConditions(stepRt);
+            return !untilExpr.passConditions(stepRt);
         }
 
         return true;

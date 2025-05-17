@@ -69,6 +69,7 @@ public class TestAiTask extends JunitBaseTestCase {
         task.execute(taskRt).syncGetOutputs();
     }
 
+
     @Test
     public void testServiceDesign() {
         File targetDir = getTargetFile("demo");

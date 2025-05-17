@@ -1,0 +1,36 @@
+template: |
+  【任务目标】
+  作为高级Python工程师，实现如下服务方法，要求：
+  1. 分解为多个step
+  2. 添加必要的注释
+  3. 仅需要实现服务函数，实体类定义等可以导入。服务函数的逻辑要覆盖需求中的全部要求，首先要检查前置条件是否满足。
+  4. 返回结果仅包含python代码，可以直接保存为python文件，不要用markdown包裹，也不需要额外的解释
+  
+  【服务方法定义】
+  ${apiModel.getMethodJava(serviceName,methodName)}
+  
+  【业务实体定义】
+  ${ormModel.ormModelJava}
+  
+  【需求文档】
+  ${requirements}
+
+inputs:
+  - name: ormModel
+    mandatory: true
+
+  - name: apiModel
+    mandatory: true
+
+  - name: serviceName
+    mandatory: true
+
+  - name: methodName
+    mandatory: true
+
+  - name: requirements
+    mandatory: true
+
+outputs:
+  - name: RESULT
+    format: text

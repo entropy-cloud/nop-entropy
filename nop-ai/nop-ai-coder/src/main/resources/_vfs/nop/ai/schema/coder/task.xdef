@@ -27,6 +27,12 @@
             <source xdef:value="xpl"/>
         </xpl>
 
+        <!-- 功能与xpl步骤相同，但是以step为名可以减少AI生成错误 -->
+        <step name="!var-name" xdef:ref="TaskStepModel" returnAs="var-name"
+              xdef:name="XplTaskStepModel">
+            <source xdef:value="xpl"/>
+        </step>
+
         <!--
         依次执行子步骤，一般情况下以最后一个步骤的返回值作为整体的返回值
         -->

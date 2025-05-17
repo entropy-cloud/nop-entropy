@@ -175,7 +175,7 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
             value = chatResponse.parseJsonContent();
         } else if (output.getFormat() == PromptOutputFormat.markdown) {
             value = chatResponse.parseMarkdownContent();
-        } else {
+        } else if (output.getParseFromResponse() != null) {
             PromptOutputParseModel parseModel = output.getParseFromResponse();
             Guard.notNull(parseModel, "parseFromResponse");
 
@@ -193,6 +193,8 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
             } else {
                 throw new IllegalArgumentException("unsupported parseFromResponse: " + parseModel);
             }
+        } else {
+            value = chatResponse.getContent();
         }
 
         return validateValue(chatResponse, output, value, scope);

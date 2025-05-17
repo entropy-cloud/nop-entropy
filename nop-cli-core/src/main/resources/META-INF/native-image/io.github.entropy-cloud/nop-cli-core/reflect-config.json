@@ -634,6 +634,15 @@
       {
         "name": "checkThink",
         "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiChatExchange",
+          "io.nop.ai.core.model.LlmModel",
+          "java.lang.String",
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "checkThink",
+        "parameterTypes": [
           "io.nop.ai.core.api.messages.AiChatResponse",
           "io.nop.ai.core.model.LlmModel",
           "java.lang.String"
@@ -17516,8 +17525,21 @@
     "fields": [],
     "methods": [
       {
+        "name": "isSecretHeader",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "newSSLContext",
         "parameterTypes": []
+      },
+      {
+        "name": "normalizeBody",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
       },
       {
         "name": "toJdkHttpRequest",

@@ -1,0 +1,42 @@
+template: |
+  【任务目标】
+  作为资深测试架构师，请为待测代码设计完整的测试数据集。要求遵循以下规范：
+  
+  【测试设计要点】
+  - 覆盖所有边界条件（空值/极值/非法值）
+  - 包含正常流程和异常流程
+  - 数据关联性测试（外键约束）
+  - 幂等性测试（重复请求）
+  - 并发安全测试（可选）
+  
+  【输出格式】
+  ${promptModel.getOutput('RESULT').markdownTpl} 
+  
+  【待测代码】
+  ${code}
+  
+  【数据实体定义】
+  ${ormModel.ormModelJava}
+  
+  【特别说明】
+  - 对于批量操作，需要包含部分成功/部分失败的case
+  - 事务回滚场景需单独设计
+  - 异步处理需包含延迟验证机制
+  
+    请根据上述规范生成10-15个典型测试用例，覆盖以下测试维度：
+    1. 功能正确性
+    2. 数据一致性
+    3. 异常鲁棒性
+    4. 安全约束
+
+inputs:
+  - name: ormModel
+    mandatory: true
+
+  - name: code
+    mandatory: true
+
+outputs:
+  - name: RESULT
+    type: markdown
+    markdownPath: /nop/ai/schema/coder/test-case-data.tpl.md

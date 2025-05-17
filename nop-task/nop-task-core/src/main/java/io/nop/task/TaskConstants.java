@@ -92,6 +92,8 @@ public interface TaskConstants {
 
     String STEP_TYPE_XPL = "xpl";
 
+    String STEP_TYPE_STEP = "step";
+
     String STEP_TYPE_SCRIPT = "script";
 
     String STEP_TYPE_SEQUENTIAL = "sequential";

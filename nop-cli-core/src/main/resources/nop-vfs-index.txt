@@ -28,6 +28,7 @@
 /nop/ai/llm/deepseek.llm.xml
 /nop/ai/llm/default.llm.xml
 /nop/ai/llm/ollama.llm.xml
+/nop/ai/llm/volcengine.llm.xml
 /nop/ai/prompts/coder/api-design.prompt.yaml
 /nop/ai/prompts/coder/check-simple-api-model.prompt.yaml
 /nop/ai/prompts/coder/correct-markdown.prompt.yaml
@@ -46,6 +47,9 @@
 /nop/ai/prompts/coder/refactor-requirements.prompt.yaml
 /nop/ai/prompts/coder/refine-orm-design.prompt.yaml
 /nop/ai/prompts/coder/refine-requirements.prompt.yaml
+/nop/ai/prompts/coder/service-method-design.prompt.yaml
+/nop/ai/prompts/coder/service-method-task.prompt.yaml
+/nop/ai/prompts/coder/unit-test.prompt.yaml
 /nop/ai/prompts/coder/validate-site-resource.prompt.yaml
 /nop/ai/schema/coder/api.xdef
 /nop/ai/schema/coder/auth.xdef
@@ -56,11 +60,16 @@
 /nop/ai/schema/coder/requirements.tpl.md
 /nop/ai/schema/coder/resource.xdef
 /nop/ai/schema/coder/simple-api.xdef
+/nop/ai/schema/coder/task.xdef
+/nop/ai/schema/coder/test-case-data.tpl.md
+/nop/ai/schema/coder/x-task.xdef
+/nop/ai/schema/coder/xpl-tags.md
 /nop/ai/tasks/ai-api-design.task.xml
 /nop/ai/tasks/ai-biz-analyzer.task.xml
 /nop/ai/tasks/ai-coder.task.xml
 /nop/ai/tasks/ai-create-orm-and-menu.task.xml
 /nop/ai/tasks/ai-create-project.task.xml
+/nop/ai/tasks/ai-service-design.task.xml
 /nop/ai/tasks/ai-ui-designer.task.xml
 /nop/ai/templates/ai-project/@init.xrun
 /nop/ai/templates/ai-project/pom.xml.xgen

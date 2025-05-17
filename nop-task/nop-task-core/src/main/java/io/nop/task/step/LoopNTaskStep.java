@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
@@ -34,6 +35,8 @@ public class LoopNTaskStep extends AbstractTaskStep {
     private IEvalAction beginExpr;
 
     private IEvalAction endExpr;
+    private IEvalPredicate untilExpr;
+
     private ITaskStep body;
 
     public String getVarName() {
@@ -70,6 +73,14 @@ public class LoopNTaskStep extends AbstractTaskStep {
 
     public void setStepExpr(IEvalAction stepExpr) {
         this.stepExpr = stepExpr;
+    }
+
+    public IEvalPredicate getUntilExpr() {
+        return untilExpr;
+    }
+
+    public void setUntilExpr(IEvalPredicate untilExpr) {
+        this.untilExpr = untilExpr;
     }
 
     @DataBean
@@ -125,7 +136,7 @@ public class LoopNTaskStep extends AbstractTaskStep {
             this.current = current;
         }
 
-        public int getIndex(){
+        public int getIndex() {
             return index;
         }
 
@@ -201,8 +212,16 @@ public class LoopNTaskStep extends AbstractTaskStep {
 
                     if (ret.isExit())
                         return RETURN_RESULT(stepRt.getResult());
+
+                    if (untilExpr != null && untilExpr.passConditions(stepRt))
+                        return RETURN_RESULT_END(stepRt.getResult());
+
                     return execute(stepRt);
                 });
+            }
+
+            if (untilExpr != null && untilExpr.passConditions(stepRt)) {
+                return TaskStepReturn.RETURN_RESULT(stepRt.getResult());
             }
         } while (true);
     }

@@ -1,10 +1,10 @@
 template: |
   【任务目标】
   作为NopTaskFlow流程编排DSL，实现如下服务方法，要求：
-  1. 按照指定的NopTaskFlow格式生成
+  1. 按照指定的NopTaskFlow语法生成
   2. 分解为多个step
   3. 添加必要的注释
-  4. 完整实现需求中要求的全部逻辑，包括定时调度等
+  4. 完整实现需求中要求的全部逻辑，，首先要检查前置条件是否满足。
   
   【服务方法定义】
   ${apiModel.getMethodJava(serviceName,methodName)}
@@ -12,18 +12,17 @@ template: |
   【NopTaskFlow语法】
   ${promptModel.getOutput('RESULT').xdefForAi}
   
-  1. xpl表示该部分使用【Xpl模板语法】， 可以在一个xpl段中调用多个xpl标签
-  2. t-expr表示该部分使用模板表达式语法，格式为${'$'}{expr}或者simple_string
-  3. 通过next和nextOnError表示成功和失败时如何迁移到下一步骤。如果不指定，则按照顺序执行
- 
-  【Xpl模板语法】
-  <ai-coder:IncludeText fileName="v:/nop/ai/schema/coder/xpl-tags.md" xpl:lib="/nop/ai/xlib/ai-coder.xlib" />
+  1. xpl表示节点是一个xpl段，它的内容使用【XPL模板语法】， 可以调用多个xpl标签
+  2. 通过next和nextOnError表示成功和失败时如何迁移到下一步骤。如果不指定，则按照step的先后顺序执行
+  3. 仅在错误可忽略时使用nextOnError跳转到条件分支，否则直接向外抛出异常即可
+  4. 尽量用已有标签和函数实现，只有极端必要时才使用`&lt;task:import>`导入的服务对象。增删改查不应使用服务对象。服务对象上能够调用的方法必须通过method节点声明。
+  5. step的name必须全局唯一
   
-  【重要：变量作用域】
-  1. 通过xpl:return属性返回的变量在其他step中看不见，只有通过task:assign设置的变量或者输入的request才能跨步骤访问
-  2. c:script中的临时变量必须先通过let声明然后才能使用
-  3. xpl:return会自动声明变量并赋值，因此它对应的变量不需要事前声明
+  【XPL模板语法】
+  <ai-coder:IncludeText fileName="v:/nop/ai/prompts/coder/xpl-lang.md" xpl:lib="/nop/ai/xlib/ai-coder.xlib" />
   
+  【注意事项】
+  <ai-coder:IncludeText fileName="v:/nop/ai/prompts/coder/task-import.md" xpl:lib="/nop/ai/xlib/ai-coder.xlib" />
   
   【业务实体定义】
   ${ormModel.ormModelJava}
