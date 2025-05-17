@@ -78,8 +78,10 @@ public class DynCodeGen implements ITenantResourceProvider, IDynamicBizModelProv
         useTenant = ContextProvider.runWithoutTenantId(
                 () -> daoProvider.daoFor(NopDynModule.class).isUseTenant());
 
-        if (!useTenant && CFG_DYN_GEN_CODE_WHEN_INIT.get())
+        if (!useTenant && CFG_DYN_GEN_CODE_WHEN_INIT.get()) {
             generateForAllModules();
+            reloadModel();
+        }
 
         if (useTenant) {
             ResourceTenantManager.instance().setTenantResourceProvider(this);
