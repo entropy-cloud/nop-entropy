@@ -32500,6 +32500,13 @@
         ]
       },
       {
+        "name": "getBucketName",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getExternalPath",
         "parameterTypes": [
           "io.nop.file.dao.entity.NopFileRecord"
@@ -33784,8 +33791,21 @@
         ]
       },
       {
+        "name": "isSecretHeader",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "newSSLContext",
         "parameterTypes": []
+      },
+      {
+        "name": "normalizeBody",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
       },
       {
         "name": "refreshConfig",

@@ -151,6 +151,11 @@
                 <source xdef:value="xpl"/>
             </xpl>
 
+            <!--
+            与xpl步骤相同，但是命名为step，减少AI大模型生成时的错误
+            -->
+            <step name="!var-name" xdef:ref="XplTaskStepModel" />
+
             <!-- 使用ScriptCompilerRegistry中注册的IScriptCompiler执行脚本语言  -->
             <script name="!var-name" lang="!xml-name" xdef:ref="TaskStepModel"
                     xdef:name="ScriptTaskStepModel">

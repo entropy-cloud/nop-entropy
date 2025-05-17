@@ -31,6 +31,7 @@
 /nop/ai/llm/volcengine.llm.xml
 /nop/ai/prompts/coder/api-design.prompt.yaml
 /nop/ai/prompts/coder/check-simple-api-model.prompt.yaml
+/nop/ai/prompts/coder/check-task.prompt.yaml
 /nop/ai/prompts/coder/correct-markdown.prompt.yaml
 /nop/ai/prompts/coder/delta-merge.md
 /nop/ai/prompts/coder/delta-modification.prompt.yaml
@@ -47,10 +48,14 @@
 /nop/ai/prompts/coder/refactor-requirements.prompt.yaml
 /nop/ai/prompts/coder/refine-orm-design.prompt.yaml
 /nop/ai/prompts/coder/refine-requirements.prompt.yaml
-/nop/ai/prompts/coder/service-method-design.prompt.yaml
+/nop/ai/prompts/coder/service-method-dsl.prompt.yaml
+/nop/ai/prompts/coder/service-method-java.prompt.yaml
+/nop/ai/prompts/coder/service-method-python.prompt.yaml
 /nop/ai/prompts/coder/service-method-task.prompt.yaml
+/nop/ai/prompts/coder/task-import.md
 /nop/ai/prompts/coder/unit-test.prompt.yaml
 /nop/ai/prompts/coder/validate-site-resource.prompt.yaml
+/nop/ai/prompts/coder/xpl-lang.md
 /nop/ai/schema/coder/api.xdef
 /nop/ai/schema/coder/auth.xdef
 /nop/ai/schema/coder/form.xdef
@@ -63,7 +68,6 @@
 /nop/ai/schema/coder/task.xdef
 /nop/ai/schema/coder/test-case-data.tpl.md
 /nop/ai/schema/coder/x-task.xdef
-/nop/ai/schema/coder/xpl-tags.md
 /nop/ai/tasks/ai-api-design.task.xml
 /nop/ai/tasks/ai-biz-analyzer.task.xml
 /nop/ai/tasks/ai-coder.task.xml
