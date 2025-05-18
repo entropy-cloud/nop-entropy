@@ -7,10 +7,7 @@
  */
 package io.nop.javac;
 
-import io.nop.api.core.util.SourceLocation;
-
-public interface IJavaCompileTool {
+public interface IJavaCompileTool extends IJavaSourceParser {
     IDynamicClassLoader createDynamicClassLoader(ClassLoader parentLoader, JavaLibConfig config);
 
-    IJavaCompileResult parseJavaSource(SourceLocation loc, String source);
 }

@@ -10,7 +10,7 @@ package io.nop.javac;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.javac.janino.JaninoClassLoader;
-import io.nop.javac.janino.JaninoJavaCompileResult;
+import io.nop.javac.janino.JaninoJavaParseResult;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.Location;
 import org.codehaus.janino.Java;
@@ -33,11 +33,11 @@ public class JavaCompileTool implements IJavaCompileTool {
     }
 
     public String formatJavaSource(SourceLocation loc, String source) {
-        IJavaCompileResult result = parseJavaSource(loc, source);
+        IJavaParseResult result = parseJavaSource(loc, source);
         return result.getFormattedSource();
     }
 
-    public IJavaCompileResult parseJavaSource(SourceLocation loc, String source) {
+    public IJavaParseResult parseJavaSource(SourceLocation loc, String source) {
         if (loc == null)
             loc = SourceLocation.fromClass(JavaCompileTool.class);
         String fileName = loc.getPath();
@@ -45,7 +45,7 @@ public class JavaCompileTool implements IJavaCompileTool {
         try {
             AbstractCompilationUnit cu = new Parser(new Scanner(fileName, new StringReader(source)))
                     .parseAbstractCompilationUnit();
-            return new JaninoJavaCompileResult((Java.CompilationUnit) cu);
+            return new JaninoJavaParseResult((Java.CompilationUnit) cu);
         } catch (CompileException e) {
             SourceLocation errorLoc = buildLoc(loc, e);
             String detail = getErrorDetail(e);

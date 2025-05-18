@@ -8,17 +8,17 @@
 package io.nop.javac.janino;
 
 import io.nop.api.core.util.Guard;
-import io.nop.javac.IJavaCompileResult;
+import io.nop.javac.IJavaParseResult;
 import org.codehaus.janino.Java;
 import org.codehaus.janino.Unparser;
 
 import java.io.Writer;
 
-public class JaninoJavaCompileResult implements IJavaCompileResult {
+public class JaninoJavaParseResult implements IJavaParseResult {
     private final Java.CompilationUnit compilationUnit;
     // private XLangASTNode astNode;
 
-    public JaninoJavaCompileResult(Java.CompilationUnit compilationUnit) {
+    public JaninoJavaParseResult(Java.CompilationUnit compilationUnit) {
         this.compilationUnit = Guard.notNull(compilationUnit, "compilationUnit is null");
     }
 

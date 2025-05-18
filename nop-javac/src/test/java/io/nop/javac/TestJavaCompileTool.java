@@ -22,7 +22,7 @@ public class TestJavaCompileTool {
         File file = FileHelper.getClassPathFile("_FunctionDeclaration.java");
         String text = FileHelper.readText(file, null);
 
-        IJavaCompileResult result = JavaCompileTool.instance().parseJavaSource(null, text);
+        IJavaParseResult result = JavaCompileTool.instance().parseJavaSource(null, text);
         System.out.println(result.getFormattedSource());
 
         String source = JavaCompileTool.instance().formatJavaSource(null, text);

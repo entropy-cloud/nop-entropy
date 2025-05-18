@@ -10,7 +10,7 @@ package io.nop.javac;
 import java.io.StringWriter;
 import java.io.Writer;
 
-public interface IJavaCompileResult {
+public interface IJavaParseResult {
     // XLangASTNode getASTNode();
 
     void outputFormattedSource(Writer out);
