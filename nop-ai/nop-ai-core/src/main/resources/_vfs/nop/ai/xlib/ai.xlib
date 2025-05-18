@@ -38,7 +38,8 @@
                 <c:script><![CDATA[
                     const optionsNode = node.removeChildByTag('ai:chatOptions');
 
-                    node.tagName = 'xpl';
+                    node.tagName = 'step';
+
                     const sourceNode = node.makeChild('source');
                     const execNode = sourceNode.makeChild('ai:Execute');
                     execNode.loc(location());

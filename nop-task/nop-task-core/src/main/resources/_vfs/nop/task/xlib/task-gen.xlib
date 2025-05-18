@@ -17,7 +17,7 @@
                     import io.nop.task.builder.TransformCustomStepHelper;
 
                     const steps = _dsl_root.childByTag('steps');
-                    steps?.transformChild(node=> node.tagName == 'custom', node=>{
+                    steps?.transformChild(node=> node.attrText('customType') and (node.tagName == 'step' || node.tagName == 'custom'), node=>{
                        return TransformCustomStepHelper.transformCustomStep(_dsl_root, node);
                     }, true);
                 ]]></c:script>

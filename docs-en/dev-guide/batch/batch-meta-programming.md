@@ -22,7 +22,7 @@ In the Nop platform, we define a Record model specifically designed for data mes
     </record:file-model>
 
     <steps>
-        <custom name="test" customType="batch:Execute" useParentScope="true"
+        <step name="test" customType="batch:Execute" useParentScope="true"
                 xmlns:batch="/nop/batch/xlib/batch.xlib">
             <batch:task taskName="test.loadData" batchSize="100" saveState="true">
 
@@ -58,7 +58,7 @@ In the Nop platform, we define a Record model specifically designed for data mes
                         fileModelPath="simple.record-file.xml"/>
             </consumer>
         </batch:task>
-    </custom>
+    </step>
 </steps>
 </task>
 
@@ -99,7 +99,7 @@ This introduces base models that can be transformed using meta-programming mecha
 The custom element `customType` is translated into the tag name in the XPL language, and the corresponding element is converted to `<batch:Execute>`.
 
 ```xml
-<custom name="test" customType="batch:Execute" xmlns:batch="xxx.xlib"/>
+<step name="test" customType="batch:Execute" xmlns:batch="xxx.xlib"/>
 ```
 
 This translates to:

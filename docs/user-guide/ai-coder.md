@@ -132,13 +132,13 @@ inputs => outputs 从Map映射到Map
 ```xml
 <task>
   <steps>
-    <custom name="designOrm" customType="ai:TaskStep" ai:promptName="coder/orm-design">
+    <step name="designOrm" customType="ai:TaskStep" ai:promptName="coder/orm-design">
       <description>根据需求文档的描述，设计ORM模型</description>
 
       <input name="requirements"/>
 
       <output name="ormModelText" value="${RESULT.xml()}"/>
-    </custom>
+    </step>
   </steps>
 </task>
 ```

@@ -1,35 +1,35 @@
   # Why Spring Batch is a Bad Design?
-  
+
   Explained in the video: [https://www.bilibili.com/video/BV1TgBEYYETK/](https://www.bilibili.com/video/BV1TgBEYYETK/)
-  
+
   Spring Batch is currently one of the most commonly used batch processing frameworks in the Java ecosystem. It is frequently employed in banking applications to handle end-of-day settlement and report generation, among other functionalities. The origins of Spring Batch date back to 2006, when Accenture (a major IT services company) open-sourced its proprietary batch processing framework and collaborated with SpringSource (the company behind the Spring Framework) to release Spring Batch 1.0.
-  
+
   Subsequent updates to Spring Batch have undergone numerous refactorings, but as it stands today, the framework is plagued by significant design flaws, particularly in terms of performance optimization and code reuse. This article will analyze the design issues of Spring Batch and introduce the implementation approach of NopBatch, a new batch processing framework, to discuss the design principles of the next-generation batch processing framework.
-  
+
   ## 1. Introduction to Spring Batch
-  
+
   Here is the summary provided by智谱清言AI regarding Spring Batch:
-  
+
   Spring Batch is a lightweight and comprehensive batch processing framework designed to support enterprise-level bulk data operations such as large-scale data import, transformation, and migration. Built on top of the Spring Framework, it allows developers to leverage core Spring features like dependency injection and declarative transaction management to create robust batch processing applications.
-  
+
   Key characteristics of Spring Batch include:
-  
+
   1. **Reusability**: The framework provides numerous reusable components such as item readers (ItemReaders), writers (ItemWriters), and processors (ItemProcessors) that can be easily customized and extended.
-  
+
   2. **Extensibility**: The framework's design is structured to allow for extensibility, enabling developers to add custom components through plug-in mechanisms.
-  
+
   3. **Robustness**: Spring Batch supports transaction management to ensure the atomicity and consistency of batch jobs. It also provides mechanisms for skipping and retrying items to handle data errors and failures.
-  
+
   4. **Declarative Development**: Through configuration and minimal code, developers can define complex batch processing workflows.
-  
+
   5. **Parallel Processing**: Spring Batch supports parallel processing, which can be optimized using partitions.
-  
+
   6. **Launch and Scheduling**: Batch jobs can be easily integrated with Spring's task scheduling framework (e.g., Quartz) or launched via command line.
-  
+
   7. **Monitoring and Management**: The framework provides tools for monitoring and managing the execution of batch jobs, including tracking job states and collecting statistical information.
-  
+
   Major components include:
-  
+
   - **JobRepository**: Used to store data during job execution, including the job's execution state.
   - **JobLauncher**: Responsible for launching the execution of jobs.
   - **Job**: Represents a complete batch job consisting of a series of steps (Steps).
@@ -37,46 +37,46 @@
   - **ItemReader**: Manages the reading of data items.
   - **ItemProcessor**: Manages the processing of read data items.
   - **ItemWriter**: Manages the writing of processed data to the target destination.
-  
+
   ![spring-batch.png](https://i.gyazo.com/630b8c1a6f74e69d565a76dffe935233.png)
-  
+
   Spring Batch is applicable in a wide range of scenarios, including but not limited to:
-  
+
   - Data synchronization
   - Financial and reporting generation
   - Data transformation and migration
   - File processing
-  
+
   By leveraging Spring Batch, organizations can effectively handle bulk operations, enhancing data processing efficiency while maintaining system stability and data accuracy.
-  
+
   ==================== 智谱清言AI 创作完毕 ======================
-  
+
   ### Core Interfaces of SpringBatch
-  
+
   SpringBatch's built-in core logic follows the standard read-process-write workflow, with corresponding interfaces as follows:
-  
+
   ```java
   interface ItemReader<T> {
       T read();
   }
-  
+
   interface ItemProcessor<I, O> {
       O process(@NonNull I item);
   }
-  
+
   interface ItemWriter<T> {
       void write(Chunk<? extends T> chunk);
   }
   ```
-  
+
   To manage resource consumption during processing, SpringBatch introduces the concept of Chunk, which represents a batch of data to be processed. The commit-interval configuration determines how many items are processed before committing.
-  
+
   For example:
-  
+
   ```java
   <property name="commitInterval">100</property>
   ```
-  
+
   This configuration means that every 100 items will be processed as a single Chunk, with each Chunk corresponding to a read-process-write cycle.
 
 ```xml
@@ -176,7 +176,7 @@ batchLoadRelatedData(data, context);
 ```
 
 When processing data that requires mutual exclusion locks, SpringBatch's design seems particularly unfavorable. This is because SpringBatch's ItemReader reads data one record at a time, preventing batch optimization when acquiring locks and making it difficult to control the order of lock acquisition, which can lead to deadlocks.
- 
+
 In contrast, NopBatch's design first sorts records according to certain rules (without requiring the Reader to perform sorting during read operations) and then acquires all necessary locks in one go. This avoids the risk of deadlocks.
 
 In summary, SpringBatch's design reflects its legacy as an Item-oriented framework, making Chunk-level processing unnatural.
@@ -203,7 +203,7 @@ In SpringBatch, the processing logic of `Processor` resembles function-style pro
 Modern stream processing frameworks align more closely with the `flatMap` function in functional programming, `data.flatMap(a->[b])`. This means that for each input, there are three possible outcomes: A. No output B. One output C. Multiple outputs.
 
 The stream-style processing pattern suggests that each generated output should be passed immediately to the downstream without waiting for all outputs to be produced before transmission.
- 
+
 NopBatch mimics this behavior by defining the following processing interface:
 
 ```java
@@ -352,7 +352,7 @@ SpringBatch provides built-in failure retry logic: if a Processor fails, it can 
 
 In NopBatch, we provide a retry mechanism that operates on the entire chunk level. If a chunk fails, we automatically retry it as a whole. Additionally, we support per-item retries, where each item is treated as an independent chunk for retrying. This approach sacrifices the optimization of batch saves but isolates errors in individual items, making it easier to debug and fix specific issues.
 ```java
-public class RetryBatchConsumer<R> 
+public class RetryBatchConsumer<R>
     implements IBatchConsumer<R, IBatchChunkContext> {
 
     public void consume(List<R> items, IBatchChunkContext context) {
@@ -828,7 +828,7 @@ Through these steps, Spring Batch effectively decomposes large tasks into multip
 ```
 
 SpringBatch's partitioning parallel design essentially implements partitioned reading from the Reader, with each slave step using its own dedicated Reader to read data before processing. If a particular partition has an exceptionally large amount of data, other partitions' threads will become idle once all available threads are occupied and cannot assist in handling it.
- 
+
 In real-world business scenarios, there often exists a need for finer-grained partitioning. For example, in banking applications, it is typically sufficient to ensure that individual account data is processed in order, while data for different accounts can be handled concurrently. NopBatch provides a more flexible partitioning and parallel processing strategy.
 
 Firstly, NopBatch's `BatchTask` has a `concurrency` parameter that allows specifying the number of parallel threads to use for processing. Additionally, the `IBatchChunkContext` stores both the `concurrency` parameter and the current thread index parameter, enabling direct determination during processing of how many handling threads are available and which thread is currently executing, facilitating internal partitioning operations.
@@ -1038,7 +1038,7 @@ In the Nop platform, we define a specialized model called Record, which is inten
     </record:file-model>
 
     <steps>
-        <custom name="test" customType="batch:Execute" useParentScope="true"
+        <step name="test" customType="batch:Execute" useParentScope="true"
                 xmlns:batch="/nop/batch/xlib/batch.xlib">
             <batch:task taskName="test.loadData" batchSize="100" saveState="true">
 
@@ -1075,32 +1075,32 @@ In the Nop platform, we define a specialized model called Record, which is inten
                 </consumer>
 
             </batch:task>
-        </custom>
+        </step>
     </steps>
 </task>
 ```
-  
+
 In the above example, it demonstrates how to seamlessly integrate a Batch bulk processing model and Record message format definition within NopTaskFlow.
 
 1. The NopTaskFlow logic orchestration engine was designed without any knowledge of batch processing tasks or built-in Record models.
 2. **Extending NopTaskFlow does not require implementing any specific extension interfaces of the NopTaskFlow engine nor using an internal registration mechanism to register extended steps**. This contrasts sharply with typical framework designs.
 3. You only need to examine the `task.xdef` meta-model to understand the node structure of the NopTaskFlow logic orchestration model and then use XLang's built-in metaprogramming mechanisms to implement extensions.
 4. The line `x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml"` introduces basic models, which are processed through meta-programming mechanisms like `x:post-extends` into the XNode structure of the current model. **We can optionally introduce compile-time structural transformation rules**.
-5. The `<custom name="test" customType="batch:Execute" xmlns:batch="xxx.xlib">` element's `customType` will be automatically recognized as an Xpl tag function and transform the `custom` node into a call to the `<batch:Execute>` tag function.
+5. The `<step name="test" customType="batch:Execute" xmlns:batch="xxx.xlib">` element's `customType` will be automatically recognized as an Xpl tag function and transform the `custom` node into a call to the `<batch:Execute>` tag function.
 
 ```xml
-<custom customType="ns:TagName" xmlns:ns="libPath" ns:argName="argValue">
+<step customType="ns:TagName" xmlns:ns="libPath" ns:argName="argValue">
   <ns:slotName>...</ns:slotName>
-</custom>
+</step>
 will be automatically transformed into
 
-<xpl>
+<step>
     <source>
         <ns:TagName xpl:lib="libPath" argName="argValue">
             <slotName>...</ns:slotName>
         </ns:TagName>
     </source>
-</xpl>
+</step>
 ```
 
 This means that `customType` is a tag function name with a namespace. All attributes and child nodes sharing the same namespace will be treated as properties and child nodes of this tag function. While directly using Xpl steps is not very complex, metaprogramming transformations based on `customType` can further reduce information expression complexity, ensuring that only the minimal amount of information is expressed, with all derivable information automatically deduced.

@@ -10,11 +10,18 @@ import io.nop.commons.util.ClassHelper;
 // tell cpd to start ignoring code - CPD-OFF
 /**
  * generate from /nop/schema/task/task.xdef <p>
- * 执行xpl模板语言
+ * 与xpl步骤相同，但是命名为step，减少AI大模型生成时的错误
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
 public abstract class _XplTaskStepModel extends io.nop.task.model.TaskStepModel {
+    
+    /**
+     *  
+     * xml name: customType
+     * 
+     */
+    private java.lang.String _customType ;
     
     /**
      *  
@@ -29,6 +36,25 @@ public abstract class _XplTaskStepModel extends io.nop.task.model.TaskStepModel 
      * 
      */
     private java.lang.String _type ;
+    
+    /**
+     * 
+     * xml name: customType
+     *  
+     */
+    
+    public java.lang.String getCustomType(){
+      return _customType;
+    }
+
+    
+    public void setCustomType(java.lang.String value){
+        checkAllowChange();
+        
+        this._customType = value;
+           
+    }
+
     
     /**
      * 
@@ -83,6 +109,7 @@ public abstract class _XplTaskStepModel extends io.nop.task.model.TaskStepModel 
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("customType",this.getCustomType());
         out.putNotNull("source",this.getSource());
         out.putNotNull("type",this.getType());
     }
@@ -96,6 +123,7 @@ public abstract class _XplTaskStepModel extends io.nop.task.model.TaskStepModel 
     protected void copyTo(XplTaskStepModel instance){
         super.copyTo(instance);
         
+        instance.setCustomType(this.getCustomType());
         instance.setSource(this.getSource());
         instance.setType(this.getType());
     }

@@ -5,7 +5,8 @@
 
     <!--    <ai:chatOptions provider="ollama" model="qwen3:8b" contextLength="8192" maxTokens="16000"/>-->
 
-    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>
+<!--    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>-->
+    <ai:chatOptions provider="volcengine" model="deepseek-chat" contextLength="8192" maxTokens="8192" temperature="0" />
 
     <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 
@@ -15,16 +16,16 @@
     <input name="outputDir" type="String" mandatory="true"/>
 
     <steps>
-        <xpl name="init">
+        <step name="init">
             <input name="appName"/>
             <output name="appId">
                 <source>
                     return appName.replace('-','/');
                 </source>
             </output>
-        </xpl>
+        </step>
 
-        <custom name="loadRequirements" customType="ai-coder:LoadMarkdown">
+        <step name="loadRequirements" customType="ai-coder:LoadMarkdown">
             <input name="fileName" value="${requirementsPath}"/>
             <input name="tplPath" value="/nop/ai/schema/coder/requirements.tpl.md"/>
 
@@ -32,9 +33,9 @@
             <input name="sectionExtTplPath" value="/nop/ai/schema/coder/module-requirements.tpl.md"/>
 
             <output name="RESULT" exportAs="requirementsDoc"/>
-        </custom>
+        </step>
 
-        <xpl name="splitRequirements">
+        <step name="splitRequirements">
             <input name="requirementsDoc"/>
             <output name="ormRequirements">
                 <source>
@@ -47,35 +48,35 @@
                     return requirementsDoc.selectSectionByTplTag('MENU').toText();
                 </source>
             </output>
-        </xpl>
+        </step>
 
-        <custom name="designOrm" customType="ai:TaskStep" ai:promptName="coder/orm-design" ai:useResponseCache="true">
+        <step name="designOrm" customType="ai:TaskStep" ai:promptName="coder/orm-design" ai:useResponseCache="true">
             <description>根据需求文档的描述，设计ORM模型</description>
 
             <input name="requirements" value="${ormRequirements}"/>
             <output name="RESULT" exportAs="ormModel"/>
-        </custom>
+        </step>
 
-        <custom name="saveOrmXml" customType="file-utils:WriteText">
+        <step name="saveOrmXml" customType="file-utils:WriteText">
             <input name="outputDir"/>
             <input name="fileName" value="model/${appName}.orm.xml"/>
             <input name="text" value="${ormModel.ormModelXml}"/>
-        </custom>
+        </step>
 
-        <custom name="saveOrmExcel" customType="ai-coder:SaveDslModelAsExcel">
+        <step name="saveOrmExcel" customType="ai-coder:SaveDslModelAsExcel">
             <input name="outputDir"/>
             <input name="fileName" value="model/${appName}.orm.xlsx"/>
             <input name="dslModel" value="${ormModel.ormModelBean}"/>
             <input name="impModelPath" value="/nop/orm/imp/orm.imp.xml"/>
-        </custom>
+        </step>
 
-        <custom name="designMenu" customType="ai:TaskStep" ai:promptName="coder/menu-design" ai:useResponseCache="true">
+        <step name="designMenu" customType="ai:TaskStep" ai:promptName="coder/menu-design" ai:useResponseCache="true">
             <description>根据需求文档的描述，设计菜单和角色权限</description>
 
             <input name="requirements" value="${menuRequirements}"/>
             <input name="ormModel"/>
             <output name="RESULT" exportAs="menuNode"/>
-        </custom>
+        </step>
 
         <!-- 逐个验证AI -->
         <fork name="validateSiteResource" varName="resourceNode">
@@ -85,7 +86,7 @@
             </producer>
 
             <steps>
-                <custom name="validateSingleResource" customType="ai:TaskStep"
+                <step name="validateSingleResource" customType="ai:TaskStep"
                         ai:promptName="coder/validate-site-resource" ai:useResponseCache="true">
                     <throttle maxConcurrency="1" maxWait="100000000"/>
 
@@ -93,24 +94,24 @@
                     <input name="requirements" value="${menuRequirements}"/>
                     <input name="ormModel"/>
                     <output name="RESULT" exportAs="fixedResourceNode"/>
-                </custom>
+                </step>
 
-                <xpl name="replaceResourceNode">
+                <step name="replaceResourceNode">
                     <input name="resourceNode"/>
                     <input name="fixedResourceNode"/>
                     <source><![CDATA[
                         if(fixedResourceNode)
                             resourceNode.replaceBy(fixedResourceNode.cloneInstance());
                     ]]></source>
-                </xpl>
+                </step>
             </steps>
         </fork>
 
-        <custom name="saveMenuXml" customType="ai-coder:SaveDslNode">
+        <step name="saveMenuXml" customType="ai-coder:SaveDslNode">
             <input name="outputDir"/>
             <input name="fileName" value="src/main/resources/${appId}/orm/_gen/ai-gen.action-auth.xml"/>
             <input name="dslNode" value="${menuNode}"/>
             <input name="xdefPath" value="/nop/schema/action-auth.xdef"/>
-        </custom>
+        </step>
     </steps>
 </task>

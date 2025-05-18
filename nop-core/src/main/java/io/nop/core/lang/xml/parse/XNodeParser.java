@@ -27,6 +27,8 @@ import io.nop.core.lang.xml.handler.CollectXNodeHandler;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.parse.AbstractCharReaderResourceParser;
 import io.nop.core.resource.impl.InMemoryTextResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -63,6 +65,8 @@ import static io.nop.core.CoreErrors.ERR_XML_UNEXPECTED_EOF;
 import static io.nop.core.CoreErrors.ERR_XML_UNKNOWN_XML_ENTITY;
 
 public class XNodeParser extends AbstractCharReaderResourceParser<XNode> implements IXNodeParser {
+    static final Logger LOG = LoggerFactory.getLogger(XNodeParser.class);
+
     public static IXNodeParser instance() {
         return new XNodeParser();
     }
@@ -74,7 +78,7 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
     private boolean intern;
 
     // AI返回的XML可能有错误，这里进行一定的容错
-    private boolean loopMode;
+    private boolean looseMode;
 
     protected XNodeParser() {
     }
@@ -107,7 +111,7 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
     private boolean hasNode;
 
     public IXNodeParser looseMode(boolean looseMode) {
-        this.loopMode = looseMode;
+        this.looseMode = looseMode;
         return this;
     }
 
@@ -457,7 +461,7 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
                 return buf.toString();
             }
 
-            if (loopMode) {
+            if (looseMode) {
                 if (sc.cur == '&') {
                     buf.append(parseEntity());
                 } else {
@@ -590,7 +594,7 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
                 }
                 return (char) num;
             default:
-                if (loopMode)
+                if (looseMode)
                     return '&';
 
                 throw newError(ERR_XML_UNKNOWN_XML_ENTITY);
@@ -642,9 +646,14 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
     void addAttr(Map<String, ValueWithLocation> attrs, SourceLocation loc, String name, Object v) {
         ValueWithLocation value = ValueWithLocation.of(loc, v);
         ValueWithLocation oldValue = attrs.put(name, value);
-        if (oldValue != null)
-            throw newError(ERR_XML_DUPLICATE_ATTR_NAME)
-                    .param(ARG_ATTR_NAME, name).param(ARG_ATTR_VALUE, v).param(ARG_OLD_LOC, oldValue.getLocation());
+        if (oldValue != null) {
+            if (this.looseMode) {
+                LOG.info("{}:attrName={},attrValue={},oldLoc={}", ERR_XML_DUPLICATE_ATTR_NAME.getErrorCode(), name, v, oldValue.getLocation());
+            } else {
+                throw newError(ERR_XML_DUPLICATE_ATTR_NAME)
+                        .param(ARG_ATTR_NAME, name).param(ARG_ATTR_VALUE, v).param(ARG_OLD_LOC, oldValue.getLocation());
+            }
+        }
     }
 
     boolean parseBody() {

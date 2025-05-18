@@ -126,7 +126,7 @@
     @sync 步骤执行时同步调用TaskStepReturn.sync()同步等待本步骤执行完毕，然后再继续执行下一步骤。缺省情况下会使用Promise异步等待。
     -->
     <xdef:define xdef:name="TaskStepModel" xdef:ref="TaskExecutableModel" concurrent="!boolean=false"
-                 tagSet="csv-set" name="var-name" sync="!boolean=false" extType="xml-name" displayName="string"
+                 tagSet="csv-set" name="var-name" sync="!boolean=false" displayName="string"
                  allowStartIfComplete="!boolean=false" internal="!boolean=false" errorName="var-name"
                  runOnContext="!boolean=false" waitSteps="csv-set" waitErrorSteps="csv-set"
                  returnAs="var-name" ignoreResult="!boolean=false"
@@ -145,16 +145,19 @@
             <!-- 从BeanContainer中获取ITaskStep接口并执行 -->
             <simple name="!var-name" bean="!bean-name" xdef:ref="TaskStepModel" xdef:name="SimpleTaskStepModel"/>
 
-            <!-- 执行xpl模板语言 -->
-            <xpl name="!var-name" xdef:ref="TaskStepModel"
-                 xdef:name="XplTaskStepModel">
+            <!--
+              与xpl步骤相同，但是命名为step，减少AI大模型生成时的错误
+             -->
+            <step name="!var-name" xdef:ref="TaskStepModel" customType="xml-name"
+                  xdef:name="XplTaskStepModel">
                 <source xdef:value="xpl"/>
-            </xpl>
+            </step>
 
             <!--
-            与xpl步骤相同，但是命名为step，减少AI大模型生成时的错误
+            执行xpl模板语言.
+            【Deprecated】 使用step代替
             -->
-            <step name="!var-name" xdef:ref="XplTaskStepModel" />
+            <xpl name="!var-name" xdef:ref="XplTaskStepModel"/>
 
             <!-- 使用ScriptCompilerRegistry中注册的IScriptCompiler执行脚本语言  -->
             <script name="!var-name" lang="!xml-name" xdef:ref="TaskStepModel"
@@ -286,6 +289,9 @@
                 <resume-when xdef:value="xpl-predicate"/>
             </suspend>
 
+            <!--
+            【Deprecated】 使用step代替
+            -->
             <custom name="!var-name" customType="!xml-name" xdef:ref="TaskStepModel"
                     xdef:name="CustomTaskStepModel"/>
 

@@ -2,7 +2,7 @@
       x:extends="/nop/task/lib/common.task.xml"
       xmlns:test="/nop/test/test.xlib">
     <steps>
-        <custom name="main" customType="test:Run" test:a="@:1">
+        <step name="main" customType="test:Run" test:a="@:1">
             <input name="b">
                 <source>2</source>
             </input>
@@ -12,7 +12,7 @@
                     return x + y;
                 </c:script>
             </test:exec>
-        </custom>
+        </step>
     </steps>
 
     <output name="RESULT">

@@ -5,7 +5,7 @@
     <input name="bizDate" type="LocalDate"/>
 
     <steps>
-        <custom name="importIntoDb" customType="batch:Execute" batch:asyncExec="true"
+        <step name="importIntoDb" customType="batch:Execute" batch:asyncExec="true"
                 xmlns:batch="/nop/batch/xlib/batch.xlib">
             <batch:task taskName="demo.loadData" batchSize="100" saveState="true" concurrency="10">
 
@@ -23,9 +23,9 @@
                 </consumer>
 
             </batch:task>
-        </custom>
+        </step>
 
-        <custom name="processDataInDb" customType="batch:Execute" xmlns:batch="/nop/batch/xlib/batch.xlib" batch:asyncExec="true">
+        <step name="processDataInDb" customType="batch:Execute" xmlns:batch="/nop/batch/xlib/batch.xlib" batch:asyncExec="true">
             <batch:task taskName="demo.processData" batchSize="100" saveState="true" concurrency="4">
                 <taskKeyExpr>bizDate</taskKeyExpr>
 
@@ -112,6 +112,6 @@
                     </orm-writer>
                 </consumer>
             </batch:task>
-        </custom>
+        </step>
     </steps>
 </task>

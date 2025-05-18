@@ -5,8 +5,8 @@
 
 <!--    <ai:chatOptions provider="ollama" model="qwen3:8b" contextLength="8192" maxTokens="16000"/>-->
 
-    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>
-
+<!--    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>-->
+    <ai:chatOptions provider="volcengine" model="deepseek-chat" contextLength="8192" maxTokens="8192" temperature="0" />
 
     <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 
@@ -16,12 +16,12 @@
     <input name="needExpand" type="Boolean" optional="true" />
 
     <steps>
-        <custom name="loadRequirements" customType="file-utils:ReadText">
+        <step name="loadRequirements" customType="file-utils:ReadText">
             <input name="fileName" value="${inputRequirementsPath}"/>
             <output name="RESULT" exportAs="inputRequirements"/>
-        </custom>
+        </step>
 
-        <custom name="refactorRequirements" customType="ai:TaskStep" ai:promptName="coder/refactor-requirements">
+        <step name="refactorRequirements" customType="ai:TaskStep" ai:promptName="coder/refactor-requirements">
             <description>重构需求文档，按照标准格式输出</description>
 
             <input name="inputRequirements"/>
@@ -31,9 +31,9 @@
             <output name="requirements">
                 <source>STEP_RESULT.RESULT.toText()</source>
             </output>
-        </custom>
+        </step>
 
-        <!--        <custom name="correctMarkdown" customType="ai:TaskStep" ai:promptName="coder/correct-markdown">-->
+        <!--        <step name="correctMarkdown" customType="ai:TaskStep" ai:promptName="coder/correct-markdown">-->
         <!--            <input name="markdownDoc">-->
         <!--                <source>requirementsDoc</source>-->
         <!--            </input>-->
@@ -43,13 +43,13 @@
         <!--            <output name="requirements">-->
         <!--                <source>STEP_RESULT.RESULT.toText()</source>-->
         <!--            </output>-->
-        <!--        </custom>-->
+        <!--        </step>-->
 
-        <custom name="saveRequirements" customType="file-utils:WriteText">
+        <step name="saveRequirements" customType="file-utils:WriteText">
             <input name="outputDir"/>
             <input name="fileName" value="docs/requirements/refactored-requirements.md"/>
             <input name="text" value="${requirements}"/>
-        </custom>
+        </step>
 
         <fork name="expandModuleRequirements" varName="module">
             <input name="requirementsDoc"/>
@@ -58,7 +58,7 @@
             </producer>
 
             <steps>
-                <custom name="expandOneModuleRequirements" customType="ai:TaskStep"
+                <step name="expandOneModuleRequirements" customType="ai:TaskStep"
                         ai:promptName="coder/expand-module-requirements">
 
                     <!-- 限制调用AI的频度 -->
@@ -73,13 +73,13 @@
                     </input>
                     <input name="moduleTitle" value="${module.title}"/>
                     <output name="RESULT" exportAs="moduleDoc"/>
-                </custom>
+                </step>
 
-                <custom name="saveModuleDoc" customType="file-utils:WriteText">
+                <step name="saveModuleDoc" customType="file-utils:WriteText">
                     <input name="outputDir"/>
                     <input name="fileName" value="docs/requirements/sections/${module.sectionNo}.md"/>
                     <input name="text" value="${moduleDoc.toText()}"/>
-                </custom>
+                </step>
             </steps>
         </fork>
     </steps>

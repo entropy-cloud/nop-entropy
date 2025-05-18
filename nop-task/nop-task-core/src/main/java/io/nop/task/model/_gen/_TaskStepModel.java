@@ -39,13 +39,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      *  
-     * xml name: extType
-     * 
-     */
-    private java.lang.String _extType ;
-    
-    /**
-     *  
      * xml name: ignoreResult
      * 
      */
@@ -195,25 +188,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         checkAllowChange();
         
         this._errorName = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: extType
-     *  
-     */
-    
-    public java.lang.String getExtType(){
-      return _extType;
-    }
-
-    
-    public void setExtType(java.lang.String value){
-        checkAllowChange();
-        
-        this._extType = value;
            
     }
 
@@ -502,7 +476,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         out.putNotNull("allowStartIfComplete",this.isAllowStartIfComplete());
         out.putNotNull("concurrent",this.isConcurrent());
         out.putNotNull("errorName",this.getErrorName());
-        out.putNotNull("extType",this.getExtType());
         out.putNotNull("ignoreResult",this.isIgnoreResult());
         out.putNotNull("internal",this.isInternal());
         out.putNotNull("name",this.getName());
@@ -531,7 +504,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         instance.setAllowStartIfComplete(this.isAllowStartIfComplete());
         instance.setConcurrent(this.isConcurrent());
         instance.setErrorName(this.getErrorName());
-        instance.setExtType(this.getExtType());
         instance.setIgnoreResult(this.isIgnoreResult());
         instance.setInternal(this.isInternal());
         instance.setName(this.getName());

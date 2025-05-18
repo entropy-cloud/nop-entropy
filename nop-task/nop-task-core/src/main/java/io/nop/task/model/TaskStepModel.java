@@ -22,9 +22,6 @@ public abstract class TaskStepModel extends _TaskStepModel {
     }
 
     public String getFullStepType() {
-        String extType = getExtType();
-        if (extType != null)
-            return getType() + '-' + extType;
         return getType();
     }
 

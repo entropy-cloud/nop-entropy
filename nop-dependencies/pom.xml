@@ -54,6 +54,9 @@
         <lucene.version>9.7.0</lucene.version>
 
         <commonmark.version>0.22.0</commonmark.version>
+
+        <!-- 与quarkus 3.21.4保持一致 -->
+        <javaparser.version>3.26.3</javaparser.version>
         <!--        <grpc.version>1.60.0</grpc.version>-->
         <!--        <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>-->
     </properties>
@@ -391,6 +394,17 @@
                 <groupId>org.commonmark</groupId>
                 <artifactId>commonmark-ext-gfm-tables</artifactId>
                 <version>${commonmark.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.javaparser</groupId>
+                <artifactId>javaparser-core</artifactId>
+                <version>${javaparser.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.javaparser</groupId>
+                <artifactId>javaparser-symbol-solver-core</artifactId>
+                <version>${javaparser.version}</version>
             </dependency>
 
             <!--            <dependency>-->

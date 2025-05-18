@@ -60,17 +60,17 @@ public class TransformCustomStepHelper {
      * 准换custom节点内容为xpl节点。
      *
      * <pre>
-     *     <custom name="test" customType="gpt:simple" gpt:temperature="3">
+     *     <step name="test" customType="gpt:simple" gpt:temperature="3">
      *       <input name="a" />
      *       <input name="b" />
      *
      *      <gpt:prompt> xxx  </gpt:prompt>
      *
-     *    </custom>
+     *    </step>
      *
      *    转换为
      *
-     *    <xpt name="test">
+     *    <step name="test">
      *      <input name="a" />
      *      <input name="b" />
      *
@@ -97,7 +97,7 @@ public class TransformCustomStepHelper {
 
     private static XNode transformCustomStepToXpl(XNode root, XNode node, String customType) {
         XNode ret = node.cloneInstance();
-        ret.setTagName(TaskConstants.STEP_TYPE_XPL);
+        ret.setTagName(TaskConstants.STEP_TYPE_STEP);
         ret.removeAttr(TaskConstants.ATTR_CUSTOM_TYPE);
 
         ret.removeJsonPrefix();

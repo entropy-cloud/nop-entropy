@@ -1113,7 +1113,7 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
     </record:file-model>
 
     <steps>
-        <custom name="test" customType="batch:Execute" useParentScope="true"
+        <step name="test" customType="batch:Execute" useParentScope="true"
                 xmlns:batch="/nop/batch/xlib/batch.xlib">
             <batch:task taskName="test.loadData" batchSize="100" saveState="true">
 
@@ -1150,7 +1150,7 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
                 </consumer>
 
             </batch:task>
-        </custom>
+        </step>
     </steps>
 </task>
 ```
@@ -1161,12 +1161,12 @@ NopBatch所提供的解决方案是一个非常具有Nop平台特色的解决方
 2. **扩展NopTaskFlow并不需要实现某个NopTaskFlow引擎内部的扩展接口，也不需要使用NopTaskFlow内部的某种注册机制注册扩展步骤**。这与一般的框架设计形成鲜明对比。
 3. 只需要查看`task.xdef`元模型，了解NopTaskFlow逻辑编排模型的节点结构，就可以使用XLang语言内置的元编程机制实现扩展。
 4. `x:extends="/nop/task/lib/common.task.xml,/nop/task/lib/batch-common.task.xml"`引入了基础模型支持，这些基础模型通过`x:post-extends`等元编程机制在XNode结构层对当前模型进行结构变换。**我们可以按需引入编译期结构变换规则。**
-5. `<custom name="test" customType="batch:Execute" xmlns:batch="xxx.xlib">` 扩展节点的customType会被自动识别为Xpl 标签函数，并将custom节点变换为对`<batch:Execute>`标签函数的调用。
+5. `<step name="test" customType="batch:Execute" xmlns:batch="xxx.xlib">` 扩展节点的customType会被自动识别为Xpl 标签函数，并将custom节点变换为对`<batch:Execute>`标签函数的调用。
 
 ```xml
-<custom customType="ns:TagName" xmlns:ns="libPath" ns:argName="argValue">
+<step customType="ns:TagName" xmlns:ns="libPath" ns:argName="argValue">
   <ns:slotName>...</ns:slotName>
-</custom>
+</step>
 会被自动变换为
 
 <xpl>

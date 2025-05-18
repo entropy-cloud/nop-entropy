@@ -92,11 +92,11 @@ input缺省情况下从parentScope获取变量。如果指定了source，则动�
 
 ```xml
 
-<xpl name="test">
+<step name="test">
   <input name="sum"/>
   <source>return sum + 1</source>
   <output name="sum"/>
-</xpl>
+</step>
 ```
 
 xpl步骤用于执行xpl模板语言。上面的例子相当于是
@@ -113,18 +113,18 @@ sum = function(sum){
 
 <sequential name="test">
   <steps>
-    <xpl name="step1">
+    <step name="step1">
       <source>
         return 1
       </source>
-    </xpl>
+    </step>
 
-    <xpl name="step2">
+    <step name="step2">
       <input name="RESULT"/>
       <source>
         return RESULT + 2
       </source>
-    </xpl>
+    </step>
   </steps>
 </sequential>
 ```
@@ -169,20 +169,20 @@ RESULT = function(RESULT){
 
 ## 扩展节点类型
 
-NopTaskFlow内置了一个特殊的步骤类型custom，可以通过customType属性和xmlns来指定一个xpl标签，它会被自动翻译为标签实现。
+NopTaskFlow的step节点内置了一个特殊的customType属性，通过它和xmlns来指定一个xpl标签，会使得step会被自动翻译为标签实现。
 
 ```xml
 
 <task xmlns:test="/nop/test/test.xlib" x:extends="/nop/task/lib/common.task.xml">
   <steps>
-    <custom name="step1" customType="test:MyFunc" test:a="${1}">
+    <step name="step1" customType="test:MyFunc" test:a="${1}">
       <input name="b"/>
       <test:exec>
         <c:script>
           return x + y;
         </c:script>
       </test:exec>
-    </custom>
+    </step>
   </steps>
 </task>
 ```
@@ -194,7 +194,7 @@ NopTaskFlow内置了一个特殊的步骤类型custom，可以通过customType�
 
 <task xmlns:test="/nop/test/test.xlib" x:extends="/nop/task/lib/common.task.xml">
   <steps>
-    <xpl name="step1">
+    <step name="step1">
       <input name="b"/>
       <source>
         <test:MyFunc xpl:lib="/nop/test/test.xlib" a="${1}" b="${b}">
@@ -205,7 +205,7 @@ NopTaskFlow内置了一个特殊的步骤类型custom，可以通过customType�
           </exec>
         </test:MyFunc>
       </source>
-    </xpl>
+    </step>
   </steps>
 </task>
 ```
@@ -228,17 +228,17 @@ InOutNodeTransformer自动识别`in:`前缀和`out:`前缀，并把它们自动�
 
 等价于
 ```xml
-<xpl>
+<step>
   <input name="x">
      <source>1</source>
   </input>
-  
+
   <input name="y" mandatory="true">
      <source>2</source>
   </input>
-  
+
   <output name="RESULT">
      <source> x + y</source>
   </output>
-</xpl>
+</step>
 ```

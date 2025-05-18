@@ -4,25 +4,25 @@
     <input name="products"/>
 
     <steps>
-        <xpl name="step1" useParentScope="true">
+        <step name="step1" useParentScope="true">
             <source>
                 <xpt:GenReport xpl:lib="/nop/report/xlib/xpt.xlib" args="${{entity:{title,products}}}"
                                template="/xpt/test.xpt.xlsx" outputFile="target/gen/${today()}.html"/>
             </source>
-        </xpl>
+        </step>
 
-        <xpl name="step2" useParentScope="true">
+        <step name="step2" useParentScope="true">
             <output name="entity">
                 <source>
                     return { title, products}
                 </source>
             </output>
-        </xpl>
+        </step>
 
-        <custom name="step3" customType="xpt:GenReport">
+        <step name="step3" customType="xpt:GenReport">
             <input name="entity"/>
 
             <xpt:GenReport template="/xpt/test.xpt.xlsx" outputFile="target/gen/${today()}-2.html"/>
-        </custom>
+        </step>
     </steps>
 </task>

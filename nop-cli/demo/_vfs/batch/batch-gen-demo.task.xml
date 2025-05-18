@@ -6,7 +6,7 @@
     <input name="taskKey" type="String"/>
 
     <steps>
-        <custom name="createCard" customType="batch:Execute" batch:asyncExec="true"
+        <step name="createCard" customType="batch:Execute" batch:asyncExec="true"
                 xmlns:batch="/nop/batch/xlib/batch.xlib">
             <batch:task taskName="demo.createCard" batchSize="100" concurrency="20" saveState="true" useBatchRequestGenerator="true">
                 <taskKeyExpr>taskKey</taskKeyExpr>
@@ -27,9 +27,9 @@
                 <!-- processor中调用ORM保存实体，这里不需要额外配置consumer -->
 
             </batch:task>
-        </custom>
+        </step>
 
-        <custom name="generateTransaction" customType="batch:Execute" batch:asyncExec="true"
+        <step name="generateTransaction" customType="batch:Execute" batch:asyncExec="true"
                 xmlns:batch="/nop/batch/xlib/batch.xlib">
             <batch:task taskName="demo.generateTransaction" batchSize="100">
                 <loader>
@@ -58,9 +58,9 @@
                     <file-writer filePath="dev:/target/txn-${taskKey}.dat" fileModelPath="txn.record-file.xlsx"/>
                 </consumer>
             </batch:task>
-        </custom>
+        </step>
 
-        <custom name="generateReport" customType="xpt:GenReport" xmlns:xpt="/nop/report/xlib/xpt.xlib"
+        <step name="generateReport" customType="xpt:GenReport" xmlns:xpt="/nop/report/xlib/xpt.xlib"
                 xpt:template="demo-card.xpt.xlsx" xpt:outputFile="target/test-report.result.xlsx"
                 xpt:args="${{
                     title: 'TEST REPORT'

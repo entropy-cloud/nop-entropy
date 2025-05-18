@@ -7,7 +7,7 @@
 
     <!--    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>-->
 
-    <ai:chatOptions provider="volcengine" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>
+    <ai:chatOptions provider="volcengine" model="deepseek-chat" contextLength="8192" maxTokens="8192" temperature="0" />
 
     <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 
@@ -17,16 +17,16 @@
     <input name="outputDir" type="String" mandatory="true"/>
 
     <steps>
-        <xpl name="init">
+        <step name="init">
             <input name="appName"/>
             <output name="appId">
                 <source>
                     return appName.replace('-','/');
                 </source>
             </output>
-        </xpl>
+        </step>
 
-        <custom name="loadRequirements" customType="ai-coder:LoadMarkdown">
+        <step name="loadRequirements" customType="ai-coder:LoadMarkdown">
             <input name="fileName" value="${requirementsPath}"/>
             <input name="tplPath" value="/nop/ai/schema/coder/requirements.tpl.md"/>
 
@@ -34,60 +34,60 @@
             <input name="sectionExtTplPath" value="/nop/ai/schema/coder/module-requirements.tpl.md"/>
 
             <output name="RESULT" exportAs="requirementsDoc"/>
-        </custom>
+        </step>
 
-        <xpl name="splitRequirements">
+        <step name="splitRequirements">
             <input name="requirementsDoc"/>
             <output name="apiRequirements">
                 <source>
                     return requirementsDoc.selectSectionByTplTag('API').toText();
                 </source>
             </output>
-        </xpl>
+        </step>
 
-        <custom name="loadOrmModel" customType="ai-coder:LoadOrmModel">
+        <step name="loadOrmModel" customType="ai-coder:LoadOrmModel">
             <input name="fileName" value="${appName}.orm.xml"/>
             <input name="inputDir" value="${modelDir}"/>
             <output name="RESULT" exportAs="ormModel"/>
-        </custom>
+        </step>
 
-        <custom name="designApi" customType="ai:TaskStep" ai:promptName="coder/api-design" ai:useResponseCache="true">
+        <step name="designApi" customType="ai:TaskStep" ai:promptName="coder/api-design" ai:useResponseCache="true">
             <description>根据需求文档的描述，设计API模型</description>
 
             <input name="requirements" value="${apiRequirements}"/>
             <input name="ormModel"/>
             <output name="RESULT" exportAs="apiNode"/>
-        </custom>
+        </step>
 
-        <custom name="fixAiNode" customType="ai:TaskStep" ai:promptName="coder/fix-api-model"
+        <step name="fixAiNode" customType="ai:TaskStep" ai:promptName="coder/fix-api-model"
                 ai:useResponseCache="true">
             <input name="ormModel"/>
             <input name="apiNode"/>
 
             <output name="RESULT" exportAs="apiNode" dump="true"/>
-        </custom>
+        </step>
 
-        <custom name="getSimpleApiNode" customType="ai-coder:ExtractDslNode">
+        <step name="getSimpleApiNode" customType="ai-coder:ExtractDslNode">
             <input name="dslNode" value="${apiNode}"/>
             <input name="xdefPath" value="/nop/ai/schema/coder/simple-api.xdef"/>
             <output name="RESULT" exportAs="simpleApiNode"/>
-        </custom>
+        </step>
 
-        <custom name="checkSimpleApiNode" customType="ai:TaskStep" ai:promptName="coder/check-simple-api-model">
+        <step name="checkSimpleApiNode" customType="ai:TaskStep" ai:promptName="coder/check-simple-api-model">
             <input name="apiNode" value="${simpleApiNode}"/>
             <input name="requirements" value="${apiRequirements}"/>
             <output name="RESULT" exportAs="simpleApiNode" dump="true"/>
-        </custom>
+        </step>
 
-        <custom name="mergeApiNode" customType="ai-coder:MergeDslNode">
+        <step name="mergeApiNode" customType="ai-coder:MergeDslNode">
             <when>simpleApiNode != null</when>
             <input name="xdefPath" value="/nop/ai/schema/coder/api.xdef"/>
             <input name="dslNodeA" value="${apiNode}"/>
             <input name="dslNodeB" value="${simpleApiNode}"/>
             <output name="RESULT" exportAs="apiNode"/>
-        </custom>
+        </step>
 
-        <xpl name="normalizeApi">
+        <step name="normalizeApi">
             <input name="apiNode"/>
             <source><![CDATA[
                apiNode.childByTag('services').forEachChild(node=>{
@@ -100,26 +100,26 @@
                    })
                });
             ]]></source>
-        </xpl>
+        </step>
 
-        <custom name="parseDslNode" customType="ai-coder:ParseDslNode">
+        <step name="parseDslNode" customType="ai-coder:ParseDslNode">
             <input name="xdefPath" value="/nop/schema/api.xdef"/>
             <input name="dslNode" value="${apiNode}"/>
             <output name="RESULT" exportAs="apiModel"/>
-        </custom>
+        </step>
 
-        <custom name="saveApiXml" customType="ai-coder:SaveDslNode">
+        <step name="saveApiXml" customType="ai-coder:SaveDslNode">
             <input name="outputDir"/>
             <input name="fileName" value="model/${appName}.api.xml"/>
             <input name="dslNode" value="${apiNode}"/>
             <input name="xdefPath" value="/nop/schema/api.xdef"/>
-        </custom>
+        </step>
 
-        <custom name="saveApiExcel" customType="ai-coder:SaveDslModelAsExcel">
+        <step name="saveApiExcel" customType="ai-coder:SaveDslModelAsExcel">
             <input name="outputDir"/>
             <input name="fileName" value="model/${appName}.api.xlsx"/>
             <input name="dslModel" value="${apiModel}"/>
             <input name="impModelPath" value="/nop/rpc/imp/api.imp.xml"/>
-        </custom>
+        </step>
     </steps>
 </task>

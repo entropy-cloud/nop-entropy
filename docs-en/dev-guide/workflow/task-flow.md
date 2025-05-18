@@ -174,14 +174,14 @@ NopTaskFlow has built-in support for a special step type called `custom`. This c
 ```xml
 <task xmlns:test="/nop/test/test.xlib" x:extends="/nop/task/lib/common.task.xml">
   <steps>
-    <custom name="step1" customType="test:MyFunc" test:a="${1}">
+    <step name="step1" customType="test:MyFunc" test:a="${1}">
       <input name="b"/>
       <test:exec>
         <c:script>
           return x + y;
         </c:script>
       </test:exec>
-    </custom>
+    </step>
   </steps>
 </task>
 ```
@@ -233,11 +233,11 @@ This is equivalent to:
   <input name="x">
     <source>1</source>
   </input>
-  
+
   <input name="y" mandatory="true">
     <source>2</source>
   </input>
-  
+
   <output name="RESULT">
     <source>x + y</source>
   </output>
