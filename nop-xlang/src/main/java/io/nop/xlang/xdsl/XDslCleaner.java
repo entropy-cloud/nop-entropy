@@ -32,6 +32,15 @@ public class XDslCleaner {
             IXDefNode childDef = defNode.getChild(child.getTagName());
             if (childDef == null) {
                 childIt.remove();
+                if (child.hasContent()) {
+                    String childName = child.getTagName();
+                    if (defNode.getAttribute(childName) != null) {
+                        // 子节点没有模型定义，但是同名的属性有模型定义。这有可能是AI错误的将属性生成为了子节点
+                        if(!node.hasAttr(childName)){
+                            node.setAttr(childName, child.content());
+                        }
+                    }
+                }
             } else {
                 clean(child, childDef);
             }

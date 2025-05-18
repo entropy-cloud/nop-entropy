@@ -75,8 +75,8 @@ public class AiCoderHelper {
         return ret;
     }
 
-    public static XNode validateDslNode(String xdefPath, XNode dslNode, boolean autoFix) {
-        new XDslValidator().autoFix(autoFix)
+    public static XNode validateDslNode(String xdefPath, XNode dslNode) {
+        new XDslValidator()
                 .validateForXDef(xdefPath, dslNode);
         return dslNode;
     }
@@ -90,10 +90,10 @@ public class AiCoderHelper {
         return XDslExtracter.INSTANCE.extractForXDef(xdefPath, dslNode);
     }
 
-    public static XNode validateAndCleanDslNode(String xdefPath, XNode dslNode) {
+    public static XNode cleanAndValidateDslNode(String xdefPath, XNode dslNode) {
         IXDefinition xdef = SchemaLoader.loadXDefinition(xdefPath);
         XDslCleaner.INSTANCE.clean(dslNode, xdef.getRootNode());
-        new XDslValidator().autoFix(true).validate(dslNode, xdef.getRootNode(), true);
+        new XDslValidator().validate(dslNode, xdef.getRootNode(), true);
         return dslNode;
     }
 

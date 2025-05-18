@@ -137,7 +137,7 @@
                 };
 
                 const cmd = AiCommand.create();
-                cmd.chatOptions(chatOptions).useResponseCache(useResponseCache);
+                cmd.chatOptions(chatOptions).useResponseCache(useResponseCache ?? true);
 
                 if(promptName != null){
                     $.checkArgument(!promptName.startsWith('/') and !promptName.endsWith('.yaml'),"invalid promptName")

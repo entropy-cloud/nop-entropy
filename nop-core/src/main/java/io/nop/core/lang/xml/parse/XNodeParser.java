@@ -363,6 +363,7 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
             SourceLocation loc = sc.location();
             String tagName = intern(sc.nextXmlName());
             sc.skipBlank();
+
             Map<String, ValueWithLocation> attrs = parseAttrs();
 
             if (sc.cur == '/') {
@@ -615,20 +616,11 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
 
             if (sc.cur == '=') {
                 sc.match('=');
-                if (sc.cur == '\'' || sc.cur == '"') {
-                    char quote = (char) sc.cur;
-                    sc.next();
-                    SourceLocation loc = sc.location();
-                    String str = nextXString(quote);
-                    sc.match(quote);
-
-                    addAttr(attrs, loc, xname, str);
-                } else {
-                    throw newError(ERR_XML_ATTR_VALUE_NOT_QUOTED).param(ARG_ATTR_NAME, xname);
-                }
+                ValueWithLocation value = parseAttrValue(xname);
+                addAttr(attrs, xname, value);
             } else if (forHtml) {
                 // <a disabled > 这种没有写=的情况
-                addAttr(attrs, sc.location(), xname, "true");
+                addAttr(attrs, xname, ValueWithLocation.of(sc.location(), "true"));
                 sc.skipBlank();
             } else {
                 // 非html情况下属性定义必须有=
@@ -643,15 +635,28 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
         return attrs;
     }
 
-    void addAttr(Map<String, ValueWithLocation> attrs, SourceLocation loc, String name, Object v) {
-        ValueWithLocation value = ValueWithLocation.of(loc, v);
-        ValueWithLocation oldValue = attrs.put(name, value);
+    ValueWithLocation parseAttrValue(String xname) {
+        if (sc.cur == '\'' || sc.cur == '"') {
+            char quote = (char) sc.cur;
+            sc.next();
+            SourceLocation loc = sc.location();
+            String str = nextXString(quote);
+            sc.match(quote);
+
+            return ValueWithLocation.of(loc, str);
+        } else {
+            throw newError(ERR_XML_ATTR_VALUE_NOT_QUOTED).param(ARG_ATTR_NAME, xname);
+        }
+    }
+
+    void addAttr(Map<String, ValueWithLocation> attrs, String name, ValueWithLocation vl) {
+        ValueWithLocation oldValue = attrs.put(name, vl);
         if (oldValue != null) {
             if (this.looseMode) {
-                LOG.info("{}:attrName={},attrValue={},oldLoc={}", ERR_XML_DUPLICATE_ATTR_NAME.getErrorCode(), name, v, oldValue.getLocation());
+                LOG.info("{}:attrName={},attrValue={},oldLoc={}", ERR_XML_DUPLICATE_ATTR_NAME.getErrorCode(), name, vl.getValue(), oldValue.getLocation());
             } else {
                 throw newError(ERR_XML_DUPLICATE_ATTR_NAME)
-                        .param(ARG_ATTR_NAME, name).param(ARG_ATTR_VALUE, v).param(ARG_OLD_LOC, oldValue.getLocation());
+                        .param(ARG_ATTR_NAME, name).param(ARG_ATTR_VALUE, vl.getValue()).param(ARG_OLD_LOC, oldValue.getLocation());
             }
         }
     }

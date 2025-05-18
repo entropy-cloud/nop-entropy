@@ -27,6 +27,7 @@ import io.nop.markdown.simple.MarkdownDocument;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.DslModelParser;
+import io.nop.xlang.xdsl.XDslCleaner;
 import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xdsl.XDslValidator;
 import org.slf4j.Logger;
@@ -265,7 +266,8 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
 
     protected void validateXml(XNode node, PromptOutputModel output) {
         if (output.getXdefObj() != null) {
-            new XDslValidator(XDslKeys.DEFAULT).removeUnknownAttrs(true).validate(node, output.getXdefObj(), true);
+            XDslCleaner.INSTANCE.clean(node, output.getXdefObj());
+            new XDslValidator(XDslKeys.DEFAULT).validate(node, output.getXdefObj(), true);
         }
     }
 

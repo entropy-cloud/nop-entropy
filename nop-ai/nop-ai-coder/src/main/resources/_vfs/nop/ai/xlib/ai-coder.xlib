@@ -40,16 +40,16 @@
             ]]></source>
         </ExtractDslNode>
 
-        <ValidateAndCleanDslNode>
+        <CleanAndValidateDslNode>
             <description>根据XDef元模型，验证dslNode节点满足格式要求，并清理dslNode节点上未知的属性</description>
             <attr name="xdefPath" stdDomain="v-path" mandatory="true"/>
             <attr name="dslNode" mandatory="true"/>
 
             <source><![CDATA[
                import io.nop.ai.coder.utils.AiCoderHelper;
-               return AiCoderHelper.validateAndCleanDslNode(xdefPath, dslNode);
+               return AiCoderHelper.cleanAndValidateDslNode(xdefPath, dslNode);
             ]]></source>
-        </ValidateAndCleanDslNode>
+        </CleanAndValidateDslNode>
 
         <MergeDslNode>
             <attr name="xdefPath" stdDomain="v-path" mandatory="true"/>

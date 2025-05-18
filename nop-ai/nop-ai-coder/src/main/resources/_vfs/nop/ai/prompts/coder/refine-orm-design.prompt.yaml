@@ -1,6 +1,6 @@
 template: |
   【任务目标】
-  根据需求，进一步完善指定表的设计，返回结果遵循指定的XML格式。如有必要，可以增加新的表。如果已经很完善，则返回[NO_CHANGE]。
+  根据需求，进一步完善指定表的设计，返回结果遵循指定的XML格式。如有必要，可以增加新的表。如果已经很完善，则仅返回[NO_CHANGE]。
   
   【要求】
    1. 不需要考虑User, Role，权限管理，页面资源等公共表。
@@ -11,7 +11,7 @@ template: |
   【表定义】
   
   ```xml
-  ${ormModelText}
+  ${ormModel.ormModelText}
   ```
   
   【需求描述】
@@ -22,7 +22,7 @@ inputs:
     type: String
     mandatory: true
 
-  - name: ormModelText
+  - name: ormModel
     type: String
     mandatory: true
 
@@ -33,6 +33,9 @@ outputs:
   - name: RESULT
     xdefPath: /nop/ai/schema/coder/orm.xdef
     format: xml
-    valueNormalizer: |
-      import io.nop.ai.coder.orm.AiOrmModelNormalizer;
-      return new AiOrmModelNormalizer().fixNameForOrmNode(value);
+    when: |
+      !chatExchange.outputs.noChange
+    defaultExpr: ormModel
+    outputBuilder: |
+      import io.nop.ai.coder.orm.AiOrmModel;
+      return AiOrmModel.buildFromAiResult(value,{basePackageName: 'app.demo'});

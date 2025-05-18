@@ -21,7 +21,7 @@
             <output name="RESULT" exportAs="inputRequirements"/>
         </step>
 
-        <step name="refactorRequirements" customType="ai:TaskStep" ai:promptName="coder/refactor-requirements">
+        <step name="refactorRequirements" customType="ai:TaskStep" ai:promptName="coder/refactor-requirements" ai:useResponseCache="true">
             <description>重构需求文档，按照标准格式输出</description>
 
             <input name="inputRequirements"/>
@@ -59,7 +59,7 @@
 
             <steps>
                 <step name="expandOneModuleRequirements" customType="ai:TaskStep"
-                        ai:promptName="coder/expand-module-requirements">
+                        ai:promptName="coder/expand-module-requirements" ai:useResponseCache="true">
 
                     <!-- 限制调用AI的频度 -->
                     <throttle maxConcurrency="1" maxWait="100000000"/>
