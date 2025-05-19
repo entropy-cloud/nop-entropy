@@ -6,4 +6,6 @@ public interface IAiChatLogger {
     void logRequest(AiChatExchange request);
 
     void logResponse(AiChatExchange response);
+
+    void logChatExchange(AiChatExchange exchange);
 }

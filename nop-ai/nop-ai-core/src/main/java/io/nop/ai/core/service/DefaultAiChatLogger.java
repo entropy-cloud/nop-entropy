@@ -43,6 +43,17 @@ public class DefaultAiChatLogger implements IAiChatLogger {
         }
     }
 
+    @Override
+    public void logChatExchange(AiChatExchange exchange) {
+        String text = exchange.toText();
+        LOG.info("cached-response:promptTokens={},completionTokens={},exchange=\n{}",
+                exchange.getPromptTokens(), exchange.getCompletionTokens(), exchange.getContent());
+
+        if (!StringHelper.isEmpty(logDir)) {
+            IResource resource = getResource(exchange, "-exchange.md");
+            ResourceHelper.writeText(resource, text, "UTF-8");
+        }
+    }
 
     protected IResource getResource(AiChatExchange exchange, String postfix) {
         return AiLogHelper.getSessionResource(logDir, exchange, postfix);

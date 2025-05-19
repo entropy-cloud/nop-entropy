@@ -6,11 +6,13 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.FileResource;
 
 import java.io.File;
+import java.time.LocalDate;
 
 public class AiLogHelper {
     public static IResource getSessionResource(String dir, AiChatExchange request, String postfix) {
         String sessionId = makeSessionId(request);
-        String fileName = sessionId + '/' + request.getBeginTime() + '-' + request.getRetryTimes() + '-' + request.getExchangeId() + postfix;
+        String today = LocalDate.now().toString().replace('-', '/');
+        String fileName = today + '/' + sessionId + '/' + request.getBeginTime() + '-' + request.getRetryTimes() + '-' + request.getExchangeId() + postfix;
         return new FileResource(new File(dir, fileName));
     }
 

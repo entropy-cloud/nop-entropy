@@ -1,6 +1,7 @@
 package io.nop.ai.core.command;
 
 import io.nop.ai.core.api.chat.AiChatOptions;
+import io.nop.ai.core.api.chat.IAiChatLogger;
 import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.Prompt;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionStage;
 
+import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_LOG_MESSAGE;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
 
 public class AiCommand {
@@ -37,6 +39,7 @@ public class AiCommand {
     private AiChatOptions chatOptions;
     private IAiChatResponseCache chatCache;
     private boolean returnExceptionAsResponse = true;
+    private IAiChatLogger chatLogger;
 
     public AiCommand(IAiChatService chatService) {
         this.chatService = chatService;
@@ -133,6 +136,11 @@ public class AiCommand {
         return this;
     }
 
+    public AiCommand chatLogger(IAiChatLogger chatLogger) {
+        this.chatLogger = chatLogger;
+        return this;
+    }
+
     public AiCommand retryTimesPerRequest(int retryTimesPerRequest) {
         this.setRetryTimesPerRequest(retryTimesPerRequest);
         return this;
@@ -158,6 +166,19 @@ public class AiCommand {
         return FutureHelper.syncGet(executeAsync(vars, cancelToken, ctx));
     }
 
+    public IAiChatLogger getChatLogger() {
+        if (chatLogger == null)
+            chatLogger = BeanContainer.getBeanByType(IAiChatLogger.class);
+        return chatLogger;
+    }
+
+    protected void logCachedResponse(AiChatExchange exchange) {
+        boolean logMessage = CFG_AI_SERVICE_LOG_MESSAGE.get();
+        if (logMessage) {
+            getChatLogger().logRequest(exchange);
+        }
+    }
+
     public CompletionStage<AiChatExchange> executeAsync(Map<String, Object> vars, ICancelToken cancelToken, IEvalContext ctx) {
         IEvalScope scope = prepareInputs(vars, ctx);
         Prompt prompt = newPrompt(scope);
@@ -168,6 +189,7 @@ public class AiCommand {
             try {
                 AiChatExchange exchange = chatCache.loadCachedResponse(prompt, options);
                 if (exchange != null) {
+                    logCachedResponse(exchange);
                     promptTemplate.processChatResponse(exchange, scope);
                     CompletionStage<AiChatExchange> future = FutureHelper.success(exchange);
                     if (chatResponseProcessor != null)
