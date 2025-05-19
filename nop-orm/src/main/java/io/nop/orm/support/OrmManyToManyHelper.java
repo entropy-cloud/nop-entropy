@@ -14,6 +14,7 @@ import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityJoinConditionModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityRelationModel;
+import io.nop.orm.model.OrmModelConstants;
 
 public class OrmManyToManyHelper {
 
@@ -127,10 +128,18 @@ public class OrmManyToManyHelper {
                 return null;
 
             IEntityModel refEntityModel = relationModel.getRefEntityModel();
-            for (IColumnModel col : refEntityModel.getPkColumns()) {
-                if (!col.getName().equals(join.getRightProp()))
-                    return col.getName();
+
+            for (IEntityRelationModel relModel : refEntityModel.getRelations()) {
+                if (relModel.isToOneRelation()) {
+                    if (relModel.getName().equals(relationModel.getRefPropName()))
+                        continue;
+
+                    if(relModel.isSingleColumn())
+                        return relModel.getSingleJoinColumn().getName();
+                    return relModel.getName();
+                }
             }
+
             return null;
         }
     }
@@ -140,7 +149,7 @@ public class OrmManyToManyHelper {
             return null;
 
         IEntityModel refEntityModel = propModel.getRefEntityModel();
-        if (!refEntityModel.containsTag(OrmConstants.TAG_MANY_TO_MANY))
+        if (!refEntityModel.containsTag(OrmModelConstants.TAG_MANY_TO_MANY) && !refEntityModel.containsTag(OrmModelConstants.TAG_MAPPING))
             return null;
 
         return new RefMappingInfo(propModel);
@@ -152,7 +161,7 @@ public class OrmManyToManyHelper {
             return null;
 
         IEntityModel refEntityModel = propModel.getRefEntityModel();
-        if (!refEntityModel.containsTag(OrmConstants.TAG_MANY_TO_MANY))
+        if (!refEntityModel.containsTag(OrmConstants.TAG_MANY_TO_MANY) && !refEntityModel.containsTag(OrmModelConstants.TAG_MAPPING))
             return null;
 
         return getRefPropInfo(propModel);

@@ -76,7 +76,7 @@
         </prop>
         <prop name="resourceMappings" displayName="资源映射" i18n-en:displayName="Resources"
               tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
-              ext:joinLeftProp="roleId" ext:joinRightProp="roleId" orm:manyToManyRefProp="sid" insertable="true"
+              ext:joinLeftProp="roleId" ext:joinRightProp="roleId" orm:manyToManyRefProp="resourceId" insertable="true"
               updatable="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthRoleResource"/>

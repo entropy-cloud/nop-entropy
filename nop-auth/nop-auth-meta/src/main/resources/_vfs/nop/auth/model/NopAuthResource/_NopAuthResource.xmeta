@@ -171,8 +171,8 @@
         </prop>
         <prop name="roleMappings" displayName="角色映射" i18n-en:displayName="Roles"
               tagSet="pub,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
-              ext:joinLeftProp="resourceId" ext:joinRightProp="resourceId" orm:manyToManyRefProp="sid" insertable="true"
-              updatable="true" lazy="true">
+              ext:joinLeftProp="resourceId" ext:joinRightProp="resourceId" orm:manyToManyRefProp="roleId"
+              insertable="true" updatable="true" lazy="true">
             <schema>
                 <item bizObjName="NopAuthRoleResource"/>
             </schema>
