@@ -364,6 +364,18 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
             String tagName = intern(sc.nextXmlName());
             sc.skipBlank();
 
+            if (looseMode) {
+                if (sc.tryMatch('=')) {
+                    // AI有时会生成 <xpl:return="3" /> 这种节点
+                    ValueWithLocation vl = parseAttrValue(tagName);
+                    sc.consume("/>");
+                    handler.beginNode(tagName);
+                    handler.value(vl.getLocation(), vl.getValue());
+                    handler.endNode(tagName);
+                    return ParseResult.NODE;
+                }
+            }
+
             Map<String, ValueWithLocation> attrs = parseAttrs();
 
             if (sc.cur == '/') {
