@@ -11,7 +11,7 @@ XPL是XML格式的模板语言
 
 ### 1. 数据验证
 
-```xpl-define
+```xpl-syntax
  <!--
   验证传入的obj对象（可以是一个Map)上的属性
   -->
@@ -132,6 +132,8 @@ XPL是XML格式的模板语言
 <task:assign name="var-name" value="t-expr" />
 ```
 
+重要：仅在需要跨步骤访问时才使用`<task:assign>`，否则使用局部的let声明或者`xpl:return`属性赋值
+
 ### 5. 脚本与异常
 
 `<c:script>`中throw函数以及xpl中的`<c:throw>`标签都可以抛出异常
@@ -197,11 +199,18 @@ XPL是XML格式的模板语言
 now()     // 当前时间，返回类型LocalDateTime
 today()   // 今天日期, 返回类型LocalDate
 
-// 帮助类 $String提供大量字符串相关函数，$Date提供LocalDate等日期相关函数，$Math提供数学函数
+// 帮助类
 $String.camelCase("hello_world")
 $Date.formatDate(value,fmt)
 $Math.power(value,3)
 ```
+
+* `$String`提供字符串相关函数
+* `$Date`提供LocalDate等类的扩展函数
+* `$Math`提供sin/cos等数学函数，普通加减乘除直接用+-*/符号即可
+
+## 注意事项
+* IMPORTANT: `<bo:DoSave>`等函数的data参数必须按照规范要求作为属性传递
 
 ## 最佳实践
 

@@ -1,17 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<task x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef">
+<task x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:xdef="/nop/schema/xdef.xdef" xmlns:task="task">
 
 
     <xdef:define xdef:name="TaskStepModel"
                  displayName="string">
-
-        <input name="!var-name" value="t-expr" xdef:unique-attr="name"/>
-
-        <output name="!var-name" value="t-expr" exportAs="var-name" xdef:unique-attr="name"/>
-
-        <!-- 不满足条件的时候将会自动跳过本步骤 -->
-        <when xdef:value="xpl-predicate"/>
 
         <!-- 验证输入数据 -->
         <validator xdef:value="xpl"/>
@@ -21,119 +15,75 @@
     <steps xdef:body-type="list" xdef:key-attr="name" xdef:bean-child-name="step" xdef:name="TaskStepsModel"
            xdef:bean-body-type="List&lt;io.nop.task.model.TaskStepModel>" xdef:bean-sub-type-prop="type">
 
-        <!-- 执行xpl模板语言 -->
-        <xpl name="!var-name" xdef:ref="TaskStepModel" returnAs="var-name"
-             xdef:name="XplTaskStepModel">
-            <source xdef:value="xpl"/>
-        </xpl>
-
-        <!-- 功能与xpl步骤相同，但是以step为名可以减少AI生成错误 -->
-        <step name="!var-name" xdef:ref="TaskStepModel" returnAs="var-name"
+        <step name="!var-name" xdef:ref="TaskStepModel" next="step-name"
               xdef:name="XplTaskStepModel">
+            <!-- 不满足条件的时候将会自动跳过本步骤 -->
+            <when xdef:value="xpl-predicate"/>
+
+            <!-- source段中使用XPL模板语言 -->
             <source xdef:value="xpl"/>
         </step>
 
         <!--
-        依次执行子步骤，一般情况下以最后一个步骤的返回值作为整体的返回值
+        退出steps或者loop
         -->
-        <sequential name="!var-name" xdef:name="SequentialTaskStepModel" xdef:ref="TaskStepModel">
-            <steps xdef:ref="TaskStepsModel"/>
-        </sequential>
-
-        <!-- 并行执行所有子步骤 -->
-        <parallel name="!var-name" xdef:ref="TaskStepModel" xdef:name="ParallelTaskStepModel"
-                  aggregateVarName="var-name" returnAs="var-name"
-                  joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=true">
-            <!-- 对并行步骤执行结果进行汇总处理 -->
-            <aggregator xdef:value="xpl"/>
-            <steps xdef:ref="TaskStepsModel"/>
-        </parallel>
-
-        <!--
-        推出sequential或者loop
-        -->
-        <exit name="!var-name" xdef:ref="TaskStepModel" xdef:name="ExitTaskStepModel">
+        <exit name="!var-name" xdef:ref="TaskStepModel" xdef:name="ExitTaskStepModel" next="step-name">
+            <!-- 不满足条件的时候将会自动跳过本步骤 -->
+            <when xdef:value="xpl-predicate"/>
             <source xdef:value="xpl"/>
         </exit>
 
         <!-- 退出整个工作流 -->
         <end name="!var-name" xdef:ref="TaskStepModel" xdef:name="EndTaskStepModel">
+            <!-- 不满足条件的时候将会自动跳过本步骤 -->
+            <when xdef:value="xpl-predicate"/>
             <source xdef:value="xpl"/>
         </end>
 
         <!--
-        根据producer返回的集合数据，动态复制本步骤生成n个步骤实例，并行执行
-        @varName 对应于fork时的producer产生的某个元素
-        @indexName 对应于fork时的实例下标
-        -->
-        <fork name="!var-name" varName="!var-name" indexName="var-name" xdef:ref="TaskStepModel"
-              xdef:name="ForkTaskStepModel" returnAs="var-name"
-              aggregateVarName="var-name">
-            <producer xdef:value="xpl"/>
-            <!-- 对并行步骤执行结果进行汇总处理 -->
-            <aggregator xdef:value="xpl"/>
-            <steps xdef:ref="TaskStepsModel"/>
-        </fork>
-
-        <fork-n name="!var-name" indexName="var-name" countExpr="!expr" xdef:ref="TaskStepModel"
-                xdef:name="ForkNTaskStepModel" aggregateVarName="var-name" returnAs="var-name">
-            <!-- 对并行步骤执行结果进行汇总处理 -->
-            <aggregator xdef:value="xpl"/>
-            <steps xdef:ref="TaskStepsModel"/>
-        </fork-n>
-
-        <!--
-        执行指定bean上的指定方法
-        @returnAs 指定bean方法的返回值所对应的返回变量名，缺省为RESULT
-        -->
-        <invoke name="!var-name" bean="!bean-name" method="!var-name" xdef:ref="TaskStepModel" returnAs="var-name"
-                xdef:name="InvokeTaskStepModel">
-        </invoke>
-
-        <invoke-static name="!var-name" method="!method-ref" xdef:ref="TaskStepModel"
-                       returnAs="var-name" xdef:name="InvokeStaticTaskStepModel"/>
-
-        <!--
         类似于for循环语句，不断执行body
         -->
-        <loop name="!var-name" xdef:ref="TaskStepModel" xdef:name="LoopTaskStepModel"
+        <loop name="!var-name" xdef:ref="TaskStepModel" xdef:name="LoopTaskStepModel" next="step-name"
+              nextOnError="step-name"
               indexName="var-name" varName="var-name" itemsExpr="!expr" maxCount="!int=0" varType="generic-type">
+            <!-- 不满足条件的时候会跳过本步骤，不会进入循环 -->
+            <when xdef:value="xpl-predicate"/>
+            <!-- 循环执行直到until条件为真才退出循环。第一次执行时不检查until条件 -->
             <until xdef:value="xpl-predicate"/>
             <steps xdef:ref="TaskStepsModel"/>
         </loop>
-
-        <loop-n name="!var-name" xdef:ref="TaskStepModel" varName="var-name" indexName="var-name"
-                xdef:name="LoopNTaskStepModel" beginExpr="!expr" endExpr="!expr" stepExpr="expr">
-            <steps xdef:ref="TaskStepsModel"/>
-        </loop-n>
 
         <!--
         类似于switch语句。根据decider的返回结果动态选择执行哪个分支
         -->
         <choose name="!var-name" xdef:ref="TaskStepModel" xdef:name="ChooseTaskStepModel">
+            <!-- 不满足条件的时候将会自动跳过本步骤 -->
+            <when xdef:value="xpl-predicate"/>
+
             <decider xdef:value="xpl"/>
 
             <!--
              @match 用于匹配decider返回的值
+             @next 满足匹配条件后迁移到指定步骤
              -->
-            <case match="!string" xdef:unique-attr="match"
-                  xdef:name="TaskChooseCaseModel" xdef:ref="TaskStepModel">
-                <steps xdef:ref="TaskStepsModel"/>
-            </case>
+            <case match="!string" next="step-name"/>
 
-            <otherwise xdef:name="TaskChooseOtherwiseModel">
-                <steps xdef:ref="TaskStepsModel"/>
-            </otherwise>
+            <otherwise next="step-name"/>
         </choose>
 
-        <if name="!var-name" xdef:ref="TaskStepModel" xdef:name="IfTaskStepModel">
-            <condition xdef:value="xpl-predicate"/>
-            <then xdef:name="IfThenTaskStepModel">
-                <steps xdef:ref="TaskStepsModel"/>
-            </then>
-            <else xdef:name="IfElseTaskStepModel">
-                <steps xdef:ref="TaskStepsModel"/>
-            </else>
-        </if>
     </steps>
+
+    <!-- 仅当需要周期定时执行时才生成这个节点 -->
+    <task:schedule cronExpr="cron-expr"/>
+
+    <task:import>
+        <!-- 引入依赖的外部服务函数并声明所依赖的方法 -->
+        <service name="!string" xdef:unique-attr="name">
+            <description>string</description>
+            <method name="!var-name" xdef:unique-attr="name">
+                <description>string</description>
+                <arg name="!var-name" type="java-type" xdef:unique-attr="name"/>
+            </method>
+        </service>
+    </task:import>
 </task>

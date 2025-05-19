@@ -17,12 +17,11 @@ template: |
   3. 仅在错误可忽略时使用nextOnError跳转到条件分支，否则直接向外抛出异常即可
   4. 尽量用已有标签和函数实现，只有极端必要时才使用`&lt;task:import>`导入的服务对象。增删改查不应使用服务对象。服务对象上能够调用的方法必须通过method节点声明。
   5. step的name必须全局唯一
+  6. 核心业务数据应该入库，而不是仅在内存中完成计算，除非是试算过程
+  
   
   【XPL模板语法】
   <ai-coder:IncludeText fileName="v:/nop/ai/prompts/coder/xpl-lang.md" xpl:lib="/nop/ai/xlib/ai-coder.xlib" />
-  
-  【注意事项】
-  <ai-coder:IncludeText fileName="v:/nop/ai/prompts/coder/task-import.md" xpl:lib="/nop/ai/xlib/ai-coder.xlib" />
   
   【业务实体定义】
   ${ormModel.ormModelJava}
@@ -49,4 +48,4 @@ inputs:
 outputs:
   - name: RESULT
     format: xml
-    xdefPath: /nop/ai/schema/coder/x-task.xdef
+    xdefPath: /nop/ai/schema/coder/task.xdef
