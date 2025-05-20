@@ -250,6 +250,12 @@ public class AiChatExchange {
         this.chatOptions = chatOptions;
     }
 
+    public AiChatOptions makeChatOptions() {
+        if (chatOptions == null)
+            chatOptions = new AiChatOptions();
+        return chatOptions;
+    }
+
     public Integer getIndex() {
         return index;
     }

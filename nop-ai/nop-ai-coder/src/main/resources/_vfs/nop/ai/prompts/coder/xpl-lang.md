@@ -6,6 +6,7 @@ XPL是XML格式的模板语言
 - `prop-path`: 属性路径，如 `user.contact.phone`
 - `error-code`: 错误码，如`app.demo.unknown-order`
 - `filter`: 支持复杂bool逻辑表达式， 如`<and/>, <or/> <eq/>`等
+- `var-name`: 合法的java变量名，如`entity`，不能是`user.contact`这种属性路径
 
 ## 内置标签
 
@@ -25,6 +26,7 @@ XPL是XML格式的模板语言
     <in name="prop-path" value="t-expr" />
     <startsWith name="prop-path" />
     <regex name="prop-path" value="reg-ex" />
+    <c:script>expr</c:script>
     <and/> <or/> <not/>
 
   </check>
@@ -132,7 +134,7 @@ XPL是XML格式的模板语言
 <task:assign name="var-name" value="t-expr" />
 ```
 
-重要：仅在需要跨步骤访问时才使用`<task:assign>`，否则使用局部的let声明或者`xpl:return`属性赋值
+重要：仅在需要跨步骤访问时才使用`<task:assign>`，否则使用局部的let声明或者`xpl:return`属性赋值。
 
 ### 5. 脚本与异常
 
@@ -161,7 +163,7 @@ XPL是XML格式的模板语言
 
 ```
 
-`<c:script>`的内容必须用CDATA包裹，采用类似JavaScript的语法，不允许嵌套XML标签，也就是以下做法是错误的
+`<c:script>`的内容必须用CDATA包裹，采用类似ECMAScript6的语法，不允许嵌套XML标签，也就是以下做法是错误的
 
 ```xpl
 <c:script><![CDATA[
@@ -171,7 +173,7 @@ XPL是XML格式的模板语言
 ]]></c:script>
 ```
 
-**再次强调**: `<c:script>`内部嵌套`<task:assign>`这种XML标签是错误的!!!
+**绝对禁止**在`<c:script>`内直接写XPL标签!!!
 
 ## 5. 值作用域和返回值
 

@@ -1,5 +1,6 @@
 <gen:DefineLoop xpl:lib="/nop/codegen/xlib/gen.xlib">
     <c:script><![CDATA[
+        builder.defineGlobalVar("appName",appName);
         builder.defineGlobalVar("moduleName", appName);
         builder.defineGlobalVar("moduleId",appName.replace('-','/'));
     ]]></c:script>

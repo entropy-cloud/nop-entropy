@@ -8,7 +8,7 @@ template: |
   ```
   
   1. handler表示触发的后台业务方法名，比如resetPassword等
-  2. role-csv-set表示角色集合，比如admin,manager等。用到的角色必须在【role列表】中定义
+  2. role必须在【role列表】中定义
   
   【form-layout格式规范】
    <ai-coder:IncludeText fileName="v:/nop/ai/prompts/coder/form-layout.md" xpl:lib="/nop/ai/xlib/ai-coder.xlib" />

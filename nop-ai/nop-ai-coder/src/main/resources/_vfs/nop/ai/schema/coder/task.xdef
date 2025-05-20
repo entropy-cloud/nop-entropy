@@ -17,6 +17,9 @@
 
         <step name="!var-name" xdef:ref="TaskStepModel" next="step-name"
               xdef:name="XplTaskStepModel">
+            <input name="var-name" />
+            <output name="var-name" />
+
             <!-- 不满足条件的时候将会自动跳过本步骤 -->
             <when xdef:value="xpl-predicate"/>
 

@@ -110,6 +110,7 @@
             <attr name="provider" stdDomain="string" mandatory="true"/>
             <attr name="model" stdDomain="string" mandatory="true"/>
             <attr name="seed" stdDomain="string" optional="true"/>
+            <attr name="sessionId" stdDomain="string" optional="true" />
             <attr name="temperature" stdDomain="float" optional="true"/>
             <attr name="topP" stdDomain="float" optional="true"/>
             <attr name="topK" stdDomain="int" optional="true"/>
@@ -132,12 +133,12 @@
                 import io.nop.ai.core.command.AiCommand;
 
                 let chatOptions = {
-                    provider, model, seed, temperature, topP, topK, maxTokens, responseFormat,
+                    provider, model, seed,sessionId, temperature, topP, topK, maxTokens, responseFormat,
                     contextLength, stop, requestTimeout, stream, frequencyPenalty, enableThinking, streamListener
                 };
 
                 const cmd = AiCommand.create();
-                cmd.chatOptions(chatOptions).useResponseCache(useResponseCache ?? true);
+                cmd.chatOptions(chatOptions).useResponseCache(useResponseCache);
 
                 if(promptName != null){
                     $.checkArgument(!promptName.startsWith('/') and !promptName.endsWith('.yaml'),"invalid promptName")

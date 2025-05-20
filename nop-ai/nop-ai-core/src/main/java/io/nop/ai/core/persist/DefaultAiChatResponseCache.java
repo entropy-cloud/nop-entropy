@@ -32,7 +32,9 @@ public class DefaultAiChatResponseCache implements IAiChatResponseCache {
             return null;
 
         LOG.info("nop.ai.use-cached-response:promptName={},cachedPath={}", prompt.getName(), resource.getPath());
-        return chatExchangePersister.load(resource);
+        AiChatExchange exchange =  chatExchangePersister.load(resource);
+        exchange.makeChatOptions().setSessionId(options.getSessionId());
+        return exchange;
     }
 
     @Override

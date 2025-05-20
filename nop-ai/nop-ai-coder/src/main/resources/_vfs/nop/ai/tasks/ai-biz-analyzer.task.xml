@@ -6,7 +6,9 @@
 <!--    <ai:chatOptions provider="ollama" model="qwen3:8b" contextLength="8192" maxTokens="16000"/>-->
 
 <!--    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>-->
-    <ai:chatOptions provider="volcengine" model="deepseek-chat" contextLength="8192" maxTokens="8192" temperature="0" />
+<!--    <ai:chatOptions provider="volcengine" model="deepseek-chat" contextLength="8192" maxTokens="8192" temperature="0" />-->
+
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="8192" temperature="0" sessionId="${sessionId}"/>
 
     <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 
@@ -14,6 +16,7 @@
     <input name="basePackageName" type="String" mandatory="true"/>
     <input name="outputDir" type="String" mandatory="true"/>
     <input name="needExpand" type="Boolean" optional="true" />
+    <input name="sessionId" type="String" optional="true" />
 
     <steps>
         <step name="loadRequirements" customType="file-utils:ReadText">
@@ -28,9 +31,6 @@
             <input name="needExpand" />
             <output name="RESULT" exportAs="requirementsDoc"/>
 
-            <output name="requirements">
-                <source>STEP_RESULT.RESULT.toText()</source>
-            </output>
         </step>
 
         <!--        <step name="correctMarkdown" customType="ai:TaskStep" ai:promptName="coder/correct-markdown">-->
@@ -48,7 +48,7 @@
         <step name="saveRequirements" customType="file-utils:WriteText">
             <input name="outputDir"/>
             <input name="fileName" value="docs/requirements/refactored-requirements.md"/>
-            <input name="text" value="${requirements}"/>
+            <input name="text" value="${requirementsDoc.toText()}"/>
         </step>
 
         <fork name="expandModuleRequirements" varName="module">

@@ -3,17 +3,19 @@
       xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
       x:extends="/nop/task/lib/common.task.xml">
 
-<!--    <ai:chatOptions provider="ollama" model="qwen3:8b" contextLength="8192" maxTokens="8192" temperature="0"/>-->
+    <!--    <ai:chatOptions provider="ollama" model="qwen3:8b" contextLength="8192" maxTokens="8192" temperature="0"/>-->
 
     <!--    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>-->
 
-        <ai:chatOptions provider="volcengine" model="deepseek-chat" contextLength="8192" maxTokens="8192" temperature="0" />
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="8192" temperature="0"/>
 
     <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 
     <input name="requirementsPath" type="String" mandatory="true"/>
     <input name="appName" type="String" mandatory="true"/>
     <input name="outputDir" type="String" mandatory="true"/>
+    <input name="aiProvider" type="String" mandatory="true"/>
+    <input name="aiModel" type="String" mandatory="true"/>
 
     <steps>
         <step name="loadRequirements" customType="ai-coder:LoadMarkdown">
@@ -62,9 +64,27 @@
                     <output name="RESULT" exportAs="useCaseRequirements"/>
                 </step>
 
+                <step name="generateMethodTask" customType="ai:TaskStep" ai:promptName="coder/service-method-task"
+                      ai:useResponseCache="true">
+                    <throttle maxConcurrency="1" maxWait="100000000"/>
+
+                    <input name="requirements" value="${useCaseRequirements}"/>
+                    <input name="ormModel"/>
+                    <input name="apiModel"/>
+                    <input name="serviceName" value="${methodInfo.serviceName}"/>
+                    <input name="methodName" value="${methodInfo.methodName}"/>
+                    <output name="RESULT" exportAs="methodTaskNode"/>
+                </step>
+
+                <step name="saveMethodTask" customType="file-utils:WriteText">
+                    <input name="outputDir"/>
+                    <input name="fileName"
+                           value="ai-coder/${methodInfo.serviceName}/${methodInfo.methodName}.task.xml"/>
+                    <input name="text" value="${methodTaskNode.xml()}"/>
+                </step>
 
                 <step name="generateMethodJava" customType="ai:TaskStep" ai:promptName="coder/service-method-java"
-                        ai:useResponseCache="true">
+                      ai:useResponseCache="true">
                     <throttle maxConcurrency="1" maxWait="100000000"/>
 
                     <input name="requirements" value="${useCaseRequirements}"/>
@@ -83,7 +103,7 @@
                 </step>
 
                 <step name="generateMethodPython" customType="ai:TaskStep" ai:promptName="coder/service-method-python"
-                        ai:useResponseCache="true">
+                      ai:useResponseCache="true">
                     <throttle maxConcurrency="1" maxWait="100000000"/>
 
                     <input name="requirements" value="${useCaseRequirements}"/>
@@ -101,24 +121,7 @@
                     <input name="text" value="${methodPython}"/>
                 </step>
 
-                <step name="generateMethodTask" customType="ai:TaskStep" ai:promptName="coder/service-method-task"
-                        ai:useResponseCache="true">
-                    <throttle maxConcurrency="1" maxWait="100000000"/>
 
-                    <input name="requirements" value="${useCaseRequirements}"/>
-                    <input name="ormModel"/>
-                    <input name="apiModel"/>
-                    <input name="serviceName" value="${methodInfo.serviceName}"/>
-                    <input name="methodName" value="${methodInfo.methodName}"/>
-                    <output name="RESULT" exportAs="methodTaskNode"/>
-                </step>
-
-                <step name="saveMethodTask" customType="file-utils:WriteText">
-                    <input name="outputDir"/>
-                    <input name="fileName"
-                           value="ai-coder/${methodInfo.serviceName}/${methodInfo.methodName}.task.xml"/>
-                    <input name="text" value="${methodTaskNode.xml()}"/>
-                </step>
             </steps>
         </fork>
 

@@ -11,10 +11,10 @@
     </x:config>
 
     <steps>
-        <xpl name="runCodeGen">
+        <step name="runCodeGen">
             <source>
                 <ai-coder:RunCodeGen template="/nop/ai/templates/ai-project" args="${{appName,mavenGroupId}}" outputDir="${outputDir}"/>
             </source>
-        </xpl>
+        </step>
     </steps>
 </task>

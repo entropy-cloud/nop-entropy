@@ -248,6 +248,10 @@ public class QueryBean implements Serializable, ICloneable {
         return this;
     }
 
+    public QueryBean addFilterCondition(String propName, String op, Object value){
+        return addFilter(FilterBeans.compareOp(op, propName, value));
+    }
+
     public TreeBean getPropFilter(String propName) {
         if (filter == null)
             return null;

@@ -41,6 +41,8 @@ public class AiChatOptions extends ExtensibleBean {
 
     private Consumer<AiChatExchange> streamListener;
 
+    private Boolean disableCache;
+
     //============= 以下为coze支持的参数 =====
     private String botId;
 
@@ -134,6 +136,10 @@ public class AiChatOptions extends ExtensibleBean {
         }
         if (options.getStreamListener() != null) {
             this.setStreamListener(options.getStreamListener());
+        }
+
+        if (options.getDisableCache() != null) {
+            this.setDisableCache(options.getDisableCache());
         }
 
         // Coze-specific parameters
@@ -305,6 +311,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.userId = userId;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public Boolean getStream() {
         return stream;
     }
@@ -320,5 +327,14 @@ public class AiChatOptions extends ExtensibleBean {
 
     public void setEnableThinking(Boolean enableThinking) {
         this.enableThinking = enableThinking;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Boolean getDisableCache() {
+        return disableCache;
+    }
+
+    public void setDisableCache(Boolean disableCache) {
+        this.disableCache = disableCache;
     }
 }

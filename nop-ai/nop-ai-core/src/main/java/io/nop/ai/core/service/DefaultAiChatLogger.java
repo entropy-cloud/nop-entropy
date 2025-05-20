@@ -16,7 +16,7 @@ public class DefaultAiChatLogger implements IAiChatLogger {
 
     private String logDir;
 
-    @InjectValue("@cfg:nop.ai.service.log-dir|")
+    @InjectValue("@cfg:nop.ai.service.log-dir|/nop/ai/log")
     public void setLogDir(String logDir) {
         this.logDir = logDir;
     }
@@ -26,7 +26,7 @@ public class DefaultAiChatLogger implements IAiChatLogger {
         AiMessage message = request.getPrompt().getLastMessage();
         LOG.info("request:role={},content=\n{}", message.getRole(), message.getContent());
 
-        if (!StringHelper.isEmpty(logDir)) {
+        if (isValidLogDir()) {
             IResource resource = getResource(request, "-request.md");
             DefaultAiChatExchangePersister.instance().save(resource, request);
         }
@@ -37,10 +37,14 @@ public class DefaultAiChatLogger implements IAiChatLogger {
         LOG.info("response:promptTokens={},completionTokens={},content=\n{}",
                 response.getPromptTokens(), response.getCompletionTokens(), response.getContent());
 
-        if (!StringHelper.isEmpty(logDir)) {
+        if (isValidLogDir()) {
             IResource resource = getResource(response, "-response.md");
             ResourceHelper.writeText(resource, response.getContent(), "UTF-8");
         }
+    }
+
+    boolean isValidLogDir() {
+        return !StringHelper.isEmpty(logDir) && !logDir.equals("none");
     }
 
     @Override
@@ -49,7 +53,7 @@ public class DefaultAiChatLogger implements IAiChatLogger {
         LOG.info("cached-response:promptTokens={},completionTokens={},exchange=\n{}",
                 exchange.getPromptTokens(), exchange.getCompletionTokens(), exchange.getContent());
 
-        if (!StringHelper.isEmpty(logDir)) {
+        if (isValidLogDir()) {
             IResource resource = getResource(exchange, "-exchange.md");
             ResourceHelper.writeText(resource, text, "UTF-8");
         }

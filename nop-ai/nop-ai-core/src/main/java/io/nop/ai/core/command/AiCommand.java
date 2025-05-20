@@ -175,7 +175,7 @@ public class AiCommand {
     protected void logCachedResponse(AiChatExchange exchange) {
         boolean logMessage = CFG_AI_SERVICE_LOG_MESSAGE.get();
         if (logMessage) {
-            getChatLogger().logRequest(exchange);
+            getChatLogger().logChatExchange(exchange);
         }
     }
 
@@ -185,7 +185,7 @@ public class AiCommand {
         AiChatOptions options = this.chatOptions.cloneInstance();
         promptTemplate.applyChatOptions(options);
 
-        if (chatCache != null) {
+        if (chatCache != null && !Boolean.TRUE.equals(options.getDisableCache())) {
             try {
                 AiChatExchange exchange = chatCache.loadCachedResponse(prompt, options);
                 if (exchange != null) {

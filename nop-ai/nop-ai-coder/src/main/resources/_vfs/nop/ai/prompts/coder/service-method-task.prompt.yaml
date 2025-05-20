@@ -18,7 +18,30 @@ template: |
   4. 尽量用已有标签和函数实现，只有极端必要时才使用`&lt;task:import>`导入的服务对象。增删改查不应使用服务对象。服务对象上能够调用的方法必须通过method节点声明。
   5. step的name必须全局唯一
   6. 核心业务数据应该入库，而不是仅在内存中完成计算，除非是试算过程
+  7. xpl-predicate表示条件判断，可以使用如下几种方式
   
+  <![CDATA[
+  ```xpl
+  <when> x > 2</when>
+  
+  或者
+  <when>
+    <eq name="status" value="2" />
+  </when>
+  或者
+  <when>
+    <c:script>
+      if(x > 2){
+        return true;
+      }else{
+        return false;
+      }
+    </c:script>
+  </when>
+  ```
+  
+  🔴 禁止：`<when>`与步骤内条件逻辑冲突（常见反模式）
+  ]]>
   
   【XPL模板语法】
   <ai-coder:IncludeText fileName="v:/nop/ai/prompts/coder/xpl-lang.md" xpl:lib="/nop/ai/xlib/ai-coder.xlib" />

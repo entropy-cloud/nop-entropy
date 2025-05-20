@@ -1,9 +1,46 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
       x:dump="true"
       x:extends="/nop/task/lib/common.task.xml">
-    <steps>
-        <call-task taskName="">
 
+    <input name="mavenGroupId" type="String" mandatory="true"/>
+    <input name="appName" type="String" mandatory="true"/>
+    <input name="basePackageName" type="String" mandatory="true"/>
+    <input name="outputDir" type="String" mandatory="true"/>
+
+    <input name="inputRequirementsPath" mandatory="true"/>
+    <input name="needExpand" type="Boolean" mandatory="true"/>
+
+    <input name="aiProvider" type="String" optional="true"/>
+    <input name="aiModel" type="String" optional="true"/>
+    <input name="sessionId" type="String" optional="true"/>
+
+    <steps>
+        <call-task name="createProject" taskModelPath="/nop/ai/tasks/ai-create-project.task.xml">
+            <input name="mavenGroupId"/>
+            <input name="appName"/>
+            <input name="basePackageName"/>
+            <input name="outputDir"/>
+        </call-task>
+
+        <call-task name="refactorRequirements" taskModelPath="/nop/ai/tasks/ai-biz-analyzer.task.xml">
+            <input name="inputRequirementsPath"/>
+            <input name="basePackageName"/>
+            <input name="outputDir"/>
+            <input name="needExpand"/>
+            <input name="aiProvider"/>
+            <input name="aiModel"/>
+            <input name="sessionId"/>
+        </call-task>
+
+        <call-task name="createOrmAndMenu" taskModelPath="/nop/ai/tasks/ai-create-orm-and-menu.task.xml">
+            <input name="requirementsPath"
+                   value="${$String.appendPath(outputDir,'docs/requirements/refactored-requirements.md')}"/>
+            <input name="outputDir"/>
+            <input name="basePackageName"/>
+            <input name="appName"/>
+            <input name="aiProvider"/>
+            <input name="aiModel"/>
+            <input name="sessionId"/>
         </call-task>
     </steps>
 </task>
