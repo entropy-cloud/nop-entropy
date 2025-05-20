@@ -208,6 +208,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         CallTaskStep ret = new CallTaskStep();
         ret.setTaskName(stepModel.getTaskName());
         ret.setTaskVersion(stepModel.getTaskVersion() == null ? 0 : stepModel.getTaskVersion());
+        ret.setTaskModelPath(stepModel.getTaskModelPath());
         ret.setInputNames(stepModel.getInputs().stream().map(TaskInputModel::getName).collect(Collectors.toSet()));
         ret.setOutputNames(stepModel.getOutputs().stream().map(TaskOutputModel::getName).collect(Collectors.toSet()));
         return ret;
@@ -217,6 +218,7 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         CallStepTaskStep ret = new CallStepTaskStep();
         ret.setLibName(stepModel.getLibName());
         ret.setLibVersion(stepModel.getLibVersion() == null ? 0 : stepModel.getLibVersion());
+        ret.setLibModelPath(stepModel.getLibModelPath());
         ret.setStepName(stepModel.getStepName());
         return ret;
     }

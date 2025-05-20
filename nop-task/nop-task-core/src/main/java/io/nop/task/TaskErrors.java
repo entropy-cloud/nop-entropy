@@ -136,7 +136,7 @@ public interface TaskErrors {
             define("nop.err.task.invalid-custom-type", "节点的扩展类型属性必须包含名字空间，例如customType='gpt:simple'", ARG_CUSTOM_TYPE);
 
     ErrorCode ERR_TASK_MANDATORY_INPUT_NOT_ALLOW_EMPTY = define("nop.err.task.mandatory-input-not-allow-empty",
-            "步骤[{stepPath}]的输入[{input}]不允许为空", ARG_STEP_PATH, ARG_INPUT_NAME);
+            "步骤[{stepPath}]的输入[{inputName}]不允许为空", ARG_STEP_PATH, ARG_INPUT_NAME);
 
     ErrorCode ERR_TASK_UNRESOLVED_METHOD_OWNER = define("nop.err.task.unresolved-method-owner",
             "方法引用[{methodRef}]使用了未定义的类", ARG_METHOD_REF);

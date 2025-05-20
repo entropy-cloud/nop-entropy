@@ -18,6 +18,13 @@ public abstract class _CallStepTaskStepModel extends io.nop.task.model.TaskStepM
     
     /**
      *  
+     * xml name: libModelPath
+     * 
+     */
+    private java.lang.String _libModelPath ;
+    
+    /**
+     *  
      * xml name: libName
      * 
      */
@@ -43,6 +50,25 @@ public abstract class _CallStepTaskStepModel extends io.nop.task.model.TaskStepM
      * 
      */
     private java.lang.String _type ;
+    
+    /**
+     * 
+     * xml name: libModelPath
+     *  
+     */
+    
+    public java.lang.String getLibModelPath(){
+      return _libModelPath;
+    }
+
+    
+    public void setLibModelPath(java.lang.String value){
+        checkAllowChange();
+        
+        this._libModelPath = value;
+           
+    }
+
     
     /**
      * 
@@ -135,6 +161,7 @@ public abstract class _CallStepTaskStepModel extends io.nop.task.model.TaskStepM
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("libModelPath",this.getLibModelPath());
         out.putNotNull("libName",this.getLibName());
         out.putNotNull("libVersion",this.getLibVersion());
         out.putNotNull("stepName",this.getStepName());
@@ -150,6 +177,7 @@ public abstract class _CallStepTaskStepModel extends io.nop.task.model.TaskStepM
     protected void copyTo(CallStepTaskStepModel instance){
         super.copyTo(instance);
         
+        instance.setLibModelPath(this.getLibModelPath());
         instance.setLibName(this.getLibName());
         instance.setLibVersion(this.getLibVersion());
         instance.setStepName(this.getStepName());

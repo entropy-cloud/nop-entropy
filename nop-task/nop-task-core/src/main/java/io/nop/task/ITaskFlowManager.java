@@ -35,5 +35,7 @@ public interface ITaskFlowManager {
 
     ITaskStepLib getTaskStepLib(String libName, long libVersion);
 
+    ITaskStepLib loadTaskStepLibFromPath(String path);
+
     TaskFlowModel getTaskFlowModel(String taskName, long taskVersion);
 }

@@ -28,6 +28,8 @@ public class CallStepTaskStep extends AbstractTaskStep {
 
     private long libVersion;
 
+    private String libModelPath;
+
     private String stepName;
 
     public long getLibVersion() {
@@ -54,11 +56,19 @@ public class CallStepTaskStep extends AbstractTaskStep {
         this.stepName = stepName;
     }
 
+    public String getLibModelPath() {
+        return libModelPath;
+    }
+
+    public void setLibModelPath(String libModelPath) {
+        this.libModelPath = libModelPath;
+    }
+
     @Nonnull
     @Override
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         ITaskFlowManager taskManager = stepRt.getTaskRuntime().getTaskManager();
-        ITaskStepLib lib = taskManager.getTaskStepLib(libName, libVersion);
+        ITaskStepLib lib = getTaskStepLib(taskManager);
         ITaskStep step = lib.getStep(stepName);
         if (step == null) {
             throw TaskStepHelper.newError(getLocation(), stepRt, ERR_TASK_UNKNOWN_STEP_IN_LIB)
@@ -71,5 +81,11 @@ public class CallStepTaskStep extends AbstractTaskStep {
                 stepRt.getStepPath(), stepRt.getRunId(), step.getLocation());
 
         return step.execute(stepRt);
+    }
+
+    ITaskStepLib getTaskStepLib(ITaskFlowManager taskManager) {
+        if (libModelPath != null)
+            return taskManager.loadTaskStepLibFromPath(libModelPath);
+        return taskManager.getTaskStepLib(libName, libVersion);
     }
 }

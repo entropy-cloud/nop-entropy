@@ -153,6 +153,12 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     }
 
     @Override
+    public ITaskStepLib loadTaskStepLibFromPath(String path) {
+        TaskFlowModel taskFlowModel = (TaskFlowModel) ResourceComponentManager.instance().loadComponentModel(path);
+        return taskFlowModel.getTaskStepLib(newTaskStepLibBuilder());
+    }
+
+    @Override
     public IRateLimiter getRateLimiter(ITaskRuntime taskRt, String key, double requestPerSecond, boolean global) {
         if (global) {
             return globalRateLimiters.computeIfAbsent(taskRt.getTaskName() + ":" + key, k -> new DefaultRateLimiter(requestPerSecond));

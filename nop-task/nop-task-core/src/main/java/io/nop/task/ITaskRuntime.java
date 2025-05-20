@@ -10,10 +10,10 @@ package io.nop.task;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.ICancellable;
-import io.nop.commons.concurrent.semaphore.ISemaphore;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
+import io.nop.commons.concurrent.semaphore.ISemaphore;
 import io.nop.commons.lang.IEditableTagSetSupport;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
@@ -125,6 +125,10 @@ public interface ITaskRuntime extends IEvalContext, ICancellable, IEditableTagSe
     default void setInputs(Map<String, Object> inputs) {
         if (inputs != null)
             inputs.forEach(this::setInput);
+    }
+
+    default void assign(String name, Object value) {
+        getEvalScope().setLocalValue(name, value);
     }
 
     Object computeAttributeIfAbsent(String name, Function<String, Object> action);

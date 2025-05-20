@@ -23,6 +23,8 @@ public class CallTaskStep extends AbstractTaskStep {
 
     private long taskVersion;
 
+    private String taskModelPath;
+
     private Set<String> inputNames;
 
     private Set<String> outputNames;
@@ -41,6 +43,14 @@ public class CallTaskStep extends AbstractTaskStep {
 
     public void setTaskName(String taskName) {
         this.taskName = taskName;
+    }
+
+    public String getTaskModelPath() {
+        return taskModelPath;
+    }
+
+    public void setTaskModelPath(String taskModelPath) {
+        this.taskModelPath = taskModelPath;
     }
 
     public Set<String> getInputNames() {
@@ -69,13 +79,13 @@ public class CallTaskStep extends AbstractTaskStep {
         ITask task;
         ITaskRuntime subRt;
         if (StringHelper.isEmpty(taskId)) {
-            task = taskManager.getTask(taskName, taskVersion);
+            task = getTask(taskManager);
             subRt = taskRt.newChildRuntime(task, stepRt.isSupportPersist());
 
             stepRt.setStateBean(subRt.getTaskInstanceId());
             stepRt.saveState();
         } else {
-            task = taskManager.getTask(taskName, taskVersion);
+            task = getTask(taskManager);
             subRt = taskManager.getTaskRuntime(taskId, taskRt.getSvcCtx());
         }
 
@@ -85,5 +95,11 @@ public class CallTaskStep extends AbstractTaskStep {
         }
 
         return task.execute(subRt, outputNames);
+    }
+
+    ITask getTask(ITaskFlowManager taskFlowManager) {
+        if (taskModelPath != null)
+            return taskFlowManager.loadTaskFromPath(taskModelPath);
+        return taskFlowManager.getTask(taskName, taskVersion);
     }
 }
