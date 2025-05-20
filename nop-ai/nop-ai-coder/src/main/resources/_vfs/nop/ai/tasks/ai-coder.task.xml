@@ -15,6 +15,12 @@
     <input name="sessionId" type="String" optional="true"/>
 
     <steps>
+        <step name="init">
+            <input name="outputDir"/>
+            <output name="requirementsPath"
+                    value="${$String.appendPath(outputDir,'docs/requirements/refactored-requirements.md')}"/>
+        </step>
+
         <call-task name="createProject" taskModelPath="/nop/ai/tasks/ai-create-project.task.xml">
             <input name="mavenGroupId"/>
             <input name="appName"/>
@@ -32,12 +38,34 @@
             <input name="sessionId"/>
         </call-task>
 
+
         <call-task name="createOrmAndMenu" taskModelPath="/nop/ai/tasks/ai-create-orm-and-menu.task.xml">
-            <input name="requirementsPath"
-                   value="${$String.appendPath(outputDir,'docs/requirements/refactored-requirements.md')}"/>
+            <input name="requirementsPath"/>
             <input name="outputDir"/>
             <input name="basePackageName"/>
             <input name="appName"/>
+            <input name="aiProvider"/>
+            <input name="aiModel"/>
+            <input name="sessionId"/>
+        </call-task>
+
+        <call-task name="designApi" taskModelPath="/nop/ai/tasks/ai-api-design.task.xml">
+            <input name="requirementsPath"/>
+            <input name="outputDir"/>
+            <input name="basePackageName"/>
+            <input name="appName"/>
+
+            <input name="aiProvider"/>
+            <input name="aiModel"/>
+            <input name="sessionId"/>
+        </call-task>
+
+        <call-task name="designService" taskModelPath="/nop/ai/tasks/ai-service-design.task.xml">
+            <input name="requirementsPath"/>
+            <input name="outputDir"/>
+            <input name="basePackageName"/>
+            <input name="appName"/>
+
             <input name="aiProvider"/>
             <input name="aiModel"/>
             <input name="sessionId"/>

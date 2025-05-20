@@ -1,0 +1,3 @@
+<llm x:extends="deepseek.llm.xml" xmlns:x="/nop/schema/xdsl.xdef" >
+    <baseUrl>https://api.token-ai.cn/v1</baseUrl>
+</llm>

@@ -29,14 +29,14 @@
         </step>
 
         <step name="loadOrmModel" customType="ai-coder:LoadOrmModel">
-            <input name="fileName" value="${appName}.orm.xml"/>
-            <input name="inputDir" value="${modelDir}"/>
+            <input name="fileName" value="model/ai-gen.orm.xml"/>
+            <input name="inputDir" value="${outputDir}"/>
             <output name="RESULT" exportAs="ormModel"/>
         </step>
 
         <step name="loadApiModel" customType="ai-coder:LoadApiModel">
-            <input name="fileName" value="${appName}.api.xml"/>
-            <input name="inputDir" value="${modelDir}"/>
+            <input name="fileName" value="model/ai-gen.api.xml"/>
+            <input name="inputDir" value="${outputDir}"/>
             <output name="RESULT" exportAs="apiModel"/>
         </step>
 

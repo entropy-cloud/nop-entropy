@@ -11,7 +11,9 @@ import java.time.LocalDate;
 public class AiLogHelper {
     public static IResource getSessionResource(String dir, AiChatExchange request, String postfix) {
         String sessionId = makeSessionId(request);
-        String today = LocalDate.now().toString().replace('-', '/');
+        LocalDate date = LocalDate.now();
+        String today = date.getYear() + "/" + StringHelper.leftPad(date.getMonthValue() + "", 2, '0')
+                + "-" + StringHelper.leftPad(date.getDayOfMonth() + "", 2, '0');
         String fileName = today + '/' + sessionId + '/' + request.getBeginTime() + '-' + request.getRetryTimes() + '-' + request.getExchangeId() + postfix;
         return new FileResource(new File(dir, fileName));
     }

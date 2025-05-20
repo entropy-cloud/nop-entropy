@@ -244,6 +244,9 @@ public class TaskStepExecution implements ITaskStepExecution {
 
                     if (nextStepNameOnError != null)
                         return buildErrorResult(stepRt, parentScope, err);
+                    if (err instanceof NopException)
+                        ((NopException) err).addXplStack(stepRt.getStepPath() + '@' + this.getLocation());
+
                     throw NopException.adapt(err);
                 } else {
                     if (ret.isSuspend())
@@ -281,6 +284,9 @@ public class TaskStepExecution implements ITaskStepExecution {
 
             if (TaskStepHelper.isCancelledException(e))
                 throw NopException.adapt(e);
+
+            if (e instanceof NopException)
+                ((NopException) e).addXplStack(stepRt.getStepPath() + '@' + this.getLocation());
 
             if (nextStepNameOnError != null) {
                 return buildErrorResult(stepRt, parentScope, e);

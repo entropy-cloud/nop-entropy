@@ -16,6 +16,8 @@
     <input name="appName" type="String" mandatory="true"/>
     <input name="basePackageName" type="String" mandatory="true"/>
     <input name="outputDir" type="String" mandatory="true"/>
+    <input name="aiProvider" type="String" mandatory="true" />
+    <input name="aiModel" type="String" mandatory="true" />
     <input name="sessionId" type="String" optional="true"/>
 
     <steps>
@@ -62,7 +64,7 @@
 
         <step name="saveOrmXml" customType="file-utils:WriteText">
             <input name="outputDir"/>
-            <input name="fileName" value="${appName}-dao/src/main/resources/_vfs/${appId}/orm/ai-gen.orm.xml"/>
+            <input name="fileName" value="model/ai-gen.orm.xml"/>
             <input name="text" value="${ormModel.ormModelXml}"/>
         </step>
 
@@ -71,6 +73,12 @@
             <input name="fileName" value="model/${appName}.orm.xlsx"/>
             <input name="dslModel" value="${ormModel.ormModelBean}"/>
             <input name="impModelPath" value="/nop/orm/imp/orm.imp.xml"/>
+        </step>
+
+        <step name="saveOrmXml2" customType="file-utils:WriteText">
+            <input name="outputDir"/>
+            <input name="fileName" value="${appName}-dao/src/main/resources/_vfs/${appId}/orm/ai-gen.orm.xml"/>
+            <input name="text" value="${ormModel.ormModelXml}"/>
         </step>
 
         <step name="designMenu" customType="ai:TaskStep" ai:promptName="coder/menu-design" ai:useResponseCache="true">
@@ -112,7 +120,7 @@
 
         <step name="saveMenuXml" customType="ai-coder:SaveDslNode">
             <input name="outputDir"/>
-            <input name="fileName" value="model/ai-gen-${appName}.action-auth.xml"/>
+            <input name="fileName" value="model/ai-gen.action-auth.xml"/>
             <input name="dslNode" value="${menuNode}"/>
             <input name="xdefPath" value="/nop/schema/action-auth.xdef"/>
         </step>
