@@ -214,6 +214,14 @@ public class ResourceHelper {
         return getStdPath(StringHelper.absolutePath(currentPath, relativePath));
     }
 
+    public static IResource resolveRelativeResource(IResource resource, String relativePath, boolean allowParent) {
+        if (!allowParent && relativePath.contains(".."))
+            throw new IllegalArgumentException("invalid-relative-path:" + relativePath);
+
+        String relativeStdPath = resolveRelativeStdPath(resource.getStdPath(), relativePath);
+        return VirtualFileSystem.instance().getResource(relativeStdPath);
+    }
+
     public static boolean startsWithNamespace(String path, String ns) {
         if (!path.startsWith(ns))
             return false;

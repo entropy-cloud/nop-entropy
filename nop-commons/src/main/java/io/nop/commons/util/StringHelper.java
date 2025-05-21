@@ -4557,4 +4557,16 @@ public class StringHelper extends ApiStringHelper {
         }
         return !s.isEmpty();
     }
+
+    @Deterministic
+    public static boolean isPrintable(String s) {
+        boolean printable = false;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            Character.UnicodeBlock block = Character.UnicodeBlock.of(c);
+            printable |= !Character.isISOControl(c) && block != null && block != Character.UnicodeBlock.SPECIALS;
+        }
+        return printable;
+    }
+
 }

@@ -565,6 +565,11 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return value;
     }
 
+    public List<String> attrCsvList(String name) {
+        List<String> value = ConvertHelper.toCsvList(getAttr(name), err -> newAttrError(err, name));
+        return value;
+    }
+
     public void addAttrCsvSet(String attrName, String newSet) {
         if (StringHelper.isEmpty(newSet))
             return;

@@ -11,8 +11,8 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.core.model.table.impl.SubTableView;
 import io.nop.core.model.table.impl.TableImpls;
 import io.nop.core.reflect.hook.IExtensibleObject;
-
 import jakarta.annotation.Nonnull;
+
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -75,6 +75,10 @@ public interface ITableView extends IExtensibleObject {
      * @param rowIndex 从0开始
      */
     IRowView getRow(int rowIndex);
+
+    default List<? extends ICellView> getRowCells(int rowIndex) {
+        return getRow(rowIndex).getCells();
+    }
 
     /**
      * 根据行坐标和列坐标取到单元格。如果该位置被合并单元格占用，则返回ProxyCell
