@@ -96,4 +96,29 @@ public class ColorHelper {
         int blue = Integer.parseInt(color.substring(4, 6), 16) & 0xFF;
         return red << 16 | green << 8 | blue;
     }
+
+    public static float[] toNormalizedRgb(String color) {
+        if (StringHelper.isEmpty(color))
+            return new float[]{0, 0, 0};
+
+        if (color.startsWith("#")) {
+            color = color.substring(1);
+        } else if (color.startsWith("0x")) {
+            color = color.substring(2);
+        }
+
+        if (color.length() != 6) {
+            throw new IllegalArgumentException("Invalid color format. Expected 6 hex digits.");
+        }
+
+        int red = Integer.parseInt(color.substring(0, 2), 16);
+        int green = Integer.parseInt(color.substring(2, 4), 16);
+        int blue = Integer.parseInt(color.substring(4, 6), 16);
+
+        return new float[]{
+                red / 255f,
+                green / 255f,
+                blue / 255f
+        };
+    }
 }
