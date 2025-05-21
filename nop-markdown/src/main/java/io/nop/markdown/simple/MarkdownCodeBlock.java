@@ -11,33 +11,32 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.util.SourceLocation;
 
 @DataBean
-public class MarkdownCodeBlock {
-    private SourceLocation location;
-    private String type;
+public class MarkdownCodeBlock extends MarkdownNode {
+    private String lang;
     private String source;
 
     public static MarkdownCodeBlock build(SourceLocation loc, String type, String source) {
         MarkdownCodeBlock block = new MarkdownCodeBlock();
         block.setLocation(loc);
-        block.setType(type);
+        block.setLang(type);
         block.setSource(source);
         return block;
     }
 
-    public String getType() {
-        return type;
+    @Override
+    protected void buildText(StringBuilder sb, MarkdownTextOptions options) {
+        sb.append("```").append(lang).append('\n');
+        if (source != null)
+            sb.append(source);
+        sb.append("\n```\n");
     }
 
-    public void setType(String type) {
-        this.type = type;
+    public String getLang() {
+        return lang;
     }
 
-    public SourceLocation getLocation() {
-        return location;
-    }
-
-    public void setLocation(SourceLocation location) {
-        this.location = location;
+    public void setLang(String lang) {
+        this.lang = lang;
     }
 
     public String getSource() {

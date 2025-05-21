@@ -1,0 +1,37 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:task="task"
+      xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
+      xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
+      x:extends="/nop/task/lib/common.task.xml">
+
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="8192" temperature="0"/>
+
+    <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
+
+    <input name="modelPath" type="String" mandatory="true"/>
+    <input name="modelDir" type="String" mandatory="true"/>
+    <input name="testDataFileName" type="String" mandatory="true"/>
+    <input name="outputDir" type="String" mandatory="true"/>
+
+    <steps>
+        <step name="loadDslModel" customType="ai-coder:LoadDslModel">
+            <input name="fileName" value="${modelPath}"/>
+            <input name="modelDir" value="${modelDir}"/>
+
+            <output name="RESULT" exportAs="dslModel"/>
+        </step>
+
+        <step name="generateTestData" customType="ai:TaskStep" ai:promptName="coder/gen-test-data-for-record-mapping"
+              ai:useResponseCache="true">
+            <throttle maxConcurrency="1" maxWait="100000000"/>
+
+            <input name="dslModel"/>
+            <output name="RESULT" exportAs="testData"/>
+        </step>
+
+        <step name="saveTestData" customType="file-utils:WriteText">
+            <input name="fileName" value="${testDataFileName}"/>
+            <input name="outputDir"/>
+        </step>
+
+    </steps>
+</task>

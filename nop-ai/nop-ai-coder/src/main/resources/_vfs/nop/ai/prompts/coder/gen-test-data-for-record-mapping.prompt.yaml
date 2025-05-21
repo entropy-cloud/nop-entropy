@@ -1,0 +1,27 @@
+template: |
+  【任务目标】
+  根据以下指定的字段映射模型，生成测试数据
+  
+  【字段映射】
+  以下映射规则说明了从from对象如何映射到to对象
+  
+  ```json
+  ${$JSON.stringify(dslModel)}
+  ```
+  
+  1. itemMapping用于指定Map或者List结构中每一项的映射规则
+
+  【返回格式】
+  ```json
+  {
+    from: {
+    },
+  
+    to: {
+    }
+  }
+  ```
+
+outputs:
+  - name: RESULT
+    format: json

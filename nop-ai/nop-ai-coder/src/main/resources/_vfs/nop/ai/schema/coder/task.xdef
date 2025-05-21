@@ -17,8 +17,8 @@
 
         <step name="!var-name" xdef:ref="TaskStepModel" next="step-name"
               xdef:name="XplTaskStepModel">
-            <input name="var-name" />
-            <output name="var-name" />
+            <input name="var-name" xdef:unique-attr="name" />
+            <output name="var-name" xdef:unique-attr="name"/>
 
             <!-- 不满足条件的时候将会自动跳过本步骤 -->
             <when xdef:value="xpl-predicate"/>
@@ -69,7 +69,7 @@
              @match 用于匹配decider返回的值
              @next 满足匹配条件后迁移到指定步骤
              -->
-            <case match="!string" next="step-name"/>
+            <case match="!string" next="step-name" xdef:unique-attr="match"/>
 
             <otherwise next="step-name"/>
         </choose>

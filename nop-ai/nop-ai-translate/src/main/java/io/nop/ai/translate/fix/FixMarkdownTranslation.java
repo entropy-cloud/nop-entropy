@@ -5,6 +5,7 @@ import io.nop.ai.core.commons.debug.DebugMessageHelper;
 import io.nop.commons.util.FileHelper;
 import io.nop.markdown.simple.MarkdownDocumentParser;
 import io.nop.markdown.simple.MarkdownSection;
+import io.nop.markdown.simple.MarkdownTextOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,13 +119,13 @@ public class FixMarkdownTranslation {
         if (!changed)
             return null;
 
-        return buildText(targetBlocks, false);
+        return buildText(targetBlocks, new MarkdownTextOptions());
     }
 
-    String buildText(List<MarkdownSection> blocks, boolean includeTags) {
+    String buildText(List<MarkdownSection> blocks, MarkdownTextOptions options) {
         StringBuilder sb = new StringBuilder();
         for (MarkdownSection block : blocks) {
-            block.buildText(sb, includeTags);
+            block.buildText(sb, options);
         }
 
         return sb.toString();

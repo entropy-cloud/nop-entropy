@@ -24,12 +24,11 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static io.nop.core.CoreErrors.ERR_COMPONENT_NOT_ALLOW_CHANGE;
 import static io.nop.markdown.MarkdownErrors.ARG_TITLE;
 import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_MISSING_SECTION;
 
 @DataBean
-public class MarkdownSection implements ITagSetSupport {
+public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
     static final Logger LOG = LoggerFactory.getLogger(MarkdownSection.class);
 
     private int level;
@@ -45,7 +44,6 @@ public class MarkdownSection implements ITagSetSupport {
 
     private MarkdownSection tpl;
 
-    private boolean frozen;
 
     public MarkdownSection() {
     }
@@ -94,10 +92,6 @@ public class MarkdownSection implements ITagSetSupport {
         return index;
     }
 
-    public boolean isFrozen() {
-        return frozen;
-    }
-
     public void freeze() {
         frozen = true;
 
@@ -108,10 +102,6 @@ public class MarkdownSection implements ITagSetSupport {
         }
     }
 
-    protected void checkAllowChange() {
-        if (frozen)
-            throw new NopException(ERR_COMPONENT_NOT_ALLOW_CHANGE);
-    }
 
     @Override
     public Set<String> getTagSet() {
@@ -128,6 +118,9 @@ public class MarkdownSection implements ITagSetSupport {
 
     public MarkdownSection cloneInstance(boolean includeChildren) {
         MarkdownSection ret = new MarkdownSection();
+        ret.setLocation(getLocation());
+        ret.setStartPos(getStartPos());
+        ret.setEndPos(getEndPos());
         ret.setLevel(level);
         ret.setTitle(title);
         ret.setText(text);
@@ -525,17 +518,20 @@ public class MarkdownSection implements ITagSetSupport {
         return tagSet != null && !tagSet.isEmpty();
     }
 
-    public String toText() {
-        return toText(false);
-    }
-
     public String toText(boolean includeTags) {
         StringBuilder sb = new StringBuilder();
-        buildText(sb, includeTags);
+        MarkdownTextOptions options = new MarkdownTextOptions();
+        options.setIncludeTags(includeTags);
+        buildText(sb, options);
         return sb.toString();
     }
 
-    public void buildText(StringBuilder sb, boolean includeTags) {
+    public void buildText(StringBuilder sb, MarkdownTextOptions options) {
+        if (options == null)
+            options = DEFAULT_OPTIONS;
+
+        boolean includeTags = options.isIncludeTags();
+
         if (getLevel() > 0) {
             sb.append("#".repeat(getLevel())).append(" ");
             if (title != null)
@@ -556,7 +552,7 @@ public class MarkdownSection implements ITagSetSupport {
 
         if (children != null) {
             for (MarkdownSection child : children) {
-                child.buildText(sb, includeTags);
+                child.buildText(sb, options);
             }
         }
     }

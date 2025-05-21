@@ -87,7 +87,7 @@ public class MarkdownDocument implements IComponentModel {
         if (rootSection == null)
             return "";
         StringBuilder sb = new StringBuilder();
-        rootSection.buildText(sb, includeTags);
+        rootSection.buildText(sb, new MarkdownTextOptions().includeTags(includeTags));
         return sb.toString();
     }
 
