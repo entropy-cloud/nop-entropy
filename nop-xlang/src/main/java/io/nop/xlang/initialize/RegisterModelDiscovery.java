@@ -180,6 +180,7 @@ public class RegisterModelDiscovery {
                     }
                 } else if ("xlsx-loader".equals(type)) {
                     String impPath = (String) BeanTool.getProperty(loader, "impPath");
+                    config.setImpPath(impPath);
                     if (DslModelHelper.supportExcelModelLoader()) {
                         config.loader(fileType, (IResourceObjectLoader<? extends IComponentModel>) DslModelHelper.newExcelModelLoader(impPath));
                     } else {

@@ -189,7 +189,7 @@ public class ModelBasedRecordMapping implements IRecordMapping {
             ctx.setSourceParent(value);
             ctx.setTargetParent(toValue);
 
-            Object toItemValue = field.getItemConstructor(value, toValue, ctx).get();
+            Object toItemValue = field.getItemConstructor(itemValue, null, ctx).get();
             ((Collection<Object>) toValue).add(toItemValue);
 
             mapObject(itemMapping, itemValue, toItemValue, ctx);

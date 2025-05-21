@@ -7,22 +7,36 @@
  */
 package io.nop.xlang.exec;
 
+import io.nop.api.core.json.IJsonString;
+import io.nop.api.core.util.Guard;
 import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.api.source.IWithSourceCode;
 
-public class MakeScopeEvalFunction implements IEvalFunction {
+public class MakeScopeEvalFunction implements IEvalFunction, IWithSourceCode, IJsonString {
     private final IEvalFunction function;
+    private final String source;
 
-    public MakeScopeEvalFunction(IEvalFunction function) {
+    public MakeScopeEvalFunction(IEvalFunction function, String source) {
         this.function = function;
+        this.source = Guard.notEmpty(source, "source");
     }
 
-    public static IEvalFunction of(IEvalFunction fn) {
+    public static IEvalFunction of(IEvalFunction fn, String source) {
         if (fn instanceof MakeScopeEvalFunction)
             return fn;
-        return new MakeScopeEvalFunction(fn);
+        return new MakeScopeEvalFunction(fn, source);
+    }
+
+    @Override
+    public String getSource() {
+        return source;
+    }
+
+    public String toString() {
+        return source;
     }
 
     private IEvalScope makeScope(IEvalScope scope) {
@@ -58,6 +72,6 @@ public class MakeScopeEvalFunction implements IEvalFunction {
 
     @Override
     public IEvalFunction bind(Object thisObj) {
-        return of(function.bind(thisObj));
+        return of(function.bind(thisObj), source);
     }
 }

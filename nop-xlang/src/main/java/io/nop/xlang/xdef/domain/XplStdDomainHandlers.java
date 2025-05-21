@@ -278,7 +278,11 @@ public class XplStdDomainHandlers {
                         .param(ARG_STD_DOMAIN, getName());
             IFunctionType functionType = new GenericTypeParser().parseFunctionTypeFromText(null, options);
 
-            return MakeScopeEvalFunction.of(cp.compileEvalFunction(node, functionType, cp.getOutputMode()));
+            if (!node.hasBody())
+                return null;
+
+            String source = node.hasChild() ? node.innerXml() : node.contentText();
+            return MakeScopeEvalFunction.of(cp.compileEvalFunction(node, functionType, cp.getOutputMode()), source);
         }
 
         @Override
@@ -634,11 +638,7 @@ public class XplStdDomainHandlers {
             if (action == null)
                 return null;
 
-            String code = body.innerXml();
-            String configText = cp.getConfigText();
-            if (configText != null) {
-                code = configText + '\n' + code;
-            }
+            String code = getCode(body, cp);
             return new EvalCode(action.getExpr(), code);
         }
 
@@ -671,5 +671,12 @@ public class XplStdDomainHandlers {
                 collector.addException(e);
             }
         }
+    }
+
+    public static String getCode(XNode node, XLangCompileTool tool) {
+        String configText = tool.getConfigText();
+        if (configText != null)
+            return configText + "\n" + node.innerXml();
+        return node.bodyXpl();
     }
 }

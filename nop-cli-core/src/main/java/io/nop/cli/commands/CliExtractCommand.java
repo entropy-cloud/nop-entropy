@@ -17,6 +17,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.impl.FileResource;
+import io.nop.report.core.util.ExcelReportHelper;
 import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.IXDslModel;
 import io.nop.xlang.xdsl.XDslKeys;
@@ -38,6 +39,9 @@ public class CliExtractCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-o", "--output"}, description = "输出文件，缺省输出到out.json文件中")
     File outputFile;
 
+    @CommandLine.Option(names = {"-t", "--template"}, description = "解析模板")
+    String templatePath;
+
     @CommandLine.Option(names = {"-f", "--format"}, description = "输出格式")
     OutputFormat format;
 
@@ -53,9 +57,6 @@ public class CliExtractCommand implements Callable<Integer> {
     public Integer call() {
         IResource resource = ResourceHelper.resolveRelativePathResource(xlsxFile);
 
-        if (format == null)
-            format = OutputFormat.json;
-
         File outputFile = this.outputFile;
         if (outputFile == null) {
             if (format == OutputFormat.xml) {
@@ -65,8 +66,16 @@ public class CliExtractCommand implements Callable<Integer> {
             }
         }
 
+        if (format == null) {
+            String fileName = outputFile.getName();
+            if (fileName.endsWith(".xml")) {
+                format = OutputFormat.xml;
+            } else {
+                format = OutputFormat.json;
+            }
+        }
 
-        IComponentModel model = ResourceComponentManager.instance().loadComponentModel(resource.getPath());
+        IComponentModel model = parseModel(resource);
         if (format == OutputFormat.xml) {
             String xdefPath = null;
             if (model instanceof IXDslModel) {
@@ -84,5 +93,16 @@ public class CliExtractCommand implements Callable<Integer> {
             FileHelper.writeText(outputFile, json, null);
         }
         return 0;
+    }
+
+    IComponentModel parseModel(IResource resource) {
+        String path = resource.getPath();
+        if (path.endsWith(".xlsx")) {
+            if (templatePath.endsWith(".imp.xml")) {
+                // 使用指定的imp.xml模型文件来解析
+                return (IComponentModel) ExcelReportHelper.loadXlsxObject(templatePath, resource);
+            }
+        }
+        return ResourceComponentManager.instance().loadComponentModel(path);
     }
 }

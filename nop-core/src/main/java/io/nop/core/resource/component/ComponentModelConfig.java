@@ -22,6 +22,7 @@ public class ComponentModelConfig {
     private boolean supportVersion;
 
     private String xdefPath;
+    private String impPath;
 
     /**
      * 模型可以存在多种存储格式，每种格式对应一个文件类型，采用一种特定的加载器加载
@@ -131,5 +132,13 @@ public class ComponentModelConfig {
         if (transformers == null)
             return null;
         return transformers.get(transform);
+    }
+
+    public String getImpPath() {
+        return impPath;
+    }
+
+    public void setImpPath(String impPath) {
+        this.impPath = impPath;
     }
 }

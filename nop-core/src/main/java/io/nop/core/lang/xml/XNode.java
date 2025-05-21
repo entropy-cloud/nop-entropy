@@ -2015,6 +2015,13 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return sb.toString();
     }
 
+    public String bodyXpl() {
+        if (!hasChild())
+            return contentText();
+
+        return "<_>" + innerXml() + "</_>";
+    }
+
     public String bodyFullXml() {
         return bodyFullXml(DUMMY_TAG_NAME);
     }
