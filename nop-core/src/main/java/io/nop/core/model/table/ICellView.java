@@ -81,7 +81,7 @@ public interface ICellView extends ICloneable {
      */
     Object getValue();
 
-    default boolean isExportFormattedValue(){
+    default boolean isExportFormattedValue() {
         return false;
     }
 
@@ -91,7 +91,7 @@ public interface ICellView extends ICloneable {
 
     String getFormula();
 
-    default Object getExportValue(){
+    default Object getExportValue() {
         return getValue();
     }
 
@@ -106,7 +106,7 @@ public interface ICellView extends ICloneable {
         return StringHelper.toString(value, null);
     }
 
-    default String getLinkUrl(){
+    default String getLinkUrl() {
         return null;
     }
 
@@ -116,5 +116,15 @@ public interface ICellView extends ICloneable {
      */
     default boolean isBlankCell() {
         return StringHelper.isBlank(getText());
+    }
+
+    default boolean isMergedCell() {
+        if (isProxyCell())
+            return true;
+        return 0 < getMergeDown() || 0 < getMergeAcross();
+    }
+
+    default boolean isMergeParent() {
+        return !isProxyCell();
     }
 }

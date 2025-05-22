@@ -1,8 +1,10 @@
 package io.nop.report.pdf.utils;
 
+import io.nop.excel.model.ExcelBorderStyle;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.color.ColorHelper;
 import io.nop.excel.model.constants.ExcelHorizontalAlignment;
+import io.nop.excel.model.constants.ExcelLineStyle;
 import io.nop.excel.model.constants.ExcelVerticalAlignment;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
@@ -10,6 +12,7 @@ import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.graphics.color.PDColor;
 import org.apache.pdfbox.pdmodel.graphics.color.PDDeviceRGB;
 
+import java.awt.*;
 import java.io.IOException;
 import java.util.List;
 
@@ -32,46 +35,6 @@ public class PdfStyleHelper {
             contentStream.setNonStrokingColor(bgColor);
             contentStream.addRect(x, y - height, width, height);
             contentStream.fill();
-        }
-    }
-
-    // 绘制单元格边框
-    public static void drawCellBorders(PDPageContentStream contentStream,
-                                       ExcelStyle style,
-                                       float x, float y,
-                                       float width, float height) throws IOException {
-        if (style == null) return;
-
-        // 设置边框颜色和宽度
-        float lineWidth = 0.5f; // 默认线宽
-        PDColor borderColor = new PDColor(new float[]{0, 0, 0}, PDDeviceRGB.INSTANCE);
-
-        contentStream.setLineWidth(lineWidth);
-        contentStream.setStrokingColor(borderColor);
-
-        // 绘制各边边框
-        if (style.getTopBorder() != null) {
-            contentStream.moveTo(x, y);
-            contentStream.lineTo(x + width, y);
-            contentStream.stroke();
-        }
-
-        if (style.getBottomBorder() != null) {
-            contentStream.moveTo(x, y - height);
-            contentStream.lineTo(x + width, y - height);
-            contentStream.stroke();
-        }
-
-        if (style.getLeftBorder() != null) {
-            contentStream.moveTo(x, y);
-            contentStream.lineTo(x, y - height);
-            contentStream.stroke();
-        }
-
-        if (style.getRightBorder() != null) {
-            contentStream.moveTo(x + width, y);
-            contentStream.lineTo(x + width, y - height);
-            contentStream.stroke();
         }
     }
 
@@ -107,6 +70,15 @@ public class PdfStyleHelper {
         }
     }
 
+    public static void drawText(PDPageContentStream contentStream, String text, PDFont font,
+                                float fontSize, PDRectangle cellRect, ExcelStyle style) throws IOException {
+        if (style != null && style.isWrapText()) {
+            drawWrappedText(contentStream, text, font, fontSize, cellRect, style);
+        } else {
+            drawUnwrappedText(contentStream, text, font, fontSize, cellRect, style);
+        }
+    }
+
     /**
      * 绘制不折行的文本
      *
@@ -118,12 +90,12 @@ public class PdfStyleHelper {
      * @param style         Excel样式
      * @throws IOException 如果绘制过程中出错
      */
-    public static void drawText(PDPageContentStream contentStream,
-                                String text,
-                                PDFont font,
-                                float fontSize,
-                                PDRectangle cellRect,
-                                ExcelStyle style) throws IOException {
+    public static void drawUnwrappedText(PDPageContentStream contentStream,
+                                         String text,
+                                         PDFont font,
+                                         float fontSize,
+                                         PDRectangle cellRect,
+                                         ExcelStyle style) throws IOException {
         if (text == null || text.isEmpty()) {
             return;
         }
@@ -236,5 +208,189 @@ public class PdfStyleHelper {
         }
     }
 
+    // 获取字体大小（保持不变）
+    public static float getFontSize(io.nop.excel.model.ExcelFont excelFont) {
+        return excelFont != null && excelFont.getFontSize() > 0 ? excelFont.getFontSize() : 10;
+    }
 
+    // 绘制边框
+    public static void drawBorder(PDPageContentStream contentStream,
+                                  PDRectangle cellRect,
+                                  ExcelStyle style) throws IOException {
+        if (style == null) return;
+
+        // 绘制上边框
+        drawBorderLine(contentStream,
+                cellRect.getLowerLeftX(), cellRect.getUpperRightY(),
+                cellRect.getUpperRightX(), cellRect.getUpperRightY(),
+                style.getTopBorder());
+
+        // 绘制右边框
+        drawBorderLine(contentStream,
+                cellRect.getUpperRightX(), cellRect.getUpperRightY(),
+                cellRect.getUpperRightX(), cellRect.getLowerLeftY(),
+                style.getRightBorder());
+
+        // 绘制下边框
+        drawBorderLine(contentStream,
+                cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
+                cellRect.getUpperRightX(), cellRect.getLowerLeftY(),
+                style.getBottomBorder());
+
+        // 绘制左边框
+        drawBorderLine(contentStream,
+                cellRect.getLowerLeftX(), cellRect.getUpperRightY(),
+                cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
+                style.getLeftBorder());
+
+        // 绘制对角线（如果有）
+        if (style.getDiagonalLeftBorder() != null) {
+            drawBorderLine(contentStream,
+                    cellRect.getLowerLeftX(), cellRect.getUpperRightY(),
+                    cellRect.getUpperRightX(), cellRect.getLowerLeftY(),
+                    style.getDiagonalLeftBorder());
+        }
+
+        if (style.getDiagonalRightBorder() != null) {
+            drawBorderLine(contentStream,
+                    cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
+                    cellRect.getUpperRightX(), cellRect.getUpperRightY(),
+                    style.getDiagonalRightBorder());
+        }
+    }
+
+
+    private static void drawBorderLine(PDPageContentStream contentStream,
+                                       float x1, float y1,
+                                       float x2, float y2,
+                                       ExcelBorderStyle borderStyle) throws IOException {
+        if (borderStyle == null || borderStyle.getType() == ExcelLineStyle.NONE) {
+            return;
+        }
+
+        Color color = parseColor(borderStyle.getColor());
+        if (color == null) {
+            color = Color.BLACK;
+        }
+
+        float lineWidth = getLineWidth(borderStyle);
+        contentStream.setStrokingColor(color);
+        contentStream.setLineWidth(lineWidth);
+
+        // 处理不同的线型
+        switch (borderStyle.getType()) {
+            case DASHED:
+                contentStream.setLineDashPattern(new float[]{3}, 0);
+                break;
+            case DOTTED:
+                contentStream.setLineDashPattern(new float[]{1}, 0);
+                break;
+            case DASH_DOT:
+                contentStream.setLineDashPattern(new float[]{3, 1, 1, 1}, 0);
+                break;
+            case DASH_DOT_DOT:
+                contentStream.setLineDashPattern(new float[]{3, 1, 1, 1, 1, 1}, 0);
+                break;
+            case DOUBLE:
+                // 双线需要绘制两次
+                drawDoubleLine(contentStream, x1, y1, x2, y2, lineWidth);
+                return;
+            default:
+                contentStream.setLineDashPattern(new float[]{}, 0);
+        }
+
+        contentStream.moveTo(x1, y1);
+        contentStream.lineTo(x2, y2);
+        contentStream.stroke();
+    }
+
+    private static void drawDoubleLine(PDPageContentStream contentStream,
+                                       float x1, float y1, float x2, float y2,
+                                       float lineWidth) throws IOException {
+        // 计算线的方向向量
+        float dx = x2 - x1;
+        float dy = y2 - y1;
+        double length = Math.sqrt(dx * dx + dy * dy);
+        if (length == 0) return;
+
+        // 计算垂直方向的偏移量
+        float offsetX = (dy / (float) length) * lineWidth;
+        float offsetY = (-dx / (float) length) * lineWidth;
+
+        // 绘制第一条线
+        contentStream.moveTo(x1 + offsetX, y1 + offsetY);
+        contentStream.lineTo(x2 + offsetX, y2 + offsetY);
+        contentStream.stroke();
+
+        // 绘制第二条线
+        contentStream.moveTo(x1 - offsetX, y1 - offsetY);
+        contentStream.lineTo(x2 - offsetX, y2 - offsetY);
+        contentStream.stroke();
+    }
+
+    // 将Excel颜色字符串转换为AWT Color
+    public static Color parseColor(String colorStr) {
+        if (colorStr == null || colorStr.isEmpty()) {
+            return null;
+        }
+
+        try {
+            colorStr = colorStr.trim().toLowerCase();
+
+            // 处理命名颜色
+            switch (colorStr) {
+                case "black":
+                    return Color.BLACK;
+                case "white":
+                    return Color.WHITE;
+                case "red":
+                    return Color.RED;
+                case "green":
+                    return Color.GREEN;
+                case "blue":
+                    return Color.BLUE;
+                case "yellow":
+                    return Color.YELLOW;
+                case "gray":
+                    return Color.GRAY;
+            }
+
+            if (colorStr.startsWith("#")) {
+                return Color.decode(colorStr);
+            } else if (colorStr.startsWith("rgb(")) {
+                String[] parts = colorStr.substring(4, colorStr.length() - 1).split(",");
+                int r = Integer.parseInt(parts[0].trim());
+                int g = Integer.parseInt(parts[1].trim());
+                int b = Integer.parseInt(parts[2].trim());
+                return new Color(r, g, b);
+            } else if (colorStr.startsWith("rgba(")) {
+                String[] parts = colorStr.substring(5, colorStr.length() - 1).split(",");
+                int r = Integer.parseInt(parts[0].trim());
+                int g = Integer.parseInt(parts[1].trim());
+                int b = Integer.parseInt(parts[2].trim());
+                float a = Float.parseFloat(parts[3].trim());
+                return new Color(r, g, b, (int) (a * 255));
+            }
+        } catch (Exception e) {
+            // 如果解析失败，返回null
+        }
+        return null;
+    }
+
+    private static float getLineWidth(ExcelBorderStyle borderStyle) {
+        switch (borderStyle.getType()) {
+            case HAIR:
+                return 0.5f;
+            case SINGLE:
+                return 1f;
+            case MEDIUM:
+                return 1.5f;
+            case THICK:
+                return 2f;
+            case DOUBLE:
+                return 1.5f; // 双线需要特殊处理
+            default:
+                return 1f;
+        }
+    }
 }

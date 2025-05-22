@@ -13,13 +13,20 @@ import io.nop.excel.format.ExcelFormatHelper;
 import io.nop.excel.model._gen._ExcelWorkbook;
 
 import java.text.Format;
+import java.util.List;
 
 import static io.nop.excel.ExcelErrors.ARG_SHEET_NAME;
 import static io.nop.excel.ExcelErrors.ERR_EXCEL_UNKNOWN_SHEET;
 
-public class ExcelWorkbook extends _ExcelWorkbook implements INeedInit {
+public class ExcelWorkbook extends _ExcelWorkbook implements INeedInit, IExcelStyleProvider {
     public ExcelWorkbook() {
 
+    }
+
+    @Override
+    public ExcelStyle getDefaultStyle() {
+        List<ExcelStyle> styles = getStyles();
+        return styles.isEmpty() ? null : styles.get(0);
     }
 
     public void clearSheets() {

@@ -80,6 +80,11 @@ public interface ITableView extends IExtensibleObject {
         return getRow(rowIndex).getCells();
     }
 
+    default Double getRowHeight(int rowIndex) {
+        IRowView row = getRow(rowIndex);
+        return row == null ? null : row.getHeight();
+    }
+
     /**
      * 根据行坐标和列坐标取到单元格。如果该位置被合并单元格占用，则返回ProxyCell
      *
@@ -191,5 +196,9 @@ public interface ITableView extends IExtensibleObject {
 
     default List<Map<String, Object>> getRowValues(List<String> headers) {
         return getRowValues(headers, (cell) -> cell == null ? null : cell.getValue());
+    }
+
+    default ITable<? extends IRow> clip() {
+        return (ITable<? extends IRow>) this;
     }
 }
