@@ -263,6 +263,17 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
         return null;
     }
 
+    public MarkdownCodeBlock getCodeBlock(String lang) {
+        if (StringHelper.isEmpty(text))
+            return null;
+        return new MarkdownCodeBlockParser().parseCodeBlockForLang(getLocation(), text, lang);
+    }
+
+    public String getCodeSource(String lang) {
+        MarkdownCodeBlock block = getCodeBlock(lang);
+        return block == null ? null : block.getSource();
+    }
+
     public MarkdownSection findSectionBySectionNo(String sectionNo) {
         return findSection(section -> sectionNo.equals(section.getSectionNo()));
     }

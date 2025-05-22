@@ -4,5 +4,6 @@ public enum PromptOutputFormat {
     xml,
     json,
     markdown,
+    code,
     text
 }

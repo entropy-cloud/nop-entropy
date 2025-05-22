@@ -18,6 +18,13 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: codeLang
+     * 
+     */
+    private java.lang.String _codeLang ;
+    
+    /**
+     *  
      * xml name: defaultExpr
      * 当不满足解析条件时，执行defaultExpr返回缺省值
      */
@@ -137,6 +144,25 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
      * 
      */
     private java.lang.String _xdefPath ;
+    
+    /**
+     * 
+     * xml name: codeLang
+     *  
+     */
+    
+    public java.lang.String getCodeLang(){
+      return _codeLang;
+    }
+
+    
+    public void setCodeLang(java.lang.String value){
+        checkAllowChange();
+        
+        this._codeLang = value;
+           
+    }
+
     
     /**
      * 
@@ -483,6 +509,7 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("codeLang",this.getCodeLang());
         out.putNotNull("defaultExpr",this.getDefaultExpr());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
@@ -511,6 +538,7 @@ public abstract class _PromptOutputModel extends io.nop.core.resource.component.
     protected void copyTo(PromptOutputModel instance){
         super.copyTo(instance);
         
+        instance.setCodeLang(this.getCodeLang());
         instance.setDefaultExpr(this.getDefaultExpr());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());

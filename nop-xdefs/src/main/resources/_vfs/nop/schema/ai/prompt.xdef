@@ -32,7 +32,7 @@
         -->
         <output name="!var-name" displayName="string" xdef:name="PromptOutputModel" type="generic-type"
                 optional="!boolean=false" mandatory="!boolean=false"
-                format="enum:io.nop.ai.core.model.PromptOutputFormat"
+                format="enum:io.nop.ai.core.model.PromptOutputFormat" codeLang="string"
                 skipWhenResponseInvalid="!boolean=false" parseAfterPostProcess="!boolean=false">
             <description>string</description>
             <schema xdef:ref="../schema/schema.xdef"/>

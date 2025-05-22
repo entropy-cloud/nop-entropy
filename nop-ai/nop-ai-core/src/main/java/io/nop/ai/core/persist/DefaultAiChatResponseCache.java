@@ -3,6 +3,7 @@ package io.nop.ai.core.persist;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.Prompt;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.FileResource;
 import org.slf4j.Logger;
@@ -32,7 +33,7 @@ public class DefaultAiChatResponseCache implements IAiChatResponseCache {
             return null;
 
         LOG.info("nop.ai.use-cached-response:promptName={},cachedPath={}", prompt.getName(), resource.getPath());
-        AiChatExchange exchange =  chatExchangePersister.load(resource);
+        AiChatExchange exchange = chatExchangePersister.load(resource);
         exchange.makeChatOptions().setSessionId(options.getSessionId());
         return exchange;
     }
@@ -54,7 +55,9 @@ public class DefaultAiChatResponseCache implements IAiChatResponseCache {
 
     IResource getCacheResource(Prompt prompt, AiChatOptions options) {
         String hash = makeRequestHash(prompt, options);
-        String cachePath = hash.substring(0, 2) + '/' + hash.substring(2, 4) + '/' + hash + "-exchange.md";
+        String cachePath = StringHelper.safeFileName(options.getProvider()) + "/" + StringHelper.safeFileName(options.getModel());
+        cachePath += "/" + hash.substring(0, 2) + '/' + hash.substring(2, 4) + '/' + hash + "-exchange.md";
+
         String promptName = prompt.getName();
         if (promptName == null)
             promptName = "unnamed";

@@ -176,6 +176,8 @@ public class PromptModel extends _PromptModel implements IPromptTemplate, INeedI
             value = chatResponse.parseJsonContent();
         } else if (output.getFormat() == PromptOutputFormat.markdown) {
             value = chatResponse.parseMarkdownContent();
+        } else if (output.getFormat() == PromptOutputFormat.code) {
+            value = chatResponse.parseCodeBlock(output.getCodeLang());
         } else if (output.getParseFromResponse() != null) {
             PromptOutputParseModel parseModel = output.getParseFromResponse();
             Guard.notNull(parseModel, "parseFromResponse");

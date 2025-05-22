@@ -45,4 +45,6 @@ inputs:
 
 outputs:
   - name: RESULT
-    format: text
+    format: code
+    codeLang: java
+    mandatory: true

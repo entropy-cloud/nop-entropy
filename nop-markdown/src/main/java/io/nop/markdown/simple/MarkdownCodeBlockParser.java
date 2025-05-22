@@ -3,11 +3,45 @@ package io.nop.markdown.simple;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
 public class MarkdownCodeBlockParser {
     static final String CODE_BLOCK_START = "```";
     static final String MIDDLE_CODE_BLOCK_START = "\n```";
 
-    public MarkdownCodeBlock parseCodeBlock(SourceLocation loc, String text, int startPos) {
+    public MarkdownCodeBlock parseCodeBlockForLang(SourceLocation loc, String text, String lang) {
+        int pos = 0;
+        do {
+            MarkdownCodeBlock block = parseNextCodeBlock(loc, text, pos);
+            if (block == null)
+                return null;
+            if (lang == null || lang.equals(block.getLang()))
+                return block;
+            pos = block.getEndPos();
+        } while (pos < text.length());
+        return null;
+    }
+
+    public List<MarkdownCodeBlock> parseAllCodeBlocks(SourceLocation loc, String text) {
+        List<MarkdownCodeBlock> ret = new ArrayList<>();
+        forEachCodeBlock(loc, text, ret::add);
+        return ret;
+    }
+
+    public void forEachCodeBlock(SourceLocation loc, String text, Consumer<MarkdownCodeBlock> consumer) {
+        int pos = 0;
+        do {
+            MarkdownCodeBlock block = parseNextCodeBlock(loc, text, pos);
+            if (block == null)
+                return;
+            consumer.accept(block);
+            pos = block.getEndPos();
+        } while (pos < text.length());
+    }
+
+    public MarkdownCodeBlock parseNextCodeBlock(SourceLocation loc, String text, int startPos) {
         int quoteStart = findQuoteStart(text, startPos);
         if (quoteStart < 0) {
             return null;
@@ -33,7 +67,7 @@ public class MarkdownCodeBlockParser {
             blockEndPos = text.length();
 
         String lang = text.substring(quoteEnd, langEnd).trim();
-        String source = text.substring(langEnd, blockEndPos);
+        String source = text.substring(langEnd + 1, blockEndPos);
 
         MarkdownCodeBlock codeBlock = new MarkdownCodeBlock();
         if (loc != null) {
@@ -44,7 +78,7 @@ public class MarkdownCodeBlockParser {
         codeBlock.setLang(lang);
         codeBlock.setSource(source);
 
-        return null;
+        return codeBlock;
     }
 
     int findQuoteStart(String text, int startPos) {
