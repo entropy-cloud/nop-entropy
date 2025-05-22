@@ -29,32 +29,6 @@
             <artifactId>pdfbox</artifactId>
         </dependency>
 
-        <!--        <dependency>-->
-        <!--            <groupId>com.github.librepdf</groupId>-->
-        <!--            <artifactId>openpdf</artifactId>-->
-        <!--        </dependency>-->
-
-        <!--        <dependency>-->
-        <!--            <groupId>org.jsoup</groupId>-->
-        <!--            <artifactId>jsoup</artifactId>-->
-        <!--            <version>1.14.3</version>-->
-        <!--            <scope>test</scope>-->
-        <!--        </dependency>-->
-
-        <!--        <dependency>-->
-        <!--            <groupId>com.openhtmltopdf</groupId>-->
-        <!--            <artifactId>openhtmltopdf-pdfbox</artifactId>-->
-        <!--            <version>1.0.9</version>-->
-        <!--            <scope>test</scope>-->
-        <!--        </dependency>-->
-
-        <!--        <dependency>-->
-        <!--            <groupId>org.xhtmlrenderer</groupId>-->
-        <!--            <artifactId>flying-saucer-pdf</artifactId>-->
-        <!--            <version>9.1.20</version>-->
-        <!--            <scope>test</scope>-->
-        <!--        </dependency>-->
-
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-autotest-junit</artifactId>

@@ -7,6 +7,7 @@
  */
 package io.nop.report.pdf.renderer;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.model.table.ITableView;
@@ -14,6 +15,8 @@ import io.nop.core.resource.tpl.IBinaryTemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
 import io.nop.ooxml.xlsx.output.IExcelSheetGenerator;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,10 +29,13 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
     private final ExcelWorkbook model;
     private final IExcelSheetGenerator sheetGenerator;
 
+    private final PdfRenderer renderer;
+
 
     public PdfReportRenderer(ExcelWorkbook model, IExcelSheetGenerator sheetGenerator) {
         this.model = model;
         this.sheetGenerator = sheetGenerator;
+        this.renderer = new PdfRenderer(new PDDocument());
     }
 
     @Override
@@ -56,6 +62,11 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
         if (table.getRowCount() == 0)
             return;
 
-
+        try {
+            new PagedPdfTableRenderer(renderer, this.model, 0, sheet.getDefaultColumnWidth(), sheet.getDefaultRowHeight())
+                    .render(table, PDRectangle.A4);
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
     }
 }
