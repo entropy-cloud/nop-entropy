@@ -107,13 +107,13 @@ public class PdfTableRenderer {
         double currentY = startY;
 
         for (int row = 0; row < excelTable.getRowCount(); row++) {
-            double rowHeight = excelTable.getRowHeight(row);
+            double rowHeight = rowHeight(excelTable.getRowHeight(row));
             double currentX = startX;
 
             List<? extends ICellView> cells = excelTable.getRowCells(row);
             for (int col = 0; col < cells.size(); col++) {
-                double colWidth = excelTable.getColWidth(col);
-                ICellView cell = cells.get(row);
+                double colWidth = colWidth(excelTable.getColWidth(col));
+                ICellView cell = cells.get(col);
 
                 // 跳过合并单元格的非主单元格
                 if (cell != null && cell.isMergedCell() && !cell.isMergeParent()) {

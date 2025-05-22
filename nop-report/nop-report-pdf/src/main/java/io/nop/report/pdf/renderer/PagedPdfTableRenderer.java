@@ -114,8 +114,6 @@ public class PagedPdfTableRenderer {
             region.endRow = row;
         }
 
-        // 检查合并单元格是否跨页
-        adjustForMergedCells(excelTable, region);
 
         return region;
     }
@@ -160,9 +158,6 @@ public class PagedPdfTableRenderer {
             region.endRow = row;
         }
 
-        // 3. 检查合并单元格是否跨页，调整分页边界
-        adjustForMergedCells(excelTable, region);
-
         return region;
     }
 
@@ -199,40 +194,6 @@ public class PagedPdfTableRenderer {
         }
 
         return maxHeight;
-    }
-
-    /**
-     * 调整分页边界以适应合并单元格
-     */
-    private void adjustForMergedCells(ITableView excelTable, PageRegion region) {
-        // 检查分页边界上的单元格是否有跨页合并
-        for (int row = region.startRow; row <= region.endRow; row++) {
-            for (int col = region.startCol; col <= region.endCol; col++) {
-                ICellView cell = excelTable.getCell(row, col);
-                if (cell != null && cell.isMergeParent()) {
-                    int mergeDown = cell.getMergeDown();
-                    int mergeAcross = cell.getMergeAcross();
-
-                    // 检查垂直合并是否跨页
-                    if (row + mergeDown > region.endRow) {
-                        // 需要扩展分页的行范围或拆分合并单元格
-                        // 这里选择扩展行范围
-                        region.endRow = Math.min(row + mergeDown, excelTable.getRowCount() - 1);
-                        // 重新计算高度
-                        region.height = calculateRegionHeight(excelTable, region);
-                    }
-
-                    // 检查水平合并是否跨页
-                    if (col + mergeAcross > region.endCol) {
-                        // 需要扩展分页的列范围或拆分合并单元格
-                        // 这里选择扩展列范围
-                        region.endCol = Math.min(col + mergeAcross, excelTable.getColCount() - 1);
-                        // 重新计算宽度
-                        region.width = calculateRegionWidth(excelTable, region);
-                    }
-                }
-            }
-        }
     }
 
     /**

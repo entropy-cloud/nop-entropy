@@ -102,6 +102,15 @@
         ]
       },
       {
+        "name": "checkThink",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiChatExchange",
+          "io.nop.ai.core.model.LlmModel",
+          "java.lang.String",
+          "java.util.Map"
+        ]
+      },
+      {
         "name": "doSendChat",
         "parameterTypes": [
           "java.lang.String",
@@ -6544,6 +6553,13 @@
         ]
       },
       {
+        "name": "getBucketName",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getExternalPath",
         "parameterTypes": [
           "io.nop.file.dao.entity.NopFileRecord"
@@ -6831,6 +6847,66 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.core.rpc.RpcServiceOnGraphQL"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.core.schema.introspection.__Directive"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.core.schema.introspection.__EnumValue"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.core.schema.introspection.__Field"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.core.schema.introspection.__InputValue"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.graphql.core.schema.introspection.__Type"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowWrite": true,
@@ -7060,8 +7136,21 @@
     "fields": [],
     "methods": [
       {
+        "name": "isSecretHeader",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "newSSLContext",
         "parameterTypes": []
+      },
+      {
+        "name": "normalizeBody",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.Object"
+        ]
       },
       {
         "name": "toJdkHttpRequest",

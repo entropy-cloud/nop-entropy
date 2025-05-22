@@ -78,8 +78,11 @@
 /i18n/zh-CN/nop-web.i18n.yaml
 /i18n/zh-CN/nop-wf.i18n.yaml
 /nop/ai/beans/ai-defaults.beans.xml
+/nop/ai/llm/deepseek.llm.xml
 /nop/ai/llm/default.llm.xml
+/nop/ai/llm/free.llm.xml
 /nop/ai/llm/ollama.llm.xml
+/nop/ai/llm/volcengine.llm.xml
 /nop/ai/xlib/ai.xlib
 /nop/aop/nop-api-core.annotations
 /nop/aop/nop-quarkus-demo.annotations
@@ -780,6 +783,8 @@
 /nop/schema/record/record-enum.xdef
 /nop/schema/record/record-field.xdef
 /nop/schema/record/record-file.xdef
+/nop/schema/record/record-mapping.xdef
+/nop/schema/record/record-mappings.xdef
 /nop/schema/record/record-object.xdef
 /nop/schema/record/record-param.xdef
 /nop/schema/record/record-simple-field.xdef

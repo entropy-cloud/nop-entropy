@@ -32,6 +32,8 @@ public class FontManager {
     private final Map<String, String> fontNameAliases = new HashMap<>();
 
     private PDFont defaultFont;
+    private IResource defaultFontResource;
+    private boolean inited;
 
     public static FontManager instance() {
         return _instance;
@@ -50,15 +52,29 @@ public class FontManager {
     }
 
     public FontManager() {
+
+    }
+
+    protected synchronized void init() {
+        if (inited)
+            return;
+
         try {
+            IResource resource = getFontResource("default", false, false);
+            if (resource != null && resource.exists()) {
+                defaultFontResource = resource;
+            }
+
             // Try to use Helvetica as default font in PDFBox
             defaultFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
         } catch (Exception e) {
             LOG.error("nop.pdf.create-base-font-fail", e);
         }
+        inited = true;
     }
 
     public PDFont getDefaultFont() {
+
         return defaultFont;
     }
 
@@ -67,6 +83,8 @@ public class FontManager {
     }
 
     public PDFont getFont(String fontName, boolean bold, boolean italic, PDDocument doc) {
+        init();
+
         // 1. 获取基础字体名称（处理可能为null的情况）
         if (fontName == null)
             fontName = "Helvetica";
@@ -83,7 +101,7 @@ public class FontManager {
         }
         // 6. 回退到默认字体
         LOG.warn("nop.pdf.font-not-found:fontName={}, using default font", fontName);
-        return defaultFont;
+        return getDefaultFont();
     }
 
     public PDFont getSystemFont(String fontName, boolean bold, boolean italic) {
@@ -110,7 +128,11 @@ public class FontManager {
 
         IResource fontResource = getFontResource(fontName, bold, italic);
         if (fontResource == null)
+            fontResource = defaultFontResource;
+
+        if (fontResource == null) {
             return null;
+        }
 
         InputStream is = fontResource.getInputStream();
         if (is != null) {

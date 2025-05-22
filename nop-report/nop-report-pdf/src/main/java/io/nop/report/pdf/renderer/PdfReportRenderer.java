@@ -51,6 +51,7 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
                 renderSheet(sheet, context);
             });
         }
+        renderer.saveToStream(os);
 
         long endTime = CoreMetrics.currentTimeMillis();
         LOG.info("nop.report.end-generate-pdf:usedTime={}", endTime - beginTime);

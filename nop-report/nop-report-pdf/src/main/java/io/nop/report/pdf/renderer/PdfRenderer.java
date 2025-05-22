@@ -8,6 +8,7 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,5 +46,9 @@ public class PdfRenderer {
 
     public PDPageContentStream newContentStream(PDPage page) throws IOException {
         return new PDPageContentStream(document, page);
+    }
+
+    public void saveToStream(OutputStream outputStream) throws IOException {
+        document.save(outputStream);
     }
 }

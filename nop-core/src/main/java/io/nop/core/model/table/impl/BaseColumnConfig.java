@@ -11,11 +11,19 @@ import io.nop.core.model.table.IColumnConfig;
 import io.nop.core.reflect.hook.SerializableExtensibleObject;
 
 public class BaseColumnConfig extends SerializableExtensibleObject implements IColumnConfig {
-    private static final long serialVersionUID = 6006406625695160780L;
+    //private static final long serialVersionUID = 6006406625695160780L;
 
     private String styleId;
     private Double width;
     private boolean hidden;
+
+    public static BaseColumnConfig from(IColumnConfig config) {
+        BaseColumnConfig config1 = new BaseColumnConfig();
+        config1.setHidden(config.isHidden());
+        config1.setStyleId(config.getStyleId());
+        config1.setWidth(config.getWidth());
+        return config1;
+    }
 
     @Override
     public String getStyleId() {

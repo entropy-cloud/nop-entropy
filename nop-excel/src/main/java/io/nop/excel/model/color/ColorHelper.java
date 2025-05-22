@@ -107,8 +107,12 @@ public class ColorHelper {
             color = color.substring(2);
         }
 
+        if(color.length() == 8)
+            color = color.substring(2);
+
+
         if (color.length() != 6) {
-            throw new IllegalArgumentException("Invalid color format. Expected 6 hex digits.");
+            throw new IllegalArgumentException("Invalid color format. Expected 6 hex digits:" + color);
         }
 
         int red = Integer.parseInt(color.substring(0, 2), 16);

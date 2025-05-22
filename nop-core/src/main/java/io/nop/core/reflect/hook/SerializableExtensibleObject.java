@@ -24,7 +24,7 @@ import static io.nop.core.CoreErrors.ERR_REFLECT_INVALID_EXT_PROP_NAME;
 import static io.nop.core.CoreErrors.ERR_REFLECT_UNKNOWN_PROP;
 
 public class SerializableExtensibleObject implements IExtensibleObject {
-    private static final long serialVersionUID = -7000895782260173940L;
+    // private static final long serialVersionUID = -7000895782260173940L;
     private Map<String, Object> extProps = Collections.emptyMap();
 
     public void copyExtPropsTo(SerializableExtensibleObject obj) {
