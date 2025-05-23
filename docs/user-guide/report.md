@@ -293,3 +293,15 @@ output.generateToFile(outputFile, scope);
 ```
 styleIdExpr=cell.ev == 2002 ? 'red' : null
 ```
+
+## PDF导出
+具体示例参见 nop-report-pdf的单元测试
+
+1. 引入nop-report-pdf模块
+2. 使用的字体需要保存为`/_vfs/fonts/{fontName}.ttf`，`/_vfs/fonts/{fontName}-{Bold}{Italic}.ttf`
+3. 缺省字体需要保存为`/_vfs/fonts/default.ttf`
+4. 导出时使用`renderType`参数为`pdf`
+
+```
+ reportEngine.getRenderer("/test/test-pdf.xpt.xlsx", "pdf").generateToFile(file, XLang.newEvalScope());
+```
