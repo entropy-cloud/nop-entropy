@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.api.core.beans;
+package io.nop.api.core.beans.geometry;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.core.StaticFactoryMethod;

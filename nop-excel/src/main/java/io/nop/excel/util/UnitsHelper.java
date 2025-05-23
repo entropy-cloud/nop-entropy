@@ -67,7 +67,7 @@ public class UnitsHelper {
      */
     public static final float DEFAULT_CHARACTER_WIDTH = 7.0017f; // 单位为px
 
-    public static final double DEFAULT_CHARACTER_WIDTH_IN_PT = 6.5;
+    public static final float DEFAULT_CHARACTER_WIDTH_IN_PT = 6.5f;
 
     /**
      * Column widths are in fractional characters, this is the EMU equivalent. One character is defined as the widest

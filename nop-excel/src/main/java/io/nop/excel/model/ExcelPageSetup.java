@@ -20,4 +20,8 @@ public class ExcelPageSetup extends _ExcelPageSetup {
             return ExcelConstants.ORIENTATION_LANDSCAPE;
         return ExcelConstants.ORIENTATION_PORTRAIT;
     }
+
+    public boolean isFitToWidthAndHeight() {
+        return Boolean.TRUE.equals(getFitToWidth()) && Boolean.TRUE.equals(getFitToHeight());
+    }
 }

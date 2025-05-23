@@ -18,7 +18,6 @@ import java.util.List;
 
 public class PdfStyleHelper {
 
-
     // 将Excel颜色代码转换为PDFBox颜色
     public static PDColor convertColor(String excelColor) {
         float[] components = ColorHelper.toNormalizedRgb(excelColor);
@@ -30,15 +29,16 @@ public class PdfStyleHelper {
                                          ExcelStyle style,
                                          float x, float y,
                                          float width, float height) throws IOException {
-        if (style != null && style.getFillBgColor() != null && !style.getFillBgColor().isEmpty()) {
-            PDColor bgColor = convertColor(style.getFillBgColor());
-            contentStream.setNonStrokingColor(bgColor);
-            contentStream.addRect(x, y - height, width, height);
+        if (style != null && style.getFillFgColor() != null && !style.getFillFgColor().isEmpty()) {
+            // 使用fgColor而不是bgColor
+            PDColor fgColor = convertColor(style.getFillFgColor());
+            contentStream.setNonStrokingColor(fgColor);
+            contentStream.addRect(x, y, width, height);
             contentStream.fill();
         }
     }
 
-    // 计算文本位置
+    // 计算文本位置（修正版）
     public static float[] calculateTextPosition(String text, PDFont font, float fontSize,
                                                 float cellX, float cellY, float cellWidth, float cellHeight,
                                                 ExcelHorizontalAlignment hAlign, ExcelVerticalAlignment vAlign) {
@@ -46,27 +46,23 @@ public class PdfStyleHelper {
             float textWidth = font.getStringWidth(text) / 1000 * fontSize;
             float textHeight = font.getFontDescriptor().getCapHeight() / 1000 * fontSize;
 
-            float x = cellX;
+            float x = cellX + 2; // 默认左对齐，左边距2pt
             if (hAlign == ExcelHorizontalAlignment.CENTER) {
                 x = cellX + (cellWidth - textWidth) / 2;
             } else if (hAlign == ExcelHorizontalAlignment.RIGHT) {
-                x = cellX + cellWidth - textWidth - 2; // 右边留2pt边距
-            } else {
-                x = cellX + 2; // 左边留2pt边距
+                x = cellX + cellWidth - textWidth - 2; // 右边距2pt
             }
 
-            float y = cellY;
+            float y = cellY + cellHeight - textHeight - 2; // 默认顶部对齐，上边距2pt
             if (vAlign == ExcelVerticalAlignment.CENTER) {
-                y = cellY - (cellHeight - textHeight) / 2 - textHeight * 0.3f;
+                y = cellY + (cellHeight - textHeight) / 2;
             } else if (vAlign == ExcelVerticalAlignment.BOTTOM) {
-                y = cellY - cellHeight + textHeight + 2; // 底部留2pt边距
-            } else {
-                y = cellY - textHeight * 1.3f; // 顶部对齐
+                y = cellY + textHeight + 2; // 下边距2pt
             }
 
             return new float[]{x, y};
         } catch (IOException e) {
-            return new float[]{cellX + 2, cellY - 10}; // 默认位置
+            return new float[]{cellX + 2, cellY + cellHeight - 10}; // 默认位置
         }
     }
 
@@ -79,17 +75,7 @@ public class PdfStyleHelper {
         }
     }
 
-    /**
-     * 绘制不折行的文本
-     *
-     * @param contentStream PDF内容流
-     * @param text          要绘制的文本
-     * @param font          字体
-     * @param fontSize      字体大小
-     * @param cellRect      单元格矩形区域
-     * @param style         Excel样式
-     * @throws IOException 如果绘制过程中出错
-     */
+    // 绘制不折行的文本（修正版）
     public static void drawUnwrappedText(PDPageContentStream contentStream,
                                          String text,
                                          PDFont font,
@@ -100,43 +86,27 @@ public class PdfStyleHelper {
             return;
         }
 
-        // 获取对齐方式
         ExcelHorizontalAlignment hAlign = style != null ? style.getHorizontalAlign() : null;
         ExcelVerticalAlignment vAlign = style != null ? style.getVerticalAlign() : null;
 
-        // 计算文本位置
         float[] position = calculateTextPosition(text, font, fontSize,
-                cellRect.getLowerLeftX(), cellRect.getUpperRightY(),
+                cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
                 cellRect.getWidth(), cellRect.getHeight(),
                 hAlign, vAlign);
 
-        // 设置字体和颜色
         contentStream.setFont(font, fontSize);
         if (style != null && style.getFont() != null) {
             PDColor textColor = convertColor(style.getFont().getFontColor());
-            if (textColor != null) {
-                contentStream.setNonStrokingColor(textColor);
-            }
+            contentStream.setNonStrokingColor(textColor);
         }
 
-        // 绘制文本
         contentStream.beginText();
         contentStream.newLineAtOffset(position[0], position[1]);
         contentStream.showText(text);
         contentStream.endText();
     }
 
-    /**
-     * 绘制自动折行的文本
-     *
-     * @param contentStream PDF内容流
-     * @param text          要绘制的文本
-     * @param font          字体
-     * @param fontSize      字体大小
-     * @param cellRect      单元格矩形区域
-     * @param style         Excel样式
-     * @throws IOException 如果绘制过程中出错
-     */
+    // 绘制自动折行的文本（修正版）
     public static void drawWrappedText(PDPageContentStream contentStream,
                                        String text,
                                        PDFont font,
@@ -147,33 +117,24 @@ public class PdfStyleHelper {
             return;
         }
 
-        // 获取对齐方式和折行模式
         ExcelHorizontalAlignment hAlign = style != null ? style.getHorizontalAlign() : null;
         ExcelVerticalAlignment vAlign = style != null ? style.getVerticalAlign() : null;
-        int wrapMode = style != null && style.isWrapText() ? 2 : 0;
 
-        // 计算可用宽度（减去左右边距）
         float availableWidth = cellRect.getWidth() - 4; // 2pt边距*2
+        List<String> lines = TextWrapHelper.splitTextIntoLines(text, font, fontSize, availableWidth, 2);
 
-        // 分割文本为多行
-        List<String> lines = TextWrapHelper.splitTextIntoLines(text, font, fontSize, availableWidth, wrapMode);
-
-        // 计算文本块总高度
-        float lineSpacing = 1.2f; // 1.2倍行距
+        float lineSpacing = 1.2f;
         float textBlockHeight = TextWrapHelper.calculateTextBlockHeight(lines, font, fontSize, lineSpacing);
         float lineHeight = font.getFontDescriptor().getCapHeight() / 1000 * fontSize * lineSpacing;
 
-        // 计算起始Y位置
-        float startY = cellRect.getUpperRightY();
+        // 修正的起始Y位置计算
+        float startY = cellRect.getLowerLeftY() + cellRect.getHeight() - 2; // 从顶部开始，留2pt边距
         if (vAlign == ExcelVerticalAlignment.CENTER) {
-            startY = cellRect.getUpperRightY() - (cellRect.getHeight() - textBlockHeight) / 2;
+            startY = cellRect.getLowerLeftY() + (cellRect.getHeight() + textBlockHeight) / 2;
         } else if (vAlign == ExcelVerticalAlignment.BOTTOM) {
-            startY = cellRect.getLowerLeftY() + textBlockHeight;
-        } else {
-            startY = cellRect.getUpperRightY() - 2; // 顶部对齐，留2pt边距
+            startY = cellRect.getLowerLeftY() + textBlockHeight + 2;
         }
 
-        // 设置字体和颜色
         contentStream.setFont(font, fontSize);
         if (style != null && style.getFont() != null) {
             PDColor textColor = convertColor(style.getFont().getFontColor());
@@ -182,7 +143,6 @@ public class PdfStyleHelper {
             }
         }
 
-        // 绘制每一行文本
         for (String line : lines) {
             if (line.isEmpty()) {
                 startY -= lineHeight;
@@ -192,7 +152,6 @@ public class PdfStyleHelper {
             float lineWidth = font.getStringWidth(line) / 1000 * fontSize;
             float x = cellRect.getLowerLeftX() + 2; // 左边距
 
-            // 水平对齐
             if (hAlign == ExcelHorizontalAlignment.CENTER) {
                 x = cellRect.getLowerLeftX() + (cellRect.getWidth() - lineWidth) / 2;
             } else if (hAlign == ExcelHorizontalAlignment.RIGHT) {
@@ -208,57 +167,46 @@ public class PdfStyleHelper {
         }
     }
 
-    // 获取字体大小（保持不变）
+    // 获取字体大小
     public static float getFontSize(io.nop.excel.model.ExcelFont excelFont) {
         return excelFont != null && excelFont.getFontSize() > 0 ? excelFont.getFontSize() : 10;
     }
 
-    // 绘制边框
+    // 绘制边框（修正版）
     public static void drawBorder(PDPageContentStream contentStream,
-                                  PDRectangle cellRect,
+                                  float x, float y, float width, float height,
                                   ExcelStyle style) throws IOException {
-        if (style == null) return;
+        if (style == null) {
+            return;
+        }
 
         // 绘制上边框
-        drawBorderLine(contentStream,
-                cellRect.getLowerLeftX(), cellRect.getUpperRightY(),
-                cellRect.getUpperRightX(), cellRect.getUpperRightY(),
-                style.getTopBorder());
-
+        if (style.getTopBorder() != null) {
+            drawBorderLine(contentStream, x, y + height, x + width, y + height, style.getTopBorder());
+        }
         // 绘制右边框
-        drawBorderLine(contentStream,
-                cellRect.getUpperRightX(), cellRect.getUpperRightY(),
-                cellRect.getUpperRightX(), cellRect.getLowerLeftY(),
-                style.getRightBorder());
-
+        if (style.getRightBorder() != null) {
+            drawBorderLine(contentStream, x + width, y + height, x + width, y, style.getRightBorder());
+        }
         // 绘制下边框
-        drawBorderLine(contentStream,
-                cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
-                cellRect.getUpperRightX(), cellRect.getLowerLeftY(),
-                style.getBottomBorder());
-
+        if (style.getBottomBorder() != null) {
+            drawBorderLine(contentStream, x, y, x + width, y, style.getBottomBorder());
+        }
         // 绘制左边框
-        drawBorderLine(contentStream,
-                cellRect.getLowerLeftX(), cellRect.getUpperRightY(),
-                cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
-                style.getLeftBorder());
-
-        // 绘制对角线（如果有）
-        if (style.getDiagonalLeftBorder() != null) {
-            drawBorderLine(contentStream,
-                    cellRect.getLowerLeftX(), cellRect.getUpperRightY(),
-                    cellRect.getUpperRightX(), cellRect.getLowerLeftY(),
-                    style.getDiagonalLeftBorder());
+        if (style.getLeftBorder() != null) {
+            drawBorderLine(contentStream, x, y + height, x, y, style.getLeftBorder());
         }
 
+        // 绘制对角线（左上到右下）
+        if (style.getDiagonalLeftBorder() != null) {
+            drawBorderLine(contentStream, x, y + height, x + width, y, style.getDiagonalLeftBorder());
+        }
+
+        // 绘制对角线（右上到左下）
         if (style.getDiagonalRightBorder() != null) {
-            drawBorderLine(contentStream,
-                    cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
-                    cellRect.getUpperRightX(), cellRect.getUpperRightY(),
-                    style.getDiagonalRightBorder());
+            drawBorderLine(contentStream, x + width, y + height, x, y, style.getDiagonalRightBorder());
         }
     }
-
 
     private static void drawBorderLine(PDPageContentStream contentStream,
                                        float x1, float y1,
@@ -277,7 +225,6 @@ public class PdfStyleHelper {
         contentStream.setStrokingColor(color);
         contentStream.setLineWidth(lineWidth);
 
-        // 处理不同的线型
         switch (borderStyle.getType()) {
             case DASHED:
                 contentStream.setLineDashPattern(new float[]{3}, 0);
@@ -292,7 +239,6 @@ public class PdfStyleHelper {
                 contentStream.setLineDashPattern(new float[]{3, 1, 1, 1, 1, 1}, 0);
                 break;
             case DOUBLE:
-                // 双线需要绘制两次
                 drawDoubleLine(contentStream, x1, y1, x2, y2, lineWidth);
                 return;
             default:
@@ -307,22 +253,18 @@ public class PdfStyleHelper {
     private static void drawDoubleLine(PDPageContentStream contentStream,
                                        float x1, float y1, float x2, float y2,
                                        float lineWidth) throws IOException {
-        // 计算线的方向向量
         float dx = x2 - x1;
         float dy = y2 - y1;
         double length = Math.sqrt(dx * dx + dy * dy);
         if (length == 0) return;
 
-        // 计算垂直方向的偏移量
         float offsetX = (dy / (float) length) * lineWidth;
         float offsetY = (-dx / (float) length) * lineWidth;
 
-        // 绘制第一条线
         contentStream.moveTo(x1 + offsetX, y1 + offsetY);
         contentStream.lineTo(x2 + offsetX, y2 + offsetY);
         contentStream.stroke();
 
-        // 绘制第二条线
         contentStream.moveTo(x1 - offsetX, y1 - offsetY);
         contentStream.lineTo(x2 - offsetX, y2 - offsetY);
         contentStream.stroke();
@@ -337,22 +279,14 @@ public class PdfStyleHelper {
         try {
             colorStr = colorStr.trim().toLowerCase();
 
-            // 处理命名颜色
             switch (colorStr) {
-                case "black":
-                    return Color.BLACK;
-                case "white":
-                    return Color.WHITE;
-                case "red":
-                    return Color.RED;
-                case "green":
-                    return Color.GREEN;
-                case "blue":
-                    return Color.BLUE;
-                case "yellow":
-                    return Color.YELLOW;
-                case "gray":
-                    return Color.GRAY;
+                case "black": return Color.BLACK;
+                case "white": return Color.WHITE;
+                case "red": return Color.RED;
+                case "green": return Color.GREEN;
+                case "blue": return Color.BLUE;
+                case "yellow": return Color.YELLOW;
+                case "gray": return Color.GRAY;
             }
 
             if (colorStr.startsWith("#")) {
@@ -369,28 +303,22 @@ public class PdfStyleHelper {
                 int g = Integer.parseInt(parts[1].trim());
                 int b = Integer.parseInt(parts[2].trim());
                 float a = Float.parseFloat(parts[3].trim());
-                return new Color(r, g, b, (int) (a * 255));
+                return new Color(r, g, b, (int)(a * 255));
             }
         } catch (Exception e) {
-            // 如果解析失败，返回null
+            // 解析失败返回null
         }
         return null;
     }
 
     private static float getLineWidth(ExcelBorderStyle borderStyle) {
         switch (borderStyle.getType()) {
-            case HAIR:
-                return 0.5f;
-            case SINGLE:
-                return 1f;
-            case MEDIUM:
-                return 1.5f;
-            case THICK:
-                return 2f;
-            case DOUBLE:
-                return 1.5f; // 双线需要特殊处理
-            default:
-                return 1f;
+            case HAIR: return 0.5f;
+            case SINGLE: return 1f;
+            case MEDIUM: return 1.5f;
+            case THICK: return 2f;
+            case DOUBLE: return 1.5f;
+            default: return 1f;
         }
     }
 }

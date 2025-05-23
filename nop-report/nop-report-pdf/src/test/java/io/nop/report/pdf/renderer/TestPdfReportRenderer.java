@@ -17,4 +17,10 @@ public class TestPdfReportRenderer extends JunitBaseTestCase {
         File file = getTargetFile("result.pdf");
         reportEngine.getRenderer("/test/test-pdf.xpt.xlsx", "pdf").generateToFile(file, XLang.newEvalScope());
     }
+
+    @Test
+    public void testRenderImage() {
+        File file = getTargetFile("result-image.pdf");
+        reportEngine.getRenderer("/test/test-image.xpt.xlsx", "pdf").generateToFile(file, XLang.newEvalScope());
+    }
 }

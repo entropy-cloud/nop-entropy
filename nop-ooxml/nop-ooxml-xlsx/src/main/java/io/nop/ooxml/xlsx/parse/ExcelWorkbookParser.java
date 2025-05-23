@@ -13,13 +13,12 @@ import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.model.table.ICellView;
-import io.nop.excel.ExcelConstants;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelClientAnchor;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
-import io.nop.excel.util.UnitsHelper;
+import io.nop.excel.model.constants.ExcelModelConstants;
 import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.xlsx.model.CommentsPart;
 import io.nop.ooxml.xlsx.model.WorkbookPart;
@@ -72,7 +71,7 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
 
         ExcelSheet sheet = contentsHandler.getSheet();
         sheet.setLocation(pkg.getLocation());
-        sheet.setDefaultColumnWidth(ExcelConstants.DEFAULT_COL_WIDTH * UnitsHelper.DEFAULT_CHARACTER_WIDTH_IN_PT);
+        sheet.setDefaultColumnWidth((double) ExcelModelConstants.DEFAULT_COL_WIDTH_IN_PT);
 
         if (includeComments) {
             CommentsPart comments = pkg.getCommentsTable(sheetPart);
@@ -108,8 +107,8 @@ public class ExcelWorkbookParser extends AbstractXlsxParser {
                     image.setData(ByteString.of(imagePart.generateBytes(DisabledEvalScope.INSTANCE)));
                     image.calcSize(sheet);
                     ExcelClientAnchor anchor = image.getAnchor();
-                    sheet.getTable().makeCell(anchor.getRow1(),anchor.getCol1());
-                    sheet.getTable().makeCell(anchor.getRow2(),anchor.getCol2());
+                    sheet.getTable().makeCell(anchor.getRow1(), anchor.getCol1());
+                    sheet.getTable().makeCell(anchor.getRow2(), anchor.getCol2());
                 }
                 sheet.setImages(images);
             }

@@ -19,7 +19,7 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.beans.PageBean;
-import io.nop.api.core.beans.PointBean;
+import io.nop.api.core.beans.geometry.PointBean;
 import io.nop.api.core.beans.PropDefBean;
 import io.nop.api.core.beans.ServiceCallBean;
 import io.nop.api.core.beans.TreeBean;

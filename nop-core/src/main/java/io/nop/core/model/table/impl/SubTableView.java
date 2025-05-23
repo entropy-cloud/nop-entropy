@@ -8,7 +8,6 @@
 package io.nop.core.model.table.impl;
 
 import io.nop.api.core.util.Guard;
-import io.nop.api.core.util.ProcessResult;
 import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.ICellView;
 import io.nop.core.model.table.IColumnConfig;
@@ -18,7 +17,6 @@ import io.nop.core.model.table.ITableView;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class SubTableView implements ITableView {
     private final ITableView table;
@@ -60,7 +58,7 @@ public class SubTableView implements ITableView {
     }
 
     int mapRow(int rowIndex) {
-        return range.getFirstColIndex() + rowIndex;
+        return range.getFirstRowIndex() + rowIndex;
     }
 
     int mapCol(int colIndex) {
@@ -136,20 +134,7 @@ public class SubTableView implements ITableView {
 
     @Override
     public BaseTable clip() {
-        BaseTable table = new BaseTable();
-        table.setCols(getCols().stream().map(BaseColumnConfig::from).collect(Collectors.toList()));
-        int rowCount = getRowCount();
-        int colCount = getColCount();
-        this.forEachRealCell((cell, rowIndex, colIndex) -> {
-            BaseCell copy = new BaseCell();
-            copy.setMergeAcross(Math.min(cell.getMergeAcross(), colCount - colIndex));
-            copy.setMergeDown(Math.min(cell.getMergeDown(), rowCount - rowIndex));
-            copy.setValue(cell.getValue());
-            copy.setStyleId(cell.getStyleId());
-            table.setCell(rowIndex, colIndex, copy);
-            return ProcessResult.CONTINUE;
-        });
-        return table;
+        return BaseTable.extract(this, 0, 0, getRowCount() - 1, getColCount() - 1);
     }
 
     @Override

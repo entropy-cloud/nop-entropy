@@ -19,6 +19,7 @@ limitations under the License.
 
 //package org.apache.poi.ss.usermodel;
 
+import io.nop.api.core.beans.geometry.SizeBean;
 import io.nop.api.core.exceptions.NopException;
 
 import static io.nop.excel.ExcelErrors.ARG_PAPER_SIZE;
@@ -376,10 +377,16 @@ public enum ExcelPaperSize {
 
     private final double width;
     private final double height;
+    private final SizeBean size;
 
     ExcelPaperSize(double width, double height) {
         this.width = width;
         this.height = height;
+        this.size = new SizeBean(width, height);
+    }
+
+    public SizeBean getSize() {
+        return size;
     }
 
     public double getWidth() {
@@ -390,11 +397,11 @@ public enum ExcelPaperSize {
         return height;
     }
 
-    public float getFloatHeight(){
+    public float getFloatHeight() {
         return (float) getHeight();
     }
 
-    public float getFloatWidth(){
+    public float getFloatWidth() {
         return (float) getWidth();
     }
 

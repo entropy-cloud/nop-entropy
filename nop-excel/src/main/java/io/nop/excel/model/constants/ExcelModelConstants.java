@@ -7,15 +7,26 @@
  */
 package io.nop.excel.model.constants;
 
+import io.nop.excel.util.UnitsHelper;
+
 public interface ExcelModelConstants {
 
     // int MAX_ROW_INDEX = AppConfig.var("excel.max_row_index").toInt(500000);
     // int MAX_COL_INDEX = AppConfig.var("excel.max_col_index").toInt(10000);
 
-    float DEFAULT_COLUMN_WIDTH = 54; // 54/72*96 = 72 px
+    // 默认页边距值（单位：pt，1英寸=72pt）
+    float DEFAULT_MARGIN = 72.0f;       // 1 inch (约2.54cm)
+    float DEFAULT_HEADER_FOOTER = 36.0f; // 0.5 inch (约1.27cm)
+    float SMALL_MARGIN = 36.0f;         // 0.5 inch
+
+    //float DEFAULT_COLUMN_WIDTH = 54; // 54/72*96 = 72 px
 
     // 2010缺省为宋体 11号字，而2003为宋体 10号字
-    float DEFAULT_ROW_HEIGHT = 13.5f; // 14.25/28.35 = 0.5cm, 13.5pt = 18px, 14.25pt = 19px
+    float DEFAULT_ROW_HEIGHT_IN_PT = 13.5f; // 14.25/28.35 = 0.5cm, 13.5pt = 18px, 14.25pt = 19px
+
+    float DEFAULT_COL_WIDTH_IN_CHAR = 8.5f;
+
+    float DEFAULT_COL_WIDTH_IN_PT = DEFAULT_COL_WIDTH_IN_CHAR * UnitsHelper.DEFAULT_CHARACTER_WIDTH_IN_PT;
 
     String DOCUMENT_PROPERTIES_NAME = "DocumentProperties";
 

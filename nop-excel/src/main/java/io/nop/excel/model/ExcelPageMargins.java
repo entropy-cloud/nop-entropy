@@ -8,11 +8,54 @@
 package io.nop.excel.model;
 
 import io.nop.excel.model._gen._ExcelPageMargins;
+import io.nop.excel.model.constants.ExcelModelConstants;
 import io.nop.excel.util.UnitsHelper;
 
 public class ExcelPageMargins extends _ExcelPageMargins {
     public ExcelPageMargins() {
 
+    }
+
+    public double getLeftWithDefault() {
+        Double left = getLeft();
+        if (left == null)
+            return ExcelModelConstants.DEFAULT_MARGIN;
+        return left;
+    }
+
+    public double getTopWithDefault() {
+        Double top = getTop();
+        if (top == null)
+            return ExcelModelConstants.DEFAULT_MARGIN;
+        return top;
+    }
+
+    public double getRightWithDefault() {
+        Double right = getRight();
+        if (right == null)
+            return ExcelModelConstants.DEFAULT_MARGIN;
+        return right;
+    }
+
+    public double getBottomWithDefault() {
+        Double bottom = getBottom();
+        if (bottom == null)
+            return ExcelModelConstants.DEFAULT_MARGIN;
+        return bottom;
+    }
+
+    public double getHeaderWithDefault() {
+        Double header = getHeader();
+        if (header == null)
+            return ExcelModelConstants.DEFAULT_HEADER_FOOTER;
+        return header;
+    }
+
+    public double getFooterWithDefault() {
+        Double footer = getFooter();
+        if (footer == null)
+            return ExcelModelConstants.DEFAULT_HEADER_FOOTER;
+        return footer;
     }
 
     public Double getLeftInches() {

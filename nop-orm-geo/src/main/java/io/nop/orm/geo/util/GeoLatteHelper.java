@@ -7,7 +7,7 @@
  */
 package io.nop.orm.geo.util;
 
-import io.nop.api.core.beans.PointBean;
+import io.nop.api.core.beans.geometry.PointBean;
 import org.geolatte.geom.C2D;
 import org.geolatte.geom.Geometry;
 import org.geolatte.geom.LineString;

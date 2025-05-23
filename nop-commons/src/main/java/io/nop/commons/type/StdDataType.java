@@ -10,7 +10,7 @@ package io.nop.commons.type;
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.annotations.core.Option;
 import io.nop.api.core.annotations.core.StaticFactoryMethod;
-import io.nop.api.core.beans.PointBean;
+import io.nop.api.core.beans.geometry.PointBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.convert.ITypeConverter;
 import io.nop.api.core.convert.SysConverterRegistry;

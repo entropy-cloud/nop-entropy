@@ -1,11 +1,13 @@
 package io.nop.report.pdf.renderer;
 
+import io.nop.commons.bytes.ByteString;
+import io.nop.excel.model.ExcelFont;
 import io.nop.report.pdf.font.FontManager;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -15,6 +17,7 @@ import java.util.Map;
 public class PdfRenderer {
     private final PDDocument document;
     private final Map<String, PDFont> fontCache = new HashMap<>();
+    private final Map<ByteString, PDImageXObject> imageCache = new HashMap<>();
 
     public PdfRenderer(PDDocument document) {
         this.document = document;
@@ -22,6 +25,12 @@ public class PdfRenderer {
 
     public PDDocument getDocument() {
         return document;
+    }
+
+    public PDFont getFont(ExcelFont font) {
+        if (font == null)
+            return FontManager.instance().getDefaultFont();
+        return getFont(font.getFontName(), font.isBold(), font.isItalic());
     }
 
     public PDFont getFont(String fontName, boolean bold, boolean italic) {
@@ -38,17 +47,23 @@ public class PdfRenderer {
         return pdfFont;
     }
 
-    public PDPage addPage(PDRectangle pageSize) {
+    public PdfPageRenderer addPage(PDRectangle pageSize) throws IOException {
         PDPage page = new PDPage(pageSize);
         document.addPage(page);
-        return page;
-    }
-
-    public PDPageContentStream newContentStream(PDPage page) throws IOException {
-        return new PDPageContentStream(document, page);
+        return new PdfPageRenderer(document, page);
     }
 
     public void saveToStream(OutputStream outputStream) throws IOException {
         document.save(outputStream);
+    }
+
+    public PDImageXObject getImage(ByteString data) throws IOException {
+        PDImageXObject image = imageCache.get(data);
+        if (image != null)
+            return image;
+
+        image = PDImageXObject.createFromByteArray(document, data.toByteArray(), null);
+        imageCache.put(data, image);
+        return image;
     }
 }

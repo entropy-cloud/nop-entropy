@@ -42,6 +42,8 @@ public class ExpandedCell implements IExcelCell {
     private String comment;
     private int mergeDown;
     private int mergeAcross;
+    private int colOffset;
+    private int rowOffset;
 
     private Object formattedValue;
     private String linkUrl;
@@ -197,6 +199,24 @@ public class ExpandedCell implements IExcelCell {
         this.formula = formula;
     }
 
+    @Override
+    public int getColOffset() {
+        return colOffset;
+    }
+
+    public void setColOffset(int colOffset) {
+        this.colOffset = colOffset;
+    }
+
+    @Override
+    public int getRowOffset() {
+        return rowOffset;
+    }
+
+    public void setRowOffset(int rowOffset) {
+        this.rowOffset = rowOffset;
+    }
+
     /**
      * 标记colSpan和rowSpan范围内的所有单元格的realCell为当前单元格。
      */
@@ -208,6 +228,9 @@ public class ExpandedCell implements IExcelCell {
             ExpandedCell colCell = cell;
             for (int j = 0; j <= mergeAcross; j++) {
                 colCell.setRealCell(this);
+                colCell.setRowOffset(i);
+                colCell.setColOffset(j);
+
                 colCell = colCell.getRight();
             }
             cell = cell.getDown();

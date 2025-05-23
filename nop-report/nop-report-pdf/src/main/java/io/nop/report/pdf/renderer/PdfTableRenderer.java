@@ -7,7 +7,6 @@ import io.nop.excel.model.ExcelFont;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.IExcelStyleProvider;
 import io.nop.report.pdf.utils.PdfStyleHelper;
-import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
@@ -19,73 +18,16 @@ public class PdfTableRenderer {
 
     private final PdfRenderer renderer;
     private final IExcelStyleProvider styleProvider;
-    private final double margin;
     private final double defaultColWidth;
     private final double defaultRowHeight;
 
 
     public PdfTableRenderer(PdfRenderer renderer, IExcelStyleProvider styleProvider,
-                            double margin, double defaultColWidth, double defaultRowHeight) {
+                            double defaultColWidth, double defaultRowHeight) {
         this.renderer = renderer;
         this.styleProvider = styleProvider;
-        this.margin = margin;
         this.defaultColWidth = defaultColWidth;
         this.defaultRowHeight = defaultRowHeight;
-    }
-
-    public double getMargin() {
-        return margin;
-    }
-
-    /**
-     * 渲染Excel表格到PDF
-     *
-     * @param excelTable Excel表格模型
-     * @param pageSize   页面大小
-     * @throws IOException 如果渲染过程中出错
-     */
-    public void render(ITableView excelTable, PDRectangle pageSize) throws IOException {
-        PDPage page = renderer.addPage(pageSize);
-
-        try (PDPageContentStream contentStream = renderer.newContentStream(page)) {
-            // 计算表格起始位置
-            double startX = margin;
-            double startY = pageSize.getHeight() - margin;
-
-            // 计算表格总宽度和高度
-            double tableWidth = calculateTableWidth(excelTable);
-            double tableHeight = calculateTableHeight(excelTable);
-
-            // 调整起始位置，使表格居中
-            if (tableWidth < pageSize.getWidth() - 2 * margin) {
-                startX = (pageSize.getWidth() - tableWidth) / 2;
-            }
-
-            // 渲染表格
-            renderTable(contentStream, excelTable, startX, startY);
-        }
-    }
-
-    /**
-     * 计算表格总宽度
-     */
-    private double calculateTableWidth(ITableView excelTable) {
-        double width = 0;
-        for (int i = 0; i < excelTable.getColCount(); i++) {
-            width += colWidth(excelTable.getColWidth(i));
-        }
-        return width;
-    }
-
-    /**
-     * 计算表格总高度
-     */
-    private double calculateTableHeight(ITableView excelTable) {
-        double height = 0;
-        for (int i = 0; i < excelTable.getRowCount(); i++) {
-            height += rowHeight(excelTable.getRowHeight(i));
-        }
-        return height;
     }
 
     double rowHeight(Double value) {
@@ -103,12 +45,12 @@ public class PdfTableRenderer {
     /**
      * 渲染整个表格
      */
-    private void renderTable(PDPageContentStream contentStream, ITableView excelTable, double startX, double startY) throws IOException {
-        double currentY = startY;
+    public void renderTable(PDPageContentStream contentStream, ITableView excelTable) throws IOException {
+        double currentY = 0;
 
         for (int row = 0; row < excelTable.getRowCount(); row++) {
             double rowHeight = rowHeight(excelTable.getRowHeight(row));
-            double currentX = startX;
+            double currentX = 0;
 
             List<? extends ICellView> cells = excelTable.getRowCells(row);
             for (int col = 0; col < cells.size(); col++) {
@@ -131,10 +73,10 @@ public class PdfTableRenderer {
 
                 // 创建单元格矩形区域
                 PDRectangle cellRect = new PDRectangle(
-                        (float) currentX,
-                        (float) (currentY - mergedHeight),
-                        (float) mergedWidth,
-                        (float) mergedHeight
+                        (float) (currentX),
+                        (float) ((currentY - mergedHeight)),
+                        (float) (mergedWidth),
+                        (float) (mergedHeight)
                 );
 
                 // 渲染单元格
@@ -182,7 +124,7 @@ public class PdfTableRenderer {
 
         // 设置单元格背景
         PdfStyleHelper.setCellBackground(contentStream, style,
-                cellRect.getLowerLeftX(), cellRect.getUpperRightY(),
+                cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
                 cellRect.getWidth(), cellRect.getHeight());
 
         // 绘制文本
@@ -196,7 +138,8 @@ public class PdfTableRenderer {
         }
 
         // 绘制边框
-        PdfStyleHelper.drawBorder(contentStream, cellRect, style);
+        PdfStyleHelper.drawBorder(contentStream, cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
+                cellRect.getWidth(), cellRect.getHeight(), style);
     }
 
     /**
@@ -204,7 +147,8 @@ public class PdfTableRenderer {
      */
     private void renderEmptyCell(PDPageContentStream contentStream, PDRectangle cellRect) throws IOException {
         // 绘制默认边框
-        PdfStyleHelper.drawBorder(contentStream, cellRect, styleProvider.getDefaultStyle());
+        PdfStyleHelper.drawBorder(contentStream, cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
+                cellRect.getWidth(), cellRect.getHeight(), styleProvider.getDefaultStyle());
     }
 
     protected ExcelStyle getStyle(String styleId) {

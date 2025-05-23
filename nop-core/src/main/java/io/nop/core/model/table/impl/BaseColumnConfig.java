@@ -18,6 +18,9 @@ public class BaseColumnConfig extends SerializableExtensibleObject implements IC
     private boolean hidden;
 
     public static BaseColumnConfig from(IColumnConfig config) {
+        if (config == null)
+            return null;
+
         BaseColumnConfig config1 = new BaseColumnConfig();
         config1.setHidden(config.isHidden());
         config1.setStyleId(config.getStyleId());

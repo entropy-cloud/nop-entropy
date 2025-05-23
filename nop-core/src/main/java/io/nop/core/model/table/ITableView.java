@@ -7,6 +7,7 @@
  */
 package io.nop.core.model.table;
 
+import io.nop.api.core.beans.geometry.SizeBean;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.model.table.impl.SubTableView;
 import io.nop.core.model.table.impl.TableImpls;
@@ -67,6 +68,11 @@ public interface ITableView extends IExtensibleObject {
         return colConfig == null ? null : colConfig.getWidth();
     }
 
+    default double getColWidth(int colIndex, double defaultValue) {
+        Double width = getColWidth(colIndex);
+        return width == null ? defaultValue : width;
+    }
+
     List<? extends IRowView> getRows();
 
     /**
@@ -83,6 +89,11 @@ public interface ITableView extends IExtensibleObject {
     default Double getRowHeight(int rowIndex) {
         IRowView row = getRow(rowIndex);
         return row == null ? null : row.getHeight();
+    }
+
+    default double getRowHeight(int rowIndex, double defaultValue) {
+        Double height = getRowHeight(rowIndex);
+        return height == null ? defaultValue : height;
     }
 
     /**
@@ -200,5 +211,53 @@ public interface ITableView extends IExtensibleObject {
 
     default ITable<? extends IRow> clip() {
         return (ITable<? extends IRow>) this;
+    }
+
+    default double getTableWidth(double defaultColumnWidth) {
+        return getRangeWidth(0, getColCount() - 1, defaultColumnWidth);
+    }
+
+    default double getTableHeight(double defaultRowHeight) {
+        return getRangeHeight(0, getRowCount() - 1, defaultRowHeight);
+    }
+
+    default double getRangeWidth(int fromColIndex, int toColIndex, double defaultColumnWidth) {
+        double sum = 0;
+        for (int i = fromColIndex; i <= toColIndex; i++) {
+            IColumnConfig col = getCol(i);
+            if (col != null && col.isHidden())
+                continue;
+
+            Double d;
+            if (col == null || col.getWidth() == null) {
+                d = defaultColumnWidth;
+            } else {
+                d = col.getWidth();
+            }
+            sum += d;
+        }
+        return sum;
+    }
+
+    default double getRangeHeight(int fromRowIndex, int toRowIndex, double defaultRowHeight) {
+        double sum = 0;
+        for (int i = fromRowIndex; i <= toRowIndex; i++) {
+            IRowView row = getRow(i);
+            if (row != null && row.isHidden())
+                continue;
+
+            Double d;
+            if (row == null || row.getHeight() == null) {
+                d = defaultRowHeight;
+            } else {
+                d = row.getHeight();
+            }
+            sum += d;
+        }
+        return sum;
+    }
+
+    default SizeBean getTableSize(double defaultColumnWidth, double defaultRowHeight) {
+        return new SizeBean(getTableWidth(defaultColumnWidth), getTableHeight(defaultRowHeight));
     }
 }

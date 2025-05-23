@@ -46,7 +46,6 @@ public interface ExcelConstants {
 
     String XDSL_SCHEMA_IMP = "/nop/schema/excel/imp.xdef";
 
-    double DEFAULT_COL_WIDTH = 8.5;
 
     String DISPLAY_MODE_TABLE = "table";
 

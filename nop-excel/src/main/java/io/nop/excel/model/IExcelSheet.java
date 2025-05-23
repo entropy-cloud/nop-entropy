@@ -7,13 +7,9 @@
  */
 package io.nop.excel.model;
 
-import io.nop.core.model.table.IColumnConfig;
-import io.nop.core.model.table.IRowView;
-import io.nop.excel.ExcelConstants;
+import io.nop.excel.model.constants.ExcelModelConstants;
 
 import java.util.List;
-
-import static io.nop.excel.util.UnitsHelper.DEFAULT_CHARACTER_WIDTH_IN_PT;
 
 public interface IExcelSheet {
     String getName();
@@ -32,48 +28,34 @@ public interface IExcelSheet {
 
     Double getDefaultColumnWidth();
 
+    default double defaultRowHeight() {
+        Double d = getDefaultRowHeight();
+        return d == null ? ExcelModelConstants.DEFAULT_ROW_HEIGHT_IN_PT : d;
+    }
+
+    default double defaultColumnWidth() {
+        Double d = getDefaultColumnWidth();
+        return d == null ? ExcelModelConstants.DEFAULT_COL_WIDTH_IN_PT : d;
+    }
+
     IExcelTable getTable();
 
     List<ExcelImage> getImages();
 
-    default double getWidth(int fromColIndex, int toColIndex) {
-        double sum = 0;
-        for (int i = fromColIndex; i <= toColIndex; i++) {
-            IColumnConfig col = getTable().getCol(i);
-            if (col != null && col.isHidden())
-                continue;
+    default double getTotalWidth() {
+        return getWidth(0, getTable().getColCount() - 1);
+    }
 
-            Double d;
-            if (col == null || col.getWidth() == null) {
-                d = getDefaultColumnWidth();
-            } else {
-                d = col.getWidth();
-            }
-            if (d == null)
-                d = ExcelConstants.DEFAULT_COL_WIDTH * DEFAULT_CHARACTER_WIDTH_IN_PT;
-            sum += d;
-        }
-        return sum;
+    default double getTotalHeight() {
+        return getHeight(0, getTable().getRowCount() - 1);
+    }
+
+    default double getWidth(int fromColIndex, int toColIndex) {
+        return getTable().getRangeWidth(fromColIndex, toColIndex, defaultColumnWidth());
     }
 
     default double getHeight(int fromRowIndex, int toRowIndex) {
-        double sum = 0;
-        for (int i = fromRowIndex; i <= toRowIndex; i++) {
-            IRowView row = getTable().getRow(i);
-            if (row != null && row.isHidden())
-                continue;
-
-            Double d;
-            if (row == null || row.getHeight() == null) {
-                d = getDefaultRowHeight();
-            } else {
-                d = row.getHeight();
-            }
-            if (d == null)
-                d = 14.25;
-            sum += d;
-        }
-        return sum;
+        return getTable().getRangeHeight(fromRowIndex, toRowIndex, defaultRowHeight());
     }
 
     default double getCellLeft(int colIndex) {
