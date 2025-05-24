@@ -29,7 +29,7 @@ public class MarkdownCodeBlock extends MarkdownNode {
 
     @Override
     protected void buildText(StringBuilder sb, MarkdownTextOptions options) {
-        sb.append("```").append(lang).append('\n');
+        sb.append("```").append(lang).append("\n\n");
         if (source != null)
             sb.append(source);
         sb.append("\n```\n");
