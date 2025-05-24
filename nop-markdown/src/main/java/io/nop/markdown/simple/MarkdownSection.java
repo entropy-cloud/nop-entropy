@@ -514,7 +514,7 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
                 if (!throwError)
                     return false;
                 throw new NopException(ERR_MARKDOWN_MISSING_SECTION)
-                        .param(ARG_TITLE, tpl.getTitle());
+                        .param(ARG_TITLE, tpl.getFullTitle());
             }
         }
 

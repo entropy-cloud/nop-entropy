@@ -20,6 +20,14 @@ public class XDslCleaner {
         clean(node, xdef.getRootNode());
     }
 
+    public void removeMergeOp(XNode node) {
+        node.forEachNode(child -> {
+            child.removeAttrsIf((name, value) -> {
+                return name.startsWith(XDslKeys.DEFAULT.X_NS_PREFIX) && !name.equals(XDslKeys.DEFAULT.SCHEMA);
+            });
+        });
+    }
+
     public void clean(XNode node, IXDefNode defNode) {
         if (defNode == null)
             return;

@@ -747,12 +747,19 @@ public class StringHelper extends ApiStringHelper {
         return str;
     }
 
+    @Deterministic
+    public static String padInt(int num, int len) {
+        return leftPad(String.valueOf(num), len, '0');
+    }
+
+    @Deterministic
     public static String forceLeftPad(String str, int len, char padChar) {
         if (str.length() >= len)
             return str.substring(0, len);
         return leftPad(str, len, padChar);
     }
 
+    @Deterministic
     public static String forceRightPad(String str, int len, char padChar) {
         if (str.length() >= len)
             return str.substring(0, len);

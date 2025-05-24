@@ -94,7 +94,7 @@ public abstract class AbstractForkTaskStep extends AbstractTaskStep {
     protected TaskStepReturn executeFork(ITaskStepRuntime parentRt, Object varValue, int index) {
         IEvalScope parentScope = parentRt.getEvalScope();
         ITaskStepRuntime stepRt = parentRt.newStepRuntime(stepName, step.getStepType(),
-                null, false, step.isConcurrent());
+                null, true, step.isConcurrent());
 
         if (varName != null)
             stepRt.setValue(varName, varValue);
