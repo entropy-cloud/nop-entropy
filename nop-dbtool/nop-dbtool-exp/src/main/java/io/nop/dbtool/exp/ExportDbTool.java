@@ -53,6 +53,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -84,6 +85,12 @@ public class ExportDbTool {
 
     public void setArgs(Map<String, Object> args) {
         this.args = args;
+    }
+
+    public void addArg(String name, Object value) {
+        if (args == null)
+            args = new LinkedHashMap<>();
+        args.put(name, value);
     }
 
     public File getStateFile() {

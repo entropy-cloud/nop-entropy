@@ -22,6 +22,7 @@ import picocli.CommandLine;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,6 +53,13 @@ public class CliRunCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-t", "--interval"}, description = "循环运行的时间间隔")
     int interval;
 
+    @CommandLine.Option(
+            names = "-P",
+            description = "动态参数（格式：-Pname=value）",
+            paramLabel = "KEY=VALUE"
+    )
+    Map<String, String> dynamicParams = new HashMap<>();
+
     public Integer call() {
         if (!file.exists()) {
             throw new NopException(ERR_CLI_FILE_NOT_EXISTS)
@@ -64,6 +72,10 @@ public class CliRunCommand implements Callable<Integer> {
             Map<String, Object> map = (Map<String, Object>) JsonTool.parseNonStrict(null, input);
             if (map != null)
                 globalState.putAll(map);
+        }
+
+        if (dynamicParams != null) {
+            globalState.putAll(dynamicParams);
         }
 
         File output = outputDir;

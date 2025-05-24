@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
@@ -54,6 +55,13 @@ public class CliGenCommand implements Callable<Integer> {
     @CommandLine.Parameters(description = "模型文件路径")
     String file;
 
+    @CommandLine.Option(
+            names = "-P",
+            description = "动态参数（格式：-Pname=value）",
+            paramLabel = "KEY=VALUE"
+    )
+    Map<String, String> dynamicParams = new HashMap<>();
+
     @Override
     public Integer call() {
         try {
@@ -63,6 +71,9 @@ public class CliGenCommand implements Callable<Integer> {
                 Map<String, Object> map = (Map<String, Object>) JsonTool.parseNonStrict(null, input);
                 scope.setLocalValues(map);
             }
+
+            if (dynamicParams != null)
+                dynamicParams.forEach(scope::setLocalValue);
 
             scope.setLocalValue(null, CodeGenConstants.VAR_CODE_GEN_MODEL_PATH, resource.getPath());
 

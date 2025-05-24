@@ -16,6 +16,7 @@ import io.nop.dbtool.exp.config.ImportDbConfig;
 import picocli.CommandLine;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
@@ -37,6 +38,13 @@ public class CliImportDbCommand implements Callable<Integer> {
     @CommandLine.Parameters(description = "配置文件路径")
     String configPath;
 
+    @CommandLine.Option(
+            names = "-P",
+            description = "动态参数（格式：-Pname=value）",
+            paramLabel = "KEY=VALUE"
+    )
+    Map<String, String> dynamicParams = new HashMap<>();
+
     @SuppressWarnings("unchecked")
     @Override
     public Integer call() {
@@ -57,6 +65,9 @@ public class CliImportDbCommand implements Callable<Integer> {
 
         if (args != null)
             tool.setArgs((Map<String, Object>) JsonTool.parseNonStrict(null, args));
+
+        if(dynamicParams != null)
+            dynamicParams.forEach(tool::addArg);
         tool.execute();
         return 0;
     }

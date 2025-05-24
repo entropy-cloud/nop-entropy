@@ -64,6 +64,7 @@ import java.io.File;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -109,6 +110,12 @@ public class ImportDbTool {
 
     public void setArgs(Map<String, Object> args) {
         this.args = args;
+    }
+
+    public void addArg(String name, Object value) {
+        if (this.args == null)
+            args = new LinkedHashMap<>();
+        args.put(name, value);
     }
 
     public void syncConfigWithDb() {

@@ -54,6 +54,13 @@ public class CliGenFileCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-i", "--input"}, description = "输入数据")
     String input;
 
+    @CommandLine.Option(
+            names = "-P",
+            description = "动态参数（格式：-Pname=value）",
+            paramLabel = "KEY=VALUE"
+    )
+    Map<String, String> dynamicParams = new HashMap<>();
+
     @Override
     public Integer call() {
         Map<String, Object> json = null;
@@ -82,6 +89,9 @@ public class CliGenFileCommand implements Callable<Integer> {
 
         IEvalScope scope = XLang.newEvalScope();
         scope.setLocalValues(json);
+
+        if(dynamicParams != null)
+            dynamicParams.forEach(scope::setLocalValue);
 
         if (template.endsWith(".xdef")) {
             DslModelHelper.saveDslModel(template, json, new FileResource(outputFile));
