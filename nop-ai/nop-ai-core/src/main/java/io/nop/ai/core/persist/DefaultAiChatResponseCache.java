@@ -54,13 +54,14 @@ public class DefaultAiChatResponseCache implements IAiChatResponseCache {
     }
 
     IResource getCacheResource(Prompt prompt, AiChatOptions options) {
-        String hash = makeRequestHash(prompt, options);
-        String cachePath = StringHelper.safeFileName(options.getProvider()) + "/" + StringHelper.safeFileName(options.getModel());
-        cachePath += "/" + hash.substring(0, 2) + '/' + hash.substring(2, 4) + '/' + hash + "-exchange.md";
-
         String promptName = prompt.getName();
         if (promptName == null)
             promptName = "unnamed";
-        return new FileResource(new File(cacheDir, promptName + '/' + cachePath));
+
+        String hash = makeRequestHash(prompt, options);
+        String cachePath = StringHelper.safeFileName(options.getProvider()) + "/" + StringHelper.safeFileName(options.getModel()) + "/" + promptName;
+        cachePath += "/" + hash.substring(0, 2) + '/' + hash.substring(2, 4) + '/' + hash + "-exchange.md";
+
+        return new FileResource(new File(cacheDir, cachePath));
     }
 }

@@ -1,12 +1,11 @@
 template: |
   【任务目标】
   作为高级Java工程师，使用开源低代码平台Nop平台中的框架技术实现如下服务方法，要求：
-  1. 优先选择继承CrudBizModel，利用上面的方法来实现CRUD功能。次一级的选择是使用IEntityDao接口，最后才考虑使用IOrmTemplate接口
+  1. 优先选择继承CrudBizModel，利用CrudBizModel中的方法来实现CRUD功能。次一级的选择是使用IEntityDao接口，最后才考虑使用IOrmTemplate接口
   2. 分解为多个step。
   3. 添加必要的注释
   4. 仅需要实现服务函数，实体类定义等可以导入
-  5. 可以引入外部定义的实体类和Request, Response对象，不用在本类中实现
-  6. 返回结果仅包含java代码，可以直接保存为java文件，，不要用markdown包裹，也不需要额外的解释。
+  5. 返回结果请用```java代码块包裹
   
   **IMPORTANT**: 服务函数的逻辑要覆盖需求中的全部要求, 首先要检查前置条件是否满足。
   所有尚未确定的业务逻辑，都写到单独的Java方法中，并增加@Mock注解。例如:
@@ -17,6 +16,11 @@ template: |
       return BigDecimal.ZERO;
   }
   ```
+  
+  【禁止】 
+  - 直接SQL操作（必须通过ORM）
+  - 硬编码业务规则（应配置在xmeta中）
+  - 循环数据库查询（使用批量加载）
   
   【服务方法定义】
   ${apiModel.getMethodJava(serviceName,methodName)}

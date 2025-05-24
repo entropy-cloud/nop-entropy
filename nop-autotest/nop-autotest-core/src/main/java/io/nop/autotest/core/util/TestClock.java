@@ -9,6 +9,10 @@ package io.nop.autotest.core.util;
 
 import io.nop.api.core.time.IClock;
 
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 /**
  * 单元测试执行时所采用的时钟，确保时间永不重复且向前执行
  */
@@ -24,5 +28,15 @@ public class TestClock implements IClock {
         }
         lastTime = now;
         return lastTime;
+    }
+
+    @Override
+    public LocalDate currentDate() {
+        return new Timestamp(currentTimeMillis()).toLocalDateTime().toLocalDate();
+    }
+
+    @Override
+    public LocalDateTime currentDateTime() {
+        return new Timestamp(currentTimeMillis()).toLocalDateTime();
     }
 }

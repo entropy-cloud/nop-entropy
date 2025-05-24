@@ -10,6 +10,8 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.impl.FileResource;
+import io.nop.markdown.simple.MarkdownCodeBlock;
+import io.nop.markdown.simple.MarkdownCodeBlockParser;
 import io.nop.markdown.simple.MarkdownDocument;
 import io.nop.markdown.simple.MarkdownDocumentExt;
 import io.nop.markdown.utils.MarkdownTool;
@@ -19,7 +21,6 @@ import io.nop.xlang.xmeta.SchemaLoader;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -29,7 +30,6 @@ import static io.nop.xlang.XLangErrors.ERR_XDSL_UNKNOWN_PROP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-@Disabled
 public class TestAiCoderHelper extends JunitBaseTestCase {
     @Inject
     IPromptTemplateManager promptTemplateManager;
@@ -56,7 +56,7 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
 
     @Test
     public void parseAllSchema() {
-        List<? extends IResource> resources = VirtualFileSystem.instance().getChildren("/nop/ai/prompts/coder");
+        List<? extends IResource> resources = VirtualFileSystem.instance().getChildren("/nop/ai/schema/coder");
         for (IResource resource : resources) {
             if (resource.getName().endsWith(".xdef")) {
                 SchemaLoader.loadXDefinition(resource.getStdPath());
@@ -100,5 +100,12 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
 
         MarkdownDocument ormDoc = doc.selectSectionByTplTag("ORM", false);
         System.out.println(ormDoc.toText());
+    }
+
+    @Test
+    public void testParseJavaCode(){
+        String text = attachmentText("test-java-code.md");
+        MarkdownCodeBlock block = new MarkdownCodeBlockParser().parseCodeBlockForLang(null, text,"java");
+        System.out.println(block.getSource());
     }
 }

@@ -105,6 +105,7 @@ public class AiCoderHelper {
         dslNodeA = dslNodeA.cloneInstance();
         dslNodeB = dslNodeB.cloneInstance();
         new DeltaMerger(XDslKeys.DEFAULT).merge(dslNodeA, dslNodeB, xdef.getRootNode(), false);
+        XDslCleaner.INSTANCE.removeMergeOp(dslNodeA);
         return dslNodeA;
     }
 

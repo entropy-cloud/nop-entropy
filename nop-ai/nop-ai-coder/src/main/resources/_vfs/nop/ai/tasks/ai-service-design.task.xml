@@ -7,7 +7,7 @@
 
     <!--    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>-->
 
-    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="8192" temperature="0"/>
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="8192" temperature="0" sessionId="${sessionId}"/>
 
     <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 
@@ -16,6 +16,7 @@
     <input name="outputDir" type="String" mandatory="true"/>
     <input name="aiProvider" type="String" mandatory="true"/>
     <input name="aiModel" type="String" mandatory="true"/>
+    <input name="sessionId" type="String" optional="true"/>
 
     <steps>
         <step name="loadRequirements" customType="ai-coder:LoadMarkdown">
@@ -64,6 +65,10 @@
                     <output name="RESULT" exportAs="useCaseRequirements"/>
                 </step>
 
+                <exit name="checkUseCaseExists">
+                    <when>useCaseRequirements == null || useCaseRequirements == ''</when>
+                </exit>
+
                 <step name="generateMethodTask" customType="ai:TaskStep" ai:promptName="coder/service-method-task"
                       ai:useResponseCache="true">
                     <throttle maxConcurrency="1" maxWait="100000000"/>
@@ -73,6 +78,12 @@
                     <input name="apiModel"/>
                     <input name="serviceName" value="${methodInfo.serviceName}"/>
                     <input name="methodName" value="${methodInfo.methodName}"/>
+                    <output name="RESULT" exportAs="methodTaskNode"/>
+                </step>
+
+                <step name="fixMethodTask" customType="ai:TaskStep" ai:promptName="coder/check-task">
+                    <input name="requirements" value="${useCaseRequirements}"/>
+                    <input name="dslNode" value="${methodTaskNode}"/>
                     <output name="RESULT" exportAs="methodTaskNode"/>
                 </step>
 
@@ -99,7 +110,7 @@
                     <input name="outputDir"/>
                     <input name="fileName"
                            value="ai-coder/${methodInfo.serviceName}/${methodInfo.methodName}.java"/>
-                    <input name="text" value="${methodJava}"/>
+                    <input name="text" value="${methodJava.source}"/>
                 </step>
 
                 <step name="generateMethodPython" customType="ai:TaskStep" ai:promptName="coder/service-method-python"
@@ -118,7 +129,7 @@
                     <input name="outputDir"/>
                     <input name="fileName"
                            value="ai-coder/${methodInfo.serviceName}/${methodInfo.methodName}.py"/>
-                    <input name="text" value="${methodPython}"/>
+                    <input name="text" value="${methodPython.source}"/>
                 </step>
 
 

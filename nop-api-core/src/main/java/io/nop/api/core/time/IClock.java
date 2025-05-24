@@ -7,10 +7,17 @@
  */
 package io.nop.api.core.time;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 public interface IClock {
     long currentTimeMillis();
 
     default long nanoTime() {
         return System.nanoTime();
     }
+
+    LocalDate currentDate();
+
+    LocalDateTime currentDateTime();
 }

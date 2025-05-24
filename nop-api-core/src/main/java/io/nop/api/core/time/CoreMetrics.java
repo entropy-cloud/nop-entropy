@@ -27,11 +27,21 @@ public class CoreMetrics {
         public long nanoTime() {
             return System.nanoTime();
         }
+
+        @Override
+        public LocalDate currentDate() {
+            return LocalDate.now();
+        }
+
+        @Override
+        public LocalDateTime currentDateTime() {
+            return LocalDateTime.now();
+        }
     };
 
     private static IClock s_clock = DEFAULT_CLOCK;
 
-    public static void registerClock(IClock clock){
+    public static void registerClock(IClock clock) {
         s_clock = clock;
     }
 
@@ -48,11 +58,15 @@ public class CoreMetrics {
     }
 
     public static LocalDate today() {
-        return LocalDate.now();
+        return currentDate();
+    }
+
+    public static LocalDate currentDate() {
+        return s_clock.currentDate();
     }
 
     public static LocalDateTime currentDateTime() {
-        return LocalDateTime.now();
+        return s_clock.currentDateTime();
     }
 
     public static long nanoTime() {

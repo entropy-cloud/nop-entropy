@@ -125,8 +125,12 @@ public class AiApiModel {
 
     public String getMethodJava(String serviceName, String methodName) {
         ApiModelToJava toJava = new ApiModelToJava();
-        ApiMethodModel method = getServiceMethodModel(serviceName, methodName);
+        ApiServiceModel serviceModel = getServiceModel(serviceName);
+
+        ApiMethodModel method = serviceModel.getMethod(methodName);
+        toJava.beginService(serviceModel);
         toJava.appendMethodModel(method);
+        toJava.endService();
 
         for (ApiMessageModel message : getMethodMessages(serviceName, methodName)) {
             toJava.appendMessageModel(message);

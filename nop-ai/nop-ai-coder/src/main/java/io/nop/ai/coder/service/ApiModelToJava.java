@@ -49,11 +49,14 @@ public class ApiModelToJava {
     }
 
     public ApiModelToJava appendServiceModel(ApiServiceModel service) {
+        sb.append("/** ");
         if (service.getDisplayName() != null) {
-            sb.append("/** ").append(service.getDisplayName()).append(" */\n");
+            sb.append(service.getDisplayName()).append(": \n");
         }
         if (service.getDescription() != null)
-            sb.append("/** ").append(service.getDescription()).append("*/\n");
+            sb.append(service.getDescription());
+        sb.append(" */\n");
+
         sb.append("interface ").append(service.getName());
         sb.append("{\n");
         for (ApiMethodModel method : service.getMethods()) {
@@ -65,12 +68,34 @@ public class ApiModelToJava {
         return this;
     }
 
+    public ApiModelToJava beginService(ApiServiceModel service) {
+        sb.append("/** ");
+        if (service.getDisplayName() != null) {
+            sb.append(service.getDisplayName()).append(": \n");
+        }
+        if (service.getDescription() != null)
+            sb.append(service.getDescription());
+        sb.append(" */\n");
+
+        sb.append("interface ").append(service.getName());
+        sb.append("{\n");
+        return this;
+    }
+
+    public ApiModelToJava endService() {
+        sb.append("}\n\n");
+        return this;
+    }
+
     public ApiModelToJava appendMethodModel(ApiMethodModel method) {
+        sb.append("/** ");
         if (method.getDisplayName() != null) {
-            sb.append("/** ").append(method.getDisplayName()).append(" */\n");
+            sb.append(method.getDisplayName()).append(": \n");
         }
         if (method.getDescription() != null)
-            sb.append("/** ").append(method.getDescription()).append("*/\n");
+            sb.append(method.getDescription());
+        sb.append(" */\n");
+
         if (method.isMutation())
             sb.append("@BizMutation\n");
         String responseType = StringHelper.simplifyJavaType(method.getResponseMessage().toString());

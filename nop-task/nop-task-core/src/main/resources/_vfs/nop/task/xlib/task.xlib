@@ -38,10 +38,10 @@
         </GenActionFromTaskFlow>
 
         <Execute>
-            <attr name="taskModelPath" stdDomain="v-path" optional="true" />
+            <attr name="taskModelPath" stdDomain="v-path" optional="true"/>
             <attr name="taskName" type="String" optional="true"/>
             <attr name="taskVersion" type="Long" optional="true"/>
-            <attr name="inputs" type="Map" optional="true" />
+            <attr name="inputs" type="Map" optional="true"/>
             <attr name="outputNames" optional="true"/>
             <attr name="asyncExec" type="Boolean" optional="true"/>
 
@@ -64,5 +64,14 @@
             ]]></source>
         </Execute>
 
+        <Assign>
+            <attr name="name" mandatory="true"/>
+            <attr name="value"/>
+            <attr name="taskRt" implicit="true"/>
+
+            <source>
+                taskRt.assign(name,value);
+            </source>
+        </Assign>
     </tags>
 </lib>

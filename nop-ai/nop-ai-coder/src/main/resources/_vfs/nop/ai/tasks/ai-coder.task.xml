@@ -29,6 +29,7 @@
         </call-task>
 
         <call-task name="refactorRequirements" taskModelPath="/nop/ai/tasks/ai-biz-analyzer.task.xml">
+            <flags match="req or EMPTY" />
             <input name="inputRequirementsPath"/>
             <input name="basePackageName"/>
             <input name="outputDir"/>
@@ -40,6 +41,8 @@
 
 
         <call-task name="createOrmAndMenu" taskModelPath="/nop/ai/tasks/ai-create-orm-and-menu.task.xml">
+            <flags match="orm or menu or EMPTY" />
+
             <input name="requirementsPath"/>
             <input name="outputDir"/>
             <input name="basePackageName"/>
@@ -50,6 +53,8 @@
         </call-task>
 
         <call-task name="designApi" taskModelPath="/nop/ai/tasks/ai-api-design.task.xml">
+            <flags match="api or EMPTY" />
+
             <input name="requirementsPath"/>
             <input name="outputDir"/>
             <input name="basePackageName"/>
@@ -61,6 +66,8 @@
         </call-task>
 
         <call-task name="designService" taskModelPath="/nop/ai/tasks/ai-service-design.task.xml">
+            <flags match="service or EMPTY" />
+
             <input name="requirementsPath"/>
             <input name="outputDir"/>
             <input name="basePackageName"/>
