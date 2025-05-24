@@ -141,7 +141,8 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
             sb.append('[').append(message.getRole()).append("]");
         }
         sb.append("\n\n");
-        sb.append(message.getContent());
+        if (message.getContent() != null)
+            sb.append(message.getContent());
         sb.append(MARKER_CONTENT_END);
         sb.append("\n");
 

@@ -9,7 +9,8 @@ template: |
   
   **IMPORTANT**: 服务函数的逻辑要覆盖需求中的全部要求, 首先要检查前置条件是否满足。
   所有尚未确定的业务逻辑，都写到单独的Java方法中，并增加@Mock注解。例如:
-  ```
+  
+  ```java
   @Mock
   public BigDecimal calculateInterest(Account account) {
       //@TODO 计算利息的逻辑
@@ -23,10 +24,14 @@ template: |
   - 循环数据库查询（使用批量加载）
   
   【服务方法定义】
+  ```java
   ${apiModel.getMethodJava(serviceName,methodName)}
+  ```
   
   【业务实体定义】
+  ```java
   ${ormModel.ormModelJava}
+  ```
   
   【需求文档】
   ${requirements}

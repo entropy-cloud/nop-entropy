@@ -17,7 +17,7 @@
 
         <step name="!var-name" xdef:ref="TaskStepModel" next="step-name"
               xdef:name="XplTaskStepModel">
-            <input name="var-name" xdef:unique-attr="name" />
+            <input name="var-name" xdef:unique-attr="name"/>
             <output name="var-name" xdef:unique-attr="name"/>
 
             <!-- 不满足条件的时候将会自动跳过本步骤 -->
@@ -42,6 +42,17 @@
             <when xdef:value="xpl-predicate"/>
             <source xdef:value="xpl"/>
         </end>
+
+        <!--
+           依次执行子步骤，一般情况下以最后一个步骤的返回值作为整体的返回值
+           -->
+        <sequential name="!var-name" xdef:ref="TaskStepModel" next="step-name" nextOnError="step-name">
+            <!-- 不满足条件的时候会跳过本步骤 -->
+            <when xdef:value="xpl-predicate"/>
+
+            <!-- 顺序执行的子步骤 -->
+            <steps xdef:ref="TaskStepsModel"/>
+        </sequential>
 
         <!--
         类似于for循环语句，不断执行body

@@ -113,24 +113,24 @@
                     <input name="text" value="${methodJava.source}"/>
                 </step>
 
-                <step name="generateMethodPython" customType="ai:TaskStep" ai:promptName="coder/service-method-python"
-                      ai:useResponseCache="true">
-                    <throttle maxConcurrency="1" maxWait="100000000"/>
+<!--                <step name="generateMethodPython" customType="ai:TaskStep" ai:promptName="coder/service-method-python"-->
+<!--                      ai:useResponseCache="true">-->
+<!--                    <throttle maxConcurrency="1" maxWait="100000000"/>-->
 
-                    <input name="requirements" value="${useCaseRequirements}"/>
-                    <input name="ormModel"/>
-                    <input name="apiModel"/>
-                    <input name="serviceName" value="${methodInfo.serviceName}"/>
-                    <input name="methodName" value="${methodInfo.methodName}"/>
-                    <output name="RESULT" exportAs="methodPython"/>
-                </step>
+<!--                    <input name="requirements" value="${useCaseRequirements}"/>-->
+<!--                    <input name="ormModel"/>-->
+<!--                    <input name="apiModel"/>-->
+<!--                    <input name="serviceName" value="${methodInfo.serviceName}"/>-->
+<!--                    <input name="methodName" value="${methodInfo.methodName}"/>-->
+<!--                    <output name="RESULT" exportAs="methodPython"/>-->
+<!--                </step>-->
 
-                <step name="saveMethodPython" customType="file-utils:WriteText">
-                    <input name="outputDir"/>
-                    <input name="fileName"
-                           value="ai-coder/${methodInfo.serviceName}/${methodInfo.methodName}.py"/>
-                    <input name="text" value="${methodPython.source}"/>
-                </step>
+<!--                <step name="saveMethodPython" customType="file-utils:WriteText">-->
+<!--                    <input name="outputDir"/>-->
+<!--                    <input name="fileName"-->
+<!--                           value="ai-coder/${methodInfo.serviceName}/${methodInfo.methodName}.py"/>-->
+<!--                    <input name="text" value="${methodPython.source}"/>-->
+<!--                </step>-->
 
 
             </steps>

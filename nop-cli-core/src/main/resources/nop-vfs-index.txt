@@ -27,6 +27,7 @@
 /nop/ai/beans/ai-defaults.beans.xml
 /nop/ai/llm/deepseek.llm.xml
 /nop/ai/llm/default.llm.xml
+/nop/ai/llm/free.llm.xml
 /nop/ai/llm/ollama.llm.xml
 /nop/ai/llm/volcengine.llm.xml
 /nop/ai/prompts/coder/api-design.prompt.yaml
@@ -41,6 +42,8 @@
 /nop/ai/prompts/coder/extract-xdef.prompt.yaml
 /nop/ai/prompts/coder/fix-api-model.prompt.yaml
 /nop/ai/prompts/coder/form-design.prompt.yaml
+/nop/ai/prompts/coder/form-layout.md
+/nop/ai/prompts/coder/gen-test-data-for-record-mapping.prompt.yaml
 /nop/ai/prompts/coder/grid-design.prompt.yaml
 /nop/ai/prompts/coder/menu-design.prompt.yaml
 /nop/ai/prompts/coder/meta-design.propmpt.yaml
@@ -52,6 +55,7 @@
 /nop/ai/prompts/coder/service-method-java.prompt.yaml
 /nop/ai/prompts/coder/service-method-python.prompt.yaml
 /nop/ai/prompts/coder/service-method-task.prompt.yaml
+/nop/ai/prompts/coder/task-flow.md
 /nop/ai/prompts/coder/task-import.md
 /nop/ai/prompts/coder/unit-test.prompt.yaml
 /nop/ai/prompts/coder/validate-site-resource.prompt.yaml
@@ -67,18 +71,20 @@
 /nop/ai/schema/coder/simple-api.xdef
 /nop/ai/schema/coder/task.xdef
 /nop/ai/schema/coder/test-case-data.tpl.md
-/nop/ai/schema/coder/x-task.xdef
 /nop/ai/tasks/ai-api-design.task.xml
 /nop/ai/tasks/ai-biz-analyzer.task.xml
 /nop/ai/tasks/ai-coder.task.xml
 /nop/ai/tasks/ai-create-orm-and-menu.task.xml
 /nop/ai/tasks/ai-create-project.task.xml
+/nop/ai/tasks/ai-gen-test-for-record-mapping.task.xml
 /nop/ai/tasks/ai-service-design.task.xml
 /nop/ai/tasks/ai-ui-designer.task.xml
 /nop/ai/templates/ai-project/@init.xrun
 /nop/ai/templates/ai-project/pom.xml.xgen
 /nop/ai/templates/ai-project/{appName}-codegen/pom.xml.xgen
 /nop/ai/templates/ai-project/{appName}-codegen/postcompile/gen-orm.xgen.xgen
+/nop/ai/templates/ai-project/{appName}-dao/src/main/resources/_vfs/{moduleId}/orm/app.orm.xml
+/nop/ai/templates/ai-project/{appName}-web/src/main/resources/_vfs/{moduleId}/auth/{appName}.action-auth.xml
 /nop/ai/xlib/ai-coder.xlib
 /nop/ai/xlib/ai.xlib
 /nop/aop/nop-api-core.annotations
@@ -90,6 +96,7 @@
 /nop/autoconfig/nop-http-client-jdk.beans
 /nop/autoconfig/nop-orm.beans
 /nop/autoconfig/nop-record.beans
+/nop/autoconfig/nop-report-pdf.beans
 /nop/autoconfig/nop-report.beans
 /nop/autoconfig/nop-task-core.beans
 /nop/autoconfig/nop-web.beans
@@ -208,6 +215,7 @@
 /nop/record/imp/template.record-file.xlsx
 /nop/record/imp/template.record-mappings.xlsx
 /nop/report/beans/report-defaults.beans.xml
+/nop/report/beans/report-pdf-defaults.beans.xml
 /nop/report/imp/xpt.imp.xml
 /nop/report/xlib/xpt-rt.xlib
 /nop/report/xlib/xpt.xlib

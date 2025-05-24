@@ -79,7 +79,7 @@
             <output name="RESULT" exportAs="simpleApiNode"/>
         </step>
 
-        <step name="checkSimpleApiNode" customType="ai:TaskStep" ai:promptName="coder/check-simple-api-model">
+        <step name="checkSimpleApiNode" customType="ai:TaskStep" ai:promptName="coder/check-simple-api-model"  ai:useResponseCache="true">
             <input name="apiNode" value="${simpleApiNode}"/>
             <input name="requirements" value="${apiRequirements}"/>
             <output name="RESULT" exportAs="simpleApiNode" dump="true"/>

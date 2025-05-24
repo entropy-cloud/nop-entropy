@@ -7,10 +7,14 @@ template: |
   4. 完整实现需求中要求的全部逻辑，包括定时调度等
   
   【服务方法定义】
+  ```java
   ${apiModel.getMethodJava(serviceName,methodName)}
+  ```
   
   【业务实体定义】
+  ```java
   ${ormModel.ormModelJava}
+  ```
   
   【需求文档】
   ${requirements}
