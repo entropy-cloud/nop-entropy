@@ -484,6 +484,16 @@ public interface XLangErrors {
     ErrorCode ERR_XPL_TAG_NO_BODY = define("nop.err.xlang.xpl.tag-no-body", "标签[{tagName}]没有声明body参数", ARG_TAG_NAME,
             ARG_NODE);
 
+    ErrorCode ERR_XPL_ASSIGN_NO_FIELDS =
+            define("nop.err.xlang.xpl.assign-no-fields", "标签c:assign没有指定field设置表达式", ARG_NODE);
+
+    ErrorCode ERR_XPL_ASSIGN_BODY_ONLY_ALLOW_FIELD =
+            define("nop.err.xlang.xpl.assign-body-only-allow-field",
+                    "标签c:assign的body参数仅允许使用field设置表达式", ARG_NODE);
+
+    ErrorCode ERR_XPL_ASSIGN_DUPLICATE_FIELD = define("nop.err.xlang.xpl.assign-duplicate-field",
+            "标签c:assign的body参数不允许重复的field设置表达式", ARG_NODE);
+
     ErrorCode ERR_XPL_TAG_BODY_NOT_RENDERER = define("nop.err.xlang.xpl.tag-body-not-renderer",
             "标签[{tagName}]的body不是renderer类型", ARG_TAG_NAME, ARG_NODE);
 

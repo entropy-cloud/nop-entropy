@@ -1,4 +1,4 @@
-# 1. import class 仅局部可见
+# 1. 逻辑检查不通过抛出异常
 
 ````xpl
 <c:unit>

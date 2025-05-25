@@ -86,7 +86,6 @@ public class AiChatExchange {
     private ErrorBean invalidReason;
 
     public AiChatExchange() {
-        this.response = new AiAssistantMessage();
     }
 
     public AiChatExchange(AiAssistantMessage response) {
@@ -173,12 +172,36 @@ public class AiChatExchange {
         return prompt.getVariables();
     }
 
+    public AiAssistantMessage makeResponse() {
+        if (response == null)
+            response = new AiAssistantMessage();
+        return response;
+    }
+
+    public String getFullContent(){
+        String think = getThink();
+        if(think == null)
+            return getContent();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<think>\n");
+        sb.append(think);
+        sb.append("\n</think>\n");
+
+        String content = getContent();
+        if(content != null)
+            sb.append(content);
+        return sb.toString();
+    }
+
     public String getContent() {
+        if (response == null)
+            return null;
         return response.getContent();
     }
 
     public void setContent(String content) {
-        this.response.setContent(content);
+        this.makeResponse().setContent(content);
     }
 
     @JsonIgnore
@@ -198,11 +221,13 @@ public class AiChatExchange {
     }
 
     public String getThink() {
+        if(response == null)
+            return null;
         return response.getThink();
     }
 
     public void setThink(String think) {
-        this.response.setThink(think);
+        this.makeResponse().setThink(think);
     }
 
     public AiAssistantMessage getResponse() {

@@ -40,8 +40,20 @@
         </call-task>
 
 
-        <call-task name="createOrmAndMenu" taskModelPath="/nop/ai/tasks/ai-create-orm-and-menu.task.xml">
-            <flags match="orm or menu or EMPTY" />
+        <call-task name="designOrm" taskModelPath="/nop/ai/tasks/ai-orm-design.task.xml">
+            <flags match="orm or EMPTY" />
+
+            <input name="requirementsPath"/>
+            <input name="outputDir"/>
+            <input name="basePackageName"/>
+            <input name="appName"/>
+            <input name="aiProvider"/>
+            <input name="aiModel"/>
+            <input name="sessionId"/>
+        </call-task>
+
+        <call-task name="designMenu" taskModelPath="/nop/ai/tasks/ai-menu-design.task.xml">
+            <flags match="menu or EMPTY" />
 
             <input name="requirementsPath"/>
             <input name="outputDir"/>

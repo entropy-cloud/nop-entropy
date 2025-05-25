@@ -136,4 +136,62 @@ public class TestAiTask extends JunitBaseTestCase {
         taskRt.setInput("sessionId",sessionId);
         task.execute(taskRt).syncGetOutputs();
     }
+
+    @Test
+    public void testAiCoderR1(){
+        File targetDir = getTargetFile("demo-project-r1");
+
+        ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-coder.task.xml");
+        ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
+        taskRt.setInput("inputRequirementsPath", attachmentFile("input-requirements2.md").getAbsolutePath());
+        taskRt.setInput("outputDir", targetDir.getAbsolutePath());
+        taskRt.setInput("basePackageName", "app.demo");
+        taskRt.setInput("appName", "app-demo");
+        taskRt.setInput("mavenGroupId", "io.nop.demo");
+        taskRt.setInput("needExpand", false);
+
+        taskRt.setInput("aiProvider", aiProvider);
+        taskRt.setInput("aiModel", "deepseek-reasoner");
+        taskRt.setInput("sessionId","test-r1");
+        task.execute(taskRt).syncGetOutputs();
+    }
+
+    @Test
+    public void testAiCoderDoubao(){
+        File targetDir = getTargetFile("demo-project-doubao");
+
+        ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-coder.task.xml");
+        ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
+        taskRt.setInput("inputRequirementsPath", attachmentFile("input-requirements2.md").getAbsolutePath());
+        taskRt.setInput("outputDir", targetDir.getAbsolutePath());
+        taskRt.setInput("basePackageName", "app.demo");
+        taskRt.setInput("appName", "app-demo");
+        taskRt.setInput("mavenGroupId", "io.nop.demo");
+        taskRt.setInput("needExpand", false);
+
+        taskRt.setInput("aiProvider", "volcengine");
+        taskRt.setInput("aiModel", "doubao-1-5-pro-32k-250115");
+        taskRt.setInput("sessionId","test-doubao");
+        task.execute(taskRt).syncGetOutputs();
+    }
+
+
+    @Test
+    public void testAiCoderDoubaoLite(){
+        File targetDir = getTargetFile("demo-project-doubao-lite");
+
+        ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-coder.task.xml");
+        ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
+        taskRt.setInput("inputRequirementsPath", attachmentFile("input-requirements2.md").getAbsolutePath());
+        taskRt.setInput("outputDir", targetDir.getAbsolutePath());
+        taskRt.setInput("basePackageName", "app.demo");
+        taskRt.setInput("appName", "app-demo");
+        taskRt.setInput("mavenGroupId", "io.nop.demo");
+        taskRt.setInput("needExpand", false);
+
+        taskRt.setInput("aiProvider", "volcengine");
+        taskRt.setInput("aiModel", "doubao-1-5-lite-32k-250115");
+        taskRt.setInput("sessionId","test-doubao-lite");
+        task.execute(taskRt).syncGetOutputs();
+    }
 }

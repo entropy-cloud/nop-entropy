@@ -369,6 +369,11 @@ public class DefaultAiChatService implements IAiChatService {
         try {
             parseToResult(chatResponse, llmModel, response);
             checkThink(chatResponse, llmModel, chatResponse.getChatOptions().getModel(), response);
+
+
+            if (CFG_AI_SERVICE_LOG_MESSAGE.get()) {
+                chatLogger.logResponse(chatResponse);
+            }
         } catch (Exception e) {
             LOG.info("nop.ai.parse-result-fail", e);
             throw NopException.adapt(e);
@@ -390,9 +395,6 @@ public class DefaultAiChatService implements IAiChatService {
         chatExchange.setStatus(getMessageStatus(result, responseModel.getStatusPath()));
         chatExchange.setUsage(usage);
 
-        if (CFG_AI_SERVICE_LOG_MESSAGE.get()) {
-            chatLogger.logResponse(chatExchange);
-        }
     }
 
     protected MessageStatus getMessageStatus(Map<String, Object> body, String propPath) {

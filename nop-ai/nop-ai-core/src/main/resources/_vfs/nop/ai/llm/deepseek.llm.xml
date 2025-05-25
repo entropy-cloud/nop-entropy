@@ -22,6 +22,7 @@
               promptTokensPath="usage.prompt_tokens"
               completionTokensPath="usage.completion_tokens"
               totalTokensPath="usage.total_tokens"
+              reasoningContentPath="choices.0.message.reasoning_content"
               statusPath="done"
               errorPath="error"
     />

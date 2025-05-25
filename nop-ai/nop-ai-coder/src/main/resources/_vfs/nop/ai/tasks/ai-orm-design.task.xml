@@ -47,12 +47,6 @@
                     return requirementsDoc.selectSectionByTplTag('ORM').toText();
                 </source>
             </output>
-
-            <output name="menuRequirements">
-                <source>
-                    return requirementsDoc.selectSectionByTplTag('MENU').toText();
-                </source>
-            </output>
         </step>
 
         <step name="designOrm" customType="ai:TaskStep" ai:promptName="coder/orm-design" ai:useResponseCache="true">
@@ -81,55 +75,5 @@
             <input name="text" value="${ormModel.ormModelXml}"/>
         </step>
 
-        <step name="designMenu" customType="ai:TaskStep" ai:promptName="coder/menu-design" ai:useResponseCache="true">
-            <description>根据需求文档的描述，设计菜单和角色权限</description>
-
-            <input name="requirements" value="${menuRequirements}"/>
-            <input name="ormModel"/>
-            <output name="RESULT" exportAs="menuNode"/>
-        </step>
-
-        <!-- 逐个验证AI -->
-        <fork name="validateSiteResource" varName="resourceNode">
-            <input name="menuNode"/>
-            <producer>
-                return menuNode.findAll(node=>node.hasAttr('app:useCaseNo') || node.hasAttr('app:entityName'));
-            </producer>
-
-            <steps>
-                <step name="validateSingleResource" customType="ai:TaskStep"
-                        ai:promptName="coder/validate-site-resource" ai:useResponseCache="true">
-                    <throttle maxConcurrency="1" maxWait="100000000"/>
-
-                    <input name="resourceNode"/>
-                    <input name="requirements" value="${menuRequirements}"/>
-                    <input name="ormModel"/>
-                    <output name="RESULT" exportAs="fixedResourceNode"/>
-                </step>
-
-                <step name="replaceResourceNode">
-                    <input name="resourceNode"/>
-                    <input name="fixedResourceNode"/>
-                    <source><![CDATA[
-                        if(fixedResourceNode)
-                            resourceNode.replaceBy(fixedResourceNode.cloneInstance());
-                    ]]></source>
-                </step>
-            </steps>
-        </fork>
-
-        <step name="saveMenuXml" customType="ai-coder:SaveDslNode">
-            <input name="outputDir"/>
-            <input name="fileName" value="model/ai-gen.action-auth.xml"/>
-            <input name="dslNode" value="${menuNode}"/>
-            <input name="xdefPath" value="/nop/schema/action-auth.xdef"/>
-        </step>
-
-        <step name="saveMenuXml2" customType="ai-coder:SaveDslNode">
-            <input name="outputDir"/>
-            <input name="fileName" value="${appName}-web/src/main/resources/_vfs/${appId}/auth/ai-gen.action-auth.xml"/>
-            <input name="dslNode" value="${menuNode}"/>
-            <input name="xdefPath" value="/nop/schema/action-auth.xdef"/>
-        </step>
     </steps>
 </task>

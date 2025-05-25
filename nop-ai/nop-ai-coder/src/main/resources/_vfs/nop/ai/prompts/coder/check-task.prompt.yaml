@@ -1,6 +1,6 @@
 template: |
   【任务目标】
-  请根据以下标准检查给定的NopTaskFlow实现是否完全满足原始需求。如果不需要修改，仅返回`[NO_CHANGE]`，否则返回修改后的XML
+  请根据以下标准检查给定的NopTaskFlow实现是否完全满足原始需求。如果不需要修改，仅返回`[NO_CHANGE]`标记，否则仅返回修改后的XML，不需要额外解释
   
   【评估标准】
   1. 语法合规性检查
@@ -21,8 +21,8 @@ template: |
   4. 代码质量评估
   - 是否合理使用XPL模板语法。`&lt;bo:DoUpdate>`等标签的data参数是否作为属性传递
   - 是否避免不必要的服务导入。
-  - 变量作用域使用是否恰当。是否只在需要跨步骤访问时使用`&lt;task:assign>`
-  - 是否所有变量都是先定义（通过let,`xpl:return`或者`&lt;task:assign>`）再使用
+  - 变量作用域使用是否恰当。是否只在需要跨步骤访问时使用`&lt;task:output>`
+  - 是否所有变量都是先定义（通过let,`xpl:return`或者`&lt;task:output>`）再使用
   - 绝对禁止在`&lt;c:script>`内直接写XPL标签
   - 是否符合XPL最佳实践
   

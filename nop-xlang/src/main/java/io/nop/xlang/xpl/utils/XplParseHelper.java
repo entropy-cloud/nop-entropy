@@ -417,6 +417,15 @@ public class XplParseHelper {
                 .param(ARG_NODE, node);
     }
 
+    public static Identifier requireAttrIdentifier(XNode node, String name, IXLangExprParser exprParser,
+                                                   IXLangCompileScope scope) {
+        Identifier id = getAttrIdentifier(node, name, exprParser, scope);
+        if (id == null) {
+            throw missingAttr(node, name);
+        }
+        return id;
+    }
+
     public static Identifier getAttrIdentifier(XNode node, String name, IXLangExprParser exprParser,
                                                IXLangCompileScope scope) {
         Identifier id = _getAttrIdentifier(node, name, exprParser, scope);

@@ -35,11 +35,11 @@ public class DefaultAiChatLogger implements IAiChatLogger {
     @Override
     public void logResponse(AiChatExchange response) {
         LOG.info("response:promptTokens={},completionTokens={},content=\n{}",
-                response.getPromptTokens(), response.getCompletionTokens(), response.getContent());
+                response.getPromptTokens(), response.getCompletionTokens(), response.getFullContent());
 
         if (isValidLogDir()) {
             IResource resource = getResource(response, "-response.md");
-            ResourceHelper.writeText(resource, response.getContent(), "UTF-8");
+            ResourceHelper.writeText(resource, response.getFullContent(), "UTF-8");
         }
     }
 

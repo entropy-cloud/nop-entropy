@@ -180,6 +180,8 @@ public class XLangCompileScope extends EvalScopeImpl implements IXLangCompileSco
 
     @Override
     public String generateVarName(String prefix) {
+        if (getParentScope() != null)
+            return getParentScope().generateVarName(prefix);
         return prefix + (nextVarSeq++);
     }
 

@@ -138,6 +138,10 @@ public interface XplConstants {
     String NAME_NAME = "name";
     String OUT_NAME = "out";
 
+    String OBJ_NAME = "obj";
+    String FIELD_NAME = "field";
+    String TEMP_VAR_PREFIX = "__tmp_";
+
     String XPL_NAME = "xpl";
     String TEXT_NAME = "text";
     String NODE_NAME = "node";

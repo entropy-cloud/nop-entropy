@@ -11,7 +11,8 @@
     </models>
 
     <aliasMap>
-        deepseek-chat=deepseek-v3-250324
+        deepseek-chat=deepseek-v3-250324,
+        doubao-1.5=doubao-1-5-pro-32k-250115
     </aliasMap>
 
     <request seedPath="options.seed"

@@ -34,6 +34,10 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
 
     static final String TITLE_RESPONSE = "## ****Response****: ";
 
+    static final String TITLE_THINK = "### Think\n";
+
+    static final String MARKER_THINK_END = "\n-----**think**------\n";
+
     static final String TITLE_MESSAGE_META = "### Metadata\n";
 
     static final String JSON_BLOCK_BEGIN = "```json\n";
@@ -56,12 +60,9 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
     public String calcRequestHash(Prompt prompt, AiChatOptions options) {
         StringBuilder sb = new StringBuilder();
 
-        // 仅使用provider和model属性，其他属性不参与结果缓存匹配
-        AiChatOptions copyOptions = new AiChatOptions();
-        copyOptions.setProvider(options.getProvider());
-        copyOptions.setModel(options.getModel());
+        // chatOptions不参与cache计算，这样可以对比不同的model对于同一个prompt的请求效果
 
-        writeRequest(sb, prompt, copyOptions, 0, null);
+        writeRequest(sb, prompt, null, 0, null);
         return StringHelper.md5Hash(sb.toString());
     }
 
@@ -145,6 +146,16 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
             sb.append(message.getContent());
         sb.append(MARKER_CONTENT_END);
         sb.append("\n");
+
+        if (message instanceof AiAssistantMessage) {
+            AiAssistantMessage assistant = (AiAssistantMessage) message;
+            if (assistant.getThink() != null) {
+                sb.append(TITLE_THINK);
+                sb.append(assistant.getThink());
+                sb.append(MARKER_THINK_END);
+                sb.append("\n");
+            }
+        }
 
         if (message.getMetadata() != null) {
             sb.append(TITLE_MESSAGE_META);
@@ -253,6 +264,13 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
         message.setContent(content);
         scanner.consume(MARKER_CONTENT_END);
         scanner.skipBlank();
+
+        if (scanner.tryMatch(TITLE_THINK)) {
+            String think = scanner.nextUntil(MARKER_THINK_END, false).toString();
+            message.setThink(think);
+            scanner.consume(MARKER_THINK_END);
+            scanner.skipBlank();
+        }
 
         // 解析元数据
         if (scanner.tryMatch(TITLE_MESSAGE_META)) {

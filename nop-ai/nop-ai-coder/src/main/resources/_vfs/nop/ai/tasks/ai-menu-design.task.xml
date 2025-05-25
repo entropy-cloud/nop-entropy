@@ -1,0 +1,111 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:task="task"
+      xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
+      xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
+      x:extends="/nop/task/lib/common.task.xml">
+
+    <!--    <ai:chatOptions provider="ollama" model="qwen3:8b" contextLength="8192" maxTokens="16000"/>-->
+
+    <!--    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>-->
+    <!--    <ai:chatOptions provider="volcengine" model="deepseek-chat" contextLength="8192" maxTokens="8192" temperature="0" />-->
+
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="8192" temperature="0" sessionId="${sessionId}"/>
+
+    <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
+
+    <input name="requirementsPath" type="String" mandatory="true"/>
+    <input name="appName" type="String" mandatory="true"/>
+    <input name="basePackageName" type="String" mandatory="true"/>
+    <input name="outputDir" type="String" mandatory="true"/>
+    <input name="aiProvider" type="String" mandatory="true" />
+    <input name="aiModel" type="String" mandatory="true" />
+    <input name="sessionId" type="String" optional="true"/>
+
+    <steps>
+        <step name="init">
+            <input name="appName"/>
+            <output name="appId">
+                <source>
+                    return appName.replace('-','/');
+                </source>
+            </output>
+        </step>
+
+        <step name="loadRequirements" customType="ai-coder:LoadMarkdown">
+            <input name="fileName" value="${requirementsPath}"/>
+            <input name="tplPath" value="/nop/ai/schema/coder/requirements.tpl.md"/>
+
+            <input name="loadDocumentExt" value="true"/>
+            <input name="sectionExtTplPath" value="/nop/ai/schema/coder/module-requirements.tpl.md"/>
+
+            <output name="RESULT" exportAs="requirementsDoc"/>
+        </step>
+
+        <step name="splitRequirements">
+            <input name="requirementsDoc"/>
+
+            <output name="menuRequirements">
+                <source>
+                    return requirementsDoc.selectSectionByTplTag('MENU').toText();
+                </source>
+            </output>
+        </step>
+
+        <step name="loadOrmModel" customType="ai-coder:LoadOrmModel">
+            <input name="fileName" value="model/ai-gen.orm.xml"/>
+            <input name="inputDir" value="${outputDir}"/>
+            <output name="RESULT" exportAs="ormModel"/>
+        </step>
+
+        <step name="designMenu" customType="ai:TaskStep" ai:promptName="coder/menu-design" ai:useResponseCache="true">
+            <description>根据需求文档的描述，设计菜单和角色权限</description>
+
+            <input name="requirements" value="${menuRequirements}"/>
+            <input name="ormModel"/>
+            <output name="RESULT" exportAs="menuNode"/>
+        </step>
+
+        <!-- 逐个验证AI -->
+        <fork name="validateSiteResource" varName="resourceNode">
+            <input name="menuNode"/>
+            <producer>
+                return menuNode.findAll(node=>node.hasAttr('app:useCaseNo') || node.hasAttr('app:entityName'));
+            </producer>
+
+            <steps>
+                <step name="validateSingleResource" customType="ai:TaskStep"
+                      ai:promptName="coder/validate-site-resource" ai:useResponseCache="true">
+                    <throttle maxConcurrency="1" maxWait="100000000"/>
+
+                    <input name="resourceNode"/>
+                    <input name="requirements" value="${menuRequirements}"/>
+                    <input name="ormModel"/>
+                    <output name="RESULT" exportAs="fixedResourceNode"/>
+                </step>
+
+                <step name="replaceResourceNode">
+                    <input name="resourceNode"/>
+                    <input name="fixedResourceNode"/>
+                    <source><![CDATA[
+                        if(fixedResourceNode)
+                            resourceNode.replaceBy(fixedResourceNode.cloneInstance());
+                    ]]></source>
+                </step>
+            </steps>
+        </fork>
+
+        <step name="saveMenuXml" customType="ai-coder:SaveDslNode">
+            <input name="outputDir"/>
+            <input name="fileName" value="model/ai-gen.action-auth.xml"/>
+            <input name="dslNode" value="${menuNode}"/>
+            <input name="xdefPath" value="/nop/schema/action-auth.xdef"/>
+        </step>
+
+        <step name="saveMenuXml2" customType="ai-coder:SaveDslNode">
+            <input name="outputDir"/>
+            <input name="fileName" value="${appName}-web/src/main/resources/_vfs/${appId}/auth/ai-gen.action-auth.xml"/>
+            <input name="dslNode" value="${menuNode}"/>
+            <input name="xdefPath" value="/nop/schema/action-auth.xdef"/>
+        </step>
+
+    </steps>
+</task>

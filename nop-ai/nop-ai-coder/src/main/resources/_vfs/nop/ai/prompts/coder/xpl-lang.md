@@ -13,11 +13,7 @@ XPL是XML格式的模板语言
 ### 1. 数据验证
 
 ```xpl-syntax
- <!--
-  验证传入的obj对象（可以是一个Map)上的属性
-  -->
-<biz:Validator obj="t-expr">
-  <check id="string" errorCode="error-code" errorDescription="string">
+  <c:check id="string" errorCode="error-code" errorDescription="string">
     <eq name="prop-path" value="t-expr"/>
     <ne name="prop-path" value="t-expr" />
     <between name="prop-path" min="t-expr" max="t-expr" excludeMin="boolean" excludeMax="boolean"/>
@@ -28,10 +24,7 @@ XPL是XML格式的模板语言
     <regex name="prop-path" value="reg-ex" />
     <c:script>expr</c:script>
     <and/> <or/> <not/>
-
-  </check>
-
-</biz:Validator>
+  </c:check>
 ```
 
 ### 2. CRUD操作
@@ -39,7 +32,7 @@ XPL是XML格式的模板语言
 ```xpl-syntax
   <!--
    @return id对应的实体
-   @ignoreUnknown 设置为true时没找到会返回null，否则会抛出nop.dao.unknown-entity异常
+   @ignoreUnknown 设置为true时没找到会返回null。如果不设置或者设置为false会抛出nop.dao.unknown-entity异常
    -->
   <bo:Get bizObjName="entity-name" id="t-expr" ignoreUnknown="boolean"/>
 
@@ -131,10 +124,10 @@ XPL是XML格式的模板语言
 ### 4. 设置全局变量
 
 ```xpl-syntax
-<task:assign name="var-name" value="t-expr" />
+<task:output name="var-name" value="t-expr" />
 ```
 
-重要：仅在需要跨步骤访问时才使用`<task:assign>`，否则使用局部的let声明或者`xpl:return`属性赋值。
+重要：仅在需要跨步骤访问时才使用`<task:output>`，否则使用局部的let声明或者`xpl:return`属性赋值。
 
 ### 5. 脚本与异常
 
@@ -168,7 +161,7 @@ XPL是XML格式的模板语言
 ```xpl
 <c:script><![CDATA[
   if(orderStats){}
-    <task:assign name="orderStats" value="${stats}"/>
+    <task:output name="orderStats" value="${stats}"/>
   }
 ]]></c:script>
 ```
@@ -187,12 +180,12 @@ XPL是XML格式的模板语言
      let userName = user?.userName;
   ]]></c:script>
 
-  <task:assign name="userName" value="${userName}" />
+  <task:output name="userName" value="${userName}" />
 ```
 
 - `c:script`中的let声明和`xpl:return`的变量作用域都是当前step，不能在其他step中访问
-- `<task:assign>`对应的变量作用域是整个task
-- 除了request输入对象之外，必须通过`xpl:return`，`<c:script>`中的let或者`<task:assign>`等语法先定义变量然后才能使用
+- `<task:output>`对应的变量作用域是整个task
+- 除了request输入对象之外，必须通过`xpl:return`，`<c:script>`中的let或者`<task:output>`等语法先定义变量然后才能使用
 
 ## 内置函数
 
@@ -212,6 +205,7 @@ $Math.power(value,3)
 * `$Math`提供sin/cos等数学函数，普通加减乘除直接用+-*/符号即可
 
 ## 注意事项
+
 * IMPORTANT: `<bo:DoSave>`等函数的data参数必须按照规范要求作为属性传递
 
 ## 最佳实践

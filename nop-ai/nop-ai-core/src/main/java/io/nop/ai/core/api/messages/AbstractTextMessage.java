@@ -10,4 +10,12 @@ public abstract class AbstractTextMessage extends AiMessage {
     public void setContent(String content) {
         this.content = content;
     }
+
+    public String getThink(){
+        return null;
+    }
+
+    public void setThink(String think){
+
+    }
 }

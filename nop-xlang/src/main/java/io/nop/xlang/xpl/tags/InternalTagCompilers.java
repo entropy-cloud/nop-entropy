@@ -16,6 +16,7 @@ public class InternalTagCompilers {
     static Map<String, IXplTagCompiler> tags = new HashMap<>();
 
     static {
+        registerTagCompiler("c:assign", AssignTagCompiler.INSTANCE);
         registerTagCompiler("c:break", BreakTagCompiler.INSTANCE);
         registerTagCompiler("c:check", CheckTagCompiler.INSTANCE);
         registerTagCompiler("c:choose", ChooseTagCompiler.INSTANCE);
@@ -26,14 +27,14 @@ public class InternalTagCompilers {
         registerTagCompiler("c:iif", IifTagCompiler.INSTANCE);
         registerTagCompiler("c:import", ImportTagCompiler.INSTANCE);
         registerTagCompiler("c:include", IncludeTagCompiler.INSTANCE);
-        // registerTagCompiler("c:tags", LibTagCompiler.INSTANCE);
+
         registerTagCompiler("c:log", LogTagCompiler.INSTANCE);
         registerTagCompiler("c:out", OutTagCompiler.INSTANCE);
         registerTagCompiler("c:predicate", PredicateTagCompiler.INSTANCE);
         registerTagCompiler("c:print", PrintTagCompiler.INSTANCE);
         registerTagCompiler("c:return", ReturnTagCompiler.INSTANCE);
         registerTagCompiler("c:script", ScriptTagCompiler.INSTANCE);
-        //registerTagCompiler("c:eval", EvalTagCompiler.INSTANCE);
+
         registerTagCompiler("c:throw", ThrowTagCompiler.INSTANCE);
         registerTagCompiler("c:try", TryTagCompiler.INSTANCE);
         registerTagCompiler("c:unit", UnitTagCompiler.INSTANCE);
