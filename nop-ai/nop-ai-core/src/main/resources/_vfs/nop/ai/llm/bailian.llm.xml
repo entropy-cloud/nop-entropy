@@ -1,0 +1,11 @@
+<llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+     x:extends="default.llm.xml" >
+
+    <baseUrl>https://dashscope.aliyuncs.com/compatible-mode/v1</baseUrl>
+    <chatUrl>/chat/completions</chatUrl>
+
+
+
+
+
+</llm>

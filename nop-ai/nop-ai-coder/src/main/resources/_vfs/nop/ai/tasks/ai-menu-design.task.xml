@@ -8,7 +8,8 @@
     <!--    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>-->
     <!--    <ai:chatOptions provider="volcengine" model="deepseek-chat" contextLength="8192" maxTokens="8192" temperature="0" />-->
 
-    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="8192" temperature="0" sessionId="${sessionId}"/>
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="8192" temperature="0"
+                    sessionId="${sessionId}"/>
 
     <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 
@@ -16,8 +17,8 @@
     <input name="appName" type="String" mandatory="true"/>
     <input name="basePackageName" type="String" mandatory="true"/>
     <input name="outputDir" type="String" mandatory="true"/>
-    <input name="aiProvider" type="String" mandatory="true" />
-    <input name="aiModel" type="String" mandatory="true" />
+    <input name="aiProvider" type="String" mandatory="true"/>
+    <input name="aiModel" type="String" mandatory="true"/>
     <input name="sessionId" type="String" optional="true"/>
 
     <steps>
@@ -64,34 +65,12 @@
             <output name="RESULT" exportAs="menuNode"/>
         </step>
 
-        <!-- 逐个验证AI -->
-        <fork name="validateSiteResource" varName="resourceNode">
+        <step name="checkMenu" customType="ai:TaskStep" ai:promptName="coder/check-menu" ai:useResponseCache="true">
+            <input name="requirements" value="${menuRequirements}"/>
+            <input name="ormModel"/>
             <input name="menuNode"/>
-            <producer>
-                return menuNode.findAll(node=>node.hasAttr('app:useCaseNo') || node.hasAttr('app:entityName'));
-            </producer>
-
-            <steps>
-                <step name="validateSingleResource" customType="ai:TaskStep"
-                      ai:promptName="coder/validate-site-resource" ai:useResponseCache="true">
-                    <throttle maxConcurrency="1" maxWait="100000000"/>
-
-                    <input name="resourceNode"/>
-                    <input name="requirements" value="${menuRequirements}"/>
-                    <input name="ormModel"/>
-                    <output name="RESULT" exportAs="fixedResourceNode"/>
-                </step>
-
-                <step name="replaceResourceNode">
-                    <input name="resourceNode"/>
-                    <input name="fixedResourceNode"/>
-                    <source><![CDATA[
-                        if(fixedResourceNode)
-                            resourceNode.replaceBy(fixedResourceNode.cloneInstance());
-                    ]]></source>
-                </step>
-            </steps>
-        </fork>
+            <output name="RESULT" exportAs="menuNode"/>
+        </step>
 
         <step name="saveMenuXml" customType="ai-coder:SaveDslNode">
             <input name="outputDir"/>

@@ -1,0 +1,43 @@
+template: |
+  【任务描述】
+  仔细分析如下resource节点的属性设置，判断它的属性值与需求描述是否相符。如果不需要修改，仅输出[NO_CHANGE]，否则输出修改后的完整XML，不要进行额外解释
+  
+  ```xml
+  ${menuNode.xml()}
+  ```
+  
+  【要求】
+  1. app:useCaseNo必须来自需求中的用例编号，多个用例编号应使用英文逗号分隔，必须确认resource对应的功能确实与指定用例相关
+  2. app:entityName必须在实体定义中，必须对应功能操作的主实体（例如主表所对应的实体） 
+  3. role必须是roles集合中定义的角色
+  
+  【实体定义】
+  ${ormModel.entityListInfo}
+  
+  【需求描述】
+  ${requirements}
+
+inputs:
+  - name: menuNode
+    type: XNode
+    mandatory: true
+
+  - name: ormModel
+    mandatory: true
+
+  - name: requirements
+    type: String
+    mandatory: true
+
+outputs:
+  - name: noChange
+    type: Boolean
+    parseFromResponse:
+      containsText: [ NO_CHANGE ]
+
+  - name: RESULT
+    xdefPath: /nop/ai/schema/coder/auth.xdef
+    format: xml
+    when: |
+      !chatExchange.outputs.noChange
+    defaultExpr: authNode

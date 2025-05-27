@@ -5,17 +5,21 @@
     <chatUrl>/chat/completions</chatUrl>
 
     <request seedPath="options.seed"
-             topKPath="options.top_k"
-             topPPath="options.top_p"
-             temperaturePath="options.temperature"
-             stopPath="options.stop"
+             topPPath="top_p"
+             temperaturePath="temperature"
+             stopPath="stop"
+             maxTokensPath="max_tokens"
     />
 
-    <response contentPath="choices.0.content"
-              rolePath="choices.0.role"
-              promptTokensPath="prompt_eval_count"
-              completionTokensPath="eval_count"
+
+    <response contentPath="choices.0.message.content"
+              rolePath="choices.0.message.role"
+              reasoningContentPath="choices.0.message.reasoning_content"
+              promptTokensPath="usage.prompt_tokens"
+              completionTokensPath="usage.completion_tokens"
+              totalTokensPath="usage.total_tokens"
               statusPath="done"
+              errorPath="error"
     />
 
 </llm>

@@ -20,7 +20,7 @@ public interface IEditableTagSetSupport extends ITagSetSupport {
 
     default void addTag(String tag) {
         Set<String> tags = getTagSet();
-        if (tags == null) {
+        if (tags == null || tags.isEmpty()) {
             tags = new HashSet<>();
         }
         if (tags.add(tag))

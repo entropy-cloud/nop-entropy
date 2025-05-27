@@ -1,5 +1,5 @@
 <llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-     apiStyle="openai" defaultModel="deepseek-chat">
+     x:extends="default.llm.xml" defaultModel="deepseek-chat">
 
     <baseUrl>https://ark.cn-beijing.volces.com</baseUrl>
     <chatUrl>/api/v3/chat/completions</chatUrl>
@@ -15,22 +15,5 @@
         doubao-1.5=doubao-1-5-pro-32k-250115
     </aliasMap>
 
-    <request seedPath="options.seed"
-             topPPath="top_p"
-             temperaturePath="temperature"
-             stopPath="stop"
-             maxTokensPath="max_tokens"
-             thinkingPath="thinking"
-    />
-
-    <response contentPath="choices.0.message.content"
-              rolePath="choices.0.message.role"
-              reasoningContentPath="choices.0.message.reasoning_content"
-              promptTokensPath="usage.prompt_tokens"
-              completionTokensPath="usage.completion_tokens"
-              totalTokensPath="usage.total_tokens"
-              statusPath="done"
-              errorPath="error"
-    />
 
 </llm>
