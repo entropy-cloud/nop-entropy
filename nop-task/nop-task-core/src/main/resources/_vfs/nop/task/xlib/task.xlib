@@ -64,7 +64,7 @@
             ]]></source>
         </Execute>
 
-        <Assign>
+        <output>
             <attr name="name" mandatory="true"/>
             <attr name="value"/>
             <attr name="taskRt" implicit="true"/>
@@ -72,6 +72,6 @@
             <source>
                 taskRt.assign(name,value);
             </source>
-        </Assign>
+        </output>
     </tags>
 </lib>

@@ -18,13 +18,19 @@ template: |
 
   <ai-coder:IncludeText fileName="v:/nop/ai/prompts/coder/task-flow.md" xpl:lib="/nop/ai/xlib/ai-coder.xlib" />
   
+  【导入服务】
+  <ai-coder:IncludeText fileName="v:/nop/ai/prompts/coder/task-import.md" xpl:lib="/nop/ai/xlib/ai-coder.xlib" />
+  
+  
   【XPL模板语法】
   <ai-coder:IncludeText fileName="v:/nop/ai/prompts/coder/xpl-lang.md" xpl:lib="/nop/ai/xlib/ai-coder.xlib" />
+  
   
   【业务实体定义】
   ```java
   ${ormModel.ormModelJava}
   ```
+  
   
   【需求文档】
   ${requirements}

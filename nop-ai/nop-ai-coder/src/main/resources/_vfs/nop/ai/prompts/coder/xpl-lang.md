@@ -4,7 +4,7 @@ XPL是XML格式的模板语言
 
 - `t-expr`: 动态表达式，格式 `${expr}` 或者字面量
 - `prop-path`: 属性路径，如 `user.contact.phone`
-- `error-code`: 错误码，如`app.demo.unknown-order`
+- `error-code`: 错误码采用 `{应用名}.{模块名}.{错误分类}`这种分段结构，如`app.demo.unknown-order`
 - `filter`: 支持复杂bool逻辑表达式， 如`<and/>, <or/> <eq/>`等
 - `var-name`: 合法的java变量名，如`entity`，不能是`user.contact`这种属性路径
 
@@ -13,19 +13,46 @@ XPL是XML格式的模板语言
 ### 1. 数据验证
 
 ```xpl-syntax
-  <c:check id="string" errorCode="error-code" errorDescription="string">
+  <c:check errorCode="error-code" errorDescription="string" params="t-expr">
+    filter
+  </c:check>
+```
+
+filter的语法
+
+```xpl-syntax
     <eq name="prop-path" value="t-expr"/>
     <ne name="prop-path" value="t-expr" />
+    <ge name="prop-path" value="t-expr" />
+    <gt name="prop-path" value="t-expr" />
+	  <le name="prop-path" value="t-expr" />
+    <lt name="prop-path" value="t-expr" />
     <between name="prop-path" min="t-expr" max="t-expr" excludeMin="boolean" excludeMax="boolean"/>
+    <lengthBetween name="prop-path" min="t-expr" max="t-expr" excludeMin="boolean" excludeMax="boolean"/>
     <notEmpty name="prop-path" />
     <notBlank name="prop-path" />
     <in name="prop-path" value="t-expr" />
     <startsWith name="prop-path" />
+    <endsWith name="prop-path" />
+    <contains name="prop-path" value="sub-str" />
     <regex name="prop-path" value="reg-ex" />
     <c:script>expr</c:script>
-    <and/> <or/> <not/>
-  </c:check>
+    <and>
+      <eq name="prop-path" value="t-expr"/>
+    </and>
+    <or/> <not/>
 ```
+
+* errorDescription使用`{placeholder}`格式
+示例:
+
+```xpl
+<c:check errorDescription="金额{amount}超过限额 {limit}"
+         params="${{amount, limit: user.credit}}">
+  <between name="order.amount" min="${0}" max="${user.credit}"/>
+</c:check>
+```
+
 
 ### 2. CRUD操作
 
@@ -83,6 +110,29 @@ XPL是XML格式的模板语言
   <bo:DoBatchDelete bizObjName="entity-name" ids="t-expr"/>
 ```
 
+* IMPORTANT: `<bo:DoSave>`等函数的data参数必须按照规范要求作为属性传递
+
+示例:
+
+```xpl
+<bo:DoUpdate bizObjName="Order"
+            id="${orderId}"
+            data="${{status: 'APPROVED', updateTime: now()}}"/>
+
+<bo:DoSave bizObjName="Product" data="${{name: 'New Product'}}" xpl:return="product" />
+```
+
+**严重错误**：
+
+```xpl
+<!-- 错误示例 -->
+<bo:DoSave bizObjName="Product">
+  <!-- 错误：data参数未通过属性传递 -->
+  <data>{name: "New Product"}</data>
+</bo:DoSave>
+
+```
+
 ### 3. 流程控制
 
 ```xpl-syntax
@@ -121,13 +171,43 @@ XPL是XML格式的模板语言
   <c:return value="t-expr"/>
 ```
 
-### 4. 设置全局变量
+### 4. 值作用域和返回值
+
+所有标签都支持`xpl:return`属性来表示标签的返回值。通过`<task:output>`设置跨步骤共享的变量。
+
 
 ```xpl-syntax
 <task:output name="var-name" value="t-expr" />
 ```
 
+示例：
+
+```xpl
+<step name="stepA">
+  <source>
+     <!-- xpl:return定义返回值为一个变量，可以在本步骤内部使用，但是不能跨步骤访问 -->
+     <bo:Get bizObjName="MyEntity" id="${request.id}" xpl:return="myEntity" />
+     <c:script><![CDATA[
+       let x = 1;
+     ]]></c:script>
+     <task:output name="valueA" value="${x+myEntity.amount}" />
+  </source>
+</step>
+
+<step name="stepB">
+  <source>
+    <!-- 跨步骤可以访问task:output设置的valueA，但是无法访问到步骤内部的变量x和myEntity -->
+     <c:if test="${valueA > 1}">
+       ...
+     </c:if>
+  </source>
+</step>
+```
+
 重要：仅在需要跨步骤访问时才使用`<task:output>`，否则使用局部的let声明或者`xpl:return`属性赋值。
+
+示例：
+
 
 ### 5. 脚本与异常
 
@@ -156,37 +236,6 @@ XPL是XML格式的模板语言
 
 ```
 
-`<c:script>`的内容必须用CDATA包裹，采用类似ECMAScript6的语法，不允许嵌套XML标签，也就是以下做法是错误的
-
-```xpl
-<c:script><![CDATA[
-  if(orderStats){}
-    <task:output name="orderStats" value="${stats}"/>
-  }
-]]></c:script>
-```
-
-**绝对禁止**在`<c:script>`内直接写XPL标签!!!
-
-## 5. 值作用域和返回值
-
-所有标签都支持`xpl:return`属性来表示标签的返回值。例如，
-
-```xpl
-
-  <bo:Get bizObjName="User" id="${id}" ignoreUnknown="${true}" xpl:return="user"/>
-
-  <c:script><![CDATA[
-     let userName = user?.userName;
-  ]]></c:script>
-
-  <task:output name="userName" value="${userName}" />
-```
-
-- `c:script`中的let声明和`xpl:return`的变量作用域都是当前step，不能在其他step中访问
-- `<task:output>`对应的变量作用域是整个task
-- 除了request输入对象之外，必须通过`xpl:return`，`<c:script>`中的let或者`<task:output>`等语法先定义变量然后才能使用
-
 ## 内置函数
 
 ```javascript
@@ -204,13 +253,7 @@ $Math.power(value,3)
 * `$Date`提供LocalDate等类的扩展函数
 * `$Math`提供sin/cos等数学函数，普通加减乘除直接用+-*/符号即可
 
-## 注意事项
-
-* IMPORTANT: `<bo:DoSave>`等函数的data参数必须按照规范要求作为属性传递
-
 ## 最佳实践
 
 1. 优先使用属性路径代替多次查询，比如通过`order.items`直接得到实体关联的属性，不用通过`<bo:FindList>`去查询子表
-2. 验证逻辑集中到Validator
-3. 错误描述使用`{placeholder}`格式
-4. 批量操作使用Batch前缀方法
+2. 批量操作使用Batch前缀方法

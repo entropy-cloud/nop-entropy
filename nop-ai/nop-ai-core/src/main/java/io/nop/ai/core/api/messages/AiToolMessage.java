@@ -16,31 +16,39 @@
 package io.nop.ai.core.api.messages;
 
 import io.nop.ai.core.AiCoreConstants;
+import io.nop.api.core.annotations.data.DataBean;
 
 import java.util.Map;
 
-public class AiFunctionMessage extends AbstractTextMessage {
+@DataBean
+public class AiToolMessage extends AbstractTextMessage {
 
-    public AiFunctionMessage() {
+    private String name;
+    private String toolCallId;
+    private Map<String, Object> arguments;
+
+    public String getName() {
+        return name;
     }
 
-    private String functionName;
-    private Map<String, Object> args;
-
-    public String getFunctionName() {
-        return functionName;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public void setFunctionName(String functionName) {
-        this.functionName = functionName;
+    public String getToolCallId() {
+        return toolCallId;
     }
 
-    public Map<String, Object> getArgs() {
-        return args;
+    public void setToolCallId(String toolCallId) {
+        this.toolCallId = toolCallId;
     }
 
-    public void setArgs(Map<String, Object> args) {
-        this.args = args;
+    public Map<String, Object> getArguments() {
+        return arguments;
+    }
+
+    public void setArguments(Map<String, Object> arguments) {
+        this.arguments = arguments;
     }
 
     @Override
@@ -50,9 +58,9 @@ public class AiFunctionMessage extends AbstractTextMessage {
 
     @Override
     public String toString() {
-        return "FunctionMessage{" +
-                "functionName='" + functionName + '\'' +
-                ", args=" + args +
+        return "ToolMessage{" +
+                "name='" + name + '\'' +
+                ", args=" + arguments +
                 ", content='" + getContent() + '\'' +
                 ", metadataMap=" + getMetadata() +
                 '}';

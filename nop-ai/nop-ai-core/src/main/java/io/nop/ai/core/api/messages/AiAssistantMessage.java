@@ -4,9 +4,13 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.ai.core.AiCoreConstants;
 import io.nop.api.core.annotations.data.DataBean;
 
+import java.util.List;
+
 @DataBean
 public class AiAssistantMessage extends AbstractTextMessage {
     private String think;
+
+    private List<ToolCall> toolCalls;
 
     @Override
     public String getRole() {
@@ -22,4 +26,11 @@ public class AiAssistantMessage extends AbstractTextMessage {
         this.think = think;
     }
 
+    public List<ToolCall> getToolCalls() {
+        return toolCalls;
+    }
+
+    public void setToolCalls(List<ToolCall> toolCalls) {
+        this.toolCalls = toolCalls;
+    }
 }

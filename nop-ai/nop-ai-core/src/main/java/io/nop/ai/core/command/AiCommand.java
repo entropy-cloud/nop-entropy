@@ -5,6 +5,7 @@ import io.nop.ai.core.api.chat.IAiChatLogger;
 import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.Prompt;
+import io.nop.ai.core.api.tool.IToolProvider;
 import io.nop.ai.core.commons.processor.IAiChatResponseProcessor;
 import io.nop.ai.core.persist.IAiChatResponseCache;
 import io.nop.ai.core.prompt.IPromptTemplate;
@@ -23,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionStage;
 
@@ -40,6 +42,9 @@ public class AiCommand {
     private IAiChatResponseCache chatCache;
     private boolean returnExceptionAsResponse = true;
     private IAiChatLogger chatLogger;
+    private IToolProvider toolProvider;
+
+    private Set<String> useTools;
 
     public AiCommand(IAiChatService chatService) {
         this.chatService = chatService;
@@ -81,6 +86,19 @@ public class AiCommand {
         this.retryTimesPerRequest = retryTimesPerRequest;
     }
 
+    public Set<String> getUseTools() {
+        return useTools;
+    }
+
+    public void setUseTools(Set<String> useTools) {
+        this.useTools = useTools;
+    }
+
+    public AiCommand useTools(Set<String> tools) {
+        this.setUseTools(tools);
+        return this;
+    }
+
     public AiChatOptions getChatOptions() {
         return chatOptions;
     }
@@ -115,10 +133,14 @@ public class AiCommand {
         return this;
     }
 
+    public AiCommand promptTemplate(IPromptTemplate promptTemplate) {
+        this.promptTemplate = promptTemplate;
+        return this;
+    }
+
     public AiCommand promptName(String promptName) {
         IPromptTemplateManager promptTemplateManager = BeanContainer.getBeanByType(IPromptTemplateManager.class);
-        this.promptTemplate = promptTemplateManager.getPromptTemplate(promptName);
-        return this;
+        return promptTemplate(promptTemplateManager.getPromptTemplate(promptName));
     }
 
     public AiCommand promptPath(String promptPath) {
@@ -148,6 +170,19 @@ public class AiCommand {
 
     public boolean isReturnExceptionAsResponse() {
         return returnExceptionAsResponse;
+    }
+
+    public IToolProvider getToolProvider() {
+        return toolProvider;
+    }
+
+    public void setToolProvider(IToolProvider toolProvider) {
+        this.toolProvider = toolProvider;
+    }
+
+    public AiCommand toolProvider(IToolProvider toolProvider) {
+        this.toolProvider = toolProvider;
+        return this;
     }
 
     public void setReturnExceptionAsResponse(boolean returnExceptionAsResponse) {

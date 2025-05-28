@@ -7,18 +7,18 @@ import java.util.List;
 
 @DataBean
 public class ToolResponseMessage extends AiMessage {
-    private List<ToolResponse> responses;
+    private List<ToolCall> responses;
 
     @Override
     public String getRole() {
         return AiCoreConstants.ROLE_TOOL;
     }
 
-    public List<ToolResponse> getResponses() {
+    public List<ToolCall> getResponses() {
         return responses;
     }
 
-    public void setResponses(List<ToolResponse> responses) {
+    public void setResponses(List<ToolCall> responses) {
         this.responses = responses;
     }
 

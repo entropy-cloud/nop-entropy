@@ -59,19 +59,5 @@
                 ]]></c:script>
             </source>
         </RunValidator>
-
-        <Check>
-            <attr name="errorCode" type="String" mandatory="true"/>
-            <attr name="errorParams" type="Map"/>
-            <attr name="errorDescription" type="String"/>
-            <attr name="errorStatus" type="Integer"/>
-            <attr name="bizFatal" type="Boolean"/>
-
-            <slot name="default"/>
-
-            <source>
-
-            </source>
-        </Check>
     </tags>
 </lib>
