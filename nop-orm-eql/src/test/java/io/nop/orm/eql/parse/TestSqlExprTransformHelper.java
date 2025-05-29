@@ -33,7 +33,7 @@ public class TestSqlExprTransformHelper {
     @Test
     public void testParse() {
         String sqlText = "concat('a',?, a + b + ?)";
-        Expression expr = SqlExprTransformHelper.parseSqlExpr(null, sqlText);
+        Expression expr = SqlExprTransformHelper.parseSqlToExpression(null, sqlText);
         XLangCompileTool cp = XLang.newCompileTool().allowUnregisteredScopeVar(true);
         //cp.getScope().setFunctionProvider();
         IEvalAction action = cp.buildEvalAction(expr);

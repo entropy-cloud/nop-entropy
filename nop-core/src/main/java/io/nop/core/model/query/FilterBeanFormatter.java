@@ -30,13 +30,10 @@ import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_NOT;
  * 将FilterBean格式化为类SQL语法，用于界面展示
  */
 public class FilterBeanFormatter extends FilterBeanVisitor<Void> {
-    private Function<String, String> nameTransformer;
+    private final Function<String, String> nameTransformer;
     private StringBuilder buf;
     private int depth;
     private boolean skipIndent;
-
-    public FilterBeanFormatter() {
-    }
 
     public FilterBeanFormatter(Function<String, String> nameTransformer) {
         this.nameTransformer = nameTransformer;

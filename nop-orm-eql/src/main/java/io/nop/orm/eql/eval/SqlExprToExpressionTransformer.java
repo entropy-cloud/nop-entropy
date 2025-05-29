@@ -55,7 +55,7 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNSUPPORTED_EVAL_EXPR;
 /**
  * 将SQL表达式转换为XLang表达式
  */
-public class SQLExprToExpression {
+public class SqlExprToExpressionTransformer {
     private int paramIndex;
 
     public Expression transform(SqlExpr expr) {

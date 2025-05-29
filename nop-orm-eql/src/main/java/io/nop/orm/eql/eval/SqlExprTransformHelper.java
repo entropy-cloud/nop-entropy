@@ -1,5 +1,6 @@
 package io.nop.orm.eql.eval;
 
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.type.StdSqlType;
 import io.nop.orm.eql.ast.SqlExpr;
@@ -10,11 +11,20 @@ import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.XLangOperator;
 
 public class SqlExprTransformHelper {
-    public static Expression parseSqlExpr(SourceLocation loc, String text) {
-        SqlExpr sqlExpr = new EqlExprASTParser().parseFromText(loc, text);
-        return new SQLExprToExpression().transform(sqlExpr);
+    public static SqlExpr parseSqlExpr(SourceLocation loc, String text) {
+        return new EqlExprASTParser().parseFromText(loc, text);
     }
-    
+
+    public static Expression parseSqlToExpression(SourceLocation loc, String text) {
+        SqlExpr sqlExpr = parseSqlExpr(loc, text);
+        return new SqlExprToExpressionTransformer().transform(sqlExpr);
+    }
+
+    public static TreeBean parseSqlToFilter(SourceLocation loc, String text) {
+        SqlExpr sqlExpr = parseSqlExpr(loc, text);
+        return new SqlExprToFilterBeanTransformer().transform(sqlExpr);
+    }
+
     public static XLangOperator toXLangOperator(SqlOperator op) {
         switch (op) {
             case BIT_XOR:

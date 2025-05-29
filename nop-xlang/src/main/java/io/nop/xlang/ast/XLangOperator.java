@@ -8,6 +8,9 @@
 package io.nop.xlang.ast;
 
 import io.nop.commons.text.tokenizer.IToken;
+import io.nop.core.model.query.FilterOp;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public enum XLangOperator implements IToken {
     ASSIGN("="),
@@ -37,6 +40,7 @@ public enum XLangOperator implements IToken {
     SELF_ASSIGN_OR("||=", false, true), SELF_ASSIGN_AND("&&=", false, true),
     SELF_ASSIGN_NULL_COALESCE("??=", false, true);
 
+    private static final Logger log = LoggerFactory.getLogger(XLangOperator.class);
     private String text;
     private boolean bitOp;
     private boolean selfAssign;
@@ -49,6 +53,45 @@ public enum XLangOperator implements IToken {
         this(text);
         this.bitOp = bitOp;
         this.selfAssign = selfAssign;
+    }
+
+    public String toFilterOp() {
+        switch (this) {
+            case EQ:
+                return FilterOp.EQ.name();
+            case NE:
+                return FilterOp.NE.name();
+            case GT:
+                return FilterOp.GT.name();
+            case GE:
+                return FilterOp.GE.name();
+            case LT:
+                return FilterOp.LT.name();
+            case LE:
+                return FilterOp.LE.name();
+            case AND:
+                return FilterOp.AND.name();
+            case OR:
+                return FilterOp.OR.name();
+            case NOT:
+                return FilterOp.NOT.name();
+            default:
+                return null;
+        }
+    }
+
+    public XLangOperator switchLeftRight() {
+        if (this == EQ || this == NE)
+            return this;
+        if (this == GT)
+            return LT;
+        if (this == GE)
+            return LE;
+        if (this == LT)
+            return GT;
+        if (this == LE)
+            return GE;
+        return null;
     }
 
     public boolean isOperator() {

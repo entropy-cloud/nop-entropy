@@ -34,6 +34,13 @@ public class SqlColumnName extends _SqlColumnName {
         this.tableSource = tableSource;
     }
 
+    public String getFullName() {
+        SqlQualifiedName owner = getOwner();
+        if (owner == null)
+            return getName();
+        return owner.getFullName() + '.' + getName();
+    }
+
     @Override
     protected void copyExtFieldsTo(ASTNode node) {
         super.copyExtFieldsTo(node);
@@ -42,15 +49,15 @@ public class SqlColumnName extends _SqlColumnName {
         col.propModel = propModel;
     }
 
-    public boolean isMasked(){
-        if(propModel == null)
+    public boolean isMasked() {
+        if (propModel == null)
             return false;
         return propModel.containsTag(OrmModelConstants.TAG_MASKED);
     }
 
     @Override
     public String getResolvedOwner() {
-        if(tableSource == null)
+        if (tableSource == null)
             return null;
         return tableSource.getAliasName();
     }

@@ -17,6 +17,7 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.bean.BeanTool;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class QueryBeanHelper {
@@ -39,8 +40,8 @@ public class QueryBeanHelper {
         return Boolean.TRUE.equals(FilterBeanEvaluator.INSTANCE.visit(filter, scope));
     }
 
-    public static String formatFilter(ITreeBean filter) {
-        return new FilterBeanFormatter().format(filter);
+    public static String formatFilter(ITreeBean filter, Function<String,String> nameTransformer) {
+        return new FilterBeanFormatter(nameTransformer).format(filter);
     }
 
     public static List<OrderFieldBean> parseOrderBySql(SourceLocation loc, String sql) {

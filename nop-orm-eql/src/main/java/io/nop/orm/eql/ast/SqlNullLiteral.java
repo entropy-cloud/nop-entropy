@@ -15,4 +15,9 @@ public class SqlNullLiteral extends _SqlNullLiteral {
     public StdSqlType getSqlType() {
         return StdSqlType.ANY;
     }
+
+    @Override
+    public Object getLiteralValue() {
+        return null;
+    }
 }

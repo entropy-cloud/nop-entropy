@@ -15,4 +15,9 @@ public class SqlBitValueLiteral extends _SqlBitValueLiteral {
     public StdSqlType getSqlType() {
         return StdSqlType.TINYINT;
     }
+
+    @Override
+    public Object getLiteralValue() {
+        return getValue();
+    }
 }

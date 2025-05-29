@@ -26,4 +26,9 @@ public class SqlStringLiteral extends _SqlStringLiteral {
     public StdSqlType getSqlType() {
         return StdSqlType.VARCHAR;
     }
+
+    @Override
+    public Object getLiteralValue() {
+        return getValue();
+    }
 }

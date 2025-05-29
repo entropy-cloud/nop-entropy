@@ -12,4 +12,6 @@ import io.nop.orm.eql.ast._gen._SqlLiteral;
 
 public abstract class SqlLiteral extends _SqlLiteral {
     public abstract StdSqlType getSqlType();
+
+    public abstract Object getLiteralValue();
 }

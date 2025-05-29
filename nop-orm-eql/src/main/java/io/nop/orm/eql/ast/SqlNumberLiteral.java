@@ -23,4 +23,9 @@ public class SqlNumberLiteral extends _SqlNumberLiteral {
         StdSqlType sqlType = StdSqlType.fromJavaClass(num.getClass());
         return sqlType == null ? StdSqlType.DECIMAL : sqlType;
     }
+
+    @Override
+    public Object getLiteralValue() {
+        return getNumberValue();
+    }
 }

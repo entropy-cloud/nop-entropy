@@ -15,4 +15,9 @@ public class SqlBooleanLiteral extends _SqlBooleanLiteral {
     public StdSqlType getSqlType() {
         return StdSqlType.BOOLEAN;
     }
+
+    @Override
+    public Object getLiteralValue() {
+        return getValue();
+    }
 }

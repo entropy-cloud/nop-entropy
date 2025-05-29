@@ -75,25 +75,28 @@ public class ExpressionToFilterBeanTransformer {
             case OR:
                 return FilterBeans.or(transform(expr.getLeft()), transform(expr.getRight()));
             default: {
-                if (XLangASTHelper.isQualifiedName(expr.getLeft())) {
-                    if (XLangASTHelper.isJsonValue(expr.getRight())) {
+                boolean leftIsName = XLangASTHelper.isQualifiedName(expr.getLeft());
+                boolean rightIsName = XLangASTHelper.isQualifiedName(expr.getRight());
+                String filterOp = expr.getOperator().toFilterOp();
+                if (filterOp == null)
+                    throw new IllegalArgumentException("unsupported-binary-op:op=" + op + ",expr=" + expr);
+
+                if (leftIsName || rightIsName) {
+                    if (leftIsName && rightIsName) {
+                        String leftName = XLangASTHelper.getQualifiedName(expr.getLeft());
+                        String rightName = XLangASTHelper.getQualifiedName(expr.getRight());
+                        return FilterBeans.propCompareOp(filterOp, leftName, rightName);
+                    } else if (leftIsName) {
                         String name = XLangASTHelper.getQualifiedName(expr.getLeft());
                         Object value = XLangASTHelper.toJsonValue(expr.getRight());
-
-                        switch (op) {
-                            case EQ:
-                                return FilterBeans.eq(name, value);
-                            case NE:
-                                return FilterBeans.ne(name, value);
-                            case GT:
-                                return FilterBeans.gt(name, value);
-                            case GE:
-                                return FilterBeans.ge(name, value);
-                            case LT:
-                                return FilterBeans.lt(name, value);
-                            case LE:
-                                return FilterBeans.le(name, value);
-                        }
+                        return FilterBeans.compareOp(filterOp, name, value);
+                    } else {
+                        XLangOperator reverseOp = expr.getOperator().switchLeftRight();
+                        if (reverseOp == null)
+                            throw new IllegalArgumentException("unsupported-binary-op:op=" + op + ",expr=" + expr);
+                        String rightName = XLangASTHelper.getQualifiedName(expr.getRight());
+                        Object leftValue = XLangASTHelper.toJsonValue(expr.getLeft());
+                        return FilterBeans.compareOp(filterOp, rightName, leftValue);
                     }
                 }
                 return transformOtherExpr(expr);
