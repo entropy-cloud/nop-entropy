@@ -20,13 +20,25 @@ package io.nop.commons.util;
 
 // copy from Kylin Project
 
+import io.nop.commons.bytes.ByteString;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestByteHelper {
+
+    @Test
+    public void testUUID() {
+        UUID uuid = UUID.randomUUID();
+
+        ByteString bs = ByteString.fromUUID(uuid);
+        assertEquals(uuid.toString(), bs.toUUID().toString());
+        assertEquals(StringHelper.replace(uuid.toString(),"-",""),bs.toString());
+    }
+
     @Test
     public void test() {
         ByteBuffer buffer = ByteBuffer.allocate(10000);

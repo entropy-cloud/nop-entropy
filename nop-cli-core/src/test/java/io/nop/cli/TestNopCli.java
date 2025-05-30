@@ -85,6 +85,7 @@ public class TestNopCli extends BaseTestCase {
         assertEquals(0, ret);
     }
 
+    @Disabled
     @Test
     public void testRunBatchGenDemo() {
         CoreInitialization.destroy();

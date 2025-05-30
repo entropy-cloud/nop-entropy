@@ -1,7 +1,6 @@
 //__XGEN_TPL_FORCE_OVERRIDE__
 package io.nop.core.type;
 
-import io.nop.api.core.beans.geometry.PointBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.type.StdDataType;
@@ -763,7 +762,7 @@ public class PredefinedGenericTypes {
           parameterizedType("MAP_STRING_FILES_TYPE",MAP_TYPE, STRING_TYPE, FILES_TYPE);
 
       public static final PredefinedGenericType ARRAY_POINT_TYPE =
-          arrayType(POINT_TYPE, PointBean[].class);
+          arrayType(POINT_TYPE,io.nop.api.core.beans.geometry.PointBean[].class);
 
       public static final PredefinedGenericType LIST_POINT_TYPE =
           parameterizedType("LIST_POINT_TYPE",LIST_TYPE, POINT_TYPE);

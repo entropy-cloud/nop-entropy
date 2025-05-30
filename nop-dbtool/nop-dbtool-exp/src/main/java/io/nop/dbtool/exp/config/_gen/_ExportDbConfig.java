@@ -18,10 +18,24 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: afterExport
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _afterExport ;
+    
+    /**
+     *  
      * xml name: batchSize
      * 
      */
     private int _batchSize  = 0;
+    
+    /**
+     *  
+     * xml name: beforeExport
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _beforeExport ;
     
     /**
      *  
@@ -116,6 +130,25 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: afterExport
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getAfterExport(){
+      return _afterExport;
+    }
+
+    
+    public void setAfterExport(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._afterExport = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: batchSize
      *  
      */
@@ -129,6 +162,25 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._batchSize = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: beforeExport
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getBeforeExport(){
+      return _beforeExport;
+    }
+
+    
+    public void setBeforeExport(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._beforeExport = value;
            
     }
 
@@ -425,7 +477,9 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("afterExport",this.getAfterExport());
         out.putNotNull("batchSize",this.getBatchSize());
+        out.putNotNull("beforeExport",this.getBeforeExport());
         out.putNotNull("checkExportable",this.getCheckExportable());
         out.putNotNull("concurrencyPerTable",this.getConcurrencyPerTable());
         out.putNotNull("excludeTableNames",this.getExcludeTableNames());
@@ -450,7 +504,9 @@ public abstract class _ExportDbConfig extends io.nop.core.resource.component.Abs
     protected void copyTo(ExportDbConfig instance){
         super.copyTo(instance);
         
+        instance.setAfterExport(this.getAfterExport());
         instance.setBatchSize(this.getBatchSize());
+        instance.setBeforeExport(this.getBeforeExport());
         instance.setCheckExportable(this.getCheckExportable());
         instance.setConcurrencyPerTable(this.getConcurrencyPerTable());
         instance.setExcludeTableNames(this.getExcludeTableNames());

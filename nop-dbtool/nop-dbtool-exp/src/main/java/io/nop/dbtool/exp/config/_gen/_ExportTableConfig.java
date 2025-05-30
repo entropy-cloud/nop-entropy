@@ -18,6 +18,20 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: afterExport
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _afterExport ;
+    
+    /**
+     *  
+     * xml name: beforeExport
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _beforeExport ;
+    
+    /**
+     *  
      * xml name: concurrency
      * 
      */
@@ -71,6 +85,44 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
      * 导出数据时可以对行进行变换，input对应于来源行，output对应于转换后的行
      */
     private io.nop.core.lang.eval.IEvalAction _transformExpr ;
+    
+    /**
+     * 
+     * xml name: afterExport
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getAfterExport(){
+      return _afterExport;
+    }
+
+    
+    public void setAfterExport(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._afterExport = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: beforeExport
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getBeforeExport(){
+      return _beforeExport;
+    }
+
+    
+    public void setBeforeExport(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._beforeExport = value;
+           
+    }
+
     
     /**
      * 
@@ -267,6 +319,8 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("afterExport",this.getAfterExport());
+        out.putNotNull("beforeExport",this.getBeforeExport());
         out.putNotNull("concurrency",this.getConcurrency());
         out.putNotNull("exportAllFields",this.isExportAllFields());
         out.putNotNull("fields",this.getFields());
@@ -286,6 +340,8 @@ public abstract class _ExportTableConfig extends io.nop.core.resource.component.
     protected void copyTo(ExportTableConfig instance){
         super.copyTo(instance);
         
+        instance.setAfterExport(this.getAfterExport());
+        instance.setBeforeExport(this.getBeforeExport());
         instance.setConcurrency(this.getConcurrency());
         instance.setExportAllFields(this.isExportAllFields());
         instance.setFields(this.getFields());

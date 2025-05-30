@@ -22,6 +22,7 @@ import io.nop.api.core.annotations.data.ImmutableBean;
 import io.nop.api.core.convert.IByteArrayView;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.json.IJsonString;
 import io.nop.commons.CommonConstants;
 import io.nop.commons.crypto.HashHelper;
 import io.nop.commons.util.ByteHelper;
@@ -37,6 +38,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.UUID;
 import java.util.function.Function;
 
 import static io.nop.api.core.ApiErrors.ARG_SRC_TYPE;
@@ -50,7 +52,7 @@ import static io.nop.commons.CommonErrors.ERR_BYTES_CONVERT_TO_BYTE_STRING_FAIL;
  * @author canonical_entropy@163.com
  */
 @ImmutableBean
-public final class ByteString implements Serializable, Comparable<ByteString>, IByteArrayView {
+public final class ByteString implements Serializable, Comparable<ByteString>, IByteArrayView, IJsonString {
 
     private static final long serialVersionUID = -1607482161494270718L;
     /**
@@ -83,6 +85,13 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
             return new ByteString(ByteBufferHelper.getBytes((ByteBuffer) value));
 
         throw errorFactory.apply(ERR_BYTES_CONVERT_TO_BYTE_STRING_FAIL).param(ARG_SRC_TYPE, value.getClass());
+    }
+
+    public static ByteString fromUUID(UUID uuid) {
+        ByteBuffer buffer = ByteBuffer.wrap(new byte[16]);
+        buffer.putLong(uuid.getMostSignificantBits());
+        buffer.putLong(uuid.getLeastSignificantBits());
+        return new ByteString(buffer.array());
     }
 
     public boolean isEmpty() {
@@ -148,7 +157,7 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
     }
 
     public String toString() {
-        return "ByteString[size=" + bytes.length + "]";
+        return hex();
     }
 
     public String toEncodedBase64() {
@@ -275,6 +284,22 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
 
     private ByteString hmac(String algorithm, ByteString key) {
         return ByteString.of(HashHelper.hmac(algorithm, bytes, key.toByteArray()));
+    }
+
+    public UUID toUUID() {
+        if (bytes.length == 16) {
+            long high = 0;
+            long low = 0;
+            for (int i = 0; i < 8; i++) {
+                high = (high << 8) | (bytes[i] & 0xFF);
+            }
+            for (int i = 8; i < 16; i++) {
+                low = (low << 8) | (bytes[i] & 0xFF);
+            }
+            return new UUID(high, low);
+        }
+
+        return UUID.nameUUIDFromBytes(bytes);
     }
 
     public static ByteString of(byte[] bytes) {

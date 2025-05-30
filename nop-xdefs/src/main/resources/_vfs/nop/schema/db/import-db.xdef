@@ -17,6 +17,10 @@
 
     <checkImportable xdef:value="xpl-fn:(table)=>boolean"/>
 
+    <beforeImport xdef:value="xpl"/>
+
+    <afterImport xdef:value="xpl"/>
+
     <tables xdef:body-type="list" xdef:key-attr="name">
         <!--
         @format 导入文件的后缀名
@@ -42,6 +46,10 @@
             可以对行数据进行转换，input对应于来源行，output对应于转换后的行
             -->
             <transformExpr xdef:value="xpl"/>
+
+            <beforeImport xdef:value="xpl-fn:(table)=>void"/>
+
+            <afterImport xdef:value="xpl-fn:(table)=>void"/>
         </table>
     </tables>
 </import-db>

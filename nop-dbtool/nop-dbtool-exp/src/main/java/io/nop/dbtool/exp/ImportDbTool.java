@@ -28,9 +28,9 @@ import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.SyncThreadPoolExecutor;
-import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceLoader;
@@ -47,7 +47,6 @@ import io.nop.dao.jdbc.impl.JdbcFactory;
 import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.dbtool.core.DataBaseMeta;
 import io.nop.dbtool.core.discovery.jdbc.JdbcMetaDiscovery;
-import io.nop.dbtool.exp.config.IFieldConfig;
 import io.nop.dbtool.exp.config.ImportDbConfig;
 import io.nop.dbtool.exp.config.ImportTableConfig;
 import io.nop.dbtool.exp.config.JdbcConnectionConfig;
@@ -68,6 +67,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+
+import static io.nop.dbtool.exp.EtlToolHelper.getColBinders;
 
 public class ImportDbTool {
     static final Logger LOG = LoggerFactory.getLogger(ImportDbTool.class);
@@ -232,6 +233,11 @@ public class ImportDbTool {
             executor = SyncThreadPoolExecutor.INSTANCE;
         }
 
+        IEvalScope scope = XLang.newEvalScope();
+
+        if (config.getBeforeImport() != null)
+            config.getBeforeImport().invoke(scope);
+
         try {
             List<CompletableFuture<?>> futures = new ArrayList<>();
             for (ImportTableConfig tableConfig : config.getTables()) {
@@ -242,9 +248,12 @@ public class ImportDbTool {
                     LOG.info("nop.import-db.skip-table-when-already-completed:tableName={}", tableConfig.getName());
                     continue;
                 }
-                futures.add(executor.submit(() -> runTask(tableConfig, dataSource), null));
+                futures.add(executor.submit(() -> runTask(tableConfig, dataSource, scope), null));
             }
             FutureHelper.getFromFuture(FutureHelper.waitAll(futures));
+
+            if (config.getAfterImport() != null)
+                config.getAfterImport().invoke(scope);
 
             if (stateStore != null)
                 stateStore.complete();
@@ -272,7 +281,7 @@ public class ImportDbTool {
         return 1;
     }
 
-    private void runTask(ImportTableConfig tableConfig, DataSource ds) {
+    private void runTask(ImportTableConfig tableConfig, DataSource ds, IEvalScope scope) {
         BatchTaskBuilder<Map<String, Object>, Map<String, Object>> builder = new BatchTaskBuilder<>();
         IBatchLoaderProvider<Map<String, Object>> loader = newLoader(tableConfig);
         if (loader == null) {
@@ -295,11 +304,11 @@ public class ImportDbTool {
             builder.skipPolicy(new BatchSkipPolicy().maxSkipCount(tableConfig.getMaxSkipCount()));
 
         builder.processor(newProcessor(tableConfig));
-        Map<String, IDataParameterBinder> binders = getColBinders(tableConfig.getFields());
+        Map<String, IDataParameterBinder> binders = getColBinders(tableConfig.getFields(), false, dialect);
         IBatchConsumerProvider<Map<String, Object>> consumer = newConsumer(tableConfig, jdbc, binders);
 
         if (config.isCheckKeyFields() && tableConfig.getKeyFields() != null) {
-            Map<String, IDataParameterBinder> colBinders = getColBinders(tableConfig.getKeyFieldConfigs());
+            Map<String, IDataParameterBinder> colBinders = getColBinders(tableConfig.getKeyFieldConfigs(), false, dialect);
 
             IBatchConsumerProvider<Map<String, Object>> historyConsumer = null;
             if (Boolean.TRUE.equals(tableConfig.getAllowUpdate())) {
@@ -316,16 +325,25 @@ public class ImportDbTool {
         if (stateStore != null)
             builder.stateStore(stateStore.getTableStore(tableConfig.getName()));
 
-        IBatchTaskContext context = new BatchTaskContextImpl();
+        IBatchTaskContext context = new BatchTaskContextImpl(null, scope);
         context.setTaskName(tableConfig.getName());
         if (args != null)
             context.getEvalScope().setLocalValues(args);
+
+        if (tableConfig.getBeforeImport() != null)
+            tableConfig.getBeforeImport().call1(null, tableConfig, context.getEvalScope());
 
         IBatchTask task = builder.buildTask();
 
         LOG.info("nop.import-db.begin-import-table:tableName={}", tableConfig.getName());
         context.onAfterComplete(err -> {
-            LOG.info("nop.import-db.end-import-table:tableName={}", tableConfig.getName());
+            if (err != null) {
+                LOG.info("nop.import-db.import-table-fail:tableName={}", tableConfig.getName(), err);
+            } else {
+                LOG.info("nop.import-db.end-import-table:tableName={}", tableConfig.getName());
+                if (tableConfig.getAfterImport() != null)
+                    tableConfig.getAfterImport().call1(null, tableConfig, context.getEvalScope());
+            }
         });
 
         task.execute(context);
@@ -335,16 +353,6 @@ public class ImportDbTool {
         return new FieldsProcessor(tableConfig.getFields(), tableConfig.getTransformExpr());
     }
 
-    private Map<String, IDataParameterBinder> getColBinders(List<? extends IFieldConfig> cols) {
-        Map<String, IDataParameterBinder> binders = CollectionHelper.newCaseInsensitiveMap(cols.size());
-
-        for (IFieldConfig col : cols) {
-            String key = col.getName();
-            IDataParameterBinder binder = dialect.getDataParameterBinder(col.getStdDataType(), col.getStdSqlType());
-            binders.put(key, binder);
-        }
-        return binders;
-    }
 
     private IBatchLoaderProvider<Map<String, Object>> newLoader(ImportTableConfig tableConfig) {
         String from = tableConfig.getSourceTableName();

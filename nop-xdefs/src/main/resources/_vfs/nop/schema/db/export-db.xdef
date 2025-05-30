@@ -22,6 +22,10 @@
 
     <checkExportable xdef:value="xpl-fn:(table)=>boolean"/>
 
+    <beforeExport xdef:value="xpl"/>
+
+    <afterExport xdef:value="xpl"/>
+
     <tables xdef:body-type="list" xdef:key-attr="name">
         <!--
         @name 导出到文件中的目标表名。所有的表名应该只使用小写字符。
@@ -43,6 +47,10 @@
 
             <!-- 导出数据时可以对行进行变换，input对应于来源行，output对应于转换后的行 -->
             <transformExpr xdef:value="xpl"/>
+
+            <beforeExport xdef:value="xpl-fn:(table)=>void"/>
+
+            <afterExport xdef:value="xpl-fn:(table)=>void"/>
         </table>
     </tables>
 </export-db>

@@ -8,6 +8,7 @@
 package io.nop.core.resource.record.csv;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.bean.BeanTool;
@@ -113,6 +114,8 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
     }
 
     private String toString(Object value) {
+        if (value instanceof ByteString)
+            return ((ByteString) value).hex();
         return StringHelper.toString(value, "");
     }
 

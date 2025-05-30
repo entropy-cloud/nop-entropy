@@ -67,6 +67,8 @@ public class EtlTaskStateStore {
 
         @Override
         public void saveTaskState(boolean complete, Throwable ex, IBatchTaskContext context) {
+            if (ex != null)
+                complete = false;
             saveTableState(tableName, complete, context);
         }
 

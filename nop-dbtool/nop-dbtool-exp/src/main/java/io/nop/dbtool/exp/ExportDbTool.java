@@ -26,6 +26,7 @@ import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.SyncThreadPoolExecutor;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResourceLoader;
 import io.nop.core.resource.component.ResourceComponentManager;
@@ -58,6 +59,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+
+import static io.nop.dbtool.exp.EtlToolHelper.buildRowMapper;
 
 public class ExportDbTool {
     static final Logger LOG = LoggerFactory.getLogger(ExportDbTool.class);
@@ -144,6 +147,12 @@ public class ExportDbTool {
             executor = SyncThreadPoolExecutor.INSTANCE;
         }
 
+        IEvalScope scope = XLang.newEvalScope();
+
+        if (config.getBeforeExport() != null) {
+            config.getBeforeExport().invoke(scope);
+        }
+
         try {
             List<CompletableFuture<?>> futures = new ArrayList<>();
 
@@ -159,9 +168,13 @@ public class ExportDbTool {
                 if (stateStore != null)
                     stateStore.resetTableState(tableConfig.getName());
 
-                futures.add(executor.submit(() -> runTask(tableConfig, dataSource), null));
+                futures.add(executor.submit(() -> runTask(tableConfig, dataSource, scope), null));
             }
             FutureHelper.getFromFuture(FutureHelper.waitAll(futures));
+
+            if (config.getAfterExport() != null) {
+                config.getAfterExport().invoke(scope);
+            }
 
             if (stateStore != null)
                 stateStore.complete();
@@ -199,6 +212,7 @@ public class ExportDbTool {
 
         if (config.isNeedDatabaseMeta()) {
             DataBaseMeta meta = JdbcMetaDiscovery.forDataSource(dataSource)
+                    .includeIndexes(false).includeRelations(false).includeUniqueKeys(false)
                     .discover(conn.getCatalog(), config.getSchemaPattern(), tableNamePattern);
 
             for (OrmEntityModel table : meta.getTables().values()) {
@@ -251,7 +265,7 @@ public class ExportDbTool {
         }
     }
 
-    private void runTask(ExportTableConfig tableConfig, DataSource ds) {
+    private void runTask(ExportTableConfig tableConfig, DataSource ds, IEvalScope scope) {
         BatchTaskBuilder builder = new BatchTaskBuilder();
         builder.taskName(tableConfig.getName());
         builder.loader(newLoader(tableConfig, ds));
@@ -267,15 +281,26 @@ public class ExportDbTool {
         if (stateStore != null)
             builder.stateStore(stateStore.getTableStore(tableConfig.getName()));
 
-        IBatchTaskContext context = new BatchTaskContextImpl();
+        IBatchTaskContext context = new BatchTaskContextImpl(null, scope);
         if (args != null)
             context.getEvalScope().setLocalValues(args);
+
+        if (tableConfig.getBeforeExport() != null)
+            tableConfig.getBeforeExport().call1(null, tableConfig, context.getEvalScope());
+
         IBatchTask task = builder.buildTask();
 
 
         LOG.info("nop.export-db.begin-export-table:tableName={}", tableConfig.getName());
         context.onAfterComplete(err -> {
-            LOG.info("nop.export-db.end-export-table:tableName={}", tableConfig.getName());
+            if (err != null) {
+                LOG.info("nop.export-db.export-table-fail:tableName={}", tableConfig.getName(), err);
+            } else {
+                LOG.info("nop.export-db.end-export-table:tableName={}", tableConfig.getName());
+
+                if (tableConfig.getAfterExport() != null)
+                    tableConfig.getAfterExport().call1(null, tableConfig, context.getEvalScope());
+            }
         });
 
         task.execute(context);
@@ -298,6 +323,7 @@ public class ExportDbTool {
         JdbcBatchLoaderProvider<Map<String, Object>> loader = new JdbcBatchLoaderProvider<>();
         loader.setStreaming(config.isStreaming());
         loader.setJdbcTemplate(JdbcFactory.newJdbcTemplateFor(ds));
+        loader.setRowMapper(buildRowMapper(tableConfig.getFields(), true, dialect));
         loader.setSqlGenerator(ctx -> tableConfig.buildSQL(config.getFetchSize(), ctx));
         return loader;
     }

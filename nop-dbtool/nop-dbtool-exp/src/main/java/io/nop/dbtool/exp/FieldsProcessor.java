@@ -41,14 +41,17 @@ public class FieldsProcessor implements IBatchProcessorProvider<Map<String, Obje
 
         for (IFieldConfig field : fields) {
             Object value = item.get(field.getSourceFieldName());
-            if (field.getStdDataType() != null)
-                value = field.getStdDataType().convert(value,
-                        err -> new NopException(err).source(field).param(ARG_FIELD_NAME, field.getName()));
+            if (value == null)
+                continue;
 
             if (field.getTransformExpr() != null) {
                 scope.setLocalValue(DbToolExpConstants.VAR_VALUE, value);
                 value = field.getTransformExpr().invoke(scope);
             }
+
+            if (field.getStdDataType() != null)
+                value = field.getStdDataType().convert(value,
+                        err -> new NopException(err).source(field).param(ARG_FIELD_NAME, field.getName()));
 
             value = field.validate(value, scope);
             ret.put(field.getName(), value);

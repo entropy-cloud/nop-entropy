@@ -18,10 +18,24 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: afterImport
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _afterImport ;
+    
+    /**
+     *  
      * xml name: allowUpdate
      * 导入的时候如果根据keyFields查询到的记录已存在，在更新行。如果不设置或者设置为false，则数据重复时会忽略该行
      */
     private java.lang.Boolean _allowUpdate ;
+    
+    /**
+     *  
+     * xml name: beforeImport
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _beforeImport ;
     
     /**
      *  
@@ -95,6 +109,25 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     
     /**
      * 
+     * xml name: afterImport
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getAfterImport(){
+      return _afterImport;
+    }
+
+    
+    public void setAfterImport(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._afterImport = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: allowUpdate
      *  导入的时候如果根据keyFields查询到的记录已存在，在更新行。如果不设置或者设置为false，则数据重复时会忽略该行
      */
@@ -108,6 +141,25 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
         checkAllowChange();
         
         this._allowUpdate = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: beforeImport
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getBeforeImport(){
+      return _beforeImport;
+    }
+
+    
+    public void setBeforeImport(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._beforeImport = value;
            
     }
 
@@ -345,7 +397,9 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("afterImport",this.getAfterImport());
         out.putNotNull("allowUpdate",this.getAllowUpdate());
+        out.putNotNull("beforeImport",this.getBeforeImport());
         out.putNotNull("concurrency",this.getConcurrency());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("filter",this.getFilter());
@@ -367,7 +421,9 @@ public abstract class _ImportTableConfig extends io.nop.core.resource.component.
     protected void copyTo(ImportTableConfig instance){
         super.copyTo(instance);
         
+        instance.setAfterImport(this.getAfterImport());
         instance.setAllowUpdate(this.getAllowUpdate());
+        instance.setBeforeImport(this.getBeforeImport());
         instance.setConcurrency(this.getConcurrency());
         instance.setFields(this.getFields());
         instance.setFilter(this.getFilter());

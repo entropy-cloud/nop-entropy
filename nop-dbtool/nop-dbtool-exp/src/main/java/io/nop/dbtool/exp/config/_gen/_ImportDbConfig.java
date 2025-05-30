@@ -18,10 +18,24 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: afterImport
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _afterImport ;
+    
+    /**
+     *  
      * xml name: batchSize
      * 
      */
     private int _batchSize  = 0;
+    
+    /**
+     *  
+     * xml name: beforeImport
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _beforeImport ;
     
     /**
      *  
@@ -102,6 +116,25 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: afterImport
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getAfterImport(){
+      return _afterImport;
+    }
+
+    
+    public void setAfterImport(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._afterImport = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: batchSize
      *  
      */
@@ -115,6 +148,25 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._batchSize = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: beforeImport
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getBeforeImport(){
+      return _beforeImport;
+    }
+
+    
+    public void setBeforeImport(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._beforeImport = value;
            
     }
 
@@ -373,7 +425,9 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("afterImport",this.getAfterImport());
         out.putNotNull("batchSize",this.getBatchSize());
+        out.putNotNull("beforeImport",this.getBeforeImport());
         out.putNotNull("checkImportable",this.getCheckImportable());
         out.putNotNull("checkKeyFields",this.isCheckKeyFields());
         out.putNotNull("concurrencyPerTable",this.getConcurrencyPerTable());
@@ -396,7 +450,9 @@ public abstract class _ImportDbConfig extends io.nop.core.resource.component.Abs
     protected void copyTo(ImportDbConfig instance){
         super.copyTo(instance);
         
+        instance.setAfterImport(this.getAfterImport());
         instance.setBatchSize(this.getBatchSize());
+        instance.setBeforeImport(this.getBeforeImport());
         instance.setCheckImportable(this.getCheckImportable());
         instance.setCheckKeyFields(this.isCheckKeyFields());
         instance.setConcurrencyPerTable(this.getConcurrencyPerTable());
