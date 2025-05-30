@@ -166,7 +166,7 @@ public class ModelBasedPacketCodec implements IPacketCodec<Object> {
         IFieldCodecContext context = new DefaultFieldCodecContext(codecModel::getType);
         RecordTypeMeta typeMeta = determineType(buf, context.getEvalScope());
         try {
-            deserializer.readObject(new ByteBufBinaryDataReader(buf), typeMeta, null, record, context);
+            deserializer.readObject(new ByteBufBinaryDataReader(buf), typeMeta, record, context);
         } catch (Exception e) {
             throw NopException.adapt(e);
         }
@@ -214,7 +214,7 @@ public class ModelBasedPacketCodec implements IPacketCodec<Object> {
         IFieldCodecContext context = new DefaultFieldCodecContext(codecModel::getType);
         RecordTypeMeta typeMeta = determineEncodeType(message, context.getEvalScope());
         try {
-            serializer.writeObject(new ByteBufBinaryDataWriter(buf), typeMeta, null, message, context);
+            serializer.writeObject(new ByteBufBinaryDataWriter(buf), typeMeta, message, context);
         } catch (Exception e) {
             throw NopException.adapt(e);
         }

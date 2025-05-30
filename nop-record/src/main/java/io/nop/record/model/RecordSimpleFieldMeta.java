@@ -2,7 +2,9 @@ package io.nop.record.model;
 
 import io.nop.commons.type.StdDataType;
 import io.nop.core.type.IGenericType;
+import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldConfig;
+import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.model._gen._RecordSimpleFieldMeta;
 import io.nop.xlang.xmeta.ISchema;
 
@@ -10,10 +12,49 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 public class RecordSimpleFieldMeta extends _RecordSimpleFieldMeta implements IFieldConfig {
+    private IFieldTextCodec resolvedTextCodec;
+    private IFieldBinaryCodec resolvedBinaryCodec;
+
     private Charset charsetObj;
 
     public RecordSimpleFieldMeta() {
 
+    }
+
+
+    public IFieldTextCodec getResolvedTextCodec() {
+        return resolvedTextCodec;
+    }
+
+    public void setResolvedTextCodec(IFieldTextCodec resolvedTextCodec) {
+        this.resolvedTextCodec = resolvedTextCodec;
+    }
+
+    public IFieldBinaryCodec getResolvedBinaryCodec() {
+        return resolvedBinaryCodec;
+    }
+
+    public void setResolvedBinaryCodec(IFieldBinaryCodec resolvedBinaryCodec) {
+        this.resolvedBinaryCodec = resolvedBinaryCodec;
+    }
+
+    public String getPropOrFieldName() {
+        String propName = getProp();
+        if (propName == null)
+            propName = getName();
+        return propName;
+    }
+
+    public Object getNormalizedValue() {
+        Object value = getValue();
+        if (value == null)
+            return null;
+
+        StdDataType dataType = getStdDataType();
+        if (dataType == null)
+            return null;
+
+        return dataType.convert(value);
     }
 
     @Override
@@ -39,5 +80,20 @@ public class RecordSimpleFieldMeta extends _RecordSimpleFieldMeta implements IFi
     public Integer getScale() {
         ISchema schema = getSchema();
         return schema == null ? null : schema.getScale();
+    }
+
+
+    public int safeGetMaxLen() {
+        ISchema schema = getSchema();
+        if (schema != null && schema.getMaxLength() != null)
+            return schema.getMaxLength();
+        return getLength();
+    }
+
+    public int safeGetMinLen() {
+        ISchema schema = getSchema();
+        if (schema != null && schema.getMinLength() != null)
+            return schema.getMinLength();
+        return getLength();
     }
 }

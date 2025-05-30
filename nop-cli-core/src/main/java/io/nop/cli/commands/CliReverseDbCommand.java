@@ -46,6 +46,9 @@ public class CliReverseDbCommand implements Callable<Integer> {
     @CommandLine.Option(names = {"-n", "--ignoreUnknownType"}, description = "忽略未知类型")
     boolean ignoreUnknownType;
 
+    @CommandLine.Option(names = {"-k", "--ignoreKey"}, description = "忽略唯一键和索引等信息")
+    boolean ignoreKey;
+
     @CommandLine.Parameters(description = "数据库Catalog", index = "0")
     String catalog;
 
@@ -63,6 +66,9 @@ public class CliReverseDbCommand implements Callable<Integer> {
 
         JdbcMetaDiscovery discovery = JdbcMetaDiscovery.forDataSource(dataSource);
         discovery.ignoreUnknownType(ignoreUnknownType);
+        if (ignoreKey)
+            discovery.includeUniqueKeys(false).includeIndexes(false);
+
         discovery.basePackageName("app");
         DataBaseMeta meta = discovery.discover(catalog, schemaPattern, table == null ? "%" : table);
 

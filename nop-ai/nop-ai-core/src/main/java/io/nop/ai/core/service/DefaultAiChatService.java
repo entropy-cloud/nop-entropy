@@ -122,7 +122,7 @@ public class DefaultAiChatService implements IAiChatService {
 
     @Override
     public IAiChatSession newSession(AiChatOptions options) {
-        DefaultAiChatSession session = new DefaultAiChatSession(this);
+        DefaultAiChatSession session = new DefaultAiChatSession();
         session.setSessionId(generateSessionId());
         return session;
     }

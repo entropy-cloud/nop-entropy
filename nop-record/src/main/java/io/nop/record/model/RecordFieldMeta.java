@@ -9,22 +9,11 @@ package io.nop.record.model;
 
 import io.nop.commons.collections.bit.IBitSet;
 import io.nop.commons.text.SimpleTextTemplate;
-import io.nop.commons.util.StringHelper;
-import io.nop.record.codec.IFieldBinaryCodec;
-import io.nop.record.codec.IFieldTagBinaryCodec;
-import io.nop.record.codec.IFieldTagTextCodec;
-import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.model._gen._RecordFieldMeta;
-import io.nop.xlang.xmeta.ISchema;
 
 import java.util.Map;
 
-public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMeta {
-    private IFieldTextCodec resolvedTextCodec;
-    private IFieldBinaryCodec resolvedBinaryCodec;
-
-    private IFieldTagBinaryCodec resolvedTagBinaryCodec;
-    private IFieldTagTextCodec resolvedTagTextCodec;
+public class RecordFieldMeta extends _RecordFieldMeta {
 
     private SimpleTextTemplate normalizedTemplate;
 
@@ -35,14 +24,6 @@ public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMe
     public void init(RecordDefinitions defs) {
         if (getEndian() == null && defs.getDefaultEndian() != null) {
             setEndian(defs.getDefaultEndian());
-        }
-
-        if (getTemplate() != null) {
-            this.normalizedTemplate = SimpleTextTemplate.of(StringHelper.normalizeTemplate(getTemplate()));
-        }
-
-        for (RecordFieldMeta field : getFields()) {
-            field.init(defs);
         }
     }
 
@@ -57,11 +38,11 @@ public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMe
     }
 
     public boolean isMatchTag(IBitSet tags) {
-        int tagIndex = getTagIndex();
-        if (tagIndex < 0)
+        if (tags == null)
             return true;
 
-        if (tags == null)
+        int tagIndex = getTagIndex();
+        if (tagIndex < 0)
             return true;
 
         return tags.get(tagIndex);
@@ -69,58 +50,5 @@ public class RecordFieldMeta extends _RecordFieldMeta implements IRecordFieldsMe
 
     public SimpleTextTemplate getNormalizedTemplate() {
         return this.normalizedTemplate;
-    }
-
-    public String getPropOrFieldName() {
-        String propName = getProp();
-        if (propName == null)
-            propName = getName();
-        return propName;
-    }
-
-    public IFieldTextCodec getResolvedTextCodec() {
-        return resolvedTextCodec;
-    }
-
-    public void setResolvedTextCodec(IFieldTextCodec resolvedTextCodec) {
-        this.resolvedTextCodec = resolvedTextCodec;
-    }
-
-    public IFieldTagBinaryCodec getResolvedTagBinaryCodec() {
-        return resolvedTagBinaryCodec;
-    }
-
-    public void setResolvedTagBinaryCodec(IFieldTagBinaryCodec resolvedTagBinaryCodec) {
-        this.resolvedTagBinaryCodec = resolvedTagBinaryCodec;
-    }
-
-    public IFieldTagTextCodec getResolvedTagTextCodec() {
-        return resolvedTagTextCodec;
-    }
-
-    public void setResolvedTagTextCodec(IFieldTagTextCodec resolvedTagTextCodec) {
-        this.resolvedTagTextCodec = resolvedTagTextCodec;
-    }
-
-    public IFieldBinaryCodec getResolvedBinaryCodec() {
-        return resolvedBinaryCodec;
-    }
-
-    public void setResolvedBinaryCodec(IFieldBinaryCodec resolvedBinaryCodec) {
-        this.resolvedBinaryCodec = resolvedBinaryCodec;
-    }
-
-    public int safeGetMaxLen() {
-        ISchema schema = getSchema();
-        if (schema != null && schema.getMaxLength() != null)
-            return schema.getMaxLength();
-        return getLength();
-    }
-
-    public int safeGetMinLen() {
-        ISchema schema = getSchema();
-        if (schema != null && schema.getMinLength() != null)
-            return schema.getMinLength();
-        return getLength();
     }
 }

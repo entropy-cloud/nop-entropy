@@ -8,7 +8,7 @@ import io.nop.record.writer.IDataWriterBase;
 import java.io.IOException;
 
 public interface IModelBasedRecordSerializer<Output extends IDataWriterBase> {
-    boolean writeObject(Output out, RecordObjectMeta recordMeta, String name, Object record, IFieldCodecContext context) throws IOException;
+    boolean writeObject(Output out, RecordObjectMeta recordMeta, Object record, IFieldCodecContext context) throws IOException;
 
     boolean writeField(Output out, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException;
 }

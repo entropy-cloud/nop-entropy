@@ -15,7 +15,9 @@ import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldTagBinaryCodec;
 import io.nop.record.codec.IFieldTagTextCodec;
 import io.nop.record.codec.IFieldTextCodec;
+import io.nop.record.model.IRecordFieldsMeta;
 import io.nop.record.model.RecordFieldMeta;
+import io.nop.record.model.RecordSimpleFieldMeta;
 
 import static io.nop.record.RecordErrors.ARG_CODEC;
 import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
@@ -27,7 +29,7 @@ import static io.nop.record.RecordErrors.ERR_RECORD_UNKNOWN_FIELD_CODEC;
 import static io.nop.xlang.XLangErrors.ARG_MAX_LENGTH;
 
 public class RecordMetaHelper {
-    public static void checkMaxLen(int len, RecordFieldMeta field) {
+    public static void checkMaxLen(int len, RecordSimpleFieldMeta field) {
         int max = field.safeGetMaxLen();
         if (max > 0 && len > max) {
             throw new NopException(ERR_RECORD_FIELD_LENGTH_GREATER_THAN_MAX_VALUE)
@@ -37,7 +39,7 @@ public class RecordMetaHelper {
         }
     }
 
-    public static void checkMinLen(int len, RecordFieldMeta field) {
+    public static void checkMinLen(int len, RecordSimpleFieldMeta field) {
         int min = field.safeGetMaxLen();
         if (min > 0 && len > min) {
             throw new NopException(ERR_RECORD_FIELD_LENGTH_LESS_THAN_MIN_VALUE)
@@ -47,7 +49,7 @@ public class RecordMetaHelper {
         }
     }
 
-    public static IFieldTextCodec resolveTextCodec(RecordFieldMeta field, FieldCodecRegistry registry) {
+    public static IFieldTextCodec resolveTextCodec(RecordSimpleFieldMeta field, FieldCodecRegistry registry) {
         IFieldTextCodec resolved = field.getResolvedTextCodec();
         if (resolved != null)
             return resolved;
@@ -67,7 +69,7 @@ public class RecordMetaHelper {
         return resolved;
     }
 
-    public static IFieldBinaryCodec resolveBinaryCodec(RecordFieldMeta field, FieldCodecRegistry registry) {
+    public static IFieldBinaryCodec resolveBinaryCodec(RecordSimpleFieldMeta field, FieldCodecRegistry registry) {
         IFieldBinaryCodec resolved = field.getResolvedBinaryCodec();
         if (resolved != null)
             return resolved;
@@ -87,7 +89,7 @@ public class RecordMetaHelper {
         return resolved;
     }
 
-    public static IFieldTagBinaryCodec resolveTagBinaryCodec(RecordFieldMeta field, FieldCodecRegistry registry) {
+    public static IFieldTagBinaryCodec resolveTagBinaryCodec(IRecordFieldsMeta field, FieldCodecRegistry registry) {
         IFieldTagBinaryCodec resolved = field.getResolvedTagBinaryCodec();
         if (resolved != null)
             return resolved;
@@ -107,7 +109,7 @@ public class RecordMetaHelper {
         return resolved;
     }
 
-    public static IFieldTagTextCodec resolveTagTextCodec(RecordFieldMeta field, FieldCodecRegistry registry) {
+    public static IFieldTagTextCodec resolveTagTextCodec(IRecordFieldsMeta field, FieldCodecRegistry registry) {
         IFieldTagTextCodec resolved = field.getResolvedTagTextCodec();
         if (resolved != null)
             return resolved;
@@ -127,7 +129,7 @@ public class RecordMetaHelper {
         return resolved;
     }
 
-    public static String padText(String str, RecordFieldMeta field) {
+    public static String padText(String str, RecordSimpleFieldMeta field) {
         int len = str.length();
         RecordMetaHelper.checkMaxLen(len, field);
         RecordMetaHelper.checkMinLen(len, field);
@@ -140,9 +142,9 @@ public class RecordMetaHelper {
             ByteString padding = field.getPadding();
             if (padding != null) {
                 String paddingStr = padding.toString(field.getCharset());
-                if(field.isLeftPad()){
+                if (field.isLeftPad()) {
                     str = StringHelper.leftPad(str, expected, paddingStr.charAt(0));
-                }else {
+                } else {
                     str = StringHelper.rightPad(str, expected, paddingStr.charAt(0));
                 }
             }
@@ -150,7 +152,7 @@ public class RecordMetaHelper {
         return str;
     }
 
-    public static ByteString padBinary(ByteString str, RecordFieldMeta field) {
+    public static ByteString padBinary(ByteString str, RecordSimpleFieldMeta field) {
         int len = str.length();
         RecordMetaHelper.checkMaxLen(len, field);
         RecordMetaHelper.checkMinLen(len, field);
@@ -171,4 +173,6 @@ public class RecordMetaHelper {
         }
         return str;
     }
+
+
 }

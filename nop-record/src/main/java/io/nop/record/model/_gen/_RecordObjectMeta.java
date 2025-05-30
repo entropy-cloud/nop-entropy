@@ -32,6 +32,13 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: asMap
+     * 表示解析得到Map结构。要求fields中必须包含且只包含两个字段key和value，repeatKind不允许为空。
+     */
+    private boolean _asMap  = false;
+    
+    /**
+     *  
      * xml name: baseType
      * 
      */
@@ -74,6 +81,20 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: length
+     * 
+     */
+    private java.lang.Integer _length ;
+    
+    /**
+     *  
+     * xml name: lengthExpr
+     * 动态确定字段长度。在表达式中record指向父结构，_root指向根结构。
+     */
+    private io.nop.core.lang.eval.IEvalFunction _lengthExpr ;
+    
+    /**
+     *  
      * xml name: params
      * 
      */
@@ -85,6 +106,13 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
      * 
      */
     private io.nop.core.lang.eval.IEvalFunction _readWhen ;
+    
+    /**
+     *  
+     * xml name: tagsCodec
+     * 类似ISO8583协议，支持先输出一个bitmap标记哪些字段需要写出，然后根据tagIndex过滤只写出部分字段
+     */
+    private java.lang.String _tagsCodec ;
     
     /**
      *  
@@ -141,6 +169,25 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._afterWrite = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: asMap
+     *  表示解析得到Map结构。要求fields中必须包含且只包含两个字段key和value，repeatKind不允许为空。
+     */
+    
+    public boolean isAsMap(){
+      return _asMap;
+    }
+
+    
+    public void setAsMap(boolean value){
+        checkAllowChange();
+        
+        this._asMap = value;
            
     }
 
@@ -287,6 +334,44 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: length
+     *  
+     */
+    
+    public java.lang.Integer getLength(){
+      return _length;
+    }
+
+    
+    public void setLength(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._length = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: lengthExpr
+     *  动态确定字段长度。在表达式中record指向父结构，_root指向根结构。
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getLengthExpr(){
+      return _lengthExpr;
+    }
+
+    
+    public void setLengthExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._lengthExpr = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: params
      *  
      */
@@ -345,6 +430,25 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._readWhen = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: tagsCodec
+     *  类似ISO8583协议，支持先输出一个bitmap标记哪些字段需要写出，然后根据tagIndex过滤只写出部分字段
+     */
+    
+    public java.lang.String getTagsCodec(){
+      return _tagsCodec;
+    }
+
+    
+    public void setTagsCodec(java.lang.String value){
+        checkAllowChange();
+        
+        this._tagsCodec = value;
            
     }
 
@@ -427,14 +531,18 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         
         out.putNotNull("afterRead",this.getAfterRead());
         out.putNotNull("afterWrite",this.getAfterWrite());
+        out.putNotNull("asMap",this.isAsMap());
         out.putNotNull("baseType",this.getBaseType());
         out.putNotNull("beanClass",this.getBeanClass());
         out.putNotNull("beforeRead",this.getBeforeRead());
         out.putNotNull("beforeWrite",this.getBeforeWrite());
         out.putNotNull("doc",this.getDoc());
         out.putNotNull("fields",this.getFields());
+        out.putNotNull("length",this.getLength());
+        out.putNotNull("lengthExpr",this.getLengthExpr());
         out.putNotNull("params",this.getParams());
         out.putNotNull("readWhen",this.getReadWhen());
+        out.putNotNull("tagsCodec",this.getTagsCodec());
         out.putNotNull("template",this.getTemplate());
         out.putNotNull("typeRef",this.getTypeRef());
         out.putNotNull("writeWhen",this.getWriteWhen());
@@ -451,14 +559,18 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         
         instance.setAfterRead(this.getAfterRead());
         instance.setAfterWrite(this.getAfterWrite());
+        instance.setAsMap(this.isAsMap());
         instance.setBaseType(this.getBaseType());
         instance.setBeanClass(this.getBeanClass());
         instance.setBeforeRead(this.getBeforeRead());
         instance.setBeforeWrite(this.getBeforeWrite());
         instance.setDoc(this.getDoc());
         instance.setFields(this.getFields());
+        instance.setLength(this.getLength());
+        instance.setLengthExpr(this.getLengthExpr());
         instance.setParams(this.getParams());
         instance.setReadWhen(this.getReadWhen());
+        instance.setTagsCodec(this.getTagsCodec());
         instance.setTemplate(this.getTemplate());
         instance.setTypeRef(this.getTypeRef());
         instance.setWriteWhen(this.getWriteWhen());

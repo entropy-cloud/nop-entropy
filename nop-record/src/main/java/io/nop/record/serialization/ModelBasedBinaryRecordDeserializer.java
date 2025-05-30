@@ -30,11 +30,12 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
     }
 
     @Override
-    protected IBitSet readTags(IBinaryDataReader in, RecordFieldMeta field, RecordObjectMeta typeMeta, IFieldCodecContext context) throws IOException {
-        IFieldTagBinaryCodec codec = field == null ? null : resolveTagBinaryCodec(field, registry);
+    protected IBitSet readTags(IBinaryDataReader in, RecordObjectMeta typeMeta, IFieldCodecContext context) throws IOException {
+        IFieldTagBinaryCodec codec = resolveTagBinaryCodec(typeMeta, registry);
         if (codec == null)
             return null;
-        return codec.decodeTags(in, field, context);
+
+        return codec.decodeTags(in, typeMeta, context);
     }
 
     @Override
@@ -62,14 +63,9 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
     protected void readField0(IBinaryDataReader in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
         IFieldBinaryCodec codec = resolveBinaryCodec(field, registry);
         if (codec != null) {
-            context.enterField(field.getName());
-            try {
-                Object value = codec.decode(in, record, field.getLength(), context);
-                if (!field.isVirtual())
-                    setPropByName(record, field.getPropOrFieldName(), value);
-            } finally {
-                context.leaveField(field.getName());
-            }
+            Object value = codec.decode(in, record, field.getLength(), context);
+            if (!field.isVirtual())
+                setPropByName(record, field.getPropOrFieldName(), value);
         } else {
             String str = decodeString(in, field.getCharsetObj(), field.getLength());
             if (field.getPadding() != null) {

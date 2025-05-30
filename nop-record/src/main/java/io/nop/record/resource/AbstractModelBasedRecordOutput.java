@@ -58,7 +58,7 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
             context.getEvalScope().setLocalValues(attributes);
 
         if (fileMeta.getResolvedHeaderType() != null) {
-            writeObject(baseOut, fileMeta.getResolvedHeaderType(), context, RecordConstants.HEADER_NAME);
+            writeObject(baseOut, fileMeta.getResolvedHeaderType(), context);
         }
     }
 
@@ -69,14 +69,14 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
 
         if (fileMeta.getResolvedTrailerType() != null) {
             context.getEvalScope().setLocalValues(aggregateState.getResults());
-            writeObject(baseOut, fileMeta.getResolvedTrailerType(), context, RecordConstants.TRAILER_NAME);
+            writeObject(baseOut, fileMeta.getResolvedTrailerType(), context);
         }
     }
 
     @Override
     public void write(T record) throws IOException {
         beforeWriteRecord(record);
-        writeObject(baseOut, fileMeta.getResolvedBodyType(), record, RecordConstants.BODY_NAME);
+        writeObject(baseOut, fileMeta.getResolvedBodyType(), record);
         afterWriteRecord(record);
     }
 
@@ -87,7 +87,7 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
             if (aggregateState.isPageBegin()) {
                 RecordPaginationMeta pagination = fileMeta.getPagination();
                 if (pagination.getPageHeader() != null) {
-                    writeObject(baseOut, pagination.getPageHeader(), context, RecordConstants.PAGE_HEADER_NAME);
+                    writeObject(baseOut, pagination.getPageHeader(), context);
                 }
             }
         }
@@ -99,15 +99,15 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
                 RecordPaginationMeta pagination = fileMeta.getPagination();
                 if (pagination.getPageFooter() != null) {
                     context.getEvalScope().setLocalValues(aggregateState.getPageResults());
-                    writeObject(baseOut, pagination.getPageFooter(), context, RecordConstants.PAGE_FOOTER_NAME);
+                    writeObject(baseOut, pagination.getPageFooter(), context);
                 }
                 aggregateState.resetPage();
             }
         }
     }
 
-    public void writeObject(Output out, RecordObjectMeta recordMeta, Object record, String name) throws IOException {
-        getSerializer().writeObject(out, recordMeta, name, record, context);
+    public void writeObject(Output out, RecordObjectMeta recordMeta, Object record) throws IOException {
+        getSerializer().writeObject(out, recordMeta, record, context);
     }
 
     protected IModelBasedRecordSerializer<Output> getSerializer() {

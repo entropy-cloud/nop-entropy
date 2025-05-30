@@ -1,6 +1,5 @@
 package io.nop.record.serialization;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.collections.bit.IBitSet;
 import io.nop.record.codec.FieldCodecRegistry;
@@ -9,6 +8,7 @@ import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.IFieldTagBinaryCodec;
 import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
+import io.nop.record.model.RecordSimpleFieldMeta;
 import io.nop.record.writer.IBinaryDataWriter;
 
 import java.io.IOException;
@@ -27,16 +27,11 @@ public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSe
     }
 
     @Override
-    protected void writeField0(IBinaryDataWriter out, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
+    protected void writeField0(IBinaryDataWriter out, RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
         IFieldBinaryCodec encoder = resolveBinaryCodec(field, registry);
         if (encoder != null) {
-            context.enterField(field.getName());
-            try {
-                Object value = getFieldValue(field, record, context);
-                encoder.encode(out, value, field.getLength(), context, null);
-            } finally {
-                context.leaveField(field.getName());
-            }
+            Object value = getFieldValue(field, record, context);
+            encoder.encode(out, value, field.getLength(), context, null);
         } else {
             if (field.getContent() != null) {
                 out.writeByteString(padBinary(field.getContent(), field));
@@ -47,7 +42,7 @@ public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSe
         }
     }
 
-    Object getFieldValue(RecordFieldMeta field, Object record, IFieldCodecContext context) {
+    Object getFieldValue(RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) {
         if (field.getContent() != null) {
             return field.getStdDataType().convert(field.getContent().toString(field.getCharset()));
         }
@@ -55,11 +50,11 @@ public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSe
     }
 
     @Override
-    protected IBitSet writeTags(IBinaryDataWriter out, RecordFieldMeta field, RecordObjectMeta typeMeta, Object value, IFieldCodecContext context) throws IOException {
-        IFieldTagBinaryCodec codec = field == null ? null : resolveTagBinaryCodec(field, registry);
+    protected IBitSet writeTags(IBinaryDataWriter out, RecordObjectMeta typeMeta, Object value, IFieldCodecContext context) throws IOException {
+        IFieldTagBinaryCodec codec = resolveTagBinaryCodec(typeMeta, registry);
         if (codec == null)
             return null;
-        return codec.encodeTags(out, value, field, typeMeta, context);
+        return codec.encodeTags(out, value, typeMeta, context);
     }
 
     @Override
@@ -67,11 +62,7 @@ public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSe
         IFieldBinaryCodec encoder = resolveBinaryCodec(field, registry);
         encoder.encode(out, record, field.getLength(), context,
                 (output, value, length, ctx, bodyEncoder) -> {
-                    try {
-                        writeSwitch(output, field, value, context);
-                    } catch (Exception e) {
-                        throw NopException.adapt(e);
-                    }
+                    writeSwitch(output, field, value, context);
                 });
     }
 

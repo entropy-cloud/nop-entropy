@@ -44,7 +44,7 @@ filter的语法
 ```
 
 * errorDescription使用`{placeholder}`格式
-示例:
+  示例:
 
 ```xpl
 <c:check errorDescription="金额{amount}超过限额 {limit}"
@@ -52,7 +52,6 @@ filter的语法
   <between name="order.amount" min="${0}" max="${user.credit}"/>
 </c:check>
 ```
-
 
 ### 2. CRUD操作
 
@@ -175,7 +174,6 @@ filter的语法
 
 所有标签都支持`xpl:return`属性来表示标签的返回值。通过`<task:output>`设置跨步骤共享的变量。
 
-
 ```xpl-syntax
 <task:output name="var-name" value="t-expr" />
 ```
@@ -208,7 +206,6 @@ filter的语法
 
 示例：
 
-
 ### 5. 脚本与异常
 
 `<c:script>`中throw函数以及xpl中的`<c:throw>`标签都可以抛出异常
@@ -239,9 +236,11 @@ filter的语法
 ## 内置函数
 
 ```javascript
-// 日期
-now()     // 当前时间，返回类型LocalDateTime
+now()     // 当前时间，返回类型Timestamp
+currentDateTime() // 当前时间，返回类型LocalDateTime
 today()   // 今天日期, 返回类型LocalDate
+
+$userContext.userId // 获取当前用户id
 
 // 帮助类
 $String.camelCase("hello_world")

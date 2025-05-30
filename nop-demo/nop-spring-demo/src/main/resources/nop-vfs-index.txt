@@ -414,7 +414,6 @@
 /nop/schema/query/query.xdef
 /nop/schema/record/packet-codec.xdef
 /nop/schema/record/record-definitions.xdef
-/nop/schema/record/record-enum.xdef
 /nop/schema/record/record-field.xdef
 /nop/schema/record/record-file.xdef
 /nop/schema/record/record-mapping.xdef

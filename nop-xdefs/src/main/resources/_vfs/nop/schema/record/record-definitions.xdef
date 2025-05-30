@@ -15,7 +15,7 @@
         <type name="!prop-name" xdef:ref="record-object.xdef" xdef:name="RecordTypeMeta" abstract="!boolean=false"/>
     </types>
 
-    <enums xdef:body-type="list" xdef:key-attr="name">
-        <enum name="!var-name" xdef:ref="record-enum.xdef"/>
-    </enums>
+    <dicts xdef:body-type="list" xdef:key-attr="name">
+        <dict name="!var-name" xdef:ref="../orm/dict.xdef"/>
+    </dicts>
 </definitions>

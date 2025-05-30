@@ -129,6 +129,13 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     private java.util.Set<java.lang.String> _supportModels ;
     
     /**
+     *  
+     * xml name: supportToolCalls
+     * 
+     */
+    private boolean _supportToolCalls  = false;
+    
+    /**
      * 
      * xml name: aliasMap
      *  
@@ -462,6 +469,25 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     }
 
     
+    /**
+     * 
+     * xml name: supportToolCalls
+     *  
+     */
+    
+    public boolean isSupportToolCalls(){
+      return _supportToolCalls;
+    }
+
+    
+    public void setSupportToolCalls(boolean value){
+        checkAllowChange();
+        
+        this._supportToolCalls = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -499,6 +525,7 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
         out.putNotNull("request",this.getRequest());
         out.putNotNull("response",this.getResponse());
         out.putNotNull("supportModels",this.getSupportModels());
+        out.putNotNull("supportToolCalls",this.isSupportToolCalls());
     }
 
     public LlmModel cloneInstance(){
@@ -526,6 +553,7 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
         instance.setRequest(this.getRequest());
         instance.setResponse(this.getResponse());
         instance.setSupportModels(this.getSupportModels());
+        instance.setSupportToolCalls(this.isSupportToolCalls());
     }
 
     protected LlmModel newInstance(){

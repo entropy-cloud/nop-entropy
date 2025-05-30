@@ -6,9 +6,9 @@ import io.nop.commons.collections.bit.SmallBitSet;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.IFieldTagBinaryCodec;
-import io.nop.record.reader.IBinaryDataReader;
 import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
+import io.nop.record.reader.IBinaryDataReader;
 import io.nop.record.writer.IBinaryDataWriter;
 
 import java.io.IOException;
@@ -18,7 +18,7 @@ public class BitmapTagBinaryCodec implements IFieldTagBinaryCodec {
     public static final BitmapTagBinaryCodec INSTANCE = new BitmapTagBinaryCodec();
 
     @Override
-    public IBitSet decodeTags(IBinaryDataReader input, RecordFieldMeta field,
+    public IBitSet decodeTags(IBinaryDataReader input, RecordObjectMeta typeMeta,
                               IFieldCodecContext context) throws IOException {
         byte[] bytes = input.readBytes(8);
         IBitSet bs;
@@ -57,10 +57,10 @@ public class BitmapTagBinaryCodec implements IFieldTagBinaryCodec {
     }
 
     @Override
-    public IBitSet encodeTags(IBinaryDataWriter output, Object value, RecordFieldMeta field,
-                              RecordObjectMeta typeMeta, IFieldCodecContext context) throws IOException{
+    public IBitSet encodeTags(IBinaryDataWriter output, Object value,
+                              RecordObjectMeta typeMeta, IFieldCodecContext context) throws IOException {
         IBitSet bitSet = new FixedBitSet(128);
-        List<RecordFieldMeta> fields = typeMeta == null ? typeMeta.getFields() : field.getFields();
+        List<RecordFieldMeta> fields = typeMeta.getFields();
         int max = 0;
         for (RecordFieldMeta f : fields) {
             if (f.getTagIndex() < 0)

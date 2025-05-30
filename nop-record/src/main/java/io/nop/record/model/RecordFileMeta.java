@@ -88,14 +88,14 @@ public class RecordFileMeta extends _RecordFileMeta {
         if (resolvedTrailerType != null) {
             ByteString prefix = resolvedTrailerType.getPrefix();
             if (prefix != null && !prefix.isEmpty()) {
-                if (body.getReadRepeatExpr() == null && body.getReadRepeatUntil() == null) {
+                if (body.getRepeatCountExpr() == null && body.getRepeatUntil() == null) {
                     if (isBinary()) {
-                        body.setReadRepeatUntil((thisObj, args, scope) -> {
+                        body.setRepeatUntil((thisObj, args, scope) -> {
                             return binaryMatchTrailer((IBinaryDataReader) args[0], prefix.toByteArray());
                         });
                     } else {
                         String str = prefix.buildString(resolvedTrailerType.getCharsetObj());
-                        body.setReadRepeatUntil((thisObj, args, scope) -> {
+                        body.setRepeatUntil((thisObj, args, scope) -> {
                             return textMatchTrailer((ITextDataReader) args[0], str);
                         });
                     }

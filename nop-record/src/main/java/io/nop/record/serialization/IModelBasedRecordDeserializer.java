@@ -8,7 +8,7 @@ import io.nop.record.reader.IDataReaderBase;
 import java.io.IOException;
 
 public interface IModelBasedRecordDeserializer<Input extends IDataReaderBase> {
-    boolean readObject(Input in, RecordObjectMeta recordMeta, String name, Object record,
+    boolean readObject(Input in, RecordObjectMeta recordMeta, Object record,
                        IFieldCodecContext context) throws IOException;
 
     boolean readField(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException;

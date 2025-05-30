@@ -54,7 +54,7 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
         try {
             if (fileMeta.getResolvedHeaderType() != null && !baseIn.isEof()) {
                 headerMeta = new HashMap<>();
-                deserializer.readObject(baseIn, fileMeta.getResolvedHeaderType(), null, headerMeta, context);
+                deserializer.readObject(baseIn, fileMeta.getResolvedHeaderType(), headerMeta, context);
             }
         } catch (IOException e) {
             throw NopException.adapt(e);
@@ -63,8 +63,8 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
 
     void readRepeatCount() {
         if (repeatKind == FieldRepeatKind.expr) {
-            if (bodyMeta.getReadRepeatExpr() != null) {
-                this.totalCount = ConvertHelper.toPrimitiveLong(bodyMeta.getReadRepeatExpr().call2(null, baseIn, null, context.getEvalScope()), NopException::new);
+            if (bodyMeta.getRepeatCountExpr() != null) {
+                this.totalCount = ConvertHelper.toPrimitiveLong(bodyMeta.getRepeatCountExpr().call2(null, baseIn, null, context.getEvalScope()), NopException::new);
             }
         }
     }
@@ -116,8 +116,8 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
                     break;
                 }
                 case until: {
-                    if (bodyMeta.getReadRepeatUntil() != null) {
-                        boolean ret = ConvertHelper.toTruthy(bodyMeta.getReadRepeatUntil().call2(null, baseIn, null, context.getEvalScope()), NopException::new);
+                    if (bodyMeta.getRepeatUntil() != null) {
+                        boolean ret = ConvertHelper.toTruthy(bodyMeta.getRepeatUntil().call2(null, baseIn, null, context.getEvalScope()), NopException::new);
                         if (!ret) {
                             readOneRecord();
                         }
@@ -134,7 +134,7 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
 
     void readOneRecord() throws IOException {
         T record = (T) resolvedBody.newBean();
-        if (deserializer.readObject(this.baseIn, resolvedBody, "body", record, context)) {
+        if (deserializer.readObject(this.baseIn, resolvedBody, record, context)) {
             this.nextRecord = record;
         }
     }

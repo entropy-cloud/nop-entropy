@@ -18,17 +18,17 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     
     /**
      *  
-     * xml name: readRepeatExpr
+     * xml name: repeatCountExpr
      * 返回body行的循环次数
      */
-    private io.nop.core.lang.eval.IEvalFunction _readRepeatExpr ;
+    private io.nop.core.lang.eval.IEvalFunction _repeatCountExpr ;
     
     /**
      *  
-     * xml name: readRepeatUntil
-     * 返回body行循环的终止条件
+     * xml name: repeatCountField
+     * 定长记录的定义
      */
-    private io.nop.core.lang.eval.IEvalFunction _readRepeatUntil ;
+    private io.nop.record.model.RecordSimpleFieldMeta _repeatCountField ;
     
     /**
      *  
@@ -38,39 +38,46 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     private io.nop.record.model.FieldRepeatKind _repeatKind ;
     
     /**
+     *  
+     * xml name: repeatUntil
+     * 返回body行循环的终止条件
+     */
+    private io.nop.core.lang.eval.IEvalFunction _repeatUntil ;
+    
+    /**
      * 
-     * xml name: readRepeatExpr
+     * xml name: repeatCountExpr
      *  返回body行的循环次数
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getReadRepeatExpr(){
-      return _readRepeatExpr;
+    public io.nop.core.lang.eval.IEvalFunction getRepeatCountExpr(){
+      return _repeatCountExpr;
     }
 
     
-    public void setReadRepeatExpr(io.nop.core.lang.eval.IEvalFunction value){
+    public void setRepeatCountExpr(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._readRepeatExpr = value;
+        this._repeatCountExpr = value;
            
     }
 
     
     /**
      * 
-     * xml name: readRepeatUntil
-     *  返回body行循环的终止条件
+     * xml name: repeatCountField
+     *  定长记录的定义
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getReadRepeatUntil(){
-      return _readRepeatUntil;
+    public io.nop.record.model.RecordSimpleFieldMeta getRepeatCountField(){
+      return _repeatCountField;
     }
 
     
-    public void setReadRepeatUntil(io.nop.core.lang.eval.IEvalFunction value){
+    public void setRepeatCountField(io.nop.record.model.RecordSimpleFieldMeta value){
         checkAllowChange();
         
-        this._readRepeatUntil = value;
+        this._repeatCountField = value;
            
     }
 
@@ -94,6 +101,25 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     }
 
     
+    /**
+     * 
+     * xml name: repeatUntil
+     *  返回body行循环的终止条件
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getRepeatUntil(){
+      return _repeatUntil;
+    }
+
+    
+    public void setRepeatUntil(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._repeatUntil = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -102,6 +128,8 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._repeatCountField = io.nop.api.core.util.FreezeHelper.deepFreeze(this._repeatCountField);
+            
         }
     }
 
@@ -109,9 +137,10 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("readRepeatExpr",this.getReadRepeatExpr());
-        out.putNotNull("readRepeatUntil",this.getReadRepeatUntil());
+        out.putNotNull("repeatCountExpr",this.getRepeatCountExpr());
+        out.putNotNull("repeatCountField",this.getRepeatCountField());
         out.putNotNull("repeatKind",this.getRepeatKind());
+        out.putNotNull("repeatUntil",this.getRepeatUntil());
     }
 
     public RecordFileBodyMeta cloneInstance(){
@@ -123,9 +152,10 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     protected void copyTo(RecordFileBodyMeta instance){
         super.copyTo(instance);
         
-        instance.setReadRepeatExpr(this.getReadRepeatExpr());
-        instance.setReadRepeatUntil(this.getReadRepeatUntil());
+        instance.setRepeatCountExpr(this.getRepeatCountExpr());
+        instance.setRepeatCountField(this.getRepeatCountField());
         instance.setRepeatKind(this.getRepeatKind());
+        instance.setRepeatUntil(this.getRepeatUntil());
     }
 
     protected RecordFileBodyMeta newInstance(){

@@ -1,6 +1,5 @@
 package io.nop.record.serialization;
 
-import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.collections.bit.IBitSet;
 import io.nop.commons.util.StringHelper;
@@ -10,6 +9,7 @@ import io.nop.record.codec.IFieldTagTextCodec;
 import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
+import io.nop.record.model.RecordSimpleFieldMeta;
 import io.nop.record.util.RecordMetaHelper;
 import io.nop.record.writer.ITextDataWriter;
 
@@ -27,17 +27,12 @@ public class ModelBasedTextRecordSerializer extends AbstractModelBasedRecordSeri
     }
 
     @Override
-    protected void writeField0(ITextDataWriter out, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
+    protected void writeField0(ITextDataWriter out, RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
 
         IFieldTextCodec encoder = resolveTextCodec(field, registry);
         if (encoder != null) {
-            context.enterField(field.getName());
             Object value = getFieldValue(field, record, context);
-            try {
-                encoder.encode(out, value, field.getLength(), context, null);
-            } finally {
-                context.leaveField(field.getName());
-            }
+            encoder.encode(out, value, field.getLength(), context, null);
         } else {
             ByteString content = field.getContent();
             if (content != null) {
@@ -52,7 +47,7 @@ public class ModelBasedTextRecordSerializer extends AbstractModelBasedRecordSeri
         }
     }
 
-    Object getFieldValue(RecordFieldMeta field, Object record, IFieldCodecContext context) {
+    Object getFieldValue(RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) {
         if (field.getContent() != null) {
             return field.getStdDataType().convert(field.getContent().toString(field.getCharset()));
         }
@@ -60,11 +55,12 @@ public class ModelBasedTextRecordSerializer extends AbstractModelBasedRecordSeri
     }
 
     @Override
-    protected IBitSet writeTags(ITextDataWriter out, RecordFieldMeta field, RecordObjectMeta typeMeta, Object value, IFieldCodecContext context) throws IOException {
-        IFieldTagTextCodec codec = field == null ? null : resolveTagTextCodec(field, registry);
+    protected IBitSet writeTags(ITextDataWriter out, RecordObjectMeta typeMeta, Object value, IFieldCodecContext context) throws IOException {
+        IFieldTagTextCodec codec = resolveTagTextCodec(typeMeta, registry);
+
         if (codec == null)
             return null;
-        return codec.encodeTags(out, value, field, typeMeta, context);
+        return codec.encodeTags(out, value, typeMeta, context);
     }
 
     @Override
@@ -72,11 +68,7 @@ public class ModelBasedTextRecordSerializer extends AbstractModelBasedRecordSeri
         IFieldTextCodec encoder = resolveTextCodec(field, registry);
         encoder.encode(out, record, field.getLength(), context,
                 (output, value, length, ctx, bodyEncoder) -> {
-                    try {
-                        writeSwitch(output, field, value, context);
-                    } catch (Exception e) {
-                        throw NopException.adapt(e);
-                    }
+                    writeSwitch(output, field, value, context);
                 });
     }
 

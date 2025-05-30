@@ -46,10 +46,10 @@ public abstract class _RecordDefinitions extends io.nop.core.resource.component.
     
     /**
      *  
-     * xml name: enums
+     * xml name: dicts
      * 
      */
-    private KeyedList<io.nop.record.model.RecordEnum> _enums = KeyedList.emptyList();
+    private KeyedList<io.nop.api.core.beans.DictBean> _dicts = KeyedList.emptyList();
     
     /**
      *  
@@ -150,47 +150,47 @@ public abstract class _RecordDefinitions extends io.nop.core.resource.component.
     
     /**
      * 
-     * xml name: enums
+     * xml name: dicts
      *  
      */
     
-    public java.util.List<io.nop.record.model.RecordEnum> getEnums(){
-      return _enums;
+    public java.util.List<io.nop.api.core.beans.DictBean> getDicts(){
+      return _dicts;
     }
 
     
-    public void setEnums(java.util.List<io.nop.record.model.RecordEnum> value){
+    public void setDicts(java.util.List<io.nop.api.core.beans.DictBean> value){
         checkAllowChange();
         
-        this._enums = KeyedList.fromList(value, io.nop.record.model.RecordEnum::getName);
+        this._dicts = KeyedList.fromList(value, io.nop.api.core.beans.DictBean::getName);
            
     }
 
     
-    public io.nop.record.model.RecordEnum getEnum(String name){
-        return this._enums.getByKey(name);
+    public io.nop.api.core.beans.DictBean getDict(String name){
+        return this._dicts.getByKey(name);
     }
 
-    public boolean hasEnum(String name){
-        return this._enums.containsKey(name);
+    public boolean hasDict(String name){
+        return this._dicts.containsKey(name);
     }
 
-    public void addEnum(io.nop.record.model.RecordEnum item) {
+    public void addDict(io.nop.api.core.beans.DictBean item) {
         checkAllowChange();
-        java.util.List<io.nop.record.model.RecordEnum> list = this.getEnums();
+        java.util.List<io.nop.api.core.beans.DictBean> list = this.getDicts();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.record.model.RecordEnum::getName);
-            setEnums(list);
+            list = new KeyedList<>(io.nop.api.core.beans.DictBean::getName);
+            setDicts(list);
         }
         list.add(item);
     }
     
-    public java.util.Set<String> keySet_enums(){
-        return this._enums.keySet();
+    public java.util.Set<String> keySet_dicts(){
+        return this._dicts.keySet();
     }
 
-    public boolean hasEnums(){
-        return !this._enums.isEmpty();
+    public boolean hasDicts(){
+        return !this._dicts.isEmpty();
     }
     
     /**
@@ -310,7 +310,7 @@ public abstract class _RecordDefinitions extends io.nop.core.resource.component.
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
-           this._enums = io.nop.api.core.util.FreezeHelper.deepFreeze(this._enums);
+           this._dicts = io.nop.api.core.util.FreezeHelper.deepFreeze(this._dicts);
             
            this._imports = io.nop.api.core.util.FreezeHelper.deepFreeze(this._imports);
             
@@ -327,7 +327,7 @@ public abstract class _RecordDefinitions extends io.nop.core.resource.component.
         out.putNotNull("bitEndian",this.getBitEndian());
         out.putNotNull("defaultCharset",this.getDefaultCharset());
         out.putNotNull("defaultEndian",this.getDefaultEndian());
-        out.putNotNull("enums",this.getEnums());
+        out.putNotNull("dicts",this.getDicts());
         out.putNotNull("imports",this.getImports());
         out.putNotNull("packageName",this.getPackageName());
         out.putNotNull("types",this.getTypes());
@@ -346,7 +346,7 @@ public abstract class _RecordDefinitions extends io.nop.core.resource.component.
         instance.setBitEndian(this.getBitEndian());
         instance.setDefaultCharset(this.getDefaultCharset());
         instance.setDefaultEndian(this.getDefaultEndian());
-        instance.setEnums(this.getEnums());
+        instance.setDicts(this.getDicts());
         instance.setImports(this.getImports());
         instance.setPackageName(this.getPackageName());
         instance.setTypes(this.getTypes());

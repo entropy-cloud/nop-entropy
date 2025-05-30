@@ -13,6 +13,8 @@ import io.nop.commons.text.SimpleTextTemplate;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanConstructor;
 import io.nop.core.reflect.bean.MethodBeanConstructor;
+import io.nop.record.codec.IFieldTagBinaryCodec;
+import io.nop.record.codec.IFieldTagTextCodec;
 import io.nop.record.model._gen._RecordObjectMeta;
 
 import java.nio.charset.Charset;
@@ -30,8 +32,31 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
 
     private Charset charsetObj;
 
+    private IFieldTagBinaryCodec resolvedTagBinaryCodec;
+    private IFieldTagTextCodec resolvedTagTextCodec;
+
     public RecordObjectMeta() {
 
+    }
+
+    @Override
+    public IFieldTagBinaryCodec getResolvedTagBinaryCodec() {
+        return resolvedTagBinaryCodec;
+    }
+
+    @Override
+    public void setResolvedTagBinaryCodec(IFieldTagBinaryCodec resolvedTagBinaryCodec) {
+        this.resolvedTagBinaryCodec = resolvedTagBinaryCodec;
+    }
+
+    @Override
+    public IFieldTagTextCodec getResolvedTagTextCodec() {
+        return resolvedTagTextCodec;
+    }
+
+    @Override
+    public void setResolvedTagTextCodec(IFieldTagTextCodec resolvedTagTextCodec) {
+        this.resolvedTagTextCodec = resolvedTagTextCodec;
     }
 
     public boolean hasFieldsOrTemplate() {

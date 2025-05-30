@@ -14,7 +14,7 @@ public class RecordSerializeHelper {
             return true;
         if (!ConvertHelper.toPrimitiveBoolean(expr.call2(null, record, context, context.getEvalScope()))) {
             if (LOG.isTraceEnabled()) {
-                LOG.trace("nop.record.skip-field:fieldPath={},field={}", context.getFieldPath(), name);
+                LOG.trace("nop.record.skip-field:fieldPath={},name={}", context.getFieldPath(), name);
             }
             return false;
         }

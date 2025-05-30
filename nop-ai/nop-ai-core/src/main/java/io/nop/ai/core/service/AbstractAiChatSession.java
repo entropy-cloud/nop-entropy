@@ -3,7 +3,6 @@ package io.nop.ai.core.service;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.chat.IAiChatSession;
 import io.nop.ai.core.api.messages.AiMessage;
-import io.nop.ai.core.api.messages.Prompt;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,14 +55,6 @@ public abstract class AbstractAiChatSession implements IAiChatSession {
         if (this.messages.isEmpty())
             this.messages = new ArrayList<>();
         this.messages.add(message);
-    }
-
-    @Override
-    public Prompt newPrompt(boolean includeHistory) {
-        Prompt prompt = new Prompt();
-        if (includeHistory)
-            prompt.addMessages(messages);
-        return prompt;
     }
 
     @Override

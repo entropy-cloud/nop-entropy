@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+ 定长记录文件的描述
+
+ @binary 是否是二进制文件。如果否，则表示是文本文件
+-->
+<file x:schema="/nop/schema/xdef.xdef" xmlns:xdef="xdef"
+      xmlns:x="/nop/schema/xdsl.xdef">
+    <header typeRef="record-type"/>
+
+    <body typeRef="record-type"/>
+
+    <trailer typeRef="record-type"/>
+
+    <aggregates xdef:body-type="list" xdef:key-attr="name">
+        <!-- 输出时自动计算一些汇总值 -->
+        <aggregate name="!prop-name" aggFunc="var-name" prop="string">
+            <valueExpr xdef:value="xpl-fn:(record,ctx)=>any"/>
+        </aggregate>
+    </aggregates>
+
+    <types xdef:body-type="list" xdef:key-attr="name">
+        <type baseType="class-name" name="!string" asMap="!boolean=false">
+            <fields xdef:body-type="list" xdef:key-attr="name" xdef:name="RecordFields">
+                <!--
+                定长记录的定义
+
+                @name 对应解析得到的属性名
+                @repeatKind 如果是列表结构或者Map结构，则这里用来确定如何判断所有条目已经解析完毕
+                -->
+                <field name="!prop-name" typeRef="string"
+                       displayName="string" type="generic-type" prop="prop-name"
+                       length="!int=0"
+                       codec="string" charset="string"
+                       padding="encoded-bytes" leftPad="!boolean=false" trim="!boolean=false"
+                       virtual="!boolean=false" value="any"
+                       offset="!int=0" mandatory="!boolean=false">
+
+                    <!--
+                    动态确定字段类型
+                    如果指定了switchOnField，则输出时根据从record[switchOnField]上获取到case类型，然后再映射到type类型，从根对象的types集合中再获取具体定义
+                    -->
+                    <switchOnField xdef:value="prop-name"/>
+
+                    <!-- 根据record[switchOnField]获取到类型，key为*表示缺省映射 -->
+                    <switchTypeMap xdef:value="string-map"/>
+                </field>
+            </fields>
+
+            <template xdef:value="string"/>
+        </type>
+    </types>
+
+</file>

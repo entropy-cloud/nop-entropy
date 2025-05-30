@@ -2,6 +2,7 @@ package io.nop.record.codec;
 
 import io.nop.api.core.util.IVariableScope;
 import io.nop.core.context.IEvalContext;
+import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordTypeMeta;
 
 public interface IFieldCodecContext extends IEvalContext, IVariableScope {
@@ -18,9 +19,11 @@ public interface IFieldCodecContext extends IEvalContext, IVariableScope {
 
     String getFieldPath();
 
-    void enterField(String name);
+    void enterField(RecordFieldMeta field);
 
-    void leaveField(String name);
+    void exitField(RecordFieldMeta field);
+
+    RecordFieldMeta getCurrentField();
 
     RecordTypeMeta getType(String name);
 }

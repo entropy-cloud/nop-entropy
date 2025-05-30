@@ -10,6 +10,7 @@
      apiStyle="enum:io.nop.ai.core.model.ApiStyle"
      defaultModel="string" logMessage="!boolean=true"
      rateLimit="double" defaultRequestTimeout="long"
+     supportToolCalls="!boolean=false"
 >
 
     <!--

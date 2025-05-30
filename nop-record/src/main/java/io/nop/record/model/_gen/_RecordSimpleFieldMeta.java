@@ -18,13 +18,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
-     * xml name: absoluteOffset
-     * 是否绝对偏移。如果是，则offset是相对于父字段的起始位置来定位，否则是相对于前一个字段来定位
-     */
-    private boolean _absoluteOffset  = false;
-    
-    /**
-     *  
      * xml name: charset
      * 
      */
@@ -47,7 +40,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     /**
      *  
      * xml name: displayName
-     * 
+     * 字段的显示名称。抛出用户可读的异常消息时可能会用到
      */
     private java.lang.String _displayName ;
     
@@ -67,22 +60,8 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
-     * xml name: enum
-     * 
-     */
-    private java.lang.String _enum ;
-    
-    /**
-     *  
-     * xml name: eosError
-     * 
-     */
-    private boolean _eosError  = true;
-    
-    /**
-     *  
      * xml name: exportExpr
-     * 输出时不从实体上获取，根据表达式计算得到输出值
+     * 导出时通过此表达式获取值，而不是通过prop获取值
      */
     private io.nop.core.lang.eval.IEvalFunction _exportExpr ;
     
@@ -99,13 +78,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
      * 解析结果是否包含terminator
      */
     private boolean _includeTerminator  = false;
-    
-    /**
-     *  
-     * xml name: lazy
-     * 是否延迟解析。如果延迟解析，则只是记录当前offset和length
-     */
-    private boolean _lazy  = false;
     
     /**
      *  
@@ -145,7 +117,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     /**
      *  
      * xml name: offset
-     * 在行内的偏移量。从该位置处开始解析
+     * 相对于上一个字段的偏移量。如果大于0，解析的时候会跳过指定个数的字符或者字节。从新的位置处开始解析
      */
     private int _offset  = 0;
     
@@ -216,16 +188,23 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     /**
      *  
      * xml name: tillEnd
-     * 
+     * 读取所有剩余部分
      */
     private boolean _tillEnd  = false;
     
     /**
      *  
-     * xml name: transformInExpr
+     * xml name: transformIn
      * 解析时对已经解析到的value进行转换
      */
-    private io.nop.core.lang.eval.IEvalFunction _transformInExpr ;
+    private io.nop.core.lang.eval.IEvalFunction _transformIn ;
+    
+    /**
+     *  
+     * xml name: transformOut
+     * 输出时不从实体上获取，根据表达式计算得到输出值
+     */
+    private io.nop.core.lang.eval.IEvalFunction _transformOut ;
     
     /**
      *  
@@ -237,7 +216,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     /**
      *  
      * xml name: type
-     * 引用已有的字段定义
+     * 字段解析得到的java类型
      */
     private io.nop.core.type.IGenericType _type ;
     
@@ -261,25 +240,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
      * 当表达式返回false时，此字段将被跳过，不会被处理
      */
     private io.nop.core.lang.eval.IEvalFunction _writeWhen ;
-    
-    /**
-     * 
-     * xml name: absoluteOffset
-     *  是否绝对偏移。如果是，则offset是相对于父字段的起始位置来定位，否则是相对于前一个字段来定位
-     */
-    
-    public boolean isAbsoluteOffset(){
-      return _absoluteOffset;
-    }
-
-    
-    public void setAbsoluteOffset(boolean value){
-        checkAllowChange();
-        
-        this._absoluteOffset = value;
-           
-    }
-
     
     /**
      * 
@@ -341,7 +301,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     /**
      * 
      * xml name: displayName
-     *  
+     *  字段的显示名称。抛出用户可读的异常消息时可能会用到
      */
     
     public java.lang.String getDisplayName(){
@@ -397,46 +357,8 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      * 
-     * xml name: enum
-     *  
-     */
-    
-    public java.lang.String getEnum(){
-      return _enum;
-    }
-
-    
-    public void setEnum(java.lang.String value){
-        checkAllowChange();
-        
-        this._enum = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: eosError
-     *  
-     */
-    
-    public boolean isEosError(){
-      return _eosError;
-    }
-
-    
-    public void setEosError(boolean value){
-        checkAllowChange();
-        
-        this._eosError = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: exportExpr
-     *  输出时不从实体上获取，根据表达式计算得到输出值
+     *  导出时通过此表达式获取值，而不是通过prop获取值
      */
     
     public io.nop.core.lang.eval.IEvalFunction getExportExpr(){
@@ -486,25 +408,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._includeTerminator = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: lazy
-     *  是否延迟解析。如果延迟解析，则只是记录当前offset和length
-     */
-    
-    public boolean isLazy(){
-      return _lazy;
-    }
-
-    
-    public void setLazy(boolean value){
-        checkAllowChange();
-        
-        this._lazy = value;
            
     }
 
@@ -607,7 +510,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     /**
      * 
      * xml name: offset
-     *  在行内的偏移量。从该位置处开始解析
+     *  相对于上一个字段的偏移量。如果大于0，解析的时候会跳过指定个数的字符或者字节。从新的位置处开始解析
      */
     
     public int getOffset(){
@@ -798,7 +701,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     /**
      * 
      * xml name: tillEnd
-     *  
+     *  读取所有剩余部分
      */
     
     public boolean isTillEnd(){
@@ -816,19 +719,38 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      * 
-     * xml name: transformInExpr
+     * xml name: transformIn
      *  解析时对已经解析到的value进行转换
      */
     
-    public io.nop.core.lang.eval.IEvalFunction getTransformInExpr(){
-      return _transformInExpr;
+    public io.nop.core.lang.eval.IEvalFunction getTransformIn(){
+      return _transformIn;
     }
 
     
-    public void setTransformInExpr(io.nop.core.lang.eval.IEvalFunction value){
+    public void setTransformIn(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
-        this._transformInExpr = value;
+        this._transformIn = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: transformOut
+     *  输出时不从实体上获取，根据表达式计算得到输出值
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getTransformOut(){
+      return _transformOut;
+    }
+
+    
+    public void setTransformOut(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._transformOut = value;
            
     }
 
@@ -855,7 +777,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     /**
      * 
      * xml name: type
-     *  引用已有的字段定义
+     *  字段解析得到的java类型
      */
     
     public io.nop.core.type.IGenericType getType(){
@@ -945,19 +867,15 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("absoluteOffset",this.isAbsoluteOffset());
         out.putNotNull("charset",this.getCharset());
         out.putNotNull("codec",this.getCodec());
         out.putNotNull("content",this.getContent());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("doc",this.getDoc());
         out.putNotNull("endian",this.getEndian());
-        out.putNotNull("enum",this.getEnum());
-        out.putNotNull("eosError",this.isEosError());
         out.putNotNull("exportExpr",this.getExportExpr());
         out.putNotNull("format",this.getFormat());
         out.putNotNull("includeTerminator",this.isIncludeTerminator());
-        out.putNotNull("lazy",this.isLazy());
         out.putNotNull("leftPad",this.isLeftPad());
         out.putNotNull("length",this.getLength());
         out.putNotNull("lengthExpr",this.getLengthExpr());
@@ -974,7 +892,8 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         out.putNotNull("skipWriteWhenEmpty",this.isSkipWriteWhenEmpty());
         out.putNotNull("terminator",this.getTerminator());
         out.putNotNull("tillEnd",this.isTillEnd());
-        out.putNotNull("transformInExpr",this.getTransformInExpr());
+        out.putNotNull("transformIn",this.getTransformIn());
+        out.putNotNull("transformOut",this.getTransformOut());
         out.putNotNull("trim",this.isTrim());
         out.putNotNull("type",this.getType());
         out.putNotNull("value",this.getValue());
@@ -991,19 +910,15 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     protected void copyTo(RecordSimpleFieldMeta instance){
         super.copyTo(instance);
         
-        instance.setAbsoluteOffset(this.isAbsoluteOffset());
         instance.setCharset(this.getCharset());
         instance.setCodec(this.getCodec());
         instance.setContent(this.getContent());
         instance.setDisplayName(this.getDisplayName());
         instance.setDoc(this.getDoc());
         instance.setEndian(this.getEndian());
-        instance.setEnum(this.getEnum());
-        instance.setEosError(this.isEosError());
         instance.setExportExpr(this.getExportExpr());
         instance.setFormat(this.getFormat());
         instance.setIncludeTerminator(this.isIncludeTerminator());
-        instance.setLazy(this.isLazy());
         instance.setLeftPad(this.isLeftPad());
         instance.setLength(this.getLength());
         instance.setLengthExpr(this.getLengthExpr());
@@ -1020,7 +935,8 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         instance.setSkipWriteWhenEmpty(this.isSkipWriteWhenEmpty());
         instance.setTerminator(this.getTerminator());
         instance.setTillEnd(this.isTillEnd());
-        instance.setTransformInExpr(this.getTransformInExpr());
+        instance.setTransformIn(this.getTransformIn());
+        instance.setTransformOut(this.getTransformOut());
         instance.setTrim(this.isTrim());
         instance.setType(this.getType());
         instance.setValue(this.getValue());

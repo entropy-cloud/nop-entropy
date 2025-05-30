@@ -28,17 +28,21 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
     }
 
     @Override
-    protected IBitSet readTags(ITextDataReader in, RecordFieldMeta field, RecordObjectMeta typeMeta, IFieldCodecContext context) throws IOException {
-        IFieldTagTextCodec codec = field == null ? null : resolveTagTextCodec(field, registry);
+    protected IBitSet readTags(ITextDataReader in, RecordObjectMeta typeMeta, IFieldCodecContext context) throws IOException {
+        IFieldTagTextCodec codec = resolveTagTextCodec(typeMeta, registry);
         if (codec == null)
             return null;
-        return codec.decodeTags(in, field, context);
+        return codec.decodeTags(in, typeMeta, context);
     }
 
     @Override
     protected void readObjectWithCodec(ITextDataReader in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        IFieldTextCodec encoder = resolveTextCodec(field, registry);
-        encoder.decode(in, record, field.getLength(), context);
+        IFieldTextCodec decoder = resolveTextCodec(field, registry);
+        decoder.decode(in, record, field.getLength(), context,
+                (input, value, length, ctx) -> {
+                    readSwitch(input, field, value, ctx);
+                    return null;
+                });
     }
 
     @Override
@@ -57,16 +61,11 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
 
     @Override
     protected void readField0(ITextDataReader in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        IFieldTextCodec encoder = resolveTextCodec(field, registry);
-        if (encoder != null) {
-            context.enterField(field.getName());
-            try {
-                Object value = encoder.decode(in, record, field.getLength(), context);
-                if (!field.isVirtual())
-                    setPropByName(record, field.getPropOrFieldName(), value);
-            } finally {
-                context.leaveField(field.getName());
-            }
+        IFieldTextCodec decoder = resolveTextCodec(field, registry);
+        if (decoder != null) {
+            Object value = decoder.decode(in, record, field.getLength(), context);
+            if (!field.isVirtual())
+                setPropByName(record, field.getPropOrFieldName(), value);
         } else {
             String str = in.read(field.getLength());
             if (field.getPadding() != null) {

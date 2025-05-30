@@ -24,22 +24,52 @@ import static io.nop.record.RecordErrors.ARG_TYPE_NAME;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_MATCH_FOR_CASE_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_SWITCH_ON_FIELD;
 import static io.nop.record.RecordErrors.ERR_RECORD_TYPE_NO_FIELDS;
+import static io.nop.record.RecordErrors.ERR_RECORD_UNKNOWN_OBJ_TYPE;
 
 public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataReaderBase>
         implements IModelBasedRecordDeserializer<Input> {
 
     @Override
-    public boolean readObject(Input in, RecordObjectMeta recordMeta, String name, Object record, IFieldCodecContext context) throws IOException {
+    public boolean readObject(Input in, RecordObjectMeta recordMeta, Object record, IFieldCodecContext context) throws IOException {
         long pos = in.pos();
         if (recordMeta.getBeforeRead() != null)
             recordMeta.getBeforeRead().call3(null, in, record, context, context.getEvalScope());
 
-        IBitSet tags = readTags(in, null, recordMeta, context);
+        IBitSet tags = readTags(in, recordMeta, context);
         readTemplateOrFields(in, tags, recordMeta, null, record, context);
 
         if (recordMeta.getAfterRead() != null)
             recordMeta.getAfterRead().call3(null, in, record, context, context.getEvalScope());
         return pos != in.pos();
+    }
+
+
+    protected void readTemplateOrFields(Input in, IBitSet tags,
+                                        IRecordFieldsMeta fields, Charset charset, Object record,
+                                        IFieldCodecContext context) throws IOException {
+        SimpleTextTemplate template = fields.getNormalizedTemplate();
+        if (template != null) {
+            for (Object part : template.getParts()) {
+                if (part instanceof Symbol) {
+                    String name = ((Symbol) part).getText();
+                    RecordFieldMeta field = fields.requireField(name);
+                    if (!field.isMatchTag(tags))
+                        continue;
+
+                    readField(in, field, record, context);
+                } else {
+                    readString(in, part.toString(), charset, context);
+                }
+            }
+        } else if (!fields.getFields().isEmpty()) {
+            for (RecordFieldMeta field : fields.getFields()) {
+                if (!field.isMatchTag(tags))
+                    continue;
+                readField(in, field, record, context);
+            }
+        } else {
+            throw new NopException(ERR_RECORD_TYPE_NO_FIELDS).source(fields).param(ARG_TYPE_NAME, fields.getName());
+        }
     }
 
     @Override
@@ -73,9 +103,26 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     }
 
     protected void readSwitch(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
+        RecordTypeMeta typeMeta = determineObjectType(field, record, context);
+        if (typeMeta != null) {
+            Object obj = makeObject(field, typeMeta, record, context);
+            readObject(in, typeMeta, obj, context);
+        }
+
+        IBitSet tags = readTags(in, null, context);
+        readVirtualField(in, tags, field, record, context);
+    }
+
+    protected Object makeObject(RecordFieldMeta field, RecordTypeMeta typeMeta, Object record, IFieldCodecContext context) {
+        if (field.isVirtual())
+            return record;
+
+        return typeMeta.newRecordObject();
+    }
+
+    protected RecordTypeMeta determineObjectType(RecordFieldMeta field, Object record, IFieldCodecContext context) {
         if (field.getSwitchOnField() != null) {
             String onValue = ConvertHelper.toString(getPropByName(record, field.getSwitchOnField()));
-
             if (onValue == null)
                 throw new NopException(ERR_RECORD_NO_SWITCH_ON_FIELD)
                         .source(field)
@@ -96,56 +143,36 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
                         .param(ARG_CASE_VALUE, onValue)
                         .param(ARG_TYPE_NAME, caseType);
 
-            Object value = makeObjectProp(in, field, record, context);
-            readObject(in, typeMeta, field.getName(), value, context);
-            return;
+            return typeMeta;
         }
 
-        IBitSet tags = readTags(in, field, null, context);
-        readDivField(in, tags, field, record, context);
+        if (field.getTypeRef() != null) {
+            RecordTypeMeta typeMeta = context.getType(field.getTypeRef());
+            if (typeMeta == null)
+                throw new NopException(ERR_RECORD_UNKNOWN_OBJ_TYPE)
+                        .source(field)
+                        .param(ARG_FIELD_NAME, field.getName())
+                        .param(ARG_TYPE_NAME, field.getTypeRef());
+
+            return typeMeta;
+        }
+
+        return null;
     }
 
-    protected void readDivField(Input in, IBitSet tags, RecordFieldMeta field,
-                                Object record, IFieldCodecContext context) throws IOException {
-        if (field.isDiv()) {
-            if (field.hasFields()) {
-                for (RecordFieldMeta subField : field.getFields()) {
-                    readField(in, subField, record, context);
-                }
-            }
-        } else if (field.hasFields()) {
-            Object value = makeObjectProp(in, field, record, context);
-            readTemplateOrFields(in, tags, field, field.getCharsetObj(), value, context);
+    protected void readVirtualField(Input in, IBitSet tags, RecordFieldMeta field,
+                                    Object record, IFieldCodecContext context) throws IOException {
+        if (field.isVirtual()) {
+//            if (field.hasFields()) {
+//                for (RecordFieldMeta subField : field.getFields()) {
+//                    readField(in, subField, record, context);
+//                }
+//            }
+//        } else if (field.hasFields()) {
+//            Object value = makeObjectProp(in, field, record, context);
+//            readTemplateOrFields(in, tags, field, field.getCharsetObj(), value, context);
         } else {
             readField0(in, field, record, context);
-        }
-    }
-
-    protected void readTemplateOrFields(Input in, IBitSet tags,
-                                        IRecordFieldsMeta fields, Charset charset, Object record,
-                                        IFieldCodecContext context) throws IOException {
-        SimpleTextTemplate template = fields.getNormalizedTemplate();
-        if (template != null) {
-            for (Object part : template.getParts()) {
-                if (part instanceof Symbol) {
-                    String name = ((Symbol) part).getText();
-                    RecordFieldMeta field = fields.requireField(name);
-                    if (!field.isMatchTag(tags))
-                        continue;
-
-                    readField(in, field, record, context);
-                } else {
-                    readString(in, part.toString(), charset, context);
-                }
-            }
-        } else if (!fields.getFields().isEmpty()) {
-            for (RecordFieldMeta field : fields.getFields()) {
-                if (!field.isMatchTag(tags))
-                    continue;
-                readField(in, field, record, context);
-            }
-        } else {
-            throw new NopException(ERR_RECORD_TYPE_NO_FIELDS).source(fields).param(ARG_TYPE_NAME, fields.getName());
         }
     }
 
@@ -153,7 +180,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
         if (field.getParseExpr() != null)
             return field.getParseExpr().call2(null, in, record, context.getEvalScope());
 
-        if (field.isDiv())
+        if (field.isVirtual())
             return record;
 
         String propName = field.getPropOrFieldName();
@@ -172,10 +199,10 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     }
 
     protected boolean isUseBodyEncoder(RecordFieldMeta field) {
-        return field.getSwitchOnField() != null || field.hasFields();
+        return field.getSwitchOnField() != null || field.getTypeRef() != null;
     }
 
-    abstract protected IBitSet readTags(Input input, RecordFieldMeta field, RecordObjectMeta typeMeta, IFieldCodecContext context) throws IOException;
+    abstract protected IBitSet readTags(Input input, RecordObjectMeta typeMeta, IFieldCodecContext context) throws IOException;
 
     abstract protected void readObjectWithCodec(Input in, RecordFieldMeta field, Object record,
                                                 IFieldCodecContext context) throws IOException;
