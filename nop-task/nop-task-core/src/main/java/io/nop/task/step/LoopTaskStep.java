@@ -27,8 +27,26 @@ public class LoopTaskStep extends AbstractTaskStep {
     private String indexName;
 
     private IEvalAction itemsExpr;
+    private int maxCount;
     private ITaskStep body;
     private IEvalPredicate untilExpr;
+    private IEvalPredicate whileExpr;
+
+    public int getMaxCount() {
+        return maxCount;
+    }
+
+    public void setMaxCount(int maxCount) {
+        this.maxCount = maxCount;
+    }
+
+    public IEvalPredicate getWhileExpr() {
+        return whileExpr;
+    }
+
+    public void setWhileExpr(IEvalPredicate whileExpr) {
+        this.whileExpr = whileExpr;
+    }
 
     public IEvalPredicate getUntilExpr() {
         return untilExpr;
@@ -111,6 +129,11 @@ public class LoopTaskStep extends AbstractTaskStep {
         if (CollectionHelper.isEmpty(stateBean.getItems()))
             return RETURN_RESULT_END(stepRt.getResult());
 
+        if (whileExpr != null) {
+            if (!whileExpr.passConditions(stepRt))
+                return RETURN_RESULT_END(stepRt.getResult());
+        }
+
         do {
             if (varName != null) {
                 int index = stateBean.getIndex();
@@ -167,12 +190,18 @@ public class LoopTaskStep extends AbstractTaskStep {
 
     boolean shouldContinue(LoopStateBean state, ITaskStepRuntime stepRt) {
         if (state.getItems() != null) {
+            if (maxCount > 0 && state.getIndex() >= maxCount)
+                return false;
+
             if (state.getIndex() >= state.getItems().size())
                 return false;
         }
 
-        if (untilExpr != null) {
-            return !untilExpr.passConditions(stepRt);
+        if (whileExpr != null && !whileExpr.passConditions(stepRt))
+            return false;
+
+        if (untilExpr != null && untilExpr.passConditions(stepRt)) {
+            return false;
         }
 
         return true;

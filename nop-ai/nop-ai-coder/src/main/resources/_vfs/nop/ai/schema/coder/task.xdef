@@ -60,11 +60,13 @@
         <loop name="!var-name" xdef:ref="TaskStepModel" xdef:name="LoopTaskStepModel" next="step-name"
               nextOnError="step-name"
               indexName="var-name" varName="var-name" itemsExpr="!expr" maxCount="!int=0" varType="generic-type">
-            <!-- 不满足条件的时候会跳过本步骤，不会进入循环 -->
-            <when xdef:value="xpl-predicate"/>
+
+            <while xdef:value="xpl-predicate"/>
+
+            <steps xdef:ref="TaskStepsModel"/>
+
             <!-- 循环执行直到until条件为真才退出循环。第一次执行时不检查until条件 -->
             <until xdef:value="xpl-predicate"/>
-            <steps xdef:ref="TaskStepsModel"/>
         </loop>
 
         <!--

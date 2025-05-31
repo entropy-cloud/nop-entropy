@@ -244,6 +244,7 @@
             -->
             <loop name="!var-name" xdef:ref="TaskStepsModel" xdef:name="LoopTaskStepModel"
                   indexName="var-name" varName="var-name" itemsExpr="!expr" maxCount="!int=0" varType="generic-type">
+                <while xdef:value="xpl-predicate" />
                 <until xdef:value="xpl-predicate"/>
             </loop>
 

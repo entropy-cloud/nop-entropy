@@ -312,6 +312,8 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         ret.setItemsExpr(stepModel.getItemsExpr());
         ret.setUntilExpr(stepModel.getUntil());
         ret.setBody(buildSequentialBody(stepModel));
+        ret.setMaxCount(stepModel.getMaxCount());
+        ret.setWhileExpr(stepModel.getWhile());
         return ret;
     }
 

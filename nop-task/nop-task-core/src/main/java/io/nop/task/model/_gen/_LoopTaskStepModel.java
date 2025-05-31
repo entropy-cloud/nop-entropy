@@ -66,6 +66,13 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     private io.nop.core.type.IGenericType _varType ;
     
     /**
+     *  
+     * xml name: while
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalPredicate _while ;
+    
+    /**
      * 
      * xml name: indexName
      *  
@@ -198,6 +205,25 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
     }
 
     
+    /**
+     * 
+     * xml name: while
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalPredicate getWhile(){
+      return _while;
+    }
+
+    
+    public void setWhile(io.nop.core.lang.eval.IEvalPredicate value){
+        checkAllowChange();
+        
+        this._while = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -220,6 +246,7 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
         out.putNotNull("until",this.getUntil());
         out.putNotNull("varName",this.getVarName());
         out.putNotNull("varType",this.getVarType());
+        out.putNotNull("while",this.getWhile());
     }
 
     public LoopTaskStepModel cloneInstance(){
@@ -238,6 +265,7 @@ public abstract class _LoopTaskStepModel extends io.nop.task.model.TaskStepsMode
         instance.setUntil(this.getUntil());
         instance.setVarName(this.getVarName());
         instance.setVarType(this.getVarType());
+        instance.setWhile(this.getWhile());
     }
 
     protected LoopTaskStepModel newInstance(){
