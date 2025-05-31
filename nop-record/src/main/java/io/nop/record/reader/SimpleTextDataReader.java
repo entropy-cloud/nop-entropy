@@ -46,14 +46,16 @@ public class SimpleTextDataReader implements ITextDataReader {
 
     @Override
     public String read(int len) {
-        return text.subSequence(offset, offset + len).toString();
+        String ret = text.subSequence(offset, offset + len).toString();
+        offset += len;
+        return ret;
     }
 
     @Override
     public int readChar() {
         if (offset >= text.length())
             return -1;
-        return text.charAt(offset);
+        return text.charAt(offset++);
     }
 
     @Override
@@ -68,19 +70,21 @@ public class SimpleTextDataReader implements ITextDataReader {
             if (c == '\r') {
                 int end = offset + i;
                 String str = text.subSequence(offset, end).toString();
-                offset = i + 1;
+                offset += i + 1;
                 if (end < text.length() - 1 && text.charAt(end + 1) == '\n') {
                     offset++;
                 }
                 return str;
             } else if (c == '\n') {
                 String str = text.subSequence(offset, offset + i).toString();
-                offset = i + 1;
+                offset += i + 1;
                 return str;
             }
         }
 
-        return text.subSequence(offset, offset + n).toString();
+        String str = text.subSequence(offset, offset + n).toString();
+        offset += n;
+        return str;
     }
 
     @Override
