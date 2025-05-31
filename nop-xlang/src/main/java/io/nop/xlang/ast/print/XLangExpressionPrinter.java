@@ -80,6 +80,7 @@ import io.nop.xlang.ast.OutputXmlAttrExpression;
 import io.nop.xlang.ast.OutputXmlExtAttrsExpression;
 import io.nop.xlang.ast.ParameterDeclaration;
 import io.nop.xlang.ast.ParameterizedTypeNode;
+import io.nop.xlang.ast.Program;
 import io.nop.xlang.ast.PropertyAssignment;
 import io.nop.xlang.ast.PropertyBinding;
 import io.nop.xlang.ast.PropertyTypeDef;
@@ -414,6 +415,31 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
     }
 
     @Override
+    public void visitAssignmentExpression(AssignmentExpression node) {
+
+        this.visitChild(node.getLeft());
+        print(node.getOperator());
+        this.visitChild(node.getRight());
+    }
+
+    @Override
+    public void visitUpdateExpression(UpdateExpression node) {
+
+        if (node.getPrefix())
+            print(node.getOperator());
+        this.visitChild(node.getArgument());
+
+        if (!node.getPrefix())
+            print(node.getOperator());
+    }
+
+    @Override
+    public void visitUnaryExpression(UnaryExpression node) {
+        print(node.getOperator());
+        visit(node.getArgument());
+    }
+
+    @Override
     public void visitParameterDeclaration(ParameterDeclaration node) {
         super.visitParameterDeclaration(node);
     }
@@ -426,16 +452,6 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
     @Override
     public void visitArrowFunctionExpression(ArrowFunctionExpression node) {
         super.visitArrowFunctionExpression(node);
-    }
-
-    @Override
-    public void visitUnaryExpression(UnaryExpression node) {
-        super.visitUnaryExpression(node);
-    }
-
-    @Override
-    public void visitUpdateExpression(UpdateExpression node) {
-        super.visitUpdateExpression(node);
     }
 
     @Override
@@ -477,11 +493,6 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
     @Override
     public void visitExpressionStatement(ExpressionStatement node) {
         super.visitExpressionStatement(node);
-    }
-
-    @Override
-    public void visitAssignmentExpression(AssignmentExpression node) {
-        super.visitAssignmentExpression(node);
     }
 
     @Override
@@ -830,5 +841,15 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
     @Override
     public void visitCustomExpression(CustomExpression node) {
         print(node.getSource());
+    }
+
+    @Override
+    public void visitProgram(Program node) {
+        if (node.getBody() != null) {
+            for (XLangASTNode n : node.getBody()) {
+                visit(n);
+                print(";\n");
+            }
+        }
     }
 }

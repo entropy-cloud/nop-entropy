@@ -14,7 +14,7 @@ import io.nop.xlang.ast.XLangClassKind;
 
 public class XLangSourcePrinter extends XLangExpressionPrinter {
 
-    public XLangSourcePrinter(){
+    public XLangSourcePrinter() {
         setPretty(true);
     }
 
@@ -32,7 +32,7 @@ public class XLangSourcePrinter extends XLangExpressionPrinter {
     @Override
     public void visitImportAsDeclaration(ImportAsDeclaration node) {
         print("import ");
-        if(node.getStaticImport()){
+        if (node.getStaticImport()) {
             print(" static ");
         }
         if (node.getSource() != null)
@@ -107,6 +107,8 @@ public class XLangSourcePrinter extends XLangExpressionPrinter {
             visit(node.getType());
         }
     }
+
+
 
     @Override
     public void visitFieldDeclaration(FieldDeclaration node) {

@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.core.type.IGenericType;
 import io.nop.xlang.ast._gen._Expression;
 import io.nop.xlang.ast.print.XLangExpressionPrinter;
+import io.nop.xlang.ast.print.XLangSourcePrinter;
 import io.nop.xlang.ast.trans.XLangASTTransformer;
 
 import java.util.Objects;
@@ -36,7 +37,7 @@ public abstract class Expression extends _Expression {
     }
 
     public String toExprString() {
-        XLangExpressionPrinter out = new XLangExpressionPrinter();
+        XLangSourcePrinter out = new XLangSourcePrinter();
         out.visit(this);
         return out.getResult();
     }

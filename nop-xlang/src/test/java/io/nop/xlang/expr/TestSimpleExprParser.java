@@ -21,6 +21,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.ast.BinaryExpression;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.MemberExpression;
@@ -141,6 +142,16 @@ public class TestSimpleExprParser {
         String expr = "test(3)";
         IEvalAction action = XLang.newCompileTool().allowUnregisteredScopeVar(true).compileSimpleExpr(null, expr);
         assertEquals("4", action.invoke(scope));
+    }
+
+    @Test
+    public void testSource() {
+        String source = "x ++; y=2; x = !x";
+        XLangCompileTool cp = XLang.newCompileTool();
+        Expression expr = cp.getCompiler().parseFullExpr(null, source, cp.getScope());
+        assertEquals("x++;\n" +
+                "y=2;\n" +
+                "x=!x;\n", expr.toExprString());
     }
 
     @Test
