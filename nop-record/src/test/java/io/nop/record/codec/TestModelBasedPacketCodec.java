@@ -8,7 +8,6 @@ import io.nop.record.codec.impl.ModelBasedPacketCodec;
 import io.nop.record.model.PacketCodecModel;
 import io.nop.record.netty.ByteBufBinaryDataReader;
 import io.nop.record.netty.ByteBufBinaryDataWriter;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -17,7 +16,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@Disabled
 public class TestModelBasedPacketCodec extends JunitBaseTestCase {
     @Test
     public void testByteBuf() {

@@ -7,8 +7,8 @@ import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.IFieldTagBinaryCodec;
-import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
+import io.nop.record.model.RecordSimpleFieldMeta;
 import io.nop.record.reader.IBinaryDataReader;
 
 import java.io.IOException;
@@ -38,11 +38,6 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
         return codec.decodeTags(in, typeMeta, context);
     }
 
-    @Override
-    protected void readObjectWithCodec(IBinaryDataReader in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        IFieldBinaryCodec encoder = resolveBinaryCodec(field, registry);
-        encoder.decode(in, record, field.getLength(), context);
-    }
 
     @Override
     protected void readOffset(IBinaryDataReader in, int offset, IFieldCodecContext context) throws IOException {
@@ -60,20 +55,18 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
     }
 
     @Override
-    protected void readField0(IBinaryDataReader in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
+    protected Object readField0(IBinaryDataReader in, RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
         IFieldBinaryCodec codec = resolveBinaryCodec(field, registry);
         if (codec != null) {
             Object value = codec.decode(in, record, field.getLength(), context);
-            if (!field.isVirtual())
-                setPropByName(record, field.getPropOrFieldName(), value);
+            return value;
         } else {
             String str = decodeString(in, field.getCharsetObj(), field.getLength());
             if (field.getPadding() != null) {
                 char c = (char) field.getPadding().at(0);
                 str = StringHelper.trimRight(str, c);
             }
-            if (!field.isVirtual())
-                setPropByName(record, field.getPropOrFieldName(), str);
+            return str;
         }
     }
 

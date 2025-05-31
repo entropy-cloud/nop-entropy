@@ -6,7 +6,6 @@ import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.IFieldTagBinaryCodec;
-import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordSimpleFieldMeta;
 import io.nop.record.writer.IBinaryDataWriter;
@@ -27,26 +26,18 @@ public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSe
     }
 
     @Override
-    protected void writeField0(IBinaryDataWriter out, RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
+    protected void writeField0(IBinaryDataWriter out, RecordSimpleFieldMeta field, Object record,
+                               Object value, IFieldCodecContext context) throws IOException {
         IFieldBinaryCodec encoder = resolveBinaryCodec(field, registry);
         if (encoder != null) {
-            Object value = getFieldValue(field, record, context);
             encoder.encode(out, value, field.getLength(), context, null);
         } else {
             if (field.getContent() != null) {
                 out.writeByteString(padBinary(field.getContent(), field));
             } else {
-                Object value = getProp(field, record, context);
                 out.writeByteString(padBinary(toBytes(value, field.getCharsetObj()), field));
             }
         }
-    }
-
-    Object getFieldValue(RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) {
-        if (field.getContent() != null) {
-            return field.getStdDataType().convert(field.getContent().toString(field.getCharset()));
-        }
-        return getProp(field, record, context);
     }
 
     @Override
@@ -55,15 +46,6 @@ public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSe
         if (codec == null)
             return null;
         return codec.encodeTags(out, value, typeMeta, context);
-    }
-
-    @Override
-    protected void writeObjectWithCodec(IBinaryDataWriter out, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        IFieldBinaryCodec encoder = resolveBinaryCodec(field, registry);
-        encoder.encode(out, record, field.getLength(), context,
-                (output, value, length, ctx, bodyEncoder) -> {
-                    writeSwitch(output, field, value, context);
-                });
     }
 
     @Override

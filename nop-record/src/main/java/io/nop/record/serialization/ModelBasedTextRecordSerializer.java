@@ -27,11 +27,11 @@ public class ModelBasedTextRecordSerializer extends AbstractModelBasedRecordSeri
     }
 
     @Override
-    protected void writeField0(ITextDataWriter out, RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
+    protected void writeField0(ITextDataWriter out, RecordSimpleFieldMeta field, Object record,
+                               Object value, IFieldCodecContext context) throws IOException {
 
         IFieldTextCodec encoder = resolveTextCodec(field, registry);
         if (encoder != null) {
-            Object value = getFieldValue(field, record, context);
             encoder.encode(out, value, field.getLength(), context, null);
         } else {
             ByteString content = field.getContent();
@@ -39,19 +39,11 @@ public class ModelBasedTextRecordSerializer extends AbstractModelBasedRecordSeri
                 String str = content.toString(field.getCharset());
                 out.append(RecordMetaHelper.padText(str, field));
             } else {
-                Object value = getProp(field, record, context);
                 String str = StringHelper.toString(value, "");
                 str = RecordMetaHelper.padText(str, field);
                 out.append(str);
             }
         }
-    }
-
-    Object getFieldValue(RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) {
-        if (field.getContent() != null) {
-            return field.getStdDataType().convert(field.getContent().toString(field.getCharset()));
-        }
-        return getProp(field, record, context);
     }
 
     @Override
@@ -61,15 +53,6 @@ public class ModelBasedTextRecordSerializer extends AbstractModelBasedRecordSeri
         if (codec == null)
             return null;
         return codec.encodeTags(out, value, typeMeta, context);
-    }
-
-    @Override
-    protected void writeObjectWithCodec(ITextDataWriter out, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        IFieldTextCodec encoder = resolveTextCodec(field, registry);
-        encoder.encode(out, record, field.getLength(), context,
-                (output, value, length, ctx, bodyEncoder) -> {
-                    writeSwitch(output, field, value, context);
-                });
     }
 
     @Override

@@ -7,8 +7,8 @@ import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.IFieldTagTextCodec;
 import io.nop.record.codec.IFieldTextCodec;
-import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
+import io.nop.record.model.RecordSimpleFieldMeta;
 import io.nop.record.reader.ITextDataReader;
 
 import java.io.IOException;
@@ -36,16 +36,6 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
     }
 
     @Override
-    protected void readObjectWithCodec(ITextDataReader in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        IFieldTextCodec decoder = resolveTextCodec(field, registry);
-        decoder.decode(in, record, field.getLength(), context,
-                (input, value, length, ctx) -> {
-                    readSwitch(input, field, value, ctx);
-                    return null;
-                });
-    }
-
-    @Override
     protected void readOffset(ITextDataReader in, int offset, IFieldCodecContext context) throws IOException {
         in.skip(offset);
     }
@@ -60,20 +50,19 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
     }
 
     @Override
-    protected void readField0(ITextDataReader in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
+    protected Object readField0(ITextDataReader in, RecordSimpleFieldMeta field,
+                                Object record, IFieldCodecContext context) throws IOException {
         IFieldTextCodec decoder = resolveTextCodec(field, registry);
         if (decoder != null) {
             Object value = decoder.decode(in, record, field.getLength(), context);
-            if (!field.isVirtual())
-                setPropByName(record, field.getPropOrFieldName(), value);
+            return value;
         } else {
             String str = in.read(field.getLength());
             if (field.getPadding() != null) {
                 char c = (char) field.getPadding().at(0);
                 str = StringHelper.trimRight(str, c);
             }
-            if (!field.isVirtual())
-                setPropByName(record, field.getPropOrFieldName(), str);
+            return str;
         }
     }
 }

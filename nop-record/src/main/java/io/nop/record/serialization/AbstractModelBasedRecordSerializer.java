@@ -40,11 +40,18 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
     @Override
     public boolean writeObject(Output out, RecordObjectMeta recordMeta, Object record,
                                IFieldCodecContext context) throws IOException {
-        if (!runIfExpr(recordMeta.getWriteWhen(), record, recordMeta.getName(), context))
+        if (!runIfExpr(recordMeta.getWriteWhen(), record, recordMeta.getName(), context)) {
+            LOG.debug("nop.record.write-ignore-object:name={},fieldPath={},record={}",
+                    recordMeta.getName(), context.getFieldPath(), record);
             return false;
+        }
 
         if (recordMeta.getBeforeWrite() != null)
             recordMeta.getBeforeWrite().call3(null, out, record, context, context.getEvalScope());
+
+        if(recordMeta.getResolvedBaseType() != null){
+            writeObject(out, recordMeta.getResolvedBaseType(), record, context);
+        }
 
         IBitSet tags = writeTags(out, recordMeta, record, context);
         writeTemplateOrFields(out, tags, recordMeta, recordMeta.getCharsetObj(), record, context);
@@ -84,14 +91,11 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
 
     @Override
     public boolean writeField(Output out, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        if (field.isSkipWhenWrite())
+        if (shouldIgnoreWrite(field, record, context)) {
+            LOG.debug("nop.record.write-ignore-field:name={},fieldPath={},record={}",
+                    field.getName(), context.getFieldPath(), record);
             return false;
-
-        if (StringHelper.isEmptyObject(record) && field.isSkipWriteWhenEmpty())
-            return false;
-
-        if (!runIfExpr(field.getWriteWhen(), record, field.getName(), context))
-            return false;
+        }
 
         if (field.getOffset() > 0) {
             writeOffset(out, field.getOffset(), context);
@@ -103,15 +107,12 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
             if (field.getBeforeWrite() != null)
                 field.getBeforeWrite().call3(null, out, record, context, context.getEvalScope());
 
-            if (field.getCodec() != null && isUseBodyEncoder(field)) {
-                writeObjectWithCodec(out, field, record, context);
+            if (field.getRepeatKind() != null) {
+                Collection<?> c = (Collection<?>) record;
+                writeCollection(out, field, c, context);
             } else {
-                if (record instanceof Collection) {
-                    Collection<?> c = (Collection<?>) record;
-                    writeCollection(out, field, c, context);
-                } else {
-                    writeSwitch(out, field, record, context);
-                }
+                Object value = getProp(field, record, context);
+                writeSwitch(out, field, record, value, context);
             }
 
             if (field.getAfterWrite() != null)
@@ -123,28 +124,36 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
         return true;
     }
 
+    protected boolean shouldIgnoreWrite(RecordFieldMeta field, Object record, IFieldCodecContext context) {
+        if (field.isSkipWhenWrite())
+            return true;
+
+        if (StringHelper.isEmptyObject(record) && field.isSkipWriteWhenEmpty())
+            return true;
+
+        if (!runIfExpr(field.getWriteWhen(), record, field.getName(), context))
+            return true;
+
+        return false;
+    }
+
     protected void writeCollection(Output out, RecordFieldMeta field, Collection<?> coll, IFieldCodecContext context) throws IOException {
         RecordSimpleFieldMeta repeatCountField = field.getRepeatCountField();
         if (repeatCountField != null) {
-            writeField0(out, repeatCountField, coll.size(), context);
+            writeField0(out, repeatCountField, coll, coll.size(), context);
         }
 
         for (Object o : coll) {
-            writeSwitch(out, field, o, context);
+            writeSwitch(out, field, coll, o, context);
         }
     }
 
-    protected boolean isUseBodyEncoder(RecordFieldMeta field) {
-        return field.getSwitchOnField() != null || field.getTypeRef() != null;
-    }
-
-    protected void writeSwitch(Output out, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
+    protected void writeSwitch(Output out, RecordFieldMeta field, Object record, Object value, IFieldCodecContext context) throws IOException {
         RecordTypeMeta typeMeta = determineObjectType(field, record, context);
         if (typeMeta != null) {
-            Object value = getProp(field, record, context);
             writeObject(out, typeMeta, value, context);
         } else {
-            writeField0(out, field, record, context);
+            writeField0(out, field, record, value, context);
         }
     }
 
@@ -191,23 +200,23 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
     abstract protected IBitSet writeTags(Output out, RecordObjectMeta typeMeta,
                                          Object value, IFieldCodecContext context) throws IOException;
 
-    abstract protected void writeObjectWithCodec(Output out, RecordFieldMeta field, Object record,
-                                                 IFieldCodecContext context) throws IOException;
-
     abstract protected void writeOffset(Output out, int offset, IFieldCodecContext context) throws IOException;
 
     abstract protected void writeString(Output out, String str, Charset charset, IFieldCodecContext context) throws IOException;
 
-    abstract protected void writeField0(Output out, RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) throws IOException;
+    abstract protected void writeField0(Output out, RecordSimpleFieldMeta field, Object record, Object value, IFieldCodecContext context) throws IOException;
 
     protected Object getProp(RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) {
         Object value;
+        if (field.isVirtual())
+            return record;
+
+        if (field.getContent() != null)
+            return field.getContent();
+
         if (field.getExportExpr() != null) {
             value = field.getExportExpr().call1(null, record, context.getEvalScope());
         } else {
-            if (field.isVirtual())
-                return record;
-
             // 如果没有指定属性，但是指定了固定值
             if (field.getProp() == null) {
                 value = field.getValue();

@@ -32,6 +32,8 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
 
     private Charset charsetObj;
 
+    private RecordObjectMeta resolvedBaseType;
+
     private IFieldTagBinaryCodec resolvedTagBinaryCodec;
     private IFieldTagTextCodec resolvedTagTextCodec;
 
@@ -60,7 +62,7 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
     }
 
     public boolean hasFieldsOrTemplate() {
-        return !getFields().isEmpty() || normalizedTemplate != null;
+        return !getFields().isEmpty() || getTemplate() != null;
     }
 
     public String getName() {
@@ -73,6 +75,14 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
 
     public Charset getCharsetObj() {
         return charsetObj;
+    }
+
+    public RecordObjectMeta getResolvedBaseType() {
+        return resolvedBaseType;
+    }
+
+    public void setResolvedBaseType(RecordObjectMeta resolvedBaseType) {
+        this.resolvedBaseType = resolvedBaseType;
     }
 
     public void init(RecordDefinitions defs) {
@@ -90,6 +100,10 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
             constructor = new MethodBeanConstructor(ReflectionManager.instance().loadClassModel(getBeanClass()).getConstructor(0));
         } else {
             constructor = LinkedHashMap::new;
+        }
+
+        if (getBaseType() != null) {
+            resolvedBaseType = defs.resolveType(getBaseType());
         }
     }
 
