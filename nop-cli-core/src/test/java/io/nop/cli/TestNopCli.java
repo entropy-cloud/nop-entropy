@@ -12,10 +12,8 @@ import io.nop.commons.util.FileHelper;
 import io.nop.core.CoreConfigs;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
-import io.nop.web.page.PageProvider;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
 
@@ -85,7 +83,6 @@ public class TestNopCli extends BaseTestCase {
         assertEquals(0, ret);
     }
 
-    @Disabled
     @Test
     public void testRunBatchGenDemo() {
         CoreInitialization.destroy();
@@ -103,7 +100,6 @@ public class TestNopCli extends BaseTestCase {
         assertTrue(text.contains("totalCount=22000 "));
     }
 
-    @Disabled
     @Test
     public void testRunBatchDemo() {
         CoreInitialization.destroy();
@@ -120,10 +116,10 @@ public class TestNopCli extends BaseTestCase {
     }
 
     @Test
-    public void testFile(){
+    public void testFile() {
         CoreInitialization.destroy();
         String[] args = new String[]{"gen", "../nop-cli/demo/_vfs/app/demo/orm/app.orm.xml",
-                "-t", "/demo/templates/orm","-o","target/demo"};
+                "-t", "/demo/templates/orm", "-o", "target/demo"};
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);
         int ret = app.run(args);
@@ -131,10 +127,53 @@ public class TestNopCli extends BaseTestCase {
     }
 
     @Test
-    public void testRenderPages(){
+    public void testTransform() {
+        CoreInitialization.destroy();
+        String[] args = new String[]{"transform", "../nop-cli/demo/_vfs/app/demo/orm/app.orm.xml",
+                "-t", "/nop/orm/imp/orm.imp.xml", "-o", "target/app.orm.xlsx"};
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        int ret = app.run(args);
+        assertEquals(0, ret);
+
+        args = new String[]{"transform", "target/app.orm.xlsx",
+                "-t", "/nop/orm/imp/orm.imp.xml", "-o", "target/app.orm.json"};
+
+        app = new NopCliApplication();
+        app.setFactory(factory);
+        ret = app.run(args);
+        assertEquals(0, ret);
+
+        args = new String[]{"transform", "target/app.orm.xlsx",
+                "-t", "/nop/orm/imp/orm.imp.xml", "-o", "target/app.orm.xml"};
+
+        app = new NopCliApplication();
+        app.setFactory(factory);
+        ret = app.run(args);
+        assertEquals(0, ret);
+
+        args = new String[]{"transform", "../nop-cli/demo/_vfs/app/demo/orm/app.orm.xml",
+                "-o", "target/app.orm.json"};
+
+        app = new NopCliApplication();
+        app.setFactory(factory);
+        ret = app.run(args);
+        assertEquals(0, ret);
+
+        args = new String[]{"transform", "../nop-cli/demo/_vfs/app/demo/orm/app.orm.xml",
+                "-o", "target/app.orm.yaml"};
+
+        app = new NopCliApplication();
+        app.setFactory(factory);
+        ret = app.run(args);
+        assertEquals(0, ret);
+    }
+
+    @Test
+    public void testRenderPages() {
         CoreInitialization.destroy();
         String[] args = new String[]{"run", "../nop-cli/demo/scripts/render-pages.xrun",
-                "-i", "{moduleId:'app/demo'}","-o","target/demo"};
+                "-i", "{moduleId:'app/demo'}", "-o", "target/demo"};
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);
         int ret = app.run(args);

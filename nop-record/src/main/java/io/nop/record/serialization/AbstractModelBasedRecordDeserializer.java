@@ -4,8 +4,10 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.api.core.util.Symbol;
+import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.collections.bit.IBitSet;
 import io.nop.commons.text.SimpleTextTemplate;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.record.codec.IFieldCodecContext;
@@ -15,6 +17,7 @@ import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordSimpleFieldMeta;
 import io.nop.record.model.RecordTypeMeta;
 import io.nop.record.reader.IDataReaderBase;
+import io.nop.xlang.xmeta.SimpleSchemaValidator;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -23,7 +26,9 @@ import java.util.Collection;
 
 import static io.nop.record.RecordErrors.ARG_CASE_VALUE;
 import static io.nop.record.RecordErrors.ARG_FIELD_NAME;
+import static io.nop.record.RecordErrors.ARG_FIELD_PATH;
 import static io.nop.record.RecordErrors.ARG_TYPE_NAME;
+import static io.nop.record.RecordErrors.ERR_RECORD_FIELD_IS_MANDATORY;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_MATCH_FOR_CASE_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_NO_SWITCH_ON_FIELD;
 import static io.nop.record.RecordErrors.ERR_RECORD_TYPE_NO_FIELDS;
@@ -86,17 +91,22 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             readOffset(in, field.getOffset(), context);
         }
 
-        if (field.getBeforeRead() != null)
-            field.getBeforeRead().call3(null, in, record, context, context.getEvalScope());
+        context.enterField(field);
+        try {
+            if (field.getBeforeRead() != null)
+                field.getBeforeRead().call3(null, in, record, context, context.getEvalScope());
 
-        if (field.getRepeatKind() != null) {
-            readCollection(in, field, record, context);
-        } else {
-            readSwitch(in, field, record, context);
+            if (field.getRepeatKind() != null) {
+                readCollection(in, field, record, context);
+            } else {
+                readSwitch(in, field, record, context);
+            }
+
+            if (field.getAfterRead() != null)
+                field.getAfterRead().call3(null, in, record, context, context.getEvalScope());
+        } finally {
+            context.exitField(field);
         }
-
-        if (field.getAfterRead() != null)
-            field.getAfterRead().call3(null, in, record, context, context.getEvalScope());
         return true;
     }
 
@@ -144,9 +154,23 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
             return obj;
         } else {
             Object value = readField0(in, field, record, context);
+            validate(value, field, context);
             if (!field.isVirtual())
                 setPropByName(record, field.getPropOrFieldName(), value);
             return value;
+        }
+    }
+
+    protected void validate(Object value, RecordSimpleFieldMeta field, IFieldCodecContext context) {
+        if (field.isMandatory() && StringHelper.isEmptyObject(value)) {
+            throw new NopException(ERR_RECORD_FIELD_IS_MANDATORY)
+                    .param(ARG_FIELD_NAME, field.getName())
+                    .param(ARG_FIELD_PATH, context.getFieldPath());
+        }
+
+        if (field.getSchema() != null) {
+            SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), field.getLocation(), field.getName(),
+                    value, context.getEvalScope(), IValidationErrorCollector.THROW_ERROR);
         }
     }
 
