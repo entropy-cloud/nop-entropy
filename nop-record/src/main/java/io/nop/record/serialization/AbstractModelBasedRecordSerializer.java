@@ -49,7 +49,7 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
         if (recordMeta.getBeforeWrite() != null)
             recordMeta.getBeforeWrite().call3(null, out, record, context, context.getEvalScope());
 
-        if(recordMeta.getResolvedBaseType() != null){
+        if (recordMeta.getResolvedBaseType() != null) {
             writeObject(out, recordMeta.getResolvedBaseType(), record, context);
         }
 
@@ -217,19 +217,22 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
         if (field.getExportExpr() != null) {
             value = field.getExportExpr().call1(null, record, context.getEvalScope());
         } else {
-            // 如果没有指定属性，但是指定了固定值
-            if (field.getProp() == null) {
-                value = field.getValue();
-                if (value != null)
-                    return value;
-            }
-
             if (record == null)
                 return null;
 
             String propName = field.getPropOrFieldName();
             value = getPropByName(record, propName);
         }
+
+        if (StringHelper.isEmptyObject(value)) {
+            if (field.getDefaultValue() != null)
+                value = field.getDefaultValue();
+        }
+
+        if (field.getType() != null) {
+            value = field.getStdDataType().convert(value, err -> new NopException(err).source(field).param(ARG_FIELD_NAME, field.getName()));
+        }
+
         validate(value, field, context);
         return value;
     }

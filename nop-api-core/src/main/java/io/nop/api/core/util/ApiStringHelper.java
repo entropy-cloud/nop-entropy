@@ -340,6 +340,11 @@ public class ApiStringHelper {
     }
 
     @Deterministic
+    public static String encodeStringMap(Map<String, String> map) {
+        return encodeStringMap(map, '=', ',');
+    }
+
+    @Deterministic
     public static Map<String, String> parseStringMap(String str, char keySepChar, char itemSepChar) {
         if (isEmpty(str))
             return Collections.emptyMap();

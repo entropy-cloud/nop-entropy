@@ -45,18 +45,6 @@ public class RecordSimpleFieldMeta extends _RecordSimpleFieldMeta implements IFi
         return propName;
     }
 
-    public Object getNormalizedValue() {
-        Object value = getValue();
-        if (value == null)
-            return null;
-
-        StdDataType dataType = getStdDataType();
-        if (dataType == null)
-            return null;
-
-        return dataType.convert(value);
-    }
-
     @Override
     public Charset getCharsetObj() {
         if (charsetObj == null) {

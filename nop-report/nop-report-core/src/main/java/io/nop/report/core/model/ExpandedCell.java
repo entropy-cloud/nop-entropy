@@ -460,6 +460,10 @@ public class ExpandedCell implements IExcelCell {
         this.styleId = styleId;
     }
 
+    public Object getV(){
+        return getValue();
+    }
+
     public Object getValue() {
         return value;
     }

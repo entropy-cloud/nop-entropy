@@ -158,4 +158,14 @@ public class NopCliTasks {
         assertEquals(0, app.run(args));
     }
 
+    @Test
+    public void testTransformRecordXml(){
+        String[] args = new String[]{"transform", "../nop-cli/demo/record.xml",
+                "-o", "target/test-transform.record-file.xlsx",
+                "-t", "v:/nop/record/imp/record-file.imp.xml"
+        };
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        assertEquals(0, app.run(args));
+    }
 }

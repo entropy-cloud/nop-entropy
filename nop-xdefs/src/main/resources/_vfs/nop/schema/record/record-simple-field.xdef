@@ -16,6 +16,7 @@
 @terminator 读取到terminator判断字段结束
 @skipWhenRead 当读取记录时忽略此字段，此字段可能仅用于输出
 @content 如果非空，则表示字段为固定内容。当输出字段到数据文件中时直接使用该内容输出
+@defaultValue 当值为空的时候，使用这里的缺省值
 @tillEnd 读取所有剩余部分
 -->
 <field x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
@@ -24,7 +25,7 @@
        length="!int=0" codec="string" charset="string"
        padding="encoded-bytes" leftPad="!boolean=false" trim="!boolean=false"
        offset="!int=0" virtual="!boolean=false" format="string"
-       content="encoded-bytes" value="any"
+       content="encoded-bytes" defaultValue="any"
        mandatory="!boolean=false" endian="enum:io.nop.commons.bytes.EndianKind"
        skipWriteWhenEmpty="!boolean=false" skipWhenRead="!boolean=false" skipWhenWrite="!boolean=false"
        xdef:name="RecordSimpleFieldMeta" xdef:bean-package="io.nop.record.model"

@@ -39,6 +39,13 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: defaultValue
+     * 当值为空的时候，使用这里的缺省值
+     */
+    private java.lang.Object _defaultValue ;
+    
+    /**
+     *  
      * xml name: displayName
      * 字段的显示名称。抛出用户可读的异常消息时可能会用到
      */
@@ -222,13 +229,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      *  
-     * xml name: value
-     * 
-     */
-    private java.lang.Object _value ;
-    
-    /**
-     *  
      * xml name: virtual
      * 虚拟字段，不解析到java bean中。当它具有fields子字段时可以起到分组作用。fields子字段会作为父对象的字段
      */
@@ -294,6 +294,25 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         checkAllowChange();
         
         this._content = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: defaultValue
+     *  当值为空的时候，使用这里的缺省值
+     */
+    
+    public java.lang.Object getDefaultValue(){
+      return _defaultValue;
+    }
+
+    
+    public void setDefaultValue(java.lang.Object value){
+        checkAllowChange();
+        
+        this._defaultValue = value;
            
     }
 
@@ -795,25 +814,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     
     /**
      * 
-     * xml name: value
-     *  
-     */
-    
-    public java.lang.Object getValue(){
-      return _value;
-    }
-
-    
-    public void setValue(java.lang.Object value){
-        checkAllowChange();
-        
-        this._value = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: virtual
      *  虚拟字段，不解析到java bean中。当它具有fields子字段时可以起到分组作用。fields子字段会作为父对象的字段
      */
@@ -870,6 +870,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         out.putNotNull("charset",this.getCharset());
         out.putNotNull("codec",this.getCodec());
         out.putNotNull("content",this.getContent());
+        out.putNotNull("defaultValue",this.getDefaultValue());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("doc",this.getDoc());
         out.putNotNull("endian",this.getEndian());
@@ -896,7 +897,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         out.putNotNull("transformOut",this.getTransformOut());
         out.putNotNull("trim",this.isTrim());
         out.putNotNull("type",this.getType());
-        out.putNotNull("value",this.getValue());
         out.putNotNull("virtual",this.isVirtual());
         out.putNotNull("writeWhen",this.getWriteWhen());
     }
@@ -913,6 +913,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         instance.setCharset(this.getCharset());
         instance.setCodec(this.getCodec());
         instance.setContent(this.getContent());
+        instance.setDefaultValue(this.getDefaultValue());
         instance.setDisplayName(this.getDisplayName());
         instance.setDoc(this.getDoc());
         instance.setEndian(this.getEndian());
@@ -939,7 +940,6 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
         instance.setTransformOut(this.getTransformOut());
         instance.setTrim(this.isTrim());
         instance.setType(this.getType());
-        instance.setValue(this.getValue());
         instance.setVirtual(this.isVirtual());
         instance.setWriteWhen(this.getWriteWhen());
     }

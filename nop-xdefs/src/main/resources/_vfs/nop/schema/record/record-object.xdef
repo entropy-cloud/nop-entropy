@@ -8,6 +8,7 @@
         xmlns:xdef="/nop/schema/xdef.xdef"
         xdef:name="RecordObjectMeta" xdef:bean-package="io.nop.record.model"
         length="int" tagsCodec="string" asMap="!boolean=false"
+        name="prop-name" displayName="string"
         beanClass="class-name" typeRef="string" baseType="class-name">
 
     <doc xdef:value="string"/>

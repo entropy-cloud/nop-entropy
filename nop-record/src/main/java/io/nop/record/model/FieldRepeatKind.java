@@ -10,5 +10,6 @@ package io.nop.record.model;
 public enum FieldRepeatKind {
     eos,
     expr,
-    until;
+    until,
+    fixed
 }

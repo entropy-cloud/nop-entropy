@@ -67,6 +67,13 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: displayName
+     * 
+     */
+    private java.lang.String _displayName ;
+    
+    /**
+     *  
      * xml name: doc
      * 
      */
@@ -92,6 +99,13 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
      * 动态确定字段长度。在表达式中record指向父结构，_root指向根结构。
      */
     private io.nop.core.lang.eval.IEvalFunction _lengthExpr ;
+    
+    /**
+     *  
+     * xml name: name
+     * 
+     */
+    private java.lang.String _name ;
     
     /**
      *  
@@ -270,6 +284,25 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: displayName
+     *  
+     */
+    
+    public java.lang.String getDisplayName(){
+      return _displayName;
+    }
+
+    
+    public void setDisplayName(java.lang.String value){
+        checkAllowChange();
+        
+        this._displayName = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: doc
      *  
      */
@@ -366,6 +399,25 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._lengthExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: name
+     *  
+     */
+    
+    public java.lang.String getName(){
+      return _name;
+    }
+
+    
+    public void setName(java.lang.String value){
+        checkAllowChange();
+        
+        this._name = value;
            
     }
 
@@ -536,10 +588,12 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         out.putNotNull("beanClass",this.getBeanClass());
         out.putNotNull("beforeRead",this.getBeforeRead());
         out.putNotNull("beforeWrite",this.getBeforeWrite());
+        out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("doc",this.getDoc());
         out.putNotNull("fields",this.getFields());
         out.putNotNull("length",this.getLength());
         out.putNotNull("lengthExpr",this.getLengthExpr());
+        out.putNotNull("name",this.getName());
         out.putNotNull("params",this.getParams());
         out.putNotNull("readWhen",this.getReadWhen());
         out.putNotNull("tagsCodec",this.getTagsCodec());
@@ -564,10 +618,12 @@ public abstract class _RecordObjectMeta extends io.nop.core.resource.component.A
         instance.setBeanClass(this.getBeanClass());
         instance.setBeforeRead(this.getBeforeRead());
         instance.setBeforeWrite(this.getBeforeWrite());
+        instance.setDisplayName(this.getDisplayName());
         instance.setDoc(this.getDoc());
         instance.setFields(this.getFields());
         instance.setLength(this.getLength());
         instance.setLengthExpr(this.getLengthExpr());
+        instance.setName(this.getName());
         instance.setParams(this.getParams());
         instance.setReadWhen(this.getReadWhen());
         instance.setTagsCodec(this.getTagsCodec());

@@ -7,6 +7,43 @@
     <sheets>
         <sheet name="目录" ignore="true"/>
 
+        <sheet name="配置">
+            <fields>
+                <field name="ext:extends" displayName="extends">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="ext:appName" displayName="appName">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="ext:basePackageName" displayName="basePackageName">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="ext:mavenGroupId" displayName="maven.groupId">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="ext:mavenArtifactId" displayName="maven.artifactId">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="ext:mavenVersion" displayName="maven.version">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="ext:platformVersion" displayName="platformVersion">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="ext:moduleName" displayName="moduleName">
+                    <schema stdDomain="string"/>
+                </field>
+
+            </fields>
+        </sheet>
+
         <sheet name="文件结构">
             <fields>
                 <field name="header.typeRef" displayName="文件头">
@@ -17,7 +54,7 @@
                     <schema stdDomain="var-name"/>
                 </field>
 
-                <field name="body.readRepeatUntil" displayName="判断文件体结束">
+                <field name="body.repeatUntil" displayName="判断文件体结束">
                     <schema stdDomain="xpl-fn" stdDomainOptions="(in,record,ctx)=>any"/>
                 </field>
 
@@ -53,9 +90,6 @@
                             <schema stdDomain="generic-type"/>
                         </field>
 
-                        <field name="tagSet" displayName="标签">
-                            <schema stdDomain="csv-set"/>
-                        </field>
 
                         <field name="mandatory" displayName="非空" xpt:formatExpr="cell.value ? 'M': ''">
                             <schema stdDomain="boolean"/>
@@ -121,7 +155,7 @@
             </fields>
         </sheet>
 
-        <sheet name="messageType" namePattern=".*" field="types" multiple="true" keyProp="name">
+        <sheet name="messageType" namePattern=".*" field="types" multiple="true" keyProp="name" sheetNameProp="name">
             <normalizeFieldsExpr>
                 <c:script><![CDATA[
 
@@ -141,10 +175,6 @@
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="tagSet" displayName="标签">
-                    <schema stdDomain="csv-set"/>
-                </field>
-
                 <field name="doc" displayName="描述">
                     <schema stdDomain="string"/>
                 </field>
@@ -153,8 +183,8 @@
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="div" displayName="包装对象">
-                    <schema stdDomain="boolean"/>
+                <field name="tagsCodec" displayName="字段位图编码器">
+                    <schema stdDomain="string"/>
                 </field>
 
                 <field name="beforeRead" displayName="读取前">
@@ -185,12 +215,8 @@
                             </valueExpr>
                         </field>
 
-                        <field name="primary" displayName="主键">
-                            <schema stdDomain="boolean"/>
-                        </field>
-
-                        <field name="tagSet" displayName="标签">
-                            <schema stdDomain="csv-set"/>
+                        <field name="tagIndex" displayName="字段位图索引">
+                            <schema stdDomain="int"/>
                         </field>
 
                         <field name="name" displayName="字段名" mandatory="true">
@@ -211,7 +237,7 @@
                             <schema stdDomain="int-size"/>
                         </field>
 
-                        <field name="type" displayName="类型">
+                        <field name="type" displayName="类型" xpt:formatExpr="$String.simplifyJavaType(cell.value)">
                             <schema stdDomain="generic-type"/>
                         </field>
 
@@ -235,7 +261,7 @@
                             <schema stdDomain="string"/>
                         </field>
 
-                        <field name="leftPad" displayName="是否左填充">
+                        <field name="leftPad" displayName="是否左填充" xpt:formatExpr="cell.value ? 'M': ''">
                             <schema stdDomain="boolean"/>
                         </field>
 
@@ -293,6 +319,19 @@
 
                         <field name="content" displayName="固定内容">
                             <schema stdDomain="encoded-bytes"/>
+                        </field>
+
+                        <field name="repeatKind" displayName="重复模式">
+                            <schema dict="io.nop.record.model.FieldRepeatKind"/>
+                        </field>
+
+                        <field name="switchOnField" displayName="子类型选择">
+                            <schema stdDomain="string"/>
+                        </field>
+
+                        <field name="switchTypeMap" displayName="子类型映射"
+                               xpt:formatExpr="$String.encodeStringMap(cell.v,'=',',')">
+                            <schema stdDomain="string-map"/>
                         </field>
                     </fields>
                 </field>

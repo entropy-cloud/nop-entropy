@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <sheets>
+        <sheet name="域定义" field="domains" list="true">
+            <fields>
+                <field name="name" displayName="名称" mandatory="true">
+                    <schema stdDomain="xml-name"/>
+                </field>
+
+                <field name="stdDomain" displayName="标准域">
+                    <schema stdDomain="std-domain"/>
+                </field>
+
+                <field name="stdSqlType" displayName="数据类型" mandatory="true">
+                    <schema stdDomain="std-sql-type"/>
+                </field>
+
+                <field name="stdDataType" displayName="Java类型">
+                    <schema stdDomain="std-data-type"/>
+                </field>
+
+                <field name="precision" displayName="长度">
+                    <schema stdDomain="int-size"/>
+                </field>
+
+                <field name="scale" displayName="小数位数">
+                    <schema stdDomain="scale"/>
+                </field>
+            </fields>
+        </sheet>
+    </sheets>
+</imp>
