@@ -71,8 +71,8 @@ public class MockAiChatService {
     }
 
     protected boolean expired(long usedTime, AiChatOptions options) {
-        // 最多等待20分钟
-        return usedTime > 1000 * 60 * 20;
+        // 最多等待2小时
+        return usedTime > 1000 * 60 * 60 * 2;
     }
 
     protected IResource getResource(AiChatExchange exchange, String postfix) {

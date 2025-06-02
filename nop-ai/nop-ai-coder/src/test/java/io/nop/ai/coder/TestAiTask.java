@@ -233,4 +233,23 @@ public class TestAiTask extends JunitBaseTestCase {
         taskRt.setInput("sessionId", "test-bailian");
         task.execute(taskRt).syncGetOutputs();
     }
+
+    @Test
+    public void testAiCoderMock() {
+        File targetDir = getTargetFile("demo-project-mock");
+
+        ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-coder.task.xml");
+        ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
+        taskRt.setInput("inputRequirementsPath", attachmentFile("input-requirements2.md").getAbsolutePath());
+        taskRt.setInput("outputDir", targetDir.getAbsolutePath());
+        taskRt.setInput("basePackageName", "app.demo");
+        taskRt.setInput("appName", "app-demo");
+        taskRt.setInput("mavenGroupId", "io.nop.demo");
+        taskRt.setInput("needExpand", false);
+
+        taskRt.setInput("aiProvider", "deepseek");
+        taskRt.setInput("aiModel", "mock");
+        taskRt.setInput("sessionId", "test-mock");
+        task.execute(taskRt).syncGetOutputs();
+    }
 }

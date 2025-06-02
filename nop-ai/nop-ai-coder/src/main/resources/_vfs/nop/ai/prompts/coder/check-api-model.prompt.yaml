@@ -45,7 +45,7 @@ outputs:
   - name: noChange
     type: Boolean
     parseFromResponse:
-      containsText: [NO_CHANGE]
+      containsText: "[NO_CHANGE]"
 
   - name: RESULT
     xdefPath: /nop/ai/schema/coder/api.xdef

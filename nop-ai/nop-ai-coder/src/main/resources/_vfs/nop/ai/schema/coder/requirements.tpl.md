@@ -24,7 +24,7 @@
 
 [TAGS]: OPTIONAL
 
-# 4. 核心数据库表
+# 4. 数据库表设计
 
 [TAGS]: CORE,ORM
 

@@ -1,6 +1,6 @@
 template: |
   【任务描述】
-  仔细分析如下resource节点的属性设置，判断它的属性值与需求描述是否相符。如果不需要修改，仅输出[NO_CHANGE]，否则输出修改后的完整XML，不要进行额外解释
+  仔细分析如下resource节点的属性设置，判断它的属性值与需求描述是否相符。如果不需要修改，仅输出`[NO_CHANGE]`，否则输出修改后的完整XML，不要进行额外解释
   
   ```xml
   ${menuNode.xml()}
@@ -33,11 +33,11 @@ outputs:
   - name: noChange
     type: Boolean
     parseFromResponse:
-      containsText: [ NO_CHANGE ]
+      containsText: "[NO_CHANGE]"
 
   - name: RESULT
     xdefPath: /nop/ai/schema/coder/auth.xdef
     format: xml
     when: |
       !chatExchange.outputs.noChange
-    defaultExpr: authNode
+    defaultExpr: menuNode

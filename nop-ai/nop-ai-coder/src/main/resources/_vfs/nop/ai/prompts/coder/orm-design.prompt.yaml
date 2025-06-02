@@ -23,6 +23,11 @@ template: |
   7. biz:type的可选值有entity|entity-detail|txn|txn-detail|report|report-detail|config|config-detail，区分表格是业务实体，还是用于记录交易记录、报表数据还是配置数据，并且区分是主表还是明细表。比如CreditCard是entity, 而Order是txn, OrderDetail是txn-detail 
   8. 假定系统有100个常用用户，使用1年时间，db:estimatedRowCount用于估计此表中累积的数据行数
   9. 字典命名需遵循`业务域_用途`格式（如`user_status`）
+
+  【关键约束】
+   - 所有 `&lt;column>` 必须对应数据库原始字段（数值/文本/日期等基础类型）
+   - 禁止将子表关联属性（如集合引用）定义为 `&lt;column>`
+   - 外键关系仅通过 `orm:ref-*` 属性在子表字段上声明
   
   【需求描述】
   ${requirements}

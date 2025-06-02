@@ -4,10 +4,14 @@ template: |
 
   【输出要求】
   1. 优先使用结构化表述（列表/表格）
-  2. 故事ID的格式为 US-{moduleNo}-xxx，全局唯一。例如 US-3.2.1-001
-  3. 用例ID的格式为 UC-{moduleNo}-xxx，全局唯一
-  4. 简单的增删改查流程不用详细解释，直接写标准CRUD即可
-  5. IMPORTANT: 生成的文档只针对指定的子模块，且仅输出格式要求的内容。不要添加数据库设计、接口设计等没有要求的内容
+  2. **ID规范**：
+    - 用户故事ID: `US-{moduleNo}-xxx` (例: US-3.2.1-001)
+    - 用例ID: `UC-{moduleNo}-xxx`, 全局唯一
+    - 页面ID: `PAGE-{moduleNo}-xxx`， 全局唯一
+  3. **CRUD简化**：标准增删改查仅标注`[标准CRUD流程]`，不用详细解释
+  4. Effort字段表示工作量，单位为人天
+  5. IMPORTANT: 生成的文档只针对指定的子模块，不要添加数据库设计、接口设计等没有要求的内容
+  6. **严格结构**：严格按照指定的文档结构输出，不要改变标题名称和嵌套层次
   
   【输出文档结构】
   ${promptModel.getOutput('RESULT').markdownTpl.toText()}
