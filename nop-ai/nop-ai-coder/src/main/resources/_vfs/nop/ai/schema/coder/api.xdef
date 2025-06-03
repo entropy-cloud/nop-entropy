@@ -37,4 +37,6 @@
             </field>
         </message>
     </messages>
+
+    <orm:delta xdef:ref="orm.xdef"/>
 </api>

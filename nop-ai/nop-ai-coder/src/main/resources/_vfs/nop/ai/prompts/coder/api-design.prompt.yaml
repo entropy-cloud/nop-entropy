@@ -13,9 +13,10 @@ template: |
     所有实体默认获得以下通用CRUD操作，无需重复声明：
   - `findPage(pagination)`：分页查询
   - `findFirst(conditions)`：条件查询首条
-  - `create(data)`：创建数据
+  - `save(data)`：创建数据
   - `update(id, data)`：更新数据
   - `delete(id)`：删除数据
+  - batchSave/batchDelete/batchUpdate等批量增删改操作
   
     **需自定义的场景**
     当操作涉及以下情况时，需在实体服务中显式定义：
@@ -42,9 +43,15 @@ template: |
   IMPORTANT: `app:useCaseNo`必须对应于需求文档中的用例编号，并且需要确保method的具体业务逻辑确实由该用例所定义。
   如果没有对应的用例，则设置`app:useCaseNo`为`[MISSING]`。
   
-  ## 4. 输出要求  
-      - 仅需提交**新增字典**和**非CRUD服务方法**，已存在的内容无需重复。
-      - generic-type表示该部分可以使用Java泛型语法，比如`List&lt;Order>`等
+  ## 4. 数据库设计补充
+  如果API接口设计过程中发现数据库设计需要调整，则通过`&lt;orm:delta>`节点返回数据库设计变更。
+  <ai-coder:IncludeText fileName="v:/nop/ai/prompts/coder/orm-model.md" xpl:lib="/nop/ai/xlib/ai-coder.xlib" />
+  
+  【输出要求】
+   - 仅需提交**新增字典**和**非CRUD服务方法**，已存在的内容无需重复。
+   - generic-type表示该部分可以使用Java泛型语法，比如`List&lt;Order>`等
+   - 当前操作人、租户等信息会通过上下文自动传递，不需要在requestMessage中声明
+      
 
   【已有字典定义】
   ```xml

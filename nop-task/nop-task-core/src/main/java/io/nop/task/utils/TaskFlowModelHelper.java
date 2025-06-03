@@ -1,5 +1,6 @@
 package io.nop.task.utils;
 
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.component.version.ResourceVersionHelper;
@@ -16,6 +17,14 @@ public class TaskFlowModelHelper {
     public static TaskFlowModel loadTaskFlowModel(String taskName, Long taskVersion) {
         String path = ResourceVersionHelper.buildResolvePath(TaskConstants.MODEL_TYPE_TASK, taskName, taskVersion);
         return (TaskFlowModel) ResourceComponentManager.instance().loadComponentModel(path);
+    }
+
+    public static String getLibName(String libModelPath) {
+        return StringHelper.fileNameNoExt(libModelPath);
+    }
+
+    public static long getLibVersion(String libModelPath) {
+        return 0;
     }
 
     public static XNode getInputsSchemaNode(TaskStepModel stepModel) {

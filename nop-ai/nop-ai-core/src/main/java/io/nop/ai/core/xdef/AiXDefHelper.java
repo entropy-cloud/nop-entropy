@@ -10,6 +10,7 @@ import io.nop.xlang.xdsl.DslNodeLoader;
 import io.nop.xlang.xdsl.XDslParseHelper;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class AiXDefHelper {
@@ -21,6 +22,8 @@ public class AiXDefHelper {
     }
 
     public static XNode transformForAi(XNode defNode) {
+        resolveXDefRef(defNode);
+
         ValueWithLocation xdefValue = defNode.attrValueLoc("xdef:value");
         if (!xdefValue.isNull()) {
             defNode.setContentValue(transformDefType(xdefValue.getLocation(), "xdef:value", xdefValue.asString()));
@@ -49,6 +52,25 @@ public class AiXDefHelper {
             transformForAi(child);
         }
         return defNode;
+    }
+
+    static void resolveXDefRef(XNode defNode){
+        String refPath = defNode.attrText("xdef:ref");
+        if (refPath != null && refPath.endsWith(".xdef")) {
+            refPath = defNode.attrVPath("xdef:ref");
+            XNode refNode = loadXDefForAi(refPath);
+            defNode.mergeAttrs(refNode);
+            List<XNode> children = refNode.detachChildren();
+            if (defNode.hasChild()) {
+                for (XNode child : children) {
+                    if (!defNode.hasChild(child.getTagName())){
+                        defNode.appendChild(child);
+                    }
+                }
+            } else {
+                defNode.appendChildren(children);
+            }
+        }
     }
 
     static String transformDefType(SourceLocation loc, String propName, String defType) {

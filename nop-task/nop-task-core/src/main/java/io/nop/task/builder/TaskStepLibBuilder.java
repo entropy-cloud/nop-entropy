@@ -18,7 +18,7 @@ public class TaskStepLibBuilder implements ITaskStepLibBuilder {
             steps.put(stepModel.getName(), stepBuilder.buildDecoratedStep(stepModel));
         }
 
-        TaskStepLibImpl lib = new TaskStepLibImpl(taskFlowModel.getName(), taskFlowModel.getVersion(), steps);
+        TaskStepLibImpl lib = new TaskStepLibImpl(taskFlowModel.getName(), taskFlowModel.getVersion(), taskFlowModel.resourcePath(), steps);
         return lib;
     }
 }

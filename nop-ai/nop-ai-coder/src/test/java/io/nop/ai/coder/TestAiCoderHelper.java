@@ -1,6 +1,7 @@
 package io.nop.ai.coder;
 
 import io.nop.ai.core.prompt.IPromptTemplateManager;
+import io.nop.ai.core.xdef.AiXDefHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.initialize.CoreInitialization;
@@ -15,6 +16,7 @@ import io.nop.markdown.simple.MarkdownCodeBlockParser;
 import io.nop.markdown.simple.MarkdownDocument;
 import io.nop.markdown.simple.MarkdownDocumentExt;
 import io.nop.markdown.utils.MarkdownTool;
+import io.nop.task.ITaskFlowManager;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.xmeta.SchemaLoader;
@@ -28,11 +30,15 @@ import java.util.List;
 
 import static io.nop.xlang.XLangErrors.ERR_XDSL_UNKNOWN_PROP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestAiCoderHelper extends JunitBaseTestCase {
     @Inject
     IPromptTemplateManager promptTemplateManager;
+
+    @Inject
+    ITaskFlowManager taskFlowManager;
 
     @BeforeAll
     public static void init() {
@@ -51,6 +57,14 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
             if (resource.getName().endsWith(".prompt.yaml")) {
                 promptTemplateManager.loadPromptTemplateFromPath(resource.getPath());
             }
+        }
+    }
+
+    @Test
+    public void parseAllTasks() {
+        List<? extends IResource> resources = VirtualFileSystem.instance().findAll("/nop/ai/tasks", ".task.xml");
+        for (IResource resource : resources) {
+            taskFlowManager.loadTaskFromPath(resource.getStdPath());
         }
     }
 
@@ -103,9 +117,16 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
     }
 
     @Test
-    public void testParseJavaCode(){
+    public void testParseJavaCode() {
         String text = attachmentText("test-java-code.md");
-        MarkdownCodeBlock block = new MarkdownCodeBlockParser().parseCodeBlockForLang(null, text,"java");
+        MarkdownCodeBlock block = new MarkdownCodeBlockParser().parseCodeBlockForLang(null, text, "java");
         System.out.println(block.getSource());
+    }
+
+    @Test
+    public void testXDefRef() {
+        XNode node = AiXDefHelper.loadXDefForAi("/nop/ai/schema/coder/api.xdef");
+        node.dump();
+        assertTrue(node.childByTag("orm:delta").hasChild());
     }
 }

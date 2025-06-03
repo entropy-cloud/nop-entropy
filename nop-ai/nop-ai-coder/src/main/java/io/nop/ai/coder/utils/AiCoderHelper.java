@@ -104,6 +104,10 @@ public class AiCoderHelper {
         IXDefinition xdef = SchemaLoader.loadXDefinition(xdefPath);
         dslNodeA = dslNodeA.cloneInstance();
         dslNodeB = dslNodeB.cloneInstance();
+
+        // 保持根节点名
+        dslNodeB.setTagName(dslNodeA.getTagName());
+
         new DeltaMerger(XDslKeys.DEFAULT).merge(dslNodeA, dslNodeB, xdef.getRootNode(), false);
         XDslCleaner.INSTANCE.removeMergeOp(dslNodeA);
         return dslNodeA;

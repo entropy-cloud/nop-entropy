@@ -280,7 +280,7 @@
             <!--
             调用task step步骤定义库中的某个指定步骤。步骤定义库的基本结构与task相同，只是没有执行能力
             -->
-            <call-step name="!var-name" libName="!string" libVersion="long" libModelPath="v-path" stepName="!var-name"
+            <call-step name="!var-name" libName="string" libVersion="long" libModelPath="v-path" stepName="!var-name"
                        xdef:ref="TaskStepModel" xdef:name="CallStepTaskStepModel"/>
 
             <!--

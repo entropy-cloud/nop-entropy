@@ -1,6 +1,6 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:task="task"
       xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
-      xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
+      xmlns:file-utils="/nop/task/xlib/file-utils.xlib" xmlns:c="c"
       x:extends="/nop/task/lib/common.task.xml">
 
     <!--    <ai:chatOptions provider="ollama" model="qwen3:8b" contextLength="8192" maxTokens="16000"/>-->
@@ -24,15 +24,6 @@
     <input name="sessionId" type="String" optional="true"/>
 
     <steps>
-        <step name="init">
-            <input name="appName"/>
-            <output name="appId">
-                <source>
-                    return appName.replace('-','/');
-                </source>
-            </output>
-        </step>
-
         <step name="loadRequirements" customType="ai-coder:LoadMarkdown">
             <input name="fileName" value="${requirementsPath}"/>
             <input name="tplPath" value="/nop/ai/schema/coder/requirements.tpl.md"/>
@@ -65,6 +56,25 @@
             <input name="ormModel"/>
             <output name="RESULT" exportAs="apiNode"/>
         </step>
+
+        <sequential name="adjustOrmModel">
+            <when>apiNode.childByTag('orm:delta')?.hasChild()</when>
+            <steps>
+                <step name="mergeOrmDelta">
+                    <source>
+                        <c:script>
+                            const ormDelta = apiNode.removeChildByTag('orm:delta');
+                            ormModel.mergeOrmDelta(ormDelta);
+                        </c:script>
+                    </source>
+                </step>
+
+                <call-step name="saveOrmModel" libModelPath="ai-coder.task-lib.xml" stepName="saveOrmModel">
+                    <input name="ormModel"/>
+                    <input name="appName"/>
+                </call-step>
+            </steps>
+        </sequential>
 
         <step name="checkAiNode" customType="ai:TaskStep" ai:promptName="coder/check-api-model"
               ai:useResponseCache="true">

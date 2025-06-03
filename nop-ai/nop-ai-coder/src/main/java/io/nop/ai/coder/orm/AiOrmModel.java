@@ -1,5 +1,7 @@
 package io.nop.ai.coder.orm;
 
+import io.nop.ai.coder.AiCoderConstants;
+import io.nop.ai.coder.utils.AiCoderHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
@@ -123,6 +125,19 @@ public class AiOrmModel {
         return node.xml();
     }
 
+    public void mergeOrmDelta(XNode ormDelta) {
+        if (ormDelta != null) {
+            ormDelta = new AiOrmModelNormalizer().fixNameForOrmNode(ormDelta);
+
+            XNode aiNode = getOrmNodeForAi();
+
+            aiNode = AiCoderHelper.mergeDslNode(AiCoderConstants.SCHEMA_AI_ORM, aiNode, ormDelta);
+            this.node = aiNode;
+            this.normalizedNode = null;
+            this.ormModel = null;
+        }
+    }
+
     public String getOrmModelJava() {
         return getOrmModelJava(null);
     }
@@ -184,7 +199,7 @@ public class AiOrmModel {
         return getOrmModelBean().requireEntityModel(entityName);
     }
 
-    public String getDictsXml(){
+    public String getDictsXml() {
         XNode node = getOrmNode();
         XNode dicts = node.childByTag("dicts");
         return dicts == null ? null : dicts.xml();

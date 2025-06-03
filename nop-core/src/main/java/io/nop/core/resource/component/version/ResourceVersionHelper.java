@@ -88,6 +88,10 @@ public class ResourceVersionHelper {
 
     public static boolean isVersionFile(IResource resource, String fileType) {
         String name = resource.getName();
+        return isVersionFileName(name, fileType);
+    }
+
+    public static boolean isVersionFileName(String name, String fileType) {
         if (!name.startsWith("v"))
             return false;
         if (!name.endsWith(fileType))

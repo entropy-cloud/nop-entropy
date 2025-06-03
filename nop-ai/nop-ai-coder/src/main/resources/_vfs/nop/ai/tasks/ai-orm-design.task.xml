@@ -5,10 +5,11 @@
 
     <!--    <ai:chatOptions provider="ollama" model="qwen3:8b" contextLength="8192" maxTokens="16000"/>-->
 
-<!--    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>-->
-<!--    <ai:chatOptions provider="volcengine" model="deepseek-chat" contextLength="8192" maxTokens="8192" temperature="0" />-->
+    <!--    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>-->
+    <!--    <ai:chatOptions provider="volcengine" model="deepseek-chat" contextLength="8192" maxTokens="8192" temperature="0" />-->
 
-    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="8192" temperature="0" sessionId="${sessionId}"/>
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="8192" temperature="0"
+                    sessionId="${sessionId}"/>
 
     <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 
@@ -16,19 +17,11 @@
     <input name="appName" type="String" mandatory="true"/>
     <input name="basePackageName" type="String" mandatory="true"/>
     <input name="outputDir" type="String" mandatory="true"/>
-    <input name="aiProvider" type="String" mandatory="true" />
-    <input name="aiModel" type="String" mandatory="true" />
+    <input name="aiProvider" type="String" mandatory="true"/>
+    <input name="aiModel" type="String" mandatory="true"/>
     <input name="sessionId" type="String" optional="true"/>
 
     <steps>
-        <step name="init">
-            <input name="appName"/>
-            <output name="appId">
-                <source>
-                    return appName.replace('-','/');
-                </source>
-            </output>
-        </step>
 
         <step name="loadRequirements" customType="ai-coder:LoadMarkdown">
             <input name="fileName" value="${requirementsPath}"/>
@@ -56,24 +49,10 @@
             <output name="RESULT" exportAs="ormModel"/>
         </step>
 
-        <step name="saveOrmXml" customType="file-utils:WriteText">
-            <input name="outputDir"/>
-            <input name="fileName" value="model/ai-gen.orm.xml"/>
-            <input name="text" value="${ormModel.ormModelXml}"/>
-        </step>
-
-        <step name="saveOrmExcel" customType="ai-coder:SaveDslModelAsExcel">
-            <input name="outputDir"/>
-            <input name="fileName" value="model/${appName}.orm.xlsx"/>
-            <input name="dslModel" value="${ormModel.ormModelBean}"/>
-            <input name="impModelPath" value="/nop/orm/imp/orm.imp.xml"/>
-        </step>
-
-        <step name="saveOrmXml2" customType="file-utils:WriteText">
-            <input name="outputDir"/>
-            <input name="fileName" value="${appName}-dao/src/main/resources/_vfs/${appId}/orm/ai-gen.orm.xml"/>
-            <input name="text" value="${ormModel.ormModelXml}"/>
-        </step>
+        <call-step name="saveOrmModel" libModelPath="ai-coder.task-lib.xml" stepName="saveOrmModel">
+            <input name="ormModel"/>
+            <input name="appName"/>
+        </call-step>
 
     </steps>
 </task>
