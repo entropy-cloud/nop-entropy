@@ -18,10 +18,38 @@ public abstract class _RecordFileMeta extends io.nop.record.model.RecordDefiniti
     
     /**
      *  
+     * xml name: afterRead
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _afterRead ;
+    
+    /**
+     *  
+     * xml name: afterWrite
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _afterWrite ;
+    
+    /**
+     *  
      * xml name: aggregates
      * 
      */
     private KeyedList<io.nop.record.model.RecordAggregateFieldMeta> _aggregates = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: beforeRead
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _beforeRead ;
+    
+    /**
+     *  
+     * xml name: beforeWrite
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _beforeWrite ;
     
     /**
      *  
@@ -74,6 +102,44 @@ public abstract class _RecordFileMeta extends io.nop.record.model.RecordDefiniti
     
     /**
      * 
+     * xml name: afterRead
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getAfterRead(){
+      return _afterRead;
+    }
+
+    
+    public void setAfterRead(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._afterRead = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: afterWrite
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getAfterWrite(){
+      return _afterWrite;
+    }
+
+    
+    public void setAfterWrite(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._afterWrite = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: aggregates
      *  
      */
@@ -116,6 +182,44 @@ public abstract class _RecordFileMeta extends io.nop.record.model.RecordDefiniti
     public boolean hasAggregates(){
         return !this._aggregates.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: beforeRead
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getBeforeRead(){
+      return _beforeRead;
+    }
+
+    
+    public void setBeforeRead(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._beforeRead = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: beforeWrite
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getBeforeWrite(){
+      return _beforeWrite;
+    }
+
+    
+    public void setBeforeWrite(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._beforeWrite = value;
+           
+    }
+
     
     /**
      * 
@@ -303,7 +407,11 @@ public abstract class _RecordFileMeta extends io.nop.record.model.RecordDefiniti
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("afterRead",this.getAfterRead());
+        out.putNotNull("afterWrite",this.getAfterWrite());
         out.putNotNull("aggregates",this.getAggregates());
+        out.putNotNull("beforeRead",this.getBeforeRead());
+        out.putNotNull("beforeWrite",this.getBeforeWrite());
         out.putNotNull("body",this.getBody());
         out.putNotNull("doc",this.getDoc());
         out.putNotNull("docRef",this.getDocRef());
@@ -322,7 +430,11 @@ public abstract class _RecordFileMeta extends io.nop.record.model.RecordDefiniti
     protected void copyTo(RecordFileMeta instance){
         super.copyTo(instance);
         
+        instance.setAfterRead(this.getAfterRead());
+        instance.setAfterWrite(this.getAfterWrite());
         instance.setAggregates(this.getAggregates());
+        instance.setBeforeRead(this.getBeforeRead());
+        instance.setBeforeWrite(this.getBeforeWrite());
         instance.setBody(this.getBody());
         instance.setDoc(this.getDoc());
         instance.setDocRef(this.getDocRef());

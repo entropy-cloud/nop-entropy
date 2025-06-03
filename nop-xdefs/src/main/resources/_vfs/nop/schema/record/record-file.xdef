@@ -63,4 +63,11 @@
 
     <trailer xdef:ref="record-object.xdef"/>
 
+    <beforeWrite xdef:value="xpl-fn:(out,ctx)=>any"/>
+
+    <afterWrite xdef:value="xpl-fn:(out,ctx)=>any"/>
+
+    <beforeRead xdef:value="xpl-fn:(in,ctx)=>any"/>
+
+    <afterRead xdef:value="xpl-fn:(in,ctx)=>any"/>
 </file>

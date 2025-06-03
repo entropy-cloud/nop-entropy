@@ -57,6 +57,10 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
         if (attributes != null)
             context.getEvalScope().setLocalValues(attributes);
 
+        if (fileMeta.getBeforeWrite() != null)
+            fileMeta.getBeforeWrite().call2(null, baseOut, context, context.getEvalScope());
+
+
         if (fileMeta.getResolvedHeaderType() != null) {
             writeObject(baseOut, fileMeta.getResolvedHeaderType(), context);
         }
@@ -71,6 +75,9 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
             context.getEvalScope().setLocalValues(aggregateState.getResults());
             writeObject(baseOut, fileMeta.getResolvedTrailerType(), context);
         }
+
+        if (fileMeta.getAfterWrite() != null)
+            fileMeta.getAfterWrite().call2(null, baseOut, context, context.getEvalScope());
     }
 
     @Override

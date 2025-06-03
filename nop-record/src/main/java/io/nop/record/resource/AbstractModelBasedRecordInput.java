@@ -52,6 +52,9 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
 
     void readHeader() {
         try {
+            if (fileMeta.getBeforeRead() != null)
+                fileMeta.getBeforeRead().call2(null, baseIn, context, context.getEvalScope());
+
             if (fileMeta.getResolvedHeaderType() != null && !baseIn.isEof()) {
                 headerMeta = new HashMap<>();
                 deserializer.readObject(baseIn, fileMeta.getResolvedHeaderType(), headerMeta, context);
@@ -136,6 +139,9 @@ public class AbstractModelBasedRecordInput<Input extends IDataReaderBase, T> imp
         T record = (T) resolvedBody.newBean();
         if (deserializer.readObject(this.baseIn, resolvedBody, record, context)) {
             this.nextRecord = record;
+        } else {
+            if (fileMeta.getAfterRead() != null)
+                fileMeta.getAfterRead().call2(null, baseIn, context, context.getEvalScope());
         }
     }
 }
