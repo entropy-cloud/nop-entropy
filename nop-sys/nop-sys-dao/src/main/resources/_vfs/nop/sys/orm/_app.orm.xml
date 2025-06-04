@@ -585,5 +585,36 @@
                         propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Update Time"/>
             </columns>
         </entity>
+        <entity className="io.nop.sys.dao.entity.NopSysChangeLog" displayName="变更跟踪日志"
+                name="io.nop.sys.dao.entity.NopSysChangeLog" registerShortName="true" tableName="nop_sys_change_log"
+                tagSet="log" i18n-en:displayName="Change Log">
+            <columns>
+                <column code="SID" displayName="主键" mandatory="true" name="sid" precision="32" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="SID"/>
+                <column code="BIZ_OBJ_NAME" displayName="业务对象" mandatory="true" name="bizObjName" precision="100"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="BizObjName"/>
+                <column code="OBJ_ID" displayName="对象ID" mandatory="true" name="objId" precision="100" propId="3"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="ObjId"/>
+                <column code="BIZ_KEY" displayName="业务键" name="bizKey" precision="100" propId="4" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="BizKey"/>
+                <column code="OPERATION_NAME" displayName="业务操作" mandatory="true" name="operationName" precision="150"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Operation Name"/>
+                <column code="PROP_NAME" displayName="属性名" mandatory="true" name="propName" precision="100" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Prop Name"/>
+                <column code="OLD_VALUE" displayName="旧值" name="oldValue" precision="4000" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Old Value"/>
+                <column code="NEW_VALUE" displayName="新值" name="newValue" precision="4000" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="New Value"/>
+                <column code="CHANGE_TIME" displayName="变更时间" mandatory="true" name="changeTime" propId="9"
+                        stdDataType="timestamp" stdSqlType="TIMESTAMP" tagSet="clock" i18n-en:displayName="Change Time"/>
+                <column code="APP_ID" displayName="应用ID" name="appId" precision="100" propId="10" stdDataType="string"
+                        stdSqlType="VARCHAR" i18n-en:displayName="App ID"/>
+                <column code="OPERATOR_ID" displayName="操作人" mandatory="true" name="operatorId" precision="50"
+                        propId="11" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Operator ID"/>
+                <column code="APPROVER_ID" displayName="审核人" name="approverId" precision="50" propId="12"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Approver ID"/>
+            </columns>
+            <comment>业务对象变更日志</comment>
+        </entity>
     </entities>
 </orm>

@@ -76,6 +76,14 @@ public interface OrmModelConstants {
 
     String TAG_MAPPING = "mapping";
 
+    /**
+     * 启用ChangeLog修改审计
+     */
+    String TAG_AUDIT = "audit";
+    String TAG_AUDIT_SAVE = "audit-save";
+
+    String TAG_NO_AUDIT = "no-audit";
+
     String PROP_NAME_nopRevType = "nopRevType";
     String PROP_NAME_nopRevBeginVer = "nopRevBeginVer";
     String PROP_NAME_nopRevEndVer = "nopRevEndVer";
@@ -147,6 +155,9 @@ public interface OrmModelConstants {
 
     String ORM_MAPPING_TAG_SET_1 = "orm:mappingTagSet1";
     String ORM_MAPPING_TAG_SET_2 = "orm:mappingTagSet2";
+
+    String ORM_BIZ_KEY_PROP = "orm:bizKeyProp";
+    String ORM_APPROVER_ID_PROP = "orm:approverIdProp";
 
     String VAR_ENTITY = "entity";
 

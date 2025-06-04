@@ -41,6 +41,7 @@ public class BaseContext implements IContext {
     private String userRefNo;
     private String callIp;
     private String dynAppId;
+    private String callOperationName;
     private Map<String, Object> propagateHeaders;
     private final Map<String, Object> attributes = new ConcurrentHashMap<>();
 
@@ -127,6 +128,17 @@ public class BaseContext implements IContext {
     public void setLocale(String locale) {
         checkClosed();
         this.locale = locale;
+    }
+
+    @Override
+    public String getCallOperationName() {
+        return callOperationName;
+    }
+
+    @Override
+    public void setCallOperationName(String callOperationName) {
+        checkClosed();
+        this.callOperationName = callOperationName;
     }
 
     @Override

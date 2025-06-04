@@ -225,6 +225,22 @@ CREATE TABLE nop_sys_service_instance(
   constraint PK_nop_sys_service_instance primary key (INSTANCE_ID)
 );
 
+CREATE TABLE nop_sys_change_log(
+  SID VARCHAR(32) NOT NULL    COMMENT '主键',
+  BIZ_OBJ_NAME VARCHAR(100) NOT NULL    COMMENT '业务对象',
+  OBJ_ID VARCHAR(100) NOT NULL    COMMENT '对象ID',
+  BIZ_KEY VARCHAR(100) NULL    COMMENT '业务键',
+  OPERATION_NAME VARCHAR(150) NOT NULL    COMMENT '业务操作',
+  PROP_NAME VARCHAR(100) NOT NULL    COMMENT '属性名',
+  OLD_VALUE VARCHAR(4000) NULL    COMMENT '旧值',
+  NEW_VALUE VARCHAR(4000) NULL    COMMENT '新值',
+  CHANGE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '变更时间',
+  APP_ID VARCHAR(100) NULL    COMMENT '应用ID',
+  OPERATOR_ID VARCHAR(50) NOT NULL    COMMENT '操作人',
+  APPROVER_ID VARCHAR(50) NULL    COMMENT '审核人',
+  constraint PK_nop_sys_change_log primary key (SID)
+);
+
 CREATE TABLE nop_sys_dict_option(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
   DICT_ID VARCHAR(32) NOT NULL    COMMENT '字典ID',
@@ -270,6 +286,8 @@ CREATE TABLE nop_sys_dict_option(
    ALTER TABLE nop_sys_event COMMENT '事件队列';
                 
    ALTER TABLE nop_sys_service_instance COMMENT '服务实例';
+                
+   ALTER TABLE nop_sys_change_log COMMENT '变更跟踪日志';
                 
    ALTER TABLE nop_sys_dict_option COMMENT '字典明细';
                 

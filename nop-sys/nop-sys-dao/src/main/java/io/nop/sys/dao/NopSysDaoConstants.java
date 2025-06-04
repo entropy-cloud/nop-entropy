@@ -16,5 +16,11 @@ public interface NopSysDaoConstants extends _NopSysDaoConstants {
 
     String RESOURCE_GROUP_DEFAULT = "default";
 
+    String PROP_DELETED = "deleted";
 
+    String OPERATION_SAVE = "save";
+
+    String OPERATION_UPDATE = "update";
+
+    String OPERATION_DELETE = "delete";
 }

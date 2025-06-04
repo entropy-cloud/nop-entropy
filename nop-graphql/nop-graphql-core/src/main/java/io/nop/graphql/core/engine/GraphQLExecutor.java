@@ -115,6 +115,8 @@ public class GraphQLExecutor implements IGraphQLExecutor {
     private CompletionStage<Object> invokeOperation(DataFetchingEnvironment env) {
         CompletionStage<OperationResult> future;
 
+        env.getContext().setCallOperationName(env.getOperationName());
+
         if (operationInvoker != null) {
             future = operationInvoker.invokeAsync(r -> invokeOperationOrTry(env), env);
         } else {
@@ -202,6 +204,8 @@ public class GraphQLExecutor implements IGraphQLExecutor {
 
     private CompletionStage<OperationResult> invokeOperationOrTry(DataFetchingEnvironment env) {
         Object meter = graphQLHook == null ? null : graphQLHook.beginInvoke(env);
+
+        env.getContext().setCallOperationName(env.getOperationName());
 
         CompletionStage<OperationResult> future = null;
         if (env.getGraphQLExecutionContext().isMakerCheckerEnabled()) {

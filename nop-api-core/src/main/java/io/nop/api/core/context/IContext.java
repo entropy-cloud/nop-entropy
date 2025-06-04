@@ -77,6 +77,10 @@ public interface IContext extends Executor, AutoCloseable {
 
     void setCallExpireTime(long expireTime);
 
+    String getCallOperationName();
+
+    void setCallOperationName(String operationName);
+
     default boolean isCallExpired() {
         long expireTime = getCallExpireTime();
         if (expireTime > 0) {

@@ -225,6 +225,22 @@ CREATE TABLE nop_sys_service_instance(
   constraint PK_nop_sys_service_instance primary key (INSTANCE_ID)
 );
 
+CREATE TABLE nop_sys_change_log(
+  SID VARCHAR(32) NOT NULL ,
+  BIZ_OBJ_NAME VARCHAR(100) NOT NULL ,
+  OBJ_ID VARCHAR(100) NOT NULL ,
+  BIZ_KEY VARCHAR(100)  ,
+  OPERATION_NAME VARCHAR(150) NOT NULL ,
+  PROP_NAME VARCHAR(100) NOT NULL ,
+  OLD_VALUE VARCHAR(4000)  ,
+  NEW_VALUE VARCHAR(4000)  ,
+  CHANGE_TIME TIMESTAMP NOT NULL ,
+  APP_ID VARCHAR(100)  ,
+  OPERATOR_ID VARCHAR(50) NOT NULL ,
+  APPROVER_ID VARCHAR(50)  ,
+  constraint PK_nop_sys_change_log primary key (SID)
+);
+
 CREATE TABLE nop_sys_dict_option(
   SID VARCHAR(32) NOT NULL ,
   DICT_ID VARCHAR(32) NOT NULL ,
@@ -618,6 +634,32 @@ CREATE TABLE nop_sys_dict_option(
       COMMENT ON COLUMN nop_sys_service_instance.CREATE_TIME IS '创建时间';
                     
       COMMENT ON COLUMN nop_sys_service_instance.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON TABLE nop_sys_change_log IS '变更跟踪日志';
+                
+      COMMENT ON COLUMN nop_sys_change_log.SID IS '主键';
+                    
+      COMMENT ON COLUMN nop_sys_change_log.BIZ_OBJ_NAME IS '业务对象';
+                    
+      COMMENT ON COLUMN nop_sys_change_log.OBJ_ID IS '对象ID';
+                    
+      COMMENT ON COLUMN nop_sys_change_log.BIZ_KEY IS '业务键';
+                    
+      COMMENT ON COLUMN nop_sys_change_log.OPERATION_NAME IS '业务操作';
+                    
+      COMMENT ON COLUMN nop_sys_change_log.PROP_NAME IS '属性名';
+                    
+      COMMENT ON COLUMN nop_sys_change_log.OLD_VALUE IS '旧值';
+                    
+      COMMENT ON COLUMN nop_sys_change_log.NEW_VALUE IS '新值';
+                    
+      COMMENT ON COLUMN nop_sys_change_log.CHANGE_TIME IS '变更时间';
+                    
+      COMMENT ON COLUMN nop_sys_change_log.APP_ID IS '应用ID';
+                    
+      COMMENT ON COLUMN nop_sys_change_log.OPERATOR_ID IS '操作人';
+                    
+      COMMENT ON COLUMN nop_sys_change_log.APPROVER_ID IS '审核人';
                     
       COMMENT ON TABLE nop_sys_dict_option IS '字典明细';
                 

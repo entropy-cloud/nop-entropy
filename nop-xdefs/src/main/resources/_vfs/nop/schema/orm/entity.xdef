@@ -59,6 +59,7 @@
         biz:moduleId="string"
         orm:mappingPropName1="string" orm:mappingPropName2="string"
         orm:mappingPropDisplayName1="string" orm:mappingPropDisplayName2="string"
+        orm:bizKeyProp="string" orm:approverIdProp="string"
         xdef:default-extends="/nop/core/defaults/default.entity.xml"
         xdef:name="OrmEntityModel" xdef:bean-package="io.nop.orm.model"
         x:schema="/nop/schema/xdef.xdef" xdef:check-ns="ui,biz"

@@ -188,6 +188,16 @@ public class DelegateContext implements IContext {
     }
 
     @Override
+    public String getCallOperationName() {
+        return context.getCallOperationName();
+    }
+
+    @Override
+    public void setCallOperationName(String operationName) {
+        context.setCallOperationName(operationName);
+    }
+
+    @Override
     public void close() {
         context.close();
     }

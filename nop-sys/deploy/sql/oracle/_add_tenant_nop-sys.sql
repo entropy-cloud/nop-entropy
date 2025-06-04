@@ -1,5 +1,7 @@
 
-    alter table nop_sys_checker_record add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+    alter table nop_sys_change_log add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+
+alter table nop_sys_checker_record add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
 alter table nop_sys_cluster_leader add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
@@ -26,6 +28,9 @@ alter table nop_sys_service_instance add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' 
 alter table nop_sys_user_variable add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
 
 alter table nop_sys_variable add NOP_TENANT_ID VARCHAR2(32) DEFAULT '0' NOT NULL;
+
+alter table nop_sys_change_log drop constraint PK_nop_sys_change_log;
+alter table nop_sys_change_log add constraint PK_nop_sys_change_log primary key (NOP_TENANT_ID, SID);
 
 alter table nop_sys_checker_record drop constraint PK_nop_sys_checker_record;
 alter table nop_sys_checker_record add constraint PK_nop_sys_checker_record primary key (NOP_TENANT_ID, SID);
