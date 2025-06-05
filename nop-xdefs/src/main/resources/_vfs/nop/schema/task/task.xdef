@@ -33,6 +33,8 @@
 
         <description xdef:value="string"/>
 
+        <meta xdef:value="xjson" />
+
         <!-- 可以根据动态设置的flag来决定是否执行本步骤
         @match 满足flag条件才执行本步骤
         @enable 设置flag，在子步骤范围内，这些flag有效

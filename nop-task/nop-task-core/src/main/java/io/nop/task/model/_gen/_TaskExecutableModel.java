@@ -95,6 +95,13 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      *  
+     * xml name: meta
+     * 
+     */
+    private java.lang.Object _meta ;
+    
+    /**
+     *  
      * xml name: onEnter
      * 
      */
@@ -433,6 +440,25 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
     
     /**
      * 
+     * xml name: meta
+     *  
+     */
+    
+    public java.lang.Object getMeta(){
+      return _meta;
+    }
+
+    
+    public void setMeta(java.lang.Object value){
+        checkAllowChange();
+        
+        this._meta = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: onEnter
      *  
      */
@@ -706,6 +732,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         out.putNotNull("finally",this.getFinally());
         out.putNotNull("flags",this.getFlags());
         out.putNotNull("inputs",this.getInputs());
+        out.putNotNull("meta",this.getMeta());
         out.putNotNull("onEnter",this.getOnEnter());
         out.putNotNull("onReload",this.getOnReload());
         out.putNotNull("outputs",this.getOutputs());
@@ -739,6 +766,7 @@ public abstract class _TaskExecutableModel extends io.nop.core.resource.componen
         instance.setFinally(this.getFinally());
         instance.setFlags(this.getFlags());
         instance.setInputs(this.getInputs());
+        instance.setMeta(this.getMeta());
         instance.setOnEnter(this.getOnEnter());
         instance.setOnReload(this.getOnReload());
         instance.setOutputs(this.getOutputs());

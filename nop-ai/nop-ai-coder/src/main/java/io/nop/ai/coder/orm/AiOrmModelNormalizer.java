@@ -10,6 +10,7 @@ import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Locale;
 
 public class AiOrmModelNormalizer {
@@ -38,8 +39,29 @@ public class AiOrmModelNormalizer {
             fixNameForColNode(col);
             fixRefName(col);
         }
+        fixId(entity);
 
         return entity;
+    }
+
+    protected void fixId(XNode entity) {
+        XNode columns = entity.makeChild("columns");
+        List<XNode> columnList = columns.getChildren();
+        for (XNode col : columnList) {
+            if (!"id".equals(col.attrText("name")))
+                col.removeAttr("primary");
+        }
+
+        XNode idCol = columns.childWithAttr("name", "id");
+        if (idCol == null) {
+            idCol = XNode.make("column");
+            idCol.setAttr("name", "id");
+            idCol.setAttr("displayName", "ID");
+            idCol.setAttr("primary", "true");
+            idCol.setAttr("stdSqlType", StdSqlType.VARCHAR);
+            idCol.setAttr("precision", 36);
+            columns.prependChild(idCol);
+        }
     }
 
     protected XNode fixNameForColNode(XNode col) {

@@ -104,8 +104,15 @@ public class TransformCustomStepHelper {
 
         String ns = customType.substring(0, customType.indexOf(':'));
 
+        XNode meta = ret.removeChildByTag(TaskConstants.TAG_META);
+
         XNode source = ret.makeChild(TaskConstants.TAG_SOURCE);
         XNode bodyNode = source.makeChild(customType);
+        if (meta != null) {
+            bodyNode.mergeAttrs(meta);
+            bodyNode.appendChildren(meta.detachChildren());
+        }
+
         String path = node.getUrlForXmlns(ns);
         if (path == null)
             path = root.getUrlForXmlns(ns);

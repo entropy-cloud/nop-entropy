@@ -3,20 +3,22 @@
       xmlns:file-utils="/nop/task/xlib/file-utils.xlib" xmlns:task="/nop/task/xlib/task.xlib"
       x:dump="true" x:extends="/nop/task/lib/common.task.xml">
 
-<!--    <ai:chatOptions provider="ollama" model="qwen3:8b" contextLength="8192" maxTokens="16000"/>-->
+    <!--    <ai:chatOptions provider="ollama" model="qwen3:8b" contextLength="8192" maxTokens="16000"/>-->
 
-<!--    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>-->
-<!--    <ai:chatOptions provider="volcengine" model="deepseek-chat" contextLength="8192" maxTokens="8192" temperature="0" />-->
+    <!--    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>-->
+    <!--    <ai:chatOptions provider="volcengine" model="deepseek-chat" contextLength="8192" maxTokens="8192" temperature="0" />-->
 
-    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="8192" temperature="0" sessionId="${sessionId}"/>
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="8192"
+                    temperature="0" sessionId="${sessionId}" workMode="${workMode}"/>
 
     <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 
     <input name="inputRequirementsPath" type="String" mandatory="true"/>
     <input name="basePackageName" type="String" mandatory="true"/>
     <input name="outputDir" type="String" mandatory="true"/>
-    <input name="needExpand" type="Boolean" optional="true" />
-    <input name="sessionId" type="String" optional="true" />
+    <input name="needExpand" type="Boolean" optional="true"/>
+    <input name="sessionId" type="String" optional="true"/>
+    <input name="workMode" type="string" optional="true"/>
 
     <steps>
         <step name="loadRequirements" customType="file-utils:ReadText">
@@ -24,11 +26,12 @@
             <output name="RESULT" exportAs="inputRequirements"/>
         </step>
 
-        <step name="refactorRequirements" customType="ai:TaskStep" ai:promptName="coder/refactor-requirements" ai:useResponseCache="true">
+        <step name="refactorRequirements" customType="ai:TaskStep" ai:promptName="coder/refactor-requirements"
+              ai:useResponseCache="true">
             <description>重构需求文档，按照标准格式输出</description>
 
             <input name="inputRequirements"/>
-            <input name="needExpand" />
+            <input name="needExpand"/>
             <output name="RESULT" exportAs="requirementsDoc"/>
 
         </step>
@@ -59,7 +62,7 @@
 
             <steps>
                 <step name="expandOneModuleRequirements" customType="ai:TaskStep"
-                        ai:promptName="coder/expand-module-requirements" ai:useResponseCache="true">
+                      ai:promptName="coder/expand-module-requirements" ai:useResponseCache="true">
 
                     <!-- 限制调用AI的频度 -->
                     <throttle maxConcurrency="1" maxWait="100000000"/>

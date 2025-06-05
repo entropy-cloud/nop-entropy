@@ -43,6 +43,15 @@ public class AiChatOptions extends ExtensibleBean {
 
     private Boolean disableCache;
 
+    /**
+     * 工作模式，用于加载系统提示
+     */
+    private String workMode;
+    private Boolean enableCognitivePrompt;
+    private Boolean enableMetaPrompt;
+    private Boolean enableSystemPrompt;
+
+
     //============= 以下为coze支持的参数 =====
     private String botId;
 
@@ -73,6 +82,11 @@ public class AiChatOptions extends ExtensibleBean {
         clone.setEnableThinking(this.enableThinking);
         clone.setResponseFormat(this.responseFormat);
         clone.setStreamListener(this.streamListener);
+        clone.setDisableCache(this.disableCache);
+        clone.setWorkMode(this.workMode);
+        clone.setEnableCognitivePrompt(this.enableCognitivePrompt);
+        clone.setEnableMetaPrompt(this.enableMetaPrompt);
+        clone.setEnableSystemPrompt(this.enableSystemPrompt);
 
         // Coze-specific parameters
         clone.setBotId(this.botId);
@@ -88,6 +102,9 @@ public class AiChatOptions extends ExtensibleBean {
         if (options == null) {
             return;
         }
+
+        if (options.getWorkMode() != null)
+            this.setWorkMode(options.getWorkMode());
 
         if (options.getSessionId() != null) {
             this.setSessionId(options.getSessionId());
@@ -156,6 +173,42 @@ public class AiChatOptions extends ExtensibleBean {
         if (options.getAttrs() != null) {
             this.addAttrs(options.getAttrs());
         }
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getWorkMode() {
+        return workMode;
+    }
+
+    public void setWorkMode(String workMode) {
+        this.workMode = workMode;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public Boolean getEnableCognitivePrompt() {
+        return enableCognitivePrompt;
+    }
+
+    public void setEnableCognitivePrompt(Boolean enableCognitivePrompt) {
+        this.enableCognitivePrompt = enableCognitivePrompt;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public Boolean getEnableMetaPrompt() {
+        return enableMetaPrompt;
+    }
+
+    public void setEnableMetaPrompt(Boolean enableMetaPrompt) {
+        this.enableMetaPrompt = enableMetaPrompt;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public Boolean getEnableSystemPrompt() {
+        return enableSystemPrompt;
+    }
+
+    public void setEnableSystemPrompt(Boolean enableSystemPrompt) {
+        this.enableSystemPrompt = enableSystemPrompt;
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)

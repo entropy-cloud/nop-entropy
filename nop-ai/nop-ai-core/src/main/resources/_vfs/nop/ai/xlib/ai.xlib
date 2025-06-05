@@ -123,6 +123,7 @@
             <attr name="enableThinking" stdDomain="boolean" optional="true"/>
             <attr name="responseFormat" stdDomain="string" optional="true"/>
             <attr name="streamListener" optional="true"/>
+            <attr name="workMode" optional="true" />
 
             <attr name="asyncExec" stdDomain="boolean" optional="true"/>
             <attr name="retryTimesPerRequest" stdDomain="int" optional="true"/>
@@ -134,10 +135,12 @@
 
                 let chatOptions = {
                     provider, model, seed,sessionId, temperature, topP, topK, maxTokens, responseFormat,
-                    contextLength, stop, requestTimeout, stream, frequencyPenalty, enableThinking, streamListener
+                    contextLength, stop, requestTimeout, stream, frequencyPenalty, enableThinking, streamListener,
+                    workMode
                 };
 
                 const cmd = AiCommand.create();
+                cmd.workMode(workMode);
                 cmd.chatOptions(chatOptions).useResponseCache(useResponseCache);
 
                 if(promptName != null){

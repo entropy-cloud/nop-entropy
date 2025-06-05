@@ -13,6 +13,8 @@ public interface TaskConstants {
     String TAG_OUTPUT = "output";
 
     String TAG_SOURCE = "source";
+    String TAG_META = "meta";
+
     String ATTR_NAME = "name";
     String MODEL_TYPE_TASK = "task";
 

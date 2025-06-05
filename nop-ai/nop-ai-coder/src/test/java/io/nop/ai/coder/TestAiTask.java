@@ -17,7 +17,7 @@ public class TestAiTask extends JunitBaseTestCase {
 
     String aiProvider = "deepseek"; //""ollama";
 
-    String aiModel = "deepseek-chat"; //""qwen3:14b";
+    String aiModel = "deepseek-reasoner"; //""qwen3:14b"; deepseek-reasoner deepseek-chat
 
     String sessionId = "test";
 
@@ -58,6 +58,7 @@ public class TestAiTask extends JunitBaseTestCase {
         taskRt.setInput("aiProvider", aiProvider);
         taskRt.setInput("aiModel", aiModel);
         taskRt.setInput("sessionId", sessionId);
+        taskRt.setInput("workMode","programming");
         task.execute(taskRt).syncGetOutputs();
     }
 

@@ -8,6 +8,7 @@ import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.api.tool.IToolProvider;
 import io.nop.ai.core.commons.processor.IAiChatResponseProcessor;
 import io.nop.ai.core.persist.IAiChatResponseCache;
+import io.nop.ai.core.prompt.DefaultSystemPromptLoader;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.api.core.beans.ErrorBean;
@@ -16,6 +17,7 @@ import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.retry.RetryHelper;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.exceptions.ErrorMessageManager;
@@ -28,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionStage;
 
+import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_ENABLE_WORK_MODE_SYSTEM_PROMPT;
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_LOG_MESSAGE;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
 
@@ -35,6 +38,9 @@ public class AiCommand {
     static final Logger LOG = LoggerFactory.getLogger(AiCommand.class);
 
     private final IAiChatService chatService;
+    private final IPromptTemplateManager promptTemplateManager;
+
+    private IPromptTemplate systemPromptTemplate;
     private IPromptTemplate promptTemplate;
     private IAiChatResponseProcessor chatResponseProcessor;
     private int retryTimesPerRequest = 3;
@@ -46,12 +52,15 @@ public class AiCommand {
 
     private Set<String> useTools;
 
-    public AiCommand(IAiChatService chatService) {
+    public AiCommand(IAiChatService chatService, IPromptTemplateManager promptTemplateManager) {
         this.chatService = chatService;
+        this.promptTemplateManager = promptTemplateManager;
     }
 
     public static AiCommand create() {
-        return new AiCommand(BeanContainer.getBeanByType(IAiChatService.class));
+        return new AiCommand(
+                BeanContainer.getBeanByType(IAiChatService.class),
+                BeanContainer.getBeanByType(IPromptTemplateManager.class));
     }
 
     public IAiChatService getChatService() {
@@ -133,18 +142,34 @@ public class AiCommand {
         return this;
     }
 
+    public AiCommand systemPromptTemplate(IPromptTemplate promptTemplate) {
+        this.systemPromptTemplate = promptTemplate;
+        return this;
+    }
+
+    public AiCommand systemPromptName(String systemPromptName) {
+        return systemPromptTemplate(promptTemplateManager.getPromptTemplate(systemPromptName));
+    }
+
+    public AiCommand systemPromptPath(String systemPromptPath) {
+        return systemPromptTemplate(promptTemplateManager.loadPromptTemplateFromPath(systemPromptPath));
+    }
+
+    public AiCommand workMode(String workMode) {
+        makeChatOptions().setWorkMode(workMode);
+        return this;
+    }
+
     public AiCommand promptTemplate(IPromptTemplate promptTemplate) {
         this.promptTemplate = promptTemplate;
         return this;
     }
 
     public AiCommand promptName(String promptName) {
-        IPromptTemplateManager promptTemplateManager = BeanContainer.getBeanByType(IPromptTemplateManager.class);
         return promptTemplate(promptTemplateManager.getPromptTemplate(promptName));
     }
 
     public AiCommand promptPath(String promptPath) {
-        IPromptTemplateManager promptTemplateManager = BeanContainer.getBeanByType(IPromptTemplateManager.class);
         this.promptTemplate = promptTemplateManager.loadPromptTemplateFromPath(promptPath);
         return this;
     }
@@ -310,8 +335,29 @@ public class AiCommand {
     protected Prompt newPrompt(IEvalScope scope) {
         String promptText = promptTemplate.generatePrompt(scope);
         Guard.notEmpty(promptText, "promptText");
-        Prompt prompt = Prompt.userText(promptText);
+        Prompt prompt = new Prompt();
+        addSystemPrompt(prompt, scope);
+        prompt.addUserMessage(promptText);
         prompt.setName(promptTemplate.getName());
+
         return prompt;
+    }
+
+    protected void addSystemPrompt(Prompt prompt, IEvalScope scope) {
+        if (systemPromptTemplate != null) {
+            String systemPrompt = systemPromptTemplate.generatePrompt(scope);
+            if (!StringHelper.isEmpty(systemPrompt))
+                prompt.addSystemMessage(systemPrompt);
+        } else {
+            if (!CFG_AI_SERVICE_ENABLE_WORK_MODE_SYSTEM_PROMPT.get())
+                return;
+
+            if (StringHelper.isEmpty(chatOptions.getWorkMode()))
+                return;
+
+            String systemPrompt = DefaultSystemPromptLoader.instance().loadSystemPrompt(chatOptions);
+            if (!StringHelper.isEmpty(systemPrompt))
+                prompt.addSystemMessage(systemPrompt);
+        }
     }
 }

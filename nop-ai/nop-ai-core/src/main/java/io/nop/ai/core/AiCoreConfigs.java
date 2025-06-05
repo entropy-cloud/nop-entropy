@@ -20,4 +20,8 @@ public interface AiCoreConfigs {
     @Description("LLM引擎采用mock方式执行时所使用的输入输出目录")
     IConfigReference<String> CFG_AI_SERVICE_MOCK_DIR =
             varRef(s_loc, "nop.ai.service.mock-dir", String.class, "/nop/ai/mock");
+
+    @Description("是否启用系统提示词")
+    IConfigReference<Boolean> CFG_AI_SERVICE_ENABLE_WORK_MODE_SYSTEM_PROMPT =
+            varRef(s_loc, "nop.ai.service.enable-work-mode-system-prompt", Boolean.class, true);
 }

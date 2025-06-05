@@ -72,6 +72,7 @@
                 <call-step name="saveOrmModel" libModelPath="ai-coder.task-lib.xml" stepName="saveOrmModel">
                     <input name="ormModel"/>
                     <input name="appName"/>
+                    <input name="outputDir" />
                 </call-step>
             </steps>
         </sequential>

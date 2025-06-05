@@ -4,19 +4,21 @@
         <sequential name="saveOrmModel">
             <input name="ormModel" mandatory="true"/>
             <input name="appName" mandatory="true"/>
+            <input name="outputDir" mandatory="true" />
 
             <steps>
-                <step name="saveOrmXml" customType="file-utils:WriteText">
-                    <input name="outputDir"/>
-                    <input name="fileName" value="model/ai-gen.orm.xml"/>
-                    <input name="text" value="${ormModel.ormModelXml}"/>
-                </step>
 
                 <step name="saveOrmExcel" customType="ai-coder:SaveDslModelAsExcel">
                     <input name="outputDir"/>
                     <input name="fileName" value="model/${appName}.orm.xlsx"/>
                     <input name="dslModel" value="${ormModel.ormModelBean}"/>
                     <input name="impModelPath" value="/nop/orm/imp/orm.imp.xml"/>
+                </step>
+
+                <step name="saveOrmXml" customType="file-utils:WriteText">
+                    <input name="outputDir"/>
+                    <input name="fileName" value="model/ai-gen.orm.xml"/>
+                    <input name="text" value="${ormModel.ormModelXml}"/>
                 </step>
 
                 <step name="saveOrmXml2" customType="file-utils:WriteText">
