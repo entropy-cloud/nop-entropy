@@ -159,6 +159,8 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
     private ITransactionTemplate transactionTemplate;
 
+    private CrudToolProvider crudToolProvider;
+
     @Inject
     public void setTransactionTemplate(ITransactionTemplate transactionTemplate) {
         this.transactionTemplate = transactionTemplate;
@@ -172,6 +174,11 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @Inject
     public void setBizObjectManager(IBizObjectManager bizObjectManager) {
         this.bizObjectManager = bizObjectManager;
+    }
+
+    @Inject
+    public void setCrudToolProvider(CrudToolProvider crudToolProvider) {
+        this.crudToolProvider = crudToolProvider;
     }
 
     public String getBizObjName() {
@@ -409,7 +416,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     protected void checkAllowQuery(QueryBean query, IObjMeta objMeta) {
         if (objMeta != null && query != null) {
             if (query.getFilter() != null)
-                new ObjMetaBasedFilterValidator(objMeta).visit(query.getFilter(), DisabledEvalScope.INSTANCE);
+                crudToolProvider.newFilterValidator(objMeta).visit(query.getFilter(), DisabledEvalScope.INSTANCE);
 
             if (query.getOrderBy() != null) {
                 for (OrderFieldBean field : query.getOrderBy()) {
@@ -510,7 +517,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         EntityData<T> entityData = buildEntityDataForSave(data, inputSelection, context);
         checkUniqueForSave(entityData);
 
-        new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
+        crudToolProvider.newOrmEntityCopier(entityData.getObjMeta()).copyToEntity(entityData.getValidatedData(),
                 entityData.getEntity(), null, entityData.getObjMeta(), getBizObjName(),
                 BizConstants.METHOD_SAVE, context.getEvalScope());
 
@@ -608,7 +615,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         IBizObject bizObj = getThisObj();
         IObjMeta objMeta = bizObj.requireObjMeta();
 
-        ObjMetaBasedValidator validator = new ObjMetaBasedValidator(bizObjectManager, bizObj.getBizObjName(), objMeta,
+        ObjMetaBasedValidator validator = crudToolProvider.newValidator(bizObj.getBizObjName(), objMeta,
                 context, true);
 
         Map<String, Object> validated = validator.validateForSave(data, inputSelection);
@@ -771,7 +778,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
         EntityData<T> entityData = buildEntityDataForUpdate(data, inputSelection, context);
 
-        new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
+        crudToolProvider.newOrmEntityCopier(entityData.getObjMeta()).copyToEntity(entityData.getValidatedData(),
                 entityData.getEntity(), null, entityData.getObjMeta(), getBizObjName(),
                 BizConstants.METHOD_UPDATE, context.getEvalScope());
 
@@ -839,7 +846,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
         Object id = data.get(OrmConstants.PROP_ID);
 
-        ObjMetaBasedValidator validator = new ObjMetaBasedValidator(bizObjectManager, bizObj.getBizObjName(), objMeta,
+        ObjMetaBasedValidator validator = crudToolProvider.newValidator(bizObj.getBizObjName(), objMeta,
                 context, true);
 
         Map<String, Object> validated = validator.validateForUpdate(data, inputSelection);
@@ -1540,7 +1547,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         T newEntity;
         if (inputSelection != null) {
             newEntity = dao.newEntity();
-            new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entity,
+            crudToolProvider.newOrmEntityCopier(objMeta).copyToEntity(entity,
                     newEntity, inputSelection, entityData.getObjMeta(), getBizObjName(),
                     BizConstants.SELECTION_COPY_FOR_NEW, context.getEvalScope());
         } else {
@@ -1554,7 +1561,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
         entityData.setEntity(newEntity);
 
-        new OrmEntityCopier(daoProvider, bizObjectManager).copyToEntity(entityData.getValidatedData(),
+        crudToolProvider.newOrmEntityCopier(objMeta).copyToEntity(entityData.getValidatedData(),
                 newEntity, inputSelection, entityData.getObjMeta(), getBizObjName(),
                 BizConstants.SELECTION_COPY_FOR_NEW, context.getEvalScope());
 

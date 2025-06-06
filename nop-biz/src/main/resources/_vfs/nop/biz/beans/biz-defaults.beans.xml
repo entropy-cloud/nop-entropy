@@ -75,6 +75,12 @@
         </ioc:condition>
     </bean>
 
+    <bean id="nopCrudToolProvider" class="io.nop.biz.crud.CrudToolProvider" ioc:default="true">
+        <ioc:condition>
+            <on-bean>nopDaoProvider</on-bean>
+        </ioc:condition>
+    </bean>
+
     <bean id="nopBizAuthChecker" class="io.nop.biz.impl.DefaultBizAuthChecker" ioc:default="true"/>
 
     <bean id="nopOrmBizInitializer" class="io.nop.graphql.orm.OrmBizInitializer">
