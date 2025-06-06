@@ -13,6 +13,18 @@
 
     <trailer typeRef="record-type"/>
 
+    <pagination pageSize="!int">
+        <pageHeader typeRef="record-type"/>
+        <pageFooter typeRef="record-type"/>
+
+        <aggregates xdef:body-type="list" xdef:key-attr="name">
+            <!-- 输出时自动计算一些汇总值 -->
+            <aggregate name="!prop-name" aggFunc="var-name" prop="string">
+                <valueExpr xdef:value="xpl-fn:(record,ctx)=>any"/>
+            </aggregate>
+        </aggregates>
+    </pagination>
+
     <aggregates xdef:body-type="list" xdef:key-attr="name">
         <!-- 输出时自动计算一些汇总值 -->
         <aggregate name="!prop-name" aggFunc="var-name" prop="string">

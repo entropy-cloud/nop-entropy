@@ -4,6 +4,7 @@ import io.nop.ai.core.model._gen._PromptOutputModel;
 import io.nop.ai.core.xdef.AiXDefHelper;
 import io.nop.api.core.util.INeedInit;
 import io.nop.core.resource.component.ResourceComponentManager;
+import io.nop.markdown.MarkdownConstants;
 import io.nop.markdown.simple.MarkdownDocument;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.action.IActionOutputModel;
@@ -16,6 +17,7 @@ public class PromptOutputModel extends _PromptOutputModel implements INeedInit, 
     private String xdefForAi;
 
     private MarkdownDocument markdownTpl;
+    private MarkdownDocument markdownTplWithoutDetail;
 
     public PromptOutputModel() {
 
@@ -46,6 +48,17 @@ public class PromptOutputModel extends _PromptOutputModel implements INeedInit, 
 
     public MarkdownDocument getMarkdownTpl() {
         return markdownTpl;
+    }
+
+    public MarkdownDocument getMarkdownTplWithoutDetail() {
+        if (markdownTplWithoutDetail == null) {
+            if (markdownTpl != null) {
+                MarkdownDocument doc = markdownTpl.cloneInstance();
+                doc.removeSectionWithTag(MarkdownConstants.TAG_DETAIL);
+                markdownTplWithoutDetail = doc;
+            }
+        }
+        return markdownTplWithoutDetail;
     }
 
     public List<String> getMarkdownTitles() {

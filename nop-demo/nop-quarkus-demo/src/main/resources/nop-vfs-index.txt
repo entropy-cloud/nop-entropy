@@ -78,11 +78,20 @@
 /i18n/zh-CN/nop-web.i18n.yaml
 /i18n/zh-CN/nop-wf.i18n.yaml
 /nop/ai/beans/ai-defaults.beans.xml
+/nop/ai/llm/bailian.llm.xml
 /nop/ai/llm/deepseek.llm.xml
 /nop/ai/llm/default.llm.xml
 /nop/ai/llm/free.llm.xml
 /nop/ai/llm/ollama.llm.xml
 /nop/ai/llm/volcengine.llm.xml
+/nop/ai/prompts/end-tool-call.md
+/nop/ai/prompts/system/gen-for-mode.prompt.yaml
+/nop/ai/prompts/system/programming/cognitive.md
+/nop/ai/prompts/system/programming/meta.md
+/nop/ai/prompts/system/programming/system.md
+/nop/ai/prompts/system/strategic/cognitive.md
+/nop/ai/prompts/system/strategic/meta.md
+/nop/ai/prompts/system/strategic/system.md
 /nop/ai/xlib/ai.xlib
 /nop/aop/nop-api-core.annotations
 /nop/aop/nop-quarkus-demo.annotations
@@ -547,6 +556,7 @@
 /nop/dyn/pages/NopDynSql/main.page.yaml
 /nop/dyn/pages/NopDynSql/picker.page.yaml
 /nop/excel/imp/dict-support.imp.xml
+/nop/excel/imp/domain-support.imp.xml
 /nop/excel/xlib/imp-gen.xlib
 /nop/file/_module
 /nop/file/beans/_dao.beans.xml
@@ -780,7 +790,6 @@
 /nop/schema/query/query.xdef
 /nop/schema/record/packet-codec.xdef
 /nop/schema/record/record-definitions.xdef
-/nop/schema/record/record-enum.xdef
 /nop/schema/record/record-field.xdef
 /nop/schema/record/record-file.xdef
 /nop/schema/record/record-mapping.xdef
@@ -837,6 +846,10 @@
 /nop/sys/beans/_service.beans.xml
 /nop/sys/beans/app-dao.beans.xml
 /nop/sys/beans/app-service.beans.xml
+/nop/sys/model/NopSysChangeLog/NopSysChangeLog.xbiz
+/nop/sys/model/NopSysChangeLog/NopSysChangeLog.xmeta
+/nop/sys/model/NopSysChangeLog/_NopSysChangeLog.xbiz
+/nop/sys/model/NopSysChangeLog/_NopSysChangeLog.xmeta
 /nop/sys/model/NopSysCheckerRecord/NopSysCheckerRecord.xbiz
 /nop/sys/model/NopSysCheckerRecord/NopSysCheckerRecord.xmeta
 /nop/sys/model/NopSysCheckerRecord/_NopSysCheckerRecord.xbiz

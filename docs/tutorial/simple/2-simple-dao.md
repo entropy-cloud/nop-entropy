@@ -153,7 +153,7 @@ public interface DemoMapper {
 ### 3. 在demo.sql-lib.xml增加SQL语句或者EQL对象查询语句
 
 ```xml
-<sql-lib x:scheme="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<sql-lib x:schema="/nop/schema/orm/sql-lib.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <sqls>
         <eql name="findFirstByName" sqlMethod="findFirst">
             <source>
@@ -163,6 +163,10 @@ public interface DemoMapper {
     </sqls>
 </sql-lib>
 ```
+
+sqlMethod值对应于`io.nop.orm.sql_lib.SqlMethod`枚举类，包含findAll,findFirst, findPage, exists, execute等选项，用于表示如何执行生成的EQL/SQL语句。
+
+实际执行过程是动态构造SQL对象后，执行IOrmTemplate或者IJdbcTemplate上的findFirst(SQL sql)等方法。
 
 ### 4. 在BizModel中调用SqlLibMapper
 

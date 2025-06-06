@@ -1,6 +1,7 @@
 package io.nop.markdown.simple;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.commons.util.StringHelper;
 
 import java.util.Map;
 
@@ -30,7 +31,7 @@ public class MarkdownTitle {
     }
 
     public void setSectionNo(String sectionNo) {
-        this.sectionNo = sectionNo;
+        this.sectionNo = StringHelper.strip(sectionNo);
     }
 
     public String getText() {

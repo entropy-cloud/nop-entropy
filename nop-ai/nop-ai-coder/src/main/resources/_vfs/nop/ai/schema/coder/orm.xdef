@@ -14,7 +14,7 @@
             <comment>description</comment>
             <columns xdef:body-type="list" xdef:key-attr="name">
                 <column name="!english" displayName="chinese" mandatory="boolean" primary="boolean"
-                        ext:dict="dict-name"
+                        ext:dict="dict-name" ext:defaultValue="string"
                         stdDomain="std-domain" stdSqlType="!sql-type" precision="int" scale="int"
                         orm:ref-table="table-name"
                         orm:ref-prop="parent-to-children-prop" orm:ref-prop-display-name="chinese"/>

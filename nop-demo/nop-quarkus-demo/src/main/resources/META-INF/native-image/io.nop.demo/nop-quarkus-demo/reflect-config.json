@@ -2667,6 +2667,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.biz.crud.CrudToolProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.biz.crud.DynamicCrudBizModel"
   },
   {
@@ -9552,6 +9562,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.report.core.engine.renderer.SimpleHtmlReportRendererFactory"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.report.core.engine.renderer.XlsxReportRendererFactory"
   },
   {
@@ -10189,6 +10209,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.sys.dao.entity.NopSysChangeLog"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysCheckerRecord"
   },
   {
@@ -10320,6 +10350,21 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysVariable"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.sys.dao.entity._gen._NopSysChangeLog"
   },
   {
     "allDeclaredConstructors": true,
@@ -10597,6 +10642,29 @@
     "fields": [],
     "methods": [
       {
+        "name": "dao",
+        "parameterTypes": []
+      },
+      {
+        "name": "initChangeLog",
+        "parameterTypes": [
+          "io.nop.sys.dao.entity.NopSysChangeLog",
+          "java.lang.String",
+          "io.nop.orm.IOrmEntity"
+        ]
+      }
+    ],
+    "name": "io.nop.sys.dao.log.OrmEntityChangeLogInterceptor"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "loadCacheItemFromDb",
         "parameterTypes": [
           "java.lang.String"
@@ -10610,6 +10678,16 @@
       }
     ],
     "name": "io.nop.sys.dao.seq.SysSequenceGenerator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysChangeLogBizModel"
   },
   {
     "allDeclaredConstructors": true,

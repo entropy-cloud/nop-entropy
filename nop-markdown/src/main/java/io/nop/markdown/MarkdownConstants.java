@@ -7,6 +7,8 @@ public interface MarkdownConstants {
 
     String TAG_DYNAMIC = "DYNAMIC";
 
+    String TAG_DETAIL = "DETAIL";
+
     String META_TITLE_PREFIX = "(";
 
     String META_TITLE_SUFFIX = ")";

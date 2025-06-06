@@ -130,6 +130,8 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
             try {
                 out.write("<div id=\"");
                 out.write(sheetId);
+                out.write("\" data-sheet-name=\"");
+                out.write(StringHelper.escapeXmlAttr(sheet.getName()));
                 out.write("\">\n");
                 if (sheet.getImages() != null && !sheet.getImages().isEmpty()) {
                     renderImages(sheet, sheetId, out);

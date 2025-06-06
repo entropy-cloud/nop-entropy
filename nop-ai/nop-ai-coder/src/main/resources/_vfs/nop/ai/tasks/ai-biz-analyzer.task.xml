@@ -36,6 +36,18 @@
 
         </step>
 
+        <step name="dbDetailDesign" customType="ai:TaskStep" ai:promptName="coder/db-detail-design"
+              ai:useResponseCache="true">
+            <input name="requirements" value="${requirementsDoc.toText()}"/>
+            <output name="RESULT" exportAs="dbDetailDesignDoc"/>
+        </step>
+
+        <step name="mergeDetailDesign">
+            <source>
+                requirementsDoc.addSection(dbDetailDesignDoc.findSectionByTitle('数据库详细设计'));
+            </source>
+        </step>
+
         <!--        <step name="correctMarkdown" customType="ai:TaskStep" ai:promptName="coder/correct-markdown">-->
         <!--            <input name="markdownDoc">-->
         <!--                <source>requirementsDoc</source>-->
@@ -71,7 +83,7 @@
                         <source><![CDATA[
                             // 获取核心需求部分以及当前模块的需求
                             return requirementsDoc.selectSection(
-                                section=> section.containsTplTag('CORE') or module == section).toText()
+                                section=> section.containsTplTag('CORE') or module == section, true).toText()
                         ]]></source>
                     </input>
                     <input name="moduleTitle" value="${module.title}"/>

@@ -7,10 +7,17 @@
  */
 package io.nop.xlang.xpl.tags;
 
+import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.xlang.api.IXLangCompileScope;
+import io.nop.xlang.ast.EscapeOutputExpression;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.Identifier;
+import io.nop.xlang.ast.Literal;
+import io.nop.xlang.ast.XLangEscapeMode;
 import io.nop.xlang.feature.XModelInclude;
 import io.nop.xlang.xpl.IXplCompiler;
 import io.nop.xlang.xpl.IXplTagCompiler;
@@ -39,6 +46,16 @@ public class IncludeTagCompiler implements IXplTagCompiler {
 
         String src = requireAttrVPath(node, SRC_NAME, cp, scope);
         XplIncludeType type = XplParseHelper.getAttrEnum(node, TYPE_NAME, XplIncludeType.class, cp, scope);
+        if (type == XplIncludeType.text) {
+            IResource resource = VirtualFileSystem.instance().getResource(src);
+            String text = ResourceHelper.readText(resource);
+            EscapeOutputExpression expr = new EscapeOutputExpression();
+            expr.setLocation(node.attrLoc(SRC_NAME));
+            expr.setText(Literal.valueOf(SourceLocation.fromPath(resource.getPath()), text));
+            expr.setEscapeMode(XLangEscapeMode.none);
+            return expr;
+        }
+
         XNode included = XModelInclude.instance().loadActiveNode(src);
         if (included != null) {
             Identifier tagName = getAttrXmlName(node, TAG_NAME_NAME, cp, scope);

@@ -3,6 +3,7 @@ package io.nop.markdown.simple;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.util.StringHelper;
 import io.nop.markdown.utils.MarkdownTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +50,14 @@ public class MarkdownDocument implements IComponentModel {
         if (allTitles == null)
             return false;
         return allTitles.contains(title);
+    }
+
+    public void removeSectionWithTag(String tag) {
+        if (rootSection != null) {
+            if (Boolean.TRUE.equals(rootSection.removeSectionByTag(tag))) {
+                this.rootSection = null;
+            }
+        }
     }
 
     public MarkdownSection findSectionByTitle(String title) {
@@ -104,6 +113,15 @@ public class MarkdownDocument implements IComponentModel {
                     .param(ARG_TITLE, rootSection.getTitle());
         }
 
+        // 可能会有多余的内容，自动清除
+        if (!StringHelper.isEmpty(tpl.getRootSection().getTitle())) {
+            MarkdownSection section = this.getRootSection().findSectionByTitle(tpl.getRootSection().getTitle());
+            if (section != null) {
+                section.setTpl(tpl.getRootSection());
+                this.rootSection = section;
+            }
+        }
+
         return this.getRootSection().matchTpl(tpl.getRootSection(), throwError);
     }
 
@@ -143,19 +161,29 @@ public class MarkdownDocument implements IComponentModel {
         return ret;
     }
 
-    public MarkdownDocument selectSection(Predicate<MarkdownSection> filter) {
+    public MarkdownDocument selectSection(Predicate<MarkdownSection> filter, boolean autoIncludeChild) {
         MarkdownDocument ret = new MarkdownDocument();
         ret.setLocation(location);
         if (rootSection != null)
-            ret.setRootSection(rootSection.selectSection(filter));
+            ret.setRootSection(rootSection.selectSection(filter, autoIncludeChild));
         return ret;
     }
 
-    public MarkdownDocument filterSection(Function<MarkdownSection, Boolean> filter) {
+    public MarkdownDocument filterSection(Function<MarkdownSection, Boolean> filter, boolean autoIncludeChild) {
         MarkdownDocument ret = new MarkdownDocument();
         ret.setLocation(location);
         if (rootSection != null)
-            ret.setRootSection(rootSection.filterSection(filter));
+            ret.setRootSection(rootSection.filterSection(filter, autoIncludeChild));
         return ret;
+    }
+
+    public void addSection(MarkdownSection section) {
+        if (section != null) {
+            if (rootSection == null) {
+                rootSection = section;
+            } else {
+                rootSection.addChild(section);
+            }
+        }
     }
 }

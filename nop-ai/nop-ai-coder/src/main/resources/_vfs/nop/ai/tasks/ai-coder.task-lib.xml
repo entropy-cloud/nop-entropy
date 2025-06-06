@@ -1,10 +1,15 @@
-<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      x:extends="/nop/task/lib/common.task.xml"
+      xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib"
+      xmlns:file-utils="/nop/task/xlib/file-utils.xlib" xmlns:task="/nop/task/xlib/task.xlib">
+
+    <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 
     <steps>
         <sequential name="saveOrmModel">
             <input name="ormModel" mandatory="true"/>
             <input name="appName" mandatory="true"/>
-            <input name="outputDir" mandatory="true" />
+            <input name="outputDir" mandatory="true"/>
 
             <steps>
 
@@ -23,7 +28,8 @@
 
                 <step name="saveOrmXml2" customType="file-utils:WriteText">
                     <input name="outputDir"/>
-                    <input name="fileName" value="${appName}-dao/src/main/resources/_vfs/${appName.replace('-','/')}/orm/ai-gen.orm.xml"/>
+                    <input name="fileName"
+                           value="${appName}-dao/src/main/resources/_vfs/${appName.replace('-','/')}/orm/ai-gen.orm.xml"/>
                     <input name="text" value="${ormModel.ormModelXml}"/>
                 </step>
             </steps>

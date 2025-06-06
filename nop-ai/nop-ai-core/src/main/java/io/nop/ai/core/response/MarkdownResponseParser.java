@@ -1,5 +1,6 @@
 package io.nop.ai.core.response;
 
+import io.nop.commons.util.StringHelper;
 import io.nop.markdown.simple.MarkdownDocument;
 import io.nop.markdown.utils.MarkdownTool;
 
@@ -19,6 +20,17 @@ public class MarkdownResponseParser {
     }
 
     public MarkdownDocument parseResponse(String text) {
+        if (StringHelper.isEmpty(text))
+            return null;
+        text = text.trim();
+        int pos = 0;
+        int pos2 = text.length();
+        if (text.startsWith("```markdown")) {
+            pos = "```markdown".length();
+        }
+        if (pos > 0 && text.endsWith("\n```"))
+            pos2 = "\n```".length();
+        text = text.substring(pos, pos2);
         return MarkdownTool.instance().parseFromText(null, text);
     }
 }

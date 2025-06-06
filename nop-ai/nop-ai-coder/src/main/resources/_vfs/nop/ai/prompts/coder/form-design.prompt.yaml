@@ -11,7 +11,7 @@ template: |
   2. role必须在【role列表】中定义
   
   【form-layout格式规范】
-   <ai-coder:IncludeText fileName="v:/nop/ai/prompts/coder/form-layout.md" xpl:lib="/nop/ai/xlib/ai-coder.xlib" />
+   <c:include src="/nop/ai/prompts/coder/form-layout.md" type="text" />
   
   
   <c:script>

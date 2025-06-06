@@ -43,7 +43,7 @@ public class TestAiCoder extends JunitAutoTestCase {
         PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/refactor-requirements.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
         vars.put("inputRequirements", inputText("input-requirements.md"));
-        vars.put("needExpand",true);
+        vars.put("needExpand", true);
 
         IEvalScope scope = promptModel.prepareInputs(vars);
         String prompt = promptModel.generatePrompt(scope);
@@ -241,7 +241,7 @@ public class TestAiCoder extends JunitAutoTestCase {
         MarkdownDocument filteredDoc = doc.selectSection(sec -> {
             boolean b = "1".equals(sec.getSectionNo()) || sec == child;
             return b;
-        });
+        }, true);
 
         outputText("filtered-requirements.md", filteredDoc.toText());
 
@@ -249,7 +249,7 @@ public class TestAiCoder extends JunitAutoTestCase {
 
         filteredDoc = doc.selectSection(sec -> {
             return ("1".equals(sec.getSectionNo()) || sec == child2);
-        });
+        }, true);
 
         outputText("filtered-requirements2.md", filteredDoc.toText());
     }

@@ -98,6 +98,8 @@ public class SimpleHtmlReportRendererFactory implements IReportRendererFactory {
             try {
                 out.write("<div id=\"");
                 out.write(sheetId);
+                out.write("\" data-sheet-name=\"");
+                out.write(StringHelper.escapeXmlAttr(sheet.getName()));
                 out.write("\">\n");
                 HtmlTableOutput output = new HtmlTableOutput(sheet.getTable(), XptConstants.CSS_PREFIX_XPT);
                 output.setDisableStyle(true);

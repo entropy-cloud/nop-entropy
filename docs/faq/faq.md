@@ -12,10 +12,10 @@ x:gen-extends: |
 body:
   name: crud-grid
   columns:
-  - name: deptType
-    label: '@i18n:col.NopAuthDept.deptType,prop.label.NopAuthDept.deptType|改变类型'
-    placeholder: '-'
-    x:virtual: true
+    - name: deptType
+      label: '@i18n:col.NopAuthDept.deptType,prop.label.NopAuthDept.deptType|改变类型'
+      placeholder: '-'
+      x:virtual: true
   x:virtual: true
 ```
 
@@ -29,10 +29,10 @@ x:gen-extends: |
 body:
   name: crud-grid
   columns:
-  - name: deptType
-    label: '改变类型'
-    placeholder: '-'
-    x:virtual: true
+    - name: deptType
+      label: '改变类型'
+      placeholder: '-'
+      x:virtual: true
   x:virtual: true
 ```
 
@@ -72,20 +72,21 @@ variables设置为:
 {
   "query": {
     "filter": {
-      "$type":"and",
-      "$body": [{
-        "$type":"eq",
-        "name": "deptName",
-        "value": "a"
-      }
+      "$type": "and",
+      "$body": [
+        {
+          "$type": "eq",
+          "name": "deptName",
+          "value": "a"
+        }
       ]
     }
   },
-  "q2":{
-    "filter":{
-      "$type":"eq",
-      "name":"userName",
-      "value":"a"
+  "q2": {
+    "filter": {
+      "$type": "eq",
+      "name": "userName",
+      "value": "a"
     }
   }
 }
@@ -127,54 +128,57 @@ NopGraphQL的设计是与Web环境无关，它可以用在消息队列、批处�
 mvn package执行的时候会执行exec-maven-plugin插件，在nop-entropy项目的根pom.xml文件的pluginManagement中，引入了如下配置
 
 ```xml
- <plugin>
-    <groupId>org.codehaus.mojo</groupId>
-    <artifactId>exec-maven-plugin</artifactId>
-    <version>3.0.0</version>
-    <executions>
-        <execution>
-            <id>precompile</id>
-            <phase>generate-sources</phase>
-            <goals>
-                <goal>java</goal>
-            </goals>
-            <configuration>
-                <arguments>
-                    <argument>${project.basedir}</argument>
-                    <argument>precompile</argument>
-                </arguments>
 
-                <!--
-                避免包含META-INF目录导致加载尚未编译的ICoreInitializer
-                -->
-                <addResourcesToClasspath>false</addResourcesToClasspath>
-                <addOutputToClasspath>false</addOutputToClasspath>
-            </configuration>
-        </execution>
-        ...
-    </executions>
+<plugin>
+  <groupId>org.codehaus.mojo</groupId>
+  <artifactId>exec-maven-plugin</artifactId>
+  <version>3.0.0</version>
+  <executions>
+    <execution>
+      <id>precompile</id>
+      <phase>generate-sources</phase>
+      <goals>
+        <goal>java</goal>
+      </goals>
+      <configuration>
+        <arguments>
+          <argument>${project.basedir}</argument>
+          <argument>precompile</argument>
+        </arguments>
+
+        <!--
+        避免包含META-INF目录导致加载尚未编译的ICoreInitializer
+        -->
+        <addResourcesToClasspath>false</addResourcesToClasspath>
+        <addOutputToClasspath>false</addOutputToClasspath>
+      </configuration>
+    </execution>
+    ...
+  </executions>
 </plugin>
 ```
 
 在nop-excel项目的pom文件中，引入exec-maven-plugin插件就会自动执行precompile目录下的代码生成脚本
 
 ```xml
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-            </plugin>
-        </plugins>
-    </build>
+
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.codehaus.mojo</groupId>
+      <artifactId>exec-maven-plugin</artifactId>
+    </plugin>
+  </plugins>
+</build>
 ```
 
 在precompile目录下所有xgen后缀名的文件都会被自动执行
 
 ```xml
+
 <c:script>
-codeGenerator.renderModel('/nop/schema/excel/workbook.xdef','/nop/templates/xdsl', '/',$scope);
-codeGenerator.renderModel('/nop/schema/excel/imp.xdef','/nop/templates/xdsl', '/',$scope);
+  codeGenerator.renderModel('/nop/schema/excel/workbook.xdef','/nop/templates/xdsl', '/',$scope);
+  codeGenerator.renderModel('/nop/schema/excel/imp.xdef','/nop/templates/xdsl', '/',$scope);
 </c:script>
 ```
 
@@ -212,7 +216,8 @@ XCodeGenerator上的renderModel函数可以读取模型文件，然后执行代�
 
 ### 12. XPL模板中使用的变量从哪里来
 
-问题: codegen模块的orm模板，`@init.xrun` 中调用了`gen:DefineLoopForOrm`标签，在该标签的定义中，`<attr name="codeGenModel" implicit="true"/>`，
+问题: codegen模块的orm模板，`@init.xrun` 中调用了`gen:DefineLoopForOrm`标签，在该标签的定义中，
+`<attr name="codeGenModel" implicit="true"/>`，
 codeGenModel 属性是隐式的， `@init.xrun` 也没有传这个属性，那它的属性值是从哪里来的呢？
 
 回答：这个变量是在XGenerator中通过scope.setLocalValue存进去的。在xrun文件中可以访问的变量除了定义的变量之外还有scope上下文传入的变量。
@@ -225,10 +230,12 @@ codeGenModel 属性是隐式的， `@init.xrun` 也没有传这个属性，那�
 * 在meta中配置允许contains过滤运算
 
 ```xml
+
 <prop name="userName" allowFilterOp="eq,contains" xui:defaultFilterOp="contains"/>
 ```
 
-以上条件表示`userName`允许按照`eq`和`contains`两种关系过滤算符进行查询，`eq`表示相等条件，`contains`表示包含，通过`like`来实现。`xui:defaultFilterOp`表示缺省过滤算符采用`contains`。
+以上条件表示`userName`允许按照`eq`和`contains`两种关系过滤算符进行查询，`eq`表示相等条件，`contains`表示包含，通过`like`
+来实现。`xui:defaultFilterOp`表示缺省过滤算符采用`contains`。
 
 * 前台传送过滤条件
   前端条件拼接条件filter\_{propName}\_{filterOp}={value}，例如 filter\_userName\_\_contains=abc
@@ -251,7 +258,8 @@ NopIoC的入口文件全部是自动发现，可以在自动发现的beans.xml�
   在多个文件中多次导入同一个包应该等价于只导入一次。而include语义是每次执行都完整导入一次，会导致bean的定义出现冲突。
 
 ```xml
-<import resource="a.beans.xml" />
+
+<import resource="a.beans.xml"/>
 ```
 
 ### 16. 可以单独接入xdef吗？
@@ -298,23 +306,23 @@ meta文件是通过exec-maven-plugin插件执行postcompile代码生成模板来
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-    <parent>
-        <artifactId>nop-entropy</artifactId>
-        <groupId>io.github.entropy-cloud</groupId>
-        <version>2.0.0-SNAPSHOT</version>
-    </parent>
-      ...
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <configuration>
-                    <classpathScope>test</classpathScope>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+  <parent>
+    <artifactId>nop-entropy</artifactId>
+    <groupId>io.github.entropy-cloud</groupId>
+    <version>2.0.0-SNAPSHOT</version>
+  </parent>
+  ...
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <classpathScope>test</classpathScope>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
 ```
 
@@ -324,22 +332,24 @@ meta文件是通过exec-maven-plugin插件执行postcompile代码生成模板来
 从nop-entropy的根pom继承，则只需要引入exec-maven-plugin插件即可
 
 ```xml
-   <build>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <configuration>
-                    <classpathScope>test</classpathScope>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.codehaus.mojo</groupId>
+      <artifactId>exec-maven-plugin</artifactId>
+      <configuration>
+        <classpathScope>test</classpathScope>
+      </configuration>
+    </plugin>
+  </plugins>
+</build>
 ```
 
 ### 21. 报表引擎中的Excel公式支持嵌套调用吗？如何增加自己的报表函数？
 
-手工编写一个top-down的表达式解析器只需要1000多行代码。nop-xlang包中的SimpleExprParser提供了一个基本的表达式解析器，可以通过feature flag定制它支持的语法特性。
+手工编写一个top-down的表达式解析器只需要1000多行代码。nop-xlang包中的SimpleExprParser提供了一个基本的表达式解析器，可以通过feature
+flag定制它支持的语法特性。
 可选的语法特性如下：
 
 ```
@@ -358,14 +368,15 @@ ExcelFormulaParser就是对从SimpleExprParser继承，实现一些剪裁并加�
 需要注意的是，Quark的IoC是在编译期完成扫描和注册，所以在Quarkus的环境中使用到RedisDataSource才会完成自动发现和注册。例如增加一个QuarkusConfig类
 
 ```java
+
 @ApplicationScoped
 public class QuarkusConfig {
-    @Inject
-    RedisDataSource redisDataSource;
+  @Inject
+  RedisDataSource redisDataSource;
 }
 ```
 
-### 23. 字典字段，返回的label里面自动添加了  字典值-字典名称  ，有没有方法方便的把  字典值-  去掉，只保留字典名称？
+### 23. 字典字段，返回的label里面自动添加了  字典值-字典名称 ，有没有方法方便的把  字典值- 去掉，只保留字典名称？
 
 nop.core.dict.return-normalized-label配置成false
 
@@ -376,14 +387,18 @@ update必须具有id属性，表示修改操作。而save是新增操作，转�
 
 ### 25. action-auth.xml 也能控制 graphql action的权限，Auth 注解和 xbiz 也能控制，这个该怎么选择，如果互相冲突以哪个为准呢
 
-Nop平台采用的是多层叠加的设计，也就是说 `整体逻辑 = 基础逻辑 + Delta定制逻辑`，定制性强的层会覆盖变化性较低的层。xbiz中定义的内容会覆盖Java中定义的内容。xmeta中的定义优先级最高。
+Nop平台采用的是多层叠加的设计，也就是说 `整体逻辑 = 基础逻辑 + Delta定制逻辑`
+，定制性强的层会覆盖变化性较低的层。xbiz中定义的内容会覆盖Java中定义的内容。xmeta中的定义优先级最高。
 
 `action-auth.xml`并不能控制权限，它能定义给一组权限起一个便于管理的分组名称。具体的权限名还是服务方法上定义的。
-`action-auth.xml`可以配置缺省的角色和permission之间的绑定关系。而后台的AuthMeta本质上是配置permission和服务函数之间的绑定关系，只是有时为了方便也可以直接指定role和服务函数之间的绑定关系。如果同时指定，实际上是同时限制的
+`action-auth.xml`
+可以配置缺省的角色和permission之间的绑定关系。而后台的AuthMeta本质上是配置permission和服务函数之间的绑定关系，只是有时为了方便也可以直接指定role和服务函数之间的绑定关系。如果同时指定，实际上是同时限制的
 
 ### 26. 通过Delta定制如何处理多对多关联？
 
-问题：在 `delta.orm.xlsx` 中定制 NopAuthUser 时，对于 `many-to-many` 关系，比如用户和商户多对多，因为要在 NopAuthUser 中生成商户相关的 java 属性，又要在商户这边生成用户相关的 Java 属性。这种情况下，中间关联表是要在 auth delta excel 中定义，还是在应用模块的 excel 中定义呢？
+问题：在 `delta.orm.xlsx` 中定制 NopAuthUser 时，对于 `many-to-many` 关系，比如用户和商户多对多，因为要在 NopAuthUser
+中生成商户相关的 java 属性，又要在商户这边生成用户相关的 Java 属性。这种情况下，中间关联表是要在 auth delta excel
+中定义，还是在应用模块的 excel 中定义呢？
 回答：建议是在自己的业务模型中增加多对多关联表，将用户表标记为not-gen，作为外部表引用。这样不会自动为NopAuthUserEx生成多对多相关的帮助函数，这个可以手工自行添加。
 
 ### 27. nop-ooxml-xlsx模块与Java的poi库有什么区别？
@@ -393,7 +408,8 @@ poi很大，最少有10几M，而且很慢。`nop-ooxml-xlsx`是利用Nop平台�
 
 ### 28. Excel模型中updateTime等系统约定的特殊字段能改成自己定义的名称吗？比如updateTime修改为updatedAt
 
-代码生成的时候会特殊识别如下数据域:createdBy 、 updateTime 、 updatedBy 、 delFlag、version 、createTime tenantId 。标记了这些数据域的字段会被自动识别为ORM引擎所支持的乐观锁字段、创建时间字段等。
+代码生成的时候会特殊识别如下数据域:createdBy 、 updateTime 、 updatedBy 、 delFlag、version 、createTime tenantId
+。标记了这些数据域的字段会被自动识别为ORM引擎所支持的乐观锁字段、创建时间字段等。
 数据域不能改，数据库字段名可以改.
 
 ### 29. auth模块有没有类似spring security的匿名用户和匿名角色？
@@ -420,42 +436,54 @@ IContext主要是提供异步上下文，并包含一些最简单的全局信息
 一般情况下一个请求过来，会创建一个IContext，绑定到某个执行任务线程，然后GraphQL引擎创建IServiceContext，并引用了先前的IContext，带上了更多的信息。因此对于一个请求来讲，会有一个IServiceContext以及一个IContext。
 
 ### 33. EQL查询语言不支持`cast(value as date)`这种语法怎么办
-可以直接用`date(field)`函数。具体有哪些函数，可以去看`dialect.xml`中函数的定义，还可以定制`dialect.xml`来增加函数定义。通过template函数可以将函数定义转换为特定的SQL语法。
+
+可以直接用`date(field)`函数。具体有哪些函数，可以去看`dialect.xml`中函数的定义，还可以定制`dialect.xml`
+来增加函数定义。通过template函数可以将函数定义转换为特定的SQL语法。
 
 ### 34. 主键id必须要设置seq标签吗 现在插入的id数据怎么保证连续
-主键id如果不设置seq，则需要自己手工设置。如果设置了seq标签，可以根据`nop_sys_sequence`表中的配置来顺序生成，每个实体对应一条记录，如果没有找到对应记录，会生成随机id。
+
+主键id如果不设置seq，则需要自己手工设置。如果设置了seq标签，可以根据`nop_sys_sequence`
+表中的配置来顺序生成，每个实体对应一条记录，如果没有找到对应记录，会生成随机id。
 如果希望所有表使用全局的一个sequence，则使用`seq-default`标签，它会先检查是否存在该实体对应的sequence，没有的话会使用default的sequence
 
 Nop平台不使用数据库的自增主键，便于支持分布式数据库，并兼容多种数据库。
 
 ### 35. 提交的时候如果没有修改属性，则实际不会触发数据库更新吗？
+
 是的。如果属性没有被修改，则实体不会被标记为dirty，不会触发OrmInterceptor上的各种回调函数，更不会更新数据库。
 
 ### 36. 重新执行nop-cli生成工具，为什么没有更新xmeta文件？
 
-nop-cli工具用于生成初始程序框架，它并不生成meta。因为XMeta需要根据你手工定制调整后的`orm.xml`文件来生成， 所以不是直接根据xlsx模型生成的。可以直接在IDEA里执行XXXWebCodeGen.java来生成代码。第一次生成之后就不再使用nop-cli工具。
+nop-cli工具用于生成初始程序框架，它并不生成meta。因为XMeta需要根据你手工定制调整后的`orm.xml`文件来生成，
+所以不是直接根据xlsx模型生成的。可以直接在IDEA里执行XXXWebCodeGen.java来生成代码。第一次生成之后就不再使用nop-cli工具。
 
-这就是为什么xlsx要放到model目录下，因为每次mvn install的时候都会执行代码生成工具来重新生成所有代码。nop-cli工具生成的precompile目录下约定了model目录和xlsx模型文件的名称。
+这就是为什么xlsx要放到model目录下，因为每次mvn
+install的时候都会执行代码生成工具来重新生成所有代码。nop-cli工具生成的precompile目录下约定了model目录和xlsx模型文件的名称。
 
 ### 37. XScript中如何实现类型转换
-内置了`$toInt`, `$toString`等扩展函数，例如 `a.$toInt()`将会把a转换为Integer类型。实现层面会调用SysConverterRegistry中注册的ITypeConverter，最终会调用到`ConvertHelper.toInt`等函数。
+
+内置了`$toInt`, `$toString`等扩展函数，例如 `a.$toInt()`
+将会把a转换为Integer类型。实现层面会调用SysConverterRegistry中注册的ITypeConverter，最终会调用到`ConvertHelper.toInt`等函数。
 类型转换函数还支持缺省值，例如 `a.$toInt(10)`, 但a是空值或者null的时候会返回缺省值。
 
 ### 38. NopGraphQL返回`Map<String,MyEntity>`结构为什么会报错？
+
 GraphQL只有对象和对象列表两种结构，没有Map<String，对象>这种结构。这种情况下key是不确定的，GraphQL规范中不支持key不确定的结构。
 Map是NopGraphQL扩展的结构，它必须一次性返回前台，不支持字段选择，内部也不允许保存实体。因为实体可能是构成图结构，无法进行普通的json序列化。而且实体可能通过关联牵扯到太多的数据，甚至整个数据库的数据都在无意间通过实体关联被取出。
 
 修改的方法是使用普通的DataBean来返回，比如
+
 ```java
+
 @DataBean
-public class MyResponseBean{
+public class MyResponseBean {
   private MyEntity myEntity;
 
-  public MyEntity getMyEntity(){
+  public MyEntity getMyEntity() {
     return myEntity;
   }
 
-  public void setMyEntity(MyEntity myEntity){
+  public void setMyEntity(MyEntity myEntity) {
     this.myEntity = myEntity;
   }
 }
@@ -464,7 +492,9 @@ public class MyResponseBean{
 另外也可以返回`List<MyEntity>`这种结构。GraphQL识别对象类型和对象列表类型。
 
 ### 39. NopGraphQL使用自定义的泛型类`MyPageBean<T>` 返回数据为什么会报错？
-对于自定义的数据类型，目前NopGraphQL不支持泛型，所以需要写一个派生类返回。NopGraphQL需要为每一个类型生成一个泛型类型，对于PageBean， ApiResponse等是有特殊处理。
+
+对于自定义的数据类型，目前NopGraphQL不支持泛型，所以需要写一个派生类返回。NopGraphQL需要为每一个类型生成一个泛型类型，对于PageBean，
+ApiResponse等是有特殊处理。
 
 ```
 public MyUserPageBean findAll(){
@@ -481,6 +511,7 @@ class MyUserPageBean extends MyPageBean<User>{}
 ```javascript
  logInfo("data",data);
 ```
+
 logInfo函数的第一个参数是模板消息字符串，使用slf4j日志框架的语法，需要使用`{}`来表示变量占位
 
 ```javascript
@@ -488,11 +519,15 @@ logInfo("data: {}",data);
 ```
 
 ### 41. 在`_delta`目录下定义了已经有的view文件 是按照覆盖的逻辑还是合并的
+
 覆盖，需要在根节点上标记`x:extends="super"`才会合并。DSL文件具有自说明性，只要查看DSL文件本身就知道它的XDef元模型以及它所继承的基础模型。
 
 ### 42. 如果有多个定制的情况是按照什么顺序进行合并。比如NopAuthUser视图文件，首先是在nop内置的，经过层层的个性化，中间框架定制 ->产品定制->衍生产品定制
-Nop平台通过统一的虚拟文件系统来统一管理所有DSL文件。在虚拟文件系统中，可以定义多个平级的delta目录，然后通过`nop.core.vfs.delta-layer-ids`配置来指定这些Delta层之间的覆盖关系。
-比如 `nop.core.vfs.delta-layer-ids=deploy,product`表示`_delta/deploy`目录下的文件覆盖`_delta/product`目录下的，然后再覆盖非Delta目录下的同名文件。
+
+Nop平台通过统一的虚拟文件系统来统一管理所有DSL文件。在虚拟文件系统中，可以定义多个平级的delta目录，然后通过
+`nop.core.vfs.delta-layer-ids`配置来指定这些Delta层之间的覆盖关系。
+比如 `nop.core.vfs.delta-layer-ids=deploy,product`表示`_delta/deploy`目录下的文件覆盖`_delta/product`
+目录下的，然后再覆盖非Delta目录下的同名文件。
 
 ### 43. x:override为什么没有生效？
 
@@ -515,8 +550,17 @@ Nop平台通过统一的虚拟文件系统来统一管理所有DSL文件。在�
 `x:override`不是用来覆盖`x:prototye`继承的。`x:prototype-override`这个才是。override是覆盖从`x:extends`继承得到的内容
 
 ### 43. graphql可以单独用在springboot项目里面吗，还是要引入nop orm？
+
 NopGraphQL可以单独使用。nop-graphql-orm引入两者的集成。只集成NopGraphQL的示例参加nop-spring-simple-demo模块
 
+### 44. 如果，用户保存时，传过来一个不能insert的属性，是由meta将它过滤掉，还是orm层把它忽略掉？
+
+meta层就会过滤，本身很多字段是不允许前台insert，但是后台逻辑是可以insert的。orm层如果设置为insertable为false，则是彻底不生成insert这个字段的sql。
+
+### 45. 现在的save_update方法前台传过来不存在的部分会删除掉，这个怎么去定制不同的保存策略？比如说，我不想让它有删除行为
+
+EntityData entityData = new EntityData<>(data, validated, entity, objMeta);
+data会保留所有前端传入的数据，validated是按照配置验证转换后的结果。这两者都存在
 
 ## 部署问题
 
@@ -527,8 +571,9 @@ NopGraphQL可以单独使用。nop-graphql-orm引入两者的集成。只集成N
 比如说工作流 执行到步骤A，需要增加一个判断条件，不管这个判断怎么写，它本质上都对应于一个判断函数。在工作流引擎的设计中，有些人可能会做如下设计
 
 ```xml
+
 <step>
-    <when class="xxx.MyCondition" />
+  <when class="xxx.MyCondition"/>
 </step>
 ```
 
@@ -570,9 +615,10 @@ return true
 （这类似于我们在表单编辑的过程中配置的是自定义组件，而不是最底层的div/span节点）。
 
 ```xml
+
 <and>
-    <app:已经成年/>
-    <app:性别为男/>
+  <app:已经成年/>
+  <app:性别为男/>
 </and>
 ```
 
@@ -594,7 +640,8 @@ xlib就是xpl模板语言的函数库，一般写在自己模块的xlib目录下
 
 通过Nop平台的代码生成器，我们可以根据Excel中的数据模型定义一路推导得到前端页面，但是每个推导步骤都是可选步骤，并不一定需要前一个步骤的存在。
 
-参考[LoginApiBizModel](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/biz/LoginApiBizModel.java)的实现，我们可以在Java中直接编写一个BizModel类，然后在某个beans.xml中注册，即可通过NopGraphQL引擎来调用。
+参考[LoginApiBizModel](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/biz/LoginApiBizModel.java)
+的实现，我们可以在Java中直接编写一个BizModel类，然后在某个beans.xml中注册，即可通过NopGraphQL引擎来调用。
 
 > LoginApiBizModel实现ILoginSpi接口仅仅是为了提高代码可读性和可维护性，并不是必须的。一个BizModel类可以不继承任何基类，也不需要实现任何接口，
 > 本质上BizModel与Spring框架中的Controller类似，只是它不依赖于任何Web运行时环境，返回结果也不要求是POJO等可以直接进行JSON序列化的对象。
@@ -608,16 +655,20 @@ Nop平台的发展目标是成为通用的领域语言工作台，其他都是�
 
 ### 5. Nop平台对于低代码平台这类产品是怎么理解的，它和领域语言的联系是什么
 
-我现在不关注低代码这种产品形态，而是从广义的描述式编程的角度去推进技术发展，不断扩大描述式编程的应用范围，同时实现描述式和命令式编程的无缝融合。低代码要怎么低，在我的文章 \[从可逆计算看LowCode\] (https://zhuanlan.zhihu.com/p/344845973) 有介绍，实际上低代码的实现途径本质上和模型驱动是一样的，模型序列化为文本就是DSL。可逆计算对于模型引入了差量化理解，对于模型的构造和扩展提出了新的技术手段。
+我现在不关注低代码这种产品形态，而是从广义的描述式编程的角度去推进技术发展，不断扩大描述式编程的应用范围，同时实现描述式和命令式编程的无缝融合。低代码要怎么低，在我的文章
+\[从可逆计算看LowCode\] (https://zhuanlan.zhihu.com/p/344845973)
+有介绍，实际上低代码的实现途径本质上和模型驱动是一样的，模型序列化为文本就是DSL。可逆计算对于模型引入了差量化理解，对于模型的构造和扩展提出了新的技术手段。
 
-图灵机能够实现图灵完备的根本原因在于图灵机可以被看作是一种虚拟机，它可以模拟所有其他的自动计算机器，而如果我们不断提升虚拟机的抽象层次，就会得到可以直接"运行"所谓领域特定语言(DSL)的虚拟机，但是因为DSL关注的重点是特定领域概念，它必然无法以最便利的方式表达所有通用计算逻辑（否则它就成为了通用语言），必然会导致某种信息溢出，成为所谓的Delta项。
+图灵机能够实现图灵完备的根本原因在于图灵机可以被看作是一种虚拟机，它可以模拟所有其他的自动计算机器，而如果我们不断提升虚拟机的抽象层次，就会得到可以直接"
+运行"所谓领域特定语言(DSL)的虚拟机，但是因为DSL关注的重点是特定领域概念，它必然无法以最便利的方式表达所有通用计算逻辑（否则它就成为了通用语言），必然会导致某种信息溢出，成为所谓的Delta项。
 
 在第一代、第二代、第三代程序语言的发展过程中，不断的提升抽象层次，但它们仍然都是通用程序语言，但是发展到第四代程序语言，我们很可能得到的不是另一种通用程序语言，而是大量领域特定语言所构成的DSL森林，通过它们我们可以形成对原有程序结构的一种新的表示和认知。
 
 ### 6. Excel模型中的appName，必须是两级名字吗，如果一级或者三级会有什么问题，这个限制比较奇怪。另外，自动成为两级目录名，这里的目录是指src下的包目录吗？
 
 这个两级目录名是对应于 `src/resources/_vfs/xxx/yyy`这里的目录名，是虚拟文件系统中的子目录名。
-目前限制为两级，因为平台启动的时候有一个模块扫描的过程，为了限制模块扫描的范围，目前只扫描两级目录，发现存在 `/_vfs/xxx/yyy/_module`文件，就认为是一个模块，会自动加载它的beans目录下的`app-*.beans.xml`文件。
+目前限制为两级，因为平台启动的时候有一个模块扫描的过程，为了限制模块扫描的范围，目前只扫描两级目录，发现存在
+`/_vfs/xxx/yyy/_module`文件，就认为是一个模块，会自动加载它的beans目录下的`app-*.beans.xml`文件。
 
 通过`module:/abc/yy.xml` 这种方式加载文件时会扫描所有模块下的/abc/yy.xml文件，例如`/_vfs/xxx/yyy/abc/yy.xml`
 
@@ -631,7 +682,8 @@ GraphQLWebService提供了基于jaxrs标准的与Web层对接的一个实现。Q
 
 因为NopGraphQL的入口参数和返回结果都是POJO，所以它可以直接应用于批处理引擎以及kafka消息队列处理等场景，甚至在流处理框架中也可以使用。
 
-如果只想使用Nop平台的后端，不想引入前端AMIS技术，可以引入 nop-spring-web-orm-starter（包括GraphQL和ORM）或者nop-spring-core-starter只包含基础的xlang，
+如果只想使用Nop平台的后端，不想引入前端AMIS技术，可以引入
+nop-spring-web-orm-starter（包括GraphQL和ORM）或者nop-spring-core-starter只包含基础的xlang，
 或者引入nop-quarkus-web-orm-starter或者nop-quarkus-core-starter。
 
 starter提供了与spring框架以及quarkus框架的自动集成机制。只要引入相应依赖，应用启动后会自动调用Nop平台的初始化函数（CoreInitialization.initialize()）
@@ -644,11 +696,13 @@ starter提供了与spring框架以及quarkus框架的自动集成机制。只要
 
 ### 8. 如何实现轻关联的机制
 
-能不能实现个轻关联、轻填充的功能，例如：字段默认值可以指定其他表的字段或者直接使用 el 表达式去加载本地的类方法，只需要指定表达式 ${user.userId} 就可以自动填充数据，实际被填充字段的表和表达式之所指定的表之间是没有关联关系的，也不用去指定复杂的关联关系
+能不能实现个轻关联、轻填充的功能，例如：字段默认值可以指定其他表的字段或者直接使用 el
+表达式去加载本地的类方法，只需要指定表达式 ${user.userId} 就可以自动填充数据，实际被填充字段的表和表达式之所指定的表之间是没有关联关系的，也不用去指定复杂的关联关系
 
 解决方案：
 
-1. 内置CrudBizModel已经提供了大量的通用服务获取函数，无需手工编写，而且可以通过graphql的重命名机制来实现字段适配。 例如/r/NopAuthUser\_\_get?id=3\&@selection=name:userName,status:userStatus就可以从后台按照id查询数据并且返回结果为name,status这两个字段。
+1. 内置CrudBizModel已经提供了大量的通用服务获取函数，无需手工编写，而且可以通过graphql的重命名机制来实现字段适配。
+   例如/r/NopAuthUser\_\_get?id=3\&@selection=name:userName,status:userStatus就可以从后台按照id查询数据并且返回结果为name,status这两个字段。
 2. 在meta文件中可以增加自定义的prop，然后在prop的getter配置中写XScript脚本来获取数据，这样可以不需要写xbiz文件。
 3. 如果是使用NopDynEntity机制，则可以在线配置后台服务函数，然后前台去调用后台服务函数来返回数据。
 
@@ -659,7 +713,8 @@ Nop平台中后台服务函数的命名方式是标准化的，/r/{bizObjName}\_
 
 ### 9. 模块化，子系统的概念在Nop平台中如何体现？像企业应用，财务，crm，hr，客户不一定，同时购买，是三个独立的子系统。
 
-采用微服务架构之后，模块化更多的是通过服务划分来解决。Nop平台内部支持两级模块系统，通过虚拟文件系统中的子目录来区分不同的模块。也就是说/nop/auth目录对应于 {vendor}/{subModule}这种模式的模块id.
+采用微服务架构之后，模块化更多的是通过服务划分来解决。Nop平台内部支持两级模块系统，通过虚拟文件系统中的子目录来区分不同的模块。也就是说/nop/auth目录对应于
+{vendor}/{subModule}这种模式的模块id.
 合理安排模块路径，可以实现ap/fin, app/crm, app/hr三个模块独立进行开发、管理。
 Nop平台采用可分可合的设计。如果引入了app/fin模块，就自动具有它的功能。可以每个子模块部署为一个exe，也可以多个子模块打包成单体应用部署为一个exe
 
@@ -681,19 +736,18 @@ Nop只解决结构空间的构造和变换问题。最终语义空间的问题�
 
 可逆计算理论中，Delta合并发生在结构层，此时各种运行时非法的结构都是可以存在的。结构层所在的是可行空间，是所有可能出现的结构的最大集合。
 类似于量子力学在观测之外是可以打破能量守恒定律的，各种量子隧穿是允许的。但是合并完成之后，真正进入可观测、可运行的世界，这时需要经过一系列的规律约束。
-Nop平台内置了多阶段编译能力，在真正运行前提供了很多图灵完备、应用层可介入的验证时机，甚至可以类似于contract based programming，插入单元测试，
+Nop平台内置了多阶段编译能力，在真正运行前提供了很多图灵完备、应用层可介入的验证时机，甚至可以类似于contract based
+programming，插入单元测试，
 在调试模式下通过某些样例测试才能启动。
 
 传统的编程中，结构空间是封闭的，它仅由编译器厂商定义。Nop平台相当于开放了结构空间，允许自定义的结构规则，将编译器的能力开放给应用层。
 前端领域，随着babel的流行，一定程度上已经开放了编译器的部分能力，但是除了少数框架，真正在应用层能用上babel的能力的很少。
 Nop提出一系列的结构规则和使用模式，使得这种能力的使用变得更加简单、直观。
 
-
 ### 11. NopIoC为什么不支持类扫描机制？
 
 内置扫描会破坏可定制性。类注解无法像XML配置文件那样通过简单的方式进行定制。
 要实现扫描也很简单，在`x:gen-extends`段中自己写一个scan标签函数即可，类似于spring2.0中的命名标签。这对性能有一定影响，Nop平台不会内置这个功能
-
 
 ### 12. 在Excel模型中为字段指定了not-pub标签，它是怎么起作用的？只在BizObjectBuilder只找到了整个meta级的not-pub，没有字段级的
 
@@ -702,21 +756,25 @@ prop级别实际上是在代码生成的时候根据`not-pub`标签生成了`pub
 从ORM模型生成xmeta的时候，再把它转换为显性知识。
 
 ### 13. 可逆计算的核心公式 `App = Delta x-extends Generator<DSL>`，在Nop中有Generator是一个理论上的抽象概念，它在Nop平台中对应于多种具体的机制。
+
 1. XCodeGenerator代码生成工具，可以根据Excel模型生成代码，生成的时候会自动覆盖_gen目录下的文件以及所有名称以下划线为前缀的文件。手工编写的代码从自动生成的代码继承，进行差量定制。
 2. 所有的XDSL文件内部都支持x:gen-extends和x:post-extends动态代码生成段，在其中可以通过xpl模板语言来动态生成模型节点，然后再和外部节点进行差量合并。
+
 ```xml
+
 <model x:extends="A,B">
-   <x:gen-extends>
-      <my:GenC/>
-      <my:GenD/>
-   </x:gen-extends>
+  <x:gen-extends>
+    <my:GenC/>
+    <my:GenD/>
+  </x:gen-extends>
   <x:post-extends>
-     <my:GenE/>
-   </x:post-extends>
-   ...
+    <my:GenE/>
+  </x:post-extends>
+  ...
 </model>
 ```
-对应的合并策略为  Result = E x-extends Model x-extends D x-extends C x-extends B x-extends A
+
+对应的合并策略为 Result = E x-extends Model x-extends D x-extends C x-extends B x-extends A
 
 xml格式的模型文件，下划线开头的自动生成的源码，手动编写的源码，还有Generator工具等。其中模型文件对应DSL，那么Generator工具对应的就是公式中的Genetator吗？如果不是，那公式中的Generator对应的是Nop中的哪些部分？
 
@@ -726,4 +784,5 @@ Nop本身支持差量定制，可以在不修改Nop源码的情况下实现深�
 比如说，Nop的XML解析器没有使用JDK内置的，而是自己手工编写的解析器，性能高且没有复杂特性带来的安全漏洞
 
 ### 15. nop-entropy项目是推荐使用quarkus还是springboot？
+
 随便，没有倾向性。国产框架solon也支持

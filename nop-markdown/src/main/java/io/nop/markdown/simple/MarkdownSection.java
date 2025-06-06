@@ -131,6 +131,8 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
         if (meta != null) {
             ret.setMeta(new LinkedHashMap<>(meta));
         }
+        if (tagSet != null)
+            ret.setTagSet(new LinkedHashSet<>(tagSet));
         ret.setTpl(tpl);
         return ret;
     }
@@ -300,18 +302,14 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
 
     public MarkdownSection selectSectionByTag(String tag, boolean autoIncludeChild) {
         return selectSection(section -> {
-            if (autoIncludeChild)
-                return section.containsTag(tag);
-            return !section.hasChild() && section.containsTag(tag);
-        });
+            return section.containsTag(tag);
+        }, autoIncludeChild);
     }
 
     public MarkdownSection selectSectionByTplTag(String tag, boolean autoIncludeChild) {
         return selectSection(section -> {
-            if (autoIncludeChild)
-                return section.containsTplTag(tag);
-            return !section.hasChild() && section.containsTplTag(tag);
-        });
+            return section.containsTplTag(tag);
+        }, autoIncludeChild);
     }
 
     public boolean containsTplTag(String tag) {
@@ -319,7 +317,7 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
     }
 
     public MarkdownSection selectSectionByTitle(String title) {
-        return selectSection(section -> title.equals(section.getTitle()));
+        return selectSection(section -> title.equals(section.getTitle()), true);
     }
 
     /**
@@ -327,12 +325,12 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
      *
      * @param filter 返回为false只是表示没有明确指定要包含当前节点，需要检查它的子节点。如果子节点满足选中条件，则当前节点也要被包含
      */
-    public MarkdownSection selectSection(Predicate<MarkdownSection> filter) {
+    public MarkdownSection selectSection(Predicate<MarkdownSection> filter, boolean autoIncludeChild) {
         return filterSection(section -> {
             if (filter.test(section))
                 return true;
             return section.hasChild() ? null : false;
-        });
+        }, autoIncludeChild);
     }
 
     /**
@@ -341,43 +339,66 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
      * @param filter 返回true表示包含，返回false表示排除，返回null则检查子节点。如果所有子节点都不包含，且当前节点没有被明确指定包含，则不包含
      * @return null如果当前节以及子节都不包含
      */
-    public MarkdownSection filterSection(Function<MarkdownSection, Boolean> filter) {
+    public MarkdownSection filterSection(Function<MarkdownSection, Boolean> filter, boolean autoIncludeChild) {
         Boolean b = filter.apply(this);
-        if (Boolean.TRUE.equals(b))
-            return this;
-        if (Boolean.FALSE.equals(b))
+        if (Boolean.TRUE.equals(b)) {
+            if (autoIncludeChild || !hasChild())
+                return this;
+
+            List<MarkdownSection> children = filterChild(filter, autoIncludeChild);
+
+            // 所有child都被接受，所以直接返回当前节点即可
+            if (children == null)
+                return this;
+
+            MarkdownSection ret = cloneInstance(false);
+            ret.setChildren(children);
+            return ret;
+        }
+
+        if (Boolean.FALSE.equals(b)) {
             return null;
+        }
 
         if (!hasChild())
             return null;
 
-        MarkdownSection ret = null;
+        List<MarkdownSection> children = filterChild(filter, autoIncludeChild);
+
+        // 所有child都被接受，所以直接返回当前节点即可
+        if (children == null)
+            return this;
+
+        // 所有child都被删除了
+        if (children.isEmpty())
+            return null;
+
+        MarkdownSection ret = cloneInstance(false);
+        ret.setChildren(children);
+        return ret;
+    }
+
+    private List<MarkdownSection> filterChild(Function<MarkdownSection, Boolean> filter, boolean autoIncludeChild) {
+        List<MarkdownSection> ret = null;
         for (int i = 0, n = children.size(); i < n; i++) {
             MarkdownSection child = children.get(i);
-            MarkdownSection newChild = child.filterSection(filter);
+            MarkdownSection newChild = child.filterSection(filter, autoIncludeChild);
             if (newChild != child) {
                 if (ret == null) {
-                    ret = this.cloneInstance(false);
+                    ret = new ArrayList<>();
 
                     for (int j = 0; j < i; j++) {
-                        ret.addChild(children.get(j));
+                        ret.add(children.get(j));
                     }
                 }
 
                 if (newChild != null)
-                    ret.addChild(newChild);
+                    ret.add(newChild);
             } else {
                 if (ret != null)
-                    ret.addChild(newChild);
+                    ret.add(newChild);
             }
         }
-
-        if (ret == null)
-            return this;
-
-        if (!ret.hasChild())
-            return null;
-
         return ret;
     }
 
@@ -386,7 +407,11 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
     }
 
     public Boolean removeSectionByTitle(String title) {
-        return removeSection(section -> title.equals(section.getTitle()), false);
+        return removeSection(section -> title.equals(section.getTitle()) ? true : null, false);
+    }
+
+    public Boolean removeSectionByTag(String tag) {
+        return removeSection(section -> section.containsTag(tag) ? true : null, true);
     }
 
     public Boolean removeSection(Function<MarkdownSection, Boolean> filter, boolean multiple) {
@@ -404,8 +429,7 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
                     i--;
                     n--;
                     if (!multiple)
-                        return true;
-                    b = true;
+                        return null;
                 }
             }
 
@@ -415,7 +439,7 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
             }
         }
 
-        return b;
+        return null;
     }
 
     public Set<String> getAllTitles() {
