@@ -48,12 +48,13 @@ template: |
   ## 4. 数据库设计补充
    **极端重要**: 仔细考虑业务处理流程，需要用到的各种关键业务字段比如状态字段，以及相关明细表等必须要在数据库设计中体现。
   如果API接口设计过程中发现数据库设计需要调整，则通过`&lt;orm:delta>`节点返回数据库设计变更。
-  <ai-coder:IncludeText fileName="v:/nop/ai/prompts/coder/orm-model.md" xpl:lib="/nop/ai/xlib/ai-coder.xlib" />
+  <c:include src="/nop/ai/prompts/coder/orm-model.md" type="text" />
   
   【输出要求】
    - 仅需提交**新增字典**和**非CRUD服务方法**，已存在的（包括&lt;orm:delta>中补充的）内容无需重复。
    - generic-type表示该部分可以使用Java泛型语法，比如`List&lt;Order>`等
    - 当前操作人、租户等信息会通过上下文自动传递，不需要在requestMessage中声明
+   - 在`&lt;orm:delta>`中新增的字典以及已有的字典不需要在`&lt;api>&dicts>`段中重复定义
       
 
   【已有字典定义】

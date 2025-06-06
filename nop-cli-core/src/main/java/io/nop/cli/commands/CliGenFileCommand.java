@@ -22,8 +22,10 @@ import io.nop.report.core.engine.IReportEngine;
 import io.nop.report.core.engine.IReportRendererFactory;
 import io.nop.report.core.engine.ReportEngine;
 import io.nop.report.core.engine.renderer.HtmlReportRendererFactory;
+import io.nop.report.core.engine.renderer.SimpleHtmlReportRendererFactory;
 import io.nop.report.core.engine.renderer.XlsxReportRendererFactory;
 import io.nop.report.core.util.ExcelReportHelper;
+import io.nop.report.pdf.renderer.PdfReportRendererFactory;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdsl.DslModelHelper;
 import picocli.CommandLine;
@@ -90,7 +92,7 @@ public class CliGenFileCommand implements Callable<Integer> {
         IEvalScope scope = XLang.newEvalScope();
         scope.setLocalValues(json);
 
-        if(dynamicParams != null)
+        if (dynamicParams != null)
             dynamicParams.forEach(scope::setLocalValue);
 
         if (template.endsWith(".xdef")) {
@@ -127,6 +129,8 @@ public class CliGenFileCommand implements Callable<Integer> {
         Map<String, IReportRendererFactory> renderers = new HashMap<>();
         renderers.put(XptConstants.RENDER_TYPE_XLSX, new XlsxReportRendererFactory());
         renderers.put(XptConstants.RENDER_TYPE_HTML, new HtmlReportRendererFactory());
+        renderers.put(XptConstants.RENDER_TYPE_SHTML, new SimpleHtmlReportRendererFactory());
+        renderers.put(XptConstants.RENDER_TYPE_PDF, new PdfReportRendererFactory());
         reportEngine.setRenderers(renderers);
         return reportEngine;
     }

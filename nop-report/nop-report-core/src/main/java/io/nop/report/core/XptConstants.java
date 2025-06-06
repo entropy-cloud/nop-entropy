@@ -58,6 +58,7 @@ public interface XptConstants {
     List<String> ALLOWED_XPT_FILE_TYPES = Arrays.asList(FILE_TYPE_XPT_XML, FILE_TYPE_XPT_XLSX);
 
     String RENDER_TYPE_HTML = "html";
+    String RENDER_TYPE_SHTML = "shtml";
     String RENDER_TYPE_WORD = "word";
     String RENDER_TYPE_XLSX = "xlsx";
     String RENDER_TYPE_PDF = "pdf";

@@ -13,4 +13,6 @@
 
     <bean id="nopReportRenderer_html" class="io.nop.report.core.engine.renderer.HtmlReportRendererFactory"/>
 
+    <bean id="nopReportRenderer_shtml" class="io.nop.report.core.engine.renderer.SimpleHtmlReportRendererFactory"/>
+
 </beans>

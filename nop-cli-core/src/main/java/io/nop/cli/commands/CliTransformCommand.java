@@ -8,13 +8,25 @@ import io.nop.core.model.object.DynamicObject;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.FileResource;
+import io.nop.excel.model.ExcelWorkbook;
+import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
+import io.nop.report.core.XptConstants;
+import io.nop.report.core.engine.IReportEngine;
+import io.nop.report.core.engine.IReportRendererFactory;
+import io.nop.report.core.engine.ReportEngine;
+import io.nop.report.core.engine.renderer.HtmlReportRendererFactory;
+import io.nop.report.core.engine.renderer.SimpleHtmlReportRendererFactory;
+import io.nop.report.core.engine.renderer.XlsxReportRendererFactory;
 import io.nop.report.core.util.ExcelReportHelper;
+import io.nop.report.pdf.renderer.PdfReportRendererFactory;
+import io.nop.xlang.api.XLang;
 import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.IXDslModel;
 import io.nop.xlang.xdsl.XDslKeys;
 import picocli.CommandLine;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
@@ -41,18 +53,27 @@ public class CliTransformCommand implements Callable<Integer> {
     OutputFormat format;
 
     enum OutputFormat {
-        xml, json, json5, yaml, xlsx
+        xml, json, json5, yaml, xlsx, html, pdf, shtml,
     }
 
     @Override
     public Integer call() {
         // 解析输入文件
         IResource inputResource = ResourceHelper.resolveRelativePathResource(inputFile);
-        Object model = parseInput(inputResource);
 
         // 确定输出文件和格式
         File outputFile = determineOutputFile();
         OutputFormat format = determineOutputFormat(outputFile);
+
+        if (inputResource.getName().endsWith(".xlsx")) {
+            if (format == OutputFormat.html || format == OutputFormat.shtml || format == OutputFormat.pdf) {
+                // 特殊处理Excel的格式转换
+                transformExcel(inputResource, format, outputFile);
+                return 0;
+            }
+        }
+
+        Object model = parseInput(inputResource);
 
         // 执行转换
         transformModel(model, format, outputFile);
@@ -108,6 +129,9 @@ public class CliTransformCommand implements Callable<Integer> {
         if (fileName.endsWith(".json5")) return OutputFormat.json5;
         if (fileName.endsWith(".yml")) return OutputFormat.yaml;
         if (fileName.endsWith(".yaml")) return OutputFormat.yaml;
+        if (fileName.endsWith(".html")) return OutputFormat.html;
+        if (fileName.endsWith(".shtml")) return OutputFormat.shtml;
+        if (fileName.endsWith(".pdf")) return OutputFormat.pdf;
 
         // 默认使用JSON格式
         return OutputFormat.json;
@@ -120,8 +144,10 @@ public class CliTransformCommand implements Callable<Integer> {
             saveAsXlsx(model, outputFile);
         } else if (format == OutputFormat.yaml) {
             saveAsYaml(model, outputFile);
-        } else {
+        } else if (format == OutputFormat.json) {
             saveAsJson(model, outputFile);
+        } else {
+            throw new IllegalArgumentException("不支持的输出格式: " + format);
         }
     }
 
@@ -159,5 +185,22 @@ public class CliTransformCommand implements Callable<Integer> {
     private void saveAsJson(Object model, File outputFile) {
         String json = JsonTool.serialize(model, true);
         FileHelper.writeText(outputFile, json, null);
+    }
+
+    private void transformExcel(IResource inputResource, OutputFormat format, File outputFile) {
+        IReportEngine reportEngine = newReportEngine();
+        ExcelWorkbook workbook = new ExcelWorkbookParser().parseFromResource(inputResource);
+        reportEngine.getRendererForExcel(workbook, format.name()).generateToFile(outputFile, XLang.newEvalScope());
+    }
+
+    private IReportEngine newReportEngine() {
+        ReportEngine reportEngine = new ReportEngine();
+        Map<String, IReportRendererFactory> renderers = new HashMap<>();
+        renderers.put(XptConstants.RENDER_TYPE_XLSX, new XlsxReportRendererFactory());
+        renderers.put(XptConstants.RENDER_TYPE_HTML, new HtmlReportRendererFactory());
+        renderers.put(XptConstants.RENDER_TYPE_SHTML, new SimpleHtmlReportRendererFactory());
+        renderers.put(XptConstants.RENDER_TYPE_PDF, new PdfReportRendererFactory());
+        reportEngine.setRenderers(renderers);
+        return reportEngine;
     }
 }

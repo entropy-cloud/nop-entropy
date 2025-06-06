@@ -113,7 +113,8 @@ public class HtmlTableOutput implements ITextTemplateOutput {
         }
         if (cell == null) {
             out.write("<td ");
-            writeAttr(out, "class", cellClass);
+            if (!disableStyle)
+                writeAttr(out, "class", cellClass);
             out.write("></td>");
             return;
         }
@@ -123,7 +124,8 @@ public class HtmlTableOutput implements ITextTemplateOutput {
         out.write("<td ");
         writeAttr(out, "id", cell.getId());
 
-        writeAttr(out, "class", cellClass(styleClass(cellClass, cell.getStyleId()), cell));
+        if (!disableStyle)
+            writeAttr(out, "class", cellClass(styleClass(cellClass, cell.getStyleId()), cell));
 
         if (cell.getMergeAcross() > 0) {
             writeAttr(out, "colspan", cell.getColSpan());
@@ -199,7 +201,8 @@ public class HtmlTableOutput implements ITextTemplateOutput {
         String tableId = table.getId();
         writeAttr(out, "id", tableId);
 
-        writeAttr(out, "class", styleClass(tableClass, table.getStyleId()));
+        if (!disableStyle)
+            writeAttr(out, "class", styleClass(tableClass, table.getStyleId()));
 
         if (table.getSideCount() > 0)
             writeAttr(out, "data-side-count", table.getSideCount());
@@ -278,7 +281,9 @@ public class HtmlTableOutput implements ITextTemplateOutput {
         out.write("\n<tr ");
         writeAttr(out, "id", row.getId());
 
-        writeAttr(out, "class", rowClass(row.getStyleId(), row.isHidden()));
+        if(!disableStyle)
+            writeAttr(out, "class", rowClass(row.getStyleId(), row.isHidden()));
+
         Double height = row.getHeight();
         if (height == null)
             height = defaultHeight;
