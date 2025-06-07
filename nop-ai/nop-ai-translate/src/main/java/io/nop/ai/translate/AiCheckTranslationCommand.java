@@ -20,13 +20,8 @@ public class AiCheckTranslationCommand extends AiCommand {
     private String toLang;
 
     public AiCheckTranslationCommand(IAiChatService chatService, IPromptTemplateManager promptTemplateManager, String promptName) {
-        super(chatService);
+        super(chatService,promptTemplateManager);
         setPromptTemplate(promptTemplateManager.getPromptTemplate(promptName));
-    }
-
-    public AiCheckTranslationCommand(IAiChatService chatService, IPromptTemplate promptTemplate) {
-        super(chatService);
-        setPromptTemplate(promptTemplate);
     }
 
     public String getFromLang() {
