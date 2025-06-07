@@ -47,7 +47,7 @@ template: |
   
   ## 4. 数据库设计补充
    **极端重要**: 仔细考虑业务处理流程，需要用到的各种关键业务字段比如状态字段，以及相关明细表等必须要在数据库设计中体现。
-  如果API接口设计过程中发现数据库设计需要调整，则通过`&lt;orm:delta>`节点返回数据库设计变更。
+  如果API接口设计过程中发现数据库设计需要调整，则通过`&lt;orm:delta>`节点返回数据库设计变更。变更通过Nop平台的Delta差量语法表达，通过`x:override="remove"`表示删除节点。
   <c:include src="/nop/ai/prompts/coder/orm-model.md" type="text" />
   
   【输出要求】

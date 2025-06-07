@@ -59,7 +59,7 @@
                         const useCaseNos = method['app:useCaseNo'].$toCsvSet();
                         return requirementsDoc.selectSection(section=>{
                             return useCaseNos?.contains(section.refId);
-                        }).toText();
+                        },true).toText();
                     ]]></source>
 
                     <output name="RESULT" exportAs="useCaseRequirements"/>
