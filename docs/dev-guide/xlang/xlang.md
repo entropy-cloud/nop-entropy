@@ -34,7 +34,7 @@ XDef描述如下：
 <!--
 @interval 当有任务进行中，会每隔一段时间再次检测，而时间间隔就是通过此项配置，默认 3s
 -->
-<tasks interval="number:3000" xdef:key-attr="id" xdef:body-type="list">
+<tasks interval="number=3000" xdef:key-attr="id" xdef:body-type="list">
   <!--
     @id 任务的唯一id
     @label 任务名称
@@ -43,7 +43,7 @@ XDef描述如下：
                   2: 进行中，还没有结束。  3：有错误，不可重试。
                   4: 已正常结束。        5：有错误，且可以重试
   -->
-  <task id="!string" label="string" status="enum:nop/task/task-status" />
+  <task id="!string" label="string" status="dict:nop/task/task-status" />
 </tasks>
 ```
 
