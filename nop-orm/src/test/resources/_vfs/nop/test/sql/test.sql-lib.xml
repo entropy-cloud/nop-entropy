@@ -3,9 +3,9 @@
 
 
     <sqls>
-        <sql name="select" sqlMethod="findFirst" rowType="io.nop.orm.entity.MyEntity">
+        <sql name="select" sqlMethod="findFirst" rowType="io.nop.orm.entity.MyEntity" colNameCamelCase="true">
             <fields>
-                <field index="0" stdSqlType="DATE"/>
+                <field name="my_date" stdSqlType="DATE"/>
             </fields>
             <source> 
                 select d as my_date, a,b,c

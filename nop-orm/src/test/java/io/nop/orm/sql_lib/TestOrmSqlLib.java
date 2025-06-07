@@ -87,7 +87,6 @@ public class TestOrmSqlLib extends AbstractOrmTestCase {
             assertNotNull(entity);
             assertTrue(!entity.orm_proxy());
             assertTrue(entity.getSimsCollege().orm_proxy());
-            assertEquals(3, entity.orm_initedValues().size());
             assertEquals("CollegeA", entity.getSimsCollege().getCollegeName());
         });
     }

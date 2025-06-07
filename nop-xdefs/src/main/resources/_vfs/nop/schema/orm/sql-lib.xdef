@@ -22,7 +22,7 @@
         -->
     <xdef:define xdef:name="SqlItemModel" name="!var-name" displayName="string"
                  rowType="class-name" sqlMethod="enum:io.nop.orm.sql_lib.SqlMethod"
-                 cacheName="string" cacheKeyExpr="expr"  disableSmartRowMapper="!boolean=false"
+                 cacheName="string" cacheKeyExpr="expr" disableSmartRowMapper="!boolean=false"
                  querySpace="string=default" fetchSize="int" timeout="int" disableLogicalDelete="!boolean=false"
                  ormEntityRefreshBehavior="enum:io.nop.orm.sql_lib.OrmEntityRefreshBehavior=errorWhenDirty"
                  xdef:bean-tag-prop="type"
@@ -41,8 +41,19 @@
         <!--
         为sql查询语句补充列的类型信息，便于从ResultSet中抽取指定类型的数据，避免返回数据库引擎内部的数据类型
         -->
-        <fields xdef:body-type="list" xdef:key-attr="index">
-            <field index="!int" stdSqlType="!std-sql-type" xdef:name="SqlFieldModel"/>
+        <fields xdef:body-type="list" xdef:key-attr="name">
+            <!--
+            @as 如果指定了as，则重命名该字段值
+            @stdSqlType DataSet上提供了getBoolean等一系列读取方法，stdSqlType指定使用哪个方法去读取。
+            @stdDataType 如果指定这个属性，则从DataSet读取后会执行转型操作。比如按照DATETIME类型读取，但是转换为String返回等
+            -->
+            <field name="!string" as="string" stdSqlType="std-sql-type" stdDataType="std-data-type"
+                   xdef:name="SqlFieldModel">
+                <!--
+                 如果指定了computeExpr，则这个值不从数据库获取，直接在java中计算得到。计算表达式在所有其他字段值获取之后执行。
+                 -->
+                <computeExpr xdef:value="xpl-fn:(row,fieldModel)=>any"/>
+            </field>
         </fields>
 
         <!--
@@ -56,9 +67,9 @@
             <schema xdef:ref="../schema/schema.xdef"/>
         </arg>
 
-        <buildRowMapper xdef:value="xpl"/>
+        <buildRowMapper xdef:value="xpl-fn:(sqlItemModel)=>any"/>
 
-        <buildResult xdef:value="xpl"/>
+        <buildResult xdef:value="xpl-fn:(row,sqlItemModel)=>any"/>
 
     </xdef:define>
 

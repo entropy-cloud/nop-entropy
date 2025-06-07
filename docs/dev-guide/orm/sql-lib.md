@@ -299,6 +299,63 @@ interface MyMapper{
 </eql>
 ```
 
+## 11. 字段映射（Field Mapping）
+
+```xml
+<sql name="findByXX" colNameCamelCase="true">
+  <fields>
+    <field name="my_date" as="myDate2" stdSqlType="DATE" />
+  </fields>
+</sql>
+```
+
+1. **`stdSqlType` 属性**
+  - 指定从 `IDataSet` 读取数据时使用的 SQL 类型（如 `DATE`/`TIMESTAMP`/`BLOB`）
+  - 系统会根据类型调用对应方法（如 `getDate()` 而非 `getObject()`）
+  - 未指定时默认使用 `getObject()`
+
+2. **`as` 属性**
+  - 重命名字段（如 `my_date → myDate2`）
+  - 支持嵌套属性（如 `a.b.c` 会生成 `{a: {b: {c: value}}}` 结构）
+  - 未指定时：
+    - 若 `colNameCamelCase=true`，自动转为驼峰命名（如 `user_name → userName`）
+    - 否则保持原始列名
+
+3. **`colNameCamelCase` 属性**
+  - 全局开关（位于 `<sql>` 节点）
+  - 为所有未显式定义 `as` 的字段启用驼峰命名转换
+  - 优先级：显式 `as` > 驼峰转换 > 原始列名
+
+---
+
+## 12. 行类型（rowType）
+
+```xml
+<sql name="findByXX" rowType="xxx.MyEntity" colNameCamelCase="true">
+  ...
+</sql>
+```
+
+1. **实体类型（Entity）**
+  - 当 `rowType` 是 ORM 实体类（如 `xxx.MyEntity`）时：
+    - 若查询结果包含该实体的**主键字段**，自动构建实体对象
+    - 实体将与当前 `OrmSession` 绑定（支持懒加载/脏检查等 ORM 特性）
+
+2. **非实体类型**
+  - 当 `rowType` 是普通 DTO 或 Map 时：
+    - 直接将查询结果转换为指定类型
+    - 支持基础类型（如 `rowType="java.lang.Integer"`）
+    - 支持嵌套对象（需匹配字段映射规则）
+
+3. **`colNameCamelCase` 协同工作**
+  - 驼峰命名转换对 `rowType` 映射同样生效
+  - 需确保转换后的字段名与目标类属性名匹配
+
+#### 注意事项：
+- 若实体主键未出现在查询结果中，会退转为普通对象（无 ORM 特性）
+- 嵌套属性路径（如 `a.b.c`）要求目标类具有对应的层级结构
+
+
 ## 与MyBatis的对比
 
 | MyBatis         |Nop平台|

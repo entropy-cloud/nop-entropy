@@ -8,9 +8,10 @@
 package io.nop.orm.sql_lib;
 
 import io.nop.api.core.beans.LongRangeBean;
-import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.cache.CacheRef;
 import io.nop.commons.text.marker.IMarkedString;
+import io.nop.commons.type.StdDataType;
+import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IEvalContext;
@@ -27,7 +28,7 @@ import io.nop.dao.dialect.IDialect;
 import io.nop.dataset.IFieldMapper;
 import io.nop.dataset.IRowMapper;
 import io.nop.dataset.binder.IDataParameterBinder;
-import io.nop.dataset.impl.BinderFieldMapper;
+import io.nop.dataset.impl.BinderMapFieldMapper;
 import io.nop.dataset.rowmapper.ColRowMapper;
 import io.nop.dataset.rowmapper.ColumnMapRowMapper;
 import io.nop.dataset.rowmapper.SmartRowMapper;
@@ -35,19 +36,15 @@ import io.nop.orm.IOrmEntity;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.dao.IOrmEntityDao;
-import io.nop.orm.dataset.OrmEntityRowMapper;
+import io.nop.orm.dataset.OrmEntityBuilder;
 import io.nop.orm.sql_lib._gen._SqlItemModel;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static io.nop.orm.OrmErrors.ARG_INDEX;
-import static io.nop.orm.OrmErrors.ARG_SQL_NAME;
-import static io.nop.orm.OrmErrors.ERR_SQL_LIB_INVALID_COL_INDEX;
 
 public abstract class SqlItemModel extends _SqlItemModel {
     private SqlLibModel sqlLibModel;
@@ -149,24 +146,38 @@ public abstract class SqlItemModel extends _SqlItemModel {
 
     protected Object buildResult(Object result, IEvalScope scope) {
         if (getBuildResult() != null) {
-            scope.setLocalValue(OrmConstants.PARAM_DATA, result);
-            result = getBuildResult().invoke(scope);
+
+            result = getBuildResult().call1(null, result, scope);
         }
         return result;
+    }
+
+    protected IOrmEntityDao<IOrmEntity> rowTypeDao(IDaoProvider daoProvider) {
+        if (daoProvider == null)
+            return null;
+
+        String rowType = getRowType();
+        if (rowType == null)
+            return null;
+
+        if (daoProvider.hasDao(rowType))
+            return (IOrmEntityDao) daoProvider.dao(rowType);
+
+        return null;
     }
 
     protected List<Object> processResult(List<Object> data, ISqlExecutor executor, IDaoProvider daoProvider) {
         if (data.isEmpty())
             return data;
 
-        if (getBatchLoadSelection() != null && executor instanceof IOrmTemplate) {
-            ((IOrmTemplate) executor).batchLoadSelection(data, getBatchLoadSelection());
-        }
+        if (getRowType() != null) {
+            IOrmEntityDao<IOrmEntity> dao = rowTypeDao(daoProvider);
 
-        if (getRowType() != null && !hasDaoForRowType(daoProvider)) {
             IBeanModel beanModel = ReflectionManager.instance().loadBeanModel(getRowType());
             data = data.stream().map(item -> {
                 if (item instanceof Map) {
+                    if (dao != null)
+                        return new OrmEntityBuilder<>(dao, getOrmEntityRefreshBehavior()).buildEntity((Map<String, Object>) item);
                     return BeanRowMapper.newBean(beanModel, (Map<String, Object>) item, false);
                 } else {
                     return BeanTool.buildBean(item, beanModel.getType());
@@ -174,60 +185,61 @@ public abstract class SqlItemModel extends _SqlItemModel {
             }).collect(Collectors.toList());
         }
 
-        return data;
-    }
+        if (getBatchLoadSelection() != null && executor instanceof IOrmTemplate) {
+            ((IOrmTemplate) executor).batchLoadSelection(data, getBatchLoadSelection());
+        }
 
-    protected boolean hasDaoForRowType(IDaoProvider daoProvider) {
-        if (getRowType() == null || daoProvider == null)
-            return false;
-        return daoProvider.hasDao(getRowType());
+        return data;
     }
 
     protected Object processSingleResult(Object data, ISqlExecutor executor, IDaoProvider daoProvider) {
         if (data == null)
             return null;
 
-        if (getBatchLoadSelection() != null && executor instanceof IOrmTemplate) {
-            ((IOrmTemplate) executor).batchLoadSelection(Collections.singleton(data), getBatchLoadSelection());
-        }
-
-        if (getRowType() != null && !hasDaoForRowType(daoProvider)) {
+        if (getRowType() != null) {
+            IOrmEntityDao<IOrmEntity> dao = rowTypeDao(daoProvider);
             IBeanModel beanModel = ReflectionManager.instance().loadBeanModel(getRowType());
 
             if (data instanceof Map) {
+                if (dao != null)
+                    return new OrmEntityBuilder<>(dao, getOrmEntityRefreshBehavior()).buildEntity((Map<String, Object>) data);
+
                 return BeanRowMapper.newBean(beanModel, (Map<String, Object>) data, false);
             } else {
                 return BeanTool.buildBean(data, beanModel.getRawClass());
             }
         }
+
+        if (getBatchLoadSelection() != null && executor instanceof IOrmTemplate) {
+            ((IOrmTemplate) executor).batchLoadSelection(Collections.singleton(data), getBatchLoadSelection());
+        }
+
         return data;
     }
 
     protected IRowMapper buildRowMapper(IDaoProvider daoProvider, ISqlExecutor executor, String querySpace, IEvalScope scope) {
-        if (getRowType() != null && hasDaoForRowType(daoProvider)) {
-            // 行为实体对象
-            IOrmEntityDao<IOrmEntity> entityDao = (IOrmEntityDao) daoProvider.dao(getRowType());
-            return new OrmEntityRowMapper<>(entityDao, isColNameCamelCase(), getOrmEntityRefreshBehavior());
-        }
+        boolean sql = DaoConstants.SQL_TYPE_SQL.equals(getType());
+
         IRowMapper rowMapper;
-        if (DaoConstants.SQL_TYPE_SQL.equals(getType())) {
-            rowMapper = isColNameCamelCase() ? ColumnMapRowMapper.CASE_INSENSITIVE : ColumnMapRowMapper.CAMEL_CASE;
+        if (hasFields()) {
+            rowMapper = new SqlFiledRowMapper(this, sql, scope);
         } else {
-            // eql语法时列名就是指定的属性名，不需要作camelCase转换
-            rowMapper = ColumnMapRowMapper.INSTANCE;
+            if (sql) {
+                rowMapper = isColNameCamelCase() ? ColumnMapRowMapper.CAMEL_CASE : ColumnMapRowMapper.CASE_INSENSITIVE;
+            } else {
+                // eql语法时列名就是指定的属性名，不需要作camelCase转换
+                rowMapper = ColumnMapRowMapper.INSTANCE;
+            }
         }
+
+        IDialect dialect = executor.getDialectForQuerySpace(querySpace);
+        IFieldMapper colMapper = buildColMapper(dialect, sql);
+        if (colMapper != null)
+            rowMapper = new ColRowMapper<>(rowMapper, colMapper);
         scope.setLocalValue(OrmConstants.PARAM_ROW_MAPPER, rowMapper);
 
-        if (hasFields()) {
-            IDialect dialect = executor.getDialectForQuerySpace(querySpace);
-            IFieldMapper colMapper = buildColMapper(dialect);
-            scope.setLocalValue(OrmConstants.PARAM_COL_MAPPER, colMapper);
-            rowMapper = new ColRowMapper<>(rowMapper, colMapper);
-            scope.setLocalValue(OrmConstants.PARAM_ROW_MAPPER, rowMapper);
-        }
-
         if (getBuildRowMapper() != null) {
-            Object result = getBuildRowMapper().invoke(scope);
+            Object result = getBuildRowMapper().call1(null, this, scope);
             if (result instanceof IRowMapper) {
                 rowMapper = ((IRowMapper) result);
             }
@@ -240,20 +252,30 @@ public abstract class SqlItemModel extends _SqlItemModel {
         return rowMapper;
     }
 
-    private IFieldMapper buildColMapper(IDialect dialect) {
-        List<IDataParameterBinder> binders = new ArrayList<>();
-        for (SqlFieldModel colModel : getFields()) {
-            if (colModel.getIndex() < 0 || colModel.getIndex() > 1000)
-                throw new NopException(ERR_SQL_LIB_INVALID_COL_INDEX).loc(getLocation())
-                        .param(ARG_INDEX, colModel.getIndex()).param(ARG_SQL_NAME, getName());
+    private IFieldMapper buildColMapper(IDialect dialect, boolean caseInsensitive) {
+        Map<String, IDataParameterBinder> binders = caseInsensitive ?
+                CollectionHelper.newCaseInsensitiveMap(getFields().size()) : new LinkedHashMap<>();
 
-            IDataParameterBinder binder = dialect.getDataParameterBinder(colModel.getStdSqlType().getStdDataType(),
+        for (SqlFieldModel colModel : getFields()) {
+            if (colModel.getComputeExpr() != null)
+                continue;
+
+            if (colModel.getStdSqlType() == null)
+                continue;
+
+            StdSqlType sqlType = colModel.getStdSqlType();
+            StdDataType dataType = sqlType.getStdDataType();
+            if (colModel.getStdDataType() != null)
+                dataType = colModel.getStdDataType();
+
+            IDataParameterBinder binder = dialect.getDataParameterBinder(dataType,
                     colModel.getStdSqlType());
 
             if (binder != null)
-                CollectionHelper.set(binders, colModel.getIndex(), binder);
+                binders.put(colModel.getName(), binder);
         }
-        IFieldMapper colMapper = new BinderFieldMapper(binders);
-        return colMapper;
+        if (binders.isEmpty())
+            return null;
+        return new BinderMapFieldMapper(binders);
     }
 }

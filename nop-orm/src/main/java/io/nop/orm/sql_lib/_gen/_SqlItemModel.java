@@ -42,14 +42,14 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
      * xml name: buildResult
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _buildResult ;
+    private io.nop.core.lang.eval.IEvalFunction _buildResult ;
     
     /**
      *  
      * xml name: buildRowMapper
      * 
      */
-    private io.nop.core.lang.eval.IEvalAction _buildRowMapper ;
+    private io.nop.core.lang.eval.IEvalFunction _buildRowMapper ;
     
     /**
      *  
@@ -83,6 +83,7 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
      *  
      * xml name: disableSmartRowMapper
      * 禁用SmartRowMapper机制。缺省情况下，如果只返回一列数据，比如String类型，会自动转换为单列的List<String>。
+     * 禁用SmartRowMapper之后会始终按照Map读取到行数据，然后再转型到rowType等。
      */
     private boolean _disableSmartRowMapper  = false;
     
@@ -252,12 +253,12 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getBuildResult(){
+    public io.nop.core.lang.eval.IEvalFunction getBuildResult(){
       return _buildResult;
     }
 
     
-    public void setBuildResult(io.nop.core.lang.eval.IEvalAction value){
+    public void setBuildResult(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._buildResult = value;
@@ -271,12 +272,12 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
      *  
      */
     
-    public io.nop.core.lang.eval.IEvalAction getBuildRowMapper(){
+    public io.nop.core.lang.eval.IEvalFunction getBuildRowMapper(){
       return _buildRowMapper;
     }
 
     
-    public void setBuildRowMapper(io.nop.core.lang.eval.IEvalAction value){
+    public void setBuildRowMapper(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._buildRowMapper = value;
@@ -364,6 +365,7 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
      * 
      * xml name: disableSmartRowMapper
      *  禁用SmartRowMapper机制。缺省情况下，如果只返回一列数据，比如String类型，会自动转换为单列的List<String>。
+     * 禁用SmartRowMapper之后会始终按照Map读取到行数据，然后再转型到rowType等。
      */
     
     public boolean isDisableSmartRowMapper(){
@@ -431,7 +433,7 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
     public void setFields(java.util.List<io.nop.orm.sql_lib.SqlFieldModel> value){
         checkAllowChange();
         
-        this._fields = KeyedList.fromList(value, io.nop.orm.sql_lib.SqlFieldModel::getIndex);
+        this._fields = KeyedList.fromList(value, io.nop.orm.sql_lib.SqlFieldModel::getName);
            
     }
 
@@ -448,7 +450,7 @@ public abstract class _SqlItemModel extends io.nop.core.resource.component.Abstr
         checkAllowChange();
         java.util.List<io.nop.orm.sql_lib.SqlFieldModel> list = this.getFields();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.orm.sql_lib.SqlFieldModel::getIndex);
+            list = new KeyedList<>(io.nop.orm.sql_lib.SqlFieldModel::getName);
             setFields(list);
         }
         list.add(item);
