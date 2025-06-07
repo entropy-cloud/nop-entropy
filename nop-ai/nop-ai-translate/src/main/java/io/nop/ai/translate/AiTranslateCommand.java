@@ -62,13 +62,13 @@ public class AiTranslateCommand extends AiCommand {
     private File debugDir;
     private boolean recoverMode = false;
 
-    public AiTranslateCommand(IAiChatService chatService, IPromptTemplate promptTemplate) {
-        super(chatService);
+    public AiTranslateCommand(IAiChatService chatService, IPromptTemplateManager promptTemplateManager, IPromptTemplate promptTemplate) {
+        super(chatService, promptTemplateManager);
         this.setPromptTemplate(promptTemplate);
     }
 
     public AiTranslateCommand(IAiChatService chatService, IPromptTemplateManager promptTemplateManager, String promptName) {
-        this(chatService, promptTemplateManager.getPromptTemplate(promptName));
+        this(chatService, promptTemplateManager, promptTemplateManager.getPromptTemplate(promptName));
     }
 
     public boolean isDebug() {
