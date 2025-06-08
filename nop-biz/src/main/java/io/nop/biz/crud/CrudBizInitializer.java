@@ -35,6 +35,13 @@ public class CrudBizInitializer implements IGraphQLBizInitializer {
 
     private List<IActionDecoratorCollector> collectors;
 
+    private CrudToolProvider crudToolProvider;
+
+    @Inject
+    public void setCrudToolProvider(CrudToolProvider crudToolProvider) {
+        this.crudToolProvider = crudToolProvider;
+    }
+
     @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {
         this.daoProvider = daoProvider;
@@ -61,6 +68,7 @@ public class CrudBizInitializer implements IGraphQLBizInitializer {
         biz.setDaoProvider(daoProvider);
         biz.setTransactionTemplate(transactionTemplate);
         biz.setBizObjectManager(bizObjectManager);
+        biz.setCrudToolProvider(crudToolProvider);
         return biz;
     }
 
