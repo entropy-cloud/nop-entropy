@@ -101,56 +101,42 @@ public class WordTableParser {
 
     String parseData(XNode node) {
         return WordXmlHelper.getText(node);
-        // StringBuilder sb = new StringBuilder();
-        // int i, n = node.getChildCount();
-        // int nCount = 0;
-        // for (i = 0; i < n; i++) {
-        // XNode child = node.child(i);
-        // String name = child.getTagName();
-        // if (name.equals("w:p")) {
-        // if (nCount != 0)
-        // sb.append("\n");
-        // parseP(child, sb);
-        // nCount++;
-        // }
-        // }
-        // return sb.toString();
     }
 
-    void parseP(XNode pN, StringBuilder sb) {
-        int i, n = pN.getChildCount();
-        for (i = 0; i < n; i++) {
-            XNode child = pN.child(i);
-            if (child.getTagName().equals("w:r")) {
-                parseR(child, sb);
-            }
-        }
-    }
-
-    void parseR(XNode node, StringBuilder sb) {
-        if (node.hasChild()) {
-            int i, n = node.getChildCount();
-            for (i = 0; i < n; i++) {
-                XNode child = node.child(i);
-                String name = child.getTagName();
-                if (name.equals("w:rPr")) {
-                    continue;
-                } else if (name.equals("w:br")) {
-                    sb.append("\n");
-                } else if (child.isTextNode()) {
-                    sb.append(child.content());
-                } else if (name.equals("w:t") && !child.hasChild()) {
-                    sb.append(child.content());
-                } else if (name.equals("w:pict") || name.equals("w:binData")) {
-                    continue;
-                } else {
-                    parseR(child, sb);
-                }
-            }
-        } else if (node.getTagName().equals("w:t")) {
-            sb.append(node.content());
-        }
-    }
+//    void parseP(XNode pN, StringBuilder sb) {
+//        int i, n = pN.getChildCount();
+//        for (i = 0; i < n; i++) {
+//            XNode child = pN.child(i);
+//            if (child.getTagName().equals("w:r")) {
+//                parseR(child, sb);
+//            }
+//        }
+//    }
+//
+//    void parseR(XNode node, StringBuilder sb) {
+//        if (node.hasChild()) {
+//            int i, n = node.getChildCount();
+//            for (i = 0; i < n; i++) {
+//                XNode child = node.child(i);
+//                String name = child.getTagName();
+//                if (name.equals("w:rPr")) {
+//                    continue;
+//                } else if (name.equals("w:br")) {
+//                    sb.append("\n");
+//                } else if (child.isTextNode()) {
+//                    sb.append(child.content());
+//                } else if (name.equals("w:t") && !child.hasChild()) {
+//                    sb.append(child.content());
+//                } else if (name.equals("w:pict") || name.equals("w:binData")) {
+//                    continue;
+//                } else {
+//                    parseR(child, sb);
+//                }
+//            }
+//        } else if (node.getTagName().equals("w:t")) {
+//            sb.append(node.content());
+//        }
+//    }
 
     boolean parseCell(XNode node, ExcelCell cell) {
         XNode tcPrN = node.childByTag("w:tcPr");

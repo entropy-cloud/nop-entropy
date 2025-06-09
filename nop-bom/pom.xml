@@ -632,6 +632,12 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-ooxml-markdown</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-excel</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>

@@ -175,6 +175,14 @@ public class TestNopCli extends BaseTestCase {
         app.setFactory(factory);
         ret = app.run(args);
         assertEquals(0, ret);
+
+        args = new String[]{"transform", "target/app.orm.xlsx",
+                "-o", "target/app.xml"};
+
+        app = new NopCliApplication();
+        app.setFactory(factory);
+        ret = app.run(args);
+        assertEquals(0, ret);
     }
 
     @Test

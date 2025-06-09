@@ -7,7 +7,11 @@
  */
 package io.nop.ooxml.docx.parse;
 
+import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.core.resource.IResource;
+import io.nop.ooxml.docx.DocxConstants;
+import io.nop.ooxml.docx.model.WordOfficePackage;
 
 public class WordXmlHelper {
     public static boolean isHyperlink(XNode node) {
@@ -54,6 +58,19 @@ public class WordXmlHelper {
             }
         } else if (node.getTagName().equals("w:t")) {
             sb.append(node.content().asString(""));
+        }
+    }
+
+    public static XNode loadDocxXml(IResource resource) {
+        WordOfficePackage pkg = new WordOfficePackage();
+        try {
+            pkg.loadFromResource(resource);
+
+            XNode doc = pkg.getFile(DocxConstants.PATH_WORD_DOCUMENT).buildXml(null);
+
+            return doc;
+        } finally {
+            IoHelper.safeCloseObject(pkg);
         }
     }
 }

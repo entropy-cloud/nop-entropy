@@ -15,6 +15,7 @@
         <module>nop-ooxml-common</module>
         <module>nop-ooxml-docx</module>
         <module>nop-ooxml-xlsx</module>
+        <module>nop-ooxml-markdown</module>
     </modules>
 
 

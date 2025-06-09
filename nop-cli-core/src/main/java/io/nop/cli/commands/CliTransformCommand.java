@@ -9,6 +9,9 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.markdown.simple.MarkdownDocument;
+import io.nop.ooxml.docx.parse.WordXmlHelper;
+import io.nop.ooxml.markdown.DocxToMarkdownConverter;
 import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.engine.IReportEngine;
@@ -32,6 +35,7 @@ import java.util.concurrent.Callable;
 
 import static io.nop.cli.CliErrors.ARG_PATH;
 import static io.nop.cli.CliErrors.ERR_CLI_MODEL_OBJECT_NO_XDSL_SCHEMA;
+import static io.nop.report.core.XptConstants.XDSL_SCHEMA_WORKBOOK;
 
 @CommandLine.Command(
         name = "transform",
@@ -53,7 +57,7 @@ public class CliTransformCommand implements Callable<Integer> {
     OutputFormat format;
 
     enum OutputFormat {
-        xml, json, json5, yaml, xlsx, html, pdf, shtml,
+        xml, json, json5, yaml, xlsx, html, pdf, shtml, md,
     }
 
     @Override
@@ -65,11 +69,30 @@ public class CliTransformCommand implements Callable<Integer> {
         File outputFile = determineOutputFile();
         OutputFormat format = determineOutputFormat(outputFile);
 
-        if (inputResource.getName().endsWith(".xlsx")) {
+        if (inputResource.getName().endsWith(".docx")) {
+            if (format == OutputFormat.md) {
+                DocxToMarkdownConverter converter = new DocxToMarkdownConverter();
+                MarkdownDocument doc = converter.convertFromResource(inputResource);
+                FileHelper.writeText(outputFile, doc.toText(), null);
+                return 0;
+            } else if (format == OutputFormat.xml) {
+                WordXmlHelper.loadDocxXml(inputResource).saveToResource(new FileResource(outputFile), null);
+                return 0;
+            }
+        } else if (inputResource.getName().endsWith(".xlsx")) {
             if (format == OutputFormat.html || format == OutputFormat.shtml || format == OutputFormat.pdf) {
                 // 特殊处理Excel的格式转换
                 transformExcel(inputResource, format, outputFile);
                 return 0;
+            }
+
+            if (format == OutputFormat.xml) {
+                // 从Excel转换到xml，但是没有指定模板
+                if (templatePath == null) {
+                    ExcelWorkbook workbook = new ExcelWorkbookParser().parseFromResource(inputResource);
+                    DslModelHelper.saveDslModel(XDSL_SCHEMA_WORKBOOK, workbook, new FileResource(outputFile));
+                    return 0;
+                }
             }
         }
 
@@ -132,6 +155,7 @@ public class CliTransformCommand implements Callable<Integer> {
         if (fileName.endsWith(".html")) return OutputFormat.html;
         if (fileName.endsWith(".shtml")) return OutputFormat.shtml;
         if (fileName.endsWith(".pdf")) return OutputFormat.pdf;
+        if (fileName.endsWith(".md")) return OutputFormat.md;
 
         // 默认使用JSON格式
         return OutputFormat.json;
