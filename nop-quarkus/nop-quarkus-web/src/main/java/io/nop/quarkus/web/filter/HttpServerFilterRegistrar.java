@@ -21,6 +21,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import static io.nop.quarkus.web.QuarkusWebConstants.KEY_NOP_HTTP_SERVER_CONTEXT;
@@ -79,7 +80,12 @@ public class HttpServerFilterRegistrar {
                     ctx = new VertxHttpServerContext(rc);
                     rc.put(KEY_NOP_HTTP_SERVER_CONTEXT, ctx);
                 }
-                HttpServerHelper.runWithFilters(serverFilters, ctx, ctx::proceedAsync);
+
+                CompletionStage<?> future = HttpServerHelper.runWithFilters(serverFilters, ctx, ctx::proceedAsync);
+                future.exceptionally(err -> {
+                    rc.fail(err);
+                    return null;
+                });
             }
         }, sys ? sysFilterOrder : appFilterOrder);
     }
