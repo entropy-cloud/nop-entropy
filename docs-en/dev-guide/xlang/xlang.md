@@ -34,19 +34,19 @@ XDef describes this as follows:
 <!--
 @interval When tasks are ongoing, they will be checked periodically, with the interval set to 3 seconds by default.
 -->
-<tasks interval="number:3000" xdef:key-attr="id">
+<tasks interval="number=3000" xdef:key-attr="id">
   <!--
     @id Unique task ID
     @label Task name
     @status Task status
-                  0: Initial state, not executable.  
-                  1: Ready state, executable.  
-                  2: Ongoing state, still executing.  
-                  3: Error state, cannot be retried.  
-                  4: Normal completion.  
+                  0: Initial state, not executable.
+                  1: Ready state, executable.
+                  2: Ongoing state, still executing.
+                  3: Error state, cannot be retried.
+                  4: Normal completion.
                   5: Error state, can be retried.
   -->
-  <task id="!string" label="string" status="enum:nop/task/task-status" />
+  <task id="!string" label="string" status="dict:nop/task/task-status" />
 </tasks>
 ```
 
@@ -54,7 +54,7 @@ If using JSON Schema for description, it would be:
 
 ```json
 {
-  "interval": "number:3000",
+  "interval": "number=3000",
   "xdef:key-attr": "id"
 }
 ```
@@ -276,7 +276,7 @@ Thus, the **XLang language** defines a simplified version of XPath, which has th
             <xpl:prefix id="prefix-1"/>
         ]]>
     </xt:script>
-    
+
     <xt:mapping name="myMapping">
         <div>
             <xt:attrs name="myAttr">
