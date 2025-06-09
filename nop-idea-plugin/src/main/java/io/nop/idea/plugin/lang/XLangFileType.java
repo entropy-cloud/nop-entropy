@@ -42,7 +42,7 @@ public class XLangFileType extends XmlLikeFileType {
     @Nullable
     @Override
     public Icon getIcon() {
-        return NopIcons.MODULE_TYPE;
+        return NopIcons.XLangFileType;
     }
 
     @NotNull

@@ -99,23 +99,13 @@
 
         <lang.parserDefinition language="XLang" implementationClass="io.nop.idea.plugin.lang.XLangParserDefinition"/>
 
-        <configurationType
-                implementation="io.nop.idea.plugin.debugger.config.XLangRunnerConfigurationType"/>
-        <!--    &lt;!&ndash; Run - It reads the values written by the UI and spawns a new process that runs Tomcat &ndash;&gt;-->
-        <!--    <programRunner id="Run"-->
-        <!--                   implementation="io.entropy.ide.plugin.tomcat.TomcatProgramRunner"-->
-        <!--                   order="first"/>-->
-        <!--    &lt;!&ndash; Debug - same as run but stops on breakpoints, you get the idea &ndash;&gt;-->
-        <!--    <programRunner id="Debug"-->
-        <!--                   implementation="io.entropy.ide.plugin.tomcat.TomcatProgramDebugger"-->
-        <!--                   order="last"/>-->
         <xdebugger.breakpointType implementation="io.nop.idea.plugin.debugger.XLangBreakpointType"/>
+
         <programRunner id="XLangDebugger" implementation="io.nop.idea.plugin.debugger.XLangDebuggerRunner"
                        order="before defaultDebugRunner"/>
 
         <executor implementation="io.nop.idea.plugin.execution.XLangDebugExecutor" order="first,after run" id="xlangDebug"/>
 
-        <runConfigurationProducer implementation="io.nop.idea.plugin.execution.XLangRunnerConfigurationProducer"/>
         <!--    <fileDocumentManagerListener id="XLangFile" implementation="io.nop.idea.plugin.file.XLangFileDocumentManagerListener" />-->
     </extensions>
 </idea-plugin>

@@ -9,15 +9,14 @@ package io.nop.idea.plugin.execution;
 
 import com.intellij.execution.Executor;
 import com.intellij.execution.ExecutorRegistry;
-import com.intellij.icons.AllIcons;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.wm.ToolWindowId;
 import com.intellij.xdebugger.XDebuggerBundle;
+import io.nop.idea.plugin.icons.NopIcons;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.*;
-
+import javax.swing.Icon;
 
 public class XLangDebugExecutor extends Executor {
     @NonNls
@@ -32,13 +31,13 @@ public class XLangDebugExecutor extends Executor {
     @NotNull
     @Override
     public Icon getToolWindowIcon() {
-        return AllIcons.RunConfigurations.RemoteDebug;
+        return NopIcons.XLangDebug;
     }
 
     @Override
     @NotNull
     public Icon getIcon() {
-        return AllIcons.Actions.StartDebugger;
+        return NopIcons.StartXLangDebugger;
     }
 
     @Override

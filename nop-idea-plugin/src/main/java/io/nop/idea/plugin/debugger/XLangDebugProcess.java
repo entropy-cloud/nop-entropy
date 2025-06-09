@@ -50,28 +50,30 @@ import static com.intellij.xdebugger.impl.ui.DebuggerUIUtil.invokeLater;
  */
 public class XLangDebugProcess extends JavaDebugProcess {
     static final Logger LOG = LoggerFactory.getLogger(XLangDebugProcess.class);
-    private XLangBreakpointHandler myBreakPointHandler;
-    private JavaCommandLineState state;
-    private XLangDebuggerEditorsProvider myEditorsProvider;
+    private final XLangBreakpointHandler myBreakPointHandler;
+    private final JavaCommandLineState state;
+    private final XLangDebuggerEditorsProvider myEditorsProvider;
     boolean isDisconnected = false;
 
     private IDebuggerAsync debugger;
 
     //private final AtomicBoolean breakpointsInitiated = new AtomicBoolean();
 
-    private XLangDebugConnector connector;
+    private final XLangDebugConnector connector;
 
     public XLangDebugProcess(@NotNull final XDebugSession session,
-                             @NotNull final RunProfileState state,
+                             @NotNull final JavaCommandLineState state,
                              final DebuggerSession javaSession,
                              int debugPort
     ) {
         super(session, javaSession);
-        this.state = (JavaCommandLineState) state;
-        myEditorsProvider = new XLangDebuggerEditorsProvider();
-        myBreakPointHandler = new XLangBreakpointHandler(this);
-        javaSession.getProcess().setXDebugProcess(this);
+        this.state = state;
+
+        this.myEditorsProvider = new XLangDebuggerEditorsProvider();
+        this.myBreakPointHandler = new XLangBreakpointHandler(this);
         this.connector = new XLangDebugConnector(debugPort, this::debuggerNotification, this::onSocketConnected);
+
+        javaSession.getProcess().setXDebugProcess(this);
         session.addSessionListener(new XDebugSessionListener() {
             @Override
             public void breakpointsMuted(boolean muted) {

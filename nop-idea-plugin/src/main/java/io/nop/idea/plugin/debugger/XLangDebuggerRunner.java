@@ -13,6 +13,7 @@ import com.intellij.debugger.DefaultDebugEnvironment;
 import com.intellij.debugger.impl.DebuggerSession;
 import com.intellij.debugger.impl.GenericDebuggerRunner;
 import com.intellij.execution.ExecutionException;
+import com.intellij.execution.JavaRunConfigurationBase;
 import com.intellij.execution.configurations.JavaCommandLineState;
 import com.intellij.execution.configurations.JavaParameters;
 import com.intellij.execution.configurations.RemoteConnection;
@@ -28,7 +29,6 @@ import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
-import io.nop.idea.plugin.debugger.config.XLangRunConfiguration;
 import io.nop.idea.plugin.execution.XLangDebugExecutor;
 import org.jetbrains.annotations.NotNull;
 
@@ -61,7 +61,10 @@ public class XLangDebuggerRunner extends GenericDebuggerRunner {
 
     @Override
     public boolean canRun(@NotNull String executorId, @NotNull RunProfile profile) {
-        return executorId.equals(XLangDebugExecutor.EXECUTOR_ID) && profile instanceof XLangRunConfiguration;
+        return executorId.equals(XLangDebugExecutor.EXECUTOR_ID) // 与 XLangDebugExecutor 绑定
+               // 同时支持 Application 和 JUnit 类型的 Run Configuration，
+               // 即，可对 main() 函数和单元测试进行 XLang 调试
+               && profile instanceof JavaRunConfigurationBase;
     }
 
     @Override
@@ -75,9 +78,9 @@ public class XLangDebuggerRunner extends GenericDebuggerRunner {
             throw NopException.adapt(e);
         }
 
-        JavaCommandLineState javaCommandLine = (JavaCommandLineState) state;
+        JavaCommandLineState javaCommandLineState = (JavaCommandLineState) state;
 
-        JavaParameters javaParameters = javaCommandLine.getJavaParameters();
+        JavaParameters javaParameters = javaCommandLineState.getJavaParameters();
         // Making the assumption that it's JVM 7 onwards
         javaParameters.getVMParametersList().addParametersString(XDEBUG);
         // Debugger port
@@ -105,7 +108,7 @@ public class XLangDebuggerRunner extends GenericDebuggerRunner {
                 @Override
                 public XDebugProcess start(@NotNull XDebugSession xDebugSession) throws ExecutionException {
                     debuggerSession.getContextManager().addListener(new XLangDebugContextListener(xDebugSession, debuggerSession));
-                    XLangDebugProcess process = new XLangDebugProcess(xDebugSession, state, debuggerSession,
+                    XLangDebugProcess process = new XLangDebugProcess(xDebugSession, javaCommandLineState, debuggerSession,
                             ports[1]);
                     return process;
                 }
