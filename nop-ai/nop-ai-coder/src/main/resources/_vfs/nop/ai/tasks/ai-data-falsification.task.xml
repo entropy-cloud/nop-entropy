@@ -1,0 +1,58 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:task="task"
+      xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
+      xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
+      x:extends="/nop/task/lib/common.task.xml">
+
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="8192" temperature="0"
+                    sessionId="${sessionId}"/>
+
+    <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
+
+
+    <!-- 输入参数定义 -->
+    <input name="inputDir" type="String" mandatory="true"/>
+    <input name="outputDir" type="String" mandatory="true"/>
+
+    <!-- AI配置参数 -->
+    <input name="aiProvider" type="String" mandatory="true"/>
+    <input name="aiModel" type="String" mandatory="true"/>
+    <input name="sessionId" type="String" optional="true"/>
+
+    <steps>
+        <!-- 步骤1: 查找所有目标文件 -->
+        <step name="findFiles" customType="file-utils:FindFiles">
+            <input name="pattern" value=".*\.md"/>
+            <input name="baseDir" value="${inputDir}"/>
+            <input name="returnRelativePath" value="${true}"/>
+            <output name="RESULT" exportAs="foundFiles"/>
+        </step>
+
+        <!-- 步骤2: 循环处理每个文件 -->
+        <loop name="processFiles" varName="currentFile"
+              itemsExpr="foundFiles">
+            <steps>
+                <!-- 2.1 读取文件内容 -->
+                <step name="readFile" customType="file-utils:ReadText">
+                    <input name="fileName" value="${currentFile}"/>
+                    <input name="inputDir"/>
+
+                    <output name="RESULT" exportAs="originalContent"/>
+                </step>
+
+                <!-- 2.2 使用AI进行数据脱敏 -->
+                <step name="falsifyData" customType="ai:TaskStep"
+                      ai:promptName="coder/data-falsification">
+                    <input name="text" value="${originalContent}"/>
+                    <output name="RESULT" exportAs="processedContent"/>
+                </step>
+
+                <step name="writeFile" customType="file-utils:WriteText">
+                    <input name="outputDir"/>
+                    <input name="fileName" value="${currentFile}"/>
+                    <input name="text" value="${processedContent}"/>
+                </step>
+            </steps>
+        </loop>
+    </steps>
+
+</task>

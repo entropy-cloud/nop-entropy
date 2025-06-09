@@ -269,4 +269,17 @@ public class TestAiTask extends JunitBaseTestCase {
         taskRt.setInput("sessionId", "test-mock");
         task.execute(taskRt).syncGetOutputs();
     }
+
+    @Test
+    public void testDataFalsification() {
+        ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-data-falsification.task.xml");
+        ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
+        taskRt.setInput("inputDir", attachmentFile("../coder").getAbsolutePath());
+        taskRt.setInput("outputDir", getTargetFile("data-falsified").getAbsolutePath());
+
+        taskRt.setInput("aiProvider", "ollama");
+        taskRt.setInput("aiModel", "qwen3");
+        taskRt.setInput("sessionId", "test-mock");
+        task.execute(taskRt).syncGetOutputs();
+    }
 }

@@ -32,7 +32,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.PosixFilePermission;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
@@ -591,5 +593,39 @@ public class FileHelper {
             }
             return FileVisitResult.CONTINUE;
         });
+    }
+
+    public static File resolveFile(String path){
+        if(StringHelper.isEmpty(path))
+            return currentDir();
+        return new File(path);
+    }
+
+    public static File resolveRelativeFile(File baseDir, String fileName) {
+        if (baseDir == null)
+            return new File(fileName);
+        return new File(baseDir, fileName);
+    }
+
+    public static List<String> findFiles(File dir, String pattern, boolean recursive, boolean returnRelativePath) {
+        List<String> result = new ArrayList<>();
+        if (recursive) {
+            walk(dir, file -> {
+                if (file.isFile() && file.getName().matches(pattern)) {
+                    result.add(returnRelativePath ? getRelativePath(dir, file) : file.getAbsolutePath());
+                }
+                return FileVisitResult.CONTINUE;
+            });
+        } else {
+            File[] files = dir.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isFile() && file.getName().matches(pattern)) {
+                        result.add(returnRelativePath ? getRelativePath(dir, file) : file.getAbsolutePath());
+                    }
+                }
+            }
+        }
+        return result;
     }
 }

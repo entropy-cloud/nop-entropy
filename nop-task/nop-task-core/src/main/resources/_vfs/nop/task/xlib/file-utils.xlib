@@ -36,5 +36,18 @@
             </source>
         </ResolveResource>
 
+        <FindFiles>
+            <attr name="pattern" type="String" mandatory="true"/>
+            <attr name="baseDir" type="String" optional="true"/>
+            <attr name="returnRelativePath" type="Boolean" optional="true"/>
+            <attr name="recursive" type="Boolean" optional="true"/>
+
+            <source>
+                import io.nop.commons.util.FileHelper;
+
+                const file = FileHelper.resolveFile(baseDir);
+                return FileHelper.findFiles(file, pattern, recursive, returnRelativePath);
+            </source>
+        </FindFiles>
     </tags>
 </lib>
