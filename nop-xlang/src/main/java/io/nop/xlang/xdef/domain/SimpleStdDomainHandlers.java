@@ -1349,6 +1349,8 @@ public class SimpleStdDomainHandlers {
         public Object parseProp(String options, SourceLocation loc, String propName, Object text,
                                 XLangCompileTool cp) {
             String str = text.toString();
+            if (str.indexOf('=') < 0)
+                str = str.replace(':', '=');
             return StringHelper.parseStringMap(str);
         }
     }

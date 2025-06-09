@@ -21,6 +21,7 @@ public class RecordAggregateState {
     private AggregateState aggregateState;
 
     private AggregateState pageAggregateState;
+    private int pageIndex;
     private int indexInPage;
     private int pageSize;
     private long writeCount;
@@ -42,6 +43,7 @@ public class RecordAggregateState {
             }
         }
         this.indexInPage = 0;
+        this.pageIndex = 0;
     }
 
     private AggregateState newAggregateState(List<RecordAggregateFieldMeta> aggFields, IAggregatorProvider aggregatorProvider) {
@@ -109,6 +111,10 @@ public class RecordAggregateState {
         return aggregateState.getResults();
     }
 
+    public int getPageIndex() {
+        return pageIndex;
+    }
+
     public boolean isPageBegin() {
         return pageAggregateState != null && indexInPage == 1;
     }
@@ -117,10 +123,11 @@ public class RecordAggregateState {
         return pageAggregateState != null && indexInPage >= pageSize;
     }
 
-    public void resetPage() {
+    public void newPage() {
         if (pageAggregateState != null) {
             indexInPage = 0;
             pageAggregateState.reset();
+            pageIndex++;
         }
     }
 }

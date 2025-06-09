@@ -2,8 +2,10 @@ package io.nop.ai.coder.utils;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.xlang.XLangConstants;
 import io.nop.xlang.delta.DeltaMerger;
 import io.nop.xlang.xdef.IXDefinition;
@@ -136,5 +138,14 @@ public class AiCoderHelper {
             if (!dslNode.hasAttr(nsAttr))
                 dslNode.setAttr(nsAttr, namespace);
         }
+    }
+
+    public static void saveDslNodeAsYaml(String xdefPath, XNode dslNode, IResource resource) {
+        Object obj = parseDslNode(xdefPath, dslNode);
+        ResourceHelper.writeText(resource, JsonTool.serializeToYaml(obj));
+    }
+
+    public static void saveDslModelAsYaml(Object value, IResource resource) {
+        ResourceHelper.writeText(resource, JsonTool.serializeToYaml(value));
     }
 }

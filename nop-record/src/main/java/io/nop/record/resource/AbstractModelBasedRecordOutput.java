@@ -108,7 +108,7 @@ public abstract class AbstractModelBasedRecordOutput<Output extends IDataWriterB
                     context.getEvalScope().setLocalValues(aggregateState.getPageResults());
                     writeObject(baseOut, pagination.getPageFooter(), context);
                 }
-                aggregateState.resetPage();
+                aggregateState.newPage();
             }
         }
     }

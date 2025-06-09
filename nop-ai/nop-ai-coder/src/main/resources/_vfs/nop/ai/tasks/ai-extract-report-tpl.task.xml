@@ -1,0 +1,60 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:task="task"
+      xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
+      xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
+      x:extends="/nop/task/lib/common.task.xml">
+
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="8192" temperature="0"
+                    sessionId="${sessionId}"/>
+
+    <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
+
+    <input name="reportDataPath" type="String" mandatory="true"/>
+    <input name="inputDir" type="String" optional="true"/>
+    <input name="outputDir" type="String" mandatory="true"/>
+    <input name="reportName" type="String" mandatory="true"/>
+
+    <input name="aiProvider" type="String" mandatory="true"/>
+    <input name="aiModel" type="String" mandatory="true"/>
+    <input name="sessionId" type="String" optional="true"/>
+
+    <steps>
+        <step name="loadReportData" customType="file-utils:ReadText">
+            <input name="fileName" value="${reportDataPath}"/>
+            <input name="inputDir"/>
+            <output name="RESULT" exportAs="reportData"/>
+        </step>
+
+        <step name="extractReportTpl" customType="ai:TaskStep" ai:promptName="coder/extract-report-tpl"
+              ai:useResponseCache="true">
+            <input name="reportData"/>
+            <output name="RESULT" exportAs="reportTplNode" />
+        </step>
+
+        <step name="parseReportTplNode" customType="ai-coder:ParseDslNode">
+            <input name="dslNode" value="${reportTplNode}"/>
+            <input name="xdefPath" value="/nop/ai/schema/record-file.xdef"/>
+            <output name="RESULT" exportAs="reportTplBean" />
+        </step>
+
+        <step name="saveReportTpl" customType="ai-coder:SaveDslNode">
+            <input name="outputDir"/>
+            <input name="fileName" value="model/${reportName}.record-file.xml"/>
+            <input name="dslNode" value="${reportTplNode}"/>
+            <input name="xdefPath" value="/nop/ai/schema/record-file.xdef"/>
+        </step>
+
+        <step name="saveReportTplAsYaml" customType="ai-coder:SaveDslModelAsYaml">
+            <input name="outputDir"/>
+            <input name="fileName" value="model/${reportName}.record-file.yaml"/>
+            <input name="dslModel" value="${reportTplBean}"/>
+            <input name="xdefPath" value="/nop/ai/schema/record-file.xdef"/>
+        </step>
+
+        <step name="saveReportTplAsExcel" customType="ai-coder:SaveDslModelAsExcel">
+            <input name="outputDir"/>
+            <input name="fileName" value="model/${appName}.orm.xlsx"/>
+            <input name="dslModel" value="${reportTplBean}"/>
+            <input name="impModelPath" value="/nop/record/imp/record-file.imp.xml"/>
+        </step>
+    </steps>
+</task>

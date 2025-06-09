@@ -58,7 +58,7 @@ public class TestAiTask extends JunitBaseTestCase {
         taskRt.setInput("aiProvider", aiProvider);
         taskRt.setInput("aiModel", aiModel);
         taskRt.setInput("sessionId", sessionId);
-        taskRt.setInput("workMode","programming");
+        taskRt.setInput("workMode", "programming");
         task.execute(taskRt).syncGetOutputs();
     }
 
@@ -247,6 +247,22 @@ public class TestAiTask extends JunitBaseTestCase {
         taskRt.setInput("appName", "app-demo");
         taskRt.setInput("mavenGroupId", "io.nop.demo");
         taskRt.setInput("needExpand", false);
+
+        taskRt.setInput("aiProvider", "deepseek");
+        taskRt.setInput("aiModel", "mock");
+        taskRt.setInput("sessionId", "test-mock");
+        task.execute(taskRt).syncGetOutputs();
+    }
+
+    @Test
+    public void testExtractReportTpl() {
+        File targetDir = getTargetFile("demo-project-mock");
+
+        ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-extract-report-tpl.task.xml");
+        ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
+        taskRt.setInput("reportDataPath", attachmentFile("input-report-data.md").getAbsolutePath());
+        taskRt.setInput("outputDir", targetDir.getAbsolutePath());
+        taskRt.setInput("reportName", "test");
 
         taskRt.setInput("aiProvider", "deepseek");
         taskRt.setInput("aiModel", "mock");

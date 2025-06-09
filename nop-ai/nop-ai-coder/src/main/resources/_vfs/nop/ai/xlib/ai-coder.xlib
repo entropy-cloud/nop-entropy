@@ -121,6 +121,40 @@
             </source>
         </ParseDslNode>
 
+        <SaveDslNodeAsYaml>
+            <attr name="xdefPath" stdDomain="v-path" mandatory="true"/>
+            <attr name="fileName" mandatory="true"/>
+            <attr name="dslNode" mandatory="true"/>
+            <attr name="outputDir" optional="true"/>
+
+            <source><![CDATA[
+                import io.nop.ai.coder.utils.AiCoderHelper
+                import io.nop.core.resource.ResourceHelper;
+
+                const resource = ResourceHelper.resolveResourceInDir(outputDir, fileName);
+
+                AiCoderHelper.saveDslNodeAsYaml(xdefPath, dslNode,resource);
+            ]]></source>
+
+        </SaveDslNodeAsYaml>
+
+        <SaveDslModelAsYaml>
+            <attr name="xdefPath" stdDomain="v-path" mandatory="true"/>
+            <attr name="fileName" mandatory="true"/>
+            <attr name="dslModel" mandatory="true"/>
+            <attr name="outputDir" optional="true"/>
+
+            <source><![CDATA[
+                import io.nop.ai.coder.utils.AiCoderHelper
+                import io.nop.core.resource.ResourceHelper;
+
+                const resource = ResourceHelper.resolveResourceInDir(outputDir, fileName);
+
+                AiCoderHelper.saveDslModelAsYaml(dslModel,resource);
+            ]]></source>
+
+        </SaveDslModelAsYaml>
+
         <LoadDslModel>
             <attr name="fileName" mandatory="true"/>
             <attr name="inputDir" optional="true"/>

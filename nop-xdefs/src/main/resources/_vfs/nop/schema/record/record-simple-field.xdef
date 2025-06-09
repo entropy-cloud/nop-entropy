@@ -15,8 +15,8 @@
 @includeTerminator 解析结果是否包含terminator
 @terminator 读取到terminator判断字段结束
 @skipWhenRead 当读取记录时忽略此字段，此字段可能仅用于输出
-@content 如果非空，则表示字段为固定内容。当输出字段到数据文件中时直接使用该内容输出
-@defaultValue 当值为空的时候，使用这里的缺省值
+@content 如果非空，则表示字段为固定内容。当输出字段到数据文件中时直接使用该内容输出。 这里可以是直接的字符串，或者0xFFEE这种hex编码
+@defaultValue 当值为空的时候，会使用这里的缺省值输出
 @tillEnd 读取所有剩余部分
 -->
 <field x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"

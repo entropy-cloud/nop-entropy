@@ -11,8 +11,6 @@
 
     <body typeRef="record-type"/>
 
-    <trailer typeRef="record-type"/>
-
     <pagination pageSize="!int">
         <pageHeader typeRef="record-type"/>
         <pageFooter typeRef="record-type"/>
@@ -32,6 +30,8 @@
         </aggregate>
     </aggregates>
 
+    <trailer typeRef="record-type"/>
+
     <types xdef:body-type="list" xdef:key-attr="name">
         <type baseType="class-name" name="!string" asMap="!boolean=false">
             <fields xdef:body-type="list" xdef:key-attr="name" xdef:name="RecordFields">
@@ -40,14 +40,16 @@
 
                 @name 对应解析得到的属性名
                 @repeatKind 如果是列表结构或者Map结构，则这里用来确定如何判断所有条目已经解析完毕
+                @content 如果是输出固定内容，则这里可以是直接的字符串，或者0xFFEE这种hex编码
+                @defaultValue 当字段值为空时，会使用这里的缺省值输出
                 -->
                 <field name="!prop-name" typeRef="string"
-                       displayName="string" type="generic-type" prop="prop-name"
+                       displayName="chinese" type="generic-type" prop="prop-name"
                        length="!int=0"
                        codec="string" charset="string"
                        padding="encoded-bytes" leftPad="!boolean=false" trim="!boolean=false"
-                       virtual="!boolean=false" value="any"
-                       offset="!int=0" mandatory="!boolean=false">
+                       virtual="!boolean=false" defaultValue="any" content="encoded-bytes"
+                       mandatory="!boolean=false">
 
                     <!--
                     动态确定字段类型

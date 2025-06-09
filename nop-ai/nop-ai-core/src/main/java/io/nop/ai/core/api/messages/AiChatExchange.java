@@ -24,6 +24,7 @@ import io.nop.ai.core.response.CodeResponseParser;
 import io.nop.ai.core.response.JsonResponseParser;
 import io.nop.ai.core.response.MarkdownResponseParser;
 import io.nop.ai.core.response.XmlResponseParser;
+import io.nop.ai.core.response.YamlResponseParser;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.exceptions.NopException;
@@ -178,9 +179,9 @@ public class AiChatExchange {
         return response;
     }
 
-    public String getFullContent(){
+    public String getFullContent() {
         String think = getThink();
-        if(think == null)
+        if (think == null)
             return getContent();
 
         StringBuilder sb = new StringBuilder();
@@ -189,7 +190,7 @@ public class AiChatExchange {
         sb.append("\n</think>\n");
 
         String content = getContent();
-        if(content != null)
+        if (content != null)
             sb.append(content);
         return sb.toString();
     }
@@ -221,7 +222,7 @@ public class AiChatExchange {
     }
 
     public String getThink() {
-        if(response == null)
+        if (response == null)
             return null;
         return response.getThink();
     }
@@ -475,6 +476,13 @@ public class AiChatExchange {
         if (StringHelper.isEmpty(content))
             return null;
         return JsonResponseParser.instance().parseResponse(content);
+    }
+
+    public Map<String, Object> parseYamlContent() {
+        String content = getContent();
+        if (StringHelper.isEmpty(content))
+            return null;
+        return YamlResponseParser.instance().parseResponse(content);
     }
 
     public MarkdownCodeBlock parseCodeBlock(String lang) {

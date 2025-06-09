@@ -16,6 +16,7 @@ import io.nop.markdown.simple.MarkdownCodeBlockParser;
 import io.nop.markdown.simple.MarkdownDocument;
 import io.nop.markdown.simple.MarkdownDocumentExt;
 import io.nop.markdown.utils.MarkdownTool;
+import io.nop.ooxml.markdown.DocxToMarkdownConverter;
 import io.nop.task.ITaskFlowManager;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
@@ -128,5 +129,12 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
         XNode node = AiXDefHelper.loadXDefForAi("/nop/ai/schema/coder/api.xdef");
         node.dump();
         assertTrue(node.childByTag("orm:delta").hasChild());
+    }
+
+    @Test
+    public void testDocxToMarkdown() {
+        DocxToMarkdownConverter converter = new DocxToMarkdownConverter();
+        MarkdownDocument doc = converter.convertFromResource(attachmentResource("requirements.docx"));
+        System.out.println(doc.toText());
     }
 }

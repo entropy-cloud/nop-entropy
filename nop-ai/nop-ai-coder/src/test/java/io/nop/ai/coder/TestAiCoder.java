@@ -4,19 +4,20 @@ import io.nop.ai.coder.orm.AiOrmConfig;
 import io.nop.ai.coder.orm.AiOrmModelNormalizer;
 import io.nop.ai.coder.orm.OrmModelToJava;
 import io.nop.ai.core.api.messages.AiChatExchange;
-import io.nop.ai.core.model.PromptModel;
+import io.nop.ai.core.prompt.IPromptTemplate;
+import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.reflect.bean.BeanTool;
-import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.markdown.simple.MarkdownDocument;
 import io.nop.markdown.simple.MarkdownSection;
 import io.nop.markdown.utils.MarkdownTool;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.OrmModel;
 import io.nop.xlang.xdsl.DslModelParser;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -31,16 +32,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 //@NopTestConfig(disableSnapshot = true)
 @Disabled
 public class TestAiCoder extends JunitAutoTestCase {
+    @Inject
+    IPromptTemplateManager promptTemplateManager;
 
-    PromptModel loadPrompt(String promptPath) {
-        PromptModel promptModel = (PromptModel) ResourceComponentManager.instance().loadComponentModel(promptPath);
-        return promptModel;
+    IPromptTemplate loadPrompt(String promptPath) {
+        return promptTemplateManager.loadPromptTemplateFromPath(promptPath);
     }
 
     @EnableSnapshot
     @Test
     public void testExpandRequirements() {
-        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/refactor-requirements.prompt.yaml");
+        IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/refactor-requirements.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
         vars.put("inputRequirements", inputText("input-requirements.md"));
         vars.put("needExpand", true);
@@ -62,7 +64,7 @@ public class TestAiCoder extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testRefineRequirements() {
-        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/refine-requirements.prompt.yaml");
+        IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/refine-requirements.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
         vars.put("requirements", inputText("requirements.md"));
 
@@ -83,7 +85,7 @@ public class TestAiCoder extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testOrmDesign() {
-        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/orm-design.prompt.yaml");
+        IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/orm-design.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
         vars.put("requirements", inputText("response-refine-requirements.md"));
 
@@ -103,7 +105,7 @@ public class TestAiCoder extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testRefineOrmDesign() {
-        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/refine-orm-design.prompt.yaml");
+        IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/refine-orm-design.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
         vars.put("ormModelText", inputText("output-orm-design.xml"));
         vars.put("requirements", inputText("response-refine-requirements.md"));
@@ -125,7 +127,7 @@ public class TestAiCoder extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testMenuDesign() {
-        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/menu-design.prompt.yaml");
+        IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/menu-design.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
         vars.put("ormModelText", inputText("output-orm-design.xml"));
         vars.put("requirements", inputText("response-refine-requirements.md"));
@@ -147,7 +149,7 @@ public class TestAiCoder extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testApiDesign() {
-        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/api-design.prompt.yaml");
+        IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/api-design.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
         vars.put("requirements", inputText("response-refine-requirements.md"));
 
@@ -159,7 +161,7 @@ public class TestAiCoder extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testExtractEntityRequirements() {
-        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/extract-entity-requirements.prompt.yaml");
+        IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/extract-entity-requirements.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
         vars.put("requirements", inputText("response-refine-requirements.md"));
         vars.put("entityName", "stock_operation(库存操作)");
@@ -172,7 +174,7 @@ public class TestAiCoder extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testFormDesign() {
-        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/form-design.prompt.yaml");
+        IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/form-design.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
         vars.put("requirements", inputText("response-extract-entity-requirements.md"));
 
@@ -204,7 +206,7 @@ public class TestAiCoder extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testGridDesign() {
-        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/grid-design.prompt.yaml");
+        IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/grid-design.prompt.yaml");
         Map<String, Object> vars = new HashMap<>();
         vars.put("requirements", inputText("response-extract-entity-requirements.md"));
 
@@ -233,7 +235,7 @@ public class TestAiCoder extends JunitAutoTestCase {
     @EnableSnapshot
     @Test
     public void testExpandModuleRequirements() {
-        PromptModel promptModel = loadPrompt("/nop/ai/prompts/coder/expand-module-requirements.prompt.yaml");
+        IPromptTemplate promptModel = loadPrompt("/nop/ai/prompts/coder/expand-module-requirements.prompt.yaml");
         MarkdownDocument doc = MarkdownTool.instance().parseFromText(null, inputText("response-requirements.md"));
         MarkdownSection section = doc.findSectionByTitle("2.2 核心功能模块");
         MarkdownSection child = section.getChild(0);

@@ -1,6 +1,8 @@
 package io.nop.ai.core.prompt;
 
 import io.nop.ai.core.AiCoreConstants;
+import io.nop.ai.core.model.ModelBasedPromptTemplate;
+import io.nop.ai.core.model.PromptModel;
 import io.nop.core.resource.component.ResourceComponentManager;
 
 public class PromptTemplateManager implements IPromptTemplateManager {
@@ -13,7 +15,13 @@ public class PromptTemplateManager implements IPromptTemplateManager {
 
     @Override
     public IPromptTemplate loadPromptTemplateFromPath(String promptPath) {
-        return (IPromptTemplate) ResourceComponentManager.instance().loadComponentModel(promptPath);
+        PromptModel promptModel = (PromptModel) ResourceComponentManager.instance().loadComponentModel(promptPath);
+        IPromptTemplate promptTemplate = promptModel.getPromptTemplate();
+        if (promptTemplate == null) {
+            promptTemplate = new ModelBasedPromptTemplate(promptModel);
+            promptModel.setPromptTemplate(promptTemplate);
+        }
+        return promptTemplate;
     }
 
     protected String normalizePromptPath(String promptName) {

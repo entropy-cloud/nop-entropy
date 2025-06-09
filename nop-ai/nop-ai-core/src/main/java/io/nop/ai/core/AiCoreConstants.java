@@ -43,4 +43,6 @@ public interface AiCoreConstants {
     String MODEL_MOCK = "mock";
 
     String BEAN_NOP_AI_CHAT_SERVICE = "nopAiChatService";
+
+    String CODE_LANG_YAML = "yaml";
 }
