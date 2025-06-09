@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 @Service
@@ -95,12 +96,13 @@ public class SpringHttpServerFilterConfiguration {
             } else {
                 IHttpServerContext ctx = new ServletHttpServerContext(request,
                         response);
-                HttpServerHelper.runWithFilters(serverFilters, ctx, () -> {
+                CompletionStage<?> future = HttpServerHelper.runWithFilters(serverFilters, ctx, () -> {
                     return FutureHelper.futureCall(() -> {
                         filterChain.doFilter(request, response);
                         return null;
                     });
                 });
+                FutureHelper.syncGet(future);
             }
 
         }
