@@ -4,3 +4,8 @@ nop:
 
 server:
   port: 8097
+
+
+spring:
+  main:
+    web-application-type: reactive
