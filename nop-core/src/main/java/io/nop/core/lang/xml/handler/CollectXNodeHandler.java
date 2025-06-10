@@ -10,6 +10,7 @@ package io.nop.core.lang.xml.handler;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.CDataText;
+import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.xml.XNode;
 
@@ -60,11 +61,8 @@ public class CollectXNodeHandler extends XNodeHandlerAdapter {
 
     @Override
     public void comment(String comment) {
-        if (this.comment != null) {
-            this.comment += "\n" + comment;
-        } else {
-            this.comment = comment;
-        }
+        // 多次设置只保留最后一次的内容
+        this.comment = comment;
     }
 
     @Override

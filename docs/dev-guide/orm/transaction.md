@@ -62,3 +62,6 @@ NopORM引擎支持同时使用多个数据源，例如一些表存放在数据�
 ## 监听事务提交或者回滚事件
 
 `ITransactionTemplate.addTransactionListener(txnGroup, listener)`可以注册事务事件
+
+## Spring事务集成
+nop.dao.use-parent-transaction-factory设置为true时，会启用NopSpringTransactionFactory，它会使用Spring的事务来实现ITransactionFactory，但是这一实现不支持异步事务

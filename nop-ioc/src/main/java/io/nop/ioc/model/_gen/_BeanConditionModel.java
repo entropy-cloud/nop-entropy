@@ -68,8 +68,6 @@ public abstract class _BeanConditionModel extends io.nop.core.resource.component
     /**
      *  
      * xml name: on-resource
-     * <on-bean-type xdef:value="!class-name-set"/>
-     * <on-missing-bean-type xdef:value="!class-name-set"/>
      * 是否存在资源文件
      */
     private java.util.Set<java.lang.String> _onResource ;
@@ -217,9 +215,7 @@ public abstract class _BeanConditionModel extends io.nop.core.resource.component
     /**
      * 
      * xml name: on-resource
-     *  <on-bean-type xdef:value="!class-name-set"/>
-     * <on-missing-bean-type xdef:value="!class-name-set"/>
-     * 是否存在资源文件
+     *  是否存在资源文件
      */
     
     public java.util.Set<java.lang.String> getOnResource(){

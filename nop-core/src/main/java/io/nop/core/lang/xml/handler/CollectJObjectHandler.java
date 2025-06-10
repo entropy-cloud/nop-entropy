@@ -76,11 +76,7 @@ public class CollectJObjectHandler extends XNodeHandlerAdapter {
 
     @Override
     public void comment(String comment) {
-        if (this.comment != null) {
-            this.comment += "\n" + comment;
-        } else {
-            this.comment = comment;
-        }
+        this.comment = comment;
     }
 
     public Object processNode(String tagName, XNode node) {
