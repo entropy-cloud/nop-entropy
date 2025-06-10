@@ -48,7 +48,7 @@ public class ProjectVirtualFileSystem implements IVirtualFileSystem {
             // 在模块中查找
             for (PsiFile file : files) {
                 String matchPath = ProjectFileHelper.getNopVfsPath(file.getVirtualFile());
-                if (matchPath.startsWith(path))
+                if (matchPath != null && matchPath.startsWith(path))
                     return new VirtualFileResource(path, file.getVirtualFile());
             }
         } else {

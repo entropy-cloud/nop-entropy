@@ -8,7 +8,6 @@
 package io.nop.idea.plugin.doc;
 
 import com.intellij.lang.documentation.AbstractDocumentationProvider;
-import com.intellij.lang.documentation.DocumentationMarkup;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlAttribute;
@@ -17,8 +16,14 @@ import com.intellij.psi.xml.XmlTokenType;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.dict.DictModel;
+import io.nop.core.dict.DictModelParser;
 import io.nop.core.dict.DictProvider;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.idea.plugin.resource.ProjectEnv;
+import io.nop.idea.plugin.utils.MarkdownHelper;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.utils.XmlTagInfo;
@@ -32,6 +37,7 @@ import jakarta.annotation.Nullable;
 import java.util.Objects;
 
 public class XLangDocumentationProvider extends AbstractDocumentationProvider {
+
     @Override
     public @Nullable
     String generateDoc(PsiElement element, @Nullable PsiElement originalElement) {
@@ -40,120 +46,68 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
         });
     }
 
-    String doGenerate(PsiElement element, PsiElement originalElement) {
-        PsiElement elm = originalElement;
+    String doGenerate(PsiElement element, PsiElement elm) {
         if (XmlPsiHelper.isElementType(elm, XmlTokenType.XML_NAME)) {
             PsiElement parent = elm.getParent();
 
+            XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(parent);
+            if (tagInfo == null || tagInfo.getDefNode() == null) {
+                return null;
+            }
+
             if (parent instanceof XmlTag) {
-                XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(parent);
-                if (tagInfo != null && tagInfo.getDefNode() != null) {
-                    IXDefComment comment = tagInfo.getDefNode().getComment();
-                    String desc = null;
-                    if (comment != null) {
-                        desc = comment.getMainDescription();
-                        if (desc == null)
-                            desc = comment.getMainDisplayName();
-                    }
-                    return doc(desc, tagInfo.getDefNode());
+                DocInfo doc = new DocInfo(tagInfo.getDefNode());
+
+                IXDefComment comment = tagInfo.getDefNode().getComment();
+                if (comment != null) {
+                    doc.setTitle(comment.getMainDisplayName());
+                    doc.setDesc(comment.getMainDescription());
                 }
+                return doc.toString();
             } else if (parent instanceof XmlAttribute) {
                 XmlAttribute attr = (XmlAttribute) parent;
-                XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(parent);
-                if (tagInfo != null && tagInfo.getDefNode() != null) {
-                    IXDefComment comment = tagInfo.getDefNode().getComment();
-                    String desc = null;
-                    if (comment != null) {
-                        desc = comment.getSubDescription(attr.getName());
-                        if (desc == null)
-                            desc = comment.getSubDisplayName(attr.getName());
-                    }
-                    return doc(desc, tagInfo.getDefNode().getAttribute(attr.getName()));
+                String attrName = attr.getName();
+                DocInfo doc = new DocInfo(tagInfo.getDefNode().getAttribute(attrName));
+
+                IXDefComment comment = tagInfo.getDefNode().getComment();
+                if (comment != null) {
+                    doc.setTitle(comment.getSubDisplayName(attrName));
+                    doc.setDesc(comment.getSubDescription(attrName));
                 }
+                return doc.toString();
             }
         } else if (XmlPsiHelper.isElementType(elm, XmlTokenType.XML_ATTRIBUTE_VALUE_TOKEN)) {
             XmlAttribute attr = PsiTreeUtil.getParentOfType(elm, XmlAttribute.class);
-            if (attr != null) {
-                XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(attr);
-                if (tagInfo != null && tagInfo.getDefNode() != null) {
-                    XDefTypeDecl defType = tagInfo.getDefNode().getAttrType(attr.getName());
-                    if (defType != null) {
-                        if (defType.getOptions() != null) {
-                            DictBean dictBean = DictProvider.instance().getDict(null, defType.getOptions(), null,null);
-                            if (dictBean != null) {
-                                DictOptionBean option = dictBean.getOptionByValue(attr.getValue());
-                                if (option != null) {
-                                    if (option.getDescription() != null)
-                                        return doc(option.getDescription());
-                                    if (!Objects.equals(option.getLabel(), option.getValue()))
-                                        return doc(option.getLabel());
-                                }
-                            }
-                        }
-                    }
-                }
+            if (attr == null) {
+                return null;
             }
+
+            XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(attr);
+            if (tagInfo == null || tagInfo.getDefNode() == null) {
+                return null;
+            }
+
+            XDefTypeDecl defType = tagInfo.getDefNode().getAttrType(attr.getName());
+            if (defType == null || defType.getOptions() == null) {
+                return null;
+            }
+
+            DictBean dictBean = DictProvider.instance().getDict(null, defType.getOptions(), null, null);
+            DictOptionBean option = dictBean != null ? dictBean.getOptionByValue(attr.getValue()) : null;
+            if (option == null) {
+                return null;
+            }
+
+            DocInfo doc = new DocInfo();
+            if (!Objects.equals(option.getLabel(), option.getValue())) {
+                doc.setTitle(option.getLabel());
+            }
+            doc.setDesc(option.getDescription());
+
+            return doc.toString();
         }
+
         return null;
-    }
-
-    String doc(String text) {
-        if (!StringHelper.isEmpty(text))
-            return "doc: " + StringHelper.escapeXml(text);
-        return null;
-    }
-
-    String doc(String desc, IXDefNode defNode) {
-        if (defNode == null)
-            return doc(desc);
-
-        XDefTypeDecl type = defNode.getXdefValue();
-        if (type != null) {
-            return doc("stdDomain=" + type.getStdDomain() + (StringHelper.isBlank(desc) ? "" : "。" + desc));
-        }
-        return doc(desc);
-    }
-
-    String doc(String desc, IXDefAttribute attr) {
-        if (attr == null)
-            return doc(desc);
-
-        XDefTypeDecl type = attr.getType();
-        return doc("stdDomain=" + type.getStdDomain() + (StringHelper.isBlank(desc) ? "" : "。" + desc));
-    }
-
-    /**
-     * Creates the formatted documentation using {@link DocumentationMarkup}. See the Java doc of
-     * {@link com.intellij.lang.documentation.DocumentationProvider#generateDoc(PsiElement, PsiElement)} for more
-     * information about building the layout.
-     */
-    private String renderFullDoc(String key, String value, String file, String docComment) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(DocumentationMarkup.DEFINITION_START);
-        sb.append("Simple Property");
-        sb.append(DocumentationMarkup.DEFINITION_END);
-        sb.append(DocumentationMarkup.CONTENT_START);
-        sb.append(value);
-        sb.append(DocumentationMarkup.CONTENT_END);
-        sb.append(DocumentationMarkup.SECTIONS_START);
-        addKeyValueSection("Key:", key, sb);
-        addKeyValueSection("Value:", value, sb);
-        addKeyValueSection("File:", file, sb);
-        addKeyValueSection("Comment:", docComment, sb);
-        sb.append(DocumentationMarkup.SECTIONS_END);
-        return sb.toString();
-    }
-
-    /**
-     * Creates a key/value row for the rendered documentation.
-     */
-    private void addKeyValueSection(String key, String value, StringBuilder sb) {
-        sb.append(DocumentationMarkup.SECTION_HEADER_START);
-        sb.append(key);
-        sb.append(DocumentationMarkup.SECTION_SEPARATOR);
-        sb.append("<p>");
-        sb.append(value);
-        sb.append(DocumentationMarkup.SECTION_END);
     }
 
     /**
@@ -179,5 +133,68 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
 //            return "\"" + key + "\" in " + file;
 //        }
         return null;
+    }
+
+    /** 对于多行文本，行首的 <code>&gt; </code> 将被去除后，再按照 markdown 渲染得到 html 代码 */
+    public static String markdown(String text) {
+        text = text.replaceAll("(?m)^> ","");
+        text = MarkdownHelper.renderHtml(text);
+
+        return text;
+    }
+
+    static class DocInfo {
+        String title;
+        String stdDomain;
+        String desc;
+
+        DocInfo() {
+        }
+
+        DocInfo(IXDefNode defNode) {
+            this(defNode.getXdefValue());
+        }
+
+        DocInfo(IXDefAttribute attr) {
+            this(attr.getType());
+        }
+
+        DocInfo(XDefTypeDecl type) {
+            this.stdDomain = type != null ? type.getStdDomain() : null;
+        }
+
+        public void setTitle(String title) {
+            this.title = title;
+        }
+
+        public void setDesc(String desc) {
+            this.desc = desc;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+
+            if (!StringHelper.isBlank(this.title)) {
+                sb.append("<p><b>");
+                sb.append(StringHelper.escapeXml(this.title));
+                sb.append("</b></p>");
+            }
+            if (this.stdDomain != null) {
+                sb.append("<p>");
+                sb.append("stdDomain=").append(StringHelper.escapeXml(this.stdDomain));
+                sb.append("</p>");
+            }
+
+            if (!StringHelper.isBlank(this.desc)) {
+                if (!sb.isEmpty()) {
+                    sb.append("<hr/><br/>");
+                }
+
+                sb.append(markdown(this.desc));
+            }
+
+            return !sb.isEmpty() ? sb.toString() : null;
+        }
     }
 }
