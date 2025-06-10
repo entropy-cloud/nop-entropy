@@ -184,6 +184,7 @@
                             record.useLogicalDelete = true;
                         }else if(domain == 'delVersion'){
                             record.deleteVersionProp = col.name;
+                            record.useLogicalDelete = true;
                         }else if(domain == 'tenant'){
                             record.tenantProp = col.name;
                             record.useTenant = true;

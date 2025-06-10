@@ -317,10 +317,7 @@ public class EntityPersisterImpl implements IEntityPersister {
     public void delete(IOrmEntity entity, final IOrmSessionImplementor session) {
         // 如果是逻辑删除，则转为调用修改操作
         if (entityModel.isUseLogicalDelete() && !entity.orm_disableLogicalDelete()) {
-            entity.orm_propValue(entityModel.getDeleteFlagPropId(), DaoConstants.YES_VALUE);
-            if (entityModel.getDeleteVersionPropId() > 0) {
-                entity.orm_propValue(entityModel.getDeleteVersionPropId(), env.newDeleteVersion());
-            }
+            LogicalDeleteHelper.onDelete(entityModel, entity, env);
             syncComponentWhenDelete(entity, true);
             update(entity, session);
             return;

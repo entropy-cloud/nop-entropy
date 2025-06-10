@@ -11,6 +11,9 @@ deleteVersionProp用于避免逻辑删除时唯一键依然存在导致与正常
 
 新建的时候deleteVersion为0，而当逻辑删除的时候，deleteVersion设置为删除时刻的时间戳。这样以后仍然可以插入指定name的新记录，不会与已经逻辑删除的记录发生冲突。
 
+## deleteVersionProp
+如果设置了deleteVersionProp，但是没有设置deleteFlagProp，则会自动将deleteFlagProp设置为deleteVersionProp。这样的话，初始设置deleteVersion=0，删除的时候设置deleteVersion为时间戳。
+
 ## 2. EQL查询
 缺省情况下EQL查询和关联集合查询都会考虑到逻辑删除条件，只查询`delFlag=0`的记录。
 

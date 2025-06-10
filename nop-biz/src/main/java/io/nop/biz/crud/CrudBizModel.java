@@ -656,7 +656,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (entity != null) {
             int delFlag = ConvertHelper.toPrimitiveInt(entity.orm_propValueByName(dao.getDeleteFlagProp()), 0,
                     NopException::new);
-            if (delFlag != 1) {
+            if (delFlag == 0) {
                 throw new NopException(ERR_BIZ_ENTITY_ALREADY_EXISTS).param(ARG_ENTITY_NAME, getEntityName())
                         .param(ARG_ID, id);
             }

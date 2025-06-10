@@ -39,8 +39,28 @@ public class LogicalDeleteHelper {
             entity.orm_propValue(propId, DaoConstants.NO_VALUE);
 
         int versionPropId = entityModel.getDeleteVersionPropId();
+        if (versionPropId == propId)
+            return;
+
         if (versionPropId > 0 && entity.orm_propValue(versionPropId) == null) {
             entity.orm_propValue(versionPropId, 0);
+        }
+    }
+
+    public static void onDelete(IEntityModel entityModel, IOrmEntity entity, IPersistEnv env) {
+        int deleteFlagPropId = entityModel.getDeleteFlagPropId();
+        if (deleteFlagPropId <= 0)
+            return;
+
+        int deleteVersionPropId = entityModel.getDeleteVersionPropId();
+
+        if (deleteFlagPropId == deleteVersionPropId) {
+            entity.orm_propValue(deleteVersionPropId, env.newDeleteVersion());
+        } else {
+            entity.orm_propValue(entityModel.getDeleteFlagPropId(), DaoConstants.YES_VALUE);
+            if (deleteVersionPropId > 0) {
+                entity.orm_propValue(deleteVersionPropId, env.newDeleteVersion());
+            }
         }
     }
 }

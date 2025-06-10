@@ -282,6 +282,9 @@ public class OrmEntityModelInitializer {
      * 为每一列分配一个唯一的propId。如果配置文件中已经指定了propId，则以指定的值为准。
      */
     private void initPropIds() {
+        if (entityModel.getDeleteFlagProp() == null && entityModel.getDeleteVersionProp() != null)
+            entityModel.setDeleteFlagProp(entityModel.getDeleteVersionProp());
+
         IntHashMap<OrmColumnModel> cols = new IntHashMap<>();
 
         // 如果是delta模型，则可能设置minPropId，避免与基类中已有的属性冲突

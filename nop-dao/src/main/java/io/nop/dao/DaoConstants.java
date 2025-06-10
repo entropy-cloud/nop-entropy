@@ -42,8 +42,8 @@ public interface DaoConstants {
     int ACTIVE_STATUS_ACTIVE = 1;
     int ACTIVE_STATUS_INACTIVE = 0;
 
-    Byte YES_VALUE = 1;
-    Byte NO_VALUE = 0;
+    byte YES_VALUE = 1;
+    byte NO_VALUE = 0;
 
     String BEAN_NOP_DATA_SOURCE = "nopDataSource";
 }
