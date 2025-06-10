@@ -60,6 +60,13 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      *  
+     * xml name: repeatCountFieldName
+     * 
+     */
+    private java.lang.String _repeatCountFieldName ;
+    
+    /**
+     *  
      * xml name: repeatKind
      * 如果是列表结构或者Map结构，则这里用来确定如何判断所有条目已经解析完毕
      */
@@ -217,6 +224,25 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      * 
+     * xml name: repeatCountFieldName
+     *  
+     */
+    
+    public java.lang.String getRepeatCountFieldName(){
+      return _repeatCountFieldName;
+    }
+
+    
+    public void setRepeatCountFieldName(java.lang.String value){
+        checkAllowChange();
+        
+        this._repeatCountFieldName = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: repeatKind
      *  如果是列表结构或者Map结构，则这里用来确定如何判断所有条目已经解析完毕
      */
@@ -357,6 +383,7 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         out.putNotNull("beforeWrite",this.getBeforeWrite());
         out.putNotNull("repeatCountExpr",this.getRepeatCountExpr());
         out.putNotNull("repeatCountField",this.getRepeatCountField());
+        out.putNotNull("repeatCountFieldName",this.getRepeatCountFieldName());
         out.putNotNull("repeatKind",this.getRepeatKind());
         out.putNotNull("repeatUntil",this.getRepeatUntil());
         out.putNotNull("switchOnField",this.getSwitchOnField());
@@ -380,6 +407,7 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         instance.setBeforeWrite(this.getBeforeWrite());
         instance.setRepeatCountExpr(this.getRepeatCountExpr());
         instance.setRepeatCountField(this.getRepeatCountField());
+        instance.setRepeatCountFieldName(this.getRepeatCountFieldName());
         instance.setRepeatKind(this.getRepeatKind());
         instance.setRepeatUntil(this.getRepeatUntil());
         instance.setSwitchOnField(this.getSwitchOnField());

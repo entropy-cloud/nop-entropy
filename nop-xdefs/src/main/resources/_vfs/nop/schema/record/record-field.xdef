@@ -11,7 +11,7 @@
        name="!string" xdef:ref="record-simple-field.xdef"
        xdef:name="RecordFieldMeta" xdef:bean-package="io.nop.record.model"
        repeatKind="enum:io.nop.record.model.FieldRepeatKind"
-       tagIndex="!int=0" typeRef="string"
+       tagIndex="!int=0" typeRef="string" repeatCountFieldName="prop-path"
 >
     <repeatCountField xdef:ref="record-simple-field.xdef"/>
 

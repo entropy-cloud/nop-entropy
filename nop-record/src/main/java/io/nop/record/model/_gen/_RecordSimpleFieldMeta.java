@@ -33,14 +33,14 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     /**
      *  
      * xml name: content
-     * 如果非空，则表示字段为固定内容。当输出字段到数据文件中时直接使用该内容输出
+     * 如果非空，则表示字段为固定内容。当输出字段到数据文件中时直接使用该内容输出。 这里可以是直接的字符串，或者0xFFEE这种hex编码
      */
     private io.nop.commons.bytes.ByteString _content ;
     
     /**
      *  
      * xml name: defaultValue
-     * 当值为空的时候，使用这里的缺省值
+     * 当值为空的时候，会使用这里的缺省值输出
      */
     private java.lang.Object _defaultValue ;
     
@@ -282,7 +282,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     /**
      * 
      * xml name: content
-     *  如果非空，则表示字段为固定内容。当输出字段到数据文件中时直接使用该内容输出
+     *  如果非空，则表示字段为固定内容。当输出字段到数据文件中时直接使用该内容输出。 这里可以是直接的字符串，或者0xFFEE这种hex编码
      */
     
     public io.nop.commons.bytes.ByteString getContent(){
@@ -301,7 +301,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
     /**
      * 
      * xml name: defaultValue
-     *  当值为空的时候，使用这里的缺省值
+     *  当值为空的时候，会使用这里的缺省值输出
      */
     
     public java.lang.Object getDefaultValue(){

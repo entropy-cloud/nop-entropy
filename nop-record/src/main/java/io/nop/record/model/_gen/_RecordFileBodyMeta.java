@@ -32,6 +32,13 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
     
     /**
      *  
+     * xml name: repeatCountFieldName
+     * 
+     */
+    private java.lang.String _repeatCountFieldName ;
+    
+    /**
+     *  
      * xml name: repeatKind
      * 
      */
@@ -78,6 +85,25 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
         checkAllowChange();
         
         this._repeatCountField = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: repeatCountFieldName
+     *  
+     */
+    
+    public java.lang.String getRepeatCountFieldName(){
+      return _repeatCountFieldName;
+    }
+
+    
+    public void setRepeatCountFieldName(java.lang.String value){
+        checkAllowChange();
+        
+        this._repeatCountFieldName = value;
            
     }
 
@@ -139,6 +165,7 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
         
         out.putNotNull("repeatCountExpr",this.getRepeatCountExpr());
         out.putNotNull("repeatCountField",this.getRepeatCountField());
+        out.putNotNull("repeatCountFieldName",this.getRepeatCountFieldName());
         out.putNotNull("repeatKind",this.getRepeatKind());
         out.putNotNull("repeatUntil",this.getRepeatUntil());
     }
@@ -154,6 +181,7 @@ public abstract class _RecordFileBodyMeta extends io.nop.record.model.RecordObje
         
         instance.setRepeatCountExpr(this.getRepeatCountExpr());
         instance.setRepeatCountField(this.getRepeatCountField());
+        instance.setRepeatCountFieldName(this.getRepeatCountFieldName());
         instance.setRepeatKind(this.getRepeatKind());
         instance.setRepeatUntil(this.getRepeatUntil());
     }

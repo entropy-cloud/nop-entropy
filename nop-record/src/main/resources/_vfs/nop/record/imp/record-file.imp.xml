@@ -325,6 +325,10 @@
                             <schema dict="io.nop.record.model.FieldRepeatKind"/>
                         </field>
 
+                        <field name="repeatCountFieldName" displayName="重复次数字段">
+                            <schema stdDomain="prop-path"/>
+                        </field>
+
                         <field name="switchOnField" displayName="子类型选择">
                             <schema stdDomain="string"/>
                         </field>

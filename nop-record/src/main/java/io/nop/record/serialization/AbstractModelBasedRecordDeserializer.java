@@ -133,17 +133,23 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     }
 
     protected int readRepeatCount(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        RecordSimpleFieldMeta sizeField = field.getRepeatCountField();
-        if (sizeField != null) {
-            return ConvertHelper.toPrimitiveInt(readField0(in, sizeField, record, context), NopException::new);
+        Object count;
+        if (field.getRepeatCountFieldName() != null) {
+            count = getPropByName(record, field.getRepeatCountFieldName());
         } else {
-            IEvalFunction repeatCountExpr = field.getRepeatCountExpr();
-            if (repeatCountExpr != null) {
-                return ConvertHelper.toPrimitiveInt(repeatCountExpr.call3(null, in, record, context, context.getEvalScope()), NopException::new);
+            RecordSimpleFieldMeta sizeField = field.getRepeatCountField();
+            if (sizeField != null) {
+                count = readField0(in, sizeField, record, context);
             } else {
-                throw new IllegalArgumentException("Repeat count field not found:" + field.getName());
+                IEvalFunction repeatCountExpr = field.getRepeatCountExpr();
+                if (repeatCountExpr != null) {
+                    count = repeatCountExpr.call3(null, in, record, context, context.getEvalScope());
+                } else {
+                    throw new IllegalArgumentException("Repeat count field not found:" + field.getName());
+                }
             }
         }
+        return ConvertHelper.toPrimitiveInt(count, err -> new NopException(err).source(field).param(ARG_FIELD_NAME, field.getName()));
     }
 
     protected Object readSwitch(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
@@ -180,7 +186,6 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
 
         if (record instanceof Collection) {
             Object ret = typeMeta.newRecordObject();
-            ((Collection<Object>) record).add(ret);
             return ret;
         } else {
             return BeanTool.makeComplexProperty(record, field.getPropOrFieldName(), typeMeta::newRecordObject);

@@ -25,7 +25,7 @@
     <header xdef:ref="record-object.xdef"/>
 
     <body xdef:name="RecordFileBodyMeta" repeatKind="enum:io.nop.record.model.FieldRepeatKind"
-          xdef:ref="record-object.xdef">
+          xdef:ref="record-object.xdef" repeatCountFieldName="prop-path">
 
         <repeatCountField xdef:ref="record-simple-field.xdef"/>
 
