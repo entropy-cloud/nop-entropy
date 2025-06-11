@@ -1,0 +1,27 @@
+{
+  "name": "思考和规划",
+  "id":"think_and_plan",
+  "description": "这是用于系统化思考与规划的工具，支持用户在面对复杂问题或任务时，分阶段梳理思考、规划和行动步骤。工具强调思考（thought）、计划（plan）与实际行动（action）的结合，通过编号（thoughtNumber）追踪过程。该工具不会获取新信息或更改数据库，只会将想法附加到记忆中。当需要复杂推理或某种缓存记忆时，可以使用它。",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "thought": {
+        "type": "string",
+        "description": "当前的思考内容，可以是对问题的分析、假设、洞见、反思或对前一步骤的总结。强调深度思考和逻辑推演，是每一步的核心。"
+      },
+      "plan": {
+        "type": "string",
+        "description": "针对当前任务拟定的计划或方案，将复杂问题分解为多个可执行步骤。"
+      },
+      "action": {
+        "type": "string",
+        "description": "基于当前思考和计划，建议下一步采取的行动步骤，要求具体、可执行、可验证，可以是下一步需要调用的一个或多个工具。"
+      },
+      "thoughtNumber": {
+        "type": "string",
+        "description": "当前思考步骤的编号，用于追踪和回溯整个思考与规划过程，便于后续复盘与优化。"
+      }
+    },
+    "required": ["thought","plan","action","thoughtNumber"]
+  }
+}
