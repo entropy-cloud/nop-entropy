@@ -123,37 +123,41 @@ public class LoginServiceImpl extends AbstractLoginService {
 
     void addDefaultUser() {
         if (CFG_AUTH_ALLOW_CREATE_DEFAULT_USER.get()) {
-            IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
-            // 用户表为空，插入缺省用户
-            if (dao.isEmpty()) {
-                NopAuthUser user = dao.newEntity();
-                user.setUserName("nop");
-                String salt = passwordEncoder.generateSalt();
-                user.setPassword(passwordEncoder.encodePassword(salt, "123"));
-                user.setSalt(salt);
-                user.setOpenId("0");
-                user.setNickName("Nopper");
-                user.setStatus(AuthApiConstants.USER_STATUS_ACTIVE);
-                user.setGender(AuthApiConstants.USER_GENDER_DEFAULT);
-                user.setUserType(AuthApiConstants.USER_TYPE_DEFAULT);
-                user.setDelFlag(DaoConstants.NO_VALUE);
-                user.setCreatedBy("sys");
-                user.setUpdatedBy("sys");
-                user.setUserId(StringHelper.generateUUID());
-                user.setTenantId("0");
-                dao.saveEntity(user);
-            }
-
-            if (CFG_ORM_ENABLE_TENANT_BY_DEFAULT.get()) {
-                IEntityDao<NopAuthTenant> tenantDao = daoProvider.daoFor(NopAuthTenant.class);
-                if (tenantDao.isEmpty()) {
-                    NopAuthTenant tenant = tenantDao.newEntity();
-                    tenant.setTenantId("0");
-                    tenant.setName("DefaultTenant");
-                    tenant.setStatus(1);
-                    tenantDao.saveEntity(tenant);
+            ContextProvider.runWithTenant("0", ()->{
+                IEntityDao<NopAuthUser> dao = daoProvider.daoFor(NopAuthUser.class);
+                // 用户表为空，插入缺省用户
+                if (dao.isEmpty()) {
+                    NopAuthUser user = dao.newEntity();
+                    user.setUserName("nop");
+                    String salt = passwordEncoder.generateSalt();
+                    user.setPassword(passwordEncoder.encodePassword(salt, "123"));
+                    user.setSalt(salt);
+                    user.setOpenId("0");
+                    user.setNickName("Nopper");
+                    user.setStatus(AuthApiConstants.USER_STATUS_ACTIVE);
+                    user.setGender(AuthApiConstants.USER_GENDER_DEFAULT);
+                    user.setUserType(AuthApiConstants.USER_TYPE_DEFAULT);
+                    user.setDelFlag(DaoConstants.NO_VALUE);
+                    user.setCreatedBy("sys");
+                    user.setUpdatedBy("sys");
+                    user.setUserId(StringHelper.generateUUID());
+                    user.setTenantId("0");
+                    dao.saveEntity(user);
                 }
-            }
+
+                if (CFG_ORM_ENABLE_TENANT_BY_DEFAULT.get()) {
+                    IEntityDao<NopAuthTenant> tenantDao = daoProvider.daoFor(NopAuthTenant.class);
+                    if (tenantDao.isEmpty()) {
+                        NopAuthTenant tenant = tenantDao.newEntity();
+                        tenant.setTenantId("0");
+                        tenant.setName("DefaultTenant");
+                        tenant.setStatus(1);
+                        tenantDao.saveEntity(tenant);
+                    }
+                }
+                return null;
+            });
+
         }
     }
 
