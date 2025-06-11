@@ -2510,6 +2510,16 @@
           "java.lang.String",
           "java.lang.String",
           "boolean",
+          "boolean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "getEntity",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "boolean",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -2569,6 +2579,10 @@
           "io.nop.biz.crud.EntityData",
           "io.nop.core.context.IServiceContext"
         ]
+      },
+      {
+        "name": "isAllowGetDeleted",
+        "parameterTypes": []
       },
       {
         "name": "isAnyPropDirty",

@@ -98,6 +98,8 @@ public interface BizConstants {
 
     String BIZ_ALLOWED_LEFT_JOIN_PROPS = "biz:allowedLeftJoinProps";
 
+    String BIZ_ALLOW_GET_DELETED = "biz:allowGetDeleted";
+
     String EXT_KIND_VALUE_COMPONENT = "component";
 
     String GRAPHQL_BASE_NAME = "graphql:base";

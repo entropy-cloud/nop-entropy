@@ -232,4 +232,7 @@ public interface BizErrors {
     ErrorCode ERR_BIZ_NOT_EXPORTABLE_FIELD =
             define("nop.err.biz.not-exportable-field", "[{propName}]不是可导出的字段",
                     ARG_BIZ_OBJ_NAME, ARG_PROP_NAME);
+
+    ErrorCode ERR_BIZ_NOT_ALLOW_GET_DELETED =
+            define("nop.err.biz.not-allow-get-deleted", "不允许获取已删除的数据");
 }

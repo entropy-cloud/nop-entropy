@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-      x:extends="_NopAuthUser.xmeta">
+      x:extends="_NopAuthUser.xmeta" biz:allowGetDeleted="true">
 
     <props>
         <prop name="userName" allowFilterOp="eq,contains" ui:filterOp="contains"/>

@@ -131,6 +131,7 @@ import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_NOT_SUPPORT_LOGICAL_DELETE;
 import static io.nop.biz.BizErrors.ERR_BIZ_ENTITY_WITH_SAME_KEY_ALREADY_EXISTS;
 import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_DELETE_ENTITY_WHEN_REF_EXISTS;
 import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_DELETE_PARENT_WHEN_CHILDREN_IS_NOT_EMPTY;
+import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_GET_DELETED;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_BIZ_MODEL_ANNOTATION;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_MANDATORY_PARAM;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_STATE_MACHINE;
@@ -906,10 +907,17 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     public T deleted_get(@Name("id") @Description("@i18n:biz.id|对象的主键标识") String id,
                          @Optional @Name("ignoreUnknown") @Description("@i18n:biz.ignoreUnknown|未找到对象时是返回null还是抛出异常") boolean ignoreUnknown,
                          IServiceContext context) {
+        if (!isAllowGetDeleted())
+            throw new NopException(ERR_BIZ_NOT_ALLOW_GET_DELETED).param(ARG_BIZ_OBJ_NAME, getBizObjName());
+
         checkMandatoryParam("get", "id", id);
 
         T entity = getEntity(id, BizConstants.METHOD_GET, ignoreUnknown, true, context);
         return entity;
+    }
+
+    protected boolean isAllowGetDeleted() {
+        return ConvertHelper.toPrimitiveBoolean(getThisObj().getObjMeta().prop_get(BizConstants.BIZ_ALLOW_GET_DELETED));
     }
 
     @Description("@i18n:biz.batchGet|根据主键批量获取对象")
@@ -1276,6 +1284,9 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public PageBean<T> deleted_findPage(@Optional @Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                                         FieldSelectionBean selection, IServiceContext context) {
+        if (!isAllowGetDeleted())
+            throw new NopException(ERR_BIZ_NOT_ALLOW_GET_DELETED).param(ARG_BIZ_OBJ_NAME, getBizObjName());
+
         if (query == null) {
             query = new QueryBean();
         }
@@ -1293,6 +1304,9 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
     @BizMutation
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public T recoverDeleted(@Name("id") String id, IServiceContext context) {
+        if (!isAllowGetDeleted())
+            throw new NopException(ERR_BIZ_NOT_ALLOW_GET_DELETED).param(ARG_BIZ_OBJ_NAME, getBizObjName());
+
         IEntityDao<T> dao = dao();
         String deleteFlagProp = dao.getDeleteFlagProp();
         if (StringHelper.isEmpty(deleteFlagProp))
