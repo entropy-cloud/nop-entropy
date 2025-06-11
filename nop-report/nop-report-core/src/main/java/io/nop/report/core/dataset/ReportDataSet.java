@@ -74,16 +74,16 @@ public class ReportDataSet implements Iterable<Object> {
     }
 
     public boolean isEmpty() {
-        return items.isEmpty();
+        return current().isEmpty();
     }
 
     public int size() {
-        return items.size();
+        return current().size();
     }
 
     @Override
     public Iterator<Object> iterator() {
-        return items.iterator();
+        return current().iterator();
     }
 
     public List<KeyedReportDataSet> group(String field) {
