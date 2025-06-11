@@ -218,7 +218,7 @@ public abstract class _RecordSimpleFieldMeta extends io.nop.core.resource.compon
      * xml name: trim
      * 解析得到值之后是否自动执行trim操作，去除padding字符。如果没有指定padding，则去除空格
      */
-    private boolean _trim  = false;
+    private boolean _trim  = true;
     
     /**
      *  

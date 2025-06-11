@@ -484,6 +484,30 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
         return -1;
     }
 
+    public ByteString trimLeft(byte paddingChar) {
+        if (isEmpty())
+            return this;
+
+        for (int i = 0, n = length(); i < n; i++) {
+            if (this.at(i) != paddingChar) {
+                return substring(i);
+            }
+        }
+        return this;
+    }
+
+    public ByteString trimRight(byte paddingChar) {
+        if (isEmpty())
+            return this;
+
+        for (int i = length() - 1; i >= 0; i--) {
+            if (at(i) != paddingChar) {
+                return substring(0, i + 1);
+            }
+        }
+        return this;
+    }
+
     public int lastIndexOf(ByteString other) {
         return lastIndexOfBytes(other.bytes, length());
     }

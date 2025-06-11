@@ -23,7 +23,7 @@
        xmlns:xdef="/nop/schema/xdef.xdef"
        name="string" displayName="string" type="generic-type" prop="prop-name"
        length="!int=0" codec="string" charset="string"
-       padding="encoded-bytes" leftPad="!boolean=false" trim="!boolean=false"
+       padding="encoded-bytes" leftPad="!boolean=false" trim="!boolean=true"
        offset="!int=0" virtual="!boolean=false" format="string"
        content="encoded-bytes" defaultValue="any"
        mandatory="!boolean=false" endian="enum:io.nop.commons.bytes.EndianKind"

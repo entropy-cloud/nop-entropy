@@ -253,6 +253,10 @@
                             <schema stdDomain="string"/>
                         </field>
 
+                        <field name="trim" displayName="移除填充">
+                            <schema stdDomain="boolean"/>
+                        </field>
+
                         <field name="charset" displayName="字符集">
                             <schema stdDomain="string"/>
                         </field>

@@ -16,7 +16,6 @@ import io.nop.record.codec.IFieldTagBinaryCodec;
 import io.nop.record.codec.IFieldTagTextCodec;
 import io.nop.record.codec.IFieldTextCodec;
 import io.nop.record.model.IRecordFieldsMeta;
-import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordSimpleFieldMeta;
 
 import static io.nop.record.RecordErrors.ARG_CODEC;
@@ -174,5 +173,34 @@ public class RecordMetaHelper {
         return str;
     }
 
+    public static String trimText(String str, RecordSimpleFieldMeta field) {
+        if (!field.isTrim())
+            return str;
+
+        if (field.getPadding() != null) {
+            char c = (char) field.getPadding().at(0);
+            if (field.isLeftPad()) {
+                str = StringHelper.trimLeft(str, c);
+            } else {
+                str = StringHelper.trimRight(str, c);
+            }
+        }
+        return str;
+    }
+
+    public static ByteString trimBinary(ByteString str, RecordSimpleFieldMeta field) {
+        if (!field.isTrim())
+            return str;
+
+        if (field.getPadding() != null) {
+            byte c =  field.getPadding().at(0);
+            if (field.isLeftPad()) {
+                str = str.trimLeft(c);
+            } else {
+                str = str.trimRight(c);
+            }
+        }
+        return str;
+    }
 
 }
