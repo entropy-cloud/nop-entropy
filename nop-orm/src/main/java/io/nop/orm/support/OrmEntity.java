@@ -7,6 +7,7 @@
  */
 package io.nop.orm.support;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
@@ -750,5 +751,15 @@ public abstract class OrmEntity implements IOrmEntity {
     public void orm_forceLoad() {
         if (orm_proxy())
             orm_enhancer().internalLoad(this);
+    }
+
+    @Override
+    public boolean orm_logicalDeleted() {
+        if (entityModel == null)
+            return false;
+        int delFlagPropId = entityModel.getDeleteFlagPropId();
+        if (delFlagPropId > 0)
+            return ConvertHelper.toPrimitiveInt(orm_propValue(delFlagPropId), NopException::new) != 0;
+        return false;
     }
 }

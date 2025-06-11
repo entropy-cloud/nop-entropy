@@ -304,6 +304,8 @@ public interface IOrmEntity extends IDaoEntity, IOrmObject, ICloneable, IOrmEnti
 
     void orm_disableVersionCheckError(boolean value);
 
+    boolean orm_logicalDeleted();
+
     /**
      * 如果是proxy状态，则强制加载实体。如果加载后发现实体不存在，则抛出异常
      *

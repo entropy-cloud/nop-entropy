@@ -654,9 +654,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         }
 
         if (entity != null) {
-            int delFlag = ConvertHelper.toPrimitiveInt(entity.orm_propValueByName(dao.getDeleteFlagProp()), 0,
-                    NopException::new);
-            if (delFlag == 0) {
+            if (!entity.orm_logicalDeleted()) {
                 throw new NopException(ERR_BIZ_ENTITY_ALREADY_EXISTS).param(ARG_ENTITY_NAME, getEntityName())
                         .param(ARG_ID, id);
             }
@@ -804,17 +802,28 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
 
     @BizAction
     protected T requireEntity(@Name("id") String id, @Name("action") String action, IServiceContext context) {
-        return getEntity(id, action, false, context);
+        return getEntity(id, action, false, false, context);
     }
 
     @BizAction
     protected T getEntity(@Name("id") String id, @Name("action") String action,
                           @Name("ignoreUnknown") boolean ignoreUnknown,
+                          @Name("includeLogicalDeleted") boolean includeLogicalDeleted,
                           IServiceContext context) {
         IBizObject bizObj = getThisObj();
         IObjMeta objMeta = bizObj.requireObjMeta();
 
         T entity = doGetEntity(id, ignoreUnknown, context);
+        if (entity == null)
+            return null;
+
+        if (!includeLogicalDeleted) {
+            if (entity.orm_logicalDeleted()) {
+                if (ignoreUnknown)
+                    return null;
+                throw new UnknownEntityException(getEntityName(), id).param("deleted", true);
+            }
+        }
 
         checkDataAuth(action, entity, context);
         checkMetaFilter(entity, objMeta, context);
@@ -887,7 +896,19 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
                  IServiceContext context) {
         checkMandatoryParam("get", "id", id);
 
-        T entity = getEntity(id, BizConstants.METHOD_GET, ignoreUnknown, context);
+        T entity = getEntity(id, BizConstants.METHOD_GET, ignoreUnknown, false, context);
+        return entity;
+    }
+
+    @Description("@i18n:biz.get|根据id获取已经被逻辑删除的单条数据")
+    @BizQuery
+    @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
+    public T deleted_get(@Name("id") @Description("@i18n:biz.id|对象的主键标识") String id,
+                         @Optional @Name("ignoreUnknown") @Description("@i18n:biz.ignoreUnknown|未找到对象时是返回null还是抛出异常") boolean ignoreUnknown,
+                         IServiceContext context) {
+        checkMandatoryParam("get", "id", id);
+
+        T entity = getEntity(id, BizConstants.METHOD_GET, ignoreUnknown, true, context);
         return entity;
     }
 
@@ -907,6 +928,9 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         }
 
         for (T entity : list) {
+            if (entity.orm_logicalDeleted())
+                throw new UnknownEntityException(dao.getEntityName(), entity.orm_id()).param("deleted", true);
+
             checkMetaFilter(entity, getThisObj().getObjMeta(), context);
             checkDataAuth(BizConstants.METHOD_GET, entity, context);
         }
@@ -1260,7 +1284,7 @@ public abstract class CrudBizModel<T extends IOrmEntity> implements IBizModelImp
         if (StringHelper.isEmpty(deleteFlagProp))
             throw new NopException(ERR_BIZ_ENTITY_NOT_SUPPORT_LOGICAL_DELETE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
-        query.addFilter(FilterBeans.eq(deleteFlagProp, 1));
+        query.addFilter(FilterBeans.gt(deleteFlagProp, 0));
 
         return doFindPage(query, this::invokeDefaultPrepareQuery, selection, context);
     }
