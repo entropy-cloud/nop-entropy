@@ -6,33 +6,44 @@ import java.nio.ByteBuffer;
 
 public class StreamBinaryDataWriter implements IBinaryDataWriter {
     private final OutputStream out;
+    private long writtenCount;
 
     public StreamBinaryDataWriter(OutputStream out) {
         this.out = out;
     }
 
     @Override
+    public long getWrittenCount() {
+        return writtenCount;
+    }
+
+    @Override
     public void writeBytes(byte[] bytes) throws IOException {
         out.write(bytes);
+        writtenCount += bytes.length;
     }
 
     @Override
     public void writeBytesPart(byte[] str, int start, int end) throws IOException {
         out.write(str, start, end - start);
+        writtenCount += end - start;
     }
 
     @Override
     public void writeByteBuffer(ByteBuffer buf) throws IOException {
+        writtenCount += buf.remaining();
         out.write(buf.array(), buf.position(), buf.remaining());
     }
 
     @Override
     public void writeS1(byte c) throws IOException {
+        writtenCount++;
         out.write(c);
     }
 
     @Override
     public void writeU1(int c) throws IOException {
+        writtenCount++;
         out.write(c);
     }
 
@@ -40,24 +51,28 @@ public class StreamBinaryDataWriter implements IBinaryDataWriter {
     public void writeS2be(short c) throws IOException {
         out.write((byte) (c >> 8));
         out.write((byte) c);
+        writtenCount += 2;
     }
 
     @Override
     public void writeS2le(short c) throws IOException {
         out.write((byte) c);
         out.write((byte) (c >> 8));
+        writtenCount += 2;
     }
 
     @Override
     public void writeU2be(int c) throws IOException {
         out.write((byte) (c >> 8));
         out.write((byte) c);
+        writtenCount += 2;
     }
 
     @Override
     public void writeU2le(int c) throws IOException {
         out.write((byte) c);
         out.write((byte) (c >> 8));
+        writtenCount += 2;
     }
 
     @Override
@@ -66,6 +81,7 @@ public class StreamBinaryDataWriter implements IBinaryDataWriter {
         out.write((byte) (c >> 16));
         out.write((byte) (c >> 8));
         out.write((byte) c);
+        writtenCount += 4;
     }
 
     @Override
@@ -74,6 +90,7 @@ public class StreamBinaryDataWriter implements IBinaryDataWriter {
         out.write((byte) (c >> 8));
         out.write((byte) (c >> 16));
         out.write((byte) (c >> 24));
+        writtenCount += 4;
     }
 
     @Override
@@ -82,6 +99,7 @@ public class StreamBinaryDataWriter implements IBinaryDataWriter {
         out.write((byte) (c >> 16));
         out.write((byte) (c >> 8));
         out.write((byte) c);
+        writtenCount += 4;
     }
 
     @Override
@@ -90,6 +108,7 @@ public class StreamBinaryDataWriter implements IBinaryDataWriter {
         out.write((byte) (c >> 8));
         out.write((byte) (c >> 16));
         out.write((byte) (c >> 24));
+        writtenCount += 4;
     }
 
     @Override
@@ -102,6 +121,7 @@ public class StreamBinaryDataWriter implements IBinaryDataWriter {
         out.write((byte) (c >> 16));
         out.write((byte) (c >> 8));
         out.write((byte) c);
+        writtenCount += 8;
     }
 
     @Override
@@ -114,6 +134,7 @@ public class StreamBinaryDataWriter implements IBinaryDataWriter {
         out.write((byte) (c >> 40));
         out.write((byte) (c >> 48));
         out.write((byte) (c >> 56));
+        writtenCount += 8;
     }
 
     @Override
@@ -126,6 +147,7 @@ public class StreamBinaryDataWriter implements IBinaryDataWriter {
         out.write((byte) (c >> 16));
         out.write((byte) (c >> 8));
         out.write((byte) c);
+        writtenCount += 8;
     }
 
     @Override
@@ -138,6 +160,7 @@ public class StreamBinaryDataWriter implements IBinaryDataWriter {
         out.write((byte) (c >> 40));
         out.write((byte) (c >> 48));
         out.write((byte) (c >> 56));
+        writtenCount += 8;
     }
 
     @Override

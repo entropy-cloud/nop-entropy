@@ -401,10 +401,6 @@ public class ByteBufBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public IBinaryDataReader subInput(long n) {
-        if (n > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Java ByteBuffer can't be limited beyond Integer.MAX_VALUE");
-        }
-
         ByteBuf newBuffer = bb.slice();
         newBuffer.writerIndex((int) n);
         // 更新原始 ByteBuf 的读索引

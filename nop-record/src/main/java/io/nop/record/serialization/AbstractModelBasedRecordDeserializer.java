@@ -11,6 +11,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.record.codec.IFieldCodecContext;
+import io.nop.record.model.FieldRepeatKind;
 import io.nop.record.model.IRecordFieldsMeta;
 import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
@@ -97,7 +98,11 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
                 field.getBeforeRead().call3(null, in, record, context, context.getEvalScope());
 
             if (field.getRepeatKind() != null) {
-                readCollection(in, field, record, context);
+                if(field.getCodec() != null){
+                    readCollectionWithCodec(in, field, record, context);
+                }else {
+                    readCollection(in, field, record, context);
+                }
             } else {
                 readSwitch(in, field, record, context);
             }
@@ -118,6 +123,14 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
                 Object value = readSwitch(in, field, coll, context);
                 coll.add(value);
             }
+        } else if (field.getRepeatKind() == FieldRepeatKind.fixed) {
+            Input subInput = (Input) in.subInput(field.getLength());
+            do {
+                Object value = readSwitch(subInput, field, coll, context);
+                if (value == null)
+                    break;
+                coll.add(value);
+            } while (!in.isEof());
         } else {
             int count = readRepeatCount(in, field, record, context);
             for (int i = 0; i < count; i++) {
@@ -242,6 +255,8 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     protected void setPropByName(Object record, String propName, Object value) {
         BeanTool.setProperty(record, propName, value);
     }
+
+    abstract protected void readCollectionWithCodec(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException;
 
     abstract protected IBitSet readTags(Input input, RecordObjectMeta typeMeta, IFieldCodecContext context) throws IOException;
 

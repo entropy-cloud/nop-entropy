@@ -230,7 +230,7 @@ public class ModelBasedPacketCodec implements IPacketCodec<Object> {
             int readerIndex = buf.readerIndex();
             buf.skipBytes(offset);
             try {
-                int len = (Integer) lengthCodec.decode(new ByteBufBinaryDataReader(buf), null, length, null);
+                int len = (Integer) lengthCodec.decode(new ByteBufBinaryDataReader(buf), null, length, null, deserializer);
                 return len;
             } catch (Exception e) {
                 throw NopException.adapt(e);
@@ -266,7 +266,7 @@ public class ModelBasedPacketCodec implements IPacketCodec<Object> {
     protected void writeUnadjustedFrameLength(ByteBuf buf, int length, int frameLength) {
         if (lengthCodec != null) {
             try {
-                lengthCodec.encode(new ByteBufBinaryDataWriter(buf), frameLength, length, null, null);
+                lengthCodec.encode(new ByteBufBinaryDataWriter(buf), frameLength, length, null, serializer);
             } catch (Exception e) {
                 throw NopException.adapt(e);
             }

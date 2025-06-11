@@ -2,9 +2,10 @@ package io.nop.record.codec.impl;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.record.codec.IFieldBinaryCodec;
-import io.nop.record.codec.IFieldBinaryEncoder;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.reader.IBinaryDataReader;
+import io.nop.record.serialization.IModelBasedBinaryRecordDeserializer;
+import io.nop.record.serialization.IModelBasedBinaryRecordSerializer;
 import io.nop.record.writer.IBinaryDataWriter;
 
 import java.io.IOException;
@@ -27,9 +28,8 @@ public class LVFieldBinaryCodec implements IFieldBinaryCodec {
     }
 
     @Override
-    public Object decode(IBinaryDataReader input, Object record, int length,
-                         IFieldCodecContext context) throws IOException {
-        int len = (Integer) lengthCodec.decode(input, record, length, context);
+    public Object decode(IBinaryDataReader input, Object record, int length, IFieldCodecContext context, IModelBasedBinaryRecordDeserializer deserializer) throws IOException {
+        int len = (Integer) lengthCodec.decode(input, record, length, context, deserializer);
         if (len <= 0) {
             return null;
         }
@@ -38,15 +38,15 @@ public class LVFieldBinaryCodec implements IFieldBinaryCodec {
             throw new NopException(ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG)
                     .param(ARG_LENGTH, len).param(ARG_MAX_LENGTH, length);
         }
-        return valueCodec.decode(input, record, len, context);
+        return valueCodec.decode(input, record, len, context, deserializer);
     }
 
     @Override
     public void encode(IBinaryDataWriter output, Object value, int length,
-                       IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder) throws IOException {
+                       IFieldCodecContext context, IModelBasedBinaryRecordSerializer serializer) throws IOException {
         int len = lengthGetter.apply(value);
-        lengthCodec.encode(output, len, length, context, null);
+        lengthCodec.encode(output, len, length, context, serializer);
         if (len > 0)
-            valueCodec.encode(output, value, len, context, bodyEncoder);
+            valueCodec.encode(output, value, len, context, serializer);
     }
 }

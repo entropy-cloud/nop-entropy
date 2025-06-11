@@ -37,8 +37,25 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
     private IFieldTagBinaryCodec resolvedTagBinaryCodec;
     private IFieldTagTextCodec resolvedTagTextCodec;
 
+    private int totalLength;
+
     public RecordObjectMeta() {
 
+    }
+
+    /**
+     * 所有子字段的长度加在一起
+     */
+    public int getTotalLength() {
+        if (totalLength == 0) {
+            int total = 0;
+            List<RecordFieldMeta> fields = getFields();
+            for (RecordFieldMeta field : fields) {
+                total += field.getLength();
+            }
+            totalLength = total;
+        }
+        return totalLength;
     }
 
     @Override

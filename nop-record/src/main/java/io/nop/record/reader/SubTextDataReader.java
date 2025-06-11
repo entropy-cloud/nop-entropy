@@ -18,22 +18,22 @@ import static io.nop.record.RecordErrors.ERR_RECORD_NO_ENOUGH_DATA;
  */
 public class SubTextDataReader implements ITextDataReader {
     private final ITextDataReader input;
-    private final int startOffset;
-    private final int maxLength;
+    private final long startOffset;
+    private final long maxLength;
 
-    public SubTextDataReader(ITextDataReader input, int maxLength) {
+    public SubTextDataReader(ITextDataReader input, long maxLength) {
         this(input, pos(input), maxLength);
     }
 
-    static int pos(ITextDataReader input) {
+    static long pos(ITextDataReader input) {
         try {
-            return (int) input.pos();
+            return input.pos();
         } catch (IOException e) {
             throw NopException.adapt(e);
         }
     }
 
-    public SubTextDataReader(ITextDataReader input, int startOffset, int maxLength) {
+    public SubTextDataReader(ITextDataReader input, long startOffset, long maxLength) {
         this.input = input;
         this.startOffset = startOffset;
         this.maxLength = maxLength;
@@ -109,7 +109,7 @@ public class SubTextDataReader implements ITextDataReader {
     @Override
     public void reset() throws IOException {
         input.reset();
-        input.skip(startOffset);
+        input.seek(startOffset);
     }
 
     @Override

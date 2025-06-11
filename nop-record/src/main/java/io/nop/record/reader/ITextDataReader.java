@@ -45,7 +45,7 @@ public interface ITextDataReader extends IDataReaderBase {
      */
     void reset() throws IOException;
 
-    default ITextDataReader subInput(int maxLength) {
+    default ITextDataReader subInput(long maxLength) {
         return new SubTextDataReader(this, maxLength);
     }
 

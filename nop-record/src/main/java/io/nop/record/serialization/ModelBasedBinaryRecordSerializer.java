@@ -18,7 +18,9 @@ import static io.nop.record.util.RecordMetaHelper.padBinary;
 import static io.nop.record.util.RecordMetaHelper.resolveBinaryCodec;
 import static io.nop.record.util.RecordMetaHelper.resolveTagBinaryCodec;
 
-public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSerializer<IBinaryDataWriter> {
+public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSerializer<IBinaryDataWriter>
+        implements IModelBasedBinaryRecordSerializer {
+
     private final FieldCodecRegistry registry;
 
     public ModelBasedBinaryRecordSerializer(FieldCodecRegistry registry) {
@@ -60,6 +62,14 @@ public class ModelBasedBinaryRecordSerializer extends AbstractModelBasedRecordSe
         if (charset == null)
             charset = StandardCharsets.UTF_8;
         out.writeBytes(str.getBytes(charset));
+    }
+
+    @Override
+    protected void writePadding(IBinaryDataWriter iBinaryDataWriter, ByteString padding, int length, IFieldCodecContext context) throws IOException {
+        byte c = padding.at(0);
+        for (int i = 0; i < length; i++) {
+            iBinaryDataWriter.writeByte(c);
+        }
     }
 
     ByteString toBytes(Object value, Charset charset) {

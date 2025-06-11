@@ -35,6 +35,11 @@ public class ByteBufBinaryDataWriter implements IBinaryDataWriter {
     }
 
     @Override
+    public long getWrittenCount() {
+        return byteBuf.readableBytes();
+    }
+
+    @Override
     public void writeS1(byte c) {
         byteBuf.writeByte(c); // 写入一个字节
     }

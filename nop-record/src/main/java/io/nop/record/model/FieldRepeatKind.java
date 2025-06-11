@@ -11,5 +11,5 @@ public enum FieldRepeatKind {
     eos,
     expr,
     until,
-    fixed
+    fixed,
 }

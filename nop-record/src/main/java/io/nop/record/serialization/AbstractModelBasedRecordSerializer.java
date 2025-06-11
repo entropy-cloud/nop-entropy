@@ -4,11 +4,13 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.api.core.util.Symbol;
+import io.nop.commons.bytes.ByteString;
 import io.nop.commons.collections.bit.IBitSet;
 import io.nop.commons.text.SimpleTextTemplate;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.record.codec.IFieldCodecContext;
+import io.nop.record.model.FieldRepeatKind;
 import io.nop.record.model.IRecordFieldsMeta;
 import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
@@ -138,6 +140,8 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
     }
 
     protected void writeCollection(Output out, RecordFieldMeta field, Collection<?> coll, IFieldCodecContext context) throws IOException {
+        long count = out.getWrittenCount();
+
         RecordSimpleFieldMeta repeatCountField = field.getRepeatCountField();
         if (repeatCountField != null) {
             writeField0(out, repeatCountField, coll, coll.size(), context);
@@ -145,6 +149,19 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
 
         for (Object o : coll) {
             writeSwitch(out, field, coll, o, context);
+        }
+
+        long endCount = out.getWrittenCount();
+        if (field.getRepeatKind() == FieldRepeatKind.fixed) {
+            int length = field.getLength();
+            if (length > 0 && endCount - count < length) {
+                int diff = length - (int) (endCount - count);
+                if (field.getPadding() != null) {
+                    writePadding(out, field.getPadding(), diff, context);
+                } else {
+                    writeOffset(out, diff, context);
+                }
+            }
         }
     }
 
@@ -201,6 +218,8 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
                                          Object value, IFieldCodecContext context) throws IOException;
 
     abstract protected void writeOffset(Output out, int offset, IFieldCodecContext context) throws IOException;
+
+    abstract protected void writePadding(Output output, ByteString padding, int length, IFieldCodecContext context) throws IOException;
 
     abstract protected void writeString(Output out, String str, Charset charset, IFieldCodecContext context) throws IOException;
 

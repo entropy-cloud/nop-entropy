@@ -6,6 +6,7 @@ import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.IFieldTagTextCodec;
 import io.nop.record.codec.IFieldTextCodec;
+import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordSimpleFieldMeta;
 import io.nop.record.reader.ITextDataReader;
@@ -20,7 +21,8 @@ import static io.nop.record.RecordErrors.ERR_RECORD_VALUE_NOT_MATCH_STRING;
 import static io.nop.record.util.RecordMetaHelper.resolveTagTextCodec;
 import static io.nop.record.util.RecordMetaHelper.resolveTextCodec;
 
-public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDeserializer<ITextDataReader> {
+public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDeserializer<ITextDataReader>
+        implements IModelBasedTextRecordDeserializer {
     private final FieldCodecRegistry registry;
 
     public ModelBasedTextRecordDeserializer(FieldCodecRegistry registry) {
@@ -33,6 +35,16 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
         if (codec == null)
             return null;
         return codec.decodeTags(in, typeMeta, context);
+    }
+
+    @Override
+    protected void readCollectionWithCodec(ITextDataReader in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
+        IFieldTextCodec codec = resolveTextCodec(field, registry);
+        if (codec != null) {
+            codec.decode(in, record, field.getLength(), context,this);
+        } else {
+            readCollection(in, field, record, context);
+        }
     }
 
     @Override
@@ -54,7 +66,7 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
                                 Object record, IFieldCodecContext context) throws IOException {
         IFieldTextCodec decoder = resolveTextCodec(field, registry);
         if (decoder != null) {
-            Object value = decoder.decode(in, record, field.getLength(), context);
+            Object value = decoder.decode(in, record, field.getLength(), context,this);
             return value;
         } else {
             String str = in.read(field.getLength());

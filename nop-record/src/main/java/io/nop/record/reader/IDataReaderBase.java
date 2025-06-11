@@ -8,4 +8,5 @@ public interface IDataReaderBase extends Closeable {
 
     long pos() throws IOException;
 
+    IDataReaderBase subInput(long maxLength) throws IOException;
 }

@@ -2,9 +2,10 @@ package io.nop.record.codec.impl;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.record.codec.IFieldBinaryCodec;
-import io.nop.record.codec.IFieldBinaryEncoder;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.reader.IBinaryDataReader;
+import io.nop.record.serialization.IModelBasedBinaryRecordDeserializer;
+import io.nop.record.serialization.IModelBasedBinaryRecordSerializer;
 import io.nop.record.writer.IBinaryDataWriter;
 
 import java.io.IOException;
@@ -27,9 +28,9 @@ public class DynLVFieldBinaryCodec implements IFieldBinaryCodec {
     }
 
     @Override
-    public Object decode(IBinaryDataReader input, Object record, int length,
-                         IFieldCodecContext context) throws IOException {
-        int len = (Integer) lengthCodec.decode(input, record, length, context);
+    public Object decode(IBinaryDataReader input, Object record, int length, IFieldCodecContext context,
+                         IModelBasedBinaryRecordDeserializer deserializer) throws IOException {
+        int len = (Integer) lengthCodec.decode(input, record, length, context, deserializer);
         if (len <= 0) {
             return null;
         }
@@ -41,12 +42,12 @@ public class DynLVFieldBinaryCodec implements IFieldBinaryCodec {
 
         if (valueCodec == null)
             return len;
-        return valueCodec.decode(input, record, len, context);
+        return valueCodec.decode(input, record, len, context, deserializer);
     }
 
     @Override
     public void encode(IBinaryDataWriter output, Object value, int length,
-                       IFieldCodecContext context, IFieldBinaryEncoder bodyEncoder) throws IOException {
+                       IFieldCodecContext context, IModelBasedBinaryRecordSerializer serializer) throws IOException {
         int len = lengthGetter.apply(value);
         lengthCodec.encode(output, len, length, context, null);
         if (len > 0) {
@@ -55,7 +56,7 @@ public class DynLVFieldBinaryCodec implements IFieldBinaryCodec {
                 return;
             }
 
-            bodyEncoder.encode(output, value, len, context, null);
+            //serializer.encode(output, value, len, context, null);
         }
     }
 }

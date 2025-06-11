@@ -6,6 +6,7 @@ import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.IFieldTagBinaryCodec;
+import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordSimpleFieldMeta;
 import io.nop.record.reader.IBinaryDataReader;
@@ -22,7 +23,8 @@ import static io.nop.record.RecordErrors.ERR_RECORD_VALUE_NOT_MATCH_STRING;
 import static io.nop.record.util.RecordMetaHelper.resolveBinaryCodec;
 import static io.nop.record.util.RecordMetaHelper.resolveTagBinaryCodec;
 
-public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecordDeserializer<IBinaryDataReader> {
+public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecordDeserializer<IBinaryDataReader>
+        implements IModelBasedBinaryRecordDeserializer {
     private final FieldCodecRegistry registry;
 
     public ModelBasedBinaryRecordDeserializer(FieldCodecRegistry registry) {
@@ -38,6 +40,15 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
         return codec.decodeTags(in, typeMeta, context);
     }
 
+    @Override
+    protected void readCollectionWithCodec(IBinaryDataReader in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
+        IFieldBinaryCodec codec = resolveBinaryCodec(field, registry);
+        if (codec != null) {
+            codec.decode(in, record, field.getLength(), context, this);
+        } else {
+            readCollection(in, field, record, context);
+        }
+    }
 
     @Override
     protected void readOffset(IBinaryDataReader in, int offset, IFieldCodecContext context) throws IOException {
@@ -58,7 +69,7 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
     protected Object readField0(IBinaryDataReader in, RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
         IFieldBinaryCodec codec = resolveBinaryCodec(field, registry);
         if (codec != null) {
-            Object value = codec.decode(in, record, field.getLength(), context);
+            Object value = codec.decode(in, record, field.getLength(), context, this);
             return value;
         } else {
             String str = decodeString(in, field.getCharsetObj(), field.getLength());

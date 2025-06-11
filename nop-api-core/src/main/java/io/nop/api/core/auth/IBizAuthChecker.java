@@ -7,8 +7,6 @@
  */
 package io.nop.api.core.auth;
 
-import io.nop.api.core.exceptions.NopException;
-
 /**
  * 检查是否允许访问指定业务对象，或者业务对象上的某个属性。
  * <p>

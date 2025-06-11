@@ -12,6 +12,8 @@ import java.io.IOException;
 public interface ITextDataWriter extends Appendable, IDataWriterBase {
     int length();
 
+    long getWrittenCount();
+
     ITextDataWriter append(CharSequence str) throws IOException;
 
     ITextDataWriter append(CharSequence str, int start, int end) throws IOException;

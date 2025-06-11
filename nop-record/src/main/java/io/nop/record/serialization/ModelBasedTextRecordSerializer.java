@@ -7,7 +7,6 @@ import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.IFieldTagTextCodec;
 import io.nop.record.codec.IFieldTextCodec;
-import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordSimpleFieldMeta;
 import io.nop.record.util.RecordMetaHelper;
@@ -59,6 +58,14 @@ public class ModelBasedTextRecordSerializer extends AbstractModelBasedRecordSeri
     protected void writeOffset(ITextDataWriter out, int offset, IFieldCodecContext context) throws IOException {
         for (int i = 0; i < offset; i++) {
             out.append(' ');
+        }
+    }
+
+    @Override
+    protected void writePadding(ITextDataWriter iTextDataWriter, ByteString padding, int length, IFieldCodecContext context) throws IOException {
+        char c = padding.charAt(0);
+        for (int i = 0; i < length; i++) {
+            iTextDataWriter.append(c);
         }
     }
 

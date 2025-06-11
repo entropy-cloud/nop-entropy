@@ -8,14 +8,12 @@
 package io.nop.record.model;
 
 import io.nop.commons.collections.bit.IBitSet;
-import io.nop.commons.text.SimpleTextTemplate;
 import io.nop.record.model._gen._RecordFieldMeta;
 
 import java.util.Map;
 
 public class RecordFieldMeta extends _RecordFieldMeta {
 
-    private SimpleTextTemplate normalizedTemplate;
 
     public RecordFieldMeta() {
 
@@ -46,9 +44,5 @@ public class RecordFieldMeta extends _RecordFieldMeta {
             return true;
 
         return tags.get(tagIndex);
-    }
-
-    public SimpleTextTemplate getNormalizedTemplate() {
-        return this.normalizedTemplate;
     }
 }

@@ -30,6 +30,11 @@ public class AppendableTextDataWriter implements ITextDataWriter {
     }
 
     @Override
+    public long getWrittenCount() {
+        return length;
+    }
+
+    @Override
     public ITextDataWriter append(CharSequence str) throws IOException {
         buf.append(str);
         length += str.length();

@@ -106,6 +106,10 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
         return bytes[index];
     }
 
+    public char charAt(int index) {
+        return (char) bytes[index];
+    }
+
     @Override
     public int compareTo(ByteString object) {
         byte[] bs = object.bytes;
