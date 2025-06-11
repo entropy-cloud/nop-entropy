@@ -28,7 +28,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.SQLException;
 
 /**
  * 与spring事务机制集成。底层事务直接使用PlatformTransactionManager提供。
@@ -56,23 +55,32 @@ public class NopSpringTransactionFactory implements ITransactionFactory {
 
     @Override
     public Connection openConnection(String txnGroup) {
-        try {
-            return dataSource.getConnection();
-        } catch (SQLException e) {
-            throw getDialectForQuerySpace(txnGroup).getSQLExceptionTranslator().translate("ds.getConnection", e);
-        }
+        // 使用Spring的工具类获取连接，确保连接与当前事务关联
+        return DataSourceUtils.getConnection(dataSource);
     }
 
     @Override
     public ITransaction newTransaction(String txnGroup) {
+        // 如果已经有外部事务，则返回同步事务
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            return getSynchronization(txnGroup);
+        }
         return new SpringTransaction(txnGroup, null);
     }
 
     @Override
     public ITransaction getSynchronization(String txnGroup) {
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            // 检查是否已经注册过同步事务
+            SpringTransaction existingTxn = (SpringTransaction) TransactionRegistry.instance().get(txnGroup);
+            if (existingTxn != null) {
+                return existingTxn;
+            }
+
+            // 创建新的事务同步
             DefaultTransactionDefinition def = new DefaultTransactionDefinition();
             def.setName(txnGroup);
+            def.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
 
             TransactionStatus txnStatus = transactionManager.getTransaction(def);
             SpringTransaction txn = new SpringTransaction(txnGroup, txnStatus);
@@ -98,14 +106,18 @@ public class NopSpringTransactionFactory implements ITransactionFactory {
 
                 @Override
                 public void afterCompletion(int status) {
-                    TransactionRegistry.instance().remove(txn.getTxnGroup(), txn);
-                    ITransactionListener.CompleteStatus completeStatus = toCompleteStatus(status);
-                    txn.afterCompletion(completeStatus);
-                    txn.close();
+                    try {
+                        TransactionRegistry.instance().remove(txn.getTxnGroup(), txn);
+                        ITransactionListener.CompleteStatus completeStatus = toCompleteStatus(status);
+                        txn.afterCompletion(completeStatus);
+                    } finally {
+                        txn.close();
+                    }
                 }
             });
-        }
 
+            return txn;
+        }
         return null;
     }
 
@@ -130,8 +142,10 @@ public class NopSpringTransactionFactory implements ITransactionFactory {
 
         @Override
         public Connection getConnection() {
-            if (txn == null)
+            if (txn == null) {
                 open();
+            }
+            // 使用Spring的工具类获取连接，确保连接与当前事务关联
             return DataSourceUtils.getConnection(dataSource);
         }
 
@@ -147,7 +161,14 @@ public class NopSpringTransactionFactory implements ITransactionFactory {
 
             DefaultTransactionDefinition def = new DefaultTransactionDefinition();
             def.setName(getTxnGroup());
-            def.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+
+            // 如果有外部事务，则参与外部事务
+            if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                def.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
+            } else {
+                def.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            }
+
             txn = transactionManager.getTransaction(def);
         }
 
