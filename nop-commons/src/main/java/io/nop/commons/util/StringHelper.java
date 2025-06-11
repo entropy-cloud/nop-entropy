@@ -4482,8 +4482,8 @@ public class StringHelper extends ApiStringHelper {
         for (String line : lines) {
             if (index > 0) {
                 sb.append('\n');
-                index++;
             }
+            index++;
 
             if (line == null) {
                 continue;
