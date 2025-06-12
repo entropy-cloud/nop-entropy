@@ -256,7 +256,7 @@ public class CascadeFlusher {
             boolean deleteProp = deleting && propModel.isCascadeDelete();
 
             if (propModel.isToManyRelation()) {
-                if (entity.orm_extDirty()) {
+                if (deleteProp || entity.orm_extDirty()) {
                     IOrmEntitySet coll = entity.orm_refEntitySet(propModel.getName());
                     if (coll != null) {
                         cascadeCollection(coll, deleteProp);
