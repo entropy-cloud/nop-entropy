@@ -4476,7 +4476,7 @@ public class StringHelper extends ApiStringHelper {
         if (StringHelper.isEmpty(template))
             return template;
 
-        List<String> lines = stripedSplit(template, '\n', true);
+        String[] lines = splitToLines(template);
         StringBuilder sb = new StringBuilder();
         int index = 0;
         for (String line : lines) {
@@ -4485,9 +4485,12 @@ public class StringHelper extends ApiStringHelper {
             }
             index++;
 
-            if (line == null) {
+            if (line == null || line.indexOf('|') >= 0) {
                 continue;
             }
+
+            line = line.trim();
+
             if (line.startsWith("|")) {
                 line = line.substring(1);
             }

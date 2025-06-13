@@ -11,6 +11,7 @@ import io.nop.api.core.util.ApiStringHelper;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,7 @@ import static io.nop.api.core.ApiConstants.FILTER_OP_OR;
 import static io.nop.api.core.ApiConstants.FILTER_OP_REGEX;
 import static io.nop.api.core.ApiConstants.FILTER_OP_STARTS_WITH;
 import static io.nop.api.core.beans.FilterBeanConstants.DUMMY_TAG_NAME;
+import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_LABEL;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_VALUE_NAME;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_DATETIME_BETWEEN;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_OP_DATE_BETWEEN;
@@ -209,7 +211,9 @@ public class FilterBeans {
         return compareOp(FILTER_OP_ENDS_WITH, name, value);
     }
 
-    public static TreeBean like(String name, String value) { return compareOp(FILTER_OP_LIKE, name, value); }
+    public static TreeBean like(String name, String value) {
+        return compareOp(FILTER_OP_LIKE, name, value);
+    }
 
     public static TreeBean contains(String name, Object value) {
         return compareOp(FILTER_OP_CONTAINS, name, value);
@@ -370,5 +374,119 @@ public class FilterBeans {
         bean.setTagName(FILTER_OP_SQL);
         bean.setAttr(FILTER_ATTR_VALUE, value);
         return bean;
+    }
+
+    public static List<FilterBean> toFilterBeanList(TreeBean filter) {
+        List<FilterBean> list = new ArrayList<>();
+        toFilterBeansImpl(filter, 0, list);
+        return list;
+    }
+
+    private static void toFilterBeansImpl(TreeBean node, int level, List<FilterBean> list) {
+        if (node == null) return;
+
+        String tag = node.getTagName();
+
+        // 判断是否为逻辑节点
+        boolean isLogic = FILTER_OP_AND.equalsIgnoreCase(tag)
+                || FILTER_OP_OR.equalsIgnoreCase(tag)
+                || FILTER_OP_NOT.equalsIgnoreCase(tag);
+
+        if (isLogic) {
+            // 逻辑节点也作为一条FilterBean输出，有利于表格展现清晰结构
+            FilterBean logicNode = new FilterBean();
+            logicNode.setLevel(level);
+            logicNode.setLogic(tag);
+            list.add(logicNode);
+
+            if (node.getChildren() != null) {
+                for (TreeBean child : node.getChildren()) {
+                    toFilterBeansImpl(child, level + 1, list);
+                }
+            }
+        } else {
+            // 叶子节点（比较操作，如eq、gt等）
+            // tagName就是op
+            FilterBean leaf = new FilterBean();
+            leaf.setLevel(level);
+            leaf.setOp(tag);
+            if (node.getAttrs() != null) {
+                leaf.setName((String) node.getAttr(FILTER_ATTR_NAME));
+                leaf.setValue(node.getAttr(FILTER_ATTR_VALUE));
+                leaf.setValueName((String) node.getAttr(FILTER_ATTR_VALUE_NAME));
+                leaf.setLabel((String) node.getAttr(FILTER_ATTR_LABEL));
+            }
+            list.add(leaf);
+        }
+    }
+
+    public static TreeBean fromFilterBeanList(List<FilterBean> beans) {
+        if (beans == null || beans.isEmpty()) return null;
+        int[] idx = {0};
+        return buildTree(beans, idx, 0); // 从最小level开始
+    }
+
+    private static TreeBean buildTree(List<FilterBean> beans, int[] idx, int minLevel) {
+        List<TreeBean> children = new ArrayList<>();
+
+        while (idx[0] < beans.size()) {
+            FilterBean bean = beans.get(idx[0]);
+            int lvl = bean.getLevel();
+
+            if (lvl < minLevel) {
+                // 级别小于最小级别，说明回到上级
+                break;
+            }
+
+            if (bean.getOp() == null || bean.getOp().isEmpty()) {
+                // 逻辑节点
+                String logic = (bean.getLogic() == null || bean.getLogic().isEmpty()) ? FILTER_OP_AND : bean.getLogic();
+                TreeBean node = new TreeBean();
+                node.setTagName(logic);
+                idx[0]++; // 消耗当前节点
+
+                // 递归收集所有子节点（level > lvl的节点）
+                List<TreeBean> logicChildren = new ArrayList<>();
+                while (idx[0] < beans.size() && beans.get(idx[0]).getLevel() > lvl) {
+                    TreeBean child = buildTree(beans, idx, beans.get(idx[0]).getLevel());
+                    if (child != null) {
+                        logicChildren.add(child);
+                    }
+                }
+
+                if (FILTER_OP_AND.equals(node.getTagName()) && logicChildren.size() == 1) {
+                    node = logicChildren.get(0);
+                } else {
+                    node.setChildren(logicChildren);
+                }
+                children.add(node);
+            } else {
+                // 叶子节点
+                TreeBean node = new TreeBean();
+                node.setTagName(bean.getOp());
+                if (bean.getName() != null) node.setAttr(FILTER_ATTR_NAME, bean.getName());
+                if (bean.getValue() != null) node.setAttr(FILTER_ATTR_VALUE, bean.getValue());
+                if (bean.getValueName() != null) node.setAttr(FILTER_ATTR_VALUE_NAME, bean.getValueName());
+                if (bean.getLabel() != null) node.setAttr(FILTER_ATTR_LABEL, bean.getLabel());
+                idx[0]++;
+                children.add(node);
+            }
+
+            // 处理完一个节点后，检查下一个节点是否还在当前层级
+            if (idx[0] < beans.size() && beans.get(idx[0]).getLevel() < lvl) {
+                break; // 下一个节点级别更小，回到上级
+            }
+        }
+
+        if (children.size() == 1) {
+            return children.get(0);
+        } else if (children.size() > 1) {
+            TreeBean root = new TreeBean();
+            root.setTagName(FILTER_OP_AND);
+            root.setChildren(children);
+            return root;
+        }
+
+        return null;
     }
 }

@@ -21,7 +21,9 @@ import io.nop.core.reflect.accessor.PropertyAccessorBuilder;
 import io.nop.core.type.IGenericType;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -49,6 +51,22 @@ public class BeanTool {
 
     public static <T> T castBeanToType(Object src, Type targetType) {
         return (T) instance().castBeanToType(src, getGenericType(targetType), BeanCopyOptions.DEFAULT);
+    }
+
+    public static <T> List<T> castListItemToType(List<?> list, Type targetType) {
+        if (list == null)
+            return null;
+
+        IBeanTool beanTool = instance();
+        IGenericType itemType = getGenericType(targetType);
+        BeanCopyOptions options = BeanCopyOptions.DEFAULT;
+
+        List<T> ret = new ArrayList<>(list.size());
+        for (Object item : list) {
+            T value = (T) beanTool.castBeanToType(item, itemType, options);
+            ret.add(value);
+        }
+        return ret;
     }
 
     public static <T> T buildBean(Object src, Type targetType) {

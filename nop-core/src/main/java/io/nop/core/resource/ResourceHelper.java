@@ -373,6 +373,13 @@ public class ResourceHelper {
         return VirtualFileSystem.instance().getResource(getDumpPath(path));
     }
 
+    public static IResource getDumpResourceWithExt(String path, String ext) {
+        String dir = StringHelper.filePath(path);
+        String fileNameNoExt = StringHelper.fileNameNoExt(path);
+        String fullPath = StringHelper.appendPath(dir, fileNameNoExt + "." + ext);
+        return getDumpResource(fullPath);
+    }
+
     public static void dumpResource(IResource resource, String source) {
         if (AppConfig.isDebugMode()) {
             String dumpPath = getDumpPath(resource.getPath());

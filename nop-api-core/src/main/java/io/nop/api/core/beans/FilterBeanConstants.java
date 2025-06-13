@@ -13,6 +13,7 @@ public interface FilterBeanConstants {
     String FILTER_ATTR_VALUE = "value";
 
     String FILTER_ATTR_VALUE_NAME = "valueName";
+    String FILTER_ATTR_LABEL = "label";
 
     //    String FILTER_ATTR_RIGHT = "right";
     String FILTER_ATTR_MIN = "min";
@@ -60,6 +61,11 @@ public interface FilterBeanConstants {
      * SQL语言中的like语法
      */
     String FILTER_OP_LIKE = "like";
+
+    String FILTER_OP_CONTAINS_ANY = "containsAny";
+
+    String FILTER_OP_CONTAINS_ALL = "containsAll";
+
 
     /**
      * 是否包含匹配指定模式的子字符串

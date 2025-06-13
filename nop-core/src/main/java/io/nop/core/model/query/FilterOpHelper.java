@@ -11,11 +11,13 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.text.regex.IRegex;
 import io.nop.commons.text.regex.RegexHelper;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 public class FilterOpHelper {
@@ -72,7 +74,33 @@ public class FilterOpHelper {
     public static boolean contains(Object v1, Object v2) {
         String s1 = ConvertHelper.toString(v1, "");
         String s2 = ConvertHelper.toString(v2, "");
-        return s1.indexOf(s2) >= 0;
+        return s1.contains(s2);
+    }
+
+    public static boolean containsAny(Object v1, Object v2) {
+        if (v1 == null)
+            return false;
+        if (v2 == null)
+            return false;
+
+        Collection<Object> c1 = CollectionHelper.toCollection(v1, true);
+        Collection<Object> c2 = CollectionHelper.toCollection(v2, true);
+        for (Object item : c2) {
+            if (c1.contains(item))
+                return true;
+        }
+        return false;
+    }
+
+    public static boolean containsAll(Object v1, Object v2) {
+        if (v1 == null)
+            return false;
+        if (v2 == null)
+            return true;
+
+        Collection<Object> c1 = CollectionHelper.toCollection(v1, true);
+        Collection<Object> c2 = CollectionHelper.toCollection(v2, true);
+        return c1.containsAll(c2);
     }
 
     public static boolean notContains(Object v1, Object v2) {
