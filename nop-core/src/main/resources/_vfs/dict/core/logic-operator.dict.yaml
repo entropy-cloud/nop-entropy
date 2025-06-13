@@ -1,0 +1,9 @@
+label: 逻辑关系
+locale: zh-CN
+options:
+  - label: 并且
+    value: and
+  - label: 或者
+    value: or
+  - label: 取反
+    value: not

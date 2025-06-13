@@ -1,0 +1,44 @@
+label: 比较操作符
+locale: zh-CN
+options:
+  - label: 等于
+    value: eq
+  - label: 不等于
+    value: ne
+  - label: 大于
+    value: gt
+  - label: 大于等于
+    value: ge
+  - label: 小于等于
+    value: le
+  - label: 包含
+    value: contains
+  - label: 以...开始
+    value: startsWith
+  - label: 以...结束
+    value: endsWith
+  - label: 正则匹配
+    value: regex
+  - label: 包含任意元素
+    value: containsAny
+  - label: 包含全部元素
+    value: containsAll
+  - label: 在集合中
+    value: in
+  - label: 不在集合中
+    value: notIn
+  - label: 长度等于
+    value: length
+  - label: 为空
+    value: isEmpty
+  - label: 非空
+    value: notEmpty
+  - label: 空白
+    value: isBlank
+  - label: 非空白
+    value: notBlank
+  - label: 永远为真
+    value: alwaysTrue
+  - label: 永远为假
+    value: alwaysFalse
+
