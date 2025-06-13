@@ -35,7 +35,7 @@ public class RuleRuntime implements IRuleRuntime {
 
     private final IServiceContext svcCtx;
     private final IContext context;
-    private final ICache<Object,Object> cache;
+    private final ICache<Object, Object> cache;
     private final IEvalScope scope;
 
     private final List<RuleLogMessageBean> logMessages = new ArrayList<>();
@@ -68,12 +68,12 @@ public class RuleRuntime implements IRuleRuntime {
         this.scope.setLocalValue(CoreConstants.VAR_SVC_CTX, svcCtx);
         this.scope.setLocalValue(RuleConstants.VAR_RULE_RT, this);
         this.context = svcCtx == null ? ContextProvider.getOrCreateContext() : svcCtx.getContext();
-        
+
         this.cache = svcCtx == null ? new MapCache<>("rule-rt-cache", false) : svcCtx.getCache();
     }
 
     @Override
-    public IContext getContext(){
+    public IContext getContext() {
         return context;
     }
 
@@ -149,11 +149,7 @@ public class RuleRuntime implements IRuleRuntime {
 
     @Override
     public void addOutput(String name, Object value) {
-        List<Object> list = outputLists.get(name);
-        if (list == null) {
-            list = new ArrayList<>();
-            outputLists.put(name, list);
-        }
+        List<Object> list = outputLists.computeIfAbsent(name, k -> new ArrayList<>());
         list.add(value);
 
         outputs.put(name, value);
@@ -190,7 +186,7 @@ public class RuleRuntime implements IRuleRuntime {
         if (collectLogMessage) {
             RuleLogMessageBean logMessage = new RuleLogMessageBean();
             logMessage.setLogTime(CoreMetrics.currentTimestamp());
-            VarCollector.instance().collectVar("rule-log-time",logMessage.getLogTime());
+            VarCollector.instance().collectVar("rule-log-time", logMessage.getLogTime());
             logMessage.setMessage(message);
             logMessage.setRuleNodeId(ruleNodeId);
             logMessage.setRuleNodeLabel(ruleNodeLabel);

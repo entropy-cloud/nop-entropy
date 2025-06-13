@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef" defaultStripText="true" xmlns:xpt="xpt">
+<imp x:schema="/nop/schema/excel/imp.xdef" xmlns:x="/nop/schema/xdsl.xdef" defaultStripText="true" xmlns:xpt="xpt"
+     xdef="/nop/schema/rule.xdef" resultType="io.nop.rule.core.model.RuleModel">
+
+    <afterParse>
+        import io.nop.rule.core.excel.RuleTableModelParser;
+
+        const sheet = workbook.getSheet('Rule');
+        if(sheet != null)
+        new RuleTableModelParser().parseRuleTable(rootModel, sheet);
+    </afterParse>
+
     <sheets>
         <sheet name="Config">
             <fields>
@@ -154,11 +164,95 @@
          ]]></normalizeFieldsExpr>
         </sheet>
 
-        <sheet name="Rule">
+        <sheet name="Rule" ignore="true">
             <fields>
                 <field name="input" displayName="输入"/>
                 <field name="output" displayName="输出"/>
                 <field name="description" displayName="描述"/>
+            </fields>
+        </sheet>
+
+        <sheet name="RuleList" field="decisionTree.children" list="true">
+            <normalizeFieldsExpr>
+                import io.nop.rule.core.excel.RuleModelHelper;
+
+                record.predicate = RuleModelHelper.transformToFilter(record.predicate);
+            </normalizeFieldsExpr>
+
+            <fields>
+                <field name="label" displayName="显示名">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="description" displayName="描述">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="predicate" displayName="判断条件" list="true" noSeqCol="true">
+                    <fields>
+                        <field name="level" displayName="层级" mandatory="true">
+                            <schema stdDomain="int"/>
+                        </field>
+
+                        <field name="logic" displayName="逻辑关系">
+                            <schema dict="core/logic-operator.dict.yaml"/>
+                        </field>
+
+                        <field name="name" displayName="字段"/>
+
+                        <field name="op" displayName="操作符">
+                            <schema dict="core/filter-op.dict.yaml"/>
+                        </field>
+
+                        <field name="value" displayName="值"/>
+
+                        <field name="valueName" displayName="值字段"/>
+                    </fields>
+                </field>
+
+                <field name="children" displayName="子规则列表" noSeqCol="true">
+                    <normalizeFieldsExpr>
+                        import io.nop.rule.core.excel.RuleModelHelper;
+
+                        record.predicate = RuleModelHelper.transformToFilter(record.predicate);
+                    </normalizeFieldsExpr>
+
+                    <fields>
+                        <field name="predicate" displayName="判断条件" list="true" mandatory="true">
+                            <fields>
+                                <field name="level" displayName="层级" mandatory="true">
+                                    <schema stdDomain="int"/>
+                                </field>
+
+                                <field name="logic" displayName="逻辑关系">
+                                    <schema dict="core/logic-operator.dict.yaml"/>
+                                </field>
+
+                                <field name="name" displayName="字段"/>
+
+                                <field name="op" displayName="操作符"/>
+
+                                <field name="value" displayName="值"/>
+
+                                <field name="valueName" displayName="值字段"/>
+                            </fields>
+                        </field>
+
+                        <field name="outputs" displayName="输出" list="true" noSeqCol="true">
+                            <fields>
+                                <field name="name" displayName="名称" mandatory="true"/>
+                                <field name="value" displayName="值" mandatory="true"/>
+                            </fields>
+                        </field>
+                    </fields>
+                </field>
+
+                <field name="outputs" displayName="输出" list="true" noSeqCol="true">
+                    <fields>
+                        <field name="name" displayName="名称" mandatory="true"/>
+                        <field name="value" displayName="值" mandatory="true"/>
+                    </fields>
+                </field>
             </fields>
         </sheet>
     </sheets>

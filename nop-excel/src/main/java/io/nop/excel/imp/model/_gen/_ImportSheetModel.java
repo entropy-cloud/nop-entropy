@@ -144,6 +144,13 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: parse
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _parse ;
+    
+    /**
+     *  
      * xml name: resultType
      * 
      */
@@ -547,6 +554,25 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: parse
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getParse(){
+      return _parse;
+    }
+
+    
+    public void setParse(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._parse = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: resultType
      *  
      */
@@ -677,6 +703,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         out.putNotNull("namePattern",this.getNamePattern());
         out.putNotNull("noSeqCol",this.isNoSeqCol());
         out.putNotNull("normalizeFieldsExpr",this.getNormalizeFieldsExpr());
+        out.putNotNull("parse",this.getParse());
         out.putNotNull("resultType",this.getResultType());
         out.putNotNull("sheetNameProp",this.getSheetNameProp());
         out.putNotNull("sheetVarName",this.getSheetVarName());
@@ -711,6 +738,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         instance.setNamePattern(this.getNamePattern());
         instance.setNoSeqCol(this.isNoSeqCol());
         instance.setNormalizeFieldsExpr(this.getNormalizeFieldsExpr());
+        instance.setParse(this.getParse());
         instance.setResultType(this.getResultType());
         instance.setSheetNameProp(this.getSheetNameProp());
         instance.setSheetVarName(this.getSheetVarName());

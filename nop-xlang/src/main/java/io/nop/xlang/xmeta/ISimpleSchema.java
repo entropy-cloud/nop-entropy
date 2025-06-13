@@ -19,7 +19,10 @@ public interface ISimpleSchema extends ISchemaNode {
     IGenericType getType();
 
     default boolean isPrimitive() {
-        return getType().isPrimitive();
+        IGenericType type = getType();
+        if (type == null)
+            return false;
+        return type.isPrimitive();
     }
 
     /**

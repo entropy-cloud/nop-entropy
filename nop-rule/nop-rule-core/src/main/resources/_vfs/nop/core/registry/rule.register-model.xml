@@ -7,8 +7,8 @@
         <xdsl-loader fileType="rule.yaml" schemaPath="/nop/schema/rule.xdef"/>
         <xdsl-loader fileType="rule.xml" schemaPath="/nop/schema/rule.xdef"/>
 
-        <loader fileType="rule.xlsx"
-                class="io.nop.rule.core.model.compile.RuleExcelModelLoader"/>
+        <xlsx-loader fileType="rule.xlsx"
+                     impPath="/nop/rule/imp/rule.imp.xml"/>
 
     </loaders>
 

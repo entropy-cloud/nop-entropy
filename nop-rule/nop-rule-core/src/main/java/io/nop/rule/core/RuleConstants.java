@@ -9,11 +9,16 @@ package io.nop.rule.core;
 
 public interface RuleConstants {
     String SHEET_NAME_RULE = "Rule";
+    String SHEET_NAME_RULE_LIST = "RuleList";
     String SHEET_NAME_CONFIG = "Config";
 
     String XDSL_SCHEMA_RULE = "/nop/schema/rule.xdef";
 
     String IMP_PATH_RULE = "/nop/rule/imp/rule.imp.xml";
+
+    String FIELD_DECISION_TREE = "decisionTree";
+
+    String FIELD_DECISION_MATRIX = "decisionMatrix";
 
     String RULE_FLAG_MATRIX = "M";
 

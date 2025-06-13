@@ -10,8 +10,7 @@ package io.nop.rule.core.excel;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.XNode;
-import io.nop.core.resource.IResource;
-import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.rule.core.IRuleManager;
 import io.nop.rule.core.IRuleRuntime;
@@ -42,8 +41,7 @@ public class TestRuleExcelParser extends BaseTestCase {
 
     @Test
     public void testParseDecisionTree() {
-        IResource resource = VirtualFileSystem.instance().getResource("/nop/rule/test/test-table.rule.xlsx");
-        RuleModel ruleModel = new RuleExcelModelParser().parseFromResource(resource);
+        RuleModel ruleModel = (RuleModel) ResourceComponentManager.instance().loadComponentModel("/nop/rule/test/test-table.rule.xlsx");
         XNode node = DslModelHelper.dslModelToXNode(RuleConstants.XDSL_SCHEMA_RULE, ruleModel);
         node.dump();
     }

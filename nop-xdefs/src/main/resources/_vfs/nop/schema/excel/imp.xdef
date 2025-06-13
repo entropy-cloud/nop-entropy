@@ -43,6 +43,8 @@
 
             <description xdef:value="string"/>
 
+            <parse xdef:value="xpl"/>
+
             <!--
             如果非空，则满足此条件时本sheet对应的导入操作才执行
             -->

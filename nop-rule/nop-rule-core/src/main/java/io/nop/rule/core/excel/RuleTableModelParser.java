@@ -1,10 +1,3 @@
-/**
- * Copyright (c) 2017-2024 Nop Platform. All rights reserved.
- * Author: canonical_entropy@163.com
- * Blog:   https://www.zhihu.com/people/canonical-entropy
- * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
- * Github: https://github.com/entropy-cloud/nop-entropy
- */
 package io.nop.rule.core.excel;
 
 import io.nop.api.core.beans.FilterBeans;
@@ -15,7 +8,6 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.eval.IEvalAction;
-import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.ICell;
@@ -23,19 +15,10 @@ import io.nop.core.model.table.ITable;
 import io.nop.core.model.table.impl.BaseTable;
 import io.nop.core.model.table.tree.TreeCell;
 import io.nop.core.model.table.tree.TreeTableHelper;
-import io.nop.core.resource.IResource;
-import io.nop.core.resource.ResourceHelper;
-import io.nop.core.resource.component.parse.AbstractResourceParser;
-import io.nop.excel.ExcelConstants;
-import io.nop.excel.imp.ImportModelHelper;
-import io.nop.excel.imp.model.ImportModel;
-import io.nop.excel.imp.model.ImportSheetModel;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelTable;
-import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.util.MultiLineConfigParser;
-import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.rule.core.RuleConstants;
 import io.nop.rule.core.execute.RuleOutputAction;
 import io.nop.rule.core.expr.RuleExprParser;
@@ -51,8 +34,6 @@ import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.exec.NullExecutable;
 import io.nop.xlang.expr.filter.ExpressionToFilterBeanTransformer;
-import io.nop.xlang.xdsl.DslModelHelper;
-import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xmeta.ObjVarDefineModel;
 
 import java.util.ArrayList;
@@ -71,32 +52,22 @@ import static io.nop.rule.core.RuleErrors.ERR_RULE_UNKNOWN_INPUT_VAR;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_UNKNOWN_OUTPUT_VAR;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_VAR_CELL_SPAN_MUST_BE_ONE;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_VAR_CELL_TEXT_IS_EMPTY;
-import static io.nop.rule.core.RuleErrors.ERR_RULE_WORKBOOK_NO_CONFIG_SHEET;
-import static io.nop.rule.core.RuleErrors.ERR_RULE_WORKBOOK_NO_RULE_SHEET;
 
-public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
+public class RuleTableModelParser {
     private final XLangCompileTool compileTool;
 
     private final Map<String, RuleDecisionTreeModel> nodeIdMap = new HashMap<>();
 
-    public RuleExcelModelParser(XLangCompileTool compileTool) {
+    public RuleTableModelParser(XLangCompileTool compileTool) {
         this.compileTool = compileTool;
     }
 
-    public RuleExcelModelParser() {
+    public RuleTableModelParser() {
         this(XLang.newCompileTool().allowUnregisteredScopeVar(true));
     }
 
-    @Override
-    protected RuleModel doParseResource(IResource resource) {
-        ExcelWorkbook wk = new ExcelWorkbookParser().parseFromResource(resource);
-
-        RuleModel model = parseRuleConfig(wk);
-
-        ExcelSheet ruleSheet = wk.getSheet(RuleConstants.SHEET_NAME_RULE);
-        if (ruleSheet == null)
-            throw new NopException(ERR_RULE_WORKBOOK_NO_RULE_SHEET)
-                    .source(wk);
+    public void parseRuleTable(RuleModel model, ExcelSheet ruleSheet) {
+        model.initVarMap();
 
         String type = StringHelper.strip(ruleSheet.getTable().getCellText(0, 0));
         if (RuleConstants.RULE_FLAG_MATRIX.equals(type)) {
@@ -106,30 +77,6 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
             RuleDecisionTreeModel decisionTable = parseDecisionTree(model, ruleSheet);
             model.setDecisionTree(decisionTable);
         }
-
-        boolean dump = ConvertHelper.toPrimitiveBoolean(model.prop_get(XDslKeys.DEFAULT.DUMP));
-        if (dump) {
-            XNode node = DslModelHelper.dslModelToXNode(RuleConstants.XDSL_SCHEMA_RULE, model);
-            IResource xmlResource = ResourceHelper.getSiblingWithExt(resource, "xml");
-            IResource dumpResource = ResourceHelper.getDumpResource(xmlResource.getPath());
-            ResourceHelper.writeXml(dumpResource, node);
-        }
-        return model;
-    }
-
-    private RuleModel parseRuleConfig(ExcelWorkbook wk) {
-        ExcelSheet configSheet = wk.getSheet(RuleConstants.SHEET_NAME_CONFIG);
-        if (configSheet == null)
-            throw new NopException(ERR_RULE_WORKBOOK_NO_CONFIG_SHEET)
-                    .source(wk);
-
-        ImportModel importModel = ImportModelHelper.getImportModel(RuleConstants.IMP_PATH_RULE);
-        ImportSheetModel sheetModel = importModel.getSheet(RuleConstants.SHEET_NAME_CONFIG);
-        IEvalScope scope = XLang.newEvalScope();
-        scope.setLocalValue(ExcelConstants.VAR_WORKBOOK, wk);
-        RuleModel rule = ImportModelHelper.parseSheet(sheetModel, configSheet, compileTool, scope, RuleModel.class);
-        rule.initVarMap();
-        return rule;
     }
 
     private RuleDecisionTreeModel parseDecisionTree(RuleModel model, ExcelSheet ruleSheet) {
@@ -194,7 +141,12 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
             varNames.add(varName);
         }
 
-        RuleDecisionTreeModel ret = new RuleDecisionTreeModel();
+        RuleDecisionTreeModel ret = ruleModel.getDecisionTree();
+        if (ret == null) {
+            ret = new RuleDecisionTreeModel();
+            ruleModel.setDecisionTree(ret);
+        }
+
         List<RuleDecisionTreeModel> rules = new ArrayList<>();
 
         for (int i = 0, n = tree.getRowCount(); i < n; i++) {
@@ -522,7 +474,11 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
         RuleDecisionTreeModel rowDecider = buildRowDecider(left, outBeginRow, sheetName, ruleModel);
         RuleDecisionTreeModel colDecider = buildColDecider(top, outBeginCol, sheetName, ruleModel);
 
-        RuleDecisionMatrixModel ret = new RuleDecisionMatrixModel();
+        RuleDecisionMatrixModel ret = ruleModel.getDecisionMatrix();
+        if (ret == null) {
+            ret = new RuleDecisionMatrixModel();
+            ruleModel.setDecisionMatrix(ret);
+        }
         ret.setRowDecider(rowDecider);
         ret.setColDecider(colDecider);
 
@@ -648,7 +604,7 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
                     output.setValueExpr(outAction);
                     cellModel.addOutput(output);
                 } else {
-                    if (leftCell == null || leftCell.getRowSpan() != 2) {
+                    if (leftCell.getRowSpan() != 2) {
                         throw new NopException(ERR_RULE_INVALID_OUTPUT_CELL)
                                 .param(ARG_CELL_POS, CellPosition.toABString(i, j));
                     }
@@ -660,8 +616,6 @@ public class RuleExcelModelParser extends AbstractResourceParser<RuleModel> {
                 j += topCell.getMergeAcross();
             }
             rowLeafIndex++;
-            if (leftCell == null)
-                throw new IllegalArgumentException("null leftCell");
             i += leftCell.getMergeDown();
         }
     }

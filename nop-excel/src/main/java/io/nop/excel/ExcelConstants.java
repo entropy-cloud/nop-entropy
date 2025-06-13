@@ -21,6 +21,8 @@ public interface ExcelConstants {
     String VAR_VALUE = "value";
     String VAR_ROOT_RECORD = "rootRecord";
 
+    String VAR_IMPORT_SHEET_MODEL = "importSheetModel";
+
     String VAR_ROOT_MODEL = "rootModel";
 
     String VAR_RECORD_PARENTS = "recordParents";

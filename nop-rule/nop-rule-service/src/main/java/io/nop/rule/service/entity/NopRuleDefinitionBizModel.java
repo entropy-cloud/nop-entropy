@@ -21,10 +21,11 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.resource.IResource;
 import io.nop.file.core.FileConstants;
+import io.nop.ooxml.xlsx.util.ExcelHelper;
 import io.nop.orm.IOrmEntityFileStore;
 import io.nop.orm.OrmConstants;
 import io.nop.rule.api.beans.RuleKeyBean;
-import io.nop.rule.core.excel.RuleExcelModelParser;
+import io.nop.rule.core.RuleConstants;
 import io.nop.rule.core.model.RuleModel;
 import io.nop.rule.dao.entity.NopRuleDefinition;
 import io.nop.rule.dao.model.DaoRuleModelLoader;
@@ -123,7 +124,7 @@ public class NopRuleDefinitionBizModel extends CrudBizModel<NopRuleDefinition> {
             String objId = FileConstants.TEMP_BIZ_OBJ_ID;
             IResource resource = fileStore.getFileResource(fileId, getBizObjName(), objId, NopRuleConstants.PROP_IMPORT_FILE);
 
-            RuleModel ruleModel = new RuleExcelModelParser().parseFromResource(resource);
+            RuleModel ruleModel = (RuleModel) ExcelHelper.loadXlsxObject(RuleConstants.IMP_PATH_RULE, resource);
             if (entity.orm_id() == null) {
                 dao().initEntityId(entity);
             }

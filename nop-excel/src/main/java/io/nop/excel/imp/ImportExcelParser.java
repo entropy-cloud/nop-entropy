@@ -7,6 +7,7 @@
  */
 package io.nop.excel.imp;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.INeedInit;
 import io.nop.api.core.util.ISourceLocationGetter;
@@ -15,8 +16,13 @@ import io.nop.commons.cache.LocalCache;
 import io.nop.commons.collections.KeyedList;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.json.JsonTool;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.model.object.DynamicObject;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.excel.ExcelConstants;
 import io.nop.excel.imp.model.ImportModel;
 import io.nop.excel.imp.model.ImportSheetModel;
@@ -24,6 +30,7 @@ import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
+import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.IXDslModel;
 import io.nop.xlang.xdsl.XDslKeys;
 import org.slf4j.Logger;
@@ -156,11 +163,41 @@ public class ImportExcelParser {
             importModel.getAfterParse().invoke(scope);
         }
 
+
+        dump(workbook, result);
+
         if (result instanceof INeedInit) {
             ((INeedInit) result).init();
         }
         return result;
     }
+
+    private void dump(ExcelWorkbook wk, Object obj) {
+        String resourceStdPath = wk.resourceStdPath();
+        if (resourceStdPath == null)
+            return;
+
+        boolean dump = ConvertHelper.toPrimitiveBoolean(BeanTool.getProperty(obj, XDslKeys.DEFAULT.DUMP));
+        if (dump) {
+            String xdefPath = this.importModel.getXdef();
+            if (xdefPath != null) {
+                XNode node = DslModelHelper.dslModelToXNode(xdefPath, obj);
+                IResource dumpResource = ResourceHelper.getDumpResourceWithExt(resourceStdPath, "xml");
+                ResourceHelper.writeXml(dumpResource, node);
+            } else {
+                IResource dumpResource = ResourceHelper.getDumpResourceWithExt(resourceStdPath, "json");
+                ResourceHelper.writeText(dumpResource, JsonTool.serialize(obj, true));
+            }
+        }
+    }
+
+    protected IResource getResource(ExcelWorkbook wk) {
+        String resourcePath = wk.resourceStdPath();
+        if (resourcePath == null)
+            return null;
+        return VirtualFileSystem.instance().getResource(resourcePath);
+    }
+
 
     DynamicObject newObject(ISourceLocationGetter wk) {
         DynamicObject entity = new DynamicObject(DynamicObject.class.getName(), null);
@@ -174,8 +211,7 @@ public class ImportExcelParser {
         ImportDataCollector builder = new ImportDataCollector(scope, cache, compileTool, obj, list);
 
         for (ExcelSheet sheet : sheets) {
-            scope.setLocalValue(ExcelConstants.VAR_SHEET, sheet);
-            new TreeTableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel, builder);
+            parseSheet(sheetModel, sheet, scope, builder);
         }
 
         if (list.size() != sheets.size())
@@ -204,15 +240,23 @@ public class ImportExcelParser {
     }
 
     public DynamicObject parseSheet(ImportSheetModel sheetModel, ExcelSheet sheet, IEvalScope scope) {
-        DynamicObject obj = newObject(sheet);
-        parseSheet(sheetModel, sheet, obj, scope);
+        return parseSheet(sheetModel, sheet, newObject(sheetModel), scope);
+    }
+
+    public DynamicObject parseSheet(ImportSheetModel sheetModel, ExcelSheet sheet, DynamicObject obj, IEvalScope scope) {
+        parseSheet(sheetModel, sheet, scope, new ImportDataCollector(scope, cache, compileTool, obj));
         return obj;
     }
 
-    protected void parseSheet(ImportSheetModel sheetModel, ExcelSheet sheet, DynamicObject obj, IEvalScope scope) {
-        //new SheetBeanParser(sheetModel, compileTool, cache, importModel.isDump()).parseFromSheet(sheet, obj, scope);
-        ImportDataCollector builder = new ImportDataCollector(scope, cache, compileTool, obj);
-        new TreeTableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel, builder);
+    protected void parseSheet(ImportSheetModel sheetModel, ExcelSheet sheet, IEvalScope scope, ImportDataCollector builder) {
+        scope.setLocalValue(ExcelConstants.VAR_IMPORT_SHEET_MODEL, sheetModel);
+        scope.setLocalValue(ExcelConstants.VAR_SHEET, sheet);
+
+        if (sheetModel.getParse() != null) {
+            sheetModel.getParse().invoke(scope);
+        } else {
+            new TreeTableDataParser(scope).parse(sheet.getName(), sheet.getTable(), sheetModel, builder);
+        }
     }
 
     private List<ExcelSheet> collectMatchedSheets(ImportSheetModel sheetModel, Map<String, ExcelSheet> sheets,
