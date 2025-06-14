@@ -22,6 +22,8 @@ import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.IComponentModel;
 import io.nop.api.core.util.IMapLike;
 import io.nop.api.core.util.SourceLocation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,6 +43,7 @@ import static io.nop.api.core.ApiErrors.ERR_JSON_TREE_BEAN_INVALID_TAG_NAME;
 @GraphQLMap
 public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentModel {
     private static final long serialVersionUID = 5994290726377063658L;
+    private static final Logger log = LoggerFactory.getLogger(TreeBean.class);
     private SourceLocation loc;
     private String tagName;
     private List<TreeBean> children;
@@ -69,7 +72,7 @@ public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentMod
         if (children != null) {
             for (int i = 0, n = children.size(); i < n; i++) {
                 TreeBean child = children.get(i);
-                if(!child.treeEquals(node.getChildren().get(i)))
+                if (!child.treeEquals(node.getChildren().get(i)))
                     return false;
             }
         }
@@ -113,6 +116,10 @@ public class TreeBean extends ExtensibleBean implements ITreeBean, IComponentMod
 
     @JsonAnySetter
     public void setAttr(String name, Object value) {
+        if (value == null) {
+            removeAttr(name);
+            return;
+        }
         if (!isXmlName(name))
             throw new NopException(ERR_JSON_TREE_BEAN_INVALID_ATTR_NAME)
                     .param(ARG_ATTR_NAME, name);

@@ -54,7 +54,7 @@
 
         <cells xdef:body-type="list" xdef:key-attr="pos">
             <cell pos="!cell-pos" xdef:name="RuleTableCellModel">
-                <output name="!string" xdef:name="RuleOutputValueModel" xdef:unique-attr="name">
+                <output name="!string" xdef:name="RuleOutputValueModel" xdef:unique-attr="name" value="string">
                     <valueExpr xdef:value="xpl"/>
                 </output>
             </cell>

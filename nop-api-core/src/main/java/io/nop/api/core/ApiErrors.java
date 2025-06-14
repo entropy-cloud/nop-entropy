@@ -175,4 +175,7 @@ public interface ApiErrors {
 
     ErrorCode ERR_API_INVALID_LOCALE_HEADER =
             define(400, "nop.err.api.invalid-locale-header", "Locale的格式不正确");
+
+    ErrorCode ERR_FILTER_BEAN_NO_OP =
+            define("nop.err.api.filter-bean-no-op", "判断条件没有设置操作符");
 }

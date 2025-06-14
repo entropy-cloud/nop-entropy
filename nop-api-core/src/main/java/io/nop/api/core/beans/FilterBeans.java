@@ -7,6 +7,7 @@
  */
 package io.nop.api.core.beans;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ApiStringHelper;
 
 import java.time.LocalDate;
@@ -43,6 +44,7 @@ import static io.nop.api.core.ApiConstants.FILTER_OP_NOT;
 import static io.nop.api.core.ApiConstants.FILTER_OP_OR;
 import static io.nop.api.core.ApiConstants.FILTER_OP_REGEX;
 import static io.nop.api.core.ApiConstants.FILTER_OP_STARTS_WITH;
+import static io.nop.api.core.ApiErrors.ERR_FILTER_BEAN_NO_OP;
 import static io.nop.api.core.beans.FilterBeanConstants.DUMMY_TAG_NAME;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_LABEL;
 import static io.nop.api.core.beans.FilterBeanConstants.FILTER_ATTR_VALUE_NAME;
@@ -426,52 +428,20 @@ public class FilterBeans {
         return buildTree(beans, idx, 0); // 从最小level开始
     }
 
-    private static TreeBean buildTree(List<FilterBean> beans, int[] idx, int minLevel) {
+    private static TreeBean buildTree(List<FilterBean> beans, int[] idx, int currentLevel) {
         List<TreeBean> children = new ArrayList<>();
 
         while (idx[0] < beans.size()) {
             FilterBean bean = beans.get(idx[0]);
             int lvl = bean.getLevel();
 
-            if (lvl < minLevel) {
-                // 级别小于最小级别，说明回到上级
+            if (lvl < currentLevel) {
+                // 级别小于当前级别，说明回到上级
                 break;
             }
 
-            if (bean.getOp() == null || bean.getOp().isEmpty()) {
-                // 逻辑节点
-                String logic = (bean.getLogic() == null || bean.getLogic().isEmpty()) ? FILTER_OP_AND : bean.getLogic();
-                TreeBean node = new TreeBean();
-                node.setTagName(logic);
-                idx[0]++; // 消耗当前节点
-
-                // 递归收集所有子节点（level > lvl的节点）
-                List<TreeBean> logicChildren = new ArrayList<>();
-                while (idx[0] < beans.size() && beans.get(idx[0]).getLevel() > lvl) {
-                    TreeBean child = buildTree(beans, idx, beans.get(idx[0]).getLevel());
-                    if (child != null) {
-                        logicChildren.add(child);
-                    }
-                }
-
-                if (FILTER_OP_AND.equals(node.getTagName()) && logicChildren.size() == 1) {
-                    node = logicChildren.get(0);
-                } else {
-                    node.setChildren(logicChildren);
-                }
-                children.add(node);
-            } else {
-                // 叶子节点
-                TreeBean node = new TreeBean();
-                node.setTagName(bean.getOp());
-                if (bean.getName() != null) node.setAttr(FILTER_ATTR_NAME, bean.getName());
-                if (bean.getValue() != null) node.setAttr(FILTER_ATTR_VALUE, bean.getValue());
-                if (bean.getValueName() != null) node.setAttr(FILTER_ATTR_VALUE_NAME, bean.getValueName());
-                if (bean.getLabel() != null) node.setAttr(FILTER_ATTR_LABEL, bean.getLabel());
-                idx[0]++;
-                children.add(node);
-            }
-
+            TreeBean node = buildTreeNode(beans, bean, idx);
+            children.add(node);
             // 处理完一个节点后，检查下一个节点是否还在当前层级
             if (idx[0] < beans.size() && beans.get(idx[0]).getLevel() < lvl) {
                 break; // 下一个节点级别更小，回到上级
@@ -488,5 +458,62 @@ public class FilterBeans {
         }
 
         return null;
+    }
+
+    static TreeBean buildTreeNode(List<FilterBean> beans, FilterBean bean, int[] idx) {
+        int lvl = bean.getLevel();
+
+        if (bean.getLogic() != null || bean.getOp() == null) {
+            // 逻辑节点
+            String logic = (bean.getLogic() == null || bean.getLogic().isEmpty()) ? FILTER_OP_AND : bean.getLogic();
+            TreeBean node = new TreeBean();
+            node.setTagName(logic);
+            idx[0]++; // 消耗当前节点
+
+            // 递归收集所有子节点（level > lvl的节点）
+            List<TreeBean> logicChildren = new ArrayList<>();
+
+            if (containsOp(bean)) {
+                TreeBean cond = new TreeBean();
+                cond.setTagName(bean.getOp());
+                cond.setAttr(FILTER_ATTR_NAME, bean.getName());
+                cond.setAttr(FILTER_ATTR_VALUE, bean.getValue());
+                cond.setAttr(FILTER_ATTR_VALUE_NAME, bean.getValueName());
+                cond.setAttr(FILTER_ATTR_LABEL, bean.getLabel());
+                logicChildren.add(cond);
+            }
+
+            while (idx[0] < beans.size() && beans.get(idx[0]).getLevel() > lvl) {
+                TreeBean child = buildTreeNode(beans, beans.get(idx[0]), idx); // 修改这里，传递lvl+1作为下一级的最小level
+                if (child != null) {
+                    logicChildren.add(child);
+                }
+            }
+
+            if (FILTER_OP_AND.equals(node.getTagName()) && logicChildren.size() == 1) {
+                node = logicChildren.get(0);
+            } else {
+                node.setChildren(logicChildren);
+            }
+            return node;
+        } else {
+            // 叶子节点处理保持不变
+            if (bean.getOp() == null)
+                throw new NopException(ERR_FILTER_BEAN_NO_OP);
+            TreeBean node = new TreeBean();
+            node.setTagName(bean.getOp());
+            node.setAttr(FILTER_ATTR_NAME, bean.getName());
+            node.setAttr(FILTER_ATTR_VALUE, bean.getValue());
+            node.setAttr(FILTER_ATTR_VALUE_NAME, bean.getValueName());
+            node.setAttr(FILTER_ATTR_LABEL, bean.getLabel());
+            idx[0]++;
+            return node;
+        }
+    }
+
+    static boolean containsOp(FilterBean bean) {
+        if (FILTER_OP_ALWAYS_TRUE.equals(bean.getOp()) || FILTER_OP_ALWAYS_FALSE.equals(bean.getOp()))
+            return false;
+        return bean.getName() != null && bean.getOp() != null;
     }
 }

@@ -12,6 +12,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.collections.KeyedList;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.core.lang.eval.FixedValueEvalAction;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.lang.eval.SeqEvalAction;
@@ -115,7 +116,16 @@ public class RuleModelCompiler {
     }
 
     private IEvalAction compileOutputAction(RuleOutputValueModel outputModel) {
-        return new RuleOutputAction(outputModel.getName(), outputModel.getValueExpr());
+        IEvalAction valueExpr = outputModel.getValueExpr();
+        if (valueExpr == null || valueExpr == IEvalAction.NULL_ACTION) {
+            if (outputModel.getValue() != null) {
+                valueExpr = new FixedValueEvalAction(outputModel.getValue());
+            }
+        }
+        if (valueExpr == null)
+            valueExpr = IEvalAction.NULL_ACTION;
+
+        return new RuleOutputAction(outputModel.getName(), valueExpr);
     }
 
     private IExecutableRule compileMatrix(RuleDecisionMatrixModel matrix) {

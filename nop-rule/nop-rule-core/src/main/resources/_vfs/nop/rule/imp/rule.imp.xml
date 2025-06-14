@@ -54,15 +54,15 @@
                     <schema stdDomain="json"/>
                 </field>
 
-                <field name="decisionTree.multiMatch" displayName="匹配多分支">
+                <field name="decisionTree.multiMatch" displayName="匹配多分支" ignoreWhenEmpty="true">
                     <schema stdDomain="boolean"/>
                 </field>
 
-                <field name="decisionMatrix.rowDecider.multiMatch" displayName="匹配多行">
+                <field name="decisionMatrix.rowDecider.multiMatch" displayName="匹配多行" ignoreWhenEmpty="true">
                     <schema stdDomain="boolean"/>
                 </field>
 
-                <field name="decisionMatrix.colDecider.multiMatch" displayName="匹配多列">
+                <field name="decisionMatrix.colDecider.multiMatch" displayName="匹配多列" ignoreWhenEmpty="true">
                     <schema stdDomain="boolean"/>
                 </field>
 
@@ -173,13 +173,19 @@
         </sheet>
 
         <sheet name="RuleList" field="decisionTree.children" list="true">
-            <normalizeFieldsExpr>
+            <normalizeFieldsExpr><![CDATA[
                 import io.nop.rule.core.excel.RuleModelHelper;
 
                 record.predicate = RuleModelHelper.transformToFilter(record.predicate);
-            </normalizeFieldsExpr>
+                if(record['ext:result'] != null){
+                    record.outputs = record.outputs || [];
+                    record.outputs.push({ name: 'RESULT', value: record['ext:result'] });
+                }
+            ]]></normalizeFieldsExpr>
 
             <fields>
+                <field name="id" displayName="ID" mandatory="true"/>
+
                 <field name="label" displayName="显示名">
                     <schema stdDomain="string"/>
                 </field>
@@ -188,36 +194,53 @@
                     <schema stdDomain="string"/>
                 </field>
 
-                <field name="predicate" displayName="判断条件" list="true" noSeqCol="true">
+                <field name="ext:result" displayName="返回值" stripText="true">
+                    <schema stdDomain="string"/>
+                </field>
+
+                <field name="predicate" displayName="判断条件" list="true">
                     <fields>
                         <field name="level" displayName="层级" mandatory="true">
                             <schema stdDomain="int"/>
                         </field>
 
                         <field name="logic" displayName="逻辑关系">
-                            <schema dict="core/logic-operator.dict.yaml"/>
+                            <schema dict="core/logic-operator"/>
                         </field>
 
                         <field name="name" displayName="字段"/>
 
                         <field name="op" displayName="操作符">
-                            <schema dict="core/filter-op.dict.yaml"/>
+                            <schema dict="core/filter-op"/>
                         </field>
 
                         <field name="value" displayName="值"/>
 
                         <field name="valueName" displayName="值字段"/>
+
+                        <field name="label" displayName="显示名">
+                            <schema stdDomain="string"/>
+                        </field>
                     </fields>
                 </field>
 
                 <field name="children" displayName="子规则列表" noSeqCol="true">
-                    <normalizeFieldsExpr>
+                    <normalizeFieldsExpr><![CDATA[
                         import io.nop.rule.core.excel.RuleModelHelper;
-
                         record.predicate = RuleModelHelper.transformToFilter(record.predicate);
-                    </normalizeFieldsExpr>
+                        if(record['ext:result'] != null){
+                            record.outputs = record.outputs || [];
+                            record.outputs.push({ name: 'RESULT', value: record['ext:result'] });
+                        }
+                    ]]></normalizeFieldsExpr>
 
                     <fields>
+                        <field name="id" displayName="ID" mandatory="true"/>
+
+                        <field name="ext:result" displayName="返回值" stripText="true">
+                            <schema stdDomain="string"/>
+                        </field>
+
                         <field name="predicate" displayName="判断条件" list="true" mandatory="true">
                             <fields>
                                 <field name="level" displayName="层级" mandatory="true">
@@ -225,12 +248,14 @@
                                 </field>
 
                                 <field name="logic" displayName="逻辑关系">
-                                    <schema dict="core/logic-operator.dict.yaml"/>
+                                    <schema dict="core/logic-operator"/>
                                 </field>
 
                                 <field name="name" displayName="字段"/>
 
-                                <field name="op" displayName="操作符"/>
+                                <field name="op" displayName="操作符">
+                                    <schema dict="core/filter-op"/>
+                                </field>
 
                                 <field name="value" displayName="值"/>
 
@@ -241,7 +266,10 @@
                         <field name="outputs" displayName="输出" list="true" noSeqCol="true">
                             <fields>
                                 <field name="name" displayName="名称" mandatory="true"/>
-                                <field name="value" displayName="值" mandatory="true"/>
+                                <field name="valueExpr" displayName="值表达式">
+                                    <schema stdDomain="xpl"/>
+                                </field>
+                                <field name="value" displayName="值"/>
                             </fields>
                         </field>
                     </fields>
@@ -250,7 +278,10 @@
                 <field name="outputs" displayName="输出" list="true" noSeqCol="true">
                     <fields>
                         <field name="name" displayName="名称" mandatory="true"/>
-                        <field name="value" displayName="值" mandatory="true"/>
+                        <field name="valueExpr" displayName="值表达式">
+                            <schema stdDomain="xpl"/>
+                        </field>
+                        <field name="value" displayName="值"/>
                     </fields>
                 </field>
             </fields>

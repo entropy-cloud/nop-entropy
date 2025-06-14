@@ -124,6 +124,17 @@ public class TestRuleExcelParser extends BaseTestCase {
         assertEquals("Light Salad and nice Steak", output.get("cloth"));
     }
 
+    @Test
+    public void testRuleList() {
+        IRuleManager ruleManager = getRuleManager();
+        IRuleRuntime ruleRt = ruleManager.newRuleRuntime();
+        ruleRt.setInput("season", "Winter");
+        ruleRt.setInput("guestCount", 4);
+        Map<String, Object> output = ruleManager.executeRule("test/test-rule-list", null, ruleRt);
+        System.out.println(JsonTool.serialize(ruleRt.getLogMessages(), true));
+        assertEquals("A", output.get("RESULT"));
+    }
+
     private IRuleManager getRuleManager() {
         return new RuleManager();
     }

@@ -10,6 +10,7 @@ package io.nop.core.reflect.bean;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.CloneHelper;
@@ -22,6 +23,8 @@ import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.xml.XNode;
+import io.nop.core.model.object.DynamicObject;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
@@ -279,7 +282,7 @@ public class BeanCopier implements IBeanCopier {
 
     private Object _buildBean(Object src, IGenericType targetType, FieldSelectionBean selection,
                               BeanCopyOptions options) {
-        if(src == null)
+        if (src == null)
             return null;
 
         Object target = options.getMappedObj(src);
@@ -338,6 +341,10 @@ public class BeanCopier implements IBeanCopier {
 
     private Object buildObject(Object src, IGenericType targetType, FieldSelectionBean selection,
                                BeanCopyOptions options) {
+        if (targetType == PredefinedGenericTypes.X_NODE_TYPE) {
+            if (src instanceof ITreeBean)
+                return XNode.fromTreeBean((ITreeBean) src);
+        }
         IBeanModel targetModel = getTargetBeanModel(src, targetType, options);
         IBeanDeserializer deserializer = getDeserializer(targetModel, options);
         if (deserializer != null) {
@@ -652,7 +659,7 @@ public class BeanCopier implements IBeanCopier {
 //            if (src instanceof IEvalFunction)
 //                return convert(src, targetType);
 
-            if (!(src instanceof Map))
+            if (!(src instanceof Map) && !(src instanceof DynamicObject))
                 throw new NopException(ERR_REFLECT_CAST_VALUE_TO_TARGET_TYPE_FAIL).param(ARG_SRC_TYPE, src.getClass())
                         .param(ARG_TARGET_TYPE, targetType);
 

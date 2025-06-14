@@ -25,6 +25,13 @@ public abstract class _RuleOutputValueModel extends io.nop.core.resource.compone
     
     /**
      *  
+     * xml name: value
+     * 
+     */
+    private java.lang.String _value ;
+    
+    /**
+     *  
      * xml name: valueExpr
      * 
      */
@@ -45,6 +52,25 @@ public abstract class _RuleOutputValueModel extends io.nop.core.resource.compone
         checkAllowChange();
         
         this._name = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: value
+     *  
+     */
+    
+    public java.lang.String getValue(){
+      return _value;
+    }
+
+    
+    public void setValue(java.lang.String value){
+        checkAllowChange();
+        
+        this._value = value;
            
     }
 
@@ -84,6 +110,7 @@ public abstract class _RuleOutputValueModel extends io.nop.core.resource.compone
         super.outputJson(out);
         
         out.putNotNull("name",this.getName());
+        out.putNotNull("value",this.getValue());
         out.putNotNull("valueExpr",this.getValueExpr());
     }
 
@@ -97,6 +124,7 @@ public abstract class _RuleOutputValueModel extends io.nop.core.resource.compone
         super.copyTo(instance);
         
         instance.setName(this.getName());
+        instance.setValue(this.getValue());
         instance.setValueExpr(this.getValueExpr());
     }
 
