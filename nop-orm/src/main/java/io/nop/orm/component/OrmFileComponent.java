@@ -82,8 +82,9 @@ public class OrmFileComponent extends AbstractOrmComponent {
 
     @Override
     public void onEntityDelete(boolean logicalDelete) {
-        if (logicalDelete)
-            return;
+        // 逻辑删除也自动删除附件
+        //if (logicalDelete)
+        //    return;
 
         IOrmEntity entity = orm_owner();
 
