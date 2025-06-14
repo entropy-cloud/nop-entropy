@@ -17,8 +17,11 @@ import io.nop.orm.OrmErrors;
 import io.nop.orm.exceptions.OrmException;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.utils.OrmModelHelper;
 import io.nop.orm.support.OrmEntityHelper;
+
+import java.util.List;
 
 import static io.nop.orm.OrmErrors.ARG_ENTITY_ID;
 import static io.nop.orm.OrmErrors.ARG_ENTITY_NAME;
@@ -45,12 +48,31 @@ public class OrmEntityIdGenerator implements IEntityIdGenerator {
             } else if (col.containsTag(OrmConstants.TAG_SEQ)) {
                 genSeq(entity, col, false);
             } else {
-                Object value = OrmEntityHelper.getPropValue(col, entity);
+                Object value = entity.orm_propValue(col.getPropId());
+                if (value == null) {
+                    value = forceGenRef(entity, col);
+                }
                 if (value == null)
                     throw new OrmException(ERR_ORM_ENTITY_ID_NOT_SET).param(ARG_ENTITY_NAME, entityModel.getName())
                             .param(ARG_PROP_NAME, col.getName());
             }
         }
+    }
+
+    Object forceGenRef(IOrmEntity entity, IColumnModel col) {
+        List<IEntityRelationModel> refs = col.getColumnRefs();
+        if (refs == null || refs.isEmpty())
+            return null;
+        for (IEntityRelationModel ref : refs) {
+            if (ref.isToOneRelation() && !ref.isReverseDepends()) {
+                IOrmEntity refEntity = entity.orm_refEntity(ref.getName());
+                if (refEntity != null) {
+                    entity.orm_enhancer().initEntityId(entity);
+                    return entity.orm_propValue(col.getPropId());
+                }
+            }
+        }
+        return null;
     }
 
     void genSeq(IOrmEntity entity, IColumnModel col, boolean useDefault) {
