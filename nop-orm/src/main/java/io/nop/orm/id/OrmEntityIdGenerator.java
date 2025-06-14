@@ -67,7 +67,7 @@ public class OrmEntityIdGenerator implements IEntityIdGenerator {
             if (ref.isToOneRelation() && !ref.isReverseDepends()) {
                 IOrmEntity refEntity = entity.orm_refEntity(ref.getName());
                 if (refEntity != null) {
-                    entity.orm_enhancer().initEntityId(entity);
+                    entity.orm_enhancer().initEntityId(refEntity);
                     return entity.orm_propValue(col.getPropId());
                 }
             }
