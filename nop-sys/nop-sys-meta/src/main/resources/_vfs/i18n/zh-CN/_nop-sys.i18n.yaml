@@ -1,5 +1,6 @@
 entity:
   label:
+    NopSysChangeLog: 变更跟踪日志
     NopSysCheckerRecord: MakerChecker审批记录
     NopSysClusterLeader: 集群选举
     NopSysCodeRule: 编码规则
@@ -16,6 +17,19 @@ entity:
     NopSysVariable: 系统变量
 prop:
   label:
+    NopSysChangeLog:
+      appId: 应用ID
+      approverId: 审核人
+      bizKey: 业务键
+      bizObjName: 业务对象
+      changeTime: 变更时间
+      newValue: 新值
+      objId: 对象ID
+      oldValue: 旧值
+      operationName: 业务操作
+      operatorId: 操作人
+      propName: 属性名
+      sid: 主键
     NopSysCheckerRecord:
       bizObjId: 业务对象ID
       bizObjName: 业务对象名

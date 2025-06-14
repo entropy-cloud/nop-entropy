@@ -1,5 +1,6 @@
 entity:
   label:
+    NopSysChangeLog: Change Log
     NopSysCheckerRecord: Maker Checker Record
     NopSysClusterLeader: Cluster Leader
     NopSysCodeRule: Code Rule
@@ -16,6 +17,19 @@ entity:
     NopSysVariable: System Variable
 prop:
   label:
+    NopSysChangeLog:
+      sid: SID
+      bizObjName: BizObjName
+      objId: ObjId
+      bizKey: BizKey
+      operationName: Operation Name
+      propName: Prop Name
+      oldValue: Old Value
+      newValue: New Value
+      changeTime: Change Time
+      appId: App ID
+      operatorId: Operator ID
+      approverId: Approver ID
     NopSysCheckerRecord:
       sid: SID
       bizObjName: Biz Object Name

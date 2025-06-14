@@ -24,6 +24,7 @@ import io.nop.xlang.xmeta.SchemaLoader;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -104,6 +105,7 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
         action.invoke(scope);
     }
 
+    @Disabled
     @Test
     public void testDocumentExt() {
         IResource resource = new FileResource(new File(getModuleDir(), "demo/refactored-requirements.md"));

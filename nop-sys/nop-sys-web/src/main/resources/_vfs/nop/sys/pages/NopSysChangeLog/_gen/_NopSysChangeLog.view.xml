@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopSysChangeLog" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+
+    <objMeta>/nop/sys/model/NopSysChangeLog/NopSysChangeLog.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--主键-->
+                <col id="sid" mandatory="true" sortable="true"/>
+
+                <!--业务对象-->
+                <col id="bizObjName" mandatory="true" sortable="true"/>
+
+                <!--对象ID-->
+                <col id="objId" mandatory="true" sortable="true"/>
+
+                <!--业务键-->
+                <col id="bizKey" sortable="true"/>
+
+                <!--业务操作-->
+                <col id="operationName" mandatory="true" sortable="true"/>
+
+                <!--属性名-->
+                <col id="propName" mandatory="true" sortable="true"/>
+
+                <!--旧值-->
+                <col id="oldValue" sortable="true"/>
+
+                <!--新值-->
+                <col id="newValue" sortable="true"/>
+
+                <!--变更时间-->
+                <col id="changeTime" mandatory="true" sortable="true"/>
+
+                <!--应用ID-->
+                <col id="appId" sortable="true"/>
+
+                <!--操作人-->
+                <col id="operatorId" mandatory="true" sortable="true"/>
+
+                <!--审核人-->
+                <col id="approverId" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-变更跟踪日志" i18n-en:title="View Change Log">
+            <layout>
+ sid[主键] bizObjName[业务对象]
+ objId[对象ID] bizKey[业务键]
+ operationName[业务操作] propName[属性名]
+ oldValue[旧值] newValue[新值]
+ changeTime[变更时间] appId[应用ID]
+ operatorId[操作人] approverId[审核人]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+    </forms>
+
+    <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopSysChangeLog__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopSysChangeLog__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopSysChangeLog__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopSysChangeLog__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit" x:abstract="true">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopSysChangeLog__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table noOperations="true">
+                <api url="@query:NopSysChangeLog__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="view" form="view">
+            <initApi url="@query:NopSysChangeLog__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+    </pages>
+</view>

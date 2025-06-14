@@ -29,6 +29,7 @@ public class AiChatOptions extends ExtensibleBean {
     private Integer maxTokens;
     private Integer contextLength;
     private Float frequencyPenalty;
+    private Float presencePenalty;
     private List<String> stop;
 
     private Long requestTimeout;
@@ -72,6 +73,7 @@ public class AiChatOptions extends ExtensibleBean {
         clone.setMaxTokens(this.maxTokens);
         clone.setContextLength(this.contextLength);
         clone.setFrequencyPenalty(this.frequencyPenalty);
+        clone.setPresencePenalty(this.presencePenalty);
 
         if (this.stop != null) {
             clone.setStop(new ArrayList<>(this.stop)); // Create a new ArrayList with the same elements
@@ -136,6 +138,10 @@ public class AiChatOptions extends ExtensibleBean {
         if (options.getFrequencyPenalty() != null) {
             this.setFrequencyPenalty(options.getFrequencyPenalty());
         }
+        if (options.getPresencePenalty() != null) {
+            this.setPresencePenalty(options.getPresencePenalty());
+        }
+
         if (options.getStop() != null) {
             this.setStop(new ArrayList<>(options.getStop()));
         }
@@ -344,6 +350,15 @@ public class AiChatOptions extends ExtensibleBean {
 
     public void setBotId(String botId) {
         this.botId = botId;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Float getPresencePenalty() {
+        return presencePenalty;
+    }
+
+    public void setPresencePenalty(Float presencePenalty) {
+        this.presencePenalty = presencePenalty;
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
