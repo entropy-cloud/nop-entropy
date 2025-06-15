@@ -36,6 +36,13 @@
 
         </step>
 
+        <step name="removeExtSection">
+            <source>
+                requirementsDoc.removeSectionBySectionNo('7');
+                requirementsDoc.removeSectionBySectionNo('1');
+            </source>
+        </step>
+
         <step name="dbDetailDesign" customType="ai:TaskStep" ai:promptName="coder/db-detail-design"
               ai:useResponseCache="true">
             <input name="requirements" value="${requirementsDoc.toText()}"/>

@@ -27,9 +27,11 @@ public class MarkdownResponseParser {
         int pos2 = text.length();
         if (text.startsWith("```markdown")) {
             pos = "```markdown".length();
+        }else if(text.startsWith("```plaintext")){
+            pos = "```plaintext".length();
         }
         if (pos > 0 && text.endsWith("\n```"))
-            pos2 = "\n```".length();
+            pos2 = text.length() - "\n```".length();
         text = text.substring(pos, pos2);
         return MarkdownTool.instance().parseFromText(null, text);
     }

@@ -403,7 +403,7 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
     }
 
     public Boolean removeSectionBySectionNo(String sectionNo) {
-        return removeSection(section -> sectionNo.equals(section.getSectionNo()), false);
+        return removeSection(section -> sectionNo.equals(section.getSectionNo()) ? true : null, false);
     }
 
     public Boolean removeSectionByTitle(String title) {

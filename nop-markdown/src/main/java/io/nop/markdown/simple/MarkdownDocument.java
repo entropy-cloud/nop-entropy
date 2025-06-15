@@ -137,6 +137,16 @@ public class MarkdownDocument implements IComponentModel {
         }, true);
     }
 
+    public MarkdownDocument removeSectionByTitle(String title) {
+        rootSection.removeSectionByTitle(title);
+        return this;
+    }
+
+    public MarkdownDocument removeSectionBySectionNo(String sectionNo) {
+        rootSection.removeSectionBySectionNo(sectionNo);
+        return this;
+    }
+
     public MarkdownDocument selectSectionByTag(String tag) {
         return selectSectionByTag(tag, false);
     }
