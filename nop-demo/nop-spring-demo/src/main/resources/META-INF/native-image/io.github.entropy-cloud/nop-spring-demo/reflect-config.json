@@ -15620,6 +15620,16 @@
           "java.lang.String",
           "java.lang.String",
           "boolean",
+          "boolean",
+          "io.nop.core.context.IServiceContext"
+        ]
+      },
+      {
+        "name": "getEntity",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "boolean",
           "io.nop.core.context.IServiceContext"
         ]
       },
@@ -15703,6 +15713,10 @@
           "io.nop.biz.crud.EntityData",
           "io.nop.core.context.IServiceContext"
         ]
+      },
+      {
+        "name": "isAllowGetDeleted",
+        "parameterTypes": []
       },
       {
         "name": "isAnyPropDirty",
@@ -16098,6 +16112,16 @@
       }
     ],
     "name": "io.nop.biz.crud.CrudBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.biz.crud.CrudToolProvider"
   },
   {
     "allDeclaredConstructors": true,
@@ -43415,6 +43439,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.report.core.engine.renderer.SimpleHtmlReportRendererFactory"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "buildRenderer",
@@ -43826,6 +43860,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.sys.dao.entity.NopSysChangeLog"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysCheckerRecord"
   },
   {
@@ -43991,6 +44035,21 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysVariable"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.sys.dao.entity._gen._NopSysChangeLog"
   },
   {
     "allDeclaredConstructors": true,
@@ -47809,6 +47868,29 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "dao",
+        "parameterTypes": []
+      },
+      {
+        "name": "initChangeLog",
+        "parameterTypes": [
+          "io.nop.sys.dao.entity.NopSysChangeLog",
+          "java.lang.String",
+          "io.nop.orm.IOrmEntity"
+        ]
+      }
+    ],
+    "name": "io.nop.sys.dao.log.OrmEntityChangeLogInterceptor"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "name": "LOG"
@@ -47908,6 +47990,16 @@
       }
     ],
     "name": "io.nop.sys.dao.seq.SysSequenceGenerator"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysChangeLogBizModel"
   },
   {
     "allDeclaredConstructors": true,

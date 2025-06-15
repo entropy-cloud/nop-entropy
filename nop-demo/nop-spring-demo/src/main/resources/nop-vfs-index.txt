@@ -13,8 +13,10 @@
 /dict/core/bool-flag.dict.yaml
 /dict/core/enabled-locale.dict.yaml
 /dict/core/entity-relation-type.dict.yaml
+/dict/core/filter-op.dict.yaml
 /dict/core/java-type.dict.yaml
 /dict/core/log-level.dict.yaml
+/dict/core/logic-operator.dict.yaml
 /dict/core/simple-data-type.dict.yaml
 /dict/core/std-data-type.dict.yaml
 /dict/core/std-domain.dict.yaml
@@ -307,6 +309,7 @@
 /nop/dao/dialect/window-expr-support.dialect.xml
 /nop/demo/app.action-auth.xml
 /nop/excel/imp/dict-support.imp.xml
+/nop/excel/imp/domain-support.imp.xml
 /nop/excel/xlib/imp-gen.xlib
 /nop/file/_module
 /nop/file/beans/_dao.beans.xml
@@ -476,6 +479,10 @@
 /nop/sys/beans/_service.beans.xml
 /nop/sys/beans/app-dao.beans.xml
 /nop/sys/beans/app-service.beans.xml
+/nop/sys/model/NopSysChangeLog/NopSysChangeLog.xbiz
+/nop/sys/model/NopSysChangeLog/NopSysChangeLog.xmeta
+/nop/sys/model/NopSysChangeLog/_NopSysChangeLog.xbiz
+/nop/sys/model/NopSysChangeLog/_NopSysChangeLog.xmeta
 /nop/sys/model/NopSysCheckerRecord/NopSysCheckerRecord.xbiz
 /nop/sys/model/NopSysCheckerRecord/NopSysCheckerRecord.xmeta
 /nop/sys/model/NopSysCheckerRecord/_NopSysCheckerRecord.xbiz
@@ -534,6 +541,11 @@
 /nop/sys/model/NopSysVariable/_NopSysVariable.xmeta
 /nop/sys/orm/_app.orm.xml
 /nop/sys/orm/app.orm.xml
+/nop/sys/pages/NopSysChangeLog/NopSysChangeLog.lib.xjs
+/nop/sys/pages/NopSysChangeLog/NopSysChangeLog.view.xml
+/nop/sys/pages/NopSysChangeLog/_gen/_NopSysChangeLog.view.xml
+/nop/sys/pages/NopSysChangeLog/main.page.yaml
+/nop/sys/pages/NopSysChangeLog/picker.page.yaml
 /nop/sys/pages/NopSysCheckerRecord/NopSysCheckerRecord.lib.xjs
 /nop/sys/pages/NopSysCheckerRecord/NopSysCheckerRecord.view.xml
 /nop/sys/pages/NopSysCheckerRecord/_gen/_NopSysCheckerRecord.view.xml

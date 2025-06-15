@@ -37,12 +37,53 @@ XLang DSL采用XML格式，根节点上必须通过x:schema属性来指定所对
 对于XPL模板标签，则提示跳转到标签库的定义处。
 ![idea-link](idea-link.png)
 
+## DSL文档格式增强
+
+在 DSL 中的文档内容，推荐采用如下形式：
+
+<example>
+    <!-- [这是节点名称]
+    > - 第一级列表 #1
+    > - 第一级列表 #2
+    > - 第一级列表 #3
+    >   - 第二级列表 #1
+    >   - 第二级列表 #2
+    >   - 第二级列表 #3
+
+    @type [这是属性名称]
+        > (可选) 属性使用说明
+        > - 说明 1
+        > - 说明 2
+    @name [这也是属性名称]
+        > 说明 xxx
+    -->
+    <xdef:define type="generic-type" name="string" />
+
+</example>
+
+* 文档最开始的 [xxx] 表示标签或属性名称为 xxx；
+* 其余行开头的 > （含一个空格）可仅用于多级列表开头，以避免因行首空白被移除而无法正确渲染 markdown 多级列表的问题；
+
+节点文档渲染结果：
+![](node-doc.png)
+
+属性文档渲染结果：
+![](attr-doc.png)
+
+为了避免恶意链接，markdown 中的链接和图片的地址均完整显示，以方便用户确认链接是否可信：
+![](link-ref.png)
+
 ## 断点调试
+
+![](idea-runner.png)
+
+![](idea-runner2.png)
 
 在XScript脚本或者Xpl模板片段中可以增加断点。
 插件增加了一个与Run和Debug指令平级的执行器XLangDebug，通过它启动后会同时启动Java调试器和启动XLang脚本语言调试器。
 
 ![idea-executor](idea-executor.png)
+![idea-test-executor](idea-test-executor.png)
 
 ![xlang-debugger](xlang-debugger.png)
 
