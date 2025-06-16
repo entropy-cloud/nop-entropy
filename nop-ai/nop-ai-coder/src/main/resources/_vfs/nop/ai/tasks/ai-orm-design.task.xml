@@ -34,10 +34,11 @@
         </step>
 
         <step name="splitRequirements">
+            <description>从需求文档中剪裁得到数据库设计相关的部分</description>
             <input name="requirementsDoc"/>
             <output name="ormRequirements">
                 <source>
-                    return requirementsDoc.selectSectionByTplTag('ORM').toText();
+                    return requirementsDoc.selectSectionByTplTag('ORM',true).toText();
                 </source>
             </output>
         </step>
@@ -49,10 +50,22 @@
             <output name="RESULT" exportAs="ormModel"/>
         </step>
 
+        <step name="checkOrm" customType="ai:TaskStep" ai:promptName="coder/check-orm" ai:useResponseCache="true">
+            <input name="requirements" value="${ormRequirements}"/>
+            <input name="ormModel"/>
+            <output name="RESULT" exportAs="ormDeltaNode"/>
+        </step>
+
+        <step name="mergeOrmDelta">
+            <source>
+                ormModel.mergeOrmDelta(ormDeltaNode);
+            </source>
+        </step>
+
         <call-step name="saveOrmModel" libModelPath="ai-coder.task-lib.xml" stepName="saveOrmModel">
             <input name="ormModel"/>
             <input name="appName"/>
-            <input name="outputDir" />
+            <input name="outputDir"/>
         </call-step>
 
     </steps>

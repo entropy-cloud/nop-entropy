@@ -17,6 +17,7 @@ import java.util.Set;
 public class OrmModelToJava {
     private final StringBuilder sb;
     private final Set<String> selectedEntityNames;
+    private boolean useDictCode = true;
 
     public OrmModelToJava() {
         this(null);
@@ -29,6 +30,11 @@ public class OrmModelToJava {
     public OrmModelToJava(Set<String> selectedEntityNames, StringBuilder sb) {
         this.selectedEntityNames = selectedEntityNames;
         this.sb = sb;
+    }
+
+    public OrmModelToJava useDictCode(boolean useDictCode) {
+        this.useDictCode = useDictCode;
+        return this;
     }
 
     public OrmModelToJava appendOrmModel(IOrmModel ormModel) {
@@ -105,7 +111,11 @@ public class OrmModelToJava {
             if (dict != null && dict.getOptions() != null) {
                 sb.append(" Options: ");
                 for (DictOptionBean option : dict.getOptions()) {
-                    sb.append(option.getValue()).append("[");
+                    String value = option.getStringValue();
+                    if (useDictCode && !StringHelper.isEmpty(option.getCode())
+                            && StringHelper.isAllDigit(value))
+                        value = option.getCode();
+                    sb.append(value).append("[");
                     sb.append(option.getLabel()).append("],");
                 }
             }

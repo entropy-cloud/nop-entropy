@@ -1,0 +1,49 @@
+template: |
+  【任务描述】
+  你作为资深软件架构师，需要仔细核对数据库设计文档，检查下面的ORM XML定义中是否有表缺失，如果有，返回需要补充的XML，如果没有，仅返回`[NO_CHANGE]`，不需要额外信息。
+  "数据库设计补充"小节中的信息仅作为参考，它提出的字段和表可能已经被已有的设计所覆盖，所以需要额外注意不要重复设计。
+  
+  【ORM XML】
+  ```xml
+  ${ormModel.ormNodeForAi.xml()}
+  ```
+  
+  【ORM格式规范】
+  <c:include src="/nop/ai/prompts/coder/orm-model.md" type="text" />
+ 
+  【需求描述】
+  ${requirements}
+
+
+  <c:print>
+  【返回格式】
+  ```xml
+  <orm>
+    <dicts>
+    </dicts>
+    <entities>
+    </entities>
+  </orm>
+  ```
+  </c:print>
+
+inputs:
+  - name: ormModel
+    type: XNode
+    mandatory: true
+
+  - name: requirements
+    type: String
+    mandatory: true
+
+outputs:
+  - name: noChange
+    type: Boolean
+    parseFromResponse:
+      containsText: "[NO_CHANGE]"
+
+  - name: RESULT
+    xdefPath: /nop/ai/schema/coder/orm.xdef
+    format: xml
+    when: |
+      !chatExchange.outputs.noChange

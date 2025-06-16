@@ -178,6 +178,8 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
                     } else if (output.getDefaultExpr() != null) {
                         Object value = output.getDefaultExpr().call1(null, chatResponse, scope);
                         chatResponse.setOutput(output.getName(), value);
+                    }else{
+                        chatResponse.setOutput(output.getName(), null);
                     }
                 }
             }

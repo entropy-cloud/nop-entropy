@@ -113,16 +113,24 @@ public class MarkdownDocument implements IComponentModel {
                     .param(ARG_TITLE, rootSection.getTitle());
         }
 
+        String tplTitle = tpl.getRootSection().getTitle();
+
         // 可能会有多余的内容，自动清除
-        if (!StringHelper.isEmpty(tpl.getRootSection().getTitle())) {
-            MarkdownSection section = this.getRootSection().findSectionByTitle(tpl.getRootSection().getTitle());
+        if (!StringHelper.isEmpty(tplTitle)) {
+            MarkdownSection section = this.getRootSection().findSectionByTitle(tplTitle);
             if (section != null) {
                 section.setTpl(tpl.getRootSection());
                 this.rootSection = section;
             }
         }
 
-        return this.getRootSection().matchTpl(tpl.getRootSection(), throwError);
+        boolean b = this.getRootSection().matchTpl(tpl.getRootSection(), throwError);
+        if (b && this.rootSection.getTitle() == null && tplTitle != null) {
+            if (!tplTitle.contains("{{")) {
+                this.rootSection.setTitle(tplTitle);
+            }
+        }
+        return b;
     }
 
     public boolean matchTplFromPath(String tplPath, boolean throwError) {

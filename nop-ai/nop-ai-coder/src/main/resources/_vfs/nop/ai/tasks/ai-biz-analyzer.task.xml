@@ -38,34 +38,28 @@
 
         <step name="removeExtSection">
             <source>
-                requirementsDoc.removeSectionBySectionNo('7');
+                requirementsDoc.removeSectionBySectionNo('8');
                 requirementsDoc.removeSectionBySectionNo('1');
             </source>
         </step>
 
         <step name="dbDetailDesign" customType="ai:TaskStep" ai:promptName="coder/db-detail-design"
               ai:useResponseCache="true">
+            <description>先进行初步的数据库设计</description>
             <input name="requirements" value="${requirementsDoc.toText()}"/>
             <output name="RESULT" exportAs="dbDetailDesignDoc"/>
         </step>
 
         <step name="mergeDetailDesign">
+            <description>将数据库设计合并到需求文档中</description>
             <source>
-                requirementsDoc.addSection(dbDetailDesignDoc.findSectionByTitle('数据库详细设计'));
+                const section = dbDetailDesignDoc.findSectionByTitle('数据库详细设计');
+                section.removeSectionByTitle('完整性检查'); // 删除无关的部分
+                section.removeSectionByTitle('表关联'); // 删除多余的部分，通过字段定义已经包含此信息
+                section.resetLevel(1);
+                requirementsDoc.addSection(section);
             </source>
         </step>
-
-        <!--        <step name="correctMarkdown" customType="ai:TaskStep" ai:promptName="coder/correct-markdown">-->
-        <!--            <input name="markdownDoc">-->
-        <!--                <source>requirementsDoc</source>-->
-        <!--            </input>-->
-        <!--            <input name="markdownTplPath" value="/nop/ai/schema/coder/requirements.tpl.md"/>-->
-
-        <!--            <output name="RESULT" exportAs="requirementsDoc"/>-->
-        <!--            <output name="requirements">-->
-        <!--                <source>STEP_RESULT.RESULT.toText()</source>-->
-        <!--            </output>-->
-        <!--        </step>-->
 
         <step name="saveRequirements" customType="file-utils:WriteText">
             <input name="outputDir"/>

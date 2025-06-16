@@ -139,4 +139,12 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
         MarkdownDocument doc = converter.convertFromResource(attachmentResource("requirements.docx"));
         System.out.println(doc.toText());
     }
+
+    @Test
+    public void testMatchMarkdownTpl(){
+        MarkdownDocument doc = MarkdownTool.instance().parseFromResource(attachmentResource("output-db.md"));
+        IResource tplResource = VirtualFileSystem.instance().getResource("/nop/ai/schema/coder/db-detail-design.tpl.md");
+        MarkdownDocument tpl = MarkdownTool.instance().parseFromResource(tplResource);
+        doc.matchTpl(tpl,true);
+    }
 }
