@@ -4,6 +4,7 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.api.core.util.Symbol;
+import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.collections.bit.IBitSet;
 import io.nop.commons.text.SimpleTextTemplate;
@@ -17,6 +18,7 @@ import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordSimpleFieldMeta;
 import io.nop.record.model.RecordTypeMeta;
 import io.nop.record.writer.IDataWriterBase;
+import io.nop.xlang.xmeta.SimpleSchemaValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -227,8 +229,6 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
 
     protected Object getProp(RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) {
         Object value;
-        if (field.isVirtual())
-            return record;
 
         if (field.getContent() != null)
             return field.getContent();
@@ -238,6 +238,11 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
         } else {
             if (record == null)
                 return null;
+
+            // 如果是虚拟分组字段
+            if (field.isVirtual())
+                return record;
+
 
             String propName = field.getPropOrFieldName();
             value = getPropByName(record, propName);
@@ -268,6 +273,11 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
             throw new NopException(ERR_RECORD_FIELD_IS_MANDATORY)
                     .param(ARG_FIELD_NAME, field.getName())
                     .param(ARG_FIELD_PATH, context.getFieldPath());
+        }
+
+        if (field.getSchema() != null) {
+            SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), field.getLocation(), field.getName(), value, context.getEvalScope(),
+                    IValidationErrorCollector.THROW_ERROR);
         }
     }
 }

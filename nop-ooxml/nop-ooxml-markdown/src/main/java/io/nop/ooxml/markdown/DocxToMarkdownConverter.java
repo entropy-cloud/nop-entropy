@@ -200,6 +200,7 @@ public class DocxToMarkdownConverter {
 
     private void handleTable(XNode tableNode, StringBuilder currentText) {
         ExcelTable table = new WordTableParser().parseTable(tableNode);
+        currentText.append("\n"); // 多插入一个空行，否则有些Markdown渲染器不识别
         new TableToMarkdownConverter().convertToMarkdown(table, currentText);
     }
 

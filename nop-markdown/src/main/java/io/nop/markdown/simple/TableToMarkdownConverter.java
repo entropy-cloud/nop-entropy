@@ -35,7 +35,7 @@ public class TableToMarkdownConverter {
 
         // 空表格处理
         if (cols == 0) {
-            md.append("| (empty) |\n|------|");
+            md.append("\n| (empty) |\n|------|");
             return;
         }
 
@@ -51,7 +51,7 @@ public class TableToMarkdownConverter {
 
     // 假定第一行是表头
     private void appendHeader(StringBuilder md, ITableView table, int cols) {
-        md.append("|");
+        md.append("\n|");
         IRowView row = table.getRow(0);
         row.forEachCell(0, (cell, rowIndex, colIndex) -> {
             String cellText = cell.getRealCell().getText();
@@ -88,7 +88,7 @@ public class TableToMarkdownConverter {
      * - 换行符转换为空格
      */
     private String escapeCell(String content) {
-        if (content == null) return "";
+        if (content == null || content.isEmpty()) return " ";
         return content
                 .replace("|", "\\|")  // 转义管道符
                 .replace("\n", " ")   // 替换换行为空格

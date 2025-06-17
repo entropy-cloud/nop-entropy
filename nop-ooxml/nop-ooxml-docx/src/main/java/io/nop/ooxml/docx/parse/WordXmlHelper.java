@@ -10,7 +10,6 @@ package io.nop.ooxml.docx.parse;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
-import io.nop.ooxml.docx.DocxConstants;
 import io.nop.ooxml.docx.model.WordOfficePackage;
 
 public class WordXmlHelper {
@@ -33,31 +32,60 @@ public class WordXmlHelper {
     }
 
     public static void getText(XNode node, StringBuilder sb) {
+        processNode(node, new IContentHandler() {
+            @Override
+            public void content(String text) {
+                sb.append(text);
+            }
+
+            @Override
+            public void image(String imageId) {
+            }
+
+            @Override
+            public void br() {
+                sb.append("\n");
+            }
+
+            @Override
+            public void beginParagraph() {
+                if (sb.length() > 0)
+                    sb.append('\n');
+            }
+
+            @Override
+            public void endParagraph() {
+
+            }
+        });
+    }
+
+    public static void processNode(XNode node, IContentHandler handler) {
         if (node.hasChild()) {
             int i, n = node.getChildCount();
             for (i = 0; i < n; i++) {
                 XNode child = node.child(i);
                 String name = child.getTagName();
-                if (name.equals("w:rPr")) {
+                if (name.equals("w:rPr") || name.equals("w:binData")) {
                     continue;
                 } else if (name.equals("w:br")) {
-                    sb.append("\n");
+                    handler.br();
                 } else if (child.hasContent()) {
-                    sb.append(child.getContentValue());
+                    handler.content(child.contentText());
                 } else if (name.equals("w:t") && child.hasContent()) {
-                    sb.append(child.getContentValue());
-                } else if (name.equals("w:pict") || name.equals("w:binData")) {
+                    handler.content(child.contentText());
+                } else if (name.equals("w:pict") || name.equals("w:drawing")) {
                     continue;
                 } else if (name.equals("w:p")) {
-                    if (sb.length() > 0)
-                        sb.append('\n');
-                    getText(child, sb);
+                    handler.beginParagraph();
+                    processNode(child, handler);
+                    handler.endParagraph();
                 } else {
-                    getText(child, sb);
+                    processNode(child, handler);
                 }
             }
         } else if (node.getTagName().equals("w:t")) {
-            sb.append(node.content().asString(""));
+            handler.content(node.contentText());
         }
     }
 
@@ -66,7 +94,7 @@ public class WordXmlHelper {
         try {
             pkg.loadFromResource(resource);
 
-            XNode doc = pkg.getFile(DocxConstants.PATH_WORD_DOCUMENT).buildXml(null);
+            XNode doc = pkg.getWordXml();
 
             return doc;
         } finally {
