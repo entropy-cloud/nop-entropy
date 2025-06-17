@@ -8,7 +8,7 @@
 package io.nop.graphql.core.schema.utils;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.text.IndentPrinter;
+import io.nop.commons.text.CodeBuilder;
 import io.nop.commons.util.StringHelper;
 import io.nop.graphql.core.ast.GraphQLASTNode;
 import io.nop.graphql.core.ast.GraphQLASTVisitor;
@@ -47,13 +47,13 @@ import java.util.List;
 
 public class GraphQLSourcePrinter extends GraphQLASTVisitor {
 
-    private final IndentPrinter out = new IndentPrinter(100);
+    private final CodeBuilder out = new CodeBuilder(100);
 
     public String toString() {
         return out.toString();
     }
 
-    public IndentPrinter getOut() {
+    public CodeBuilder getOut() {
         return out;
     }
 
@@ -70,7 +70,7 @@ public class GraphQLSourcePrinter extends GraphQLASTVisitor {
     public void visitGraphQLDocument(GraphQLDocument node) {
         for (GraphQLDefinition def : node.getDefinitions()) {
             visit(def);
-            out.br();
+            out.line();
         }
     }
 
@@ -154,7 +154,7 @@ public class GraphQLSourcePrinter extends GraphQLASTVisitor {
 
         visitChildren(node.getDirectives());
         visitChild(node.getSelectionSet());
-        out.br();
+        out.line();
     }
 
     @Override
@@ -242,7 +242,7 @@ public class GraphQLSourcePrinter extends GraphQLASTVisitor {
         out.append(" on ");
         out.append(node.getOnType());
         visitChild(node.getSelectionSet());
-        out.br();
+        out.line();
     }
 
     @Override
@@ -264,7 +264,7 @@ public class GraphQLSourcePrinter extends GraphQLASTVisitor {
         }
         out.decIndent();
         out.indent();
-        out.append("}").br();
+        out.append("}").line();
     }
 
     @Override
@@ -296,7 +296,7 @@ public class GraphQLSourcePrinter extends GraphQLASTVisitor {
         }
         out.decIndent();
         out.indent();
-        out.append("}").br();
+        out.append("}").line();
     }
 
     @Override
@@ -407,7 +407,7 @@ public class GraphQLSourcePrinter extends GraphQLASTVisitor {
         }
         out.decIndent();
         out.indent();
-        out.append('}').br();
+        out.append('}').line();
     }
 
     @Override

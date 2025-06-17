@@ -7,8 +7,6 @@
  */
 package io.nop.commons.diff;
 
-import io.nop.commons.text.IndentPrinter;
-
 import java.util.List;
 import java.util.Map;
 

@@ -7,7 +7,7 @@
  */
 package io.nop.commons.diff;
 
-import io.nop.commons.text.IndentPrinter;
+import io.nop.commons.text.CodeBuilder;
 import io.nop.commons.util.StringHelper;
 
 import java.util.List;
@@ -16,12 +16,12 @@ import java.util.Map;
 public class DiffValuePrinter {
 
     public String print(IDiffValue diff) {
-        IndentPrinter out = new IndentPrinter(1000);
+        CodeBuilder out = new CodeBuilder(1000);
         print(diff, out);
         return out.toString();
     }
 
-    public void print(IDiffValue diff, IndentPrinter out) {
+    public void print(IDiffValue diff, CodeBuilder out) {
         DiffType diffType = diff.getDiffType();
         Map<String, ? extends IDiffValue> propDiffs = diff.getPropDiffs();
         List<? extends IDiffValue> elementsDiff = diff.getElementDiffs();

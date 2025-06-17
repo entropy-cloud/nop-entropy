@@ -11,7 +11,7 @@ import io.nop.api.core.exceptions.NopException;
 
 import java.io.IOException;
 
-public class IndentPrinter implements Appendable {
+public class CodeBuilder implements Appendable {
     private final Appendable out;
     private final int lineLength;
 
@@ -24,46 +24,50 @@ public class IndentPrinter implements Appendable {
 
     private String lineBreak = "\n";
 
-    public IndentPrinter(Appendable out, int lineLength) {
+    public CodeBuilder(Appendable out, int lineLength) {
         this.out = out;
         this.lineLength = lineLength;
     }
 
-    public IndentPrinter(int lineLength) {
+    public CodeBuilder(int lineLength) {
         this(new StringBuilder(), lineLength);
+    }
+
+    public CodeBuilder() {
+        this(120);
     }
 
     public String toString() {
         return out.toString();
     }
 
-    public IndentPrinter lineBreak(String lineBreak) {
+    public CodeBuilder lineBreak(String lineBreak) {
         this.lineBreak = lineBreak;
         return this;
     }
 
-    public IndentPrinter indentStr(String indentStr) {
+    public CodeBuilder indentStr(String indentStr) {
         this.indentStr = indentStr;
         return this;
     }
 
-    public IndentPrinter indentLevel(int indentLevel) {
+    public CodeBuilder indentLevel(int indentLevel) {
         this.indentLevel = indentLevel;
         return this;
     }
 
-    public IndentPrinter incIndent() {
+    public CodeBuilder incIndent() {
         indentLevel++;
         return this;
     }
 
-    public IndentPrinter decIndent() {
+    public CodeBuilder decIndent() {
         indentLevel--;
         return this;
     }
 
     @Override
-    public IndentPrinter append(CharSequence csq, int start, int end) {
+    public CodeBuilder append(CharSequence csq, int start, int end) {
         int len = end - start;
 
         if (outputLength + len - lastLinePos > lineLength) {
@@ -79,7 +83,7 @@ public class IndentPrinter implements Appendable {
     }
 
     @Override
-    public IndentPrinter append(char c) {
+    public CodeBuilder append(char c) {
         if (outputLength + 1 - lastLinePos > lineLength) {
             indent();
         }
@@ -93,7 +97,7 @@ public class IndentPrinter implements Appendable {
     }
 
     @Override
-    public IndentPrinter append(CharSequence str) {
+    public CodeBuilder append(CharSequence str) {
         if (outputLength + str.length() - lastLinePos > lineLength) {
             indent();
         }
@@ -107,7 +111,7 @@ public class IndentPrinter implements Appendable {
         }
     }
 
-    public IndentPrinter br() {
+    public CodeBuilder line() {
         try {
             out.append(lineBreak);
             outputLength += lineBreak.length();
@@ -118,9 +122,11 @@ public class IndentPrinter implements Appendable {
         }
     }
 
-    public IndentPrinter indent() {
-        br();
+    public CodeBuilder indent() {
+        return line().printIndent();
+    }
 
+    public CodeBuilder printIndent() {
         if (indentLevel > 0) {
             try {
                 for (int i = 0; i < indentLevel; i++) {
@@ -132,5 +138,10 @@ public class IndentPrinter implements Appendable {
             }
         }
         return this;
+    }
+
+    public CodeBuilder line(String format, Object... args) {
+        printIndent();
+        return append(String.format(format, args)).line();
     }
 }

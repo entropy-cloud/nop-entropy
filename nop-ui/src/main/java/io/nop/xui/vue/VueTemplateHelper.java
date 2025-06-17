@@ -7,7 +7,7 @@
  */
 package io.nop.xui.vue;
 
-import io.nop.commons.text.IndentPrinter;
+import io.nop.commons.text.CodeBuilder;
 import io.nop.core.lang.xml.XNode;
 import io.nop.xui.vue.react.VueNodeToReact;
 
@@ -24,7 +24,7 @@ public class VueTemplateHelper {
         if (vueNode == null)
             return "<></>";
 
-        IndentPrinter out = new IndentPrinter(100);
+        CodeBuilder out = new CodeBuilder(100);
         new VueNodeToReact().render(vueNode, out);
         return out.toString();
     }

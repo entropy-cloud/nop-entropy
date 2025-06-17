@@ -7,7 +7,7 @@
  */
 package io.nop.xui.vue.react;
 
-import io.nop.commons.text.IndentPrinter;
+import io.nop.commons.text.CodeBuilder;
 import io.nop.commons.util.StringHelper;
 import io.nop.xui.vue.VueNode;
 import io.nop.xui.vue.VueSlot;
@@ -20,11 +20,11 @@ import java.util.List;
  * 蒋vue模板的解析结果转换为React的createElement调用
  */
 public class VueNodeToReact {
-    public void render(VueNode node, IndentPrinter out) {
+    public void render(VueNode node, CodeBuilder out) {
         renderFor(node, out);
     }
 
-    private void renderFor(VueNode node, IndentPrinter out) {
+    private void renderFor(VueNode node, CodeBuilder out) {
         if (node.getItemsExpr() == null) {
             renderIf(node, out);
         } else {
@@ -45,7 +45,7 @@ public class VueNodeToReact {
         }
     }
 
-    private void renderIf(VueNode node, IndentPrinter out) {
+    private void renderIf(VueNode node, CodeBuilder out) {
         if (node.getIfExpr() == null) {
             renderNode(node, out);
         } else {
@@ -56,7 +56,7 @@ public class VueNodeToReact {
         }
     }
 
-    private void renderNode(VueNode node, IndentPrinter out) {
+    private void renderNode(VueNode node, CodeBuilder out) {
         out.append("h(").append(getElementName(node)).append(',').incIndent();
         if (!hasReactProp(node)) {
             out.indent().append("null,");
@@ -153,7 +153,7 @@ public class VueNodeToReact {
         return "on" + StringHelper.capitalize(name);
     }
 
-    protected void appendSlot(IndentPrinter out, VueSlot slot) {
+    protected void appendSlot(CodeBuilder out, VueSlot slot) {
         String var = slot.getSlotVar();
         if (var == null)
             var = "_";

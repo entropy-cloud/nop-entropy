@@ -9,7 +9,7 @@ package io.nop.rpc.model.proto;
 
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
-import io.nop.commons.text.IndentPrinter;
+import io.nop.commons.text.CodeBuilder;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
@@ -24,7 +24,7 @@ import io.nop.rpc.model.ApiOptionModel;
 import io.nop.rpc.model.ApiServiceModel;
 import io.nop.rpc.model.IWithOptions;
 
-public class ProtoFileGenerator extends IndentPrinter {
+public class ProtoFileGenerator extends CodeBuilder {
     public ProtoFileGenerator(Appendable out, int lineLength) {
         super(out, lineLength);
     }
@@ -42,8 +42,8 @@ public class ProtoFileGenerator extends IndentPrinter {
     }
 
     public String generateProtoFile(ApiModel model) {
-        append("syntax = \"proto3\";").br();
-        br();
+        append("syntax = \"proto3\";").line();
+        line();
 
         printOptions(model);
 
@@ -53,21 +53,21 @@ public class ProtoFileGenerator extends IndentPrinter {
 
         printDescription(model.getDescription());
 
-        append("package ").append(apiPackageName).append(";").br();
+        append("package ").append(apiPackageName).append(";").line();
 
         if (model.hasImports()) {
             printImports(model);
-            br();
+            line();
         }
 
         if (model.hasDicts()) {
             printEnums(model);
-            br();
+            line();
         }
 
         if (model.hasMessages()) {
             printMessages(model);
-            br();
+            line();
         }
 
         printServices(model);
@@ -125,17 +125,17 @@ public class ProtoFileGenerator extends IndentPrinter {
         printDescription(enumModel.getDescription());
 
         indent();
-        append("enum ").append(enumModel.getName()).append(" {").br();
+        append("enum ").append(enumModel.getName()).append(" {").line();
         incIndent();
         for (DictOptionBean item : enumModel.getOptions()) {
-            br();
+            line();
             indent();
             append(item.getLabel()).append(" = ").append(String.valueOf(item.getValue())).append(';');
         }
         decIndent();
-        br();
+        line();
         indent();
-        append("}").br();
+        append("}").line();
     }
 
     void printMessages(ApiModel model) {
@@ -151,13 +151,13 @@ public class ProtoFileGenerator extends IndentPrinter {
         append("message ").append(messageModel.getName()).append(" {");
         incIndent();
         for (ApiMessageFieldModel fieldModel : messageModel.getFields()) {
-            br();
+            line();
             printField(fieldModel);
         }
         decIndent();
-        br();
+        line();
         indent();
-        append("}").br();
+        append("}").line();
     }
 
     void printField(ApiMessageFieldModel fieldModel) {
@@ -207,11 +207,11 @@ public class ProtoFileGenerator extends IndentPrinter {
         append("service ").append(serviceModel.getName()).append(" {");
         incIndent();
         for (ApiMethodModel methodModel : serviceModel.getMethods()) {
-            br();
+            line();
             printMethod(serviceModel.getName() + "__" + methodModel.getName(), methodModel);
         }
         decIndent();
-        br();
+        line();
         indent();
         append("}").append('\n');
     }

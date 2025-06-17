@@ -7,7 +7,7 @@
  */
 package io.nop.web.page.vue;
 
-import io.nop.commons.text.IndentPrinter;
+import io.nop.commons.text.CodeBuilder;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.unittest.BaseTestCase;
@@ -48,7 +48,7 @@ public class TestVueTemplateParser extends BaseTestCase {
     @Test
     public void testVueToReact() {
         VueNode vue = parseVue("test-vue-1.xml");
-        IndentPrinter out = new IndentPrinter(100);
+        CodeBuilder out = new CodeBuilder(100);
         new VueNodeToReact().render(vue, out);
         String react = out.toString();
         System.out.println(react);
