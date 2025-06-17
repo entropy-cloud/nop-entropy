@@ -10,7 +10,7 @@
      apiStyle="enum:io.nop.ai.core.model.ApiStyle"
      defaultModel="string" logMessage="!boolean=true"
      rateLimit="double" defaultRequestTimeout="long"
-     supportToolCalls="!boolean=false"
+     supportToolCalls="!boolean=false" apiKeyHeader="string"
 >
 
     <!--
@@ -18,10 +18,10 @@
     -->
     <supportModels xdef:value="csv-set"/>
 
-    <aliasMap xdef:value="string-map" />
+    <aliasMap xdef:value="string-map"/>
 
     <models xdef:body-type="list" xdef:key-attr="name">
-        <model name="!string" xdef:name="LlmModelModel"
+        <model name="!string" xdef:name="LlmModelModel" maxTokensLimit="int" defaultMaxTokens="int"
                enableThinkingPrompt="string" disableThinkingPrompt="string"
                thinkStartMarker="string" thinkEndMarker="string"/>
     </models>
