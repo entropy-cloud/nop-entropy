@@ -21,6 +21,8 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.commons.cache.ICache;
+import io.nop.commons.cache.MapCache;
 import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.commons.util.FileHelper;
@@ -68,6 +70,8 @@ public class DefaultAiChatService implements IAiChatService {
     private Map<String, IRateLimiter> rateLimiters = new ConcurrentHashMap<>();
 
     protected MockAiChatService mockService = new MockAiChatService();
+
+    private ICache<String, String> secretCache = new MapCache<>("ai-cache", true);
 
     private File secretDir;
 
@@ -195,24 +199,30 @@ public class DefaultAiChatService implements IAiChatService {
 
     protected HttpRequest buildHttpRequest(String llmName, LlmModel llmModel,
                                            Prompt prompt, AiChatOptions options) {
-        String url = getBaseUrl(llmName, llmModel);
+        String model = getModel(llmName, llmModel, options);
+        String url = getBaseUrl(llmName, llmModel, model);
 
         url = StringHelper.appendPath(url, llmModel.getChatUrl());
 
         String apiKey = getApiKey(llmName);
 
         HttpRequest request = HttpRequest.post(url);
-        if (!StringHelper.isEmpty(apiKey))
-            request.setBearerToken(apiKey);
+        if (!StringHelper.isEmpty(apiKey)) {
+            if (llmModel.getApiKeyHeader() != null) {
+                request.header(llmModel.getApiKeyHeader(), apiKey);
+            } else {
+                request.setBearerToken(apiKey);
+            }
+        }
 
         initHeaders(request, options);
         Map<String, Object> body = new HashMap<>();
-        initBody(llmName, llmModel, body, prompt, options);
+        initBody(llmName, llmModel, model, body, prompt, options);
         request.setBody(body);
         return request;
     }
 
-    protected String getBaseUrl(String llmName, LlmModel llmModel) {
+    protected String getBaseUrl(String llmName, LlmModel llmModel, String model) {
         String baseUrlKey = StringHelper.replace(CONFIG_VAR_LLM_BASE_URL, PLACE_HOLDER_LLM_NAME, llmName);
         String baseUrl = (String) AppConfig.var(baseUrlKey);
         if (StringHelper.isEmpty(baseUrl))
@@ -220,21 +230,38 @@ public class DefaultAiChatService implements IAiChatService {
         if (StringHelper.isEmpty(baseUrl))
             throw new NopException(ERR_AI_SERVICE_NO_BASE_URL).param(ARG_LLM_NAME, llmName)
                     .param(ARG_CONFIG_VAR, baseUrlKey);
-        return baseUrl;
+        return StringHelper.renderTemplate(baseUrl, varName -> {
+            if ("model".equals(varName))
+                return model;
+            if ("api-version".equals(varName)) {
+                String apiVersion = getApiVersion(llmName);
+                if (!StringHelper.isEmpty(apiVersion))
+                    return apiVersion;
+            }
+            return "{" + varName + "}";
+        });
+    }
+
+    private String getApiVersion(String llmName) {
+        String apiVersionKey = StringHelper.replace(CONFIG_VAR_LLM_API_KEY, PLACE_HOLDER_LLM_NAME, llmName);
+        return AppConfig.var(apiVersionKey, "");
     }
 
     protected String getApiKey(String llmName) {
         String apiKeyName = StringHelper.replace(CONFIG_VAR_LLM_API_KEY, PLACE_HOLDER_LLM_NAME, llmName);
         String apiKey = (String) AppConfig.var(apiKeyName);
         if (StringHelper.isEmpty(apiKey)) {
-            File secretFile = new File(secretDir, llmName + ".txt");
-            if (secretFile.exists()) {
-                String secret = StringHelper.strip(FileHelper.readText(secretFile, null));
-                if (secret != null) {
-                    AppConfig.getConfigProvider().assignConfigValue(apiKeyName, secret);
-                    return secret;
+            return secretCache.computeIfAbsent(llmName, k -> {
+                File secretFile = new File(secretDir, llmName + ".txt");
+                if (secretFile.exists()) {
+                    String secret = StringHelper.strip(FileHelper.readText(secretFile, null));
+                    if (secret != null) {
+                        AppConfig.getConfigProvider().assignConfigValue(apiKeyName, secret);
+                        return secret;
+                    }
                 }
-            }
+                return "";
+            });
         }
         return apiKey;
     }
@@ -277,9 +304,8 @@ public class DefaultAiChatService implements IAiChatService {
      * }
      */
     protected void initBody(String llmName,
-                            LlmModel llmModel, Map<String, Object> body,
+                            LlmModel llmModel, String model, Map<String, Object> body,
                             Prompt prompt, AiChatOptions options) {
-        String model = getModel(llmName, llmModel, options);
         body.put("model", model);
         body.put("stream", false);
 
@@ -340,8 +366,20 @@ public class DefaultAiChatService implements IAiChatService {
         if (requestModel == null)
             return;
 
+        LlmModelModel model = getModelModel(llmModel, options.getModel());
+
         setIfNotNull(body, requestModel.getSeedPath(), options.getSeed());
-        setIfNotNull(body, requestModel.getMaxTokensPath(), options.getMaxTokens());
+        Integer maxTokens = options.getMaxTokens();
+        if (maxTokens == null) {
+            if (model != null)
+                maxTokens = model.getDefaultMaxTokens();
+        }
+
+        if (maxTokens != null) {
+            if (model != null && model.getMaxTokensLimit() < maxTokens)
+                maxTokens = model.getMaxTokensLimit();
+            setIfNotNull(body, requestModel.getMaxTokensPath(), maxTokens);
+        }
 
         setIfNotNull(body, requestModel.getTemperaturePath(), options.getTemperature());
 

@@ -1,5 +1,5 @@
 <llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-     x:extends="default.llm.xml" >
+     x:extends="default.llm.xml">
 
     <baseUrl>https://api.deepseek.com</baseUrl>
     <chatUrl>/chat/completions</chatUrl>
@@ -7,7 +7,7 @@
     <embedUrl>/api/embed</embedUrl>
 
     <models>
-        <model name="qwen3" disableThinkingPrompt="/no_think"/>
+        <model name="deepseek-chat" maxTokensLimit="8192"/>
     </models>
 
 

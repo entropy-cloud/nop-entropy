@@ -25,6 +25,13 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     
     /**
      *  
+     * xml name: apiKeyHeader
+     * 
+     */
+    private java.lang.String _apiKeyHeader ;
+    
+    /**
+     *  
      * xml name: apiStyle
      * 
      */
@@ -157,6 +164,25 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
     public boolean hasAliasMap(){
         return this._aliasMap != null && !this._aliasMap.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: apiKeyHeader
+     *  
+     */
+    
+    public java.lang.String getApiKeyHeader(){
+      return _apiKeyHeader;
+    }
+
+    
+    public void setApiKeyHeader(java.lang.String value){
+        checkAllowChange();
+        
+        this._apiKeyHeader = value;
+           
+    }
+
     
     /**
      * 
@@ -510,6 +536,7 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
         super.outputJson(out);
         
         out.putNotNull("aliasMap",this.getAliasMap());
+        out.putNotNull("apiKeyHeader",this.getApiKeyHeader());
         out.putNotNull("apiStyle",this.getApiStyle());
         out.putNotNull("baseUrl",this.getBaseUrl());
         out.putNotNull("buildHttpRequest",this.getBuildHttpRequest());
@@ -538,6 +565,7 @@ public abstract class _LlmModel extends io.nop.core.resource.component.AbstractC
         super.copyTo(instance);
         
         instance.setAliasMap(this.getAliasMap());
+        instance.setApiKeyHeader(this.getApiKeyHeader());
         instance.setApiStyle(this.getApiStyle());
         instance.setBaseUrl(this.getBaseUrl());
         instance.setBuildHttpRequest(this.getBuildHttpRequest());

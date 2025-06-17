@@ -28,6 +28,8 @@ public interface AiCoreConstants {
 
     String CONFIG_VAR_LLM_API_KEY = "nop.ai.llm.{llmName}.api-key";
 
+    String CONFIG_VAR_LLM_API_VERSION = "nop.ai.llm.{llmName}.api-version";
+
     String PLACE_HOLDER_LLM_NAME = "{llmName}";
 
     String VAR_PROMPT_MODEL = "promptModel";

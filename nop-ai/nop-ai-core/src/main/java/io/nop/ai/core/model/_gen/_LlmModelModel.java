@@ -18,6 +18,13 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: defaultMaxTokens
+     * 
+     */
+    private java.lang.Integer _defaultMaxTokens ;
+    
+    /**
+     *  
      * xml name: disableThinkingPrompt
      * 
      */
@@ -29,6 +36,13 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
      * 
      */
     private java.lang.String _enableThinkingPrompt ;
+    
+    /**
+     *  
+     * xml name: maxTokensLimit
+     * 
+     */
+    private java.lang.Integer _maxTokensLimit ;
     
     /**
      *  
@@ -50,6 +64,25 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
      * 
      */
     private java.lang.String _thinkStartMarker ;
+    
+    /**
+     * 
+     * xml name: defaultMaxTokens
+     *  
+     */
+    
+    public java.lang.Integer getDefaultMaxTokens(){
+      return _defaultMaxTokens;
+    }
+
+    
+    public void setDefaultMaxTokens(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._defaultMaxTokens = value;
+           
+    }
+
     
     /**
      * 
@@ -85,6 +118,25 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
         checkAllowChange();
         
         this._enableThinkingPrompt = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: maxTokensLimit
+     *  
+     */
+    
+    public java.lang.Integer getMaxTokensLimit(){
+      return _maxTokensLimit;
+    }
+
+    
+    public void setMaxTokensLimit(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._maxTokensLimit = value;
            
     }
 
@@ -161,8 +213,10 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("defaultMaxTokens",this.getDefaultMaxTokens());
         out.putNotNull("disableThinkingPrompt",this.getDisableThinkingPrompt());
         out.putNotNull("enableThinkingPrompt",this.getEnableThinkingPrompt());
+        out.putNotNull("maxTokensLimit",this.getMaxTokensLimit());
         out.putNotNull("name",this.getName());
         out.putNotNull("thinkEndMarker",this.getThinkEndMarker());
         out.putNotNull("thinkStartMarker",this.getThinkStartMarker());
@@ -177,8 +231,10 @@ public abstract class _LlmModelModel extends io.nop.core.resource.component.Abst
     protected void copyTo(LlmModelModel instance){
         super.copyTo(instance);
         
+        instance.setDefaultMaxTokens(this.getDefaultMaxTokens());
         instance.setDisableThinkingPrompt(this.getDisableThinkingPrompt());
         instance.setEnableThinkingPrompt(this.getEnableThinkingPrompt());
+        instance.setMaxTokensLimit(this.getMaxTokensLimit());
         instance.setName(this.getName());
         instance.setThinkEndMarker(this.getThinkEndMarker());
         instance.setThinkStartMarker(this.getThinkStartMarker());
