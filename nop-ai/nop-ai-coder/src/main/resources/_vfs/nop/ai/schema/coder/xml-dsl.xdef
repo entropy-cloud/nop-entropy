@@ -1,0 +1,78 @@
+<xml-dsl x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!-- 实体查询（带关联加载），返回实体列表 -->
+    <dbSelectList entity="entity-name" output="var-name" limit="int" offset="int">
+        <where>t-expr</where>        <!-- 查询条件表达式 -->
+        <includeRelations>relation-path</includeRelations>  <!-- 关联加载关系路径 -->
+        <orderBy>order-by-sql</orderBy>
+    </dbSelectList>
+
+    <!-- 返回满足条件的第一条记录 -->
+    <dbSelectFirst entity="entity-name" output="var-name">
+        <where>t-expr</where>        <!-- 查询条件表达式 -->
+        <includeRelations>relation-path</includeRelations>  <!-- 关联加载关系路径 -->
+        <orderBy>order-by-sql</orderBy>
+    </dbSelectFirst>
+
+    <!-- 实体更新 -->
+    <dbUpdate entity="entity-name" output="var-name">
+        <where>t-expr</where>        <!-- 查询条件表达式 -->
+        <field name="field-name">expr</field>  <!-- 更新字段赋值 -->
+    </dbUpdate>
+
+    <dbSave entity="entity-name" output="var-name">
+        <field name="field-name">expr</field>
+    </dbSave>
+
+    <dbDelete entity="entity-name">
+        <where>t-expr</where>
+    </dbDelete>
+
+    <!-- 条件判断 -->
+    <if condition="expr">
+        xml-dsl
+    </if>
+
+    <choose>
+        <when condition="expr">
+            xml-dsl
+        </when>
+        <otherwise>
+            xml-dsl
+        </otherwise>
+    </choose>
+
+    <!-- 循环遍历 -->
+    <forEach items="expr" var="var-name">
+        xml-dsl
+    </forEach>
+
+    <!-- 变量赋值 -->
+    <setVar name="var-name">expr</setVar>
+
+    <setField object="var-name" field="var-name">expr</setField>
+
+    <!-- 执行表达式，丢弃返回值 -->
+    <eval>expr</eval>
+
+    <!-- 结束step，整个流程结束需要使用end步骤 -->
+    <returnStep>expr</returnStep>
+
+    <!-- 结束整个流程 -->
+    <returnTask>expr</returnTask>
+
+    <continue/>
+
+    <break/>
+
+    <!-- 错误抛出 -->
+    <throw error="expr" code="error-code" message="t-expr"/>
+
+    <!-- 日志记录 -->
+    <log level="LOG_LEVEL" message="t-expr" error="expr"/>
+
+    <!-- 服务调用 -->
+    <invoke service="service-name" method="method-name" output="var-name">
+        <input name="string" type="java-type" displayName="chinese">expr</input>
+    </invoke>
+</xml-dsl>

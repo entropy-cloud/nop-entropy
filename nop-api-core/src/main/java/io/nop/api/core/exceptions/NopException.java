@@ -136,7 +136,7 @@ public class NopException extends RuntimeException implements IException {
     }
 
     public static void addLoc(Exception e, SourceLocation loc) {
-        if(loc == null)
+        if (loc == null)
             return;
 
         if (e instanceof NopException) {
@@ -196,6 +196,10 @@ public class NopException extends RuntimeException implements IException {
             this.initCause(cause);
         }
         return this;
+    }
+
+    public String getCode() {
+        return getErrorCode();
     }
 
     public boolean isBizFatal() {

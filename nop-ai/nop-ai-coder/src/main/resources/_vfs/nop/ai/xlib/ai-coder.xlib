@@ -232,7 +232,7 @@
                 import io.nop.core.resource.ResourceHelper;
 
                 const resource = ResourceHelper.resolveResourceInDir(inputDir, fileName);
-                $out.text(location(), resource.readText(null));
+                $out.text(resource.location(), resource.readText(null));
             ]]></c:script>
             </source>
         </IncludeText>

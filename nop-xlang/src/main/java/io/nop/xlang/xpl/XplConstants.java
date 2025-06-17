@@ -135,6 +135,8 @@ public interface XplConstants {
     String ENCODING_NAME = "encoding";
     String KEY_ATTR_NAME = "keyAttr";
 
+    String ENABLE_XPL_EXEC_NAME = "enableXplExec";
+
     String NAME_NAME = "name";
     String OUT_NAME = "out";
 

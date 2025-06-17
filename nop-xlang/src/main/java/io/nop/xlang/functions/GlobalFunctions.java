@@ -148,6 +148,10 @@ public class GlobalFunctions {
         return Literal.valueOf(expr.getLocation(), expr.getLocation());
     }
 
+    public static SourceLocation locationFromPath(@Name("path") String path) {
+        return SourceLocation.fromPath(path);
+    }
+
     @Description("字符串拼接，空字符串会比自动忽略")
     @Macro(resultType = String.class)
     public static Expression concat(@Name("scope") IXLangCompileScope scope, @Name("expr") CallExpression expr) {

@@ -22,4 +22,8 @@ public class EscapeOutputExpression extends _EscapeOutputExpression {
         node.setText(text);
         return node;
     }
+
+    public static EscapeOutputExpression plainText(SourceLocation loc, String text) {
+        return valueOf(loc, XLangEscapeMode.none, Literal.valueOf(loc, text));
+    }
 }

@@ -110,7 +110,7 @@
             <attr name="provider" stdDomain="string" mandatory="true"/>
             <attr name="model" stdDomain="string" mandatory="true"/>
             <attr name="seed" stdDomain="string" optional="true"/>
-            <attr name="sessionId" stdDomain="string" optional="true" />
+            <attr name="sessionId" stdDomain="string" optional="true"/>
             <attr name="temperature" stdDomain="float" optional="true"/>
             <attr name="topP" stdDomain="float" optional="true"/>
             <attr name="topK" stdDomain="int" optional="true"/>
@@ -123,7 +123,7 @@
             <attr name="enableThinking" stdDomain="boolean" optional="true"/>
             <attr name="responseFormat" stdDomain="string" optional="true"/>
             <attr name="streamListener" optional="true"/>
-            <attr name="workMode" optional="true" />
+            <attr name="workMode" optional="true"/>
 
             <attr name="asyncExec" stdDomain="boolean" optional="true"/>
             <attr name="retryTimesPerRequest" stdDomain="int" optional="true"/>
@@ -156,5 +156,18 @@
                 return asyncExec ? cmd.executeAsync(inputs, cancelToken,$scope) : cmd.execute(inputs,cancelToken,$scope);
             ]]></source>
         </Execute>
+
+        <IncludeXDefForAi outputMode="text">
+            <attr name="path" stdDomain="v-path"/>
+
+            <source>
+                <c:script>
+                    import io.nop.ai.core.xdef.AiXDefHelper;
+
+                    const xml = AiXDefHelper.loadXDefForAi(path).xml();
+                    $out.text(locationFromPath(path),xml);
+                </c:script>
+            </source>
+        </IncludeXDefForAi>
     </tags>
 </lib>
