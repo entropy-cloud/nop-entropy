@@ -14,6 +14,7 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
 
@@ -199,5 +200,32 @@ public class TestNopCli extends BaseTestCase {
         String text = FileHelper.readText(file, null);
         assertTrue(text.contains("\"name\": \"b\""));
         assertTrue(text.contains("\"name\": \"a\""));
+    }
+
+    @Test
+    public void testParameter() {
+        CoreInitialization.destroy();
+        String[] args = new String[]{"run", "../nop-cli/demo/scripts/render-pages.xrun",
+                "-PmoduleId=app/demo", "-o", "target/demo"};
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        int ret = app.run(args);
+        assertEquals(0, ret);
+    }
+
+    @Disabled
+    @Test
+    public void testRunTaskWithParam() {
+        CoreInitialization.destroy();
+        String[] args = new String[]{"run-task", "v:/nop/ai/tasks/ai-coder.task.xml",
+                "-PmavenGroupId=app.demo", "-PoutputDir=target/demo","-PappName=app-demo",
+        "-PbasePackageName=app.demo",
+        "-PinputRequirementsPath=req.md",
+        "-PaiProvider=deepseek","-PaiModel=deepseek-chat",
+        "-PsessionId=test","-PneedExpand=false"};
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        int ret = app.run(args);
+        assertEquals(0, ret);
     }
 }

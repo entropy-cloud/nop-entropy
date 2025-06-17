@@ -1,10 +1,9 @@
 template: |
   【任务目标】
-  作为资深DSL专家，设计一个最简洁的流程编排DSL，实现如下服务方法，要求：
-  1. 全部逻辑都使用XML格式表达，仅在属性上使用简单JavaScript表达式语法
-  2. 分解为多个step
-  3. 添加必要的注释
-  4. 完整实现需求中要求的全部逻辑，包括定时调度等
+  你作为资深DSL专家，使用一个自定义的流程编排DSL，实现如下服务方法
+  
+  【DSL语法】
+  <c:include src="/nop/ai/prompts/coder/dsl-define.md" type="text" />
   
   【服务方法定义】
   ```java

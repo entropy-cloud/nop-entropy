@@ -7,7 +7,7 @@
 
     <!--    <ai:chatOptions provider="deepseek" model="deepseek-chat" contextLength="8192" maxTokens="8192"/>-->
 
-    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="8192" temperature="0" sessionId="${sessionId}"/>
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="50000" temperature="0" sessionId="${sessionId}"/>
 
     <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 
@@ -69,6 +69,44 @@
                     <when>useCaseRequirements == null || useCaseRequirements == ''</when>
                 </exit>
 
+                <step name="generateMethodDsl" customType="ai:TaskStep" ai:promptName="coder/service-method-dsl"
+                      ai:useResponseCache="true">
+                    <throttle maxConcurrency="1" maxWait="100000000"/>
+
+                    <input name="requirements" value="${useCaseRequirements}"/>
+                    <input name="ormModel"/>
+                    <input name="apiModel"/>
+                    <input name="serviceName" value="${methodInfo.serviceName}"/>
+                    <input name="methodName" value="${methodInfo.methodName}"/>
+                    <output name="RESULT" exportAs="methodDslNode"/>
+                </step>
+
+                <step name="saveMethodDsl" customType="file-utils:WriteText">
+                    <input name="outputDir"/>
+                    <input name="fileName"
+                           value="ai-coder/${methodInfo.serviceName}/${methodInfo.methodName}.dsl.xml"/>
+                    <input name="text" value="${methodDslNode.xml()}"/>
+                </step>
+
+                <step name="generateMethodJava" customType="ai:TaskStep" ai:promptName="coder/service-method-java"
+                      ai:useResponseCache="true">
+                    <throttle maxConcurrency="1" maxWait="100000000"/>
+
+                    <input name="requirements" value="${useCaseRequirements}"/>
+                    <input name="ormModel"/>
+                    <input name="apiModel"/>
+                    <input name="serviceName" value="${methodInfo.serviceName}"/>
+                    <input name="methodName" value="${methodInfo.methodName}"/>
+                    <output name="RESULT" exportAs="methodJava"/>
+                </step>
+
+                <step name="saveMethodJava" customType="file-utils:WriteText">
+                    <input name="outputDir"/>
+                    <input name="fileName"
+                           value="ai-coder/${methodInfo.serviceName}/${methodInfo.methodName}.java"/>
+                    <input name="text" value="${methodJava.source}"/>
+                </step>
+
                 <step name="generateMethodTask" customType="ai:TaskStep" ai:promptName="coder/service-method-task"
                       ai:useResponseCache="true">
                     <throttle maxConcurrency="1" maxWait="100000000"/>
@@ -94,24 +132,7 @@
                     <input name="text" value="${methodTaskNode.xml()}"/>
                 </step>
 
-                <step name="generateMethodJava" customType="ai:TaskStep" ai:promptName="coder/service-method-java"
-                      ai:useResponseCache="true">
-                    <throttle maxConcurrency="1" maxWait="100000000"/>
 
-                    <input name="requirements" value="${useCaseRequirements}"/>
-                    <input name="ormModel"/>
-                    <input name="apiModel"/>
-                    <input name="serviceName" value="${methodInfo.serviceName}"/>
-                    <input name="methodName" value="${methodInfo.methodName}"/>
-                    <output name="RESULT" exportAs="methodJava"/>
-                </step>
-
-                <step name="saveMethodJava" customType="file-utils:WriteText">
-                    <input name="outputDir"/>
-                    <input name="fileName"
-                           value="ai-coder/${methodInfo.serviceName}/${methodInfo.methodName}.java"/>
-                    <input name="text" value="${methodJava.source}"/>
-                </step>
 
 <!--                <step name="generateMethodPython" customType="ai:TaskStep" ai:promptName="coder/service-method-python"-->
 <!--                      ai:useResponseCache="true">-->

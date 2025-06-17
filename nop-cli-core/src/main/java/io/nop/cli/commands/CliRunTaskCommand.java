@@ -11,6 +11,8 @@ import io.nop.ioc.api.IBeanScope;
 import io.nop.task.ITask;
 import io.nop.task.ITaskFlowManager;
 import io.nop.task.ITaskRuntime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 import java.util.HashMap;
@@ -24,6 +26,7 @@ import java.util.concurrent.Callable;
         description = "运行逻辑编排任务"
 )
 public class CliRunTaskCommand implements Callable<Integer> {
+    static final Logger LOG = LoggerFactory.getLogger(CliRunTaskCommand.class);
 
     @CommandLine.Parameters(index = "0", description = "task.xml逻辑编排任务文件")
     String file;
@@ -66,8 +69,10 @@ public class CliRunTaskCommand implements Callable<Integer> {
             taskRt.getEvalScope().setLocalValues(map);
         }
 
-        if (dynamicParams != null)
-            dynamicParams.forEach(taskRt.getEvalScope()::setLocalValue);
+        if (dynamicParams != null) {
+            LOG.info("nop.cli.run-task-params:{}", dynamicParams);
+            dynamicParams.forEach(taskRt::setInput);
+        }
 
         return BeanScopeContext.runWithNewScope(IBeanScope.SCOPE_TASK, () -> {
             Object result = task.execute(taskRt).syncGetResult();
