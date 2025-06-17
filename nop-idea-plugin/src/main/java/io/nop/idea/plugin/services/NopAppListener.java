@@ -24,6 +24,7 @@ import java.util.List;
 
 public class NopAppListener implements AppLifecycleListener {
 
+    @Override
     public void appFrameCreated(@NotNull List<String> commandLineArgs) {
         AppConfig.getConfigProvider().updateConfigValue(ApiConfigs.CFG_DEBUG, false);
 

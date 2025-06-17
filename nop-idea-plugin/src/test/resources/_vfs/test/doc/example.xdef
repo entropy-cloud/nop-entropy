@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- This is root node
+-->
+<example xmlns:x="/nop/schema/xdsl.xdef"
+         x:schema="/nop/schema/xdef.xdef"
+>
+    <!-- This is child node
+
+    @name This is child name
+    -->
+    <child name="string" type="dict:test/doc/child-type"/>
+</example>

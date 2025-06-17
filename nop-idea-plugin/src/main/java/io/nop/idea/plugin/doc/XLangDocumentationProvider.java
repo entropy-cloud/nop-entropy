@@ -7,6 +7,8 @@
  */
 package io.nop.idea.plugin.doc;
 
+import java.util.Objects;
+
 import com.intellij.lang.documentation.AbstractDocumentationProvider;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
@@ -16,12 +18,7 @@ import com.intellij.psi.xml.XmlTokenType;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.dict.DictModel;
-import io.nop.core.dict.DictModelParser;
 import io.nop.core.dict.DictProvider;
-import io.nop.core.resource.IResource;
-import io.nop.core.resource.VirtualFileSystem;
-import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.idea.plugin.resource.ProjectEnv;
 import io.nop.idea.plugin.utils.MarkdownHelper;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
@@ -31,91 +28,29 @@ import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefComment;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.XDefTypeDecl;
-import org.jetbrains.annotations.NotNull;
-
 import jakarta.annotation.Nullable;
-import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 
 public class XLangDocumentationProvider extends AbstractDocumentationProvider {
 
     @Override
-    public @Nullable
-    String generateDoc(PsiElement element, @Nullable PsiElement originalElement) {
+    public @Nullable String generateDoc(PsiElement element, @Nullable PsiElement originalElement) {
         return ProjectEnv.withProject(element.getProject(), () -> {
-            return doGenerate(element, originalElement);
+            if (XmlPsiHelper.isElementType(originalElement, XmlTokenType.XML_NAME)) {
+                return generateDocForXmlName(originalElement);
+            } //
+            else if (XmlPsiHelper.isElementType(originalElement, XmlTokenType.XML_ATTRIBUTE_VALUE_TOKEN)) {
+                return generateDocForXmlAttributeValue(originalElement);
+            }
+            return null;
         });
-    }
-
-    String doGenerate(PsiElement element, PsiElement elm) {
-        if (XmlPsiHelper.isElementType(elm, XmlTokenType.XML_NAME)) {
-            PsiElement parent = elm.getParent();
-
-            XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(parent);
-            if (tagInfo == null || tagInfo.getDefNode() == null) {
-                return null;
-            }
-
-            if (parent instanceof XmlTag) {
-                DocInfo doc = new DocInfo(tagInfo.getDefNode());
-
-                IXDefComment comment = tagInfo.getDefNode().getComment();
-                if (comment != null) {
-                    doc.setTitle(comment.getMainDisplayName());
-                    doc.setDesc(comment.getMainDescription());
-                }
-                return doc.toString();
-            } else if (parent instanceof XmlAttribute) {
-                XmlAttribute attr = (XmlAttribute) parent;
-                String attrName = attr.getName();
-                DocInfo doc = new DocInfo(tagInfo.getDefNode().getAttribute(attrName));
-
-                IXDefComment comment = tagInfo.getDefNode().getComment();
-                if (comment != null) {
-                    doc.setTitle(comment.getSubDisplayName(attrName));
-                    doc.setDesc(comment.getSubDescription(attrName));
-                }
-                return doc.toString();
-            }
-        } else if (XmlPsiHelper.isElementType(elm, XmlTokenType.XML_ATTRIBUTE_VALUE_TOKEN)) {
-            XmlAttribute attr = PsiTreeUtil.getParentOfType(elm, XmlAttribute.class);
-            if (attr == null) {
-                return null;
-            }
-
-            XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(attr);
-            if (tagInfo == null || tagInfo.getDefNode() == null) {
-                return null;
-            }
-
-            XDefTypeDecl defType = tagInfo.getDefNode().getAttrType(attr.getName());
-            if (defType == null || defType.getOptions() == null) {
-                return null;
-            }
-
-            DictBean dictBean = DictProvider.instance().getDict(null, defType.getOptions(), null, null);
-            DictOptionBean option = dictBean != null ? dictBean.getOptionByValue(attr.getValue()) : null;
-            if (option == null) {
-                return null;
-            }
-
-            DocInfo doc = new DocInfo();
-            if (!Objects.equals(option.getLabel(), option.getValue())) {
-                doc.setTitle(option.getLabel());
-            }
-            doc.setDesc(option.getDescription());
-
-            return doc.toString();
-        }
-
-        return null;
     }
 
     /**
      * Provides documentation when a Simple Language element is hovered with the mouse.
      */
     @Override
-    public @Nullable
-    String generateHoverDoc(@NotNull PsiElement element, @Nullable PsiElement originalElement) {
+    public @Nullable String generateHoverDoc(@NotNull PsiElement element, @Nullable PsiElement originalElement) {
         return generateDoc(element, originalElement);
     }
 
@@ -125,8 +60,7 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
      * Provides the information in which file the Simple language key/value is defined.
      */
     @Override
-    public @Nullable
-    String getQuickNavigateInfo(PsiElement element, PsiElement originalElement) {
+    public @Nullable String getQuickNavigateInfo(PsiElement element, PsiElement originalElement) {
 //        if (element instanceof SimpleProperty) {
 //            final String key = ((SimpleProperty) element).getKey();
 //            final String file = SymbolPresentationUtil.getFilePathPresentation(element.getContainingFile());
@@ -135,9 +69,74 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
         return null;
     }
 
+    /** 为 xml 标签名和属性名生成文档 */
+    private String generateDocForXmlName(PsiElement element) {
+        PsiElement parent = element.getParent();
+
+        XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(parent);
+        if (tagInfo == null || tagInfo.getDefNode() == null) {
+            return null;
+        }
+
+        if (parent instanceof XmlTag) {
+            DocInfo doc = new DocInfo(tagInfo.getDefNode());
+
+            IXDefComment comment = tagInfo.getDefNode().getComment();
+            if (comment != null) {
+                doc.setTitle(comment.getMainDisplayName());
+                doc.setDesc(comment.getMainDescription());
+            }
+            return doc.toString();
+        } else if (parent instanceof XmlAttribute attr) {
+            String attrName = attr.getName();
+            DocInfo doc = new DocInfo(tagInfo.getDefNode().getAttribute(attrName));
+
+            IXDefComment comment = tagInfo.getDefNode().getComment();
+            if (comment != null) {
+                doc.setTitle(comment.getSubDisplayName(attrName));
+                doc.setDesc(comment.getSubDescription(attrName));
+            }
+            return doc.toString();
+        }
+
+        return null;
+    }
+
+    /** 为 xml 属性值生成文档 */
+    private String generateDocForXmlAttributeValue(PsiElement element) {
+        XmlAttribute attr = PsiTreeUtil.getParentOfType(element, XmlAttribute.class);
+        if (attr == null) {
+            return null;
+        }
+
+        XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(attr);
+        if (tagInfo == null || tagInfo.getDefNode() == null) {
+            return null;
+        }
+
+        XDefTypeDecl defType = tagInfo.getDefNode().getAttrType(attr.getName());
+        if (defType == null || defType.getOptions() == null) {
+            return null;
+        }
+
+        DictBean dictBean = DictProvider.instance().getDict(null, defType.getOptions(), null, null);
+        DictOptionBean option = dictBean != null ? dictBean.getOptionByValue(attr.getValue()) : null;
+        if (option == null) {
+            return null;
+        }
+
+        DocInfo doc = new DocInfo();
+        if (!Objects.equals(option.getLabel(), option.getValue())) {
+            doc.setTitle(option.getLabel());
+        }
+        doc.setDesc(option.getDescription());
+
+        return doc.toString();
+    }
+
     /** 对于多行文本，行首的 <code>&gt; </code> 将被去除后，再按照 markdown 渲染得到 html 代码 */
     public static String markdown(String text) {
-        text = text.replaceAll("(?m)^> ","");
+        text = text.replaceAll("(?m)^> ", "");
         text = MarkdownHelper.renderHtml(text);
 
         return text;
