@@ -1,0 +1,14 @@
+<method x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+        xdef:name="MethodMetaModel" xdef:bean-package="io.nop.core.model.lang"
+        id="!var-name=@attr:name" name="!var-name" displayName="string"
+        returnType="generic-type">
+    <description>string</description>
+    <annotations>xml</annotations>
+
+    <arg name="!var-name" displayName="string" xdef:name="MethodArgMetaModel"
+         type="generic-type" nullable="boolean" xdef:unique-attr="name">
+        <description>string</description>
+    </arg>
+
+    <code>string</code>
+</method>

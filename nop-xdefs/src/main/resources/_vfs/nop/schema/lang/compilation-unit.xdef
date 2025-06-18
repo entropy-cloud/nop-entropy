@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<unit x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+      xdef:name="CompilationUnitModel" xdef:bean-package="io.nop.core.model.lang">
+    <imports xdef:body-type="list" xdef:key-attr="as">
+        <import from="string" name="!string" as="!string=@attr:name" xdef:name="ImportMetaModel"/>
+    </imports>
+
+    <classes xdef:body-type="list" xdef:key-attr="name">
+        <class name="!var-name" xdef:ref="class.xdef"/>
+    </classes>
+
+    <methods xdef:body-type="list" xdef:key-attr="name">
+        <method name="!var-name" xdef:ref="method.xdef"/>
+    </methods>
+
+</unit>

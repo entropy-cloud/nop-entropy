@@ -1,6 +1,6 @@
-package io.nop.core.model.object;
+package io.nop.core.model.lang;
 
-import io.nop.core.model.object._gen._MethodArgMetaModel;
+import io.nop.core.model.lang._gen._MethodArgMetaModel;
 
 public class MethodArgMetaModel extends _MethodArgMetaModel{
     public MethodArgMetaModel(){

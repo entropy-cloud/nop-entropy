@@ -1,15 +1,15 @@
-package io.nop.core.model.object._gen;
+package io.nop.core.model.lang._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.core.model.object.FieldMetaModel;
+import io.nop.core.model.lang.FieldMetaModel;
 import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from /nop/schema/class.xdef <p>
+ * generate from /nop/schema/lang/class.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -46,17 +46,17 @@ public abstract class _FieldMetaModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
-     * xml name: mandatory
-     * 
-     */
-    private java.lang.Boolean _mandatory ;
-    
-    /**
-     *  
      * xml name: name
      * 
      */
     private java.lang.String _name ;
+    
+    /**
+     *  
+     * xml name: nullable
+     * 
+     */
+    private java.lang.Boolean _nullable ;
     
     /**
      *  
@@ -143,25 +143,6 @@ public abstract class _FieldMetaModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
-     * xml name: mandatory
-     *  
-     */
-    
-    public java.lang.Boolean getMandatory(){
-      return _mandatory;
-    }
-
-    
-    public void setMandatory(java.lang.Boolean value){
-        checkAllowChange();
-        
-        this._mandatory = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: name
      *  
      */
@@ -175,6 +156,25 @@ public abstract class _FieldMetaModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._name = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: nullable
+     *  
+     */
+    
+    public java.lang.Boolean getNullable(){
+      return _nullable;
+    }
+
+    
+    public void setNullable(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._nullable = value;
            
     }
 
@@ -217,8 +217,8 @@ public abstract class _FieldMetaModel extends io.nop.core.resource.component.Abs
         out.putNotNull("description",this.getDescription());
         out.putNotNull("dict",this.getDict());
         out.putNotNull("displayName",this.getDisplayName());
-        out.putNotNull("mandatory",this.getMandatory());
         out.putNotNull("name",this.getName());
+        out.putNotNull("nullable",this.getNullable());
         out.putNotNull("type",this.getType());
     }
 
@@ -235,8 +235,8 @@ public abstract class _FieldMetaModel extends io.nop.core.resource.component.Abs
         instance.setDescription(this.getDescription());
         instance.setDict(this.getDict());
         instance.setDisplayName(this.getDisplayName());
-        instance.setMandatory(this.getMandatory());
         instance.setName(this.getName());
+        instance.setNullable(this.getNullable());
         instance.setType(this.getType());
     }
 

@@ -1,3 +1,5 @@
 <c:script>
-codeGenerator.renderModel('/nop/schema/class.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/lang/class.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/lang/method.xdef','/nop/templates/xdsl', '/',$scope);
+codeGenerator.renderModel('/nop/schema/lang/compilation-unit.xdef','/nop/templates/xdsl', '/',$scope);
 </c:script>

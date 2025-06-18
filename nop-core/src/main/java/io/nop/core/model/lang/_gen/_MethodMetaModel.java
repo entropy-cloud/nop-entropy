@@ -1,15 +1,15 @@
-package io.nop.core.model.object._gen;
+package io.nop.core.model.lang._gen;
 
 import io.nop.commons.collections.KeyedList; //NOPMD NOSONAR - suppressed UnusedImports - Used for List Prop
 import io.nop.core.lang.json.IJsonHandler;
-import io.nop.core.model.object.MethodMetaModel;
+import io.nop.core.model.lang.MethodMetaModel;
 import io.nop.commons.util.ClassHelper;
 
 
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- * generate from /nop/schema/class.xdef <p>
+ * generate from /nop/schema/lang/method.xdef <p>
  * 
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
@@ -28,7 +28,14 @@ public abstract class _MethodMetaModel extends io.nop.core.resource.component.Ab
      * xml name: arg
      * 
      */
-    private KeyedList<io.nop.core.model.object.MethodArgMetaModel> _args = KeyedList.emptyList();
+    private KeyedList<io.nop.core.model.lang.MethodArgMetaModel> _args = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: code
+     * 
+     */
+    private java.lang.String _code ;
     
     /**
      *  
@@ -46,6 +53,13 @@ public abstract class _MethodMetaModel extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: id
+     * 
+     */
+    private java.lang.String _id ;
+    
+    /**
+     *  
      * xml name: name
      * 
      */
@@ -57,13 +71,6 @@ public abstract class _MethodMetaModel extends io.nop.core.resource.component.Ab
      * 
      */
     private io.nop.core.type.IGenericType _returnType ;
-    
-    /**
-     *  
-     * xml name: source
-     * 
-     */
-    private java.lang.String _source ;
     
     /**
      * 
@@ -90,20 +97,20 @@ public abstract class _MethodMetaModel extends io.nop.core.resource.component.Ab
      *  
      */
     
-    public java.util.List<io.nop.core.model.object.MethodArgMetaModel> getArgs(){
+    public java.util.List<io.nop.core.model.lang.MethodArgMetaModel> getArgs(){
       return _args;
     }
 
     
-    public void setArgs(java.util.List<io.nop.core.model.object.MethodArgMetaModel> value){
+    public void setArgs(java.util.List<io.nop.core.model.lang.MethodArgMetaModel> value){
         checkAllowChange();
         
-        this._args = KeyedList.fromList(value, io.nop.core.model.object.MethodArgMetaModel::getName);
+        this._args = KeyedList.fromList(value, io.nop.core.model.lang.MethodArgMetaModel::getName);
            
     }
 
     
-    public io.nop.core.model.object.MethodArgMetaModel getArg(String name){
+    public io.nop.core.model.lang.MethodArgMetaModel getArg(String name){
         return this._args.getByKey(name);
     }
 
@@ -111,11 +118,11 @@ public abstract class _MethodMetaModel extends io.nop.core.resource.component.Ab
         return this._args.containsKey(name);
     }
 
-    public void addArg(io.nop.core.model.object.MethodArgMetaModel item) {
+    public void addArg(io.nop.core.model.lang.MethodArgMetaModel item) {
         checkAllowChange();
-        java.util.List<io.nop.core.model.object.MethodArgMetaModel> list = this.getArgs();
+        java.util.List<io.nop.core.model.lang.MethodArgMetaModel> list = this.getArgs();
         if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.core.model.object.MethodArgMetaModel::getName);
+            list = new KeyedList<>(io.nop.core.model.lang.MethodArgMetaModel::getName);
             setArgs(list);
         }
         list.add(item);
@@ -128,6 +135,25 @@ public abstract class _MethodMetaModel extends io.nop.core.resource.component.Ab
     public boolean hasArgs(){
         return !this._args.isEmpty();
     }
+    
+    /**
+     * 
+     * xml name: code
+     *  
+     */
+    
+    public java.lang.String getCode(){
+      return _code;
+    }
+
+    
+    public void setCode(java.lang.String value){
+        checkAllowChange();
+        
+        this._code = value;
+           
+    }
+
     
     /**
      * 
@@ -163,6 +189,25 @@ public abstract class _MethodMetaModel extends io.nop.core.resource.component.Ab
         checkAllowChange();
         
         this._displayName = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: id
+     *  
+     */
+    
+    public java.lang.String getId(){
+      return _id;
+    }
+
+    
+    public void setId(java.lang.String value){
+        checkAllowChange();
+        
+        this._id = value;
            
     }
 
@@ -205,25 +250,6 @@ public abstract class _MethodMetaModel extends io.nop.core.resource.component.Ab
     }
 
     
-    /**
-     * 
-     * xml name: source
-     *  
-     */
-    
-    public java.lang.String getSource(){
-      return _source;
-    }
-
-    
-    public void setSource(java.lang.String value){
-        checkAllowChange();
-        
-        this._source = value;
-           
-    }
-
-    
 
     @Override
     public void freeze(boolean cascade){
@@ -243,11 +269,12 @@ public abstract class _MethodMetaModel extends io.nop.core.resource.component.Ab
         
         out.putNotNull("annotations",this.getAnnotations());
         out.putNotNull("args",this.getArgs());
+        out.putNotNull("code",this.getCode());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
+        out.putNotNull("id",this.getId());
         out.putNotNull("name",this.getName());
         out.putNotNull("returnType",this.getReturnType());
-        out.putNotNull("source",this.getSource());
     }
 
     public MethodMetaModel cloneInstance(){
@@ -261,11 +288,12 @@ public abstract class _MethodMetaModel extends io.nop.core.resource.component.Ab
         
         instance.setAnnotations(this.getAnnotations());
         instance.setArgs(this.getArgs());
+        instance.setCode(this.getCode());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
+        instance.setId(this.getId());
         instance.setName(this.getName());
         instance.setReturnType(this.getReturnType());
-        instance.setSource(this.getSource());
     }
 
     protected MethodMetaModel newInstance(){

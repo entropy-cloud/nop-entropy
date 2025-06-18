@@ -1,6 +1,6 @@
-package io.nop.core.model.object;
+package io.nop.core.model.lang;
 
-import io.nop.core.model.object._gen._ClassMetaModel;
+import io.nop.core.model.lang._gen._ClassMetaModel;
 
 public class ClassMetaModel extends _ClassMetaModel{
     public ClassMetaModel(){

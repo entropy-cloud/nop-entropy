@@ -1,8 +1,6 @@
 package io.nop.ai.coder.orm;
 
-import io.nop.ai.coder.utils.AiCoderHelper;
 import io.nop.api.core.beans.DictBean;
-import io.nop.api.core.beans.DictOptionBean;
 import io.nop.commons.util.StringHelper;
 import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
@@ -111,19 +109,7 @@ public class OrmModelToJava {
         String dictName = (String) colModel.prop_get(OrmModelConstants.EXT_DICT);
         if (dictName != null) {
             DictBean dict = ormModel.getDict(dictName);
-            if (dict != null && dict.getOptions() != null) {
-                sb.append(" in ");
-                sb.append(AiCoderHelper.camelCaseName(dictName, true));
-                sb.append(" Options: ");
-                for (DictOptionBean option : dict.getOptions()) {
-                    String value = option.getStringValue();
-                    if (useDictCode && !StringHelper.isEmpty(option.getCode())
-                            && StringHelper.isAllDigit(value))
-                        value = option.getCode();
-                    sb.append(value).append("[");
-                    sb.append(option.getLabel()).append("],");
-                }
-            }
+            DictGenHelper.generateOptions(dict, dictName, useDictCode, sb);
         }
     }
 }

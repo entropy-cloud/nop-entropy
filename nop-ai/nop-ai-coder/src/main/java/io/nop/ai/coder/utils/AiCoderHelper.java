@@ -1,5 +1,6 @@
 package io.nop.ai.coder.utils;
 
+import io.nop.ai.coder.meta.MetaToJava;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
@@ -14,6 +15,7 @@ import io.nop.xlang.xdsl.XDslCleaner;
 import io.nop.xlang.xdsl.XDslExtracter;
 import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xdsl.XDslValidator;
+import io.nop.xlang.xmeta.IObjMeta;
 import io.nop.xlang.xmeta.SchemaLoader;
 
 import java.util.LinkedHashMap;
@@ -147,5 +149,10 @@ public class AiCoderHelper {
 
     public static void saveDslModelAsYaml(Object value, IResource resource) {
         ResourceHelper.writeText(resource, JsonTool.serializeToYaml(value));
+    }
+
+    public static String getObjMetaJava(String xdefPath) {
+        IObjMeta objMeta = SchemaLoader.loadXMeta(xdefPath);
+        return new MetaToJava().generateAllDefined(objMeta);
     }
 }

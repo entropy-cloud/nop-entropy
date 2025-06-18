@@ -10,6 +10,7 @@ package io.nop.commons.text;
 import io.nop.api.core.exceptions.NopException;
 
 import java.io.IOException;
+import java.text.MessageFormat;
 
 public class CodeBuilder implements Appendable {
     private final Appendable out;
@@ -98,6 +99,8 @@ public class CodeBuilder implements Appendable {
 
     @Override
     public CodeBuilder append(CharSequence str) {
+        if (str == null)
+            return this;
         if (outputLength + str.length() - lastLinePos > lineLength) {
             indent();
         }
@@ -142,6 +145,6 @@ public class CodeBuilder implements Appendable {
 
     public CodeBuilder line(String format, Object... args) {
         printIndent();
-        return append(String.format(format, args)).line();
+        return append(MessageFormat.format(format, args)).line();
     }
 }

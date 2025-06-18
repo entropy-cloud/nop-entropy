@@ -1,5 +1,6 @@
 package io.nop.ai.coder;
 
+import io.nop.ai.coder.utils.AiCoderHelper;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.ai.core.xdef.AiXDefHelper;
 import io.nop.api.core.exceptions.NopException;
@@ -141,10 +142,16 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
     }
 
     @Test
-    public void testMatchMarkdownTpl(){
+    public void testMatchMarkdownTpl() {
         MarkdownDocument doc = MarkdownTool.instance().parseFromResource(attachmentResource("output-db.md"));
         IResource tplResource = VirtualFileSystem.instance().getResource("/nop/ai/schema/coder/db-detail-design.tpl.md");
         MarkdownDocument tpl = MarkdownTool.instance().parseFromResource(tplResource);
-        doc.matchTpl(tpl,true);
+        doc.matchTpl(tpl, true);
+    }
+
+    @Test
+    public void testObjSchemaJava() {
+        String code = AiCoderHelper.getObjMetaJava("/nop/schema/api.xdef");
+        System.out.println(code);
     }
 }

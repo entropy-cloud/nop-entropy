@@ -18,6 +18,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -529,5 +530,12 @@ public class TestStringHelper {
         assertEquals("b", map.get("a"));
         assertEquals("d", map.get("c"));
         assertEquals("g", map.get("f"));
+    }
+
+    @Test
+    public void testStringFormat() {
+        String str = MessageFormat.format("{0} a", "DEBUG");
+        System.out.println(str);
+        assertEquals("DEBUG a", str);
     }
 }
