@@ -3,7 +3,7 @@ template: |
   你作为资深DSL专家，使用一个自定义的流程编排DSL，实现如下服务方法
   
   【DSL语法】
-  <c:include src="/nop/ai/prompts/coder/dsl-define.md" type="text" enableXplExec="true" />
+  <c:include src="/nop/ai/prompts/coder/flow-dsl.md" type="text" enableXplExec="true" />
   
   【服务方法定义】
   ```java

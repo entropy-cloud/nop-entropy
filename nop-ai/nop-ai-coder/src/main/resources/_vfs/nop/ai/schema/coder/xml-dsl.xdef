@@ -14,13 +14,7 @@
         <orderBy>order-by-sql</orderBy>
     </dbSelectFirst>
 
-    <!-- 实体更新 -->
-    <dbUpdate entity="entity-name" output="var-name">
-        <where>t-expr</where>        <!-- 查询条件表达式 -->
-        <field name="field-name">expr</field>  <!-- 更新字段赋值 -->
-    </dbUpdate>
-
-    <dbSave entity="entity-name" output="var-name">
+    <dbSave entity="entity-name" output="var-name-for-new-entity">
         <field name="field-name">expr</field>
     </dbSave>
 

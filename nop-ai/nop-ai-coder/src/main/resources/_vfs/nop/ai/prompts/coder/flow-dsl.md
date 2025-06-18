@@ -33,6 +33,8 @@ FlowDSL是一种XML格式的流程编排语言，它的语法定义如下：
 </xpl:exec>
 ```
 
+* 直接设置实体属性就会更新数据库，无需调用db相关标签
+
 ## 设计原则
 
 1. **单一职责**
@@ -112,10 +114,7 @@ $error = {
       <setVar name="processedCount">0</setVar>
       <forEach items="userList" var="user">
         <if condition="user.profile.age &gt;= 18">
-          <dbUpdate entity="User">
-            <where>id = ${user.id}</where>
-            <field name="status">'ACTIVE'</field>
-          </dbUpdate>
+          <setField object="user" name="status">'ACTIVE'</field>
           <log level="DEBUG" message="激活用户: ${user.name}"/>
           <setVar name="processedCount">processedCount + 1</setVar>
         </if>

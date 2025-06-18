@@ -88,49 +88,49 @@
                     <input name="text" value="${methodDslNode.xml()}"/>
                 </step>
 
-                <step name="generateMethodJava" customType="ai:TaskStep" ai:promptName="coder/service-method-java"
-                      ai:useResponseCache="true">
-                    <throttle maxConcurrency="1" maxWait="100000000"/>
+<!--                <step name="generateMethodJava" customType="ai:TaskStep" ai:promptName="coder/service-method-java"-->
+<!--                      ai:useResponseCache="true">-->
+<!--                    <throttle maxConcurrency="1" maxWait="100000000"/>-->
 
-                    <input name="requirements" value="${useCaseRequirements}"/>
-                    <input name="ormModel"/>
-                    <input name="apiModel"/>
-                    <input name="serviceName" value="${methodInfo.serviceName}"/>
-                    <input name="methodName" value="${methodInfo.methodName}"/>
-                    <output name="RESULT" exportAs="methodJava"/>
-                </step>
+<!--                    <input name="requirements" value="${useCaseRequirements}"/>-->
+<!--                    <input name="ormModel"/>-->
+<!--                    <input name="apiModel"/>-->
+<!--                    <input name="serviceName" value="${methodInfo.serviceName}"/>-->
+<!--                    <input name="methodName" value="${methodInfo.methodName}"/>-->
+<!--                    <output name="RESULT" exportAs="methodJava"/>-->
+<!--                </step>-->
 
-                <step name="saveMethodJava" customType="file-utils:WriteText">
-                    <input name="outputDir"/>
-                    <input name="fileName"
-                           value="ai-coder/${methodInfo.serviceName}/${methodInfo.methodName}.java"/>
-                    <input name="text" value="${methodJava.source}"/>
-                </step>
+<!--                <step name="saveMethodJava" customType="file-utils:WriteText">-->
+<!--                    <input name="outputDir"/>-->
+<!--                    <input name="fileName"-->
+<!--                           value="ai-coder/${methodInfo.serviceName}/${methodInfo.methodName}.java"/>-->
+<!--                    <input name="text" value="${methodJava.source}"/>-->
+<!--                </step>-->
 
-                <step name="generateMethodTask" customType="ai:TaskStep" ai:promptName="coder/service-method-task"
-                      ai:useResponseCache="true">
-                    <throttle maxConcurrency="1" maxWait="100000000"/>
+<!--                <step name="generateMethodTask" customType="ai:TaskStep" ai:promptName="coder/service-method-task"-->
+<!--                      ai:useResponseCache="true">-->
+<!--                    <throttle maxConcurrency="1" maxWait="100000000"/>-->
 
-                    <input name="requirements" value="${useCaseRequirements}"/>
-                    <input name="ormModel"/>
-                    <input name="apiModel"/>
-                    <input name="serviceName" value="${methodInfo.serviceName}"/>
-                    <input name="methodName" value="${methodInfo.methodName}"/>
-                    <output name="RESULT" exportAs="methodTaskNode"/>
-                </step>
+<!--                    <input name="requirements" value="${useCaseRequirements}"/>-->
+<!--                    <input name="ormModel"/>-->
+<!--                    <input name="apiModel"/>-->
+<!--                    <input name="serviceName" value="${methodInfo.serviceName}"/>-->
+<!--                    <input name="methodName" value="${methodInfo.methodName}"/>-->
+<!--                    <output name="RESULT" exportAs="methodTaskNode"/>-->
+<!--                </step>-->
 
-                <step name="fixMethodTask" customType="ai:TaskStep" ai:promptName="coder/check-task">
-                    <input name="requirements" value="${useCaseRequirements}"/>
-                    <input name="dslNode" value="${methodTaskNode}"/>
-                    <output name="RESULT" exportAs="methodTaskNode"/>
-                </step>
+<!--                <step name="fixMethodTask" customType="ai:TaskStep" ai:promptName="coder/check-task">-->
+<!--                    <input name="requirements" value="${useCaseRequirements}"/>-->
+<!--                    <input name="dslNode" value="${methodTaskNode}"/>-->
+<!--                    <output name="RESULT" exportAs="methodTaskNode"/>-->
+<!--                </step>-->
 
-                <step name="saveMethodTask" customType="file-utils:WriteText">
-                    <input name="outputDir"/>
-                    <input name="fileName"
-                           value="ai-coder/${methodInfo.serviceName}/${methodInfo.methodName}.task.xml"/>
-                    <input name="text" value="${methodTaskNode.xml()}"/>
-                </step>
+<!--                <step name="saveMethodTask" customType="file-utils:WriteText">-->
+<!--                    <input name="outputDir"/>-->
+<!--                    <input name="fileName"-->
+<!--                           value="ai-coder/${methodInfo.serviceName}/${methodInfo.methodName}.task.xml"/>-->
+<!--                    <input name="text" value="${methodTaskNode.xml()}"/>-->
+<!--                </step>-->
 
 
 
