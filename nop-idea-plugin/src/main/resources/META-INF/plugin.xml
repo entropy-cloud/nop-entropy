@@ -85,7 +85,7 @@
         <annotator language="XLang" implementationClass="io.nop.idea.plugin.annotation.XLangAnnotator"/>
 
         <!-- 点击ctrl跳转到对应文件 -->
-        <gotoDeclarationHandler implementation="io.nop.idea.plugin.link.XLangFileDeclarationHandler"/>
+        <gotoDeclarationHandler implementation="io.nop.idea.plugin.link.XLangGotoDeclarationHandler"/>
 
 
         <fileTypeDetector implementation="io.nop.idea.plugin.lang.XLangFileTypeDetector" order="first" />

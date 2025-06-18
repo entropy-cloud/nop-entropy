@@ -11,6 +11,7 @@ import com.intellij.psi.xml.XmlTag;
 import io.nop.commons.util.StringHelper;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 
 public class XmlTagInfo {
@@ -21,8 +22,9 @@ public class XmlTagInfo {
     private final IXDefNode dslNode;
     private final IXDefinition xdef;
 
-    public XmlTagInfo(XmlTag tag, IXDefNode defNode, IXDefNode parentDefNode,
-                      boolean custom, IXDefNode dslNode, IXDefinition xdef) {
+    public XmlTagInfo(
+            XmlTag tag, IXDefNode defNode, IXDefNode parentDefNode, boolean custom, IXDefNode dslNode, IXDefinition xdef
+    ) {
         this.tag = tag;
         this.defNode = defNode;
         this.parentDefNode = parentDefNode;
@@ -32,12 +34,14 @@ public class XmlTagInfo {
     }
 
     public boolean isAllowedUnknownName(String name) {
-        if (!StringHelper.hasNamespace(name))
+        if (!StringHelper.hasNamespace(name)) {
             return false;
+        }
 
         String ns = StringHelper.getNamespace(name);
-        if (xdef.getXdefCheckNs() == null || xdef.getXdefCheckNs().isEmpty())
+        if (xdef.getXdefCheckNs() == null || xdef.getXdefCheckNs().isEmpty()) {
             return true;
+        }
 
         return !xdef.getXdefCheckNs().contains(ns);
     }
@@ -55,14 +59,16 @@ public class XmlTagInfo {
     }
 
     public IXDefNode getDslNodeChild(String tagName) {
-        if (dslNode == null)
+        if (dslNode == null) {
             return null;
+        }
         return dslNode.getChild(tagName);
     }
 
     public IXDefNode getDefNodeChild(String tagName) {
-        if (defNode == null)
+        if (defNode == null) {
             return null;
+        }
         return defNode.getChild(tagName);
     }
 
@@ -71,10 +77,12 @@ public class XmlTagInfo {
     }
 
     public boolean isSupportBody() {
-        if (defNode == null)
+        if (defNode == null) {
             return false;
-        if (defNode.getXdefValue() == null)
+        }
+        if (defNode.getXdefValue() == null) {
             return false;
+        }
         return defNode.getXdefValue().isSupportBody(StdDomainRegistry.instance());
     }
 
@@ -84,5 +92,19 @@ public class XmlTagInfo {
 
     public IXDefNode getDefNode() {
         return defNode;
+    }
+
+    public XDefTypeDecl getAttrType(String attrName) {
+        attrName = XDefPsiHelper.normalizeName(attrName);
+
+        XDefTypeDecl defType = null;
+        if (attrName.startsWith("x:")) {
+            defType = getDslNode().getAttrType(attrName);
+        }
+
+        if (defType == null) {
+            defType = getDefNode().getAttrType(attrName);
+        }
+        return defType;
     }
 }

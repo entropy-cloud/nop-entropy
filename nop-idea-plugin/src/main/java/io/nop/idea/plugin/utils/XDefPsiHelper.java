@@ -7,6 +7,9 @@
  */
 package io.nop.idea.plugin.utils;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.xml.XmlTag;
@@ -22,9 +25,6 @@ import io.nop.xlang.xmeta.SchemaLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import static io.nop.idea.plugin.utils.XmlPsiHelper.getXmlTag;
 
 public class XDefPsiHelper {
@@ -34,31 +34,29 @@ public class XDefPsiHelper {
     private static IXDefinition xdslDef;
     private static IXDefinition xplDef;
 
-
     public static synchronized IXDefinition getXdefDef() {
         if (xdefDef == null) {
-            IXDefinition xdef = new XDefinitionParser().parseFromResource(new ClassPathResource("classpath:/_vfs/nop/schema/xdef.xdef"));
-            xdefDef = xdef;
+            xdefDef = new XDefinitionParser().parseFromResource(new ClassPathResource(
+                    "classpath:/_vfs/nop/schema/xdef.xdef"));
         }
         return xdefDef;
     }
 
     public static synchronized IXDefinition getXDslDef() {
         if (xdslDef == null) {
-            IXDefinition xdef = new XDefinitionParser().parseFromResource(new ClassPathResource("classpath:/_vfs/nop/schema/xdsl.xdef"));
-            xdslDef = xdef;
+            xdslDef = new XDefinitionParser().parseFromResource(new ClassPathResource(
+                    "classpath:/_vfs/nop/schema/xdsl.xdef"));
         }
         return xdslDef;
     }
 
     public static synchronized IXDefinition getXplDef() {
         if (xplDef == null) {
-            IXDefinition xdef = new XDefinitionParser().parseFromResource(new ClassPathResource("classpath:/_vfs/nop/schema/xpl.xdef"));
-            xplDef = xdef;
+            xplDef = new XDefinitionParser().parseFromResource(new ClassPathResource(
+                    "classpath:/_vfs/nop/schema/xpl.xdef"));
         }
         return xplDef;
     }
-
 
     public static String getSchemaPath(XmlTag tag) {
         PsiFile file = tag.getContainingFile();
@@ -67,7 +65,7 @@ public class XDefPsiHelper {
             return XDslConstants.XDSL_SCHEMA_XPL;
         }
 
-        String ns = XmlPsiHelper.getXmlnsForUrl(tag, XDslConstants.XDSL_SCHEMA_XDEF);
+        String ns = XmlPsiHelper.getXmlnsForUrl(tag, XDslConstants.XDSL_SCHEMA_XDSL);
         String key;
         if (ns == null) {
             key = XDslKeys.DEFAULT.SCHEMA;
@@ -101,36 +99,41 @@ public class XDefPsiHelper {
 
     public static XmlTagInfo getTagInfo(String schemaUrl, XmlTag tag) {
         IXDefinition def = loadSchema(schemaUrl);
-        if (def == null)
+        if (def == null) {
             return null;
+        }
 
         IXDefNode dslDefNode = getXDslDef().getRootNode();
+        // 通过任意未定义的子节点名称，得到 xpl 的 xdef:unknown-tag 子节点定义
         IXDefNode xplDefNode = getXplDef().getRootNode().getChild("div");
 
         List<XmlTag> tags = getSelfAndParents(tag);
-        XmlTagInfo tagInfo = null;
         tags = CollectionHelper.reverseList(tags);
 
         boolean xpl = false;
+        XmlTagInfo tagInfo = null;
         for (int i = 0, n = tags.size(); i < n; i++) {
             XmlTag xmlTag = tags.get(i);
+
             if (i == 0) {
-                tagInfo = new XmlTagInfo(xmlTag, def.getRootNode(), null, false,
-                        dslDefNode, def);
+                tagInfo = new XmlTagInfo(xmlTag, def.getRootNode(), null, false, dslDefNode, def);
             } else {
                 XmlTagInfo parent = tagInfo;
-                String tagName = xmlTag.getName();
-                if (tagName.startsWith("xdsl:"))
-                    tagName = "x:" + tagName.substring("xdsl:".length());
+                String tagName = normalizeName(xmlTag.getName());
 
                 dslDefNode = parent.getDslNodeChild(tagName);
-                IXDefNode defNode = tagName.startsWith("x:") ? dslDefNode : parent.getDefNodeChild(tagName);
 
+                IXDefNode defNode = tagName.startsWith("x:") ? dslDefNode : parent.getDefNodeChild(tagName);
                 if (defNode == null) {
                     defNode = xpl ? xplDefNode : null;
                 }
-                tagInfo = new XmlTagInfo(xmlTag, defNode,
-                        parent.getDefNode(), parent.isCustom() || parent.isSupportBody(), dslDefNode, def);
+
+                tagInfo = new XmlTagInfo(xmlTag,
+                                         defNode,
+                                         parent.getDefNode(),
+                                         parent.isCustom() || parent.isSupportBody(),
+                                         dslDefNode,
+                                         def);
 
                 if (isXplNode(defNode)) {
                     xpl = true;
@@ -140,17 +143,30 @@ public class XDefPsiHelper {
         return tagInfo;
     }
 
+    public static String normalizeName(String name) {
+        if (name.startsWith("xdsl:")) {
+            name = "x:" + name.substring("xdsl:".length());
+        } else if (name.startsWith("meta:")) {
+            name = "xdef:" + name.substring("meta:".length());
+        }
+        return name;
+    }
+
     static boolean isXplNode(IXDefNode defNode) {
-        if (defNode == null)
+        if (defNode == null) {
             return false;
-        if (defNode.getXdefValue() == null)
+        }
+        if (defNode.getXdefValue() == null) {
             return false;
+        }
         String stdDomain = defNode.getXdefValue().getStdDomain();
         return stdDomain.equals("xpl") || stdDomain.startsWith("xpl-");
     }
 
+    /** 自底向上查找 <code>tag</code> 所在分支上的节点 */
     static List<XmlTag> getSelfAndParents(XmlTag tag) {
         List<XmlTag> ret = new ArrayList<>();
+
         while (tag != null) {
             ret.add(tag);
             tag = tag.getParentTag();
