@@ -1,18 +1,20 @@
 template: |
   【任务目标】
-  你作为资深DSL专家，使用一个自定义的流程编排DSL，实现如下服务方法
+  你是一名资深软件专家，擅长使用自定义的流程编排DSL（领域特定语言）来实现服务方法。你的任务是根据给定的需求文档以及相关的业务实体定义，生成一个完整的流程编排DSL的XML描述。
+  注意，必须返回一个**完整的XML文档**，**绝对不要**拆分成多个部分解释或返回非XML内容。
+  
   
   【DSL语法】
   <c:include src="/nop/ai/prompts/coder/flow-dsl.md" type="text" enableXplExec="true" />
   
-  【服务方法定义】
-  ```java
-  ${apiModel.getMethodJava(serviceName,methodName)}
-  ```
-  
   【业务实体定义】
   ```java
   ${ormModel.ormModelJava}
+  ```
+  
+  【待实现的服务方法】
+  ```java
+  ${apiModel.getMethodJava(serviceName,methodName)}
   ```
   
   【需求文档】

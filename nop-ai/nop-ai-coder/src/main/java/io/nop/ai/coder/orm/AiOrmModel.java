@@ -7,6 +7,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.orm.model.IColumnModel;
 import io.nop.orm.model.IEntityModel;
 import io.nop.orm.model.IEntityRelationModel;
 import io.nop.orm.model.OrmModel;
@@ -166,6 +167,45 @@ public class AiOrmModel {
         }
     }
 
+    public String getTableListInfo(boolean includeColumns, boolean includeComment) {
+        return getTableListInfo(includeColumns, includeComment, null);
+    }
+
+    public String getTableListInfo(boolean includeColumns, boolean includeComment, Set<String> selectedNames) {
+        StringBuilder sb = new StringBuilder();
+        int index = 0;
+        for (IEntityModel entityModel : getOrmModelBean().getEntityModels()) {
+            if (selectedNames != null && !selectedNames.contains(entityModel.getShortName()))
+                continue;
+            index++;
+            sb.append(index).append('.').append(' ');
+            sb.append(entityModel.getTableName());
+            sb.append('[').append(entityModel.getDisplayName()).append("]");
+
+            if (includeComment) {
+                if (!StringHelper.isEmpty(entityModel.getComment())) {
+                    sb.append(": ").append(entityModel.getComment());
+                }
+            }
+
+            if (includeColumns) {
+                sb.append('\n');
+                for (IColumnModel colModel : entityModel.getColumns()) {
+                    sb.append(" - ").append(colModel.getName()).append("[").append(colModel.getDisplayName()).append("]");
+                    sb.append('\n');
+
+                    if (includeComment) {
+                        if (!StringHelper.isEmpty(colModel.getComment())) {
+                            sb.append(": ").append(colModel.getComment());
+                        }
+                    }
+                }
+            }
+            sb.append('\n');
+        }
+        return sb.toString();
+    }
+
     public String getEntityListInfo() {
         return getEntityListInfo(false);
     }
@@ -200,8 +240,17 @@ public class AiOrmModel {
     }
 
     public String getDictsXml() {
-        XNode node = getOrmNode();
-        XNode dicts = node.childByTag("dicts");
+        XNode dicts = getDictsNode();
         return dicts == null ? null : dicts.xml();
+    }
+
+    public XNode getDictsNode() {
+        XNode node = getOrmNode();
+        return node.childByTag("dicts");
+    }
+
+    public String getDictsJava(String appName) {
+        String constantsClassName = StringHelper.camelCase(appName, '-', true) + "Constants";
+        return new DictsModelToJava().buildJava(getDictsNode(), constantsClassName);
     }
 }

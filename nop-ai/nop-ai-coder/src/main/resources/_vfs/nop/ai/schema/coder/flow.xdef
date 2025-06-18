@@ -1,11 +1,11 @@
 <flow x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
       xmlns:xdef="/nop/schema/xdef.xdef">
 
-    <!-- 如果在实现过程中发现实体模型或者API模型需要修改，则AI可以在这里输出重构修改的需求 -->
+    <!--AI可以在这里输出重构修改的需求 -->
     <aiFeedback>
-        <orm>实体模型需要修改的内容</orm>
-        <message>API接口消息需要修改的内容</message>
-        <service>调用第三方服务需要明确的信息</service>
+        <orm needChange="boolean">文字描述实体模型需要增加的字段-不允许加表</orm>
+        <message needChange="boolean">文字描述API接口消息需要增加的字段</message>
+        <service needChange="boolean">额外需要引入的Java服务接口定义</service>
     </aiFeedback>
 
     <parameters>
@@ -29,7 +29,7 @@
             <default next="!fallback-step"/>
         </decision>
 
-        <!-- 新增：并行分支起点 -->
+        <!-- 并行分支起点 -->
         <fork name="!step-name" description="string"
               nextOnError="handle-fork-error">
             <branch name="!branch-name" next="!target-step" condition="expr" xdef:unique-attr="name"/>

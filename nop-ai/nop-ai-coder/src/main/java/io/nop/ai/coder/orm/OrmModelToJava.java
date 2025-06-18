@@ -1,5 +1,6 @@
 package io.nop.ai.coder.orm;
 
+import io.nop.ai.coder.utils.AiCoderHelper;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.commons.util.StringHelper;
@@ -62,6 +63,8 @@ public class OrmModelToJava {
         }
         sb.append("class ").append(entityName).append("{\n");
         for (IColumnModel colModel : entityModel.getColumns()) {
+            if (colModel.isMandatory())
+                sb.append("@Nonnull ");
             sb.append(StringHelper.simplifyJavaType(colModel.getJavaTypeName()));
             sb.append(" ").append(colModel.getName()).append(";");
             if (colModel.getDisplayName() != null) {
@@ -109,6 +112,8 @@ public class OrmModelToJava {
         if (dictName != null) {
             DictBean dict = ormModel.getDict(dictName);
             if (dict != null && dict.getOptions() != null) {
+                sb.append(" in ");
+                sb.append(AiCoderHelper.camelCaseName(dictName, true));
                 sb.append(" Options: ");
                 for (DictOptionBean option : dict.getOptions()) {
                     String value = option.getStringValue();

@@ -28,7 +28,27 @@ public class AiApiModel {
     }
 
     public static AiApiModel buildFromApiNode(XNode node) {
+        return buildFromApiNode(node, true);
+    }
+
+    public static AiApiModel buildFromApiNode(XNode node, boolean enforceServicePostfix) {
+        if (enforceServicePostfix)
+            node = enforceServicePostfix(node);
         return new AiApiModel(node);
+    }
+
+    public static XNode enforceServicePostfix(XNode node) {
+        XNode services = node.childByTag("services");
+        if (services != null) {
+            for (XNode serviceNode : services.getChildren()) {
+                String name = serviceNode.attrText("name");
+                if (name.endsWith("Service")) {
+                    continue;
+                }
+                serviceNode.setAttr("name", name + "Service");
+            }
+        }
+        return node;
     }
 
     public static AiApiModel buildFromApiModelPath(String path) {

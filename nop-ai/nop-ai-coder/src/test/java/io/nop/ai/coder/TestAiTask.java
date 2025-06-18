@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.util.Set;
 
 @Disabled
 public class TestAiTask extends JunitBaseTestCase {
@@ -174,6 +175,7 @@ public class TestAiTask extends JunitBaseTestCase {
         taskRt.setInput("aiProvider", aiProvider);
         taskRt.setInput("aiModel", "deepseek-reasoner");
         taskRt.setInput("sessionId", "test-r1");
+        taskRt.setTagSet(Set.of("api", "service"));
         task.execute(taskRt).syncGetOutputs();
     }
 
@@ -251,6 +253,7 @@ public class TestAiTask extends JunitBaseTestCase {
         taskRt.setInput("aiProvider", "deepseek");
         taskRt.setInput("aiModel", "mock");
         taskRt.setInput("sessionId", "test-mock");
+        taskRt.setTagSet(Set.of("service"));
         task.execute(taskRt).syncGetOutputs();
     }
 

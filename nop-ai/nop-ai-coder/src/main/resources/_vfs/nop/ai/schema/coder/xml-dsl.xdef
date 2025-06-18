@@ -2,25 +2,38 @@
 
     <!-- 实体查询（带关联加载），返回实体列表 -->
     <dbSelectList entity="entity-name" output="var-name" limit="int" offset="int">
-        <where>t-expr</where>        <!-- 查询条件表达式 -->
-        <includeRelations>relation-path</includeRelations>  <!-- 关联加载关系路径 -->
+        <!-- 查询条件表达式 -->
+        <where>t-expr</where>
+        <!-- 关联加载关系路径 -->
+        <includeRelations>relation-path</includeRelations>
         <orderBy>order-by-sql</orderBy>
     </dbSelectList>
 
     <!-- 返回满足条件的第一条记录 -->
     <dbSelectFirst entity="entity-name" output="var-name">
-        <where>t-expr</where>        <!-- 查询条件表达式 -->
-        <includeRelations>relation-path</includeRelations>  <!-- 关联加载关系路径 -->
+        <!-- 查询条件表达式 -->
+        <where>t-expr</where>
+        <!-- 关联加载关系路径 -->
+        <includeRelations>relation-path</includeRelations>
         <orderBy>order-by-sql</orderBy>
     </dbSelectFirst>
 
-    <dbSave entity="entity-name" output="var-name-for-new-entity">
+    <dbInsert entity="entity-name" output="var-name-for-new-entity">
         <field name="field-name">expr</field>
-    </dbSave>
+    </dbInsert>
 
     <dbDelete entity="entity-name">
         <where>t-expr</where>
     </dbDelete>
+
+    <!-- 使用EQL对象查询语法返回汇总计算数据 -->
+    <dbQueryList output="var-name" limit="int" offset="int">
+        eql
+    </dbQueryList>
+
+    <dbQueryFirst output="var-name">
+        eql
+    </dbQueryFirst>
 
     <!-- 条件判断 -->
     <if condition="expr">
@@ -37,20 +50,20 @@
     </choose>
 
     <!-- 循环遍历 -->
-    <forEach items="expr" var="var-name">
+    <forEach items="expr" var="var-name" index="var-name">
         xml-dsl
     </forEach>
 
     <!-- 变量赋值 -->
     <setVar name="var-name">expr</setVar>
 
-    <setField object="var-name" field="var-name">expr</setField>
+    <setField object="var-name" name="var-name">expr</setField>
 
     <!-- 执行表达式，丢弃返回值 -->
-    <eval>expr</eval>
+    <execJs>expr</execJs>
 
     <!-- 结束step，整个流程结束需要使用end步骤 -->
-    <returnStep>expr</returnStep>
+    <exitStep/>
 
     <!-- 结束整个流程 -->
     <returnTask>expr</returnTask>
@@ -59,14 +72,26 @@
 
     <break/>
 
-    <!-- 错误抛出 -->
-    <throw error="expr" code="error-code" message="t-expr"/>
+    <!-- 抛出异常码 -->
+    <throw code="error-code" message="t-expr"/>
+
+    <!-- 抛出已经存在的异常对象 -->
+    <rethrow error="expr"/>
 
     <!-- 日志记录 -->
-    <log level="LOG_LEVEL" message="t-expr" error="expr"/>
+    <log level="enum:DEBUG|INFO|ERROR" message="t-expr" error="expr"/>
 
     <!-- 服务调用 -->
     <invoke service="service-name" method="method-name" output="var-name">
         <input name="string" type="java-type" displayName="chinese">expr</input>
     </invoke>
+
+    <try>
+        xml-dsl
+        <catch>xml-dsl</catch>
+        <finally>xml-dsl</finally>
+    </try>
+
+    <!-- 标记需要人工后续处理的决策点 -->
+    <todo>问题描述</todo>
 </xml-dsl>
