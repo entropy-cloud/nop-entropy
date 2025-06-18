@@ -501,6 +501,11 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
                 throw newError(CommonErrors.ERR_SCAN_NEXT_UNTIL_UNEXPECTED_EOF).param(CommonErrors.ARG_EXPECTED, '<');
             }
             if (sc.cur == '<') {
+                if (this.looseMode && !maybeXmlNode(sc.peek())) {
+                    // 不是xml name start
+                    sc.consumeToBuf(buf);
+                    continue;
+                }
                 break;
             }
             if (sc.cur == '&') {
@@ -512,6 +517,12 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
 
         String text = buf.toString();
         appendText(loc, text, false);
+    }
+
+    static boolean maybeXmlNode(int c) {
+        if (c == '/')
+            return true;
+        return StringHelper.isXmlNameStart(c);
     }
 
     void appendText(SourceLocation loc, String text, boolean cdata) {

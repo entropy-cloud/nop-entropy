@@ -34,8 +34,8 @@ public class TestXNodeParser extends BaseTestCase {
 
         // 2. Test that < characters in attribute values are allowed in loose mode
         XNode attrNode = XNodeParser.instance().looseMode(true)
-                .parseFromText(null, "<a attr=\"value<test\">content</a>");
-        assertEquals("<a attr=\"value&lt;test\">content</a>", attrNode.xml());
+                .parseFromText(null, "<a attr=\"value<test\">content <1</a>");
+        assertEquals("<a attr=\"value&lt;test\">content &lt;1</a>", attrNode.xml());
 
         // 3. Test normal XML still works in loose mode
         XNode normalNode = XNodeParser.instance().looseMode(true)
