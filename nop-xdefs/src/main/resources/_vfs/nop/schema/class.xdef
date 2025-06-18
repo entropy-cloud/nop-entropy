@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<class x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+       xdef:name="ClassMetaModel" xdef:bean-package="io.nop.core.model.object"
+       name="!class-name" package="class-name" displayName="string">
+
+    <description>string</description>
+
+    <annotations>xml</annotations>
+
+    <fields xdef:body-type="list" xdef:key-attr="name">
+        <field name="!prop-name" displayName="string" xdef:name="FieldMetaModel"
+               type="generic-type" dict="string" mandatory="boolean">
+            <description>string</description>
+            <annotations>xml</annotations>
+        </field>
+    </fields>
+
+    <methods xdef:body-type="list" xdef:key-attr="name">
+        <method name="!var-name" displayName="string" xdef:name="MethodMetaModel"
+                returnType="generic-type">
+            <description>string</description>
+            <annotations>xml</annotations>
+
+            <arg name="!var-name" displayName="string" xdef:name="MethodArgMetaModel"
+                 type="generic-type" mandatory="boolean" xdef:unique-attr="name">
+                <description>string</description>
+            </arg>
+
+            <source>string</source>
+        </method>
+    </methods>
+</class>
