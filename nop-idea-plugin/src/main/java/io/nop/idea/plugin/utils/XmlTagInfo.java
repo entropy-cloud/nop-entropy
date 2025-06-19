@@ -9,6 +9,7 @@ package io.nop.idea.plugin.utils;
 
 import com.intellij.psi.xml.XmlTag;
 import io.nop.commons.util.StringHelper;
+import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdef.XDefTypeDecl;
@@ -16,21 +17,30 @@ import io.nop.xlang.xdef.domain.StdDomainRegistry;
 
 public class XmlTagInfo {
     private final XmlTag tag;
+
+    private final IXDefinition def;
     private final IXDefNode defNode;
     private final IXDefNode parentDefNode;
+    private final IXDefNode xdslDefNode;
+
     private final boolean custom;
-    private final IXDefNode dslNode;
-    private final IXDefinition xdef;
+    private final String xdefNs;
+    private final String xdslNs;
 
     public XmlTagInfo(
-            XmlTag tag, IXDefNode defNode, IXDefNode parentDefNode, boolean custom, IXDefNode dslNode, IXDefinition xdef
+            XmlTag tag, //
+            IXDefinition def, IXDefNode defNode, IXDefNode parentDefNode, //
+            IXDefNode xdslDefNode, //
+            boolean custom, String xdefNs, String xdslNs
     ) {
         this.tag = tag;
+        this.def = def;
         this.defNode = defNode;
         this.parentDefNode = parentDefNode;
+        this.xdslDefNode = xdslDefNode;
         this.custom = custom;
-        this.dslNode = dslNode;
-        this.xdef = xdef;
+        this.xdefNs = xdefNs;
+        this.xdslNs = xdslNs;
     }
 
     public boolean isAllowedUnknownName(String name) {
@@ -39,30 +49,19 @@ public class XmlTagInfo {
         }
 
         String ns = StringHelper.getNamespace(name);
-        if (xdef.getXdefCheckNs() == null || xdef.getXdefCheckNs().isEmpty()) {
+        if (def.getXdefCheckNs() == null || def.getXdefCheckNs().isEmpty()) {
             return true;
         }
 
-        return !xdef.getXdefCheckNs().contains(ns);
+        return !def.getXdefCheckNs().contains(ns);
     }
 
-    public IXDefinition getXdef() {
-        return xdef;
+    public IXDefinition getDef() {
+        return def;
     }
 
-    public IXDefNode getDslNode() {
-        return dslNode;
-    }
-
-    public IXDefNode getParentDefNode() {
-        return parentDefNode;
-    }
-
-    public IXDefNode getDslNodeChild(String tagName) {
-        if (dslNode == null) {
-            return null;
-        }
-        return dslNode.getChild(tagName);
+    public IXDefNode getDefNode() {
+        return defNode;
     }
 
     public IXDefNode getDefNodeChild(String tagName) {
@@ -70,6 +69,21 @@ public class XmlTagInfo {
             return null;
         }
         return defNode.getChild(tagName);
+    }
+
+    public IXDefNode getParentDefNode() {
+        return parentDefNode;
+    }
+
+    public IXDefNode getXDslDefNode() {
+        return xdslDefNode;
+    }
+
+    public IXDefNode getXDslDefNodeChild(String tagName) {
+        if (xdslDefNode == null) {
+            return null;
+        }
+        return xdslDefNode.getChild(tagName);
     }
 
     public boolean isCustom() {
@@ -90,21 +104,22 @@ public class XmlTagInfo {
         return tag;
     }
 
-    public IXDefNode getDefNode() {
-        return defNode;
+    public IXDefAttribute getAttr(String attrName) {
+        attrName = XDefPsiHelper.normalizeNamespace(attrName, xdefNs, xdslNs);
+
+        IXDefAttribute attr = getDefNode().getAttribute(attrName);
+        if (attr == null) {
+            attr = getXDslDefNode().getAttribute(attrName);
+        }
+        return attr;
     }
 
     public XDefTypeDecl getAttrType(String attrName) {
-        attrName = XDefPsiHelper.normalizeName(attrName);
+        IXDefAttribute attr = getAttr(attrName);
 
-        XDefTypeDecl defType = null;
-        if (attrName.startsWith("x:")) {
-            defType = getDslNode().getAttrType(attrName);
+        if (attr == null) {
+            return getDefNode().getXdefUnknownAttr();
         }
-
-        if (defType == null) {
-            defType = getDefNode().getAttrType(attrName);
-        }
-        return defType;
+        return attr.getType();
     }
 }

@@ -7,6 +7,9 @@
  */
 package io.nop.idea.plugin.link;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandlerBase;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
@@ -82,16 +85,17 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
             return null;
         }
 
+        String attrName = attr.getName();
         XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(attr);
 
         XDefTypeDecl attrDefType = null;
         if (tagInfo != null && tagInfo.getDefNode() != null) {
-            attrDefType = tagInfo.getAttrType(attr.getName());
+            attrDefType = tagInfo.getAttrType(attrName);
         }
 
         if (attrDefType == null) {
             // 未定义类型属性，直接针对 *.xdef 文件做跳转
-            if (attrValue.endsWith(".xdef") && attrValue.contains("/")) {
+            if (attrValue.endsWith(".xdef")) {
                 return getPsiFilesFromPathCsv(project, attr.getContainingFile(), cursorOffset);
             }
             return null;
@@ -103,21 +107,16 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
         } //
         else if (XDefConstants.STD_DOMAIN_V_PATH_LIST.equals(stdDomain)) {
             return getPsiFilesFromPathCsv(project, attr.getContainingFile(), cursorOffset);
+        } //
+        else if (XDefConstants.STD_DOMAIN_XDEF_REF.equals(stdDomain)) {
+            return getPsiFilesByXDefRef(project, tagInfo, attrValue);
         }
+
+        // <c:import from="/nop/web/xlib/web.xlib" />
+        // <c:include src="dingflow-gen/impl_GenComponents.xpl" />
 
         // XDefConstants.STD_DOMAIN_METHOD_REF
         // XDefConstants.STD_DOMAIN_NAME_OR_V_PATH
-        // XDefConstants.STD_DOMAIN_XDEF_REF
-
-//        if (attrName.equals("xpl:lib")) {
-//            String path = XmlPsiHelper.absolutePath(attrValue, attr);
-//
-//            return XmlPsiHelper.findPsiFile(project, path);
-//        } else if (isVfsPath(attr)) {
-//            String path = XmlPsiHelper.absolutePath(attrValue, attr);
-//
-//            return XmlPsiHelper.findPsiFile(project, path);
-//        }
 
         return null;
     }
@@ -194,6 +193,50 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
         return csv.substring(start, end);
     }
 
+    private PsiElement[] getPsiFilesByXDefRef(Project project, XmlTagInfo tagInfo, String attrValue) {
+        // - /nop/schema/xdef.xdef:
+        //   - `<schema xdef:ref="schema-node.xdef" />`
+        //   - `<item xdef:ref="ISchema" />`
+        // - /nop/schema/schema/schema-node.xdef:
+        //   `<schema ref="/test/test-filter.xdef#FilterCondition" />`，`FilterCondition` 为节点的唯一属性值
+        String target;
+        PsiElement[] psiFiles;
+
+        if (attrValue.indexOf(".") > 0) {
+            int hashIndex = attrValue.indexOf('#');
+            String path = hashIndex > 0 ? attrValue.substring(0, hashIndex) : attrValue;
+
+            target = hashIndex > 0 ? attrValue.substring(hashIndex + 1) : null;
+            psiFiles = getPsiFilesByPath(project, tagInfo.getTag(), path);
+        } else {
+            target = attrValue;
+            // Note: 只能引用当前文件内的名字
+            psiFiles = new PsiElement[] { tagInfo.getTag().getContainingFile() };
+        }
+
+        if (psiFiles == null || StringHelper.isEmpty(target)) {
+            return psiFiles;
+        }
+
+        List<PsiElement> result = new ArrayList<>();
+        for (PsiElement psiFile : psiFiles) {
+            PsiTreeUtil.processElements(psiFile, element -> {
+                if (element instanceof XmlTag tag) {
+                    if (target.equals(tag.getAttributeValue("xdef:name")) //
+                        || target.equals(tag.getAttributeValue("meta:name")) //
+                        || target.equals(tag.getAttributeValue("name")) //
+                        || target.equals(tag.getAttributeValue("id")) //
+                    ) {
+                        result.add(tag);
+                    }
+                }
+                return true; // 继续遍历
+            });
+        }
+
+        return result.isEmpty() ? psiFiles : result.toArray(new PsiElement[0]);
+    }
+
     private boolean isCustomTag(String tagName) {
         int pos = tagName.indexOf(':');
         if (pos <= 0) {
@@ -209,40 +252,5 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
                && !ns.equals("c")
                && !ns.equals("macro")
                && !ns.equals("xmlns");
-    }
-
-    private boolean isVfsPath(XmlAttribute attr) {
-        String value = attr.getValue();
-        String name = attr.getName();
-
-        if (StringHelper.isEmpty(value)) {
-            return false;
-        }
-
-        if (value.indexOf(':') >= 0) {
-            return false;
-        }
-
-        if ("x:extends".equals(name)) {
-            return true;
-        }
-
-        if ("x:schema".equals(name)) {
-            return true;
-        }
-
-        if (name.startsWith("xmlns:") && value.endsWith(".xdef")) {
-            return true;
-        }
-
-        if (name.equals("xdef:ref") || name.equals("ref")) {
-            if (value.indexOf('.') > 0) {
-                return true;
-            }
-        }
-
-        // <c:include src="" />
-        // <c:import from="" />
-        return StringHelper.isValidFilePath(value);
     }
 }

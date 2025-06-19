@@ -72,8 +72,8 @@ public class XDefPsiHelper {
         } else {
             key = ns + ":schema";
         }
-        String schemaPath = tag.getAttributeValue(key);
-        return schemaPath;
+
+        return tag.getAttributeValue(key);
     }
 
     public static IXDefinition loadSchema(String schemaUrl) {
@@ -103,12 +103,16 @@ public class XDefPsiHelper {
             return null;
         }
 
-        IXDefNode dslDefNode = getXDslDef().getRootNode();
+        IXDefNode xdslDefNode = getXDslDef().getRootNode();
         // 通过任意未定义的子节点名称，得到 xpl 的 xdef:unknown-tag 子节点定义
-        IXDefNode xplDefNode = getXplDef().getRootNode().getChild("div");
+        IXDefNode xplDefNode = getXplDef().getRootNode().getChild("any");
 
         List<XmlTag> tags = getSelfAndParents(tag);
         tags = CollectionHelper.reverseList(tags);
+
+        XmlTag rootTag = tags.get(0);
+        String xdefNs = XmlPsiHelper.getXmlnsForUrl(rootTag, XDslConstants.XDSL_SCHEMA_XDEF);
+        String xdslNs = XmlPsiHelper.getXmlnsForUrl(rootTag, XDslConstants.XDSL_SCHEMA_XDSL);
 
         boolean xpl = false;
         XmlTagInfo tagInfo = null;
@@ -116,24 +120,28 @@ public class XDefPsiHelper {
             XmlTag xmlTag = tags.get(i);
 
             if (i == 0) {
-                tagInfo = new XmlTagInfo(xmlTag, def.getRootNode(), null, false, dslDefNode, def);
+                tagInfo = new XmlTagInfo(xmlTag, def, def.getRootNode(), null, //
+                                         xdslDefNode, false, xdefNs, xdslNs);
             } else {
-                XmlTagInfo parent = tagInfo;
-                String tagName = normalizeName(xmlTag.getName());
+                XmlTagInfo parentTagInfo = tagInfo;
+                // Note: 对 xpl 节点的名字空间不做转换，也就是不限定其名字空间
+                String tagName = xpl ? xmlTag.getName() : normalizeNamespace(xmlTag.getName(), xdefNs, xdslNs);
 
-                dslDefNode = parent.getDslNodeChild(tagName);
+                xdslDefNode = parentTagInfo.getXDslDefNodeChild(tagName);
 
-                IXDefNode defNode = tagName.startsWith("x:") ? dslDefNode : parent.getDefNodeChild(tagName);
+                IXDefNode defNode = tagName.startsWith("x:") ? xdslDefNode : parentTagInfo.getDefNodeChild(tagName);
                 if (defNode == null) {
                     defNode = xpl ? xplDefNode : null;
                 }
 
                 tagInfo = new XmlTagInfo(xmlTag,
+                                         def,
                                          defNode,
-                                         parent.getDefNode(),
-                                         parent.isCustom() || parent.isSupportBody(),
-                                         dslDefNode,
-                                         def);
+                                         parentTagInfo.getDefNode(),
+                                         xdslDefNode,
+                                         parentTagInfo.isCustom() || parentTagInfo.isSupportBody(),
+                                         xdefNs,
+                                         xdslNs);
 
                 if (isXplNode(defNode)) {
                     xpl = true;
@@ -143,22 +151,27 @@ public class XDefPsiHelper {
         return tagInfo;
     }
 
-    public static String normalizeName(String name) {
-        if (name.startsWith("xdsl:")) {
-            name = "x:" + name.substring("xdsl:".length());
-        } else if (name.startsWith("meta:")) {
-            name = "xdef:" + name.substring("meta:".length());
+    /**
+     * 对 xml 的标签和属性名中的名字空间做转换，
+     * 从而支持对 xdsl.xdef 和 xdef.xdef 中的节点和属性的文档显示和引用跳转
+     */
+    public static String normalizeNamespace(String xmlName, String xdefNs, String xdslNs) {
+        // 转换 /nop/schema/xdsl.xdef 的 xdsl 名字空间
+        if (xdslNs != null && !"x".equals(xdslNs) && xmlName.startsWith(xdslNs + ":")) {
+            xmlName = "x:" + xmlName.substring((xdslNs + ":").length());
         }
-        return name;
+        // 转换 /nop/schema/xdef.xdef 的 meta 名字空间
+        else if (xdefNs != null && !"xdef".equals(xdefNs) && xmlName.startsWith(xdefNs + ":")) {
+            xmlName = "xdef:" + xmlName.substring((xdefNs + ":").length());
+        }
+        return xmlName;
     }
 
     static boolean isXplNode(IXDefNode defNode) {
-        if (defNode == null) {
+        if (defNode == null || defNode.getXdefValue() == null) {
             return false;
         }
-        if (defNode.getXdefValue() == null) {
-            return false;
-        }
+
         String stdDomain = defNode.getXdefValue().getStdDomain();
         return stdDomain.equals("xpl") || stdDomain.startsWith("xpl-");
     }

@@ -3,6 +3,7 @@ package io.nop.idea.plugin.link;
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationAction;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.xml.XmlFile;
+import com.intellij.psi.xml.XmlTag;
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
 
 /**
@@ -29,9 +30,11 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
                                  "/nop/schema/xui/xview.xdef",
                                  "/nop/schema/xui/store.xdef",
                                  "/nop/core/xlib/meta-gen.xlib",
+                                 "/nop/schema/schema/obj-schema.xdef",
                                  "/test/link/a.xmeta",
                                  "/test/link/b.xmeta",
-                                 "/test/link/default.xform");
+                                 "/test/link/default.xform",
+                                 "/test/link/test-filter.xdef");
     }
 
     public void testGetGotoDeclarationTargetsForXmlTag() {
@@ -103,12 +106,25 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
                        """, "/nop/schema/xui/store.xdef");
 
         // 对 xdef-ref 类型属性的跳转
-//        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:ref=\"XDefNode\"",
-//                                                                "meta:ref=\"XDe<caret>fNode\""),
-//               "/nop/schema/xdef.xdef");
-//        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace("xdef:ref="DslNode"",
-//                                                                "xdef:ref="Dsl<caret>Node""),
-//               "/nop/schema/xdef.xdef");
+        // - 在 *.xdef 中引用内部名字
+        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:ref=\"XDefNode\"",
+                                                                "meta:ref=\"XDe<caret>fNode\""), "XDefNode");
+        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace("xdef:ref=\"DslNode\"", "xdef:ref=\"Dsl<caret>Node\""),
+               "DslNode");
+        // - 在 *.xdef 中引用外部文件
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                             x:schema="/nop/schema/xdef.xdef"
+                             xdef:ref="/nop/schema/sch<caret>ema/obj-schema.xdef"
+                       />
+                       """, "/nop/schema/schema/obj-schema.xdef");
+        // - 在 *.xmeta 中引用外部文件中的节点
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef"
+                             x:schema="/nop/schema/xmeta.xdef"
+                             ref="/test/link/test-filter.xdef<caret>#FilterCondition"
+                       />
+                       """, "FilterCondition");
     }
 
     public void testGetGotoDeclarationTargetsForXmlText() {
@@ -128,9 +144,21 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
             PsiElement ref = refs[i];
             String exp = expected[i];
 
+            // 引用文件
             if (ref instanceof XmlFile) {
                 String file = ((XmlFile) ref).getVirtualFile().toString();
                 String actual = file.substring(file.indexOf("/_vfs/") + "/_vfs".length());
+
+                assertEquals(exp, actual);
+            }
+            // 引用节点
+            else if (ref instanceof XmlTag tag) {
+                // Note: xdef.xdef 中的 meta:name 才是节点名
+                String actual = tag.getAttributeValue("meta:name");
+                if (actual == null) {
+                    // 其他 *.xdef 中的节点名为 xdef:name
+                    actual = tag.getAttributeValue("xdef:name");
+                }
 
                 assertEquals(exp, actual);
             }

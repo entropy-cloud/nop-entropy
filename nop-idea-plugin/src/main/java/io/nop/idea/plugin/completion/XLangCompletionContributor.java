@@ -130,7 +130,7 @@ public class XLangCompletionContributor extends CompletionContributor implements
                 String prefix = result.getPrefixMatcher().getPrefix();
                 IXDefNode defNode = tagInfo.getDefNode();
                 if (prefix.startsWith("x:")) {
-                    defNode = tagInfo.getDslNode();
+                    defNode = tagInfo.getXDslDefNode();
                 }
                 if (defNode != null) {
                     for (IXDefAttribute defAttr : defNode.getAttributes().values()) {

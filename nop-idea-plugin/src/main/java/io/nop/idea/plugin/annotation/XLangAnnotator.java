@@ -153,8 +153,8 @@ public class XLangAnnotator implements Annotator {
         IXDefAttribute defAttr = null;
         // 识别系统保留名字空间
         if (attrName.startsWith("x:")) {
-            if (tagInfo.getDslNode() != null) {
-                defAttr = tagInfo.getDslNode().getAttribute(attrName);
+            if (tagInfo.getXDslDefNode() != null) {
+                defAttr = tagInfo.getXDslDefNode().getAttribute(attrName);
                 if (defAttr != null)
                     attrType = defAttr.getType();
             }
