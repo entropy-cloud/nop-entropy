@@ -376,6 +376,8 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
      * this string. Returns this byte string if {@code beginIndex} is 0.
      */
     public ByteString substring(int beginIndex) {
+        if (beginIndex == 0)
+            return this;
         return substring(beginIndex, bytes.length);
     }
 
@@ -497,7 +499,7 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
                 return substring(i);
             }
         }
-        return this;
+        return EMPTY;
     }
 
     public ByteString trimRight(byte paddingChar) {
@@ -509,7 +511,7 @@ public final class ByteString implements Serializable, Comparable<ByteString>, I
                 return substring(0, i + 1);
             }
         }
-        return this;
+        return EMPTY;
     }
 
     public int lastIndexOf(ByteString other) {

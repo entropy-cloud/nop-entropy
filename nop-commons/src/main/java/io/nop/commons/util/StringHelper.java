@@ -4013,45 +4013,67 @@ public class StringHelper extends ApiStringHelper {
         return sb.toString();
     }
 
+    /**
+     * 去除字符串左侧的所有空白字符（符合Unicode标准的空白，如空格、制表符、换行符等）
+     *
+     * @param str 待处理的字符串（可为null或空字符串）
+     * @return 去除左侧空白后的字符串；若输入为null则返回null，输入为空则返回空字符串
+     */
     @Deterministic
     public static String trimLeft(String str) {
-        if (str == null || str.isEmpty())
+        if (str == null || str.isEmpty()) {
             return str;
-
-        for (int i = 0, n = str.length(); i < n; i++) {
-            if (!isWhitespace(str.charAt(i))) {
+        }
+        int length = str.length();
+        for (int i = 0; i < length; i++) {
+            if (!Character.isWhitespace(str.charAt(i))) {
                 return str.substring(i);
             }
         }
-        return str;
+        return "";
     }
 
+    /**
+     * 去除字符串左侧的所有指定字符（如补白的0或空格）
+     *
+     * @param str         待处理的字符串（可为null或空字符串）
+     * @param paddingChar 要去除的目标字符（不会修改原参数）
+     * @return 去除左侧指定字符后的字符串；若输入为null则返回null，输入为空则返回空字符串
+     */
     @Deterministic
-    public static String trimLeft(String str, char paddingChar) {
-        if (str == null || str.isEmpty())
+    public static String trimLeft(String str, final char paddingChar) {
+        if (str == null || str.isEmpty()) {
             return str;
-
-        for (int i = 0, n = str.length(); i < n; i++) {
+        }
+        int length = str.length();
+        for (int i = 0; i < length; i++) {
             if (str.charAt(i) != paddingChar) {
                 return str.substring(i);
             }
         }
-        return str;
+        return "";
     }
 
+    /**
+     * 去除字符串右侧的所有指定字符（如补白的0或空格）
+     *
+     * @param str         待处理的字符串（可为null或空字符串）
+     * @param paddingChar 要去除的目标字符（不会修改原参数）
+     * @return 去除右侧指定字符后的字符串；若输入为null则返回null，输入为空则返回空字符串
+     */
     @Deterministic
-    public static String trimRight(String str, char paddingChar) {
-        if (str == null || str.isEmpty())
+    public static String trimRight(String str, final char paddingChar) {
+        if (str == null || str.isEmpty()) {
             return str;
-
-        for (int i = str.length() - 1; i >= 0; i--) {
+        }
+        int length = str.length();
+        for (int i = length - 1; i >= 0; i--) {
             if (str.charAt(i) != paddingChar) {
                 return str.substring(0, i + 1);
             }
         }
-        return str;
+        return "";
     }
-
 
     @Deterministic
     public static boolean isGraphQLNameStart(int c) {
