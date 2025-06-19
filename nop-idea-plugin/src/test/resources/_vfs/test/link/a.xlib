@@ -1,3 +1,6 @@
 <lib xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xlib.xdef">
-    <tags/>
+    <tags>
+        <Get/>
+        <NewGet x:prototype="Get"/>
+    </tags>
 </lib>

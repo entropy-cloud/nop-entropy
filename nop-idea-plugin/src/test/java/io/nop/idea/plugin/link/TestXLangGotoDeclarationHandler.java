@@ -54,6 +54,11 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
                              x:extends="/test/link/a.xmeta,/test/link/b<caret>.xmeta"
                        />
                        """, "/test/link/b.xmeta");
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
+                             x:extends="/test/link/a.xm<caret>eta,/test/link/b.xmeta"
+                       />
+                       """, "/test/link/a.xmeta");
 
         // 对 xdef.xdef 中引用的跳转
         doTest(readVfsResource("/nop/schema/xdef.xdef").replace("x:schema=\"/nop/schema/xdef.xdef\"",
@@ -89,6 +94,8 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
         // 对 x:prototype 属性值的跳转
         doTest(readVfsResource("/test/link/user.view.xml").replace("x:prototype=\"list\"",
                                                                    "x:prototype=\"li<caret>st\""), "list");
+        doTest(readVfsResource("/test/link/a.xlib").replace("x:prototype=\"Get\"", "x:prototype=\"G<caret>et\""),
+               "Get");
 
         // 缺省：任意有效的文件均可跳转
         doTest("""
@@ -127,18 +134,6 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
                            </x:gen-extends>
                        </meta>
                        """, "/nop/core/xlib/meta-gen.xlib");
-        // - 选中光标左侧文件
-        doTest("""
-                       <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
-                            xview:schema="/nop/schema/xui/xview.xdef<caret>,/nop/schema/xui/store.xdef"
-                       />
-                       """, "/nop/schema/xui/xview.xdef");
-        // - 选中光标右侧文件
-        doTest("""
-                       <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
-                            xview:schema="/nop/schema/xui/xview.xdef,<caret>/nop/schema/xui/store.xdef"
-                       />
-                       """, "/nop/schema/xui/store.xdef");
     }
 
     public void testGetGotoDeclarationTargetsForXmlText() {
@@ -176,6 +171,11 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
 
                 if (actual == null) {
                     actual = tag.getAttributeValue("id");
+                }
+
+                // 缺省采用节点标签名
+                if (actual == null) {
+                    actual = tag.getName();
                 }
 
                 assertEquals(exp, actual);

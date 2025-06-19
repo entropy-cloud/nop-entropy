@@ -23,7 +23,6 @@ import com.intellij.psi.xml.XmlElement;
 import com.intellij.psi.xml.XmlElementType;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.psi.xml.XmlTokenType;
-import io.nop.api.core.ApiConstants;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.ResourceHelper;
@@ -260,8 +259,8 @@ public class XmlPsiHelper {
                 continue;
             }
 
-            if (ApiConstants.TREE_BEAN_PROP_TYPE.equals(attrName)) {
-                if (child.getName().equals(attrName)) {
+            if (attrName == null) {
+                if (child.getName().equals(attrValue)) {
                     return child;
                 }
             } else if (attrValue.equals(child.getAttributeValue(attrName))) {
