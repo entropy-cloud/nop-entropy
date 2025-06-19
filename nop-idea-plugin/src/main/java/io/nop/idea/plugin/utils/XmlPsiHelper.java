@@ -23,6 +23,7 @@ import com.intellij.psi.xml.XmlElement;
 import com.intellij.psi.xml.XmlElementType;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.psi.xml.XmlTokenType;
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.ResourceHelper;
@@ -246,6 +247,28 @@ public class XmlPsiHelper {
             }
         }
         return tagNames;
+    }
+
+    /**
+     * 根据属性值获取匹配的子节点，在 <code>attrName</code> 为 <code>$type</code> 时，匹配节点的标签名
+     * <p/>
+     * 其逻辑等价于 {@link io.nop.core.lang.xml.XNode#childByAttr}
+     */
+    public static XmlTag getChildTagByAttr(XmlTag tag, String attrName, String attrValue) {
+        for (PsiElement element : tag.getChildren()) {
+            if (!(element instanceof XmlTag child)) {
+                continue;
+            }
+
+            if (ApiConstants.TREE_BEAN_PROP_TYPE.equals(attrName)) {
+                if (child.getName().equals(attrName)) {
+                    return child;
+                }
+            } else if (attrValue.equals(child.getAttributeValue(attrName))) {
+                return child;
+            }
+        }
+        return null;
     }
 
     public static XmlTag getXmlTag(PsiElement element) {

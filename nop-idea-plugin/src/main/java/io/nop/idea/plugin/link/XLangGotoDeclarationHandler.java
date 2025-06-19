@@ -24,13 +24,14 @@ import io.nop.commons.util.StringHelper;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.utils.XmlTagInfo;
+import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /***
- * 点击ctrl能够链接到lib文件
+ * 点击 + Ctrl 能够跳转到引用元素
  */
 public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
 
@@ -60,7 +61,7 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
         return null;
     }
 
-    /** 获取可从 xml 标签上跳转的元素（文件路径、节点引用等） */
+    /** 获取可从 xml 标签上跳转的元素（文件路径、节点引用、xpl 函数等） */
     private PsiElement[] getGotoDeclarationTargetsForXmlTag(Project project, PsiElement element) {
         XmlTag tag = (XmlTag) element;
         String tagName = tag.getName();
@@ -93,32 +94,33 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
             attrDefType = tagInfo.getAttrType(attrName);
         }
 
-        if (attrDefType == null) {
-            // 未定义类型属性，直接针对 *.xdef 文件做跳转
-            if (attrValue.endsWith(".xdef")) {
-                return getPsiFilesFromPathCsv(project, attr.getContainingFile(), cursorOffset);
+        PsiFile file = attr.getContainingFile();
+        if (attrDefType != null) {
+            String xdslNs = XDefPsiHelper.getXDslNamespace(tagInfo.getTag());
+            String stdDomain = attrDefType.getStdDomain();
+
+            if (XDefConstants.STD_DOMAIN_V_PATH.equals(stdDomain)) {
+                return getGotoDeclarationTargetsByPath(project, attr, attrValue);
+            } //
+            else if (XDefConstants.STD_DOMAIN_V_PATH_LIST.equals(stdDomain)) {
+                return getGotoDeclarationTargetsFromPathCsv(project, file, cursorOffset);
+            } //
+            else if (XDefConstants.STD_DOMAIN_XDEF_REF.equals(stdDomain)) {
+                return getGotoDeclarationTargetsFromXDefRef(project, attr, attrValue);
+            } //
+            else if ((xdslNs + ":prototype").equals(attrName)) {
+                return getGotoDeclarationTargetsFromPrototype(project, tagInfo, attrValue);
             }
-            return null;
         }
 
-        String stdDomain = attrDefType.getStdDomain();
-        if (XDefConstants.STD_DOMAIN_V_PATH.equals(stdDomain)) {
-            return getPsiFilesByPath(project, attr, attrValue);
-        } //
-        else if (XDefConstants.STD_DOMAIN_V_PATH_LIST.equals(stdDomain)) {
-            return getPsiFilesFromPathCsv(project, attr.getContainingFile(), cursorOffset);
-        } //
-        else if (XDefConstants.STD_DOMAIN_XDEF_REF.equals(stdDomain)) {
-            return getPsiFilesByXDefRef(project, tagInfo, attrValue);
-        }
-
+        // 其他有效文件均可跳转
         // <c:import from="/nop/web/xlib/web.xlib" />
         // <c:include src="dingflow-gen/impl_GenComponents.xpl" />
-
-        // XDefConstants.STD_DOMAIN_METHOD_REF
-        // XDefConstants.STD_DOMAIN_NAME_OR_V_PATH
-
-        return null;
+        // <dialog page="/nop/rule/pages/RuleService/executeRule.page.yaml" />
+        if (attrValue.indexOf(',') > 0) {
+            return getGotoDeclarationTargetsFromPathCsv(project, file, cursorOffset);
+        }
+        return getGotoDeclarationTargetsByPath(project, attr, attrValue);
     }
 
     /** 获取可从 xml 文本中跳转的元素（文件路径、节点引用等） */
@@ -139,8 +141,8 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
         return null;
     }
 
-    /** 获取指定路径下的文件 */
-    private PsiElement[] getPsiFilesByPath(Project project, @NotNull XmlElement element, String path) {
+    /** 获取指定路径的跳转元素（文件） */
+    private PsiElement[] getGotoDeclarationTargetsByPath(Project project, @NotNull XmlElement element, String path) {
         if (!StringHelper.isValidFilePath(path)) {
             return null;
         }
@@ -150,8 +152,10 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
         return XmlPsiHelper.findPsiFile(project, path);
     }
 
-    /** 从 csv 文本中取光标处的文件 */
-    private PsiElement[] getPsiFilesFromPathCsv(Project project, @NotNull PsiFile file, int cursorOffset) {
+    /** 从 csv 文本中取光标处的跳转元素（文件） */
+    private PsiElement[] getGotoDeclarationTargetsFromPathCsv(
+            Project project, @NotNull PsiFile file, int cursorOffset
+    ) {
         PsiElement element = file.findElementAt(cursorOffset);
         assert element != null;
 
@@ -165,7 +169,75 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
 
         String path = extractPathFromCsv(element.getText(), cursorOffset - elementStart);
 
-        return getPsiFilesByPath(project, (XmlElement) element, path);
+        return getGotoDeclarationTargetsByPath(project, (XmlElement) element, path);
+    }
+
+    /** 从 <code>xdef-ref</code> 类型的属性值中获得跳转元素（文件或节点） */
+    private PsiElement[] getGotoDeclarationTargetsFromXDefRef(
+            Project project, @NotNull XmlElement element, String attrValue
+    ) {
+        // - /nop/schema/xdef.xdef:
+        //   - `<schema xdef:ref="schema-node.xdef" />`
+        //   - `<item xdef:ref="ISchema" />`
+        // - /nop/schema/schema/schema-node.xdef:
+        //   `<schema ref="/test/test-filter.xdef#FilterCondition" />`
+        String target;
+        PsiElement[] psiFiles;
+
+        if (attrValue.indexOf(".") > 0) {
+            int hashIndex = attrValue.indexOf('#');
+            String path = hashIndex > 0 ? attrValue.substring(0, hashIndex) : attrValue;
+
+            target = hashIndex > 0 ? attrValue.substring(hashIndex + 1) : null;
+            psiFiles = getGotoDeclarationTargetsByPath(project, element, path);
+        } else {
+            target = attrValue;
+            // Note: 只能引用当前文件内的名字
+            psiFiles = new PsiElement[] { element.getContainingFile() };
+        }
+
+        if (psiFiles == null || StringHelper.isEmpty(target)) {
+            return psiFiles;
+        }
+
+        List<PsiElement> result = new ArrayList<>();
+        for (PsiElement psiFile : psiFiles) {
+            PsiTreeUtil.processElements(psiFile, el -> {
+                if (el instanceof XmlTag tag) {
+                    // Note: xdef-ref 引用的只能是 xdef:name 命名的节点
+                    if (target.equals(tag.getAttributeValue("xdef:name")) //
+                        || target.equals(tag.getAttributeValue("meta:name")) //
+                    ) {
+                        result.add(tag);
+                    }
+                }
+                return true; // 继续遍历
+            });
+        }
+
+        return result.isEmpty() ? psiFiles : result.toArray(new PsiElement[0]);
+    }
+
+    /** 从 <code>x:prototype</code> 的属性值中获得跳转元素（节点） */
+    private PsiElement[] getGotoDeclarationTargetsFromPrototype(
+            Project project, XmlTagInfo tagInfo, String attrValue
+    ) {
+        // 仅从父节点中取引用到的子节点
+        // io.nop.xlang.delta.DeltaMerger#mergePrototype
+        IXDefNode defNode = tagInfo.getDefNode();
+        IXDefNode parentDefNode = tagInfo.getParentDefNode();
+
+        String keyAttr = parentDefNode.getXdefKeyAttr();
+        if (keyAttr == null) {
+            keyAttr = defNode.getXdefUniqueAttr();
+        }
+
+        XmlTag parentTag = tagInfo.getTag().getParentTag();
+        assert parentTag != null;
+
+        XmlTag protoTag = XmlPsiHelper.getChildTagByAttr(parentTag, keyAttr, attrValue);
+
+        return protoTag != null ? new PsiElement[] { protoTag } : null;
     }
 
     /** 从 csv 中提取指定偏移位置所在的文件路径 */
@@ -191,50 +263,6 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
         }
 
         return csv.substring(start, end);
-    }
-
-    private PsiElement[] getPsiFilesByXDefRef(Project project, XmlTagInfo tagInfo, String attrValue) {
-        // - /nop/schema/xdef.xdef:
-        //   - `<schema xdef:ref="schema-node.xdef" />`
-        //   - `<item xdef:ref="ISchema" />`
-        // - /nop/schema/schema/schema-node.xdef:
-        //   `<schema ref="/test/test-filter.xdef#FilterCondition" />`，`FilterCondition` 为节点的唯一属性值
-        String target;
-        PsiElement[] psiFiles;
-
-        if (attrValue.indexOf(".") > 0) {
-            int hashIndex = attrValue.indexOf('#');
-            String path = hashIndex > 0 ? attrValue.substring(0, hashIndex) : attrValue;
-
-            target = hashIndex > 0 ? attrValue.substring(hashIndex + 1) : null;
-            psiFiles = getPsiFilesByPath(project, tagInfo.getTag(), path);
-        } else {
-            target = attrValue;
-            // Note: 只能引用当前文件内的名字
-            psiFiles = new PsiElement[] { tagInfo.getTag().getContainingFile() };
-        }
-
-        if (psiFiles == null || StringHelper.isEmpty(target)) {
-            return psiFiles;
-        }
-
-        List<PsiElement> result = new ArrayList<>();
-        for (PsiElement psiFile : psiFiles) {
-            PsiTreeUtil.processElements(psiFile, element -> {
-                if (element instanceof XmlTag tag) {
-                    if (target.equals(tag.getAttributeValue("xdef:name")) //
-                        || target.equals(tag.getAttributeValue("meta:name")) //
-                        || target.equals(tag.getAttributeValue("name")) //
-                        || target.equals(tag.getAttributeValue("id")) //
-                    ) {
-                        result.add(tag);
-                    }
-                }
-                return true; // 继续遍历
-            });
-        }
-
-        return result.isEmpty() ? psiFiles : result.toArray(new PsiElement[0]);
     }
 
     private boolean isCustomTag(String tagName) {

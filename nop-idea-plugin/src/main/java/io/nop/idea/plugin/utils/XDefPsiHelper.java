@@ -58,22 +58,28 @@ public class XDefPsiHelper {
         return xplDef;
     }
 
-    public static String getSchemaPath(XmlTag tag) {
-        PsiFile file = tag.getContainingFile();
+    public static String getXDslNamespace(XmlTag tag) {
+        XmlTag rootTag = XmlPsiHelper.getRoot(tag);
+        String ns = XmlPsiHelper.getXmlnsForUrl(rootTag, XDslConstants.XDSL_SCHEMA_XDSL);
+
+        if (ns == null) {
+            String prefix = XDslKeys.DEFAULT.X_NS_PREFIX;
+            ns = prefix.substring(0, prefix.length() - 1);
+        }
+        return ns;
+    }
+
+    public static String getSchemaPath(XmlTag rootTag) {
+        PsiFile file = rootTag.getContainingFile();
         String fileExt = StringHelper.fileExt(file.getName());
         if ("xpl".equals(fileExt) || "xrun".equals(fileExt) || "xgen".equals(fileExt)) {
             return XDslConstants.XDSL_SCHEMA_XPL;
         }
 
-        String ns = XmlPsiHelper.getXmlnsForUrl(tag, XDslConstants.XDSL_SCHEMA_XDSL);
-        String key;
-        if (ns == null) {
-            key = XDslKeys.DEFAULT.SCHEMA;
-        } else {
-            key = ns + ":schema";
-        }
+        String ns = getXDslNamespace(rootTag);
+        String key = ns + ":schema";
 
-        return tag.getAttributeValue(key);
+        return rootTag.getAttributeValue(key);
     }
 
     public static IXDefinition loadSchema(String schemaUrl) {
