@@ -42,77 +42,55 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
     }
 
     public void testGetGotoDeclarationTargetsForXmlAttributeValue() {
-//        // 根据在 schema 中定义的属性类型决定跳转
-//        // - x:schema=v-path
-//        doTest("""
-//                       <meta xmlns:x="/nop/schema/xdsl.xdef"
-//                             x:schema="/nop/schema/x<caret>meta.xdef"
-//                       />
-//                       """, "/nop/schema/xmeta.xdef");
-//        // - x:extends=v-path-list
-//        doTest("""
-//                       <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
-//                             x:extends="/test/link/a<caret>.xmeta"
-//                       />
-//                       """, "/test/link/a.xmeta");
-//        doTest("""
-//                       <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
-//                             x:extends="/test/link/a.xmeta,/test/link/b<caret>.xmeta"
-//                       />
-//                       """, "/test/link/b.xmeta");
-//        // - xdef:default-extends=v-path
-//        doTest("""
-//                       <form xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef"
-//                             xdef:default-extends="/test/link/de<caret>fault.xform"
-//                       />
-//                       """, "/test/link/default.xform");
-//        // - xpl:lib=v-path
-//        doTest("""
-//                       <meta xmlns:x="/nop/schema/xdsl.xdef"
-//                             x:schema="/nop/schema/xmeta.xdef"
-//                       >
-//                           <x:gen-extends>
-//                               <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/<caret>xlib/meta-gen.xlib"/>
-//                           </x:gen-extends>
-//                       </meta>
-//                       """, "/nop/core/xlib/meta-gen.xlib");
-//
-//        // 对 xdef.xdef 中引用的跳转
-//        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("x:schema=\"/nop/schema/xdef.xdef\"",
-//                                                                "x:schema=\"/nop/sche<caret>ma/xdef.xdef\""),
-//               "/nop/schema/xdef.xdef");
-//
-//        // 对 xdsl.xdef 中引用的跳转
-//        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace("xdsl:schema=\"/nop/schema/xdef.xdef\"",
-//                                                                "xdsl:schema=\"/nop/sche<caret>ma/xdef.xdef\""),
-//               "/nop/schema/xdef.xdef");
-//
-//        // 对 xdef-ref 类型属性的跳转
-//        // - 在 *.xdef 中引用内部名字
-//        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:ref=\"XDefNode\"",
-//                                                                "meta:ref=\"XDe<caret>fNode\""), "XDefNode");
-//        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace("xdef:ref=\"DslNode\"", "xdef:ref=\"Dsl<caret>Node\""),
-//               "DslNode");
-//        // - 在 *.xdef 中引用外部文件
-//        doTest("""
-//                       <meta xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
-//                             x:schema="/nop/schema/xdef.xdef"
-//                             xdef:ref="/nop/schema/sch<caret>ema/obj-schema.xdef"
-//                       />
-//                       """, "/nop/schema/schema/obj-schema.xdef");
-//        // - 在 *.xmeta 中引用外部文件中的节点
-//        doTest("""
-//                       <meta xmlns:x="/nop/schema/xdsl.xdef"
-//                             x:schema="/nop/schema/xmeta.xdef"
-//                             ref="/test/link/test-filter.xdef<caret>#FilterCondition"
-//                       />
-//                       """, "FilterCondition");
-//
-//        // 对 x:prototype 属性值的跳转
-//        doTest(readVfsResource("/test/link/user.view.xml").replace("x:prototype=\"list\"",
-//                                                                   "x:prototype=\"li<caret>st\""), "list");
+        // 根据在 schema 中定义的属性类型决定跳转
+        // - x:extends=v-path-list
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
+                             x:extends="/test/link/a<caret>.xmeta"
+                       />
+                       """, "/test/link/a.xmeta");
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
+                             x:extends="/test/link/a.xmeta,/test/link/b<caret>.xmeta"
+                       />
+                       """, "/test/link/b.xmeta");
 
-        // 任意有效的文件均可跳转
+        // 对 xdef.xdef 中引用的跳转
+        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("x:schema=\"/nop/schema/xdef.xdef\"",
+                                                                "x:schema=\"/nop/sche<caret>ma/xdef.xdef\""),
+               "/nop/schema/xdef.xdef");
+
+        // 对 xdsl.xdef 中引用的跳转
+        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace("xdsl:schema=\"/nop/schema/xdef.xdef\"",
+                                                                "xdsl:schema=\"/nop/sche<caret>ma/xdef.xdef\""),
+               "/nop/schema/xdef.xdef");
+
+        // 对 xdef-ref 类型属性的跳转
+        // - 在 *.xdef 中引用内部名字
+        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:ref=\"XDefNode\"",
+                                                                "meta:ref=\"XDe<caret>fNode\""), "XDefNode");
+        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace("xdef:ref=\"DslNode\"", "xdef:ref=\"Dsl<caret>Node\""),
+               "DslNode");
+        // - 在 *.xdef 中引用外部文件
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                             x:schema="/nop/schema/xdef.xdef"
+                             xdef:ref="/nop/schema/sch<caret>ema/obj-schema.xdef"
+                       />
+                       """, "/nop/schema/schema/obj-schema.xdef");
+        // - 在 *.xmeta 中引用外部文件中的节点
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef"
+                             x:schema="/nop/schema/xmeta.xdef"
+                             ref="/test/link/test-filter.xdef<caret>#FilterCondition"
+                       />
+                       """, "FilterCondition");
+
+        // 对 x:prototype 属性值的跳转
+        doTest(readVfsResource("/test/link/user.view.xml").replace("x:prototype=\"list\"",
+                                                                   "x:prototype=\"li<caret>st\""), "list");
+
+        // 缺省：任意有效的文件均可跳转
         doTest("""
                        <meta xmlns:x="/nop/sch<caret>ema/xdsl.xdef"
                              x:schema="/nop/schema/xmeta.xdef"
@@ -127,6 +105,28 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
         doTest("""
                        <dialog page="/test/link/de<caret>fault.xform" />
                        """, "/test/link/default.xform");
+        // - x:schema=v-path
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef"
+                             x:schema="/nop/schema/x<caret>meta.xdef"
+                       />
+                       """, "/nop/schema/xmeta.xdef");
+        // - xdef:default-extends=v-path
+        doTest("""
+                       <form xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef"
+                             xdef:default-extends="/test/link/de<caret>fault.xform"
+                       />
+                       """, "/test/link/default.xform");
+        // - xpl:lib=v-path
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef"
+                             x:schema="/nop/schema/xmeta.xdef"
+                       >
+                           <x:gen-extends>
+                               <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/<caret>xlib/meta-gen.xlib"/>
+                           </x:gen-extends>
+                       </meta>
+                       """, "/nop/core/xlib/meta-gen.xlib");
         // - 选中光标左侧文件
         doTest("""
                        <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"

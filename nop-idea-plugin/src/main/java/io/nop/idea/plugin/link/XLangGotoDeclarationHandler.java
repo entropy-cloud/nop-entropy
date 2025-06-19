@@ -21,6 +21,7 @@ import com.intellij.psi.xml.XmlElement;
 import com.intellij.psi.xml.XmlElementType;
 import com.intellij.psi.xml.XmlTag;
 import io.nop.commons.util.StringHelper;
+import io.nop.idea.plugin.resource.ProjectEnv;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.utils.XmlTagInfo;
@@ -46,19 +47,22 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
             @Nullable PsiElement sourceElement, int offset, Editor editor
     ) {
         Project project = editor.getProject();
-        PsiElement element = sourceElement != null ? sourceElement.getParent() : null;
 
-        if (XmlPsiHelper.isElementType(element, XmlElementType.XML_TAG)) {
-            return getGotoDeclarationTargetsForXmlTag(project, element);
-        } //
-        else if (XmlPsiHelper.isElementType(element, XmlElementType.XML_ATTRIBUTE_VALUE)) {
-            return getGotoDeclarationTargetsForXmlAttributeValue(project, element, offset);
-        } //
-        else if (XmlPsiHelper.isElementType(element, XmlElementType.XML_TEXT)) {
-            return getGotoDeclarationTargetsForXmlText(project, element);
-        }
+        return ProjectEnv.withProject(project, () -> {
+            PsiElement element = sourceElement != null ? sourceElement.getParent() : null;
 
-        return null;
+            if (XmlPsiHelper.isElementType(element, XmlElementType.XML_TAG)) {
+                return getGotoDeclarationTargetsForXmlTag(project, element);
+            } //
+            else if (XmlPsiHelper.isElementType(element, XmlElementType.XML_ATTRIBUTE_VALUE)) {
+                return getGotoDeclarationTargetsForXmlAttributeValue(project, element, offset);
+            } //
+            else if (XmlPsiHelper.isElementType(element, XmlElementType.XML_TEXT)) {
+                return getGotoDeclarationTargetsForXmlText(project, element);
+            }
+
+            return null;
+        });
     }
 
     /** 获取可从 xml 标签上跳转的元素（文件路径、节点引用、xpl 函数等） */
@@ -99,10 +103,13 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
             String xdslNs = XDefPsiHelper.getXDslNamespace(tagInfo.getTag());
             String stdDomain = attrDefType.getStdDomain();
 
-            if (XDefConstants.STD_DOMAIN_V_PATH.equals(stdDomain)) {
-                return getGotoDeclarationTargetsByPath(project, attr, attrValue);
-            } //
-            else if (XDefConstants.STD_DOMAIN_V_PATH_LIST.equals(stdDomain)) {
+            // 对自身的类型声明不做处理
+            if (stdDomain.equals(attrValue)) {
+                return null;
+            }
+
+            // Note: v-path 类型采用缺省处理
+            if (XDefConstants.STD_DOMAIN_V_PATH_LIST.equals(stdDomain)) {
                 return getGotoDeclarationTargetsFromPathCsv(project, file, cursorOffset);
             } //
             else if (XDefConstants.STD_DOMAIN_XDEF_REF.equals(stdDomain)) {
@@ -113,13 +120,10 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
             }
         }
 
-        // 其他有效文件均可跳转
+        // 缺省：有效文件均可跳转
         // <c:import from="/nop/web/xlib/web.xlib" />
         // <c:include src="dingflow-gen/impl_GenComponents.xpl" />
         // <dialog page="/nop/rule/pages/RuleService/executeRule.page.yaml" />
-        if (attrValue.indexOf(',') > 0) {
-            return getGotoDeclarationTargetsFromPathCsv(project, file, cursorOffset);
-        }
         return getGotoDeclarationTargetsByPath(project, attr, attrValue);
     }
 
@@ -184,13 +188,16 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
         String target;
         PsiElement[] psiFiles;
 
+        // 含有后缀的，视为文件引用
         if (attrValue.indexOf(".") > 0) {
             int hashIndex = attrValue.indexOf('#');
             String path = hashIndex > 0 ? attrValue.substring(0, hashIndex) : attrValue;
 
             target = hashIndex > 0 ? attrValue.substring(hashIndex + 1) : null;
             psiFiles = getGotoDeclarationTargetsByPath(project, element, path);
-        } else {
+        }
+        // 否则，视为名字引用
+        else {
             target = attrValue;
             // Note: 只能引用当前文件内的名字
             psiFiles = new PsiElement[] { element.getContainingFile() };
