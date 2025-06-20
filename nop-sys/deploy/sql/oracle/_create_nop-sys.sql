@@ -241,6 +241,18 @@ CREATE TABLE nop_sys_change_log(
   constraint PK_nop_sys_change_log primary key (SID)
 );
 
+CREATE TABLE nop_sys_tag(
+  SID NUMBER(20) NOT NULL ,
+  NAME VARCHAR2(100) NOT NULL ,
+  DESCRIPTION VARCHAR2(500)  ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  constraint PK_nop_sys_tag primary key (SID)
+);
+
 CREATE TABLE nop_sys_dict_option(
   SID VARCHAR2(32) NOT NULL ,
   DICT_ID VARCHAR2(32) NOT NULL ,
@@ -258,6 +270,18 @@ CREATE TABLE nop_sys_dict_option(
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
   constraint PK_nop_sys_dict_option primary key (SID)
+);
+
+CREATE TABLE nop_sys_obj_tag(
+  BIZ_OBJ_ID VARCHAR2(50) NOT NULL ,
+  BIZ_OBJ_NAME VARCHAR2(100) NOT NULL ,
+  TAG_ID NUMBER(20) NOT NULL ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  constraint PK_nop_sys_obj_tag primary key (BIZ_OBJ_ID,BIZ_OBJ_NAME,TAG_ID)
 );
 
 
@@ -661,6 +685,24 @@ CREATE TABLE nop_sys_dict_option(
                     
       COMMENT ON COLUMN nop_sys_change_log.APPROVER_ID IS '审核人';
                     
+      COMMENT ON TABLE nop_sys_tag IS '标签';
+                
+      COMMENT ON COLUMN nop_sys_tag.SID IS '主键';
+                    
+      COMMENT ON COLUMN nop_sys_tag.NAME IS '名称';
+                    
+      COMMENT ON COLUMN nop_sys_tag.DESCRIPTION IS '描述';
+                    
+      COMMENT ON COLUMN nop_sys_tag.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_sys_tag.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_sys_tag.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_sys_tag.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_sys_tag.UPDATE_TIME IS '修改时间';
+                    
       COMMENT ON TABLE nop_sys_dict_option IS '字典明细';
                 
       COMMENT ON COLUMN nop_sys_dict_option.SID IS '主键';
@@ -692,4 +734,22 @@ CREATE TABLE nop_sys_dict_option(
       COMMENT ON COLUMN nop_sys_dict_option.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_sys_dict_option.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_sys_obj_tag IS '对象标签';
+                
+      COMMENT ON COLUMN nop_sys_obj_tag.BIZ_OBJ_ID IS '对象ID';
+                    
+      COMMENT ON COLUMN nop_sys_obj_tag.BIZ_OBJ_NAME IS '对象名';
+                    
+      COMMENT ON COLUMN nop_sys_obj_tag.TAG_ID IS '标签ID';
+                    
+      COMMENT ON COLUMN nop_sys_obj_tag.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_sys_obj_tag.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_sys_obj_tag.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_sys_obj_tag.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_sys_obj_tag.UPDATE_TIME IS '修改时间';
                     

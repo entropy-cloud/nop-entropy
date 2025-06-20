@@ -13,5 +13,7 @@ drop table nop_sys_cluster_leader;
 drop table nop_sys_event;
 drop table nop_sys_service_instance;
 drop table nop_sys_change_log;
+drop table nop_sys_tag;
 drop table nop_sys_dict_option;
+drop table nop_sys_obj_tag;
 

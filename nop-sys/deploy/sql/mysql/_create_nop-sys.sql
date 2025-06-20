@@ -241,6 +241,18 @@ CREATE TABLE nop_sys_change_log(
   constraint PK_nop_sys_change_log primary key (SID)
 );
 
+CREATE TABLE nop_sys_tag(
+  SID BIGINT NOT NULL    COMMENT '主键',
+  NAME VARCHAR(100) NOT NULL    COMMENT '名称',
+  DESCRIPTION VARCHAR(500) NULL    COMMENT '描述',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  constraint PK_nop_sys_tag primary key (SID)
+);
+
 CREATE TABLE nop_sys_dict_option(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
   DICT_ID VARCHAR(32) NOT NULL    COMMENT '字典ID',
@@ -258,6 +270,18 @@ CREATE TABLE nop_sys_dict_option(
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   constraint PK_nop_sys_dict_option primary key (SID)
+);
+
+CREATE TABLE nop_sys_obj_tag(
+  BIZ_OBJ_ID VARCHAR(50) NOT NULL    COMMENT '对象ID',
+  BIZ_OBJ_NAME VARCHAR(100) NOT NULL    COMMENT '对象名',
+  TAG_ID BIGINT NOT NULL    COMMENT '标签ID',
+  VERSION INTEGER NOT NULL    COMMENT '数据版本',
+  CREATED_BY VARCHAR(50) NOT NULL    COMMENT '创建人',
+  CREATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '创建时间',
+  UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
+  UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
+  constraint PK_nop_sys_obj_tag primary key (BIZ_OBJ_ID,BIZ_OBJ_NAME,TAG_ID)
 );
 
 
@@ -289,5 +313,9 @@ CREATE TABLE nop_sys_dict_option(
                 
    ALTER TABLE nop_sys_change_log COMMENT '变更跟踪日志';
                 
+   ALTER TABLE nop_sys_tag COMMENT '标签';
+                
    ALTER TABLE nop_sys_dict_option COMMENT '字典明细';
+                
+   ALTER TABLE nop_sys_obj_tag COMMENT '对象标签';
                 
