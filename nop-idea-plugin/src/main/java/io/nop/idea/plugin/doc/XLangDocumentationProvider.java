@@ -27,6 +27,7 @@ import io.nop.idea.plugin.utils.XmlTagInfo;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefComment;
 import io.nop.xlang.xdef.IXDefNode;
+import io.nop.xlang.xdef.IXDefSubComment;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import jakarta.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
@@ -78,23 +79,26 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
             return null;
         }
 
-        if (parent instanceof XmlTag) {
+        if (parent instanceof XmlTag tag) {
             DocInfo doc = new DocInfo(tagInfo.getDefNode());
+            doc.setMainTitle(tag.getName());
 
-            IXDefComment comment = tagInfo.getDefNode().getComment();
+            IXDefComment comment = tagInfo.getComment();
             if (comment != null) {
-                doc.setTitle(comment.getMainDisplayName());
+                doc.setSubTitle(comment.getMainDisplayName());
                 doc.setDesc(comment.getMainDescription());
             }
             return doc.toString();
         } else if (parent instanceof XmlAttribute attr) {
             String attrName = attr.getName();
-            DocInfo doc = new DocInfo(tagInfo.getDefNode().getAttribute(attrName));
 
-            IXDefComment comment = tagInfo.getDefNode().getComment();
+            DocInfo doc = new DocInfo(tagInfo.getAttr(attrName));
+            doc.setMainTitle(attrName);
+
+            IXDefSubComment comment = tagInfo.getAttrComment(attrName);
             if (comment != null) {
-                doc.setTitle(comment.getSubDisplayName(attrName));
-                doc.setDesc(comment.getSubDescription(attrName));
+                doc.setSubTitle(comment.getDisplayName());
+                doc.setDesc(comment.getDescription());
             }
             return doc.toString();
         }
@@ -109,25 +113,25 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
             return null;
         }
 
+        String attrName = attr.getName();
         XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(attr);
-        if (tagInfo == null || tagInfo.getDefNode() == null) {
+        XDefTypeDecl attrDefType = tagInfo != null ? tagInfo.getAttrType(attrName) : null;
+        // TODO 显示类型定义文档
+        if (attrDefType == null || attrDefType.getOptions() == null) {
             return null;
         }
 
-        XDefTypeDecl defType = tagInfo.getDefNode().getAttrType(attr.getName());
-        if (defType == null || defType.getOptions() == null) {
-            return null;
-        }
-
-        DictBean dictBean = DictProvider.instance().getDict(null, defType.getOptions(), null, null);
+        DictBean dictBean = DictProvider.instance().getDict(null, attrDefType.getOptions(), null, null);
         DictOptionBean option = dictBean != null ? dictBean.getOptionByValue(attr.getValue()) : null;
         if (option == null) {
             return null;
         }
 
         DocInfo doc = new DocInfo();
+        doc.setMainTitle(option.getValue().toString());
+
         if (!Objects.equals(option.getLabel(), option.getValue())) {
-            doc.setTitle(option.getLabel());
+            doc.setSubTitle(option.getLabel());
         }
         doc.setDesc(option.getDescription());
 
@@ -143,7 +147,8 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
     }
 
     static class DocInfo {
-        String title;
+        String mainTitle;
+        String subTitle;
         String stdDomain;
         String desc;
 
@@ -155,15 +160,19 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
         }
 
         DocInfo(IXDefAttribute attr) {
-            this(attr.getType());
+            this(attr != null ? attr.getType() : null);
         }
 
         DocInfo(XDefTypeDecl type) {
             this.stdDomain = type != null ? type.getStdDomain() : null;
         }
 
-        public void setTitle(String title) {
-            this.title = title;
+        public void setMainTitle(String mainTitle) {
+            this.mainTitle = mainTitle;
+        }
+
+        public void setSubTitle(String subTitle) {
+            this.subTitle = subTitle;
         }
 
         public void setDesc(String desc) {
@@ -174,22 +183,22 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
         public String toString() {
             StringBuilder sb = new StringBuilder();
 
-            if (!StringHelper.isBlank(this.title)) {
-                sb.append("<p><b>");
-                sb.append(StringHelper.escapeXml(this.title));
-                sb.append("</b></p>");
+            sb.append("<p><b>");
+            sb.append(StringHelper.escapeXml(this.mainTitle));
+            if (StringHelper.isNotBlank(this.subTitle)) {
+                sb.append(" - ").append(StringHelper.escapeXml(this.subTitle));
             }
+            sb.append("</b></p>");
+
             if (this.stdDomain != null) {
                 sb.append("<p>");
-                sb.append("stdDomain=").append(StringHelper.escapeXml(this.stdDomain));
+                sb.append("stdDomain: ");
+                sb.append("<b>").append(StringHelper.escapeXml(this.stdDomain)).append("</b>");
                 sb.append("</p>");
             }
 
             if (!StringHelper.isBlank(this.desc)) {
-                if (!sb.isEmpty()) {
-                    sb.append("<hr/><br/>");
-                }
-
+                sb.append("<hr/><br/>");
                 sb.append(markdown(this.desc));
             }
 
