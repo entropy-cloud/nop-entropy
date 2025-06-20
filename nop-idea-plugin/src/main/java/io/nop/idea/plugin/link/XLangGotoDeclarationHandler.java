@@ -92,32 +92,31 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
 
         String attrName = attr.getName();
         XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(attr);
-
-        XDefTypeDecl attrDefType = null;
-        if (tagInfo != null && tagInfo.getDefNode() != null) {
-            attrDefType = tagInfo.getAttrType(attrName);
+        XDefTypeDecl attrDefType = tagInfo != null ? tagInfo.getAttrType(attrName) : null;
+        // 在无节点定义时，仅做缺省处理
+        if (attrDefType == null) {
+            return getGotoDeclarationTargetsByPath(project, attr, attrValue);
         }
 
+        // TODO 对于声明属性，仅对其类型的定义（涉及枚举和字典）做跳转
+        if (tagInfo.isXDefDeclaredAttr(attrName)) {
+            return null;
+        }
+
+        // 根据属性声明的类型，对属性值做引用跳转处理
         PsiFile file = attr.getContainingFile();
-        if (attrDefType != null) {
-            String xdslNs = XDefPsiHelper.getXDslNamespace(tagInfo.getTag());
-            String stdDomain = attrDefType.getStdDomain();
+        String xdslNs = XDefPsiHelper.getXDslNamespace(tagInfo.getTag());
+        String stdDomain = attrDefType.getStdDomain();
 
-            // 对自身的类型声明不做处理
-            if (stdDomain.equals(attrValue)) {
-                return null;
-            }
-
-            // Note: v-path 类型采用缺省处理
-            if (XDefConstants.STD_DOMAIN_V_PATH_LIST.equals(stdDomain)) {
-                return getGotoDeclarationTargetsFromPathCsv(project, file, cursorOffset);
-            } //
-            else if (XDefConstants.STD_DOMAIN_XDEF_REF.equals(stdDomain)) {
-                return getGotoDeclarationTargetsFromXDefRef(project, attr, attrValue);
-            } //
-            else if ((xdslNs + ":prototype").equals(attrName)) {
-                return getGotoDeclarationTargetsFromPrototype(project, tagInfo, attrValue);
-            }
+        // Note: v-path 类型采用缺省处理
+        if (XDefConstants.STD_DOMAIN_V_PATH_LIST.equals(stdDomain)) {
+            return getGotoDeclarationTargetsFromPathCsv(project, file, cursorOffset);
+        } //
+        else if (XDefConstants.STD_DOMAIN_XDEF_REF.equals(stdDomain)) {
+            return getGotoDeclarationTargetsFromXDefRef(project, attr, attrValue);
+        } //
+        else if ((xdslNs + ":prototype").equals(attrName)) {
+            return getGotoDeclarationTargetsFromPrototype(project, tagInfo, attrValue);
         }
 
         // 缺省：有效文件均可跳转
