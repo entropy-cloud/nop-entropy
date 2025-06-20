@@ -43,6 +43,12 @@
             </source>
         </step>
 
+        <step name="saveRequirements" customType="file-utils:WriteText">
+            <input name="outputDir"/>
+            <input name="fileName" value="docs/requirements/refactored-requirements.md"/>
+            <input name="text" value="${requirementsDoc.toText()}"/>
+        </step>
+
         <step name="dbDetailDesign" customType="ai:TaskStep" ai:promptName="coder/db-detail-design"
               ai:useResponseCache="true">
             <description>先进行初步的数据库设计</description>
@@ -50,24 +56,23 @@
             <output name="RESULT" exportAs="dbDetailDesignDoc"/>
         </step>
 
-        <step name="mergeDetailDesign">
-            <description>将数据库设计合并到需求文档中</description>
+        <step name="normalizeDetailDesign">
             <source>
                 const section = dbDetailDesignDoc.findSectionByTitle('数据库详细设计');
                 section.removeSectionByTitle('完整性检查'); // 删除无关的部分
                 section.removeSectionByTitle('表关联'); // 删除多余的部分，通过字段定义已经包含此信息
                 section.resetLevel(1);
-                requirementsDoc.addSection(section);
             </source>
         </step>
 
-        <step name="saveRequirements" customType="file-utils:WriteText">
+        <step name="saveDbDetailDesign" customType="file-utils:WriteText">
             <input name="outputDir"/>
-            <input name="fileName" value="docs/requirements/refactored-requirements.md"/>
-            <input name="text" value="${requirementsDoc.toText()}"/>
+            <input name="fileName" value="docs/requirements/db-detail-design.md"/>
+            <input name="text" value="${dbDetailDesignDoc.toText()}"/>
         </step>
 
         <fork name="expandModuleRequirements" varName="module">
+            <flags match="subModule"/>
             <input name="requirementsDoc"/>
             <producer>
                 return requirementsDoc.findSectionByTitle('3.2 核心功能模块').children

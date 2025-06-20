@@ -27,7 +27,7 @@
 
 #### 3.2.1.1 {{功能名}}
 
-[TAGS]: DYNAMIC,MENU,API
+[TAGS]: DYNAMIC,MENU,API,ORM
 {{不要遗漏原始需求中的任何相关信息}}
 
 # 4 非功能需求
@@ -46,18 +46,18 @@
 
 # 5 原始需求中的额外要求
 
-[TAGS]: OPTIONAL, CORE,API
+[TAGS]: OPTIONAL, CORE,API,ORM
 {{原始需求中明确提到，但是整理后的需求描述中没有包含的细节要求，按照列表格式显示}}
 
 # 6 跨模块的需求
 
-[TAGS]: OPTIONAL, CORE,API
+[TAGS]: OPTIONAL, CORE,API,ORM
 
 {{采用列表形式表达。要求非常详实，不用参考其他章节就可以了解跨模块需求的详细内容}}
 
 # 7 需求冲突表
 
-[TAGS]: OPTIONAL, CORE
+[TAGS]: OPTIONAL, CORE,ORM
 
 | 冲突点 | 冲突描述 | 处理方案 |
 |-----|------|------|

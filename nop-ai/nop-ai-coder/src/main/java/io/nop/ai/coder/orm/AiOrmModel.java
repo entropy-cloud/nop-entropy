@@ -105,6 +105,10 @@ public class AiOrmModel {
         return ormModel;
     }
 
+    public String getOrmModelXmlForAi() {
+        return getOrmNodeForAi().xml();
+    }
+
     public String getOrmModelXml() {
         return getOrmModelXml(null);
     }

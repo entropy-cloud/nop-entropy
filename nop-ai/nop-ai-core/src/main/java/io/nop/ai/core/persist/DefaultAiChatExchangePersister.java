@@ -141,15 +141,12 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
         if (message.getRole() != null) {
             sb.append('[').append(message.getRole()).append("]");
         }
-        sb.append("\n\n");
-        if (message.getContent() != null)
-            sb.append(message.getContent());
-        sb.append(MARKER_CONTENT_END);
-        sb.append("\n");
+        sb.append('\n');
 
         if (message instanceof AiAssistantMessage) {
             AiAssistantMessage assistant = (AiAssistantMessage) message;
             if (assistant.getThink() != null) {
+                sb.append("\n");
                 sb.append(TITLE_THINK);
                 sb.append(assistant.getThink());
                 sb.append(MARKER_THINK_END);
@@ -158,9 +155,17 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
         }
 
         if (message.getMetadata() != null) {
+            sb.append("\n");
             sb.append(TITLE_MESSAGE_META);
             appendJson(sb, message.getMetadata());
+            sb.append("\n");
         }
+
+        sb.append("\n");
+        if (message.getContent() != null)
+            sb.append(message.getContent());
+        sb.append(MARKER_CONTENT_END);
+        sb.append("\n");
     }
 
     @Override
@@ -258,13 +263,9 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
         scanner.match('[');
         String role = scanner.nextUntil(']', false).trim().toString();
         scanner.match(']');
-
-        AbstractTextMessage message = (AbstractTextMessage) AiMessage.create(role);
-        String content = scanner.nextUntil(MARKER_CONTENT_END, false).toString();
-        message.setContent(content);
-        scanner.consume(MARKER_CONTENT_END);
         scanner.skipBlank();
 
+        AbstractTextMessage message = (AbstractTextMessage) AiMessage.create(role);
         if (scanner.tryMatch(TITLE_THINK)) {
             String think = scanner.nextUntil(MARKER_THINK_END, false).toString();
             message.setThink(think);
@@ -276,7 +277,13 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
         if (scanner.tryMatch(TITLE_MESSAGE_META)) {
             String json = consumeJsonBlock(scanner);
             message.setMetadata(JsonTool.parseMap(json));
+            scanner.skipBlank();
         }
+
+        String content = scanner.nextUntil(MARKER_CONTENT_END, false).toString();
+        message.setContent(content);
+        scanner.consume(MARKER_CONTENT_END);
+        scanner.skipBlank();
 
         return message;
     }

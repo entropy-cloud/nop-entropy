@@ -1,0 +1,9 @@
+<prompts x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+         xmlns:xdef="/nop/schema/xdef.xdef" xdef:body-type="list">
+
+    <propmpt>
+        <text>string</text>
+        <explanation>string</explanation>
+    </propmpt>
+
+</prompts>

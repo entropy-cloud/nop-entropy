@@ -20,11 +20,12 @@
     <input name="aiProvider" type="String" mandatory="true"/>
     <input name="aiModel" type="String" mandatory="true"/>
     <input name="sessionId" type="String" optional="true"/>
-    <input name="maxTokens" type="String" optional="true" />
+    <input name="maxTokens" type="String" optional="true"/>
 
     <steps>
 
         <step name="loadRequirements" customType="ai-coder:LoadMarkdown">
+            <input name="inputDir"/>
             <input name="fileName" value="${requirementsPath}"/>
             <input name="tplPath" value="/nop/ai/schema/coder/requirements.tpl.md"/>
 
@@ -34,12 +35,18 @@
             <output name="RESULT" exportAs="requirementsDoc"/>
         </step>
 
+        <step name="loadDbDetailDesign" customType="file-utils:ReadText">
+            <input name="inputDir" value="${outputDir}"/>
+            <input name="fileName" value="docs/requirements/db-detail-design.md"/>
+            <output name="RESULT" exportAs="dbDetailDesignText"/>
+        </step>
+
         <step name="splitRequirements">
             <description>从需求文档中剪裁得到数据库设计相关的部分</description>
             <input name="requirementsDoc"/>
             <output name="ormRequirements">
                 <source>
-                    return requirementsDoc.selectSectionByTplTag('ORM',true).toText();
+                    return requirementsDoc.selectSectionByTplTag('ORM',true).toText() + "\n\n" + dbDetailDesignText;
                 </source>
             </output>
         </step>

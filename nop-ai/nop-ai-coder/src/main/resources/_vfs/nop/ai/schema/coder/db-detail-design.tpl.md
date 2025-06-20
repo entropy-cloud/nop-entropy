@@ -13,7 +13,7 @@
 
 ## 表关联
 
-[TAGS]: CHECK
+[TAGS]: CHECK,OPTIONAL
 
 - **一对一**:
 - **多对一**:
