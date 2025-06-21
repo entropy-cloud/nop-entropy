@@ -150,14 +150,14 @@ public class XDefPsiHelper {
         String xdslNs = XmlPsiHelper.getXmlnsForUrl(rootTag, XDslConstants.XDSL_SCHEMA_XDSL);
 
         boolean xpl = false;
-        boolean dsl = !XDslConstants.XDSL_SCHEMA_XDEF.equals(schemaUrl);
+        boolean xlibDsl = XDslConstants.XDSL_SCHEMA_XLIB.equals(schemaUrl);
         XmlTagInfo tagInfo = null;
         for (int i = 0, n = tags.size(); i < n; i++) {
             XmlTag xmlTag = tags.get(i);
 
             if (i == 0) {
-                tagInfo = new XmlTagInfo(xmlTag, def, def.getRootNode(), null, //
-                                         xdslDefNode, xdefNs, xdslNs, dsl, false);
+                tagInfo = new XmlTagInfo(xmlTag, null, def, def.getRootNode(), //
+                                         xdslDefNode, xdefNs, xdslNs);
             } else {
                 XmlTagInfo parentTagInfo = tagInfo;
                 String tagName = normalizeNamespace(xmlTag.getName(), xdefNs, xdslNs);
@@ -169,26 +169,28 @@ public class XDefPsiHelper {
                 // 否则，保持在 XDef 元模型的节点定义
                 if (tagName.startsWith("x:") && "x".equals(xdslNs)) {
                     defNode = xdslDefNode;
+                }
+                // Xpl 节点始终采用 xpl.xdef 元模型
+                else if (xpl) {
+                    // 通过任意未定义的子节点名称，得到 xpl 的 xdef:unknown-tag 子节点定义
+                    defNode = getXplDef().getRootNode().getChild("any");
                 } else {
                     defNode = parentTagInfo.getDefNodeChild(tagName);
                 }
 
-                if (defNode == null && xpl) {
-                    // 通过任意未定义的子节点名称，得到 xpl 的 xdef:unknown-tag 子节点定义
-                    defNode = getXplDef().getRootNode().getChild("any");
-                }
-
-                tagInfo = new XmlTagInfo(xmlTag,
-                                         def,
-                                         defNode,
-                                         parentTagInfo.getDefNode(),
-                                         xdslDefNode,
-                                         xdefNs,
-                                         xdslNs,
-                                         dsl,
-                                         parentTagInfo.isCustom() || parentTagInfo.isSupportBody());
+                tagInfo = new XmlTagInfo(xmlTag, parentTagInfo, def, defNode, xdslDefNode, xdefNs, xdslNs);
 
                 if (isXplNode(defNode)) {
+                    xpl = true;
+                }
+                // xlib.xdef 中的 source 标签设置为 xml 类型，是因为在获取 XplLib 模型的时候会根据 xlib.xdef 来解析，
+                // 但此时这个 source 段无法自动进行编译，必须结合它的 outputMode 和 attrs 配置等才能决定。
+                // 因此，将其子节点同样视为 xpl 节点处理
+                else if (!xpl && xlibDsl && "source".equals(tagName) //
+                         && "xml".equals(getDefNodeType(defNode)) //
+                         && parentTagInfo.getDefNode().isUnknownTag() //
+                         && "tags".equals(parentTagInfo.getParentDefNode().getTagName()) //
+                ) {
                     xpl = true;
                 }
             }
@@ -210,12 +212,16 @@ public class XDefPsiHelper {
     }
 
     static boolean isXplNode(IXDefNode defNode) {
-        if (defNode == null || defNode.getXdefValue() == null) {
-            return false;
-        }
+        String stdDomain = getDefNodeType(defNode);
 
-        String stdDomain = defNode.getXdefValue().getStdDomain();
-        return stdDomain.equals("xpl") || stdDomain.startsWith("xpl-");
+        return stdDomain != null && (stdDomain.equals("xpl") || stdDomain.startsWith("xpl-"));
+    }
+
+    static String getDefNodeType(IXDefNode defNode) {
+        if (defNode == null || defNode.getXdefValue() == null) {
+            return null;
+        }
+        return defNode.getXdefValue().getStdDomain();
     }
 
     /** 自底向上查找 <code>tag</code> 所在分支上的节点 */

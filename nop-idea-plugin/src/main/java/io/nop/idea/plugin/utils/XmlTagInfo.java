@@ -19,39 +19,38 @@ import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xdef.impl.XDefAttribute;
 import io.nop.xlang.xdef.parse.XDefTypeDeclParser;
+import io.nop.xlang.xdsl.XDslConstants;
 
 public class XmlTagInfo {
     private final XmlTag tag;
 
     private final IXDefinition def;
     private final IXDefNode defNode;
-    private final IXDefNode parentDefNode;
     private final IXDefNode xdslDefNode;
 
+    private final IXDefNode parentDefNode;
     private final String xdefNs;
     private final String xdslNs;
 
-    /** 当前节点是否为 DSL 节点 */
-    private final boolean dsl;
     private final boolean custom;
 
     public XmlTagInfo(
-            XmlTag tag, //
-            IXDefinition def, IXDefNode defNode, IXDefNode parentDefNode, //
+            XmlTag tag, XmlTagInfo parentTagInfo, //
+            IXDefinition def, IXDefNode defNode, //
             IXDefNode xdslDefNode, //
-            String xdefNs, String xdslNs, //
-            boolean dsl, boolean custom //
+            String xdefNs, String xdslNs //
     ) {
         this.tag = tag;
         this.def = def;
         this.defNode = defNode;
-        this.parentDefNode = parentDefNode;
         this.xdslDefNode = xdslDefNode;
+
+        this.parentDefNode = parentTagInfo != null ? parentTagInfo.getDefNode() : null;
         this.xdefNs = xdefNs;
         this.xdslNs = xdslNs;
 
-        this.dsl = dsl;
-        this.custom = custom;
+        this.custom = parentTagInfo != null //
+                      && (parentTagInfo.isCustom() || parentTagInfo.isSupportBody());
     }
 
     /** 获取当前节点的 xml 标签 */
@@ -131,7 +130,7 @@ public class XmlTagInfo {
         // Note:
         // - 自定义节点（包括 Xpl 类型节点及其子节点）没有元模型
         // - 在 DSL 节点上的属性也不是元属性
-        if (custom || dsl) {
+        if (isCustom() || isDslNode()) {
             return false;
         }
 
@@ -197,6 +196,11 @@ public class XmlTagInfo {
 
     private boolean isXmlns(String name) {
         return name.equals("xmlns") || name.startsWith("xmlns:");
+    }
+
+    /** 当前节点是否为 DSL 节点 */
+    private boolean isDslNode() {
+        return !XDslConstants.XDSL_SCHEMA_XDEF.equals(def.resourcePath());
     }
 
     /** 是否为 xdef.xdef 中的节点 */

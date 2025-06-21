@@ -111,6 +111,17 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
                            </xdef:pre-parse>
                        </meta>
                        """, (genDoc) -> assertTrue(genDoc.contains("<hr/>")));
+        doTest("""
+                       <lib xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xlib.xdef">
+                          <tags>
+                              <GenXxx outputMode="node">
+                                  <source>
+                                      <meta-gen:DefaultMetaGenExtends xpl:li<caret>b="/nop/core/xlib/meta-gen.xlib"/>
+                                  </source>
+                              </GenPage>
+                          </tags>
+                       </lib>
+                       """, (genDoc) -> assertTrue(genDoc.contains("<hr/>")));
     }
 
     public void testGenerateDocForXmlAttributeValue() {

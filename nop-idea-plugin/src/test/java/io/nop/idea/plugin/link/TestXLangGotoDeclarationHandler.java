@@ -149,6 +149,17 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
                            </xdef:pre-parse>
                        </meta>
                        """, "/nop/core/xlib/meta-gen.xlib");
+        doTest("""
+                       <lib xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xlib.xdef">
+                          <tags>
+                              <GenXxx outputMode="node">
+                                  <source>
+                                      <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/<caret>core/xlib/meta-gen.xlib"/>
+                                  </source>
+                              </GenPage>
+                          </tags>
+                       </lib>
+                       """, "/nop/core/xlib/meta-gen.xlib");
 
 //        // TODO 声明属性仅跳转到属性的类型定义上
 //        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("xdef:ref=\"xdef-ref\"",
