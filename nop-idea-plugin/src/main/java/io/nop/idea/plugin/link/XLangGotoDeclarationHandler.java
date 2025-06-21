@@ -92,20 +92,19 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
 
         String attrName = attr.getName();
         XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(attr);
-        XDefTypeDecl attrDefType = tagInfo != null ? tagInfo.getAttrType(attrName) : null;
+        XDefTypeDecl attrDefType = tagInfo != null ? tagInfo.getDefAttrType(attrName) : null;
         // 在无节点定义时，仅做缺省处理
         if (attrDefType == null) {
             return getGotoDeclarationTargetsByPath(project, attr, attrValue);
         }
 
         // TODO 对于声明属性，仅对其类型的定义（涉及枚举和字典）做跳转
-        if (tagInfo.isXDefDeclaredAttr(attrName)) {
+        if (tagInfo.isDefDeclaredAttr(attrName)) {
             return null;
         }
 
-        // 根据属性声明的类型，对属性值做引用跳转处理
+        // 根据属性声明的类型，对属性值做文件/名字引用跳转处理
         PsiFile file = attr.getContainingFile();
-        String xdslNs = XDefPsiHelper.getXDslNamespace(tagInfo.getTag());
         String stdDomain = attrDefType.getStdDomain();
 
         // Note: v-path 类型采用缺省处理
@@ -115,8 +114,19 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
         else if (XDefConstants.STD_DOMAIN_XDEF_REF.equals(stdDomain)) {
             return getGotoDeclarationTargetsFromXDefRef(project, attr, attrValue);
         } //
-        else if ((xdslNs + ":prototype").equals(attrName)) {
-            return getGotoDeclarationTargetsFromPrototype(project, tagInfo, attrValue);
+        else {
+            String xdslNs = XDefPsiHelper.getXDslNamespace(tagInfo.getTag());
+
+            if ((xdslNs + ":prototype").equals(attrName)) {
+                return getGotoDeclarationTargetsFromPrototype(project, tagInfo, attrValue);
+            } else {
+                String xdefNs = XDefPsiHelper.getXDefNamespace(tagInfo.getTag());
+                if ((xdefNs + ":key-attr").equals(attrName)) {
+                    //
+                } else if ((xdefNs + ":unique-attr").equals(attrName)) {
+                    //
+                }
+            }
         }
 
         // 缺省：有效文件均可跳转

@@ -14,8 +14,11 @@ import io.nop.xlang.xdef.IXDefComment;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefSubComment;
 import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
+import io.nop.xlang.xdef.impl.XDefAttribute;
+import io.nop.xlang.xdef.parse.XDefTypeDeclParser;
 
 public class XmlTagInfo {
     private final XmlTag tag;
@@ -25,24 +28,30 @@ public class XmlTagInfo {
     private final IXDefNode parentDefNode;
     private final IXDefNode xdslDefNode;
 
-    private final boolean custom;
     private final String xdefNs;
     private final String xdslNs;
+
+    /** 当前节点是否为 DSL 节点 */
+    private final boolean dsl;
+    private final boolean custom;
 
     public XmlTagInfo(
             XmlTag tag, //
             IXDefinition def, IXDefNode defNode, IXDefNode parentDefNode, //
             IXDefNode xdslDefNode, //
-            boolean custom, String xdefNs, String xdslNs
+            String xdefNs, String xdslNs, //
+            boolean dsl, boolean custom //
     ) {
         this.tag = tag;
         this.def = def;
         this.defNode = defNode;
         this.parentDefNode = parentDefNode;
         this.xdslDefNode = xdslDefNode;
-        this.custom = custom;
         this.xdefNs = xdefNs;
         this.xdslNs = xdslNs;
+
+        this.dsl = dsl;
+        this.custom = custom;
     }
 
     /** 获取当前节点的 xml 标签 */
@@ -114,39 +123,46 @@ public class XmlTagInfo {
     }
 
     /**
-     * 判断当前节点上的指定属性是否为 *.xdef 的声明属性
+     * 判断当前节点上的指定属性是否为 XDef 元模型的元属性（即，定义属性名及其类型）
      * <p/>
-     * 也就是，在 *.xdef 中是在定义该属性及其类型，而不是为该属性赋值。
-     * 在 xdef.xdef 这类自举定义的 xdsl 中，会通过不同的名字空间来区分属性声明和属性赋值。
-     * 比如，名字空间为 meta 和 x 的属性则为赋值属性，其余（无名字空间和 xdef 名字空间）的则为声明属性
+     * 对于这类属性，仅做类型引用跳转，不做文件或名字引用跳转
      */
-    public boolean isXDefDeclaredAttr(String attrName) {
-        String ns = StringHelper.getNamespace(attrName);
+    public boolean isDefDeclaredAttr(String attrName) {
+        // Note:
+        // - 自定义节点（包括 Xpl 类型节点及其子节点）没有元模型
+        // - 在 DSL 节点上的属性也不是元属性
+        if (custom || dsl) {
+            return false;
+        }
 
-        return StringHelper.isEmpty(ns) || (!ns.equals(xdefNs) && !ns.equals(xdslNs) && !ns.equals("xmlns"));
+        // 检查在 *.xdef 节点上的元属性
+        String ns = StringHelper.getNamespace(attrName);
+        if (StringHelper.isEmpty(ns)) {
+            return true;
+        }
+
+        // xdef.xdef 中 xdef 名字空间的属性均视为元属性
+        if (isXDefNode()) {
+            return "xdef".equals(ns);
+        }
+        // xdsl.xdef 中 x 名字空间的属性均视为元属性
+        else if (isXDslNode()) {
+            return "x".equals(ns);
+        }
+        // 对于普通的 *.xdef，除 xmlns、xdef、x 名字空间以外的属性，均视为元属性
+        return !ns.equals("xdef") && !ns.equals("x") && !ns.equals("xmlns");
     }
 
-    /**
-     * 获取当前节点上指定属性的 xdef 定义
-     * <ul>
-     *     <li><code>xdef.xdef</code> 节点属性上的 <code>meta</code> 名字空间自动转换为 <code>xdef</code>；</li>
-     *     <li><code>xdsl.xdef</code> 节点属性上的 <code>xdsl</code> 名字空间自动转换为 <code>x</code>；</li>
-     * </ul>
-     */
-    public IXDefAttribute getAttr(String attrName) {
-        // TODO xpl 名字空间的节点定义在 xpl.xdef 中
-        attrName = XDefPsiHelper.normalizeNamespace(attrName, xdefNs, xdslNs);
+    /** 获取当前节点上指定属性的 xdef 定义 */
+    public IXDefAttribute getDefAttr(String attrName) {
+        DefAttrWithNode attr = getDefAttrInfo(attrName);
 
-        IXDefAttribute attr = defNode != null ? defNode.getAttribute(attrName) : null;
-        if (attr == null) {
-            attr = xdslDefNode != null ? xdslDefNode.getAttribute(attrName) : null;
-        }
-        return attr;
+        return attr != null ? attr.attr : null;
     }
 
     /** 获取当前节点上指定属性的类型 */
-    public XDefTypeDecl getAttrType(String attrName) {
-        IXDefAttribute attr = getAttr(attrName);
+    public XDefTypeDecl getDefAttrType(String attrName) {
+        IXDefAttribute attr = getDefAttr(attrName);
 
         if (attr == null) {
             return defNode != null ? defNode.getXdefUnknownAttr() : null;
@@ -155,27 +171,84 @@ public class XmlTagInfo {
     }
 
     /** 获取节点注释 */
-    public IXDefComment getComment() {
+    public IXDefComment getDefNodeComment() {
         return defNode != null ? defNode.getComment() : null;
     }
 
-    /**
-     * 获取指定属性的注释
-     * <ul>
-     *     <li><code>xdef.xdef</code> 节点属性上的 <code>meta</code> 名字空间自动转换为 <code>xdef</code>；</li>
-     *     <li><code>xdsl.xdef</code> 节点属性上的 <code>xdsl</code> 名字空间自动转换为 <code>x</code>；</li>
-     * </ul>
-     */
-    public IXDefSubComment getAttrComment(String attrName) {
-        attrName = XDefPsiHelper.normalizeNamespace(attrName, xdefNs, xdslNs);
+    /** 获取指定属性的注释 */
+    public IXDefSubComment getDefAttrComment(String attrName) {
+        if (isXmlns(attrName)) {
+            return null;
+        }
 
         IXDefComment comment;
-        if (defNode == null || defNode.getAttribute(attrName) == null) {
-            comment = xdslDefNode != null ? xdslDefNode.getComment() : null;
+        DefAttrWithNode attr = getDefAttrInfo(attrName);
+        if (attr == null) {
+            comment = getDefNodeComment();
+            // 若无属性实体，则取当前节点上的 xdef:unknown-attr 属性的注释
+            attrName = "xdef:unknown-attr";
         } else {
-            comment = getComment();
+            comment = attr.node.getComment();
+            attrName = attr.attr.getName();
         }
 
         return comment != null ? comment.getSubComments().get(attrName) : null;
     }
+
+    private boolean isXmlns(String name) {
+        return name.equals("xmlns") || name.startsWith("xmlns:");
+    }
+
+    /** 是否为 xdef.xdef 中的节点 */
+    private boolean isXDefNode() {
+        return xdefNs != null && !"xdef".equals(xdefNs);
+    }
+
+    /** 是否为 xdsl.xdef 中的节点 */
+    private boolean isXDslNode() {
+        return xdslNs != null && !"x".equals(xdslNs);
+    }
+
+    /** 记录属性所在节点 */
+    record DefAttrWithNode(IXDefNode node, IXDefAttribute attr) {}
+
+    /** 获取当前节点上指定属性的定义信息 */
+    private DefAttrWithNode getDefAttrInfo(String attrName) {
+        // 为 xmlns 节点构造属性
+        if (isXmlns(attrName)) {
+            XDefTypeDecl type = new XDefTypeDeclParser().parseFromText(null, XDefConstants.STD_DOMAIN_XDEF_REF);
+
+            XDefAttribute attr = new XDefAttribute();
+            attr.setName(attrName);
+            attr.setType(type);
+
+            return defNode != null ? new DefAttrWithNode(defNode, attr) : null;
+        }
+
+        attrName = XDefPsiHelper.normalizeNamespace(attrName, xdefNs, xdslNs);
+
+        // 查找在当前节点上声明的属性
+        IXDefAttribute attr = defNode != null ? defNode.getAttribute(attrName) : null;
+        if (attr != null) {
+            return new DefAttrWithNode(defNode, attr);
+        }
+
+        // 查找在对应的 xdsl.xdef 节点上声明的属性
+        attr = xdslDefNode != null ? xdslDefNode.getAttribute(attrName) : null;
+        if (attr != null) {
+            return new DefAttrWithNode(xdslDefNode, attr);
+        }
+
+        // 针对 xdef.xdef 中的未确定属性：本质上都是 XDefNode 节点上的属性
+        if (isXDefNode()) {
+            IXDefNode node = def.getXdefUnknownTag();
+
+            return new DefAttrWithNode(node, node.getAttribute(attrName));
+        }
+
+        // Note: xdef:unknown-attr 只记录了类型，没有 IXDefAttribute 实体，
+        // 其处理逻辑见 XDefinitionParser#parseNode
+        return null;
+    }
+
 }

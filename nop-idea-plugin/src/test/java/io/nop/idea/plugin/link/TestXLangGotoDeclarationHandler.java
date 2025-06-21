@@ -13,7 +13,7 @@ import io.nop.idea.plugin.BaseXLangPluginTestCase;
  * @date 2025-06-17
  */
 public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
-    private static final String XLANG_EXT = "xlang";
+    private static final String XLANG_EXT = "xgo";
 
     @Override
     protected String[] getXLangFileExtensions() {
@@ -78,6 +78,11 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
                "DslNode");
         // - 在 *.xdef 中引用外部文件
         doTest("""
+                       <meta xmlns:x="/nop/sch<caret>ema/xdsl.xdef"
+                             x:schema="/nop/schema/xmeta.xdef"
+                       />
+                       """, "/nop/schema/xdsl.xdef");
+        doTest("""
                        <meta xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
                              x:schema="/nop/schema/xdef.xdef"
                              xdef:ref="/nop/schema/sch<caret>ema/obj-schema.xdef"
@@ -96,13 +101,14 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
                                                                    "x:prototype=\"li<caret>st\""), "list");
         doTest(readVfsResource("/test/link/a.xlib").replace("x:prototype=\"Get\"", "x:prototype=\"G<caret>et\""),
                "Get");
+//
+//        // TODO 对唯一键的跳转
+//        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"name\"",
+//                                                                "meta:unique-attr=\"n<caret>ame\""), "");
+//        doTest(readVfsResource("/nop/schema/xmeta.xdef").replace("xdef:key-attr=\"name\"",
+//                                                                 "xdef:key-attr=\"na<caret>me\""), "");
 
         // 缺省：任意有效的文件均可跳转
-        doTest("""
-                       <meta xmlns:x="/nop/sch<caret>ema/xdsl.xdef"
-                             x:schema="/nop/schema/xmeta.xdef"
-                       />
-                       """, "/nop/schema/xdsl.xdef");
         doTest("""
                        <c:import from="/test/link/a.x<caret>lib" />
                        """, "/test/link/a.xlib");
@@ -134,6 +140,23 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
                            </x:gen-extends>
                        </meta>
                        """, "/nop/core/xlib/meta-gen.xlib");
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef"
+                             x:schema="/nop/schema/xdef.xdef"
+                       >
+                           <xdef:pre-parse>
+                               <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/<caret>xlib/meta-gen.xlib"/>
+                           </xdef:pre-parse>
+                       </meta>
+                       """, "/nop/core/xlib/meta-gen.xlib");
+
+//        // TODO 声明属性仅跳转到属性的类型定义上
+//        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("xdef:ref=\"xdef-ref\"",
+//                                                                "xdef:ref=\"xd<caret>ef-ref\""), "");
+//        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:prop name=\"!xml-name\"",
+//                                                                "<xdef:prop name=\"!xml<caret>-name\""), "");
+//        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace("x:schema=\"v-path\"", "x:schema=\"v-pa<caret>th\""),
+//               "");
     }
 
     public void testGetGotoDeclarationTargetsForXmlText() {

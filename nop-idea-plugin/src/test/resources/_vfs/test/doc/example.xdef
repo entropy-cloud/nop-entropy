@@ -2,12 +2,17 @@
 
 <!-- This is root node
 -->
-<example xmlns:x="/nop/schema/xdsl.xdef"
+<example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="xdef" xmlns:c="c" xmlns:xpl="xpl"
          x:schema="/nop/schema/xdef.xdef"
 >
+    <xdef:post-parse>
+        <c:script xpl:dump="true"/>
+    </xdef:post-parse>
+
     <!-- This is child node
 
     @name This is child name
+    @xdef:unknown-attr This a unknown attribute
     -->
-    <child name="string" type="dict:test/doc/child-type"/>
+    <child name="string" type="dict:test/doc/child-type" xdef:unknown-attr="any"/>
 </example>
