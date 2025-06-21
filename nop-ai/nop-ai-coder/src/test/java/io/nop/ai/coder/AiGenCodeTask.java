@@ -75,6 +75,7 @@ public class AiGenCodeTask extends JunitBaseTestCase {
         XNode node = XNodeParser.instance().parseFromResource(new FileResource(file));
         AiOrmConfig config = new AiOrmConfig();
         config.setBasePackageName("nop.ai");
+        config.setEntityPackageName("nop.ai.dao.entity");
         AiOrmModel ormModel = AiOrmModel.buildFromAiResult(node, config);
         OrmModel ormModelBean = ormModel.getOrmModelBean();
         ExcelReportHelper.saveXlsxObject("/nop/orm/imp/orm.imp.xml", new FileResource(xlsxFile), ormModelBean);

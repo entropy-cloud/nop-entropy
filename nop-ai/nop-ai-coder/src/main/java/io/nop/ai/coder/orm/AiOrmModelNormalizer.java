@@ -5,6 +5,7 @@ import io.nop.commons.type.StdSqlType;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.dao.dialect.SQLDataType;
+import io.nop.orm.model.OrmModelConstants;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import org.slf4j.Logger;
@@ -123,9 +124,14 @@ public class AiOrmModelNormalizer {
         if (!node.hasAttr("x:schema"))
             node.setAttr("x:schema", "/nop/schema/orm/orm.xdef");
         node.setAttr("xmlns:x", "/nop/schema/xdsl.xdef");
+        node.setAttr("ext:allowIdAsColName", true);
 
         if (config.getBasePackageName() != null)
-            node.setAttr("ext:basePackageName", config.getBasePackageName());
+            node.setAttr(OrmModelConstants.EXT_BASE_PACKAGE_NAME, config.getBasePackageName());
+        node.setAttr(OrmModelConstants.EXT_ENTITY_PACKAGE_NAME, config.getEntityPackageName());
+        node.setAttr(OrmModelConstants.EXT_APP_NAME, config.getAppName());
+        node.setAttr(OrmModelConstants.EXT_MAVEN_GROUP_ID, config.getMavenGroupId());
+        node.setAttr(OrmModelConstants.EXT_MAVEN_ARTIFACT_ID, config.getMavenArtifactId());
 
         XNode entities = normalizeEntities(node);
         if (entities != null) {
@@ -164,7 +170,7 @@ public class AiOrmModelNormalizer {
         if (StringHelper.isEmpty(entity.attrText("displayName")))
             entity.setAttr("displayName", name);
 
-        String className = StringHelper.fullClassName(StringHelper.simpleClassName(name), config.getBasePackageName());
+        String className = StringHelper.fullClassName(StringHelper.simpleClassName(name), config.getEntityPackageName());
         entity.setAttr("className", className);
         entity.setAttr("name", className);
 
@@ -197,7 +203,7 @@ public class AiOrmModelNormalizer {
     void normalizeRelation(XNode col, XNode entity, AiOrmConfig config) {
         String refTable = col.attrText("orm:ref-table");
         if (refTable != null) {
-            String refEntityName = StringHelper.fullClassName(refTable, config.getBasePackageName());
+            String refEntityName = StringHelper.simpleClassName(refTable);
 
             String refProp = col.attrText("orm:ref-prop");
             String refPropDisplayName = col.attrText("orm:ref-prop-display-name");
