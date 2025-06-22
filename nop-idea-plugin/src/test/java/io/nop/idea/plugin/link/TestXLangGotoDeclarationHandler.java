@@ -1,7 +1,7 @@
 package io.nop.idea.plugin.link;
 
-import com.intellij.codeInsight.navigation.actions.GotoDeclarationAction;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlFile;
 import com.intellij.psi.xml.XmlTag;
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
@@ -24,6 +24,7 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
     protected void setUp() throws Exception {
         super.setUp();
 
+        // Note: 提前将需要跳转的文件添加到 Project 中
         addVfsResourcesToProject("/nop/schema/xdef.xdef",
                                  "/nop/schema/xdsl.xdef",
                                  "/nop/schema/xmeta.xdef",
@@ -31,6 +32,7 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
                                  "/nop/schema/xui/store.xdef",
                                  "/nop/core/xlib/meta-gen.xlib",
                                  "/nop/schema/schema/obj-schema.xdef",
+                                 "/dict/test/doc/child-type.dict.yaml",
                                  "/test/link/a.xmeta",
                                  "/test/link/b.xmeta",
                                  "/test/link/a.xlib",
@@ -47,16 +49,6 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
         doTest("""
                        <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
                              x:extends="/test/link/a<caret>.xmeta"
-                       />
-                       """, "/test/link/a.xmeta");
-        doTest("""
-                       <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
-                             x:extends="/test/link/a.xmeta,/test/link/b<caret>.xmeta"
-                       />
-                       """, "/test/link/b.xmeta");
-        doTest("""
-                       <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
-                             x:extends="/test/link/a.xm<caret>eta,/test/link/b.xmeta"
                        />
                        """, "/test/link/a.xmeta");
 
@@ -101,12 +93,14 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
                                                                    "x:prototype=\"li<caret>st\""), "list");
         doTest(readVfsResource("/test/link/a.xlib").replace("x:prototype=\"Get\"", "x:prototype=\"G<caret>et\""),
                "Get");
-//
-//        // TODO 对唯一键的跳转
-//        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"name\"",
-//                                                                "meta:unique-attr=\"n<caret>ame\""), "");
-//        doTest(readVfsResource("/nop/schema/xmeta.xdef").replace("xdef:key-attr=\"name\"",
-//                                                                 "xdef:key-attr=\"na<caret>me\""), "");
+
+        // 对唯一键的跳转
+        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"name\"",
+                                                                "meta:unique-attr=\"n<caret>ame\""), "name");
+        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"xdef:name\"",
+                                                                "meta:unique-attr=\"xdef:<caret>name\""), "xdef:name");
+        doTest(readVfsResource("/nop/schema/xmeta.xdef").replace("xdef:key-attr=\"name\"",
+                                                                 "xdef:key-attr=\"na<caret>me\""), "name");
 
         // 缺省：任意有效的文件均可跳转
         doTest("""
@@ -170,6 +164,55 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
 //               "");
     }
 
+    public void testGetGotoDeclarationTargetsForXmlAttributePartialValue() {
+        // v-path-list 元素跳转
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
+                             x:extends="/test/link/a.xmeta,/test/link/b<caret>.xmeta"
+                       />
+                       """, "/test/link/b.xmeta");
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
+                             x:extends="/test/link/a.xm<caret>eta,/test/link/b.xmeta"
+                       />
+                       """, "/test/link/a.xmeta");
+
+        // TODO 字典/枚举的 options 跳转
+        doTest("""
+                       <example xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                       >
+                           <child type="dict:test/doc/ch<caret>ild-type"/>
+                       </example>
+                       """, "/dict/test/doc/child-type.dict.yaml");
+        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace(
+                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"",
+                       "x:override=\"enum:io.nop.xlang.xdef.X<caret>DefOverride=merge\""), //
+               "io.nop.xlang.xdef.XDefOverride");
+
+        // TODO 字典/枚举的默认值跳转
+        doTest("""
+                       <example xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                       >
+                           <child type="dict:test/doc/child-type=le<caret>af"/>
+                       </example>
+                       """, "");
+        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace(
+                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"",
+                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=me<caret>rge\""), //
+               "");
+
+        // TODO 缺省属性值中 @attr: 引用跳转
+        doTest("""
+                       <component xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                       >
+                           <import as="!var-name=@attr<caret>:name" name="var-name" from="!string"/>
+                       </example>
+                       """, "");
+    }
+
     public void testGetGotoDeclarationTargetsForXmlText() {
     }
 
@@ -177,9 +220,7 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
     private void doTest(String text, String... expected) {
         myFixture.configureByText("example." + XLANG_EXT, text);
 
-        PsiElement[] refs = GotoDeclarationAction.findAllTargetElements(getProject(),
-                                                                        myFixture.getEditor(),
-                                                                        myFixture.getCaretOffset());
+        PsiElement[] refs = getGotoTargets();
         assertNotNull(refs);
         assertEquals(refs.length, expected.length);
 
@@ -212,6 +253,11 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
                     actual = tag.getName();
                 }
 
+                assertEquals(exp, actual);
+            }
+            // 引用属性
+            else if (ref instanceof XmlAttribute attr) {
+                String actual = attr.getName();
                 assertEquals(exp, actual);
             }
         }

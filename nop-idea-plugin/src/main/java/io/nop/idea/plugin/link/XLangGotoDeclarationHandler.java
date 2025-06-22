@@ -121,10 +121,11 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
                 return getGotoDeclarationTargetsFromPrototype(project, tagInfo, attrValue);
             } else {
                 String xdefNs = XDefPsiHelper.getXDefNamespace(tagInfo.getTag());
+
                 if ((xdefNs + ":key-attr").equals(attrName)) {
-                    //
+                    return getGotoDeclarationTargetsFromKeyAttr(project, tagInfo, attrValue);
                 } else if ((xdefNs + ":unique-attr").equals(attrName)) {
-                    //
+                    return getGotoDeclarationTargetsFromUniqueAttr(project, tagInfo, attrValue);
                 }
             }
         }
@@ -254,6 +255,24 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
         XmlTag protoTag = XmlPsiHelper.getChildTagByAttr(parentTag, keyAttr, attrValue);
 
         return protoTag != null ? new PsiElement[] { protoTag } : null;
+    }
+
+    /** 从 <code>xdef:key-attr</code> 的属性值中获得跳转元素（节点属性） */
+    private PsiElement[] getGotoDeclarationTargetsFromKeyAttr(
+            Project project, XmlTagInfo tagInfo, String attrValue
+    ) {
+        return XmlPsiHelper.getAttrsFromChildTag(tagInfo.getTag(), attrValue);
+    }
+
+    /** 从 <code>xdef:unique-attr</code> 的属性值中获得跳转元素（节点属性） */
+    private PsiElement[] getGotoDeclarationTargetsFromUniqueAttr(
+            Project project, XmlTagInfo tagInfo, String attrValue
+    ) {
+        // 仅从当前节点中取引用到的属性
+        XmlTag tag = tagInfo.getTag();
+        XmlAttribute attr = tag.getAttribute(attrValue);
+
+        return attr != null ? new PsiElement[] { attr } : null;
     }
 
     /** 从 csv 中提取指定偏移位置所在的文件路径 */

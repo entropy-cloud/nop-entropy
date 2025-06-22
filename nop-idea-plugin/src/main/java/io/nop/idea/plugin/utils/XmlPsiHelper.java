@@ -7,6 +7,14 @@
  */
 package io.nop.idea.plugin.utils;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
@@ -28,14 +36,6 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.xlang.xpl.xlib.XplLibHelper;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-
 public class XmlPsiHelper {
     static final PsiFile[] EMPTY_FILES = new PsiFile[0];
     static final PsiElement[] EMPTY_ELEMENTS = new PsiElement[0];
@@ -48,24 +48,27 @@ public class XmlPsiHelper {
     public static List<PsiFile> findPsiFileList(Project project, String path) {
         String fileName = StringHelper.fileFullName(path);
         PsiFile[] files = FilenameIndex.getFilesByName(project, fileName, GlobalSearchScope.allScope(project));
-        if (files.length == 0)
+        if (files.length == 0) {
             return Collections.emptyList();
+        }
 
         path = ResourceHelper.getStdPath(path);
 
         List<PsiFile> ret = new ArrayList<>(files.length);
         for (PsiFile file : files) {
             String matchPath = ProjectFileHelper.getNopVfsStdPath(file.getVirtualFile());
-            if (Objects.equals(path, matchPath))
+            if (Objects.equals(path, matchPath)) {
                 ret.add(file);
+            }
         }
         return ret;
     }
 
     public static PsiFile[] findPsiFile(Project project, String path) {
         List<PsiFile> list = findPsiFileList(project, path);
-        if (list.isEmpty())
+        if (list.isEmpty()) {
             return EMPTY_FILES;
+        }
         return list.toArray(EMPTY_FILES);
     }
 
@@ -78,8 +81,9 @@ public class XmlPsiHelper {
                 // 同一个库文件可能存在多个定制文件
                 String path = ProjectFileHelper.getNopVfsPath(file.getVirtualFile());
                 List<PsiFile> list = findPsiFileList(project, path);
-                if (list.isEmpty())
+                if (list.isEmpty()) {
                     list = Collections.singletonList(file);
+                }
                 return list;
             }
 
@@ -101,8 +105,9 @@ public class XmlPsiHelper {
             List<String> paths = StringHelper.split(attr.getValue(), ',');
             for (String path : paths) {
                 String libNs = XplLibHelper.getNamespaceFromLibPath(path);
-                if (ns.equals(libNs))
+                if (ns.equals(libNs)) {
                     return findPsiFileList(project, path);
+                }
             }
         }
 
@@ -112,8 +117,9 @@ public class XmlPsiHelper {
 
     public static PsiElement[] findXplTag(Project project, XmlTag tag) {
         List<PsiFile> files = findXplLib(project, tag);
-        if (files.isEmpty())
+        if (files.isEmpty()) {
             return EMPTY_ELEMENTS;
+        }
 
         String tagBegin = "<" + tag.getLocalName();
 
@@ -125,7 +131,10 @@ public class XmlPsiHelper {
                 int pos = text.indexOf(tagBegin, fromPos);
                 if (pos >= 0) {
                     int end = pos + tagBegin.length();
-                    if (end == text.length() || text.charAt(end) == ' ' || text.charAt(end) == '/' || text.charAt(end) == '>') {
+                    if (end == text.length()
+                        || text.charAt(end) == ' '
+                        || text.charAt(end) == '/'
+                        || text.charAt(end) == '>') {
                         PsiElement element = file.findElementAt(pos + 1);
                         if (element != null && isXmlTag(element)) {
                             ret.add(element);
@@ -148,12 +157,14 @@ public class XmlPsiHelper {
 
     public static String getNopVfsPath(PsiElement element) {
         PsiFile file = element.getContainingFile();
-        if (file == null)
+        if (file == null) {
             return null;
+        }
 
         VirtualFile vf = file.getVirtualFile();
-        if (vf == null)
+        if (vf == null) {
             return null;
+        }
 
         return ProjectFileHelper.getNopVfsPath(vf);
     }
@@ -163,8 +174,9 @@ public class XmlPsiHelper {
     }
 
     public static SourceLocation getValueLocation(XmlTag element) {
-        if (element.getValue() == null)
+        if (element.getValue() == null) {
             return null;
+        }
 
         TextRange range = element.getValue().getTextRange();
         int offset = range.getStartOffset();
@@ -174,8 +186,9 @@ public class XmlPsiHelper {
     static SourceLocation getLocation(PsiElement element, int offset, int len) {
         PsiFile psiFile = element.getContainingFile();
         VirtualFile vf = psiFile.getVirtualFile();
-        if (vf == null)
+        if (vf == null) {
             return null;
+        }
 
         String path = ProjectFileHelper.getNopVfsPath(vf);
 
@@ -189,29 +202,34 @@ public class XmlPsiHelper {
     private static PsiElement getRootElement(PsiElement element) {
         do {
             PsiElement parent = element.getParent();
-            if (parent == null)
+            if (parent == null) {
                 return element;
+            }
             element = parent;
         } while (true);
     }
 
     public static String getAttrName(XmlAttributeValue value) {
-        if (value == null)
+        if (value == null) {
             return null;
+        }
 
-        if (!(value.getParent() instanceof XmlAttribute))
+        if (!(value.getParent() instanceof XmlAttribute)) {
             return null;
+        }
 
         XmlAttribute attr = (XmlAttribute) value.getParent();
         return attr.getName();
     }
 
     public static XmlAttribute getAttr(XmlAttributeValue value) {
-        if (value == null)
+        if (value == null) {
             return null;
+        }
 
-        if (!(value.getParent() instanceof XmlAttribute))
+        if (!(value.getParent() instanceof XmlAttribute)) {
             return null;
+        }
 
         XmlAttribute attr = (XmlAttribute) value.getParent();
         return attr;
@@ -224,16 +242,18 @@ public class XmlPsiHelper {
     public static boolean isInComment(PsiElement element) {
         IElementType elementType = element.getNode().getElementType();
         return elementType == XmlTokenType.XML_COMMENT_END
-                || elementType == XmlTokenType.XML_COMMENT_START
-                || elementType == XmlTokenType.XML_COMMENT_CHARACTERS;
+               || elementType == XmlTokenType.XML_COMMENT_START
+               || elementType == XmlTokenType.XML_COMMENT_CHARACTERS;
     }
 
     public static boolean isElementType(PsiElement elm, IElementType type) {
-        if (elm == null)
+        if (elm == null) {
             return false;
+        }
         ASTNode node = elm.getNode();
-        if (node == null)
+        if (node == null) {
             return false;
+        }
 
         return node.getElementType() == type;
     }
@@ -270,19 +290,40 @@ public class XmlPsiHelper {
         return null;
     }
 
-    public static XmlTag getXmlTag(PsiElement element) {
-        if (element == null)
-            return null;
+    /** 根据查找子节点上指定名字的属性 */
+    public static XmlAttribute[] getAttrsFromChildTag(XmlTag tag, String attrName) {
+        List<XmlAttribute> attrs = new ArrayList<>();
 
-        if (element instanceof XmlTag)
+        for (PsiElement element : tag.getChildren()) {
+            if (!(element instanceof XmlTag child)) {
+                continue;
+            }
+
+            XmlAttribute attr = child.getAttribute(attrName);
+            if (attr != null) {
+                attrs.add(attr);
+            }
+        }
+        return attrs.isEmpty() ? null : attrs.toArray(new XmlAttribute[0]);
+    }
+
+    public static XmlTag getXmlTag(PsiElement element) {
+        if (element == null) {
+            return null;
+        }
+
+        if (element instanceof XmlTag) {
             return ((XmlTag) element);
+        }
 
         do {
             PsiElement parent = element.getParent();
-            if (parent == null)
+            if (parent == null) {
                 return null;
-            if (parent instanceof XmlTag)
+            }
+            if (parent instanceof XmlTag) {
                 return (XmlTag) parent;
+            }
             element = parent;
         } while (true);
     }
@@ -290,8 +331,9 @@ public class XmlPsiHelper {
     public static XmlTag getRoot(XmlTag tag) {
         do {
             XmlTag parent = tag.getParentTag();
-            if (parent == null)
+            if (parent == null) {
                 return tag;
+            }
             tag = parent;
         } while (true);
     }
@@ -300,8 +342,9 @@ public class XmlPsiHelper {
         for (XmlAttribute attr : tag.getAttributes()) {
             if (url.equals(attr.getValue())) {
                 String name = attr.getName();
-                if (name.startsWith("xmlns:"))
+                if (name.startsWith("xmlns:")) {
                     return name.substring("xmlns:".length());
+                }
             }
         }
         return null;

@@ -1,7 +1,11 @@
 package io.nop.idea.plugin;
 
+import com.intellij.codeInsight.documentation.DocumentationManager;
+import com.intellij.codeInsight.navigation.actions.GotoDeclarationAction;
+import com.intellij.lang.documentation.DocumentationProvider;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
+import com.intellij.psi.PsiElement;
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
 import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.config.AppConfig;
@@ -67,7 +71,11 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         return new String[0];
     }
 
-    /** 将测试环境中的 vfs 资源添加到 Project 中 */
+    /**
+     * 将测试环境中的 vfs 资源添加到 Project 中
+     * <p/>
+     * 在需要做文件跳转时，需要将目标文件提前加入 Project 以确保目标文件已存在
+     */
     protected void addVfsResourcesToProject(String... resources) {
         for (String resource : resources) {
             String text = readVfsResource(resource);
@@ -79,5 +87,24 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
     protected String readVfsResource(String resource) {
         IResource res = VirtualFileSystem.instance().getResource(resource);
         return ResourceHelper.readText(res);
+    }
+
+    protected String getDoc() {
+        // Note: 通过 ApplicationManager.getApplication().runReadAction(() -> {})
+        // 消除异常 "Read access is allowed from inside read-action"
+        PsiElement originalElement = myFixture.getFile()
+                                              .findElementAt(myFixture.getEditor().getCaretModel().getOffset());
+        PsiElement element = DocumentationManager.getInstance(getProject())
+                                                 .findTargetElement(myFixture.getEditor(), myFixture.getFile());
+
+        DocumentationProvider docProvider = DocumentationManager.getProviderFromElement(originalElement);
+
+        return docProvider.generateDoc(element, originalElement);
+    }
+
+    protected PsiElement[] getGotoTargets() {
+        return GotoDeclarationAction.findAllTargetElements(getProject(),
+                                                           myFixture.getEditor(),
+                                                           myFixture.getCaretOffset());
     }
 }
