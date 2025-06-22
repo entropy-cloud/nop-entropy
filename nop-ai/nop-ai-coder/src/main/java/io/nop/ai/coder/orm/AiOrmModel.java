@@ -18,6 +18,7 @@ import io.nop.xlang.xdsl.DslModelParser;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.stream.Stream;
 
 public class AiOrmModel {
     private XNode node;
@@ -256,5 +257,23 @@ public class AiOrmModel {
     public String getDictsJava(String appName) {
         String constantsClassName = StringHelper.camelCase(appName, '-', true) + "Constants";
         return new DictsModelToJava().buildJava(getDictsNode(), constantsClassName);
+    }
+
+    public AiOrmModel fixDictProp(String dictPrefix) {
+        XNode dicts = getDictsNode();
+
+        Stream<XNode> colIt = Stream.empty();
+        XNode entities = getOrmNode().childByTag("entities");
+        if (entities != null) {
+            colIt = entities.getChildren().stream().flatMap(entity -> {
+                XNode columns = entity.childByTag("columns");
+                if (columns == null)
+                    return Stream.empty();
+                return columns.getChildren().stream();
+            });
+        }
+        new AiDictModelChecker().fixDictProp(dicts, colIt, "ext:dict", dictPrefix);
+        this.node = null;
+        return this;
     }
 }

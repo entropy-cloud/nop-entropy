@@ -559,6 +559,11 @@ public class OrmModelInitializer {
                     if (entityModel.getName().equals(rel.getRefEntityName()))
                         continue;
 
+                    if (rel.getRefEntityName().indexOf('.') < 0) {
+                        if (StringHelper.simpleClassName(entityModel.getName()).equals(rel.getRefEntityName()))
+                            continue;
+                    }
+
                     // 忽略对于视图的依赖
                     if (rel.getRefEntityModel().isTableView())
                         continue;
