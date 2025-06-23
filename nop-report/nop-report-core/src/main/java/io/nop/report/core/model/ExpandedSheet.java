@@ -12,7 +12,7 @@ import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelPageBreaks;
 import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.model.ExcelPageSetup;
-import io.nop.excel.model.ExcelSheet;
+import io.nop.excel.model.ExcelSheetProtection;
 import io.nop.excel.model.IExcelSheet;
 import io.nop.excel.model.XptSheetModel;
 
@@ -31,6 +31,7 @@ public class ExpandedSheet implements IExcelSheet {
 
     private List<ExcelImage> images;
     private List<ExcelDataValidation> dataValidations;
+    private ExcelSheetProtection sheetProtection;
 
     public ExpandedSheet(XptSheetModel model, ExpandedTable table) {
         this.model = model;
@@ -46,6 +47,7 @@ public class ExpandedSheet implements IExcelSheet {
         setPageSetup(sheet.getPageSetup());
         setDefaultRowHeight(sheet.getDefaultRowHeight());
         setDefaultColumnWidth(sheet.getDefaultColumnWidth());
+        setSheetProtection(sheet.getSheetProtection());
     }
 
     @Override
@@ -55,6 +57,15 @@ public class ExpandedSheet implements IExcelSheet {
 
     public void setDataValidations(List<ExcelDataValidation> dataValidations) {
         this.dataValidations = dataValidations;
+    }
+
+    @Override
+    public ExcelSheetProtection getSheetProtection() {
+        return sheetProtection;
+    }
+
+    public void setSheetProtection(ExcelSheetProtection sheetProtection) {
+        this.sheetProtection = sheetProtection;
     }
 
     @Override

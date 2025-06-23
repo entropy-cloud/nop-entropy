@@ -67,6 +67,13 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: hidden
+     * 
+     */
+    private java.lang.Boolean _hidden ;
+    
+    /**
+     *  
      * xml name: horizontalAlign
      * 
      */
@@ -92,6 +99,13 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
      * 
      */
     private io.nop.excel.model.ExcelBorderStyle _leftBorder ;
+    
+    /**
+     *  
+     * xml name: locked
+     * 
+     */
+    private java.lang.Boolean _locked ;
     
     /**
      *  
@@ -284,6 +298,25 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
+     * xml name: hidden
+     *  
+     */
+    
+    public java.lang.Boolean getHidden(){
+      return _hidden;
+    }
+
+    
+    public void setHidden(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._hidden = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: horizontalAlign
      *  
      */
@@ -354,6 +387,25 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
         checkAllowChange();
         
         this._leftBorder = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: locked
+     *  
+     */
+    
+    public java.lang.Boolean getLocked(){
+      return _locked;
+    }
+
+    
+    public void setLocked(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._locked = value;
            
     }
 
@@ -546,10 +598,12 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
         out.putNotNull("fillFgColor",this.getFillFgColor());
         out.putNotNull("fillPattern",this.getFillPattern());
         out.putNotNull("font",this.getFont());
+        out.putNotNull("hidden",this.getHidden());
         out.putNotNull("horizontalAlign",this.getHorizontalAlign());
         out.putNotNull("id",this.getId());
         out.putNotNull("indent",this.getIndent());
         out.putNotNull("leftBorder",this.getLeftBorder());
+        out.putNotNull("locked",this.getLocked());
         out.putNotNull("name",this.getName());
         out.putNotNull("numberFormat",this.getNumberFormat());
         out.putNotNull("rightBorder",this.getRightBorder());
@@ -576,10 +630,12 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
         instance.setFillFgColor(this.getFillFgColor());
         instance.setFillPattern(this.getFillPattern());
         instance.setFont(this.getFont());
+        instance.setHidden(this.getHidden());
         instance.setHorizontalAlign(this.getHorizontalAlign());
         instance.setId(this.getId());
         instance.setIndent(this.getIndent());
         instance.setLeftBorder(this.getLeftBorder());
+        instance.setLocked(this.getLocked());
         instance.setName(this.getName());
         instance.setNumberFormat(this.getNumberFormat());
         instance.setRightBorder(this.getRightBorder());

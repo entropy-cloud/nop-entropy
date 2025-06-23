@@ -122,6 +122,20 @@ public class StylesPart implements IOfficePackagePart {
 
             styleN.setAttr("xfId", "0");
 
+            Boolean locked = style.getLocked();
+            if (locked != null) {
+                XNode protection = styleN.makeChild("protection");
+                protection.setAttr("locked", locked ? "1" : "0");
+                // 标记应用保护设置
+                styleN.setAttr("applyProtection", "1");
+            }
+
+            Boolean hidden = style.getHidden();
+            if (hidden != null) {
+                XNode protection = styleN.makeChild("protection");
+                protection.setAttr("hidden", hidden ? "1" : "0");
+            }
+
             if (style.getVerticalAlign() != null) {
                 styleN.makeChild("alignment").setAttr("vertical", style.getVerticalAlign().getExcelText());
             }
@@ -368,9 +382,12 @@ public class StylesPart implements IOfficePackagePart {
         if (font.isItalic()) {
             node.addChild("i");
         }
+
         if (font.getUnderlineStyle() != null) {
-            node.addChild("u");
+            XNode u = node.addChild("u");
+            u.setAttr("val", font.getUnderlineStyle().getExcelText()); // 设置具体类型
         }
+
         if (font.isStrikeout()) {
             node.addChild("strike");
         }
@@ -387,6 +404,15 @@ public class StylesPart implements IOfficePackagePart {
             ExcelFontFamily family = ExcelFontFamily.fromText(font.getFontFamily());
             if (family != null) {
                 node.addChild("family").setAttr("val", family.getValue());
+            } else {
+                Integer familyValue = null;
+                try {
+                    familyValue = Integer.parseInt(font.getFontFamily());
+                } catch (NumberFormatException e) {
+                }
+                if (familyValue != null) {
+                    node.addChild("family").setAttr("val", familyValue);
+                }
             }
         }
 

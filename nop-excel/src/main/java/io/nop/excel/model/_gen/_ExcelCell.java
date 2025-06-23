@@ -67,6 +67,13 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
     
     /**
      *  
+     * xml name: protected
+     * 
+     */
+    private java.lang.Boolean _protected ;
+    
+    /**
+     *  
      * xml name: richText
      * 
      */
@@ -228,6 +235,25 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
     
     /**
      * 
+     * xml name: protected
+     *  
+     */
+    
+    public java.lang.Boolean getProtected(){
+      return _protected;
+    }
+
+    
+    public void setProtected(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._protected = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: richText
      *  
      */
@@ -328,6 +354,7 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
         out.putNotNull("mergeDown",this.getMergeDown());
         out.putNotNull("model",this.getModel());
         out.putNotNull("name",this.getName());
+        out.putNotNull("protected",this.getProtected());
         out.putNotNull("richText",this.getRichText());
         out.putNotNull("styleId",this.getStyleId());
         out.putNotNull("type",this.getType());
@@ -350,6 +377,7 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
         instance.setMergeDown(this.getMergeDown());
         instance.setModel(this.getModel());
         instance.setName(this.getName());
+        instance.setProtected(this.getProtected());
         instance.setRichText(this.getRichText());
         instance.setStyleId(this.getStyleId());
         instance.setType(this.getType());

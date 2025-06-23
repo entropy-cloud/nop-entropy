@@ -22,7 +22,7 @@
                    @mergeAcross 向右合并的列数。mergeAcross + 1 == colSpan
                    -->
                 <cell name="string" mergeAcross="!int=0" mergeDown="!int=0" xdef:name="ExcelCell"
-                      linkUrl="string"
+                      linkUrl="string" protected="boolean"
                       xdef:bean-extends-type="io.nop.core.model.table.impl.AbstractCell"
                       styleId="string" type="enum:io.nop.commons.type.StdDataType">
 

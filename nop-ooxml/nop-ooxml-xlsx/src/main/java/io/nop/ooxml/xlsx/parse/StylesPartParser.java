@@ -259,8 +259,10 @@ public class StylesPartParser {
         ExcelFont font = getFont(fontId);
         if (font != null) style.setFont(font);
 
-        String numberFmt = this.numberFormats.get(xf.attrText("numFmtId", ""));
-        if (numberFmt != null) style.setNumberFormat(numberFmt);
+        if (style.getNumberFormat() == null) {
+            String numberFmt = this.numberFormats.get(xf.attrText("numFmtId", ""));
+            if (numberFmt != null) style.setNumberFormat(numberFmt);
+        }
 
         int fillId = xf.attrInt("fillId", -1);
         ExcelFill fill = getFill(fillId);
@@ -279,6 +281,19 @@ public class StylesPartParser {
             if (border.getBottomBorder() != null) style.setBottomBorder(border.getBottomBorder());
             if (border.getDiagonalLeftBorder() != null) style.setDiagonalLeftBorder(border.getDiagonalLeftBorder());
             if (border.getDiagonalRightBorder() != null) style.setDiagonalRightBorder(border.getDiagonalRightBorder());
+        }
+
+        XNode protection = xf.childByTag("protection");
+        if (protection != null) {
+            String locked = protection.attrText("locked");
+            if (locked != null) {
+                style.setLocked("1".equals(locked));
+            }
+            // 新增：支持hidden属性
+            String hidden = protection.attrText("hidden");
+            if (hidden != null) {
+                style.setHidden("1".equals(hidden));
+            }
         }
 
         XNode alignment = xf.childByTag("alignment");
@@ -300,6 +315,17 @@ public class StylesPartParser {
 
             Integer indent = alignment.attrInt("indent");
             style.setIndent(indent);
+
+            // 新增：支持文本旋转和缩小填充
+            Integer textRotation = alignment.attrInt("textRotation");
+            if (textRotation != null) {
+                style.setRotate(textRotation);
+            }
+
+            Boolean shrinkToFit = alignment.attrBoolean("shrinkToFit", null);
+            if (shrinkToFit != null) {
+                style.setShrinkToFit(shrinkToFit);
+            }
         }
     }
 

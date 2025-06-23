@@ -16,6 +16,7 @@ import io.nop.excel.format.ExcelDateHelper;
 import io.nop.excel.model.ExcelDataValidation;
 import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.model.ExcelPageSetup;
+import io.nop.excel.model.ExcelSheetProtection;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
@@ -72,6 +73,8 @@ public class ExcelWriteSupport {
 
         genSheetViews(out, sheet.getDefaultRowHeight());
 
+        genSheetProtection(out, sheet.getSheetProtection());
+
         genCols(out, sheet.getTable().getCols(), sheet.getDefaultColumnWidth());
 
         genRows(out, sheet);
@@ -123,6 +126,58 @@ public class ExcelWriteSupport {
         if (height == null)
             height = 14.0;
         out.simpleNode(null, "sheetFormatPr", attrs("defaultRowHeight", height, "x14ac:dyDescent", "0.3"));
+    }
+
+    public void genSheetProtection(IXNodeHandler out, ExcelSheetProtection protection) {
+        if (protection == null) {
+            return;
+        }
+
+        Map<String, ValueWithLocation> attrs = new LinkedHashMap<>();
+
+        // 核心属性
+        putAttr(attrs, "password", protection.getPassword());
+        putAttr(attrs, "sheet", protection.getEnabled() ? "1" : null);
+
+        // 权限属性（仅当值不为默认值时输出）
+        putAttrIfNotDefault(attrs, "selectLockedCells", protection.getSelectLockedCells(), true);
+        putAttrIfNotDefault(attrs, "selectUnlockedCells", protection.getSelectUnlockedCells(), true);
+        putAttrIfNotDefault(attrs, "formatCells", protection.getFormatCells(), true);
+        putAttrIfNotDefault(attrs, "formatColumns", protection.getFormatColumns(), true);
+        putAttrIfNotDefault(attrs, "formatRows", protection.getFormatRows(), true);
+        putAttrIfNotDefault(attrs, "insertColumns", protection.getInsertColumns(), true);
+        putAttrIfNotDefault(attrs, "insertRows", protection.getInsertRows(), true);
+        putAttrIfNotDefault(attrs, "insertHyperlinks", protection.getInsertHyperlinks(), true);
+        putAttrIfNotDefault(attrs, "deleteColumns", protection.getDeleteColumns(), true);
+        putAttrIfNotDefault(attrs, "deleteRows", protection.getDeleteRows(), true);
+        putAttrIfNotDefault(attrs, "sort", protection.getSort(), true);
+        putAttrIfNotDefault(attrs, "autoFilter", protection.getAutoFilter(), true);
+        putAttrIfNotDefault(attrs, "pivotTables", protection.getPivotTables(), true);
+        putAttrIfNotDefault(attrs, "objects", protection.getObjects(), true);
+        putAttrIfNotDefault(attrs, "scenarios", protection.getScenarios(), true);
+
+        // 输出节点
+        out.simpleNode(null, "sheetProtection", attrs);
+    }
+
+    // 辅助方法：添加属性（如果值不为默认值）
+    private void putAttrIfNotDefault(Map<String, ValueWithLocation> attrs,
+                                     String name,
+                                     Boolean value,
+                                     boolean defaultValue) {
+        if (value == null)
+            return;
+
+        if (value != defaultValue) {
+            putAttr(attrs, name, value ? "1" : "0");
+        }
+    }
+
+    // 辅助方法：添加属性（处理空值）
+    private void putAttr(Map<String, ValueWithLocation> attrs, String name, Object value) {
+        if (value != null) {
+            attrs.put(name, value(value));
+        }
     }
 
     public void genCols(IXNodeHandler out, List<? extends IColumnConfig> cols, Double defaultColumnWidth) {

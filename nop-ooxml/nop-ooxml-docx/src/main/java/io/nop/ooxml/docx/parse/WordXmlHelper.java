@@ -35,7 +35,8 @@ public class WordXmlHelper {
         processNode(node, new IContentHandler() {
             @Override
             public void content(String text) {
-                sb.append(text);
+                if (text != null)
+                    sb.append(text);
             }
 
             @Override

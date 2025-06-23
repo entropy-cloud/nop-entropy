@@ -23,6 +23,7 @@ import io.nop.excel.model.ExcelColumnConfig;
 import io.nop.excel.model.ExcelDataValidation;
 import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.model.ExcelPageSetup;
+import io.nop.excel.model.ExcelSheetProtection;
 
 import java.util.List;
 
@@ -40,7 +41,7 @@ public interface SheetContentsHandler {
 
     void pageMargins(ExcelPageMargins pageMargins);
 
-    default void pageSetup(ExcelPageSetup pageSetup){
+    default void pageSetup(ExcelPageSetup pageSetup) {
 
     }
 
@@ -71,7 +72,11 @@ public interface SheetContentsHandler {
 
     void link(String ref, String location, String rId);
 
-    default void dataValidation(ExcelDataValidation validation){
+    default void sheetProtection(ExcelSheetProtection protection) {
+
+    }
+
+    default void dataValidation(ExcelDataValidation validation) {
 
     }
 

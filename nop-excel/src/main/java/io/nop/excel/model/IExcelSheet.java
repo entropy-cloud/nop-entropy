@@ -22,6 +22,8 @@ public interface IExcelSheet {
 
     ExcelPageBreaks getPageBreaks();
 
+    ExcelSheetProtection getSheetProtection();
+
     List<ExcelDataValidation> getDataValidations();
 
     Double getDefaultRowHeight();

@@ -31,6 +31,7 @@ import io.nop.excel.model.ExcelColumnConfig;
 import io.nop.excel.model.ExcelDataValidation;
 import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.model.ExcelPageSetup;
+import io.nop.excel.model.ExcelSheetProtection;
 import io.nop.excel.util.UnitsHelper;
 import io.nop.ooxml.xlsx.model.SharedStringsPart;
 
@@ -304,6 +305,34 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
         } else if ("formula1".equals(localName) || "formula2".equals(localName)) {
             validationFormula.setLength(0);
             vfOpen = true;
+        } else if ("sheetProtection".equals(localName)) {
+            // 创建保护配置对象
+            ExcelSheetProtection protection = new ExcelSheetProtection();
+            protection.setLocation(loc);
+
+            // 解析核心属性
+            protection.setPassword(getAttr(attrs, "password"));
+            protection.setEnabled(getAttrBoolean(attrs, "sheet", false));
+
+            // 解析权限属性（默认值为 true 表示禁止操作）
+            protection.setSelectLockedCells(getAttrBoolean(attrs, "selectLockedCells", true));
+            protection.setSelectUnlockedCells(getAttrBoolean(attrs, "selectUnlockedCells", true));
+            protection.setFormatCells(getAttrBoolean(attrs, "formatCells", true));
+            protection.setFormatColumns(getAttrBoolean(attrs, "formatColumns", true));
+            protection.setFormatRows(getAttrBoolean(attrs, "formatRows", true));
+            protection.setInsertColumns(getAttrBoolean(attrs, "insertColumns", true));
+            protection.setInsertRows(getAttrBoolean(attrs, "insertRows", true));
+            protection.setInsertHyperlinks(getAttrBoolean(attrs, "insertHyperlinks", true));
+            protection.setDeleteColumns(getAttrBoolean(attrs, "deleteColumns", true));
+            protection.setDeleteRows(getAttrBoolean(attrs, "deleteRows", true));
+            protection.setSort(getAttrBoolean(attrs, "sort", true));
+            protection.setAutoFilter(getAttrBoolean(attrs, "autoFilter", true));
+            protection.setPivotTables(getAttrBoolean(attrs, "pivotTables", true));
+            protection.setObjects(getAttrBoolean(attrs, "objects", true));
+            protection.setScenarios(getAttrBoolean(attrs, "scenarios", true));
+
+            // 传递给输出处理器
+            output.sheetProtection(protection);
         }
     }
 

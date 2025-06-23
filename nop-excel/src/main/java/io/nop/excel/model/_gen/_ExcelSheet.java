@@ -102,6 +102,14 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
     
     /**
      *  
+     * xml name: sheetProtection
+     * Excel 工作表保护配置
+     * 启用后，结合单元格的 locked 属性实现编辑控制
+     */
+    private io.nop.excel.model.ExcelSheetProtection _sheetProtection ;
+    
+    /**
+     *  
      * xml name: table
      * 
      */
@@ -441,6 +449,26 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
     
     /**
      * 
+     * xml name: sheetProtection
+     *  Excel 工作表保护配置
+     * 启用后，结合单元格的 locked 属性实现编辑控制
+     */
+    
+    public io.nop.excel.model.ExcelSheetProtection getSheetProtection(){
+      return _sheetProtection;
+    }
+
+    
+    public void setSheetProtection(io.nop.excel.model.ExcelSheetProtection value){
+        checkAllowChange();
+        
+        this._sheetProtection = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: table
      *  
      */
@@ -484,6 +512,8 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
             
            this._sheetOptions = io.nop.api.core.util.FreezeHelper.deepFreeze(this._sheetOptions);
             
+           this._sheetProtection = io.nop.api.core.util.FreezeHelper.deepFreeze(this._sheetProtection);
+            
            this._table = io.nop.api.core.util.FreezeHelper.deepFreeze(this._table);
             
         }
@@ -505,6 +535,7 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
         out.putNotNull("pageMargins",this.getPageMargins());
         out.putNotNull("pageSetup",this.getPageSetup());
         out.putNotNull("sheetOptions",this.getSheetOptions());
+        out.putNotNull("sheetProtection",this.getSheetProtection());
         out.putNotNull("table",this.getTable());
     }
 
@@ -529,6 +560,7 @@ public abstract class _ExcelSheet extends io.nop.core.resource.component.Abstrac
         instance.setPageMargins(this.getPageMargins());
         instance.setPageSetup(this.getPageSetup());
         instance.setSheetOptions(this.getSheetOptions());
+        instance.setSheetProtection(this.getSheetProtection());
         instance.setTable(this.getTable());
     }
 

@@ -14,6 +14,7 @@ import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.model.ExcelPageSetup;
 import io.nop.excel.model.ExcelRow;
 import io.nop.excel.model.ExcelSheet;
+import io.nop.excel.model.ExcelSheetProtection;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.ExcelTable;
 import io.nop.excel.model.ExcelWorkbook;
@@ -138,5 +139,10 @@ public class SimpleSheetContentsHandler implements SheetContentsHandler {
     @Override
     public void dataValidation(ExcelDataValidation validation) {
         sheet.addDataValidation(validation);
+    }
+
+    @Override
+    public void sheetProtection(ExcelSheetProtection protection) {
+        sheet.setSheetProtection(protection);
     }
 }

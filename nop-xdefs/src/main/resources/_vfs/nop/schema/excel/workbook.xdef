@@ -64,6 +64,8 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
             <sheetOptions xdef:name="ExcelSheetOptions" splitHorizontal="int" splitVertical="int"
                           fitToPage="!boolean=false"/>
 
+            <sheetProtection xdef:ref="sheet-protection.xdef" />
+
             <dataValidations xdef:body-type="list" xdef:key-attr="id">
                 <!--
                 @allowBlank 是否允许为空

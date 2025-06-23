@@ -32,25 +32,25 @@ public enum ExcelFontUnderline implements IExcelEnumValue {
      * Single-line underlining under each character in the cell. The underline is drawn through the descenders of
      * characters such as g and p..
      */
-    SINGLE(1, "Single"),
+    SINGLE(1, "single"),
 
     /**
      * Double-line underlining under each character in the cell. underlines are drawn through the descenders of
      * characters such as g and p.
      */
-    DOUBLE(2, "Double"),
+    DOUBLE(2, "double"),
 
     /**
      * Single-line accounting underlining under each character in the cell. The underline is drawn under the descenders
      * of characters such as g and p.
      */
-    SINGLE_ACCOUNTING(3, "SingleAccounting"),
+    SINGLE_ACCOUNTING(3, "singleAccounting"),
 
     /**
      * Double-line accounting underlining under each character in the cell. The underlines are drawn under the
      * descenders of characters such as g and p.
      */
-    DOUBLE_ACCOUNTING(4, "DoubleAccounting"),
+    DOUBLE_ACCOUNTING(4, "doubleAccounting"),
 
     /**
      * No underline.

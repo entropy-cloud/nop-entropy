@@ -1,0 +1,45 @@
+<!--
+    Excel 工作表保护配置
+    启用后，结合单元格的 locked 属性实现编辑控制
+
+    @password 保护密码的哈希值（16进制字符串）
+    @enabled 是否启用工作表保护（true=启用，false=禁用）
+    @selectLockedCells 是否允许选择已锁定的单元格
+    @selectUnlockedCells 是否允许选择未锁定的单元格
+    @formatCells 是否允许修改单元格格式
+    @formatColumns 是否允许调整列宽和列格式
+    @formatRows 是否允许调整行高和行格式
+    @insertColumns 是否允许插入新列
+    @insertRows 是否允许插入新行
+    @insertHyperlinks 是否允许插入超链接
+    @deleteColumns 是否允许删除列
+    @deleteRows 是否允许删除行
+    @sort 是否允许排序操作
+    @autoFilter 是否允许使用自动筛选
+    @pivotTables 是否允许修改数据透视表
+    @objects 是否允许操作图形对象（如图片、形状等）
+    @scenarios 是否允许编辑方案
+
+    注意：所有权限属性默认为 true（禁止操作）。当属性值为 false 时，表示允许该操作
+    例如：formatCells="false" 表示允许用户修改单元格格式
+-->
+<sheetProtection x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                 xdef:name="ExcelSheetProtection" xdef:bean-package="io.nop.excel.model"
+                 password="string"
+                 enabled="boolean"
+                 selectLockedCells="boolean"
+                 selectUnlockedCells="boolean"
+                 formatCells="boolean"
+                 formatColumns="boolean"
+                 formatRows="boolean"
+                 insertColumns="boolean"
+                 insertRows="boolean"
+                 insertHyperlinks="boolean"
+                 deleteColumns="boolean"
+                 deleteRows="boolean"
+                 sort="boolean"
+                 autoFilter="boolean"
+                 pivotTables="boolean"
+                 objects="boolean"
+                 scenarios="boolean">
+</sheetProtection>
