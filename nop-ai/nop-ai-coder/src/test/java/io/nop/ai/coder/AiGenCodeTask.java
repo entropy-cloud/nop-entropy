@@ -74,11 +74,17 @@ public class AiGenCodeTask extends JunitBaseTestCase {
 
         XNode node = XNodeParser.instance().parseFromResource(new FileResource(file));
         AiOrmConfig config = new AiOrmConfig();
+        config.setAppName("nop-ai");
+        config.setMavenGroupId("io.github.entropy-cloud");
+        config.setMavenArtifactId("nop-ai");
         config.setBasePackageName("nop.ai");
         config.setEntityPackageName("nop.ai.dao.entity");
         AiOrmModel ormModel = AiOrmModel.buildFromAiResult(node, config);
         ormModel.fixDictProp("ai/");
         OrmModel ormModelBean = ormModel.getOrmModelBean();
         ExcelReportHelper.saveXlsxObject("/nop/orm/imp/orm.imp.xml", new FileResource(xlsxFile), ormModelBean);
+
+        String code = ormModel.getDictsJava("nop-ai");
+        System.out.println(code);
     }
 }

@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 需求类型
+locale: zh-CN
+valueType: 
+description: 需求条目的分类
+options:
+
+  - label: 总览
+    value: 001
+    description: 需求概览
+  
+  - label: 模块
+    value: 002
+    description: 功能模块需求
+  
+  - label: 用例
+    value: 003
+    description: 测试用例需求
+  

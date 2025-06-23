@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="项目配置" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>nop.ai.dao.entity.NopAiProjectConfig</entityName>
+
+    <primaryKey>id</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="id" displayName="主键" propId="1" mandatory="true" queryable="true" sortable="true" insertable="true"
+              updatable="false">
+            <schema type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="projectId" displayName="项目ID" propId="2" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="project">
+            <schema type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="configName" displayName="配置名称" propId="3" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="configValue" displayName="配置值" propId="4" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="configType" displayName="配置类型" propId="5" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4" dict="ai/config_type"/>
+        </prop>
+        <prop name="project" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="projectId"
+              ext:joinRightProp="id" mandatory="true" lazy="true" published="false">
+            <schema bizObjName="NopAiProject"/>
+        </prop>
+    </props>
+</meta>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="AI模型" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>nop.ai.dao.entity.NopAiModel</entityName>
+
+    <primaryKey>id</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="id" displayName="主键" propId="1" mandatory="true" queryable="true" sortable="true" insertable="true"
+              updatable="false">
+            <schema type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="provider" displayName="供应商" propId="2" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4" dict="ai/model_provider"/>
+        </prop>
+        <prop name="modelName" displayName="模型名称" propId="3" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="baseUrl" displayName="API地址" propId="4" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="apiKey" displayName="API密钥" propId="5" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="responses" displayName="调用记录" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="modelId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopAiChatResponse"/>
+            </schema>
+        </prop>
+    </props>
+</meta>

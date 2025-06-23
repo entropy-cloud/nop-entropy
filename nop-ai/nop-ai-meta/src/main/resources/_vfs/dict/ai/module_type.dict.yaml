@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 模块类型
+locale: zh-CN
+valueType: 
+description: DSL生成模块分类
+options:
+
+  - label: ORM模块
+    value: 001
+    description: 数据库模型
+  
+  - label: API模块
+    value: 002
+    description: 服务接口
+  
+  - label: UI模块
+    value: 003
+    description: 页面定义
+  

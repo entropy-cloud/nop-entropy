@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="对话请求" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>nop.ai.dao.entity.NopAiChatRequest</entityName>
+
+    <primaryKey>id</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="id" displayName="主键" propId="1" mandatory="true" queryable="true" sortable="true" insertable="true"
+              updatable="false">
+            <schema type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="templateId" displayName="模板ID" propId="2" queryable="true" sortable="true" insertable="true"
+              updatable="true" ext:relation="template">
+            <schema type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="sessionId" displayName="会话ID" propId="3" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="systemPrompt" displayName="系统提示词" propId="4" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="65536"/>
+        </prop>
+        <prop name="userPrompt" displayName="用户提示词" propId="5" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="65536"/>
+        </prop>
+        <prop name="messageType" displayName="消息类型" propId="6" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4" dict="ai/message_type"/>
+        </prop>
+        <prop name="requestTimestamp" displayName="请求时间戳" propId="7" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="hash" displayName="内容哈希" propId="8" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="64"/>
+        </prop>
+        <prop name="metadata" displayName="元数据" propId="9" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.String" precision="2000"/>
+        </prop>
+        <prop name="template" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="templateId"
+              ext:joinRightProp="id" lazy="true" published="false">
+            <schema bizObjName="NopAiPromptTemplate"/>
+        </prop>
+        <prop name="responses" displayName="响应列表" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="requestId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopAiChatResponse"/>
+            </schema>
+        </prop>
+    </props>
+</meta>

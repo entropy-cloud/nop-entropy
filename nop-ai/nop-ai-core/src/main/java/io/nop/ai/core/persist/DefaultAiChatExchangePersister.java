@@ -40,6 +40,8 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
 
     static final String TITLE_MESSAGE_META = "### Metadata\n";
 
+    static final String TITLE_CONTENT = "### Content\n";
+
     static final String JSON_BLOCK_BEGIN = "```json\n";
 
     static final String JSON_BLOCK_END = "\n```";
@@ -162,8 +164,10 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
         }
 
         sb.append("\n");
-        if (message.getContent() != null)
+        sb.append(TITLE_CONTENT);
+        if (message.getContent() != null) {
             sb.append(message.getContent());
+        }
         sb.append(MARKER_CONTENT_END);
         sb.append("\n");
     }
@@ -280,6 +284,7 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
             scanner.skipBlank();
         }
 
+        scanner.match(TITLE_CONTENT);
         String content = scanner.nextUntil(MARKER_CONTENT_END, false).toString();
         message.setContent(content);
         scanner.consume(MARKER_CONTENT_END);

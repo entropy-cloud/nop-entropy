@@ -1,5 +1,20 @@
 <orm>
     <dicts>
+        <dict name="message_type" label="消息类型">
+            <description>对话消息的角色类型</description>
+            <option value="002" code="USER" label="用户" description="用户输入消息"/>
+            <option value="003" code="TOOL" label="助手" description="AI回复消息"/>
+        </dict>
+
+        <dict name="rule_type" label="规则类型">
+            <description>项目规则分类</description>
+            <option value="001" code="CODING_STYLE" label="编码规范" description="代码格式和命名规则"/>
+            <option value="002" code="SECURITY" label="安全规则" description="安全检测和防护规则"/>
+            <option value="003" code="PERFORMANCE" label="性能规则" description="性能优化规则"/>
+            <option value="004" code="ARCHITECTURE" label="架构规则" description="系统架构约束"/>
+            <option value="005" code="CUSTOM" label="自定义规则" description="用户自定义规则"/>
+        </dict>
+
         <dict name="config_type" label="配置类型">
             <description>项目配置项的数据类型</description>
             <option value="001" code="TEXT" label="文本" description="字符串类型配置"/>
@@ -44,7 +59,45 @@
                         precision="36"/>
                 <column name="name" displayName="项目名称" mandatory="true" stdSqlType="VARCHAR" precision="100"/>
                 <column name="prototype_id" displayName="模板项目ID" stdSqlType="VARCHAR" precision="36"
-                        orm:ref-table="NopAiProject" />
+                        orm:ref-table="NopAiProject"/>
+            </columns>
+        </entity>
+
+        <entity name="NopAiProjectRule" displayName="项目规则" db:estimatedRowCount="1000" biz:type="config">
+            <comment>存储项目规则配置</comment>
+            <columns>
+                <!-- 主键 -->
+                <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
+                        precision="36"/>
+
+                <!-- 关联项目 -->
+                <column name="project_id" displayName="项目ID" mandatory="true" stdSqlType="VARCHAR" precision="36"
+                        orm:ref-table="NopAiProject" orm:ref-prop="projectRules"
+                        orm:ref-prop-display-name="项目规则"/>
+
+                <!-- 关联知识库 -->
+                <column name="knowledge_id" displayName="知识库ID" stdSqlType="VARCHAR" precision="36"
+                        orm:ref-table="NopAiKnowledge" orm:ref-prop="relatedRules"
+                        orm:ref-prop-display-name="关联规则"
+                        comment="关联的知识库条目，规则可能基于某个知识文档"/>
+
+                <!-- 规则标识 -->
+                <column name="rule_name" displayName="规则名称" mandatory="true" stdSqlType="VARCHAR" precision="100"
+                        comment="规则标识名称，如：code_format_rule, naming_convention"/>
+
+                <!-- 规则内容 -->
+                <column name="rule_content" displayName="规则内容" mandatory="true" stdSqlType="VARCHAR"
+                        precision="4000"
+                        comment="规则的具体内容（JSON/YAML/文本）"/>
+
+                <!-- 规则类型 -->
+                <column name="rule_type" displayName="规则类型" stdSqlType="VARCHAR" precision="50"
+                        comment="规则分类，如：CODING_STYLE, SECURITY, PERFORMANCE"/>
+
+                <!-- 状态管理 -->
+                <column name="is_active" displayName="是否启用" mandatory="true" stdSqlType="BOOLEAN"
+                        ext:defaultValue="true"/>
+
             </columns>
         </entity>
 
@@ -160,9 +213,18 @@
                 <column name="template_id" displayName="模板ID" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiPromptTemplate" orm:ref-prop="requests"
                         orm:ref-prop-display-name="测试请求"/>
-                <column name="prompt" displayName="完整提示词" mandatory="true" stdSqlType="VARCHAR" precision="4000"/>
-                <column name="hash" displayName="内容哈希" stdSqlType="VARCHAR" precision="64"/>
-                <column name="session_id" displayName="会话ID" stdSqlType="VARCHAR" precision="36"/>
+                <column name="session_id" displayName="会话ID" stdSqlType="VARCHAR" precision="36" mandatory="true"/>
+
+                <column name="system_prompt" displayName="系统提示词" stdSqlType="VARCHAR" precision="65536"/>
+
+                <column name="user_prompt" displayName="用户提示词" mandatory="true" stdSqlType="VARCHAR"
+                        precision="65536"/>
+
+                <column name="message_type" displayName="消息类型" mandatory="true" ext:dict="message_type"
+                        stdSqlType="VARCHAR" precision="4" ext:defaultValue="002"/>
+                <column name="request_timestamp" displayName="请求时间戳" mandatory="true" stdSqlType="TIMESTAMP"/>
+
+                <column name="hash" displayName="内容哈希" stdSqlType="VARCHAR" precision="64" mandatory="true"/>
                 <column name="metadata" displayName="元数据" stdSqlType="VARCHAR" precision="2000"/>
             </columns>
         </entity>
@@ -174,15 +236,26 @@
                         precision="36"/>
                 <column name="request_id" displayName="请求ID" mandatory="true" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiChatRequest" orm:ref-prop="responses" orm:ref-prop-display-name="响应列表"/>
+                <column name="session_id" displayName="会话ID" stdSqlType="VARCHAR" precision="36" mandatory="true"/>
+
                 <column name="model_id" displayName="模型ID" mandatory="true" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiModel" orm:ref-prop="responses" orm:ref-prop-display-name="调用记录"/>
                 <column name="ai_provider" displayName="供应商" mandatory="true" ext:dict="model_provider"
                         stdSqlType="VARCHAR" precision="4"/>
                 <column name="ai_model" displayName="模型名称" mandatory="true" stdSqlType="VARCHAR" precision="50"/>
                 <column name="response_content" displayName="响应内容" mandatory="true" stdSqlType="VARCHAR"
-                        precision="4000"/>
-                <column name="total_tokens" displayName="总token数" stdSqlType="INTEGER"/>
-                <column name="response_time_ms" displayName="响应时间(毫秒)" stdSqlType="INTEGER"/>
+                        precision="65536"/>
+
+                <column name="response_timestamp" displayName="响应时间戳" mandatory="true" stdSqlType="TIMESTAMP"/>
+
+
+                <!-- 拆分的Token统计 -->
+                <column name="prompt_tokens" displayName="请求Token数" stdSqlType="INTEGER"
+                        comment="请求消息消耗的Token数量"/>
+                <column name="completion_tokens" displayName="响应Token数" stdSqlType="INTEGER"
+                        comment="响应消息消耗的Token数量"/>
+
+                <column name="response_duration_ms" displayName="响应耗时(毫秒)" stdSqlType="INTEGER"/>
                 <column name="correctness_score" displayName="正确性分" stdSqlType="DECIMAL" precision="5" scale="2"/>
                 <column name="performance_score" displayName="性能分" stdSqlType="DECIMAL" precision="5" scale="2"/>
                 <column name="readability_score" displayName="可读性分" stdSqlType="DECIMAL" precision="5" scale="2"/>
@@ -203,8 +276,8 @@
                         orm:ref-prop-display-name="关联文件"/>
                 <column name="module_type" displayName="模块类型" mandatory="true" ext:dict="module_type"
                         stdSqlType="VARCHAR" precision="4"/>
-                <column name="original_content" displayName="原始内容" mandatory="true" stdSqlType="VARCHAR"
-                        precision="4000"/>
+                <column name="content" displayName="文件内容" mandatory="true" stdSqlType="VARCHAR"
+                        precision="65536" comment="当前文件内容"/>
                 <column name="file_path" displayName="文件路径" mandatory="true" stdSqlType="VARCHAR" precision="200"/>
                 <column name="chat_response_id" displayName="响应ID" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiChatResponse" orm:ref-prop="generatedFiles"
@@ -224,8 +297,8 @@
                         orm:ref-table="NopAiGenFile" orm:ref-prop="historyRecords"
                         orm:ref-prop-display-name="历史版本"/>
                 <column name="version" displayName="版本号" mandatory="true" stdSqlType="VARCHAR" precision="10"/>
-                <column name="original_content" displayName="原始内容" mandatory="true" stdSqlType="VARCHAR"
-                        precision="4000"/>
+                <column name="content" displayName="文件内容" mandatory="true" stdSqlType="VARCHAR"
+                        precision="65536" comment="当前文件内容"/>
             </columns>
         </entity>
 

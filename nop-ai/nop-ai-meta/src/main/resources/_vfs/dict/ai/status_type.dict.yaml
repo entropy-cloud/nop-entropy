@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 状态类型
+locale: zh-CN
+valueType: 
+description: 数据记录状态
+options:
+
+  - label: 草稿
+    value: 001
+    description: 可编辑状态
+  
+  - label: 初步定稿
+    value: 002
+    description: 需人工确认
+  
+  - label: 最终定稿
+    value: 003
+    description: 不可修改状态
+  

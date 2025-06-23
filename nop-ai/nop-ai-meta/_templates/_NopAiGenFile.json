@@ -1,0 +1,17 @@
+{
+  "id": "",
+  "projectId": "",
+  "requirementId": "",
+  "moduleType": "",
+  "moduleType_label": "",
+  "content": "",
+  "filePath": "",
+  "chatResponseId": "",
+  "status": "",
+  "status_label": "",
+  "project": null,
+  "requirement": null,
+  "chatResponse": null,
+  "historyRecords": null,
+  "testCases": null
+}

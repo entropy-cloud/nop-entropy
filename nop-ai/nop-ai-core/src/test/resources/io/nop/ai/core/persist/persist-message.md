@@ -28,9 +28,6 @@
 
 ## ****Message****: [user]
 
-Hello
------**--**------
-
 ### Metadata
 
 ```json
@@ -39,10 +36,13 @@ Hello
 }
 ```
 
-## ****Response****: [assistant]
 
-Hi there
+
+### Content
+Hello
 -----**--**------
+
+## ****Response****: [assistant]
 
 ### Metadata
 
@@ -51,6 +51,12 @@ Hi there
   "timestamp": "2024-01-01 00:00:01"
 }
 ```
+
+
+
+### Content
+Hi there
+-----**--**------
 
 ## Usage
 

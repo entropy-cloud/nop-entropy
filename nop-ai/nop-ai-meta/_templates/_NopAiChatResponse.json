@@ -1,0 +1,22 @@
+{
+  "id": "",
+  "requestId": "",
+  "sessionId": "",
+  "modelId": "",
+  "aiProvider": "",
+  "aiProvider_label": "",
+  "aiModel": "",
+  "responseContent": "",
+  "responseTimestamp": "2000-01-01 14:00:00",
+  "promptTokens": 0,
+  "completionTokens": 0,
+  "responseDurationMs": 0,
+  "correctnessScore": 0.0,
+  "performanceScore": 0.0,
+  "readabilityScore": 0.0,
+  "complianceScore": 0.0,
+  "request": null,
+  "model": null,
+  "generatedFiles": null,
+  "testCases": null
+}

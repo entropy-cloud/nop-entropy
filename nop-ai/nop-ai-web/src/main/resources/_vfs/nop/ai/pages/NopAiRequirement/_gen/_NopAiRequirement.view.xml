@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view x:schema="/nop/schema/xui/xview.xdef" bizObjName="NopAiRequirement" xmlns:i18n-en="i18n-en"
+      xmlns:x="/nop/schema/xdsl.xdef" xmlns:j="j" xmlns:c="c" xmlns:gql="gql" xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+
+    <objMeta>/nop/ai/model/NopAiRequirement/NopAiRequirement.xmeta</objMeta>
+
+    <controlLib>/nop/web/xlib/control.xlib</controlLib>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true">
+            <cols>
+
+                <!--主键-->
+                <col id="id" mandatory="true" sortable="true"/>
+
+                <!--项目ID-->
+                <col id="projectId" mandatory="true" sortable="true"/>
+
+                <!--需求编号-->
+                <col id="reqNumber" mandatory="true" sortable="true"/>
+
+                <!--需求标题-->
+                <col id="title" mandatory="true" sortable="true"/>
+
+                <!--需求内容-->
+                <col id="content" sortable="true"/>
+
+                <!--当前版本-->
+                <col id="version" mandatory="true" sortable="true"/>
+
+                <!--父需求ID-->
+                <col id="parentId" sortable="true"/>
+
+                <!--需求类型-->
+                <col id="type" mandatory="true" sortable="true"/>
+
+                <!--AI摘要-->
+                <col id="aiSummary" sortable="true"/>
+
+                <!--状态-->
+                <col id="status" mandatory="true" sortable="true"/>
+            </cols>
+        </grid>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+
+    <forms>
+        <form id="view" editMode="view" title="查看-需求条目" i18n-en:title="View ">
+            <layout>
+ id[主键] projectId[项目ID]
+ reqNumber[需求编号] title[需求标题]
+ content[需求内容] version[当前版本]
+ parentId[父需求ID] type[需求类型]
+ aiSummary[AI摘要] status[状态]
+</layout>
+        </form>
+        <form id="add" editMode="add" title="新增-需求条目" i18n-en:title="Add " x:prototype="edit"/>
+        <form id="edit" editMode="edit" title="编辑-需求条目" i18n-en:title="Edit ">
+            <layout>
+ id[主键] projectId[项目ID]
+ reqNumber[需求编号] title[需求标题]
+ content[需求内容] version[当前版本]
+ parentId[父需求ID] type[需求类型]
+ aiSummary[AI摘要] status[状态]
+</layout>
+        </form>
+        <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
+        <form id="asideFilter" editMode="query" x:abstract="true" submitOnChange="true"/>
+        <form id="batchUpdate" editMode="edit" x:abstract="true" title="修改-需求条目" i18n-en:title="Update "/>
+    </forms>
+
+    <pages>
+        <crud name="view-list" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopAiRequirement__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </crud>
+        <crud name="main" grid="list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table autoFillHeight="true">
+                <api url="@query:NopAiRequirement__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+            <listActions>
+                <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
+                    <api url="@mutation:NopAiRequirement__batchDelete?ids=$ids"/>
+                    <confirmText>@i18n:common.confirmBatchDelete</confirmText>
+                </action>
+                <action id="add-button" level="primary" label="@i18n:common.add" icon="fa fa-plus pull-left">
+                    <dialog page="add"/>
+                </action>
+            </listActions>
+            <rowActions>
+                <action id="row-view-button" level="primary" label="@i18n:common.view">
+                    <dialog page="view"/>
+                </action>
+                <action id="row-update-button" level="primary" label="@i18n:common.edit" x:abstract="true">
+                    <dialog page="update"/>
+                </action>
+                <action id="row-delete-button" level="danger" label="@i18n:common.delete" x:abstract="true">
+                    <api url="@mutation:NopAiRequirement__delete?id=$id"/>
+                    <confirmText>@i18n:common.confirmDelete</confirmText>
+                </action>
+                <actionGroup id="row-more-button" label="@i18n:common.more" level="primary">
+                    <action id="row-update-button" label="@i18n:common.edit">
+                        <dialog page="update"/>
+                    </action>
+                    <action id="row-delete-button" label="@i18n:common.delete">
+                        <api url="@mutation:NopAiRequirement__delete?id=$id"/>
+                        <confirmText>@i18n:common.confirmDelete</confirmText>
+                    </action>
+                </actionGroup>
+            </rowActions>
+        </crud>
+        <picker name="picker" grid="pick-list" asideFilterForm="asideFilter" filterForm="query" x:abstract="true">
+            <table noOperations="true">
+                <api url="@query:NopAiRequirement__findPage" gql:selection="{@pageSelection}"/>
+            </table>
+        </picker>
+        <simple name="add" form="add">
+            <api url="@mutation:NopAiRequirement__save/id"/>
+        </simple>
+        <simple name="view" form="view">
+            <initApi url="@query:NopAiRequirement__get?id=$id" gql:selection="{@formSelection}"/>
+        </simple>
+        <simple name="update" form="edit">
+            <initApi url="@query:NopAiRequirement__get?id=$id" gql:selection="{@formSelection}"/>
+            <api url="@mutation:NopAiRequirement__update/id?id=$id" withFormData="true"/>
+        </simple>
+    </pages>
+</view>

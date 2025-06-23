@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: AI供应商
+locale: zh-CN
+valueType: 
+description: 第三方AI服务提供商
+options:
+
+  - label: OpenAI
+    value: 001
+    description: OpenAI服务
+  
+  - label: Claude
+    value: 002
+    description: Claude服务
+  
+  - label: 本地模型
+    value: 003
+    description: 本地部署模型
+  

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="响应结果" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>nop.ai.dao.entity.NopAiChatResponse</entityName>
+
+    <primaryKey>id</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="id" displayName="主键" propId="1" mandatory="true" queryable="true" sortable="true" insertable="true"
+              updatable="false">
+            <schema type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="requestId" displayName="请求ID" propId="2" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="request">
+            <schema type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="sessionId" displayName="会话ID" propId="3" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="modelId" displayName="模型ID" propId="4" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true" ext:relation="model">
+            <schema type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="aiProvider" displayName="供应商" propId="5" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4" dict="ai/model_provider"/>
+        </prop>
+        <prop name="aiModel" displayName="模型名称" propId="6" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="responseContent" displayName="响应内容" propId="7" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="65536"/>
+        </prop>
+        <prop name="responseTimestamp" displayName="响应时间戳" propId="8" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="promptTokens" displayName="请求Token数" propId="9" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="completionTokens" displayName="响应Token数" propId="10" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="responseDurationMs" displayName="响应耗时(毫秒)" propId="11" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="correctnessScore" displayName="正确性分" propId="12" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.math.BigDecimal" precision="5" scale="2"/>
+        </prop>
+        <prop name="performanceScore" displayName="性能分" propId="13" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.math.BigDecimal" precision="5" scale="2"/>
+        </prop>
+        <prop name="readabilityScore" displayName="可读性分" propId="14" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.math.BigDecimal" precision="5" scale="2"/>
+        </prop>
+        <prop name="complianceScore" displayName="合规性分" propId="15" queryable="true" sortable="true" insertable="true"
+              updatable="true">
+            <schema type="java.math.BigDecimal" precision="5" scale="2"/>
+        </prop>
+        <prop name="request" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="requestId"
+              ext:joinRightProp="id" mandatory="true" lazy="true" published="false">
+            <schema bizObjName="NopAiChatRequest"/>
+        </prop>
+        <prop name="model" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="modelId"
+              ext:joinRightProp="id" mandatory="true" lazy="true" published="false">
+            <schema bizObjName="NopAiModel"/>
+        </prop>
+        <prop name="generatedFiles" displayName="生成产物" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="chatResponseId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopAiGenFile"/>
+            </schema>
+        </prop>
+        <prop name="testCases" displayName="生成用例" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
+              ext:joinRightProp="chatResponseId" lazy="true" published="false">
+            <schema>
+                <item bizObjName="NopAiTestCase"/>
+            </schema>
+        </prop>
+    </props>
+</meta>

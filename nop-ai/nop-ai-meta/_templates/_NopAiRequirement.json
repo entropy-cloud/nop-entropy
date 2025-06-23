@@ -1,0 +1,20 @@
+{
+  "id": "",
+  "projectId": "",
+  "reqNumber": "",
+  "title": "",
+  "content": "",
+  "version": "",
+  "parentId": "",
+  "type": "",
+  "type_label": "",
+  "aiSummary": "",
+  "status": "",
+  "status_label": "",
+  "project": null,
+  "parent": null,
+  "children": null,
+  "historyRecords": null,
+  "generatedFiles": null,
+  "testCases": null
+}

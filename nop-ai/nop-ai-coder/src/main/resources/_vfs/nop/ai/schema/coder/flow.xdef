@@ -25,7 +25,7 @@
         <!-- 条件判断 -->
         <decision name="!step-name" description="string"
                   nextOnError="handle-decision-error">
-            <option eval="expr" next="!target-step" xdef:unique-attr="name"/>
+            <option eval="!expr" next="!target-step" xdef:unique-attr="eval"/>
             <default next="!fallback-step"/>
         </decision>
 

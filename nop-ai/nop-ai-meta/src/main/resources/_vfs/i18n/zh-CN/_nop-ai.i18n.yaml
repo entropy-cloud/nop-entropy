@@ -1,0 +1,180 @@
+entity:
+  label:
+    NopAiChatRequest: 对话请求
+    NopAiChatResponse: 响应结果
+    NopAiGenFile: 生成文件
+    NopAiGenFileHistory: 文件历史
+    NopAiKnowledge: 知识库
+    NopAiModel: AI模型
+    NopAiProject: AI项目
+    NopAiProjectConfig: 项目配置
+    NopAiProjectRule: 项目规则
+    NopAiPromptTemplate: 提示词模板
+    NopAiPromptTemplateHistory: 模板历史
+    NopAiRequirement: 需求条目
+    NopAiRequirementHistory: 需求历史
+    NopAiTestCase: 测试用例
+    NopAiTestResult: 测试结果
+prop:
+  label:
+    NopAiChatRequest:
+      hash: 内容哈希
+      id: 主键
+      messageType: 消息类型
+      messageType_label: 消息类型
+      metadata: 元数据
+      requestTimestamp: 请求时间戳
+      responses: 响应列表
+      sessionId: 会话ID
+      systemPrompt: 系统提示词
+      template: null
+      templateId: 模板ID
+      userPrompt: 用户提示词
+    NopAiChatResponse:
+      aiModel: 模型名称
+      aiProvider: 供应商
+      aiProvider_label: 供应商
+      completionTokens: 响应Token数
+      complianceScore: 合规性分
+      correctnessScore: 正确性分
+      generatedFiles: 生成产物
+      id: 主键
+      model: null
+      modelId: 模型ID
+      performanceScore: 性能分
+      promptTokens: 请求Token数
+      readabilityScore: 可读性分
+      request: null
+      requestId: 请求ID
+      responseContent: 响应内容
+      responseDurationMs: 响应耗时(毫秒)
+      responseTimestamp: 响应时间戳
+      sessionId: 会话ID
+      testCases: 生成用例
+    NopAiGenFile:
+      chatResponse: null
+      chatResponseId: 响应ID
+      content: 文件内容
+      filePath: 文件路径
+      historyRecords: 历史版本
+      id: 主键
+      moduleType: 模块类型
+      moduleType_label: 模块类型
+      project: null
+      projectId: 项目ID
+      requirement: null
+      requirementId: 需求ID
+      status: 状态
+      status_label: 状态
+      testCases: 测试用例
+    NopAiGenFileHistory:
+      content: 文件内容
+      genFile: null
+      genFileId: 文件ID
+      id: 主键
+      version: 版本号
+    NopAiKnowledge:
+      content: 内容
+      format: 格式类型
+      format_label: 格式类型
+      id: 主键
+      project: null
+      projectId: 项目ID
+      relatedRules: 关联规则
+      title: 标题
+    NopAiModel:
+      apiKey: API密钥
+      baseUrl: API地址
+      id: 主键
+      modelName: 模型名称
+      provider: 供应商
+      provider_label: 供应商
+      responses: 调用记录
+    NopAiProject:
+      configs: 配置项
+      generatedFiles: 生成文件
+      id: 主键
+      knowledgeItems: 知识条目
+      name: 项目名称
+      projectRules: 项目规则
+      prototype: null
+      prototypeId: 模板项目ID
+      requirements: 需求列表
+    NopAiProjectConfig:
+      configName: 配置名称
+      configType: 配置类型
+      configType_label: 配置类型
+      configValue: 配置值
+      id: 主键
+      project: null
+      projectId: 项目ID
+    NopAiProjectRule:
+      id: 主键
+      isActive: 是否启用
+      knowledge: null
+      knowledgeId: 知识库ID
+      project: null
+      projectId: 项目ID
+      ruleContent: 规则内容
+      ruleName: 规则名称
+      ruleType: 规则类型
+    NopAiPromptTemplate:
+      category: 分类
+      content: 模板内容
+      historyRecords: 历史版本
+      id: 主键
+      inputs: 输入规范
+      name: 模板名称
+      outputs: 输出规范
+      requests: 测试请求
+    NopAiPromptTemplateHistory:
+      content: 模板内容
+      id: 主键
+      template: null
+      templateId: 模板ID
+      version: 版本号
+    NopAiRequirement:
+      aiSummary: AI摘要
+      children: 子需求
+      content: 需求内容
+      generatedFiles: 关联文件
+      historyRecords: 历史版本
+      id: 主键
+      parent: null
+      parentId: 父需求ID
+      project: null
+      projectId: 项目ID
+      reqNumber: 需求编号
+      status: 状态
+      status_label: 状态
+      testCases: 测试用例
+      title: 需求标题
+      type: 需求类型
+      type_label: 需求类型
+      version: 当前版本
+    NopAiRequirementHistory:
+      content: 需求内容
+      id: 主键
+      requirement: null
+      requirementId: 需求ID
+      version: 版本号
+    NopAiTestCase:
+      chatResponse: null
+      chatResponseId: 响应ID
+      genFile: null
+      genFileId: 关联文件ID
+      id: 主键
+      requirement: null
+      requirementId: 需求ID
+      status: 状态
+      status_label: 状态
+      testContent: 测试内容
+      testData: 测试数据
+      testResults: 执行结果
+    NopAiTestResult:
+      errorLog: 错误日志
+      executionTime: 执行时间
+      id: 主键
+      success: 是否成功
+      testCase: null
+      testCaseId: 测试用例ID

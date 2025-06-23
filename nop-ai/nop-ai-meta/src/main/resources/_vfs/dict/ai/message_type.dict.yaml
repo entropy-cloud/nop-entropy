@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 消息类型
+locale: zh-CN
+valueType: 
+description: 对话消息的角色类型
+options:
+
+  - label: 用户
+    value: 002
+    description: 用户输入消息
+  
+  - label: 助手
+    value: 003
+    description: AI回复消息
+  

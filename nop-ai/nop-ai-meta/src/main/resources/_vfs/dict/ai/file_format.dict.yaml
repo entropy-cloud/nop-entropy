@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 文件格式
+locale: zh-CN
+valueType: 
+description: 知识库文档格式类型
+options:
+
+  - label: 纯文本
+    value: 001
+    description: 无格式文本
+  
+  - label: Markdown
+    value: 002
+    description: Markdown格式
+  

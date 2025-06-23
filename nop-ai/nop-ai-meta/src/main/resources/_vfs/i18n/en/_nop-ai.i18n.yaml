@@ -1,0 +1,180 @@
+entity:
+  label:
+    NopAiChatRequest: null
+    NopAiChatResponse: null
+    NopAiGenFile: null
+    NopAiGenFileHistory: null
+    NopAiKnowledge: null
+    NopAiModel: null
+    NopAiProject: null
+    NopAiProjectConfig: null
+    NopAiProjectRule: null
+    NopAiPromptTemplate: null
+    NopAiPromptTemplateHistory: null
+    NopAiRequirement: null
+    NopAiRequirementHistory: null
+    NopAiTestCase: null
+    NopAiTestResult: null
+prop:
+  label:
+    NopAiChatRequest:
+      id: null
+      templateId: null
+      sessionId: null
+      systemPrompt: null
+      userPrompt: null
+      messageType: null
+      messageType_label: null
+      requestTimestamp: null
+      hash: null
+      metadata: null
+      template: null
+      responses: null
+    NopAiChatResponse:
+      id: null
+      requestId: null
+      sessionId: null
+      modelId: null
+      aiProvider: null
+      aiProvider_label: null
+      aiModel: null
+      responseContent: null
+      responseTimestamp: null
+      promptTokens: null
+      completionTokens: null
+      responseDurationMs: null
+      correctnessScore: null
+      performanceScore: null
+      readabilityScore: null
+      complianceScore: null
+      request: null
+      model: null
+      generatedFiles: null
+      testCases: null
+    NopAiGenFile:
+      id: null
+      projectId: null
+      requirementId: null
+      moduleType: null
+      moduleType_label: null
+      content: null
+      filePath: null
+      chatResponseId: null
+      status: null
+      status_label: null
+      project: null
+      requirement: null
+      chatResponse: null
+      historyRecords: null
+      testCases: null
+    NopAiGenFileHistory:
+      id: null
+      genFileId: null
+      version: null
+      content: null
+      genFile: null
+    NopAiKnowledge:
+      id: null
+      projectId: null
+      title: null
+      content: null
+      format: null
+      format_label: null
+      project: null
+      relatedRules: null
+    NopAiModel:
+      id: null
+      provider: null
+      provider_label: null
+      modelName: null
+      baseUrl: null
+      apiKey: null
+      responses: null
+    NopAiProject:
+      id: null
+      name: null
+      prototypeId: null
+      prototype: null
+      projectRules: null
+      configs: null
+      requirements: null
+      knowledgeItems: null
+      generatedFiles: null
+    NopAiProjectConfig:
+      id: null
+      projectId: null
+      configName: null
+      configValue: null
+      configType: null
+      configType_label: null
+      project: null
+    NopAiProjectRule:
+      id: null
+      projectId: null
+      knowledgeId: null
+      ruleName: null
+      ruleContent: null
+      ruleType: null
+      isActive: null
+      project: null
+      knowledge: null
+    NopAiPromptTemplate:
+      id: null
+      name: null
+      content: null
+      category: null
+      inputs: null
+      outputs: null
+      historyRecords: null
+      requests: null
+    NopAiPromptTemplateHistory:
+      id: null
+      templateId: null
+      version: null
+      content: null
+      template: null
+    NopAiRequirement:
+      id: null
+      projectId: null
+      reqNumber: null
+      title: null
+      content: null
+      version: null
+      parentId: null
+      type: null
+      type_label: null
+      aiSummary: null
+      status: null
+      status_label: null
+      project: null
+      parent: null
+      children: null
+      historyRecords: null
+      generatedFiles: null
+      testCases: null
+    NopAiRequirementHistory:
+      id: null
+      requirementId: null
+      version: null
+      content: null
+      requirement: null
+    NopAiTestCase:
+      id: null
+      requirementId: null
+      testContent: null
+      testData: null
+      genFileId: null
+      chatResponseId: null
+      status: null
+      status_label: null
+      requirement: null
+      genFile: null
+      chatResponse: null
+      testResults: null
+    NopAiTestResult:
+      id: null
+      testCaseId: null
+      executionTime: null
+      success: null
+      errorLog: null
+      testCase: null

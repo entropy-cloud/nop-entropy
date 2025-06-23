@@ -1,0 +1,19 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 配置类型
+locale: zh-CN
+valueType: 
+description: 项目配置项的数据类型
+options:
+
+  - label: 文本
+    value: 001
+    description: 字符串类型配置
+  
+  - label: 数值
+    value: 002
+    description: 数字类型配置
+  
+  - label: 布尔
+    value: 003
+    description: 真假值配置
+  
