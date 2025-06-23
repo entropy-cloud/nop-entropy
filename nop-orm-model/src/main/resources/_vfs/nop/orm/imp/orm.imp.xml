@@ -43,6 +43,8 @@
                     <schema stdDomain="string"/>
                 </field>
 
+                <field name="ext:useStdSysFields" displayName="useStdSysFields"/>
+
                 <field name="ext:dialect" displayName="dialect">
                     <schema stdDomain="string"/>
                 </field>

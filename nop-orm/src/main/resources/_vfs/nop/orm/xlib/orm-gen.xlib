@@ -22,17 +22,17 @@
         <DefaultGenExtends outputMode="xml">
             <attr name="_dsl_root" implicit="true" />
             <source>
-                <thisLib:MonitorFieldsSupport xpl:if="_dsl_root.containsTag('monitor-fields')"/>
+                <thisLib:StdSysFieldsSupport xpl:if="_dsl_root.attrBoolean('ext:useStdSysFields')"/>
             </source>
         </DefaultGenExtends>
 
-        <MonitorFieldsSupport outputMode="xml">
+        <StdSysFieldsSupport outputMode="xml">
             <attr name="_dsl_root" implicit="true" />
             <source>
               <orm>
                 <entities>
                   <c:for var="entityNode" items="${_dsl_root.childByTag('entities').children}">
-                    <entity name="${entityNode.getAttr('name')}" xpl:if="!entityNode.containsTag('no-monitor-fields')">
+                    <entity name="${entityNode.getAttr('name')}" xpl:if="!entityNode.containsTag('no-sys-fields')">
                         <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
                                 propId="-1"
                                 stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
@@ -57,7 +57,7 @@
                 </entities>
               </orm>
             </source>
-        </MonitorFieldsSupport>
+        </StdSysFieldsSupport>
 
         <ForceDynamicEntitySupport outputMode="none">
             <attr name="_dsl_root" implicit="true"/>

@@ -131,7 +131,7 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
     /**
      *  
      * xml name: rotate
-     * 旋转角度，从1到360
+     * 旋转角度（0-180）或者特殊值（255）。 90表示顺时针旋转90度（即文本从上到下），180表示颠倒，而255表示垂直文本（每个字母正常方向，但文本行垂直排列）。
      */
     private java.lang.Integer _rotate ;
     
@@ -470,7 +470,7 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
     /**
      * 
      * xml name: rotate
-     *  旋转角度，从1到360
+     *  旋转角度（0-180）或者特殊值（255）。 90表示顺时针旋转90度（即文本从上到下），180表示颠倒，而255表示垂直文本（每个字母正常方向，但文本行垂直排列）。
      */
     
     public java.lang.Integer getRotate(){

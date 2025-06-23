@@ -28,7 +28,6 @@
             <artifactId>nop-ai-service</artifactId>
             <groupId>io.github.entropy-cloud</groupId>
             <version>${nop-entropy.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>

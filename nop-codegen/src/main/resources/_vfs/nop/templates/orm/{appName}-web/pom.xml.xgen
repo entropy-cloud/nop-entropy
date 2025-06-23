@@ -31,7 +31,6 @@
             <artifactId>${ormModel['ext:mavenArtifactId']}-service</artifactId>
             <groupId>${ormModel['ext:mavenGroupId']}</groupId>
             <version>${ormModel['ext:mavenVersion'] || '1.0.0-SNAPSHOT'}</version>
-            <scope>test</scope>
         </dependency>
 
         <dependency>

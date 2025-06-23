@@ -6,6 +6,17 @@
             <option value="003" code="TOOL" label="助手" description="AI回复消息"/>
         </dict>
 
+        <dict name="project_language" label="项目语言">
+            <description>项目使用的编程语言类型</description>
+            <option value="001" code="JAVA" label="Java" description="Java语言项目"/>
+            <option value="002" code="PYTHON" label="Python" description="Python语言项目"/>
+            <option value="003" code="JAVASCRIPT" label="JavaScript" description="JavaScript/TypeScript项目"/>
+            <option value="004" code="GO" label="Go" description="Go语言项目"/>
+            <option value="005" code="CSHARP" label="C#" description="C#语言项目"/>
+            <option value="006" code="CPP" label="C++" description="C++语言项目"/>
+            <option value="007" code="OTHER" label="其他语言" description="其他编程语言"/>
+        </dict>
+
         <dict name="rule_type" label="规则类型">
             <description>项目规则分类</description>
             <option value="001" code="CODING_STYLE" label="编码规范" description="代码格式和命名规则"/>
@@ -57,9 +68,14 @@
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
                         precision="36"/>
+                <column name="language" displayName="项目语言" mandatory="true" ext:dict="project_language"
+                        stdSqlType="VARCHAR" precision="4" ext:defaultValue="001"
+                        comment="项目使用的编程语言类型：JAVA, PYTHON等"/>
                 <column name="name" displayName="项目名称" mandatory="true" stdSqlType="VARCHAR" precision="100"/>
                 <column name="prototype_id" displayName="模板项目ID" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiProject"/>
+                <column name="project_dir" displayName="项目目录" stdSqlType="VARCHAR" precision="500"
+                        comment="项目在文件系统中的存储路径，例如：/data/projects/order-system"/>
             </columns>
         </entity>
 

@@ -126,7 +126,7 @@ public class AiOrmModelNormalizer {
         node.setAttr("xmlns:x", "/nop/schema/xdsl.xdef");
         node.setAttr(OrmModelConstants.EXT_ALLOW_ID_AS_COL_NAME, true);
         node.setAttr("ext:registerShortName", true);
-        node.addTagSet(OrmModelConstants.TAG_MONITOR_FIELDS);
+        node.setAttr("ext:useStdSysFields", true);
 
         if (config.getBasePackageName() != null)
             node.setAttr(OrmModelConstants.EXT_BASE_PACKAGE_NAME, config.getBasePackageName());
