@@ -2,7 +2,13 @@ package io.nop.idea.plugin.reference;
 
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
+import com.intellij.psi.impl.source.resolve.reference.impl.PsiMultiReference;
+import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.xml.XmlAttribute;
+import com.intellij.psi.xml.XmlElement;
+import com.intellij.psi.xml.XmlTag;
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
+import io.nop.idea.plugin.utils.XmlPsiHelper;
 
 /**
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
@@ -20,28 +26,183 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
     protected void setUp() throws Exception {
         super.setUp();
 
-        // Note: 提前将需要跳转的文件添加到 Project 中
-        addVfsResourcesToProject("/nop/schema/xdef.xdef", "/nop/schema/xdsl.xdef", "/nop/schema/xmeta.xdef");
+        // Note: 提前将被引用的文件添加到 Project 中
+        addVfsResourcesToProject("/nop/schema/xdef.xdef",
+                                 "/nop/schema/xdsl.xdef",
+                                 "/nop/schema/xmeta.xdef",
+                                 "/nop/schema/xui/xview.xdef",
+                                 "/nop/schema/xui/store.xdef",
+                                 "/nop/core/xlib/meta-gen.xlib",
+                                 "/nop/schema/schema/obj-schema.xdef",
+                                 "/dict/test/doc/child-type.dict.yaml",
+                                 "/test/link/a.xmeta",
+                                 "/test/link/b.xmeta",
+                                 "/test/link/a.xlib",
+                                 "/test/link/default.xform",
+                                 "/test/link/test-filter.xdef");
     }
 
     public void testGetReferencesFromXmlAttributeValue() {
-        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace("xmlns:xdef=\"/nop/schema/xdef.xdef\"",
-                                                                "xmlns:xdef=\"/nop/sche<caret>ma/xdef.xdef\""));
+        // 对 v-path-list 列表元素的引用
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
+                             x:extends="/test/link/a<caret>.xmeta,/test/link/b.xmeta"
+                       />
+                       """, "/test/link/a.xmeta");
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
+                             x:extends="/test/link/a.xmeta,/test/link/b.x<caret>meta"
+                       />
+                       """, "/test/link/b.xmeta");
+
+        // 对 xdef-ref 类型属性的引用
+        // - 在 *.xdef 中引用内部名字
+        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:ref=\"XDefNode\"",
+                                                                "meta:ref=\"XDe<caret>fNode\""), "#XDefNode");
+        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace("xdef:ref=\"DslNode\"", "xdef:ref=\"Dsl<caret>Node\""),
+               "#DslNode");
+        // - 在 *.xdef 中引用外部文件
+        doTest("""
+                       <meta xmlns:x="/nop/sch<caret>ema/xdsl.xdef"
+                             x:schema="/nop/schema/xmeta.xdef"
+                       />
+                       """, "/nop/schema/xdsl.xdef");
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                             x:schema="/nop/schema/xdef.xdef"
+                             xdef:ref="/nop/schema/sch<caret>ema/obj-schema.xdef"
+                       />
+                       """, "/nop/schema/schema/obj-schema.xdef");
+        // - 在 *.xmeta 中引用外部文件中的节点
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef"
+                             x:schema="/nop/schema/xmeta.xdef"
+                             ref="/test/link/test-filter.xdef<caret>#FilterCondition"
+                       />
+                       """, "/test/link/test-filter.xdef#FilterCondition");
+
+        // 对 x:prototype 属性值的引用
+        doTest(readVfsResource("/test/link/user.view.xml").replace("x:prototype=\"list\"",
+                                                                   "x:prototype=\"li<caret>st\""), "grid#list");
+        doTest(readVfsResource("/test/link/a.xlib").replace("x:prototype=\"Get\"", "x:prototype=\"G<caret>et\""),
+               "Get");
+
+        // 对唯一键的引用
+        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"name\"",
+                                                                "meta:unique-attr=\"n<caret>ame\""), "xdef:prop#name");
+        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"xdef:name\"",
+                                                                "meta:unique-attr=\"xdef:<caret>name\""),
+               "xdef:define#xdef:name");
+        doTest(readVfsResource("/nop/schema/xmeta.xdef").replace("xdef:key-attr=\"id\"", "xdef:key-attr=\"i<caret>d\""),
+               "selection#id");
+
+        // 缺省：对有效文件的引用
+        doTest("""
+                       <c:import from="/test/link/a.x<caret>lib" />
+                       """, "/test/link/a.xlib");
+        doTest("""
+                       <c:include src="/test/<caret>link/a.xlib" />
+                       """, "/test/link/a.xlib");
+        doTest("""
+                       <dialog page="/test/link/de<caret>fault.xform" />
+                       """, "/test/link/default.xform");
+        // - x:schema=v-path
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef"
+                             x:schema="/nop/schema/x<caret>meta.xdef"
+                       />
+                       """, "/nop/schema/xmeta.xdef");
+        // - xdef:default-extends=v-path
+        doTest("""
+                       <form xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef"
+                             xdef:default-extends="/test/link/de<caret>fault.xform"
+                       />
+                       """, "/test/link/default.xform");
+        // - xpl:lib=v-path
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef"
+                             x:schema="/nop/schema/xmeta.xdef"
+                       >
+                           <x:gen-extends>
+                               <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/<caret>xlib/meta-gen.xlib"/>
+                           </x:gen-extends>
+                       </meta>
+                       """, "/nop/core/xlib/meta-gen.xlib");
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef"
+                             x:schema="/nop/schema/xdef.xdef"
+                       >
+                           <xdef:pre-parse>
+                               <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/<caret>xlib/meta-gen.xlib"/>
+                           </xdef:pre-parse>
+                       </meta>
+                       """, "/nop/core/xlib/meta-gen.xlib");
+        doTest("""
+                       <lib xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xlib.xdef">
+                          <tags>
+                              <GenXxx outputMode="node">
+                                  <source>
+                                      <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/<caret>core/xlib/meta-gen.xlib"/>
+                                  </source>
+                              </GenPage>
+                          </tags>
+                       </lib>
+                       """, "/nop/core/xlib/meta-gen.xlib");
+        // - x:schema=v-path
+        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("x:schema=\"/nop/schema/xdef.xdef\"",
+                                                                "x:schema=\"/nop/sche<caret>ma/xdef.xdef\""),
+               "/nop/schema/xdef.xdef");
         doTest(readVfsResource("/nop/schema/xdsl.xdef").replace("xdsl:schema=\"/nop/schema/xdef.xdef\"",
-                                                                "xdsl:schema=\"/nop/sche<caret>ma/xdef.xdef\""));
+                                                                "xdsl:schema=\"/nop/sche<caret>ma/xdef.xdef\""),
+               "/nop/schema/xdef.xdef");
+
+//        // TODO 声明属性将引用属性的类型定义
+//        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("xdef:ref=\"xdef-ref\"",
+//                                                                "xdef:ref=\"xd<caret>ef-ref\""), "");
+//        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:prop name=\"!xml-name\"",
+//                                                                "<xdef:prop name=\"!xml<caret>-name\""), "");
+//        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace("x:schema=\"v-path\"", "x:schema=\"v-pa<caret>th\""),
+//               "");
     }
 
     /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */
-    private void doTest(String text) {
+    private void doTest(String text, String expected) {
         myFixture.configureByText("example." + XLANG_EXT, text);
 
         // 实际有多个引用时，将构造返回 PsiMultiReference，
         // 其会按 PsiMultiReference#COMPARATOR 对引用排序得到优先引用，
         // 再调用该优先引用的 #resolve() 得到 PsiElement
         PsiReference ref = findReferenceAtCaret();
-        assertNotNull(ref);
+        if (!(ref instanceof XLangReference)) {
+            assertInstanceOf(ref, PsiMultiReference.class);
+
+            ref = ((PsiMultiReference) ref).getReferences()[0];
+            assertInstanceOf(ref, XLangReference.class);
+        }
 
         PsiElement target = ref.resolve();
         assertNotNull(target);
+
+        if (ref instanceof NopVfsFileReference) {
+            // Note: 可能不是 vfs 文件
+            String vfsPath = XmlPsiHelper.getNopVfsPath(target);
+            String anchor = target instanceof XmlAttribute attr ? attr.getValue() : null;
+
+            assertEquals(expected, (vfsPath != null ? vfsPath : "") + (anchor != null ? "#" + anchor : ""));
+        } else if (ref instanceof XLangElementReference) {
+            assertInstanceOf(target, XmlElement.class);
+
+            if (target instanceof XmlTag tag) {
+                String id = tag.getAttributeValue("id");
+
+                assertEquals(expected, tag.getName() + (id != null ? "#" + id : ""));
+            } else if (target instanceof XmlAttribute attr) {
+                XmlTag tag = PsiTreeUtil.getParentOfType(attr, XmlTag.class);
+
+                assertEquals(expected, tag.getName() + "#" + attr.getName());
+            } else {
+                fail("Unknown target " + target.getClass());
+            }
+        }
     }
 }

@@ -13,6 +13,7 @@ import com.intellij.lang.annotation.Annotator;
 import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiReference;
 import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlAttributeValue;
 import com.intellij.psi.xml.XmlElement;
@@ -27,6 +28,7 @@ import io.nop.core.dict.DictProvider;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.reference.NopVfsFileReference;
+import io.nop.idea.plugin.reference.XLangReference;
 import io.nop.idea.plugin.resource.ProjectEnv;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
@@ -56,11 +58,22 @@ public class XLangAnnotator implements Annotator {
     }
 
     void doAnnotate(@NotNull PsiElement element, @NotNull AnnotationHolder holder) {
-        if (element.getReference() instanceof NopVfsFileReference) {
-            holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
-                  .range(element.getReference().getAbsoluteRange())
-                  .textAttributes(DefaultLanguageHighlighterColors.CLASS_REFERENCE)
-                  .create();
+        PsiReference ref = element.getReference();
+        if (ref instanceof XLangReference) {
+            // TODO 需对 element 包含的多个 XLangReference 引用进行标注
+            if (ref instanceof NopVfsFileReference) {
+                holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
+                      .range(element.getReference().getAbsoluteRange())
+                      .textAttributes(DefaultLanguageHighlighterColors.CLASS_REFERENCE)
+                      .create();
+            } else if (ref instanceof NopVfsFileReference.NotFound vfs) {
+                holder.newAnnotation(HighlightSeverity.ERROR,
+                                     NopPluginBundle.message("xlang.annotation.reference.vfs-file-not-found",
+                                                             vfs.getPath()))
+                      .range(element.getReference().getAbsoluteRange())
+                      .highlightType(ProblemHighlightType.ERROR)
+                      .create();
+            }
             return;
         }
 

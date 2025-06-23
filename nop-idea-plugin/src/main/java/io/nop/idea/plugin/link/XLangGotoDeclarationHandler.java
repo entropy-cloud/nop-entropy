@@ -7,28 +7,15 @@
  */
 package io.nop.idea.plugin.link;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandlerBase;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.psi.xml.XmlAttribute;
-import com.intellij.psi.xml.XmlElement;
 import com.intellij.psi.xml.XmlElementType;
 import com.intellij.psi.xml.XmlTag;
 import io.nop.commons.util.StringHelper;
 import io.nop.idea.plugin.resource.ProjectEnv;
-import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
-import io.nop.idea.plugin.utils.XmlTagInfo;
-import io.nop.xlang.xdef.IXDefNode;
-import io.nop.xlang.xdef.XDefConstants;
-import io.nop.xlang.xdef.XDefTypeDecl;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /***
@@ -80,61 +67,7 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
     private PsiElement[] getGotoDeclarationTargetsForXmlAttributeValue(
             Project project, PsiElement element, int cursorOffset
     ) {
-        XmlAttribute attr = PsiTreeUtil.getParentOfType(element, XmlAttribute.class);
-        if (attr == null) {
-            return null;
-        }
-
-        String attrValue = attr.getValue();
-        if (StringHelper.isEmpty(attrValue)) {
-            return null;
-        }
-
-        String attrName = attr.getName();
-        XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(attr);
-        XDefTypeDecl attrDefType = tagInfo != null ? tagInfo.getDefAttrType(attrName) : null;
-        // 在无节点定义时，仅做缺省处理
-        if (attrDefType == null) {
-            return getGotoDeclarationTargetsByPath(project, attr, attrValue);
-        }
-
-        // TODO 对于声明属性，仅对其类型的定义（涉及枚举和字典）做跳转
-        if (tagInfo.isDefDeclaredAttr(attrName)) {
-            return null;
-        }
-
-        // 根据属性声明的类型，对属性值做文件/名字引用跳转处理
-        PsiFile file = attr.getContainingFile();
-        String stdDomain = attrDefType.getStdDomain();
-
-        // Note: v-path 类型采用缺省处理
-        if (XDefConstants.STD_DOMAIN_V_PATH_LIST.equals(stdDomain)) {
-            return getGotoDeclarationTargetsFromPathCsv(project, file, cursorOffset);
-        } //
-        else if (XDefConstants.STD_DOMAIN_XDEF_REF.equals(stdDomain)) {
-            return getGotoDeclarationTargetsFromXDefRef(project, attr, attrValue);
-        } //
-        else {
-            String xdslNs = XDefPsiHelper.getXDslNamespace(tagInfo.getTag());
-
-            if ((xdslNs + ":prototype").equals(attrName)) {
-                return getGotoDeclarationTargetsFromPrototype(project, tagInfo, attrValue);
-            } else {
-                String xdefNs = XDefPsiHelper.getXDefNamespace(tagInfo.getTag());
-
-                if ((xdefNs + ":key-attr").equals(attrName)) {
-                    return getGotoDeclarationTargetsFromKeyAttr(project, tagInfo, attrValue);
-                } else if ((xdefNs + ":unique-attr").equals(attrName)) {
-                    return getGotoDeclarationTargetsFromUniqueAttr(project, tagInfo, attrValue);
-                }
-            }
-        }
-
-        // 缺省：有效文件均可跳转
-        // <c:import from="/nop/web/xlib/web.xlib" />
-        // <c:include src="dingflow-gen/impl_GenComponents.xpl" />
-        // <dialog page="/nop/rule/pages/RuleService/executeRule.page.yaml" />
-        return getGotoDeclarationTargetsByPath(project, attr, attrValue);
+        return null;
     }
 
     /** 获取可从 xml 文本中跳转的元素（文件路径、节点引用等） */
@@ -153,151 +86,6 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
         }
 
         return null;
-    }
-
-    /** 获取指定路径的跳转元素（文件） */
-    private PsiElement[] getGotoDeclarationTargetsByPath(Project project, @NotNull XmlElement element, String path) {
-        if (!StringHelper.isValidFilePath(path)) {
-            return null;
-        }
-
-        path = XmlPsiHelper.absolutePath(path, element);
-
-        return XmlPsiHelper.findPsiFile(project, path);
-    }
-
-    /** 从 csv 文本中取光标处的跳转元素（文件） */
-    private PsiElement[] getGotoDeclarationTargetsFromPathCsv(
-            Project project, @NotNull PsiFile file, int cursorOffset
-    ) {
-        PsiElement element = file.findElementAt(cursorOffset);
-        assert element != null;
-
-        // 计算 光标所在元素 在文件中的绝对位置
-        int elementStart = 0;
-        PsiElement parent = element;
-        while (parent != null && parent.getStartOffsetInParent() > 0) {
-            elementStart += parent.getStartOffsetInParent();
-            parent = parent.getParent();
-        }
-
-        String path = extractPathFromCsv(element.getText(), cursorOffset - elementStart);
-
-        return getGotoDeclarationTargetsByPath(project, (XmlElement) element, path);
-    }
-
-    /** 从 <code>xdef-ref</code> 类型的属性值中获得跳转元素（文件或节点） */
-    private PsiElement[] getGotoDeclarationTargetsFromXDefRef(
-            Project project, @NotNull XmlElement element, String attrValue
-    ) {
-        // - /nop/schema/xdef.xdef:
-        //   - `<schema xdef:ref="schema-node.xdef" />`
-        //   - `<item xdef:ref="ISchema" />`
-        // - /nop/schema/schema/schema-node.xdef:
-        //   `<schema ref="/test/test-filter.xdef#FilterCondition" />`
-        String target;
-        PsiElement[] psiFiles;
-
-        // 含有后缀的，视为文件引用
-        if (attrValue.indexOf(".") > 0) {
-            int hashIndex = attrValue.indexOf('#');
-            String path = hashIndex > 0 ? attrValue.substring(0, hashIndex) : attrValue;
-
-            target = hashIndex > 0 ? attrValue.substring(hashIndex + 1) : null;
-            psiFiles = getGotoDeclarationTargetsByPath(project, element, path);
-        }
-        // 否则，视为名字引用
-        else {
-            target = attrValue;
-            // Note: 只能引用当前文件内的名字
-            psiFiles = new PsiElement[] { element.getContainingFile() };
-        }
-
-        if (psiFiles == null || StringHelper.isEmpty(target)) {
-            return psiFiles;
-        }
-
-        List<PsiElement> result = new ArrayList<>();
-        for (PsiElement psiFile : psiFiles) {
-            PsiTreeUtil.processElements(psiFile, el -> {
-                if (el instanceof XmlTag tag) {
-                    // Note: xdef-ref 引用的只能是 xdef:name 命名的节点
-                    if (target.equals(tag.getAttributeValue("xdef:name")) //
-                        || target.equals(tag.getAttributeValue("meta:name")) //
-                    ) {
-                        result.add(tag);
-                    }
-                }
-                return true; // 继续遍历
-            });
-        }
-
-        return result.isEmpty() ? psiFiles : result.toArray(new PsiElement[0]);
-    }
-
-    /** 从 <code>x:prototype</code> 的属性值中获得跳转元素（节点） */
-    private PsiElement[] getGotoDeclarationTargetsFromPrototype(
-            Project project, XmlTagInfo tagInfo, String attrValue
-    ) {
-        // 仅从父节点中取引用到的子节点
-        // io.nop.xlang.delta.DeltaMerger#mergePrototype
-        IXDefNode defNode = tagInfo.getDefNode();
-        IXDefNode parentDefNode = tagInfo.getParentDefNode();
-
-        String keyAttr = parentDefNode.getXdefKeyAttr();
-        if (keyAttr == null) {
-            keyAttr = defNode.getXdefUniqueAttr();
-        }
-
-        XmlTag parentTag = tagInfo.getTag().getParentTag();
-        assert parentTag != null;
-
-        XmlTag protoTag = XmlPsiHelper.getChildTagByAttr(parentTag, keyAttr, attrValue);
-
-        return protoTag != null ? new PsiElement[] { protoTag } : null;
-    }
-
-    /** 从 <code>xdef:key-attr</code> 的属性值中获得跳转元素（节点属性） */
-    private PsiElement[] getGotoDeclarationTargetsFromKeyAttr(
-            Project project, XmlTagInfo tagInfo, String attrValue
-    ) {
-        return XmlPsiHelper.getAttrsFromChildTag(tagInfo.getTag(), attrValue);
-    }
-
-    /** 从 <code>xdef:unique-attr</code> 的属性值中获得跳转元素（节点属性） */
-    private PsiElement[] getGotoDeclarationTargetsFromUniqueAttr(
-            Project project, XmlTagInfo tagInfo, String attrValue
-    ) {
-        // 仅从当前节点中取引用到的属性
-        XmlTag tag = tagInfo.getTag();
-        XmlAttribute attr = tag.getAttribute(attrValue);
-
-        return attr != null ? new PsiElement[] { attr } : null;
-    }
-
-    /** 从 csv 中提取指定偏移位置所在的文件路径 */
-    private String extractPathFromCsv(String csv, int offset) {
-        int start = offset;
-        int end = offset;
-
-        while (start > 0) {
-            char ch = csv.charAt(start - 1);
-            if (ch != ',' && !Character.isWhitespace(ch)) {
-                start -= 1;
-            } else {
-                break;
-            }
-        }
-        while (end < csv.length()) {
-            char ch = csv.charAt(end);
-            if (ch != ',' && !Character.isWhitespace(ch)) {
-                end += 1;
-            } else {
-                break;
-            }
-        }
-
-        return csv.substring(start, end);
     }
 
     private boolean isCustomTag(String tagName) {

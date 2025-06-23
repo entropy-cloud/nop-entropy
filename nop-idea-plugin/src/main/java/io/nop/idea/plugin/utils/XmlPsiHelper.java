@@ -172,17 +172,23 @@ public class XmlPsiHelper {
         return ProjectFileHelper.getNopVfsPath(vf);
     }
 
+    /** 获取指定行列的 {@link PsiElement 元素} */
+    public static PsiElement getPsiElementAt(PsiFile psiFile, int line, int column) {
+        Document document = psiFile.getViewProvider().getDocument();
+        assert document != null;
+
+        int offset = document.getLineStartOffset(line - 1) + column - 1;
+        return psiFile.findElementAt(offset);
+    }
+
     public static SourceLocation getLocation(PsiElement element) {
         return getLocation(element, element.getTextOffset(), element.getTextLength());
     }
 
     public static SourceLocation getValueLocation(XmlTag element) {
-        if (element.getValue() == null) {
-            return null;
-        }
-
         TextRange range = element.getValue().getTextRange();
         int offset = range.getStartOffset();
+
         return getLocation(element, offset, range.getLength());
     }
 
@@ -294,7 +300,7 @@ public class XmlPsiHelper {
     }
 
     /** 根据查找子节点上指定名字的属性 */
-    public static XmlAttribute[] getAttrsFromChildTag(XmlTag tag, String attrName) {
+    public static List<XmlAttribute> getAttrsFromChildTag(XmlTag tag, String attrName) {
         List<XmlAttribute> attrs = new ArrayList<>();
 
         for (PsiElement element : tag.getChildren()) {
@@ -307,7 +313,7 @@ public class XmlPsiHelper {
                 attrs.add(attr);
             }
         }
-        return attrs.isEmpty() ? null : attrs.toArray(new XmlAttribute[0]);
+        return attrs;
     }
 
     public static XmlTag getXmlTag(PsiElement element) {
