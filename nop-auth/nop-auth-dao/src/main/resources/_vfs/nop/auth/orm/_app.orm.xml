@@ -9,6 +9,10 @@
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
 
+    <x:gen-extends x:override="replace">
+        <orm-gen:DefaultGenExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:gen-extends>
+
     <domains>
         <domain name="userName" precision="50" stdSqlType="VARCHAR"/>
         <domain name="image" precision="100" stdDomain="file" stdSqlType="VARCHAR"/>

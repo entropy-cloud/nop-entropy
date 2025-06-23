@@ -129,7 +129,7 @@ public abstract class _OrmColumnModel extends io.nop.core.resource.component.Abs
      * （例如某字段被从数据库删除，它对应的propId忽略，但是程序中已经使用的其他propId值不变）。当实体修改内容作为json格式保存到数据库中时，
      * 为减少存储空间，会按照[[propId,oldValue,newValue]]的格式进行存储。
      */
-    private int _propId ;
+    private int _propId  = 0;
     
     /**
      *  

@@ -10,6 +10,10 @@
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
 
+    <x:gen-extends x:override="replace">
+        <orm-gen:DefaultGenExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:gen-extends>
+
     <dicts>
         <dict label="作业实例状态" name="job/job-instance-status" valueType="int" i18n-en:label="Job Instance Status">
             <option code="CREATED" label="已创建" value="0"/>

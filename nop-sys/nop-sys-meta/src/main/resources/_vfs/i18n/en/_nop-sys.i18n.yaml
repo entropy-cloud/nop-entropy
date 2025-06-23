@@ -11,8 +11,10 @@ entity:
     NopSysI18n: I18n Message
     NopSysLock: Lock
     NopSysNoticeTemplate: Notice Template
+    NopSysObjTag: Obj Tag
     NopSysSequence: Sequence
     NopSysServiceInstance: Instance ID
+    NopSysTag: Tag
     NopSysUserVariable: User Variable
     NopSysVariable: System Variable
 prop:
@@ -184,6 +186,16 @@ prop:
       updateTime: Update Time
       remark: Remark
       extFields: null
+    NopSysObjTag:
+      bizObjId: Biz Obj ID
+      bizObjName: Biz Obj Name
+      tagId: Tag ID
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      tag: Tag
     NopSysSequence:
       seqName: Name
       seqType: Type
@@ -215,6 +227,15 @@ prop:
       isEphemeral: Is Ephemeral
       version: Version
       createTime: Create Time
+      updateTime: Update Time
+    NopSysTag:
+      sid: SID
+      name: Name
+      description: Description
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
       updateTime: Update Time
     NopSysUserVariable:
       userId: User ID

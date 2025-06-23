@@ -676,6 +676,14 @@
         ]
       },
       {
+        "name": "getBaseUrl",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.ai.core.model.LlmModel",
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "getInteger",
         "parameterTypes": [
           "java.util.Map",
@@ -727,6 +735,17 @@
         "parameterTypes": [
           "java.util.Map",
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "initBody",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.ai.core.model.LlmModel",
+          "java.lang.String",
+          "java.util.Map",
+          "io.nop.ai.core.api.messages.Prompt",
+          "io.nop.ai.core.api.chat.AiChatOptions"
         ]
       },
       {

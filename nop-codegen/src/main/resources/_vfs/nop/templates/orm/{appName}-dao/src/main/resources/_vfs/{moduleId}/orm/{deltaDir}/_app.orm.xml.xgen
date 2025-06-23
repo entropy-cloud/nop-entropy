@@ -12,6 +12,7 @@ ormNode.setAttr('xmlns:ext','ext');
 ormNode.setAttr('xmlns:orm-gen','orm-gen');
 ormNode.setAttr('xmlns:xpl','xpl');
 ormNode.setAttr('xmlns:ui','ui');
+ormNode.prependBodyXml(`<x:gen-extends x:override="replace"><orm-gen:DefaultGenExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib" /></x:gen-extends>`);
 ormNode.prependBodyXml(`<x:post-extends x:override="replace"><orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib" /></x:post-extends>`);
 
 ]]></c:script>${ormNode.outerXml(false,false)}

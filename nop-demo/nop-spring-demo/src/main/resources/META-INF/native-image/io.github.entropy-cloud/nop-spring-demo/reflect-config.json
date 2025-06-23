@@ -43995,6 +43995,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.sys.dao.entity.NopSysObjTag"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysSequence"
   },
   {
@@ -44006,6 +44016,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.sys.dao.entity.NopSysServiceInstance"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.dao.entity.NopSysTag"
   },
   {
     "allDeclaredConstructors": true,
@@ -46987,6 +47007,21 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.sys.dao.entity._gen._NopSysObjTag"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "name": "PK_PROP_IDS"
@@ -47311,6 +47346,21 @@
       }
     ],
     "name": "io.nop.sys.dao.entity._gen._NopSysServiceInstance"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.sys.dao.entity._gen._NopSysTag"
   },
   {
     "allDeclaredConstructors": true,
@@ -48119,6 +48169,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysObjTagBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.sys.service.entity.NopSysSequenceBizModel"
   },
   {
@@ -48130,6 +48190,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.sys.service.entity.NopSysServiceInstanceBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.sys.service.entity.NopSysTagBizModel"
   },
   {
     "allDeclaredConstructors": true,

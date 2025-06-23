@@ -84,6 +84,8 @@ public interface OrmModelConstants {
 
     String TAG_NO_AUDIT = "no-audit";
 
+    String TAG_MONITOR_FIELDS = "monitor-fields";
+
     String PROP_NAME_nopRevType = "nopRevType";
     String PROP_NAME_nopRevBeginVer = "nopRevBeginVer";
     String PROP_NAME_nopRevEndVer = "nopRevEndVer";
@@ -121,6 +123,8 @@ public interface OrmModelConstants {
     String EXT_BASE_PACKAGE_NAME = "ext:basePackageName";
     String EXT_MAVEN_GROUP_ID = "ext:mavenGroupId";
     String EXT_ENTITY_PACKAGE_NAME = "ext:entityPackageName";
+
+    String EXT_ALLOW_ID_AS_COL_NAME = "ext:allowIdAsColName";
 
 //    String EXT_MODULE_NAME = "ext:moduleName";
 

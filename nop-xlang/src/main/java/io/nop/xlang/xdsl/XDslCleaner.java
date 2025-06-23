@@ -34,6 +34,12 @@ public class XDslCleaner {
 
         clearAttrs(defNode, node);
 
+        String content = node.contentText();
+        if ("...".equals(content)) {
+            node.content(null);
+            return;
+        }
+
         if (defNode.getChildren().isEmpty() && defNode.getXdefValue() != null)
             return;
 

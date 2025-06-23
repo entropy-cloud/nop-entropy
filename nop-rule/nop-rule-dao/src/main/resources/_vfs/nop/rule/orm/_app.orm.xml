@@ -9,6 +9,10 @@
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
 
+    <x:gen-extends x:override="replace">
+        <orm-gen:DefaultGenExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:gen-extends>
+
     <dicts>
         <dict label="规则类型" name="rule/rule-type" valueType="string" i18n-en:label="Rule Type">
             <option code="TREE" label="决策树" value="TREE"/>

@@ -402,6 +402,9 @@
 /nop/schema/excel/style.xdef
 /nop/schema/excel/workbook.xdef
 /nop/schema/gateway.xdef
+/nop/schema/lang/class.xdef
+/nop/schema/lang/compilation-unit.xdef
+/nop/schema/lang/method.xdef
 /nop/schema/message.xdef
 /nop/schema/office/doc.xdef
 /nop/schema/orm/dialect.xdef
@@ -523,6 +526,10 @@
 /nop/sys/model/NopSysNoticeTemplate/NopSysNoticeTemplate.xmeta
 /nop/sys/model/NopSysNoticeTemplate/_NopSysNoticeTemplate.xbiz
 /nop/sys/model/NopSysNoticeTemplate/_NopSysNoticeTemplate.xmeta
+/nop/sys/model/NopSysObjTag/NopSysObjTag.xbiz
+/nop/sys/model/NopSysObjTag/NopSysObjTag.xmeta
+/nop/sys/model/NopSysObjTag/_NopSysObjTag.xbiz
+/nop/sys/model/NopSysObjTag/_NopSysObjTag.xmeta
 /nop/sys/model/NopSysSequence/NopSysSequence.xbiz
 /nop/sys/model/NopSysSequence/NopSysSequence.xmeta
 /nop/sys/model/NopSysSequence/_NopSysSequence.xbiz
@@ -531,6 +538,10 @@
 /nop/sys/model/NopSysServiceInstance/NopSysServiceInstance.xmeta
 /nop/sys/model/NopSysServiceInstance/_NopSysServiceInstance.xbiz
 /nop/sys/model/NopSysServiceInstance/_NopSysServiceInstance.xmeta
+/nop/sys/model/NopSysTag/NopSysTag.xbiz
+/nop/sys/model/NopSysTag/NopSysTag.xmeta
+/nop/sys/model/NopSysTag/_NopSysTag.xbiz
+/nop/sys/model/NopSysTag/_NopSysTag.xmeta
 /nop/sys/model/NopSysUserVariable/NopSysUserVariable.xbiz
 /nop/sys/model/NopSysUserVariable/NopSysUserVariable.xmeta
 /nop/sys/model/NopSysUserVariable/_NopSysUserVariable.xbiz
@@ -605,6 +616,11 @@
 /nop/sys/pages/NopSysNoticeTemplate/_gen/_NopSysNoticeTemplate.view.xml
 /nop/sys/pages/NopSysNoticeTemplate/main.page.yaml
 /nop/sys/pages/NopSysNoticeTemplate/picker.page.yaml
+/nop/sys/pages/NopSysObjTag/NopSysObjTag.lib.xjs
+/nop/sys/pages/NopSysObjTag/NopSysObjTag.view.xml
+/nop/sys/pages/NopSysObjTag/_gen/_NopSysObjTag.view.xml
+/nop/sys/pages/NopSysObjTag/main.page.yaml
+/nop/sys/pages/NopSysObjTag/picker.page.yaml
 /nop/sys/pages/NopSysSequence/NopSysSequence.lib.js
 /nop/sys/pages/NopSysSequence/NopSysSequence.lib.xjs
 /nop/sys/pages/NopSysSequence/NopSysSequence.view.xml
@@ -616,6 +632,11 @@
 /nop/sys/pages/NopSysServiceInstance/_gen/_NopSysServiceInstance.view.xml
 /nop/sys/pages/NopSysServiceInstance/main.page.yaml
 /nop/sys/pages/NopSysServiceInstance/picker.page.yaml
+/nop/sys/pages/NopSysTag/NopSysTag.lib.xjs
+/nop/sys/pages/NopSysTag/NopSysTag.view.xml
+/nop/sys/pages/NopSysTag/_gen/_NopSysTag.view.xml
+/nop/sys/pages/NopSysTag/main.page.yaml
+/nop/sys/pages/NopSysTag/picker.page.yaml
 /nop/sys/pages/NopSysUserVariable/NopSysUserVariable.lib.js
 /nop/sys/pages/NopSysUserVariable/NopSysUserVariable.lib.xjs
 /nop/sys/pages/NopSysUserVariable/NopSysUserVariable.view.xml

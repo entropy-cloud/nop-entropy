@@ -10,6 +10,10 @@
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
 
+    <x:gen-extends x:override="replace">
+        <orm-gen:DefaultGenExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:gen-extends>
+
     <dicts>
         <dict label="步骤状态" name="task/task-step-status" valueType="int" i18n-en:label="TaskFlow Step Status">
             <option code="CREATED" label="已创建" value="0"/>

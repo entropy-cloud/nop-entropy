@@ -93,7 +93,7 @@
           @sqlText 如果不为空，则表示是sql视图字段，字段为只读列，值不允许被修改。查询的时候会使用sqlText作为获取数据的表达式。
           @fixedValue 字段的值总是取固定值。例如通过一个大宽表来同时支持多个业务实体对象时，可以通过类型列来区分不同的实体类型
         -->
-        <column name="!var-name" code="!string" propId="!int" displayName="string"
+        <column name="!var-name" code="!string" propId="!int=0" displayName="string"
                 insertable="!boolean=true" updatable="!boolean=true" jsonPath="string"
                 domain="string" stdDomain="string" stdDataType="std-data-type" nativeSqlType="string"
                 stdSqlType="!std-sql-type" precision="int" scale="int"

@@ -9,6 +9,10 @@
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
 
+    <x:gen-extends x:override="replace">
+        <orm-gen:DefaultGenExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:gen-extends>
+
     <dicts>
         <dict label="事件状态" name="core/sys-event-status" valueType="int" i18n-en:label="Sys Event Status">
             <option code="WAITING" label="待处理" value="0"/>

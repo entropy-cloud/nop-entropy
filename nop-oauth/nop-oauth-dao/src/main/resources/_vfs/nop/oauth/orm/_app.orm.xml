@@ -9,6 +9,10 @@
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
 
+    <x:gen-extends x:override="replace">
+        <orm-gen:DefaultGenExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:gen-extends>
+
     <entities>
         <entity className="io.nop.oauth.dao.entity.NopOauthAuthorization" displayName="Oauth认证记录"
                 name="io.nop.oauth.dao.entity.NopOauthAuthorization" tableName="nop_oauth_authorization">

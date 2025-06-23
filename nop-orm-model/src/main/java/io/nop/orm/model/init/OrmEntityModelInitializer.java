@@ -287,6 +287,8 @@ public class OrmEntityModelInitializer {
 
         IntHashMap<OrmColumnModel> cols = new IntHashMap<>();
 
+        List<OrmColumnModel> noPropIdCols = new ArrayList<>();
+
         // 如果是delta模型，则可能设置minPropId，避免与基类中已有的属性冲突
         int maxPropId = ConvertHelper.toPrimitiveInt(entityModel.prop_get(OrmModelConstants.EXT_PROP_MIN_PROP_ID), 0, NopException::new);
 
@@ -296,7 +298,11 @@ public class OrmEntityModelInitializer {
             col.setCode(col.getCode().intern());
 
             int propId = col.getPropId();
-            if (propId <= 0 || propId >= OrmModelConstants.MAX_PROP_ID)
+            if (propId <= 0) {
+                noPropIdCols.add(col);
+                continue;
+            }
+            if (propId >= OrmModelConstants.MAX_PROP_ID)
                 throw new NopException(ERR_ORM_MODEL_INVALID_PROP_ID).source(col)
                         .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, col.getName())
                         .param(ARG_PROP_ID, propId);
@@ -307,6 +313,22 @@ public class OrmEntityModelInitializer {
                         .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, col.getName())
                         .param(ARG_OTHER_PROP_NAME, old.getName()).param(ARG_PROP_ID, propId);
             maxPropId = Math.max(maxPropId, propId);
+        }
+
+        for (OrmColumnModel col : noPropIdCols) {
+            int propId = ++maxPropId;
+
+            if (propId >= OrmModelConstants.MAX_PROP_ID)
+                throw new NopException(ERR_ORM_MODEL_INVALID_PROP_ID).source(col)
+                        .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, col.getName())
+                        .param(ARG_PROP_ID, propId);
+            
+            OrmColumnModel old = cols.put(propId, col);
+            if (old != null)
+                throw new NopException(ERR_ORM_MODEL_DUPLICATE_PROP_ID).source(col)
+                        .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, col.getName())
+                        .param(ARG_OTHER_PROP_NAME, old.getName()).param(ARG_PROP_ID, propId);
+            col.setPropId(propId);
         }
 
         Collections.sort(entityModel.getColumns(), Comparator.comparing(OrmColumnModel::getPropId));

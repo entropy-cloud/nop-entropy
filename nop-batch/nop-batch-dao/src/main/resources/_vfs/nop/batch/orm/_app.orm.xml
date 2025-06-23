@@ -9,6 +9,10 @@
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
 
+    <x:gen-extends x:override="replace">
+        <orm-gen:DefaultGenExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:gen-extends>
+
     <dicts>
         <dict label="批处理任务状态" name="batch/task-status" valueType="int" i18n-en:label="Batch Task Status">
             <option code="CREATED" label="已创建" value="0" i18n-en:label="Created"/>

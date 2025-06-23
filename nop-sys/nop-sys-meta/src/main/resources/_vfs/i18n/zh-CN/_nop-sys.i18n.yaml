@@ -11,8 +11,10 @@ entity:
     NopSysI18n: 多语言消息
     NopSysLock: 资源锁
     NopSysNoticeTemplate: 通知模板
+    NopSysObjTag: 对象标签
     NopSysSequence: 序列号
     NopSysServiceInstance: 服务实例
+    NopSysTag: 标签
     NopSysUserVariable: 用户变量
     NopSysVariable: 系统变量
 prop:
@@ -184,6 +186,16 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+    NopSysObjTag:
+      bizObjId: 对象ID
+      bizObjName: 对象名
+      createTime: 创建时间
+      createdBy: 创建人
+      tag: 标签
+      tagId: 标签ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopSysSequence:
       cacheSize: 缓存个数
       createTime: 创建时间
@@ -216,6 +228,15 @@ prop:
       updateTime: 修改时间
       version: 数据版本
       weight: 权重
+    NopSysTag:
+      createTime: 创建时间
+      createdBy: 创建人
+      description: 描述
+      name: 名称
+      sid: 主键
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopSysUserVariable:
       createTime: 创建时间
       createdBy: 创建人

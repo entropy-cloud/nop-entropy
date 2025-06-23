@@ -10,6 +10,10 @@
         <orm-gen:DefaultPostExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
     </x:post-extends>
 
+    <x:gen-extends x:override="replace">
+        <orm-gen:DefaultGenExtends xpl:lib="/nop/orm/xlib/orm-gen.xlib"/>
+    </x:gen-extends>
+
     <dicts>
         <dict label="路由状态" name="ddd/routing-status" valueType="string" i18n-en:label="Routing Status">
             <option code="NOT_ROUTED" label="未路由" value="NOT_ROUTED" i18n-en:label="Not Routed"/>

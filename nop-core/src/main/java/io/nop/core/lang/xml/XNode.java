@@ -2648,6 +2648,19 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         }
     }
 
+    /**
+     * AI生成代码时会出现以下情况
+     * <entity name="NopAiProject">...</entity>
+     */
+    public void fixEllipsisContent() {
+        forEachNode(node -> {
+            String text = node.contentText();
+            if ("...".equals(text)) {
+                node.content(null);
+            }
+        });
+    }
+
     public void addJsonPrefix() {
         checkNotReadOnly();
 
