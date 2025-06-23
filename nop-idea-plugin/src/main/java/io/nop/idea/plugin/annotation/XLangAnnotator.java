@@ -11,6 +11,7 @@ import com.intellij.codeInspection.ProblemHighlightType;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.Annotator;
 import com.intellij.lang.annotation.HighlightSeverity;
+import com.intellij.openapi.editor.DefaultLanguageHighlighterColors;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlAttributeValue;
@@ -25,6 +26,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.dict.DictProvider;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.idea.plugin.messages.NopPluginBundle;
+import io.nop.idea.plugin.reference.NopVfsFileReference;
 import io.nop.idea.plugin.resource.ProjectEnv;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
@@ -42,12 +44,26 @@ public class XLangAnnotator implements Annotator {
     @Override
     public void annotate(@NotNull PsiElement element, @NotNull AnnotationHolder holder) {
         ProjectEnv.withProject(element.getProject(), () -> {
-            doAnnotate(element, holder);
+            try {
+                doAnnotate(element, holder);
+            } catch (Exception e) {
+                holder.newAnnotation(HighlightSeverity.WARNING, e.getMessage())
+                      .highlightType(ProblemHighlightType.WARNING)
+                      .create();
+            }
             return null;
         });
     }
 
     void doAnnotate(@NotNull PsiElement element, @NotNull AnnotationHolder holder) {
+        if (element.getReference() instanceof NopVfsFileReference) {
+            holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
+                  .range(element.getReference().getAbsoluteRange())
+                  .textAttributes(DefaultLanguageHighlighterColors.CLASS_REFERENCE)
+                  .create();
+            return;
+        }
+
         if (element instanceof XmlTag) {
             XmlTag tag = (XmlTag) element;
 

@@ -1,11 +1,13 @@
 package io.nop.idea.plugin;
 
+import com.intellij.codeInsight.TargetElementUtil;
 import com.intellij.codeInsight.documentation.DocumentationManager;
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationAction;
 import com.intellij.lang.documentation.DocumentationProvider;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiReference;
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
 import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.config.AppConfig;
@@ -89,11 +91,19 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         return ResourceHelper.readText(res);
     }
 
+    protected PsiElement getElementAtCaret() {
+        return myFixture.getFile().findElementAt(myFixture.getCaretOffset());
+    }
+
+    protected PsiReference findReferenceAtCaret() {
+        return TargetElementUtil.findReference(myFixture.getEditor(), myFixture.getCaretOffset());
+    }
+
     protected String getDoc() {
         // Note: 通过 ApplicationManager.getApplication().runReadAction(() -> {})
         // 消除异常 "Read access is allowed from inside read-action"
-        PsiElement originalElement = myFixture.getFile()
-                                              .findElementAt(myFixture.getEditor().getCaretModel().getOffset());
+        PsiElement originalElement = getElementAtCaret();
+
         PsiElement element = DocumentationManager.getInstance(getProject())
                                                  .findTargetElement(myFixture.getEditor(), myFixture.getFile());
 

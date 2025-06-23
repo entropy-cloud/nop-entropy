@@ -84,8 +84,10 @@
         <!-- 根据XDef文件定义，对XLang DSL进行语法校验 -->
         <annotator language="XLang" implementationClass="io.nop.idea.plugin.annotation.XLangAnnotator"/>
 
+        <!-- 引用识别 -->
+        <psi.referenceContributor implementation="io.nop.idea.plugin.reference.XLangReferenceContributor"/>
         <!-- 点击ctrl跳转到对应文件 -->
-        <gotoDeclarationHandler implementation="io.nop.idea.plugin.link.XLangGotoDeclarationHandler"/>
+<!--        <gotoDeclarationHandler implementation="io.nop.idea.plugin.link.XLangGotoDeclarationHandler"/>-->
 
 
         <fileTypeDetector implementation="io.nop.idea.plugin.lang.XLangFileTypeDetector" order="first" />

@@ -9,6 +9,7 @@ package io.nop.idea.plugin.utils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -22,6 +23,7 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.tree.IElementType;
@@ -37,8 +39,6 @@ import io.nop.core.resource.ResourceHelper;
 import io.nop.xlang.xpl.xlib.XplLibHelper;
 
 public class XmlPsiHelper {
-    static final PsiFile[] EMPTY_FILES = new PsiFile[0];
-    static final PsiElement[] EMPTY_ELEMENTS = new PsiElement[0];
 
     public static String absolutePath(String path, XmlElement element) {
         String filePath = getNopVfsPath(element);
@@ -47,18 +47,21 @@ public class XmlPsiHelper {
 
     public static List<PsiFile> findPsiFileList(Project project, String path) {
         String fileName = StringHelper.fileFullName(path);
-        PsiFile[] files = FilenameIndex.getFilesByName(project, fileName, GlobalSearchScope.allScope(project));
-        if (files.length == 0) {
+        Collection<VirtualFile> vfList = FilenameIndex.getVirtualFilesByName(fileName,
+                                                                            GlobalSearchScope.allScope(project));
+        if (vfList.isEmpty()) {
             return Collections.emptyList();
         }
 
         path = ResourceHelper.getStdPath(path);
 
-        List<PsiFile> ret = new ArrayList<>(files.length);
-        for (PsiFile file : files) {
-            String matchPath = ProjectFileHelper.getNopVfsStdPath(file.getVirtualFile());
-            if (Objects.equals(path, matchPath)) {
-                ret.add(file);
+        List<PsiFile> ret = new ArrayList<>(vfList.size());
+        for (VirtualFile vf : vfList) {
+            String vfPath = ProjectFileHelper.getNopVfsStdPath(vf);
+
+            if (Objects.equals(path, vfPath)) {
+                PsiFile f = PsiManager.getInstance(project).findFile(vf);
+                ret.add(f);
             }
         }
         return ret;
@@ -67,9 +70,9 @@ public class XmlPsiHelper {
     public static PsiFile[] findPsiFile(Project project, String path) {
         List<PsiFile> list = findPsiFileList(project, path);
         if (list.isEmpty()) {
-            return EMPTY_FILES;
+            return PsiFile.EMPTY_ARRAY;
         }
-        return list.toArray(EMPTY_FILES);
+        return list.toArray(PsiFile.EMPTY_ARRAY);
     }
 
     public static List<PsiFile> findXplLib(Project project, XmlTag tag) {
@@ -118,7 +121,7 @@ public class XmlPsiHelper {
     public static PsiElement[] findXplTag(Project project, XmlTag tag) {
         List<PsiFile> files = findXplLib(project, tag);
         if (files.isEmpty()) {
-            return EMPTY_ELEMENTS;
+            return PsiElement.EMPTY_ARRAY;
         }
 
         String tagBegin = "<" + tag.getLocalName();
@@ -147,7 +150,7 @@ public class XmlPsiHelper {
                 }
             } while (true);
         }
-        return ret.toArray(EMPTY_ELEMENTS);
+        return ret.toArray(PsiElement.EMPTY_ARRAY);
     }
 
     private static boolean isXmlTag(PsiElement element) {
