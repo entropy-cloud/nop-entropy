@@ -34,7 +34,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.function.Supplier;
+
+import static io.nop.api.core.convert.IByteArrayView.EMPTY_BYTES;
 
 /**
  * 从KaitaiStruct项目的KaitaiStream类拷贝部分实现代码
@@ -377,11 +380,21 @@ public interface IBinaryDataReader extends IDataReaderBase, DataInput {
      * @return read bytes as byte array
      */
     default byte[] readBytes(int n) throws IOException {
-        return readFully(n);
+        byte[] bytes = new byte[n];
+        int nRead = tryReadFully(bytes, 0, n);
+        if (nRead <= 0)
+            return EMPTY_BYTES;
+        if (nRead == n)
+            return bytes;
+        return Arrays.copyOf(bytes, nRead);
     }
 
     default ByteString readByteString(int n) throws IOException {
         return ByteString.of(readBytes(n));
+    }
+
+    default ByteString readByteStringFully(int n) throws IOException {
+        return ByteString.of(readFully(n));
     }
 
     /**
@@ -425,6 +438,13 @@ public interface IBinaryDataReader extends IDataReaderBase, DataInput {
         if (charset == null)
             charset = StandardCharsets.UTF_8;
         byte[] data = readBytes(length);
+        return new String(data, charset);
+    }
+
+    default String readStringFully(int length, Charset charset) throws IOException {
+        if (charset == null)
+            charset = StandardCharsets.UTF_8;
+        byte[] data = readFully(length);
         return new String(data, charset);
     }
 
@@ -544,8 +564,27 @@ public interface IBinaryDataReader extends IDataReaderBase, DataInput {
         return ByteHelper.equals(data, bytes);
     }
 
+    default boolean startsWithByteString(ByteString str) throws IOException {
+        return startsWithBytes(str.toByteArray());
+    }
+
     default boolean startsWith(String str) throws IOException {
         return startsWithBytes(str.getBytes(StandardCharsets.UTF_8));
+    }
+
+    default ByteString peekByteString(int maxLength) throws IOException {
+        long pos = pos();
+        ByteString data = readByteString(maxLength);
+        seek(pos);
+        return data;
+    }
+
+    default ByteString peekNextByteString(int offset, int maxLength) throws IOException {
+        long pos = pos();
+        skip(offset);
+        ByteString data = readByteString(maxLength);
+        seek(pos);
+        return data;
     }
 
     /**

@@ -34,10 +34,22 @@ public interface ITextDataReader extends IDataReaderBase {
     void seek(long pos) throws IOException;
 
     default boolean startsWith(String text) throws IOException {
+        return text.equals(peek(text.length()));
+    }
+
+    default String peek(int len) throws IOException {
         long pos = pos();
-        String data = read(text.length());
+        String data = read(len);
         seek(pos);
-        return data.equals(text);
+        return data;
+    }
+
+    default String peekNext(int offset, int len) throws IOException {
+        long pos = pos();
+        skip(offset);
+        String data = read(len);
+        seek(pos);
+        return data;
     }
 
     /**
