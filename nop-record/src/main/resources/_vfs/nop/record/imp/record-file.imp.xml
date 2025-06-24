@@ -333,6 +333,10 @@
                             <schema stdDomain="prop-path"/>
                         </field>
 
+                        <field name="switchOnRule" displayName="子类型匹配规则">
+                            <schema stdDomain="peek-match-rule"/>
+                        </field>
+
                         <field name="switchOnField" displayName="子类型选择">
                             <schema stdDomain="string"/>
                         </field>

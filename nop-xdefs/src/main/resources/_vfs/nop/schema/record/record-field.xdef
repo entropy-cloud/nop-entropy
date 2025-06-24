@@ -31,7 +31,9 @@
     -->
     <switchOnField xdef:value="prop-name"/>
 
-    <!-- 根据record[switchOnField]获取到类型，key为*表示缺省映射 -->
+    <switchOnRule xdef:value="peek-match-rule"/>
+
+    <!-- 根据record[switchOnField]或者switchOnRule获取到类型，key为*表示缺省映射 -->
     <switchTypeMap xdef:value="string-map"/>
 
     <beforeWrite xdef:value="xpl-fn:(out,record,ctx)=>any"/>

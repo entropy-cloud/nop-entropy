@@ -89,8 +89,15 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      *  
+     * xml name: switchOnRule
+     * 
+     */
+    private io.nop.record.match.IPeekMatchRule _switchOnRule ;
+    
+    /**
+     *  
      * xml name: switchTypeMap
-     * 根据record[switchOnField]获取到类型，key为*表示缺省映射
+     * 根据record[switchOnField]或者switchOnRule获取到类型，key为*表示缺省映射
      */
     private java.util.Map<java.lang.String,java.lang.String> _switchTypeMap ;
     
@@ -301,8 +308,27 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      * 
+     * xml name: switchOnRule
+     *  
+     */
+    
+    public io.nop.record.match.IPeekMatchRule getSwitchOnRule(){
+      return _switchOnRule;
+    }
+
+    
+    public void setSwitchOnRule(io.nop.record.match.IPeekMatchRule value){
+        checkAllowChange();
+        
+        this._switchOnRule = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: switchTypeMap
-     *  根据record[switchOnField]获取到类型，key为*表示缺省映射
+     *  根据record[switchOnField]或者switchOnRule获取到类型，key为*表示缺省映射
      */
     
     public java.util.Map<java.lang.String,java.lang.String> getSwitchTypeMap(){
@@ -387,6 +413,7 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         out.putNotNull("repeatKind",this.getRepeatKind());
         out.putNotNull("repeatUntil",this.getRepeatUntil());
         out.putNotNull("switchOnField",this.getSwitchOnField());
+        out.putNotNull("switchOnRule",this.getSwitchOnRule());
         out.putNotNull("switchTypeMap",this.getSwitchTypeMap());
         out.putNotNull("tagIndex",this.getTagIndex());
         out.putNotNull("typeRef",this.getTypeRef());
@@ -411,6 +438,7 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         instance.setRepeatKind(this.getRepeatKind());
         instance.setRepeatUntil(this.getRepeatUntil());
         instance.setSwitchOnField(this.getSwitchOnField());
+        instance.setSwitchOnRule(this.getSwitchOnRule());
         instance.setSwitchTypeMap(this.getSwitchTypeMap());
         instance.setTagIndex(this.getTagIndex());
         instance.setTypeRef(this.getTypeRef());

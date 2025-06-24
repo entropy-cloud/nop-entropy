@@ -1,11 +1,15 @@
 package io.nop.record.serialization;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.bytes.ByteString;
 import io.nop.commons.collections.bit.IBitSet;
 import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldCodecContext;
 import io.nop.record.codec.IFieldTagBinaryCodec;
+import io.nop.record.match.IPeekMatchCondition;
+import io.nop.record.match.IPeekMatchConditionChecker;
+import io.nop.record.match.IPeekMatchRule;
 import io.nop.record.model.RecordFieldMeta;
 import io.nop.record.model.RecordObjectMeta;
 import io.nop.record.model.RecordSimpleFieldMeta;
@@ -85,5 +89,53 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
     String decodeString(IBinaryDataReader in, Charset charset, int length) throws IOException {
         byte[] bytes = in.readBytes(length);
         return new String(bytes, charset == null ? StandardCharsets.UTF_8 : charset);
+    }
+
+    @Override
+    protected String determineObjectTypeByRule(IPeekMatchRule rule, IBinaryDataReader in,
+                                               RecordFieldMeta field, Object record, IFieldCodecContext context) {
+        // 创建条件检查器实现
+        IPeekMatchConditionChecker checker = new BinaryDataPeekChecker(in);
+
+        // 执行规则匹配
+        return rule.match(checker);
+    }
+
+    /**
+     * 实现IPeekMatchConditionChecker接口，用于检查二进制数据条件
+     */
+    private static class BinaryDataPeekChecker implements IPeekMatchConditionChecker {
+        private final IBinaryDataReader reader;
+
+        public BinaryDataPeekChecker(IBinaryDataReader reader) {
+            this.reader = reader;
+        }
+
+        @Override
+        public boolean matchCondition(IPeekMatchCondition condition) {
+            try {
+                // 从二进制数据中读取指定偏移量和长度的数据
+                ByteString data = reader.peekNextByteString(
+                        condition.getOffset(),
+                        condition.getLength()
+                );
+
+                // 比较字节数据
+                if (condition.getBytes() != null) {
+                    return Arrays.equals(condition.getBytes(), data.toByteArray());
+                }
+
+                // 比较字符串数据
+                if (condition.getValue() != null) {
+                    String expected = condition.getValue();
+                    byte[] bytes = expected.getBytes(StandardCharsets.UTF_8);
+                    return Arrays.equals(bytes, data.toByteArray());
+                }
+
+                return false;
+            } catch (IOException e) {
+                throw NopException.adapt(e);
+            }
+        }
     }
 }

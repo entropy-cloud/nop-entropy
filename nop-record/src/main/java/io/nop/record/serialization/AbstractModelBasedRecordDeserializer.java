@@ -11,6 +11,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.record.codec.IFieldCodecContext;
+import io.nop.record.match.IPeekMatchRule;
 import io.nop.record.model.FieldRepeatKind;
 import io.nop.record.model.IRecordFieldsMeta;
 import io.nop.record.model.RecordFieldMeta;
@@ -98,9 +99,9 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
                 field.getBeforeRead().call3(null, in, record, context, context.getEvalScope());
 
             if (field.getRepeatKind() != null) {
-                if(field.getCodec() != null){
+                if (field.getCodec() != null) {
                     readCollectionWithCodec(in, field, record, context);
-                }else {
+                } else {
                     readCollection(in, field, record, context);
                 }
             } else {
@@ -166,7 +167,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     }
 
     protected Object readSwitch(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        RecordTypeMeta typeMeta = determineObjectType(field, record, context);
+        RecordTypeMeta typeMeta = determineObjectType(in, field, record, context);
         if (typeMeta != null) {
             Object obj = makeObject(field, typeMeta, record, context);
             readObject(in, typeMeta, obj, context);
@@ -205,9 +206,15 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
         }
     }
 
-    protected RecordTypeMeta determineObjectType(RecordFieldMeta field, Object record, IFieldCodecContext context) {
-        if (field.getSwitchOnField() != null) {
-            String onValue = ConvertHelper.toString(getPropByName(record, field.getSwitchOnField()));
+    protected RecordTypeMeta determineObjectType(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
+        if (field.getSwitchOnField() != null || field.getSwitchOnRule() != null) {
+            String onValue;
+            if (field.getSwitchOnRule() != null) {
+                onValue = determineObjectTypeByRule(field.getSwitchOnRule(), in, field, record, context);
+            } else {
+                onValue = ConvertHelper.toString(getPropByName(record, field.getSwitchOnField()));
+            }
+
             if (onValue == null)
                 throw new NopException(ERR_RECORD_NO_SWITCH_ON_FIELD)
                         .source(field)
@@ -255,6 +262,9 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     protected void setPropByName(Object record, String propName, Object value) {
         BeanTool.setProperty(record, propName, value);
     }
+
+    abstract protected String determineObjectTypeByRule(IPeekMatchRule rule, Input in, RecordFieldMeta field,
+                                                        Object record, IFieldCodecContext context) throws IOException;
 
     abstract protected void readCollectionWithCodec(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException;
 

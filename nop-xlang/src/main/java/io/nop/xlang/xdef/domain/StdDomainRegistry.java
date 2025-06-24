@@ -145,6 +145,7 @@ public class StdDomainRegistry implements IStdDomainRegistry {
 
         registerStdDomainHandler(new XplStdDomainHandlers.MockReportExprType());
         registerStdDomainHandler(new XplStdDomainHandlers.MockVueNodeType());
+        registerStdDomainHandler(new MockTypes.MockPeekMatchRuleType());
 
         registerStdDomainHandler(new XplStdDomainHandlers.ExprType());
         registerStdDomainHandler(new XplStdDomainHandlers.SingleExprType());

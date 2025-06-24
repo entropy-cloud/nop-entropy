@@ -26,9 +26,10 @@ public class RecordFieldMeta extends _RecordFieldMeta {
     }
 
     public String getTypeByCaseValue(String caseValue) {
+        // 如果Map为空，则认为caseValue直接对应于类名
         Map<String, String> typeMap = getSwitchTypeMap();
-        if (typeMap == null)
-            return null;
+        if (typeMap == null || typeMap.isEmpty())
+            return caseValue;
         String type = typeMap.get(caseValue);
         if (type == null)
             type = typeMap.get("*");
