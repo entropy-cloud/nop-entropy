@@ -18,9 +18,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--主键-->
-                <col id="id" mandatory="true" sortable="true"/>
-
                 <!--供应商-->
                 <col id="provider" mandatory="true" sortable="true"/>
 
@@ -40,7 +37,6 @@
     <forms>
         <form id="view" editMode="view" title="查看-AI模型" i18n-en:title="View ">
             <layout>
- id[主键]
  provider[供应商]
  modelName[模型名称]
  baseUrl[API地址]
@@ -50,7 +46,6 @@
         <form id="add" editMode="add" title="新增-AI模型" i18n-en:title="Add " x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-AI模型" i18n-en:title="Edit ">
             <layout>
- id[主键]
  provider[供应商]
  modelName[模型名称]
  baseUrl[API地址]

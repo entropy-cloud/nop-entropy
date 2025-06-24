@@ -24,28 +24,21 @@ public class _NopAiKnowledge extends DynamicOrmEntity{
     public static final String PROP_NAME_id = "id";
     public static final int PROP_ID_id = 1;
     
-    /* 项目ID: project_id VARCHAR */
-    public static final String PROP_NAME_projectId = "projectId";
-    public static final int PROP_ID_projectId = 2;
-    
     /* 标题: title VARCHAR */
     public static final String PROP_NAME_title = "title";
-    public static final int PROP_ID_title = 3;
+    public static final int PROP_ID_title = 2;
     
     /* 内容: content VARCHAR */
     public static final String PROP_NAME_content = "content";
-    public static final int PROP_ID_content = 4;
+    public static final int PROP_ID_content = 3;
     
     /* 格式类型: format VARCHAR */
     public static final String PROP_NAME_format = "format";
-    public static final int PROP_ID_format = 5;
+    public static final int PROP_ID_format = 4;
     
 
-    private static int _PROP_ID_BOUND = 6;
+    private static int _PROP_ID_BOUND = 5;
 
-    
-    /* relation:  */
-    public static final String PROP_NAME_project = "project";
     
     /* relation: 关联规则 */
     public static final String PROP_NAME_relatedRules = "relatedRules";
@@ -54,15 +47,12 @@ public class _NopAiKnowledge extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[6];
+    private static final String[] PROP_ID_TO_NAME = new String[5];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
           PROP_ID_TO_NAME[PROP_ID_id] = PROP_NAME_id;
           PROP_NAME_TO_ID.put(PROP_NAME_id, PROP_ID_id);
-      
-          PROP_ID_TO_NAME[PROP_ID_projectId] = PROP_NAME_projectId;
-          PROP_NAME_TO_ID.put(PROP_NAME_projectId, PROP_ID_projectId);
       
           PROP_ID_TO_NAME[PROP_ID_title] = PROP_NAME_title;
           PROP_NAME_TO_ID.put(PROP_NAME_title, PROP_ID_title);
@@ -78,9 +68,6 @@ public class _NopAiKnowledge extends DynamicOrmEntity{
     
     /* 主键: id */
     private java.lang.String _id;
-    
-    /* 项目ID: project_id */
-    private java.lang.String _projectId;
     
     /* 标题: title */
     private java.lang.String _title;
@@ -168,9 +155,6 @@ public class _NopAiKnowledge extends DynamicOrmEntity{
             case PROP_ID_id:
                return getId();
         
-            case PROP_ID_projectId:
-               return getProjectId();
-        
             case PROP_ID_title:
                return getTitle();
         
@@ -198,16 +182,6 @@ public class _NopAiKnowledge extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_id));
                }
                setId(typedValue);
-               break;
-            }
-        
-            case PROP_ID_projectId:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_projectId));
-               }
-               setProjectId(typedValue);
                break;
             }
         
@@ -257,13 +231,6 @@ public class _NopAiKnowledge extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_projectId:{
-               onInitProp(propId);
-               this._projectId = (java.lang.String)value;
-               
-               break;
-            }
-        
             case PROP_ID_title:{
                onInitProp(propId);
                this._title = (java.lang.String)value;
@@ -307,25 +274,6 @@ public class _NopAiKnowledge extends DynamicOrmEntity{
             this._id = value;
             internalClearRefs(PROP_ID_id);
             orm_id();
-        }
-    }
-    
-    /**
-     * 项目ID: project_id
-     */
-    public final java.lang.String getProjectId(){
-         onPropGet(PROP_ID_projectId);
-         return _projectId;
-    }
-
-    /**
-     * 项目ID: project_id
-     */
-    public final void setProjectId(java.lang.String value){
-        if(onPropSet(PROP_ID_projectId,value)){
-            this._projectId = value;
-            internalClearRefs(PROP_ID_projectId);
-            
         }
     }
     
@@ -386,29 +334,6 @@ public class _NopAiKnowledge extends DynamicOrmEntity{
         }
     }
     
-    /**
-     * 
-     */
-    public final nop.ai.dao.entity.NopAiProject getProject(){
-       return (nop.ai.dao.entity.NopAiProject)internalGetRefEntity(PROP_NAME_project);
-    }
-
-    public final void setProject(nop.ai.dao.entity.NopAiProject refEntity){
-   
-           if(refEntity == null){
-           
-                   this.setProjectId(null);
-               
-           }else{
-           internalSetRefEntity(PROP_NAME_project, refEntity,()->{
-           
-                           this.setProjectId(refEntity.getId());
-                       
-           });
-           }
-       
-    }
-       
     private final OrmEntitySet<nop.ai.dao.entity.NopAiProjectRule> _relatedRules = new OrmEntitySet<>(this, PROP_NAME_relatedRules,
         nop.ai.dao.entity.NopAiProjectRule.PROP_NAME_knowledge, null,nop.ai.dao.entity.NopAiProjectRule.class);
 

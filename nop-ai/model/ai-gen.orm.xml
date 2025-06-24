@@ -67,14 +67,14 @@
             <comment>存储AI项目基本信息</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
-                        precision="36"/>
+                        precision="36" ui:show="X"/>
                 <column name="language" displayName="项目语言" mandatory="true" ext:dict="project_language"
                         stdSqlType="VARCHAR" precision="4" ext:defaultValue="001"
                         comment="项目使用的编程语言类型：JAVA, PYTHON等"/>
                 <column name="name" displayName="项目名称" mandatory="true" stdSqlType="VARCHAR" precision="100"/>
                 <column name="prototype_id" displayName="模板项目ID" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiProject"/>
-                <column name="project_dir" displayName="项目目录" stdSqlType="VARCHAR" precision="500"
+                <column name="project_dir" displayName="项目目录" stdSqlType="VARCHAR" precision="400" ui:control="textarea"
                         comment="项目在文件系统中的存储路径，例如：/data/projects/order-system"/>
             </columns>
         </entity>
@@ -84,7 +84,7 @@
             <columns>
                 <!-- 主键 -->
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
-                        precision="36"/>
+                        precision="36" ui:show="X"/>
 
                 <!-- 关联项目 -->
                 <column name="project_id" displayName="项目ID" mandatory="true" stdSqlType="VARCHAR" precision="36"
@@ -103,7 +103,7 @@
 
                 <!-- 规则内容 -->
                 <column name="rule_content" displayName="规则内容" mandatory="true" stdSqlType="VARCHAR"
-                        precision="4000"
+                        precision="4000" ui:control="textarea"
                         comment="规则的具体内容（JSON/YAML/文本）"/>
 
                 <!-- 规则类型 -->
@@ -121,7 +121,7 @@
             <comment>项目级配置项管理</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
-                        precision="36"/>
+                        precision="36" ui:show="X"/>
                 <column name="project_id" displayName="项目ID" mandatory="true" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiProject" orm:ref-prop="configs" orm:ref-prop-display-name="配置项"/>
                 <column name="config_name" displayName="配置名称" mandatory="true" stdSqlType="VARCHAR" precision="50"/>
@@ -135,7 +135,7 @@
             <comment>第三方AI模型注册信息</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
-                        precision="36"/>
+                        precision="36" ui:show="X"/>
                 <column name="provider" displayName="供应商" mandatory="true" ext:dict="model_provider"
                         stdSqlType="VARCHAR" precision="4"/>
                 <column name="model_name" displayName="模型名称" mandatory="true" stdSqlType="VARCHAR" precision="50"/>
@@ -148,18 +148,18 @@
             <comment>结构化需求管理</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
-                        precision="36"/>
+                        precision="36" ui:show="X"/>
                 <column name="project_id" displayName="项目ID" mandatory="true" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiProject" orm:ref-prop="requirements" orm:ref-prop-display-name="需求列表"/>
                 <column name="req_number" displayName="需求编号" mandatory="true" stdSqlType="VARCHAR" precision="20"/>
                 <column name="title" displayName="需求标题" mandatory="true" stdSqlType="VARCHAR" precision="200"/>
-                <column name="content" displayName="需求内容" stdSqlType="VARCHAR" precision="4000"/>
+                <column name="content" displayName="需求内容" stdSqlType="VARCHAR" precision="4000" ui:control="textarea"/>
                 <column name="version" displayName="当前版本" mandatory="true" stdSqlType="VARCHAR" precision="10"/>
                 <column name="parent_id" displayName="父需求ID" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiRequirement" orm:ref-prop="children" orm:ref-prop-display-name="子需求"/>
                 <column name="type" displayName="需求类型" mandatory="true" ext:dict="requirement_type"
                         stdSqlType="VARCHAR" precision="4"/>
-                <column name="ai_summary" displayName="AI摘要" stdSqlType="VARCHAR" precision="1000"/>
+                <column name="ai_summary" displayName="AI摘要" stdSqlType="VARCHAR" precision="1000" ui:control="textarea"/>
                 <column name="status" displayName="状态" mandatory="true" ext:dict="status_type" stdSqlType="VARCHAR"
                         precision="4" ext:defaultValue="001"/>
             </columns>
@@ -170,12 +170,12 @@
             <comment>需求变更版本记录</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
-                        precision="36"/>
+                        precision="36" ui:show="X"/>
                 <column name="requirement_id" displayName="需求ID" mandatory="true" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiRequirement" orm:ref-prop="historyRecords"
                         orm:ref-prop-display-name="历史版本"/>
                 <column name="version" displayName="版本号" mandatory="true" stdSqlType="VARCHAR" precision="10"/>
-                <column name="content" displayName="需求内容" mandatory="true" stdSqlType="VARCHAR" precision="4000"/>
+                <column name="content" displayName="需求内容" mandatory="true" stdSqlType="VARCHAR" precision="4000" ui:control="textarea"/>
             </columns>
         </entity>
 
@@ -183,12 +183,9 @@
             <comment>领域知识文档存储</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
-                        precision="36"/>
-                <column name="project_id" displayName="项目ID" mandatory="true" stdSqlType="VARCHAR" precision="36"
-                        orm:ref-table="NopAiProject" orm:ref-prop="knowledgeItems"
-                        orm:ref-prop-display-name="知识条目"/>
+                        precision="36" ui:show="X"/>
                 <column name="title" displayName="标题" mandatory="true" stdSqlType="VARCHAR" precision="200"/>
-                <column name="content" displayName="内容" stdSqlType="VARCHAR" precision="4000"/>
+                <column name="content" displayName="内容" stdSqlType="VARCHAR" precision="4000" ui:control="textarea"/>
                 <column name="format" displayName="格式类型" mandatory="true" ext:dict="file_format"
                         stdSqlType="VARCHAR" precision="4"/>
             </columns>
@@ -198,12 +195,12 @@
             <comment>AI提示词模板定义</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
-                        precision="36"/>
+                        precision="36" ui:show="X"/>
                 <column name="name" displayName="模板名称" mandatory="true" stdSqlType="VARCHAR" precision="100"/>
-                <column name="content" displayName="模板内容" mandatory="true" stdSqlType="VARCHAR" precision="4000"/>
+                <column name="content" displayName="模板内容" mandatory="true" stdSqlType="VARCHAR" precision="4000" ui:control="textarea"/>
                 <column name="category" displayName="分类" stdSqlType="VARCHAR" precision="50"/>
-                <column name="inputs" displayName="输入规范" stdSqlType="VARCHAR" precision="1000"/>
-                <column name="outputs" displayName="输出规范" stdSqlType="VARCHAR" precision="1000"/>
+                <column name="inputs" displayName="输入规范" stdSqlType="VARCHAR" precision="1000" ui:control="textarea"/>
+                <column name="outputs" displayName="输出规范" stdSqlType="VARCHAR" precision="1000" ui:control="textarea"/>
             </columns>
         </entity>
 
@@ -212,12 +209,12 @@
             <comment>提示词模板版本记录</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
-                        precision="36"/>
+                        precision="36" ui:show="X"/>
                 <column name="template_id" displayName="模板ID" mandatory="true" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiPromptTemplate" orm:ref-prop="historyRecords"
                         orm:ref-prop-display-name="历史版本"/>
                 <column name="version" displayName="版本号" mandatory="true" stdSqlType="VARCHAR" precision="10"/>
-                <column name="content" displayName="模板内容" mandatory="true" stdSqlType="VARCHAR" precision="4000"/>
+                <column name="content" displayName="模板内容" mandatory="true" stdSqlType="VARCHAR" precision="4000" ui:control="textarea"/>
             </columns>
         </entity>
 
@@ -225,23 +222,23 @@
             <comment>多模型测试请求记录</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
-                        precision="36"/>
+                        precision="36" ui:show="X"/>
                 <column name="template_id" displayName="模板ID" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiPromptTemplate" orm:ref-prop="requests"
                         orm:ref-prop-display-name="测试请求"/>
                 <column name="session_id" displayName="会话ID" stdSqlType="VARCHAR" precision="36" mandatory="true"/>
 
-                <column name="system_prompt" displayName="系统提示词" stdSqlType="VARCHAR" precision="65536"/>
+                <column name="system_prompt" displayName="系统提示词" stdSqlType="VARCHAR" precision="65536" ui:control="textarea"/>
 
                 <column name="user_prompt" displayName="用户提示词" mandatory="true" stdSqlType="VARCHAR"
-                        precision="65536"/>
+                        precision="65536" ui:control="textarea"/>
 
                 <column name="message_type" displayName="消息类型" mandatory="true" ext:dict="message_type"
                         stdSqlType="VARCHAR" precision="4" ext:defaultValue="002"/>
                 <column name="request_timestamp" displayName="请求时间戳" mandatory="true" stdSqlType="TIMESTAMP"/>
 
                 <column name="hash" displayName="内容哈希" stdSqlType="VARCHAR" precision="64" mandatory="true"/>
-                <column name="metadata" displayName="元数据" stdSqlType="VARCHAR" precision="2000"/>
+                <column name="metadata" displayName="元数据" stdSqlType="VARCHAR" precision="2000" ui:control="textarea"/>
             </columns>
         </entity>
 
@@ -249,7 +246,7 @@
             <comment>AI模型响应记录</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
-                        precision="36"/>
+                        precision="36" ui:show="X"/>
                 <column name="request_id" displayName="请求ID" mandatory="true" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiChatRequest" orm:ref-prop="responses" orm:ref-prop-display-name="响应列表"/>
                 <column name="session_id" displayName="会话ID" stdSqlType="VARCHAR" precision="36" mandatory="true"/>
@@ -260,7 +257,7 @@
                         stdSqlType="VARCHAR" precision="4"/>
                 <column name="ai_model" displayName="模型名称" mandatory="true" stdSqlType="VARCHAR" precision="50"/>
                 <column name="response_content" displayName="响应内容" mandatory="true" stdSqlType="VARCHAR"
-                        precision="65536"/>
+                        precision="65536" ui:control="textarea"/>
 
                 <column name="response_timestamp" displayName="响应时间戳" mandatory="true" stdSqlType="TIMESTAMP"/>
 
@@ -283,7 +280,7 @@
             <comment>AI生成的DSL模型文件</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
-                        precision="36"/>
+                        precision="36" ui:show="X"/>
                 <column name="project_id" displayName="项目ID" mandatory="true" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiProject" orm:ref-prop="generatedFiles"
                         orm:ref-prop-display-name="生成文件"/>
@@ -293,7 +290,7 @@
                 <column name="module_type" displayName="模块类型" mandatory="true" ext:dict="module_type"
                         stdSqlType="VARCHAR" precision="4"/>
                 <column name="content" displayName="文件内容" mandatory="true" stdSqlType="VARCHAR"
-                        precision="65536" comment="当前文件内容"/>
+                        precision="65536" ui:control="textarea" comment="当前文件内容"/>
                 <column name="file_path" displayName="文件路径" mandatory="true" stdSqlType="VARCHAR" precision="200"/>
                 <column name="chat_response_id" displayName="响应ID" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiChatResponse" orm:ref-prop="generatedFiles"
@@ -308,13 +305,13 @@
             <comment>生成文件版本记录</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
-                        precision="36"/>
+                        precision="36" ui:show="X"/>
                 <column name="gen_file_id" displayName="文件ID" mandatory="true" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiGenFile" orm:ref-prop="historyRecords"
                         orm:ref-prop-display-name="历史版本"/>
                 <column name="version" displayName="版本号" mandatory="true" stdSqlType="VARCHAR" precision="10"/>
                 <column name="content" displayName="文件内容" mandatory="true" stdSqlType="VARCHAR"
-                        precision="65536" comment="当前文件内容"/>
+                        precision="65536" ui:control="textarea" comment="当前文件内容"/>
             </columns>
         </entity>
 
@@ -322,12 +319,12 @@
             <comment>生成的测试用例</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
-                        precision="36"/>
+                        precision="36" ui:show="X"/>
                 <column name="requirement_id" displayName="需求ID" mandatory="true" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiRequirement" orm:ref-prop="testCases" orm:ref-prop-display-name="测试用例"/>
                 <column name="test_content" displayName="测试内容" mandatory="true" stdSqlType="VARCHAR"
-                        precision="2000"/>
-                <column name="test_data" displayName="测试数据" stdSqlType="VARCHAR" precision="1000"/>
+                        precision="2000" ui:control="textarea"/>
+                <column name="test_data" displayName="测试数据" stdSqlType="VARCHAR" precision="1000" ui:control="textarea"/>
                 <column name="gen_file_id" displayName="关联文件ID" stdSqlType="VARCHAR" precision="36"
                         orm:ref-table="NopAiGenFile" orm:ref-prop="testCases" orm:ref-prop-display-name="测试用例"/>
                 <column name="chat_response_id" displayName="响应ID" stdSqlType="VARCHAR" precision="36"
@@ -342,13 +339,13 @@
             <comment>测试用例执行结果</comment>
             <columns>
                 <column name="id" displayName="主键" mandatory="true" primary="true" stdSqlType="VARCHAR"
-                        precision="36"/>
+                        precision="36" ui:show="X"/>
                 <column name="test_case_id" displayName="测试用例ID" mandatory="true" stdSqlType="VARCHAR"
                         precision="36"
                         orm:ref-table="NopAiTestCase" orm:ref-prop="testResults" orm:ref-prop-display-name="执行结果"/>
                 <column name="execution_time" displayName="执行时间" mandatory="true" stdSqlType="TIMESTAMP"/>
                 <column name="success" displayName="是否成功" mandatory="true" stdSqlType="BOOLEAN"/>
-                <column name="error_log" displayName="错误日志" stdSqlType="VARCHAR" precision="2000"/>
+                <column name="error_log" displayName="错误日志" stdSqlType="VARCHAR" precision="2000" ui:control="textarea"/>
             </columns>
         </entity>
     </entities>

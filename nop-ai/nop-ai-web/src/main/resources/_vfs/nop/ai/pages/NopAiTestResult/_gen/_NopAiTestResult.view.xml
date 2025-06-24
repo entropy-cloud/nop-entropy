@@ -18,9 +18,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--主键-->
-                <col id="id" mandatory="true" sortable="true"/>
-
                 <!--测试用例ID-->
                 <col id="testCaseId" mandatory="true" sortable="true"/>
 
@@ -40,7 +37,6 @@
     <forms>
         <form id="view" editMode="view" title="查看-测试结果" i18n-en:title="View ">
             <layout>
- id[主键]
  testCaseId[测试用例ID]
  executionTime[执行时间]
  success[是否成功]
@@ -50,7 +46,6 @@
         <form id="add" editMode="add" title="新增-测试结果" i18n-en:title="Add " x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-测试结果" i18n-en:title="Edit ">
             <layout>
- id[主键]
  testCaseId[测试用例ID]
  executionTime[执行时间]
  success[是否成功]

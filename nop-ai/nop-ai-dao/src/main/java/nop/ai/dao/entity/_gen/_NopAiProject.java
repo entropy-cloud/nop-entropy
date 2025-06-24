@@ -24,16 +24,24 @@ public class _NopAiProject extends DynamicOrmEntity{
     public static final String PROP_NAME_id = "id";
     public static final int PROP_ID_id = 1;
     
+    /* 项目语言: language VARCHAR */
+    public static final String PROP_NAME_language = "language";
+    public static final int PROP_ID_language = 2;
+    
     /* 项目名称: name VARCHAR */
     public static final String PROP_NAME_name = "name";
-    public static final int PROP_ID_name = 2;
+    public static final int PROP_ID_name = 3;
     
     /* 模板项目ID: prototype_id VARCHAR */
     public static final String PROP_NAME_prototypeId = "prototypeId";
-    public static final int PROP_ID_prototypeId = 3;
+    public static final int PROP_ID_prototypeId = 4;
+    
+    /* 项目目录: project_dir VARCHAR */
+    public static final String PROP_NAME_projectDir = "projectDir";
+    public static final int PROP_ID_projectDir = 5;
     
 
-    private static int _PROP_ID_BOUND = 4;
+    private static int _PROP_ID_BOUND = 6;
 
     
     /* relation:  */
@@ -48,9 +56,6 @@ public class _NopAiProject extends DynamicOrmEntity{
     /* relation: 需求列表 */
     public static final String PROP_NAME_requirements = "requirements";
     
-    /* relation: 知识条目 */
-    public static final String PROP_NAME_knowledgeItems = "knowledgeItems";
-    
     /* relation: 生成文件 */
     public static final String PROP_NAME_generatedFiles = "generatedFiles";
     
@@ -58,12 +63,15 @@ public class _NopAiProject extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_id);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_id};
 
-    private static final String[] PROP_ID_TO_NAME = new String[4];
+    private static final String[] PROP_ID_TO_NAME = new String[6];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
           PROP_ID_TO_NAME[PROP_ID_id] = PROP_NAME_id;
           PROP_NAME_TO_ID.put(PROP_NAME_id, PROP_ID_id);
+      
+          PROP_ID_TO_NAME[PROP_ID_language] = PROP_NAME_language;
+          PROP_NAME_TO_ID.put(PROP_NAME_language, PROP_ID_language);
       
           PROP_ID_TO_NAME[PROP_ID_name] = PROP_NAME_name;
           PROP_NAME_TO_ID.put(PROP_NAME_name, PROP_ID_name);
@@ -71,17 +79,26 @@ public class _NopAiProject extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_prototypeId] = PROP_NAME_prototypeId;
           PROP_NAME_TO_ID.put(PROP_NAME_prototypeId, PROP_ID_prototypeId);
       
+          PROP_ID_TO_NAME[PROP_ID_projectDir] = PROP_NAME_projectDir;
+          PROP_NAME_TO_ID.put(PROP_NAME_projectDir, PROP_ID_projectDir);
+      
     }
 
     
     /* 主键: id */
     private java.lang.String _id;
     
+    /* 项目语言: language */
+    private java.lang.String _language;
+    
     /* 项目名称: name */
     private java.lang.String _name;
     
     /* 模板项目ID: prototype_id */
     private java.lang.String _prototypeId;
+    
+    /* 项目目录: project_dir */
+    private java.lang.String _projectDir;
     
 
     public _NopAiProject(){
@@ -160,11 +177,17 @@ public class _NopAiProject extends DynamicOrmEntity{
             case PROP_ID_id:
                return getId();
         
+            case PROP_ID_language:
+               return getLanguage();
+        
             case PROP_ID_name:
                return getName();
         
             case PROP_ID_prototypeId:
                return getPrototypeId();
+        
+            case PROP_ID_projectDir:
+               return getProjectDir();
         
            default:
               return super.orm_propValue(propId);
@@ -184,6 +207,16 @@ public class _NopAiProject extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_id));
                }
                setId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_language:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_language));
+               }
+               setLanguage(typedValue);
                break;
             }
         
@@ -207,6 +240,16 @@ public class _NopAiProject extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_projectDir:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_projectDir));
+               }
+               setProjectDir(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -223,6 +266,13 @@ public class _NopAiProject extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_language:{
+               onInitProp(propId);
+               this._language = (java.lang.String)value;
+               
+               break;
+            }
+        
             case PROP_ID_name:{
                onInitProp(propId);
                this._name = (java.lang.String)value;
@@ -233,6 +283,13 @@ public class _NopAiProject extends DynamicOrmEntity{
             case PROP_ID_prototypeId:{
                onInitProp(propId);
                this._prototypeId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_projectDir:{
+               onInitProp(propId);
+               this._projectDir = (java.lang.String)value;
                
                break;
             }
@@ -259,6 +316,25 @@ public class _NopAiProject extends DynamicOrmEntity{
             this._id = value;
             internalClearRefs(PROP_ID_id);
             orm_id();
+        }
+    }
+    
+    /**
+     * 项目语言: language
+     */
+    public final java.lang.String getLanguage(){
+         onPropGet(PROP_ID_language);
+         return _language;
+    }
+
+    /**
+     * 项目语言: language
+     */
+    public final void setLanguage(java.lang.String value){
+        if(onPropSet(PROP_ID_language,value)){
+            this._language = value;
+            internalClearRefs(PROP_ID_language);
+            
         }
     }
     
@@ -296,6 +372,25 @@ public class _NopAiProject extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_prototypeId,value)){
             this._prototypeId = value;
             internalClearRefs(PROP_ID_prototypeId);
+            
+        }
+    }
+    
+    /**
+     * 项目目录: project_dir
+     */
+    public final java.lang.String getProjectDir(){
+         onPropGet(PROP_ID_projectDir);
+         return _projectDir;
+    }
+
+    /**
+     * 项目目录: project_dir
+     */
+    public final void setProjectDir(java.lang.String value){
+        if(onPropSet(PROP_ID_projectDir,value)){
+            this._projectDir = value;
+            internalClearRefs(PROP_ID_projectDir);
             
         }
     }
@@ -351,16 +446,6 @@ public class _NopAiProject extends DynamicOrmEntity{
      */
     public final IOrmEntitySet<nop.ai.dao.entity.NopAiRequirement> getRequirements(){
        return _requirements;
-    }
-       
-    private final OrmEntitySet<nop.ai.dao.entity.NopAiKnowledge> _knowledgeItems = new OrmEntitySet<>(this, PROP_NAME_knowledgeItems,
-        nop.ai.dao.entity.NopAiKnowledge.PROP_NAME_project, null,nop.ai.dao.entity.NopAiKnowledge.class);
-
-    /**
-     * 知识条目。 refPropName: project, keyProp: {rel.keyProp}
-     */
-    public final IOrmEntitySet<nop.ai.dao.entity.NopAiKnowledge> getKnowledgeItems(){
-       return _knowledgeItems;
     }
        
     private final OrmEntitySet<nop.ai.dao.entity.NopAiGenFile> _generatedFiles = new OrmEntitySet<>(this, PROP_NAME_generatedFiles,

@@ -1,0 +1,35 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 项目语言
+locale: zh-CN
+valueType: 
+description: 项目使用的编程语言类型
+options:
+
+  - label: Java
+    value: 001
+    description: Java语言项目
+  
+  - label: Python
+    value: 002
+    description: Python语言项目
+  
+  - label: JavaScript
+    value: 003
+    description: JavaScript/TypeScript项目
+  
+  - label: Go
+    value: 004
+    description: Go语言项目
+  
+  - label: C#
+    value: 005
+    description: C#语言项目
+  
+  - label: C++
+    value: 006
+    description: C++语言项目
+  
+  - label: 其他语言
+    value: 007
+    description: 其他编程语言
+  

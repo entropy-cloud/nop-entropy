@@ -18,8 +18,8 @@
     <keys/>
 
     <props>
-        <prop name="id" displayName="主键" propId="1" mandatory="true" queryable="true" sortable="true" insertable="true"
-              updatable="false">
+        <prop name="id" displayName="主键" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="36"/>
         </prop>
         <prop name="projectId" displayName="项目ID" propId="2" mandatory="true" queryable="true" sortable="true"
@@ -35,7 +35,7 @@
             <schema type="java.lang.String" precision="4" dict="ai/module_type"/>
         </prop>
         <prop name="content" displayName="文件内容" propId="5" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+              insertable="true" updatable="true" ui:control="textarea">
             <schema type="java.lang.String" precision="65536"/>
         </prop>
         <prop name="filePath" displayName="文件路径" propId="6" mandatory="true" queryable="true" sortable="true"

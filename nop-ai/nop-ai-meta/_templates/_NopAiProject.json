@@ -1,11 +1,13 @@
 {
   "id": "",
+  "language": "",
+  "language_label": "",
   "name": "",
   "prototypeId": "",
+  "projectDir": "",
   "prototype": null,
   "projectRules": null,
   "configs": null,
   "requirements": null,
-  "knowledgeItems": null,
   "generatedFiles": null
 }

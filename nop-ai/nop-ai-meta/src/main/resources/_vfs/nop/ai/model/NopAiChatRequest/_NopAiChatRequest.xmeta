@@ -18,8 +18,8 @@
     <keys/>
 
     <props>
-        <prop name="id" displayName="主键" propId="1" mandatory="true" queryable="true" sortable="true" insertable="true"
-              updatable="false">
+        <prop name="id" displayName="主键" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="36"/>
         </prop>
         <prop name="templateId" displayName="模板ID" propId="2" queryable="true" sortable="true" insertable="true"
@@ -31,11 +31,11 @@
             <schema type="java.lang.String" precision="36"/>
         </prop>
         <prop name="systemPrompt" displayName="系统提示词" propId="4" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+              updatable="true" ui:control="textarea">
             <schema type="java.lang.String" precision="65536"/>
         </prop>
         <prop name="userPrompt" displayName="用户提示词" propId="5" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+              insertable="true" updatable="true" ui:control="textarea">
             <schema type="java.lang.String" precision="65536"/>
         </prop>
         <prop name="messageType" displayName="消息类型" propId="6" mandatory="true" queryable="true" sortable="true"
@@ -51,7 +51,7 @@
             <schema type="java.lang.String" precision="64"/>
         </prop>
         <prop name="metadata" displayName="元数据" propId="9" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+              updatable="true" ui:control="textarea">
             <schema type="java.lang.String" precision="2000"/>
         </prop>
         <prop name="template" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="templateId"

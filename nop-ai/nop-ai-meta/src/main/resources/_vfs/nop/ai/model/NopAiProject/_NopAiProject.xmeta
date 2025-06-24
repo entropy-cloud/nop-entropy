@@ -18,17 +18,25 @@
     <keys/>
 
     <props>
-        <prop name="id" displayName="主键" propId="1" mandatory="true" queryable="true" sortable="true" insertable="true"
-              updatable="false">
+        <prop name="id" displayName="主键" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="36"/>
         </prop>
-        <prop name="name" displayName="项目名称" propId="2" mandatory="true" queryable="true" sortable="true"
+        <prop name="language" displayName="项目语言" propId="2" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4" dict="ai/project_language"/>
+        </prop>
+        <prop name="name" displayName="项目名称" propId="3" mandatory="true" queryable="true" sortable="true"
               insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="prototypeId" displayName="模板项目ID" propId="3" queryable="true" sortable="true" insertable="true"
+        <prop name="prototypeId" displayName="模板项目ID" propId="4" queryable="true" sortable="true" insertable="true"
               updatable="true" ext:relation="prototype">
             <schema type="java.lang.String" precision="36"/>
+        </prop>
+        <prop name="projectDir" displayName="项目目录" propId="5" queryable="true" sortable="true" insertable="true"
+              updatable="true" ui:control="textarea">
+            <schema type="java.lang.String" precision="400"/>
         </prop>
         <prop name="prototype" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="prototypeId"
               ext:joinRightProp="id" lazy="true" published="false">
@@ -50,12 +58,6 @@
               ext:joinRightProp="projectId" lazy="true" published="false">
             <schema>
                 <item bizObjName="NopAiRequirement"/>
-            </schema>
-        </prop>
-        <prop name="knowledgeItems" displayName="知识条目" ext:kind="to-many" internal="true" ext:joinLeftProp="id"
-              ext:joinRightProp="projectId" lazy="true" published="false">
-            <schema>
-                <item bizObjName="NopAiKnowledge"/>
             </schema>
         </prop>
         <prop name="generatedFiles" displayName="生成文件" ext:kind="to-many" internal="true" ext:joinLeftProp="id"

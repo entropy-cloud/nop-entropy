@@ -75,12 +75,10 @@ prop:
       genFile: null
     NopAiKnowledge:
       id: null
-      projectId: null
       title: null
       content: null
       format: null
       format_label: null
-      project: null
       relatedRules: null
     NopAiModel:
       id: null
@@ -92,13 +90,15 @@ prop:
       responses: null
     NopAiProject:
       id: null
+      language: null
+      language_label: null
       name: null
       prototypeId: null
+      projectDir: null
       prototype: null
       projectRules: null
       configs: null
       requirements: null
-      knowledgeItems: null
       generatedFiles: null
     NopAiProjectConfig:
       id: null

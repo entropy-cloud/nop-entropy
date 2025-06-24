@@ -18,8 +18,8 @@
     <keys/>
 
     <props>
-        <prop name="id" displayName="主键" propId="1" mandatory="true" queryable="true" sortable="true" insertable="true"
-              updatable="false">
+        <prop name="id" displayName="主键" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="36"/>
         </prop>
         <prop name="testCaseId" displayName="测试用例ID" propId="2" mandatory="true" queryable="true" sortable="true"
@@ -35,7 +35,7 @@
             <schema type="java.lang.Boolean"/>
         </prop>
         <prop name="errorLog" displayName="错误日志" propId="5" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+              updatable="true" ui:control="textarea">
             <schema type="java.lang.String" precision="2000"/>
         </prop>
         <prop name="testCase" ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="testCaseId"

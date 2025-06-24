@@ -7,6 +7,7 @@
 /dict/ai/message_type.dict.yaml
 /dict/ai/model_provider.dict.yaml
 /dict/ai/module_type.dict.yaml
+/dict/ai/project_language.dict.yaml
 /dict/ai/requirement_type.dict.yaml
 /dict/ai/rule_type.dict.yaml
 /dict/ai/status_type.dict.yaml

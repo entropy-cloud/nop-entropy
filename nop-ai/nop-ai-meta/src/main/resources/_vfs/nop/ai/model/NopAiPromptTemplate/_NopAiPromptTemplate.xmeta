@@ -18,8 +18,8 @@
     <keys/>
 
     <props>
-        <prop name="id" displayName="主键" propId="1" mandatory="true" queryable="true" sortable="true" insertable="true"
-              updatable="false">
+        <prop name="id" displayName="主键" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="36"/>
         </prop>
         <prop name="name" displayName="模板名称" propId="2" mandatory="true" queryable="true" sortable="true"
@@ -27,7 +27,7 @@
             <schema type="java.lang.String" precision="100"/>
         </prop>
         <prop name="content" displayName="模板内容" propId="3" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+              insertable="true" updatable="true" ui:control="textarea">
             <schema type="java.lang.String" precision="4000"/>
         </prop>
         <prop name="category" displayName="分类" propId="4" queryable="true" sortable="true" insertable="true"
@@ -35,11 +35,11 @@
             <schema type="java.lang.String" precision="50"/>
         </prop>
         <prop name="inputs" displayName="输入规范" propId="5" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+              updatable="true" ui:control="textarea">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
         <prop name="outputs" displayName="输出规范" propId="6" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+              updatable="true" ui:control="textarea">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
         <prop name="historyRecords" displayName="历史版本" ext:kind="to-many" internal="true" ext:joinLeftProp="id"

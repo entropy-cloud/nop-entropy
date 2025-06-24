@@ -18,14 +18,17 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--主键-->
-                <col id="id" mandatory="true" sortable="true"/>
+                <!--项目语言-->
+                <col id="language" mandatory="true" sortable="true"/>
 
                 <!--项目名称-->
                 <col id="name" mandatory="true" sortable="true"/>
 
                 <!--模板项目ID-->
                 <col id="prototypeId" sortable="true"/>
+
+                <!--项目目录-->
+                <col id="projectDir" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -34,17 +37,19 @@
     <forms>
         <form id="view" editMode="view" title="查看-AI项目" i18n-en:title="View ">
             <layout>
- id[主键]
+ language[项目语言]
  name[项目名称]
  prototypeId[模板项目ID]
+ projectDir[项目目录]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-AI项目" i18n-en:title="Add " x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-AI项目" i18n-en:title="Edit ">
             <layout>
- id[主键]
+ language[项目语言]
  name[项目名称]
  prototypeId[模板项目ID]
+ projectDir[项目目录]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

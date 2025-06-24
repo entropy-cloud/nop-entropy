@@ -14,6 +14,41 @@ public interface _NopAiDaoConstants {
     String MESSAGE_TYPE_TOOL = "003";
                     
     /**
+     * 项目语言: Java Java语言项目
+     */
+    String PROJECT_LANGUAGE_JAVA = "001";
+                    
+    /**
+     * 项目语言: Python Python语言项目
+     */
+    String PROJECT_LANGUAGE_PYTHON = "002";
+                    
+    /**
+     * 项目语言: JavaScript JavaScript/TypeScript项目
+     */
+    String PROJECT_LANGUAGE_JAVASCRIPT = "003";
+                    
+    /**
+     * 项目语言: Go Go语言项目
+     */
+    String PROJECT_LANGUAGE_GO = "004";
+                    
+    /**
+     * 项目语言: C# C#语言项目
+     */
+    String PROJECT_LANGUAGE_CSHARP = "005";
+                    
+    /**
+     * 项目语言: C++ C++语言项目
+     */
+    String PROJECT_LANGUAGE_CPP = "006";
+                    
+    /**
+     * 项目语言: 其他语言 其他编程语言
+     */
+    String PROJECT_LANGUAGE_OTHER = "007";
+                    
+    /**
      * 规则类型: 编码规范 代码格式和命名规则
      */
     String RULE_TYPE_CODING_STYLE = "001";

@@ -78,8 +78,6 @@ prop:
       format: 格式类型
       format_label: 格式类型
       id: 主键
-      project: null
-      projectId: 项目ID
       relatedRules: 关联规则
       title: 标题
     NopAiModel:
@@ -94,8 +92,10 @@ prop:
       configs: 配置项
       generatedFiles: 生成文件
       id: 主键
-      knowledgeItems: 知识条目
+      language: 项目语言
+      language_label: 项目语言
       name: 项目名称
+      projectDir: 项目目录
       projectRules: 项目规则
       prototype: null
       prototypeId: 模板项目ID

@@ -18,9 +18,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--主键-->
-                <col id="id" mandatory="true" sortable="true"/>
-
                 <!--需求ID-->
                 <col id="requirementId" mandatory="true" sortable="true"/>
 
@@ -46,7 +43,6 @@
     <forms>
         <form id="view" editMode="view" title="查看-测试用例" i18n-en:title="View ">
             <layout>
- id[主键]
  requirementId[需求ID]
  testContent[测试内容]
  testData[测试数据]
@@ -58,7 +54,6 @@
         <form id="add" editMode="add" title="新增-测试用例" i18n-en:title="Add " x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-测试用例" i18n-en:title="Edit ">
             <layout>
- id[主键]
  requirementId[需求ID]
  testContent[测试内容]
  testData[测试数据]

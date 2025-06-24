@@ -19,6 +19,16 @@
             <option code="USER" description="用户输入消息" label="用户" value="002"/>
             <option code="TOOL" description="AI回复消息" label="助手" value="003"/>
         </dict>
+        <dict label="项目语言" name="ai/project_language">
+            <description>项目使用的编程语言类型</description>
+            <option code="JAVA" description="Java语言项目" label="Java" value="001"/>
+            <option code="PYTHON" description="Python语言项目" label="Python" value="002"/>
+            <option code="JAVASCRIPT" description="JavaScript/TypeScript项目" label="JavaScript" value="003"/>
+            <option code="GO" description="Go语言项目" label="Go" value="004"/>
+            <option code="CSHARP" description="C#语言项目" label="C#" value="005"/>
+            <option code="CPP" description="C++语言项目" label="C++" value="006"/>
+            <option code="OTHER" description="其他编程语言" label="其他语言" value="007"/>
+        </dict>
         <dict label="规则类型" name="ai/rule_type">
             <description>项目规则分类</description>
             <option code="CODING_STYLE" description="代码格式和命名规则" label="编码规范" value="001"/>
@@ -69,11 +79,17 @@
                 registerShortName="true" tableName="nop_ai_project">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
+                <column code="language" comment="项目使用的编程语言类型：JAVA, PYTHON等" displayName="项目语言" mandatory="true"
+                        name="language" precision="4" propId="2" stdDataType="string" stdSqlType="VARCHAR"
+                        ext:dict="ai/project_language"/>
+                <column code="name" displayName="项目名称" mandatory="true" name="name" precision="100" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="name" displayName="项目名称" mandatory="true" name="name" precision="100" propId="2"
+                <column code="prototype_id" displayName="模板项目ID" name="prototypeId" precision="36" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="prototype_id" displayName="模板项目ID" name="prototypeId" precision="36" propId="3"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                <column code="project_dir" comment="项目在文件系统中的存储路径，例如：/data/projects/order-system" displayName="项目目录"
+                        name="projectDir" precision="400" propId="5" stdDataType="string" stdSqlType="VARCHAR"
+                        ui:control="textarea"/>
             </columns>
             <comment>存储AI项目基本信息</comment>
             <relations>
@@ -101,12 +117,6 @@
                         <on leftProp="id" rightProp="projectId"/>
                     </join>
                 </to-many>
-                <to-many displayName="知识条目" name="knowledgeItems" refEntityName="nop.ai.dao.entity.NopAiKnowledge"
-                         refPropName="project">
-                    <join>
-                        <on leftProp="id" rightProp="projectId"/>
-                    </join>
-                </to-many>
                 <to-many displayName="生成文件" name="generatedFiles" refEntityName="nop.ai.dao.entity.NopAiGenFile"
                          refPropName="project">
                     <join>
@@ -119,7 +129,7 @@
                 name="nop.ai.dao.entity.NopAiProjectRule" registerShortName="true" tableName="nop_ai_project_rule">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
                 <column code="project_id" displayName="项目ID" mandatory="true" name="projectId" precision="36" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="knowledge_id" comment="关联的知识库条目，规则可能基于某个知识文档" displayName="知识库ID" name="knowledgeId"
@@ -128,7 +138,8 @@
                         mandatory="true" name="ruleName" precision="100" propId="4" stdDataType="string"
                         stdSqlType="VARCHAR"/>
                 <column code="rule_content" comment="规则的具体内容（JSON/YAML/文本）" displayName="规则内容" mandatory="true"
-                        name="ruleContent" precision="4000" propId="5" stdDataType="string" stdSqlType="VARCHAR"/>
+                        name="ruleContent" precision="4000" propId="5" stdDataType="string" stdSqlType="VARCHAR"
+                        ui:control="textarea"/>
                 <column code="rule_type" comment="规则分类，如：CODING_STYLE, SECURITY, PERFORMANCE" displayName="规则类型"
                         name="ruleType" precision="50" propId="6" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="is_active" displayName="是否启用" mandatory="true" name="isActive" propId="7"
@@ -156,7 +167,7 @@
                 name="nop.ai.dao.entity.NopAiProjectConfig" registerShortName="true" tableName="nop_ai_project_config">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
                 <column code="project_id" displayName="项目ID" mandatory="true" name="projectId" precision="36" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="config_name" displayName="配置名称" mandatory="true" name="configName" precision="50"
@@ -181,7 +192,7 @@
                 registerShortName="true" tableName="nop_ai_model">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
                 <column code="provider" displayName="供应商" mandatory="true" name="provider" precision="4" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" ext:dict="ai/model_provider"/>
                 <column code="model_name" displayName="模型名称" mandatory="true" name="modelName" precision="50" propId="3"
@@ -205,7 +216,7 @@
                 name="nop.ai.dao.entity.NopAiRequirement" registerShortName="true" tableName="nop_ai_requirement">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
                 <column code="project_id" displayName="项目ID" mandatory="true" name="projectId" precision="36" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="req_number" displayName="需求编号" mandatory="true" name="reqNumber" precision="20" propId="3"
@@ -213,7 +224,7 @@
                 <column code="title" displayName="需求标题" mandatory="true" name="title" precision="200" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="content" displayName="需求内容" name="content" precision="4000" propId="5"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="version" displayName="当前版本" mandatory="true" name="version" precision="10" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="parent_id" displayName="父需求ID" name="parentId" precision="36" propId="7"
@@ -221,7 +232,7 @@
                 <column code="type" displayName="需求类型" mandatory="true" name="type" precision="4" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR" ext:dict="ai/requirement_type"/>
                 <column code="ai_summary" displayName="AI摘要" name="aiSummary" precision="1000" propId="9"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="status" displayName="状态" mandatory="true" name="status" precision="4" propId="10"
                         stdDataType="string" stdSqlType="VARCHAR" ext:dict="ai/status_type"/>
             </columns>
@@ -272,13 +283,13 @@
                 tableName="nop_ai_requirement_history">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
                 <column code="requirement_id" displayName="需求ID" mandatory="true" name="requirementId" precision="36"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="version" displayName="版本号" mandatory="true" name="version" precision="10" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="content" displayName="需求内容" mandatory="true" name="content" precision="4000" propId="4"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
             </columns>
             <comment>需求变更版本记录</comment>
             <relations>
@@ -295,25 +306,16 @@
                 registerShortName="true" tableName="nop_ai_knowledge">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
+                <column code="title" displayName="标题" mandatory="true" name="title" precision="200" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="project_id" displayName="项目ID" mandatory="true" name="projectId" precision="36" propId="2"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="title" displayName="标题" mandatory="true" name="title" precision="200" propId="3"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
-                <column code="content" displayName="内容" name="content" precision="4000" propId="4" stdDataType="string"
-                        stdSqlType="VARCHAR"/>
-                <column code="format" displayName="格式类型" mandatory="true" name="format" precision="4" propId="5"
+                <column code="content" displayName="内容" name="content" precision="4000" propId="3" stdDataType="string"
+                        stdSqlType="VARCHAR" ui:control="textarea"/>
+                <column code="format" displayName="格式类型" mandatory="true" name="format" precision="4" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" ext:dict="ai/file_format"/>
             </columns>
             <comment>领域知识文档存储</comment>
             <relations>
-                <to-one name="project" refDisplayName="知识条目" refEntityName="nop.ai.dao.entity.NopAiProject"
-                        refPropName="knowledgeItems">
-                    <join>
-                        <on leftProp="projectId" rightProp="id"/>
-                    </join>
-                    <ref-set/>
-                </to-one>
                 <to-many displayName="关联规则" name="relatedRules" refEntityName="nop.ai.dao.entity.NopAiProjectRule"
                          refPropName="knowledge">
                     <join>
@@ -326,17 +328,17 @@
                 name="nop.ai.dao.entity.NopAiPromptTemplate" registerShortName="true" tableName="nop_ai_prompt_template">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
                 <column code="name" displayName="模板名称" mandatory="true" name="name" precision="100" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="content" displayName="模板内容" mandatory="true" name="content" precision="4000" propId="3"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="category" displayName="分类" name="category" precision="50" propId="4" stdDataType="string"
                         stdSqlType="VARCHAR"/>
                 <column code="inputs" displayName="输入规范" name="inputs" precision="1000" propId="5" stdDataType="string"
-                        stdSqlType="VARCHAR"/>
+                        stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="outputs" displayName="输出规范" name="outputs" precision="1000" propId="6"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
             </columns>
             <comment>AI提示词模板定义</comment>
             <relations>
@@ -359,13 +361,13 @@
                 tableName="nop_ai_prompt_template_history">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
                 <column code="template_id" displayName="模板ID" mandatory="true" name="templateId" precision="36"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="version" displayName="版本号" mandatory="true" name="version" precision="10" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="content" displayName="模板内容" mandatory="true" name="content" precision="4000" propId="4"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
             </columns>
             <comment>提示词模板版本记录</comment>
             <relations>
@@ -382,15 +384,15 @@
                 name="nop.ai.dao.entity.NopAiChatRequest" registerShortName="true" tableName="nop_ai_chat_request">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
                 <column code="template_id" displayName="模板ID" name="templateId" precision="36" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="session_id" displayName="会话ID" mandatory="true" name="sessionId" precision="36" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="system_prompt" displayName="系统提示词" name="systemPrompt" precision="65536" propId="4"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="user_prompt" displayName="用户提示词" mandatory="true" name="userPrompt" precision="65536"
-                        propId="5" stdDataType="string" stdSqlType="VARCHAR"/>
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="message_type" displayName="消息类型" mandatory="true" name="messageType" precision="4"
                         propId="6" stdDataType="string" stdSqlType="VARCHAR" ext:dict="ai/message_type"/>
                 <column code="request_timestamp" displayName="请求时间戳" mandatory="true" name="requestTimestamp" propId="7"
@@ -398,7 +400,7 @@
                 <column code="hash" displayName="内容哈希" mandatory="true" name="hash" precision="64" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="metadata" displayName="元数据" name="metadata" precision="2000" propId="9"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
             </columns>
             <comment>多模型测试请求记录</comment>
             <relations>
@@ -421,7 +423,7 @@
                 name="nop.ai.dao.entity.NopAiChatResponse" registerShortName="true" tableName="nop_ai_chat_response">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
                 <column code="request_id" displayName="请求ID" mandatory="true" name="requestId" precision="36" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="session_id" displayName="会话ID" mandatory="true" name="sessionId" precision="36" propId="3"
@@ -433,7 +435,7 @@
                 <column code="ai_model" displayName="模型名称" mandatory="true" name="aiModel" precision="50" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="response_content" displayName="响应内容" mandatory="true" name="responseContent"
-                        precision="65536" propId="7" stdDataType="string" stdSqlType="VARCHAR"/>
+                        precision="65536" propId="7" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="response_timestamp" displayName="响应时间戳" mandatory="true" name="responseTimestamp"
                         propId="8" stdDataType="timestamp" stdSqlType="TIMESTAMP"/>
                 <column code="prompt_tokens" comment="请求消息消耗的Token数量" displayName="请求Token数" name="promptTokens"
@@ -485,7 +487,7 @@
                 registerShortName="true" tableName="nop_ai_gen_file">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
                 <column code="project_id" displayName="项目ID" mandatory="true" name="projectId" precision="36" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="requirement_id" displayName="需求ID" name="requirementId" precision="36" propId="3"
@@ -493,7 +495,7 @@
                 <column code="module_type" displayName="模块类型" mandatory="true" name="moduleType" precision="4"
                         propId="4" stdDataType="string" stdSqlType="VARCHAR" ext:dict="ai/module_type"/>
                 <column code="content" comment="当前文件内容" displayName="文件内容" mandatory="true" name="content"
-                        precision="65536" propId="5" stdDataType="string" stdSqlType="VARCHAR"/>
+                        precision="65536" propId="5" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="file_path" displayName="文件路径" mandatory="true" name="filePath" precision="200" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="chat_response_id" displayName="响应ID" name="chatResponseId" precision="36" propId="7"
@@ -543,13 +545,13 @@
                 tableName="nop_ai_gen_file_history">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
                 <column code="gen_file_id" displayName="文件ID" mandatory="true" name="genFileId" precision="36"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="version" displayName="版本号" mandatory="true" name="version" precision="10" propId="3"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="content" comment="当前文件内容" displayName="文件内容" mandatory="true" name="content"
-                        precision="65536" propId="4" stdDataType="string" stdSqlType="VARCHAR"/>
+                        precision="65536" propId="4" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
             </columns>
             <comment>生成文件版本记录</comment>
             <relations>
@@ -566,13 +568,13 @@
                 registerShortName="true" tableName="nop_ai_test_case">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
                 <column code="requirement_id" displayName="需求ID" mandatory="true" name="requirementId" precision="36"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="test_content" displayName="测试内容" mandatory="true" name="testContent" precision="2000"
-                        propId="3" stdDataType="string" stdSqlType="VARCHAR"/>
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="test_data" displayName="测试数据" name="testData" precision="1000" propId="4"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
                 <column code="gen_file_id" displayName="关联文件ID" name="genFileId" precision="36" propId="5"
                         stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="chat_response_id" displayName="响应ID" name="chatResponseId" precision="36" propId="6"
@@ -615,7 +617,7 @@
                 name="nop.ai.dao.entity.NopAiTestResult" registerShortName="true" tableName="nop_ai_test_result">
             <columns>
                 <column code="id" displayName="主键" mandatory="true" name="id" precision="36" primary="true" propId="1"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" ui:show="X"/>
                 <column code="test_case_id" displayName="测试用例ID" mandatory="true" name="testCaseId" precision="36"
                         propId="2" stdDataType="string" stdSqlType="VARCHAR"/>
                 <column code="execution_time" displayName="执行时间" mandatory="true" name="executionTime" propId="3"
@@ -623,7 +625,7 @@
                 <column code="success" displayName="是否成功" mandatory="true" name="success" propId="4"
                         stdDataType="boolean" stdSqlType="BOOLEAN"/>
                 <column code="error_log" displayName="错误日志" name="errorLog" precision="2000" propId="5"
-                        stdDataType="string" stdSqlType="VARCHAR"/>
+                        stdDataType="string" stdSqlType="VARCHAR" ui:control="textarea"/>
             </columns>
             <comment>测试用例执行结果</comment>
             <relations>

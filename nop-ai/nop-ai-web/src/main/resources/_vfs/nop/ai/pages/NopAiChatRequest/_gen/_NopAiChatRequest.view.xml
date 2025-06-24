@@ -18,9 +18,6 @@
         <grid id="list" x:abstract="true">
             <cols>
 
-                <!--主键-->
-                <col id="id" mandatory="true" sortable="true"/>
-
                 <!--模板ID-->
                 <col id="templateId" sortable="true"/>
 
@@ -52,7 +49,6 @@
     <forms>
         <form id="view" editMode="view" title="查看-对话请求" i18n-en:title="View ">
             <layout>
- id[主键]
  templateId[模板ID]
  sessionId[会话ID]
  systemPrompt[系统提示词]
@@ -66,7 +62,6 @@
         <form id="add" editMode="add" title="新增-对话请求" i18n-en:title="Add " x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-对话请求" i18n-en:title="Edit ">
             <layout>
- id[主键]
  templateId[模板ID]
  sessionId[会话ID]
  systemPrompt[系统提示词]

@@ -18,8 +18,8 @@
     <keys/>
 
     <props>
-        <prop name="id" displayName="主键" propId="1" mandatory="true" queryable="true" sortable="true" insertable="true"
-              updatable="false">
+        <prop name="id" displayName="主键" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="36"/>
         </prop>
         <prop name="projectId" displayName="项目ID" propId="2" mandatory="true" queryable="true" sortable="true"
@@ -35,7 +35,7 @@
             <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="content" displayName="需求内容" propId="5" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+              updatable="true" ui:control="textarea">
             <schema type="java.lang.String" precision="4000"/>
         </prop>
         <prop name="version" displayName="当前版本" propId="6" mandatory="true" queryable="true" sortable="true"
@@ -51,7 +51,7 @@
             <schema type="java.lang.String" precision="4" dict="ai/requirement_type"/>
         </prop>
         <prop name="aiSummary" displayName="AI摘要" propId="9" queryable="true" sortable="true" insertable="true"
-              updatable="true">
+              updatable="true" ui:control="textarea">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
         <prop name="status" displayName="状态" propId="10" mandatory="true" queryable="true" sortable="true"

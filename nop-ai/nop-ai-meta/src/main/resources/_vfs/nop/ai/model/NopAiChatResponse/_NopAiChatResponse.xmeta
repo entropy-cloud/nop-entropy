@@ -18,8 +18,8 @@
     <keys/>
 
     <props>
-        <prop name="id" displayName="主键" propId="1" mandatory="true" queryable="true" sortable="true" insertable="true"
-              updatable="false">
+        <prop name="id" displayName="主键" propId="1" tagSet="seq" mandatory="true" queryable="true" sortable="true"
+              insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="36"/>
         </prop>
         <prop name="requestId" displayName="请求ID" propId="2" mandatory="true" queryable="true" sortable="true"
@@ -43,7 +43,7 @@
             <schema type="java.lang.String" precision="50"/>
         </prop>
         <prop name="responseContent" displayName="响应内容" propId="7" mandatory="true" queryable="true" sortable="true"
-              insertable="true" updatable="true">
+              insertable="true" updatable="true" ui:control="textarea">
             <schema type="java.lang.String" precision="65536"/>
         </prop>
         <prop name="responseTimestamp" displayName="响应时间戳" propId="8" mandatory="true" queryable="true" sortable="true"

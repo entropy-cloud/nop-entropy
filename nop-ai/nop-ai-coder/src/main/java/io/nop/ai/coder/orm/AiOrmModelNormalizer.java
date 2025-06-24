@@ -199,6 +199,16 @@ public class AiOrmModelNormalizer {
         } else if ("imageList".equals(stdDomain) || "fileList".equals(stdDomain)) {
             col.setAttr("stdSqlType", StdSqlType.VARCHAR);
             col.setAttr("precision", 1000);
+        } else if ("id".equals(colName) && col.attrBoolean("primary")) {
+            col.addTagSet("seq");
+            if (!col.hasAttr("ui:show"))
+                col.setAttr("ui:show", "X");
+        }
+
+        if ("VARCHAR".equals(col.attrText("stdSqlType"))) {
+            int precision = col.attrInt("precision", -1);
+            if (precision > 500)
+                col.setAttr("ui:control", "textarea");
         }
     }
 
