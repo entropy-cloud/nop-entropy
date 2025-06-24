@@ -12,12 +12,6 @@ import io.nop.xlang.xdef.XDefConstants;
  * @date 2025-06-17
  */
 public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
-    private static final String XLANG_EXT = "xdoc";
-
-    @Override
-    protected String[] getXLangFileExtensions() {
-        return new String[] { XLANG_EXT };
-    }
 
     public void testGenerateDocForXmlName() {
         // 显示标签文档
@@ -135,7 +129,7 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
 
     /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */
     private void doTest(String text, Consumer<String> checker) {
-        myFixture.configureByText("example." + XLANG_EXT, text);
+        configureByXLangText(text);
 
         String genDoc = getDoc();
 

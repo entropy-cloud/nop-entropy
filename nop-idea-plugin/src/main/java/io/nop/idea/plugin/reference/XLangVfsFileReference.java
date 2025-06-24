@@ -20,8 +20,6 @@ import org.jetbrains.annotations.Nullable;
  */
 public class XLangVfsFileReference extends PsiReferenceBase<XmlElement> implements XLangReference {
     private final PsiFile file;
-    /** 文件内的定位锚点 */
-    private final Anchor anchor;
 
     /**
      * @param refElement
@@ -33,25 +31,18 @@ public class XLangVfsFileReference extends PsiReferenceBase<XmlElement> implemen
      */
     public XLangVfsFileReference(
             @NotNull XmlElement refElement, TextRange textRange, //
-            @NotNull PsiFile file, Anchor anchor
+            @NotNull PsiFile file
     ) {
         super(refElement, textRange,
               // 不采用延迟解析模式，以确保当解析到有其他相关引用时，其能够被 PsiMultiReference 作为最优引用
               false);
         this.file = file;
-        this.anchor = anchor;
     }
 
     /** 得到具体的引用对象（文件、文件行、文件内某个元素等） */
     @Override
     public @Nullable PsiElement resolve() {
-        PsiElement result = null;
-
-        if (anchor instanceof PosAnchor pos) {
-            result = XmlPsiHelper.getPsiElementAt(file, pos.line, pos.column);
-        } else if (anchor == null) {
-            result = XmlPsiHelper.findFirstElement(file, (element) -> element instanceof XmlTag);
-        }
+        PsiElement result = XmlPsiHelper.findFirstElement(file, (element) -> element instanceof XmlTag);
 
         return result == null ? this.file : result;
     }
@@ -64,10 +55,7 @@ public class XLangVfsFileReference extends PsiReferenceBase<XmlElement> implemen
 
     @Override
     public boolean isReferenceTo(@NotNull PsiElement target) {
+        // XmlAttributeReference#isReferenceTo
         return target instanceof PsiFile && ((PsiFile) target).getVirtualFile().getPath().endsWith("/_vfs" + file);
     }
-
-    public interface Anchor {}
-
-    public record PosAnchor(int line, int column) implements Anchor {}
 }

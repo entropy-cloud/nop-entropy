@@ -13,12 +13,6 @@ import io.nop.idea.plugin.BaseXLangPluginTestCase;
  * @date 2025-06-17
  */
 public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
-    private static final String XLANG_EXT = "xgo";
-
-    @Override
-    protected String[] getXLangFileExtensions() {
-        return new String[] { XLANG_EXT };
-    }
 
     @Override
     protected void setUp() throws Exception {
@@ -218,7 +212,7 @@ public class TestXLangGotoDeclarationHandler extends BaseXLangPluginTestCase {
 
     /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */
     private void doTest(String text, String... expected) {
-        myFixture.configureByText("example." + XLANG_EXT, text);
+        configureByXLangText(text);
 
         PsiElement[] refs = getGotoTargets();
         assertNotNull(refs);

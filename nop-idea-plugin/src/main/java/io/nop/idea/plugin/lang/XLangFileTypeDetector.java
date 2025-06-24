@@ -16,18 +16,23 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class XLangFileTypeDetector implements FileTypeRegistry.FileTypeDetector {
+
     @Override
-    public @Nullable FileType detect(@NotNull VirtualFile file, @NotNull ByteSequence firstBytes,
-                                     @Nullable CharSequence firstCharsIfText) {
-        if (firstCharsIfText == null)
+    public @Nullable FileType detect(
+            @NotNull VirtualFile file, @NotNull ByteSequence firstBytes, @Nullable CharSequence firstCharsIfText
+    ) {
+        if (firstCharsIfText == null) {
             return null;
+        }
 
         String ext = file.getExtension();
-        if (ext == null)
+        if (ext == null) {
             return null;
+        }
 
-        if (ext.equals("xpl") || ext.equals("xgen") || ext.equals("xrun"))
+        if (ext.equals("xdef") || ext.equals("xpl") || ext.equals("xgen") || ext.equals("xrun")) {
             return XLangFileType.INSTANCE;
+        }
 
         String schema = XLangFileHelper.getSchemaFromContent(firstCharsIfText);
         if (!StringHelper.isEmpty(schema)) {

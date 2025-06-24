@@ -22,6 +22,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
@@ -184,7 +185,7 @@ public class XmlPsiHelper {
 
     /** 获取指定行列的 {@link PsiElement 元素} */
     public static PsiElement getPsiElementAt(PsiFile psiFile, int line, int column) {
-        Document document = psiFile.getViewProvider().getDocument();
+        Document document = PsiDocumentManager.getInstance(psiFile.getProject()).getDocument(psiFile);
         assert document != null;
 
         int offset = document.getLineStartOffset(line - 1) + column - 1;

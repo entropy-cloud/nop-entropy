@@ -2,7 +2,6 @@ package io.nop.idea.plugin.reference;
 
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
-import com.intellij.psi.impl.source.resolve.reference.impl.PsiMultiReference;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlElement;
@@ -15,12 +14,6 @@ import io.nop.idea.plugin.utils.XmlPsiHelper;
  * @date 2025-06-22
  */
 public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
-    private static final String XLANG_EXT = "xref";
-
-    @Override
-    protected String[] getXLangFileExtensions() {
-        return new String[] { XLANG_EXT };
-    }
 
     @Override
     protected void setUp() throws Exception {
@@ -234,23 +227,24 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
 //               "");
     }
 
+    public void testGetReferencesFromXmlAttribute() {
+//        // 名字空间不做引用
+//        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"name\"",
+//                                                                "me<caret>ta:unique-attr=\"name\""), null);
+
+        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"name\"",
+                                                                "meta:unique<caret>-attr=\"name\""),
+               "meta:define#xdef:unique-attr=xml-name");
+    }
+
     /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */
     private void doTest(String text, String expected) {
-        myFixture.configureByText("example." + XLANG_EXT, text);
+        configureByXLangText(text);
 
-        // 实际有多个引用时，将构造返回 PsiMultiReference，
-        // 其会按 PsiMultiReference#COMPARATOR 对引用排序得到优先引用，
-        // 再调用该优先引用的 #resolve() 得到 PsiElement
         PsiReference ref = findReferenceAtCaret();
 
-        if (!(ref instanceof XLangReference)) {
-            if (expected == null) {
-                return; // 不检查非 XLang 引用
-            }
-
-            assertInstanceOf(ref, PsiMultiReference.class);
-
-            ref = ((PsiMultiReference) ref).getReferences()[0];
+        if (!(ref instanceof XLangReference) && expected == null) {
+            return; // 不检查非 XLang 引用
         }
         assertInstanceOf(ref, XLangReference.class);
 
@@ -268,7 +262,7 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
 
             assertEquals(expected, (vfsPath != null ? vfsPath : "") + (anchor != null ? "#" + anchor : ""));
         } //
-        else if (ref instanceof XLangElementReference) {
+        else if (ref instanceof XLangElementReference || ref instanceof XLangXDefReference) {
             assertInstanceOf(target, XmlElement.class);
 
             if (target instanceof XmlTag tag) {

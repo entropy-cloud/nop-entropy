@@ -8,6 +8,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
+import com.intellij.psi.impl.source.resolve.reference.impl.PsiMultiReference;
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
 import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.config.AppConfig;
@@ -20,6 +21,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.idea.plugin.lang.XLangFileType;
+import io.nop.idea.plugin.reference.XLangReference;
 import io.nop.idea.plugin.resource.ProjectEnv;
 import io.nop.xlang.initialize.XLangCoreInitializer;
 
@@ -28,6 +30,8 @@ import io.nop.xlang.initialize.XLangCoreInitializer;
  * @date 2025-06-17
  */
 public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtureTestCase {
+    private static final String XLANG_EXT = "xtest";
+
     private final Cancellable cleanup = new Cancellable();
 
     @Override
@@ -36,10 +40,11 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
 
         // Note: 消除异常 "Write access is allowed inside write-action only"
         ApplicationManager.getApplication().runWriteAction(() -> {
-            // 临时注册 XLang 文件类型
-            for (String ext : getXLangFileExtensions()) {
-                FileTypeManager.getInstance().associateExtension(XLangFileType.INSTANCE, ext);
-            }
+            // Note: *.xdef 等需显式注册，否则，这类文件会被视为二进制文件，
+            // 在通过 PsiDocumentManager 获取 Document 时，将返回 null
+            FileTypeManager.getInstance().associateExtension(XLangFileType.INSTANCE, "xdef");
+
+            FileTypeManager.getInstance().associateExtension(XLangFileType.INSTANCE, XLANG_EXT);
         });
 
         // 初始化 XLang 环境：由于测试资源均在 classpath 中，故而，需采用默认的 ICoreInitializer 进行初始化，
@@ -69,8 +74,8 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         super.tearDown();
     }
 
-    protected String[] getXLangFileExtensions() {
-        return new String[0];
+    protected void configureByXLangText(String text) {
+        myFixture.configureByText("unit." + XLANG_EXT, text);
     }
 
     /**
@@ -95,8 +100,22 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         return myFixture.getFile().findElementAt(myFixture.getCaretOffset());
     }
 
+    /** 找到光标位置的 {@link XLangReference} 或者其他类型的唯一引用 */
     protected PsiReference findReferenceAtCaret() {
-        return TargetElementUtil.findReference(myFixture.getEditor(), myFixture.getCaretOffset());
+        // 实际有多个引用时，将构造返回 PsiMultiReference，
+        // 其会按 PsiMultiReference#COMPARATOR 对引用排序得到优先引用，
+        // 再调用该优先引用的 #resolve() 得到 PsiElement
+        PsiReference ref = TargetElementUtil.findReference(myFixture.getEditor(), myFixture.getCaretOffset());
+
+        if (ref instanceof PsiMultiReference mref) {
+            for (PsiReference r : mref.getReferences()) {
+                if (r instanceof XLangReference) {
+                    return r;
+                }
+            }
+            return ((PsiMultiReference) ref).getReferences()[0];
+        }
+        return ref;
     }
 
     protected String getDoc() {

@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
@@ -17,8 +18,8 @@ import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlAttributeValue;
 import com.intellij.psi.xml.XmlElement;
-import com.intellij.psi.xml.XmlElementType;
 import com.intellij.psi.xml.XmlTag;
+import com.intellij.psi.xml.XmlText;
 import com.intellij.util.ProcessingContext;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
@@ -32,8 +33,6 @@ import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import org.jetbrains.annotations.NotNull;
-
-import static io.nop.idea.plugin.utils.XmlPsiHelper.isElementType;
 
 /**
  * 针对 XLang 中的 {@link PsiElement 元素} 创建引用
@@ -67,32 +66,21 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
                       XmlToken:XML_ATTRIBUTE_VALUE_TOKEN('/nop/schema/xdef.xdef')(536,557)
                       XmlToken:XML_ATTRIBUTE_VALUE_END_DELIMITER('"')(557,558)
             */
-            if (isElementType(element, XmlElementType.XML_NAME)) {
-                XmlAttribute attr = PsiTreeUtil.getParentOfType(element, XmlAttribute.class);
+            if (element instanceof XmlTag tag) {
+                return getReferencesFromXmlTag(tag);
+            } //
+            else if (element instanceof XmlAttribute attr) {
+                return getReferencesFromXmlAttribute(attr);
+            } //
+            else if (element instanceof XmlAttributeValue value) {
+                XmlAttribute attr = PsiTreeUtil.getParentOfType(value, XmlAttribute.class);
 
                 if (attr != null) {
-                    return getReferencesFromXmlAttribute((XmlElement) element, attr);
-                } else {
-                    XmlTag tag = PsiTreeUtil.getParentOfType(element, XmlTag.class);
-
-                    if (tag != null) {
-                        return getReferencesFromXmlTag((XmlElement) element, tag);
-                    }
+                    return getReferencesFromXmlAttributeValue(value, attr);
                 }
             } //
-            else if (isElementType(element, XmlElementType.XML_ATTRIBUTE_VALUE)) {
-                XmlAttribute attr = PsiTreeUtil.getParentOfType(element, XmlAttribute.class);
-
-                if (attr != null) {
-                    return getReferencesFromXmlAttributeValue((XmlAttributeValue) element, attr);
-                }
-            } //
-            else if (isElementType(element, XmlElementType.XML_TEXT)) {
-                XmlTag tag = PsiTreeUtil.getParentOfType(element, XmlTag.class);
-
-                if (tag != null) {
-                    return getReferencesFromXmlText((XmlElement) element, tag);
-                }
+            else if (element.getParent() instanceof XmlText text) {
+                return getReferencesFromXmlText(text, text.getParentTag());
             }
 
             return PsiReference.EMPTY_ARRAY;
@@ -100,31 +88,50 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
     }
 
     /** 获取 xml 标签对应的引用（节点定义、xpl 函数定义等） */
-    private PsiReference @NotNull [] getReferencesFromXmlTag(XmlElement refElement, XmlTag tag) {
+    private PsiReference @NotNull [] getReferencesFromXmlTag(XmlTag tag) {
         // TODO xpl 函数的引用
 
         return PsiReference.EMPTY_ARRAY;
     }
 
     /** 获取 xml 属性名对应的引用（属性定义） */
-    private PsiReference @NotNull [] getReferencesFromXmlAttribute(XmlElement refElement, XmlAttribute attr) {
+    private PsiReference @NotNull [] getReferencesFromXmlAttribute(XmlAttribute attr) {
         String attrName = attr.getName();
         XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(attr);
         IXDefAttribute attrDef = tagInfo != null ? tagInfo.getDefAttr(attrName) : null;
 
-        if (attrDef == null) {
+        SourceLocation loc = attrDef != null ? attrDef.getLocation() : null;
+        if (loc == null) {
             return PsiReference.EMPTY_ARRAY;
         }
 
-        SourceLocation loc = attrDef.getLocation();
-        String path = loc.getPath();
+        // Note: 在 jar 中的 vfs 路径会添加 classpath:_vfs 前缀
+        String path = loc.getPath().replace("classpath:_vfs", "");
+        // Note: 对于包含名字空间的属性，需仅对属性名建立引用，否则，会被默认的 xml 引用替代。
+        // 不过，对于 XLang 而言，名字空间也无需建立引用
+        TextRange textRange = new TextRange(attrName.indexOf(':') + 1, attrName.length());
 
-        TextRange textRange = new TextRange(0, attrName.length());
+        PsiReference[] refs = XmlPsiHelper.findPsiFilesByNopVfsPath(attr, path)
+                                          .stream()
+                                          .map((file) -> {
+                                              PsiElement element = XmlPsiHelper.getPsiElementAt(file,
+                                                                                                loc.getLine(),
+                                                                                                loc.getCol());
+                                              return element instanceof XmlAttribute
+                                                     ? (XmlAttribute) element
+                                                     : PsiTreeUtil.getParentOfType(element, XmlAttribute.class);
+                                          })
+                                          .filter(Objects::nonNull)
+                                          .map((defAttr) -> new XLangXDefReference(attr, textRange, defAttr))
+                                          .toArray(PsiReference[]::new);
+        if (refs.length > 0) {
+            return refs;
+        }
 
-        return getReferencesByVfsPath(refElement,
-                                      path,
-                                      textRange,
-                                      new XLangVfsFileReference.PosAnchor(loc.getLine(), loc.getPos()));
+        String msg = NopPluginBundle.message("xlang.annotation.reference.attr-xdef-not-defined", attrName);
+        return new PsiReference[] {
+                new XLangNotFoundReference(attr, textRange, msg)
+        };
     }
 
     /** 获取 xml 属性值对应的引用（文件、节点、属性类型等） */
@@ -189,7 +196,11 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
         return getReferencesByDefault(refElement, attrValue);
     }
 
-    private PsiReference[] getReferencesFromXmlText(XmlElement refElement, XmlTag tag) {
+    private PsiReference[] getReferencesFromXmlText(XmlText refElement, XmlTag tag) {
+        if (tag == null) {
+            return PsiReference.EMPTY_ARRAY;
+        }
+
         return PsiReference.EMPTY_ARRAY;
     }
 
@@ -202,7 +213,7 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
         // Note: XmlAttributeValue 的文本范围是包含引号的
         TextRange textRange = new TextRange(1, attrValue.length() + 1);
 
-        return getReferencesByVfsPath(attrValueElement, attrValue, textRange, null);
+        return getReferencesByVfsPath(attrValueElement, attrValue, textRange);
     }
 
     /** 获取指定路径的引用（文件） */
@@ -210,7 +221,7 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
         // Note: XmlAttributeValue 的文本范围是包含引号的
         TextRange textRange = new TextRange(1, attrValue.length() + 1);
 
-        return getReferencesByVfsPath(attrValueElement, attrValue, textRange, null);
+        return getReferencesByVfsPath(attrValueElement, attrValue, textRange);
     }
 
     /** 从 csv 文本中获取引用 */
@@ -220,7 +231,7 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
 
         List<PsiReference> list = new ArrayList<>(rangePathMap.size());
         rangePathMap.forEach((textRange, path) -> {
-            PsiReference[] refs = getReferencesByVfsPath(attrValueElement, path, textRange.shiftRight(1), null);
+            PsiReference[] refs = getReferencesByVfsPath(attrValueElement, path, textRange.shiftRight(1));
 
             list.addAll(Arrays.stream(refs).toList());
         });
@@ -251,7 +262,7 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
 
             // 文件引用直接返回
             if (ref == null) {
-                return getReferencesByVfsPath(attrValueElement, path, textRange, null);
+                return getReferencesByVfsPath(attrValueElement, path, textRange);
             }
 
             psiFiles = XmlPsiHelper.findPsiFilesByNopVfsPath(attrValueElement, path);
@@ -264,29 +275,22 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
         }
 
         // 收集引用节点属性
-        List<XmlElement> targets = new ArrayList<>();
-        psiFiles.forEach((file) -> {
-            XmlElement target = XmlPsiHelper.findFirstElement(file, (element) -> {
-                if (element instanceof XmlAttribute attr) {
-                    String name = attr.getName();
-                    String value = attr.getValue();
+        PsiReference[] refs = psiFiles.stream()
+                                      .map((file) -> (XmlAttribute) XmlPsiHelper.findFirstElement(file, (element) -> {
+                                          if (element instanceof XmlAttribute attr) {
+                                              String name = attr.getName();
+                                              String value = attr.getValue();
 
-                    // Note: xdef-ref 引用的只能是 xdef:name 命名的节点
-                    return ("xdef:name".equals(name) //
-                            || "meta:name".equals(name) //
-                           ) && ref.equals(value);
-                }
-                return false;
-            });
-
-            if (target != null) {
-                targets.add(target);
-            }
-        });
-
-        PsiReference[] refs = targets.stream()
-                                     .map((attr) -> new XLangElementReference(attrValueElement, textRange, attr))
-                                     .toArray(PsiReference[]::new);
+                                              // Note: xdef-ref 引用的只能是 xdef:name 命名的节点
+                                              return ("xdef:name".equals(name) //
+                                                      || "meta:name".equals(name) //
+                                                     ) && ref.equals(value);
+                                          }
+                                          return false;
+                                      }))
+                                      .filter(Objects::nonNull)
+                                      .map((attr) -> new XLangElementReference(attrValueElement, textRange, attr))
+                                      .toArray(PsiReference[]::new);
         if (refs.length > 0) {
             return refs;
         }
@@ -384,17 +388,14 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
         return new PsiReference[] { new XLangElementReference(attrValueElement, textRange, attr) };
     }
 
-    private PsiReference[] getReferencesByVfsPath(
-            XmlElement refElement, String path, //
-            TextRange textRange, XLangVfsFileReference.Anchor anchor
-    ) {
+    private PsiReference[] getReferencesByVfsPath(XmlElement refElement, String path, TextRange textRange) {
         if (!StringHelper.isValidFilePath(path) || path.indexOf('.') <= 0) {
             return PsiReference.EMPTY_ARRAY;
         }
 
         PsiReference[] refs = XmlPsiHelper.findPsiFilesByNopVfsPath(refElement, path)
                                           .stream()
-                                          .map((file) -> new XLangVfsFileReference(refElement, textRange, file, anchor))
+                                          .map((file) -> new XLangVfsFileReference(refElement, textRange, file))
                                           .toArray(PsiReference[]::new);
 
         if (refs.length > 0) {

@@ -50,7 +50,8 @@ public class XLangAnnotator implements Annotator {
             try {
                 doAnnotate(element, holder);
             } catch (Exception e) {
-                holder.newAnnotation(HighlightSeverity.WARNING, e.getMessage())
+                holder.newAnnotation(HighlightSeverity.WARNING,
+                                     e.getMessage() != null ? e.getMessage() : e.getClass().getName())
                       .highlightType(ProblemHighlightType.WARNING)
                       .create();
             }
