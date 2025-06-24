@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.editor.Document;
@@ -27,9 +28,9 @@ import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.tree.IElementType;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlAttributeValue;
-import com.intellij.psi.xml.XmlElement;
 import com.intellij.psi.xml.XmlElementType;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.psi.xml.XmlTokenType;
@@ -37,18 +38,34 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.xlang.xpl.xlib.XplLibHelper;
+import org.jetbrains.annotations.NotNull;
 
 public class XmlPsiHelper {
 
-    public static String absolutePath(String path, XmlElement element) {
+    public static String getNopVfsPath(PsiElement element) {
+        PsiFile file = element.getContainingFile();
+        if (file == null) {
+            return null;
+        }
+
+        VirtualFile vf = file.getVirtualFile();
+        if (vf == null) {
+            return null;
+        }
+
+        return ProjectFileHelper.getNopVfsPath(vf);
+    }
+
+    public static String getNopVfsAbsolutePath(String path, PsiElement element) {
         String filePath = getNopVfsPath(element);
+
         return StringHelper.absolutePath(filePath, path);
     }
 
     public static List<PsiFile> findPsiFileList(Project project, String path) {
         String fileName = StringHelper.fileFullName(path);
         Collection<VirtualFile> vfList = FilenameIndex.getVirtualFilesByName(fileName,
-                                                                            GlobalSearchScope.allScope(project));
+                                                                             GlobalSearchScope.allScope(project));
         if (vfList.isEmpty()) {
             return Collections.emptyList();
         }
@@ -67,12 +84,19 @@ public class XmlPsiHelper {
         return ret;
     }
 
-    public static PsiFile[] findPsiFile(Project project, String path) {
+    public static PsiFile[] findPsiFiles(Project project, String path) {
         List<PsiFile> list = findPsiFileList(project, path);
         if (list.isEmpty()) {
             return PsiFile.EMPTY_ARRAY;
         }
         return list.toArray(PsiFile.EMPTY_ARRAY);
+    }
+
+    public static List<PsiFile> findPsiFilesByNopVfsPath(PsiElement element, String path) {
+        Project project = element.getProject();
+        String absPath = getNopVfsAbsolutePath(path, element);
+
+        return XmlPsiHelper.findPsiFileList(project, absPath);
     }
 
     public static List<PsiFile> findXplLib(Project project, XmlTag tag) {
@@ -156,20 +180,6 @@ public class XmlPsiHelper {
     private static boolean isXmlTag(PsiElement element) {
         IElementType type = element.getNode().getElementType();
         return type == XmlElementType.XML_NAME || type == XmlElementType.XML_TAG_NAME || type == XmlElementType.XML_TAG;
-    }
-
-    public static String getNopVfsPath(PsiElement element) {
-        PsiFile file = element.getContainingFile();
-        if (file == null) {
-            return null;
-        }
-
-        VirtualFile vf = file.getVirtualFile();
-        if (vf == null) {
-            return null;
-        }
-
-        return ProjectFileHelper.getNopVfsPath(vf);
     }
 
     /** 获取指定行列的 {@link PsiElement 元素} */
@@ -278,7 +288,7 @@ public class XmlPsiHelper {
     }
 
     /**
-     * 根据属性值获取匹配的子节点，在 <code>attrName</code> 为 <code>$type</code> 时，匹配节点的标签名
+     * 根据属性值获取匹配的子节点，在 <code>attrName</code> 为 <code>null</code> 时，匹配节点的标签名
      * <p/>
      * 其逻辑等价于 {@link io.nop.core.lang.xml.XNode#childByAttr}
      */
@@ -314,6 +324,22 @@ public class XmlPsiHelper {
             }
         }
         return attrs;
+    }
+
+    /** 找到第一个符合条件的 {@link PsiElement 元素} */
+    public static <T extends PsiElement> T findFirstElement(
+            PsiElement element, Predicate<? super @NotNull PsiElement> condition
+    ) {
+        PsiElement[] result = new PsiElement[] { null };
+
+        PsiTreeUtil.processElements(element, el -> {
+            if (condition.test(el)) {
+                result[0] = el;
+                return false;
+            }
+            return true; // 继续遍历
+        });
+        return (T) result[0];
     }
 
     public static XmlTag getXmlTag(PsiElement element) {

@@ -220,6 +220,12 @@ public class XmlTagInfo {
     private DefAttrWithNode getDefAttrInfo(String attrName) {
         // 为 xmlns 节点构造属性
         if (isXmlns(attrName)) {
+            String attrValue = tag.getAttributeValue(attrName);
+            // 忽略 xmlns:biz="biz" 形式的属性
+            if (attrName.endsWith(":" + attrValue)) {
+                return null;
+            }
+
             XDefTypeDecl type = new XDefTypeDeclParser().parseFromText(null, XDefConstants.STD_DOMAIN_XDEF_REF);
 
             XDefAttribute attr = new XDefAttribute();

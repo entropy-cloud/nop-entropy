@@ -27,8 +27,9 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.dict.DictProvider;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.idea.plugin.messages.NopPluginBundle;
-import io.nop.idea.plugin.reference.NopVfsFileReference;
-import io.nop.idea.plugin.reference.XLangReference;
+import io.nop.idea.plugin.reference.XLangVfsFileReference;
+import io.nop.idea.plugin.reference.XLangElementReference;
+import io.nop.idea.plugin.reference.XLangNotFoundReference;
 import io.nop.idea.plugin.resource.ProjectEnv;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
@@ -58,23 +59,20 @@ public class XLangAnnotator implements Annotator {
     }
 
     void doAnnotate(@NotNull PsiElement element, @NotNull AnnotationHolder holder) {
-        PsiReference ref = element.getReference();
-        if (ref instanceof XLangReference) {
-            // TODO 需对 element 包含的多个 XLangReference 引用进行标注
-            if (ref instanceof NopVfsFileReference) {
+        for (PsiReference reference : element.getReferences()) {
+            if (reference instanceof XLangVfsFileReference //
+                || reference instanceof XLangElementReference //
+            ) {
                 holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
-                      .range(element.getReference().getAbsoluteRange())
+                      .range(reference.getAbsoluteRange())
                       .textAttributes(DefaultLanguageHighlighterColors.CLASS_REFERENCE)
                       .create();
-            } else if (ref instanceof NopVfsFileReference.NotFound vfs) {
-                holder.newAnnotation(HighlightSeverity.ERROR,
-                                     NopPluginBundle.message("xlang.annotation.reference.vfs-file-not-found",
-                                                             vfs.getPath()))
-                      .range(element.getReference().getAbsoluteRange())
+            } else if (reference instanceof XLangNotFoundReference ref) {
+                holder.newAnnotation(HighlightSeverity.ERROR, ref.getMessage())
+                      .range(ref.getAbsoluteRange())
                       .highlightType(ProblemHighlightType.ERROR)
                       .create();
             }
-            return;
         }
 
         if (element instanceof XmlTag) {

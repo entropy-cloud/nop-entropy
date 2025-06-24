@@ -80,9 +80,9 @@ public class XLangGotoDeclarationHandler extends GotoDeclarationHandlerBase {
         if ((text.indexOf('.') > 0 || text.indexOf('/') > 0) //
             && StringHelper.isValidFilePath(text) //
         ) {
-            String path = XmlPsiHelper.absolutePath(text, parent);
+            String path = XmlPsiHelper.getNopVfsAbsolutePath(text, parent);
 
-            return XmlPsiHelper.findPsiFile(project, path);
+            return XmlPsiHelper.findPsiFiles(project, path);
         }
 
         return null;
