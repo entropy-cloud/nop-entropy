@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+ooxml的文档参考 http://officeopenxml.com/SSstyles.php
+
+-->
+<workbook x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef">
+
+    <styles xdef:body-type="list" xdef:key-attr="id">
+        <!--
+        @rotate 旋转角度（0-180）或者特殊值（255）。 90表示顺时针旋转90度（即文本从上到下），180表示颠倒，而255表示垂直文本（每个字母正常方向，但文本行垂直排列）。
+               -->
+        <style id="!int" name="string"
+               indent="int" locked="boolean" hidden="boolean"
+               wrapText="!boolean=false" shrinkToFit="!boolean=false" rotate="int"
+               verticalAlign="enum:io.nop.excel.model.constants.ExcelVerticalAlignment"
+               horizontalAlign="enum:io.nop.excel.model.constants.ExcelHorizontalAlignment"
+               fillBgColor="string" fillPattern="string" fillFgColor="string"
+        >
+            <numberFormat>string</numberFormat>
+            <!--
+            @fontSize 用来表示字体大小的半点，一个点等于两个半点，如表示 12pt 可以这样写
+                    24 = 12pt
+                    1pt = 20 twips, 1twips=1/1440英寸
+            -->
+            <font fontSize="float" charSet="int"
+                  fontName="string" fontFamily="string" fontColor="string"
+                  italic="!boolean=false" bold="!boolean=false" strikeout="!boolean=false"
+                  underlineStyle="dict:single|double|none|singleAccounting|doubleAccounting"
+                  verticalAlign="dict:1|2"/>
+
+            <topBorder xdef:name="ExcelBorderStyle"
+                       type="dict:none|thin|medium|dashed|dotted|thick|double|hair|mediumDashed|dashDot|mediumDashDot|dashDotDot|mediumDashDotDot"
+                       weight="!int=0" color="string"/>
+
+            <bottomBorder xdef:ref="ExcelBorderStyle"/>
+            <leftBorder xdef:ref="ExcelBorderStyle"/>
+            <rightBorder xdef:ref="ExcelBorderStyle"/>
+        </style>
+    </styles>
+
+    <defaultFont xdef:ref="font.xdef"/>
+
+    <sheets xdef:body-type="list" xdef:key-attr="name">
+        <sheet name="!string" defaultColumnWidth="double" defaultRowHeight="double">
+            <table>
+
+                <cols xdef:body-type="list">
+                    <!--
+                    @width [列宽] 列的宽度，单位为pt
+                    -->
+                    <col width="double" hidden="!boolean=false"/>
+                </cols>
+
+                <rows xdef:body-type="list">
+                    <row styleId="string" height="double"
+                         autoFitHeight="!boolean=false" name="string" hidden="!boolean=false"
+                    >
+                        <cells xdef:body-type="list">
+                            <!--
+                               @mergeAcross 向右合并的列数。mergeAcross + 1 == colSpan
+                               -->
+                            <cell name="string" mergeAcross="!int=0" mergeDown="!int=0"
+                                  linkUrl="string" protected="boolean"
+                                  styleId="string" type="dict:string|int|boolean|decimal|date|datetime">
+                                <value>string</value>
+                                <formula>string</formula>
+                            </cell>
+                        </cells>
+                    </row>
+                </rows>
+            </table>
+        </sheet>
+    </sheets>
+</workbook>
