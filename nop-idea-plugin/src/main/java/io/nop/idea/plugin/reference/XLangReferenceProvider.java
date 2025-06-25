@@ -290,8 +290,8 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
         String ref;
         String path = null;
         List<PsiFile> psiFiles;
-        // 含有后缀的，视为文件引用
-        if (refValue.indexOf(".") > 0) {
+        // 含有后缀的，视为文件引用：相对路径 .. 可能出现在开头，故而，检查最后一个 . 的位置
+        if (refValue.lastIndexOf('.') > 0) {
             int hashIndex = refValue.indexOf('#');
 
             path = hashIndex > 0 ? refValue.substring(0, hashIndex) : refValue;
@@ -426,7 +426,7 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
     }
 
     private PsiReference[] getReferencesByVfsPath(XmlElement refElement, String path, TextRange textRange) {
-        if (!StringHelper.isValidFilePath(path) || path.indexOf('.') <= 0) {
+        if (!StringHelper.isValidFilePath(path) || path.lastIndexOf('.') <= 0) {
             return PsiReference.EMPTY_ARRAY;
         }
 

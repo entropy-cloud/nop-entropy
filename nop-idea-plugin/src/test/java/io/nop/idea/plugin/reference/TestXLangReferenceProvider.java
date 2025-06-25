@@ -25,6 +25,7 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
                                  "/nop/schema/xmeta.xdef",
                                  "/nop/schema/xui/xview.xdef",
                                  "/nop/schema/xui/store.xdef",
+                                 "/nop/schema/xui/import.xdef",
                                  "/nop/core/xlib/meta-gen.xlib",
                                  "/nop/schema/schema/obj-schema.xdef",
                                  "/nop/schema/schema/schema-node.xdef",
@@ -86,6 +87,10 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
                "meta:define#meta:name=XDefNode");
         doTest(readVfsResource("/nop/schema/xdsl.xdef").replace("xdef:ref=\"DslNode\"", "xdef:ref=\"Dsl<caret>Node\""),
                "xdef:unknown-tag#xdef:name=DslNode");
+//        // - 引用文件的相对路径出现在开头
+//        doTest(readVfsResource("/nop/schema/xui/simple-component.xdef").replace("xdef:ref=\"../xui/import.xdef\"",
+//                                                                                "xdef:ref=\"../xui/<caret>import.xdef\""),
+//               "/nop/schema/xui/import.xdef");
         doTest("""
                        <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
                                x:schema="/nop/schema/xdef.xdef"
@@ -230,7 +235,7 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
 //               "");
     }
 
-    public void testGetReferencesFromXmlAttributePartialValue() {
+    public void testGetReferencesFromXmlAttributeType() {
         // TODO 字典/枚举的 options 引用
         doTest("""
                        <example xmlns:x="/nop/schema/xdsl.xdef"
@@ -354,6 +359,19 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
                            ]]></refs>
                        </example>
                        """, "/nop/schema/xdsl.xdef");
+    }
+
+    public void testGetReferencesFromXmlTag() {
+        doTest("""
+                       <view xmlns:x="/nop/schema/xdsl.xdef"
+                             x:schema="/nop/schema/xui/xview.xdef"
+                             xmlns:a="a" xmlns:xpl="xpl"
+                       >
+                             <x:gen-extends>
+                                 <a:DefaultView<caret>GenExtends xpl:lib="/test/reference/a.xlib"/>
+                             </x:gen-extends>
+                       </view>
+                       """, "");
     }
 
     /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */
