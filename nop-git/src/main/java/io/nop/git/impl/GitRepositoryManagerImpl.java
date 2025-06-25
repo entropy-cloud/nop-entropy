@@ -44,10 +44,9 @@ public class GitRepositoryManagerImpl implements IGitRepositoryManager {
     public IGitRepository getGitRepository(String path) {
         Guard.notEmpty(path, "repository path");
         ResourceHelper.checkValidRelativeName(path);
-        String remoteUrl = getRemoteUrl(path);
         File localDir = getLocalDir(path);
         CredentialsProvider credentialsProvider = getCredentialProvider();
-        return new GitRepositoryImpl(config, remoteUrl, localDir, path, credentialsProvider);
+        return new GitRepositoryImpl(config.getRemotePath(), localDir, credentialsProvider);
     }
 
     protected String getRemoteUrl(String path) {

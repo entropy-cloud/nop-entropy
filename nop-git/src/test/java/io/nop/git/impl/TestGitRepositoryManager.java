@@ -53,7 +53,7 @@ public class TestGitRepositoryManager extends BaseTestCase {
 
         IGitRepository repository = gitManager.getGitRepository("nop-lowcode");
         try {
-            repository.cloneFromRemote();
+            repository.cloneRepository("nop-lowcode");
             repository.pull();
             //  repository.push();
         } finally {
