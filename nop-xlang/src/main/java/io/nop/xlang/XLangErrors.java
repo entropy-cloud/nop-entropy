@@ -172,6 +172,9 @@ public interface XLangErrors {
 
     String ARG_METHOD_REF = "methodRef";
 
+    ErrorCode ERR_FILTER_OP_INVALID_ARG_COUNT = define("nop.err.xlang.expr.filter-op-invalid-arg-count", "过滤运算符[{op}]的参数个数[{argCount}]不是{expected}",
+            ARG_EXPR, ARG_OP, ARG_ARG_COUNT, ARG_EXPECTED);
+
     ErrorCode ERR_EXPR_PARSE_NOT_END_PROPERLY = define("nop.err.xlang.expr.not-end-properly", "解析失败，表达式没有正常结束");
 
     ErrorCode ERR_EXPR_UNSUPPORTED_OP = define("nop.err.xlang.expr.unsupported-op", "不支持的运算符:{op}", ARG_OP);
@@ -1042,4 +1045,6 @@ public interface XLangErrors {
             "对象[{objName}]的主键不是简单类型", ARG_OBJ_NAME);
 
     ErrorCode ERR_SCRIPT_COMPILE_ERROR = define("nop.err.script.compile-error", "脚本编译报错:{errMsg}", ARG_ERR_MSG);
+
+    ErrorCode ERR_FILTER_NOT_ALLOW_EXPR = define("nop.err.filter.not-allow-expr", "Filter不支持的表达式", ARG_EXPR);
 }

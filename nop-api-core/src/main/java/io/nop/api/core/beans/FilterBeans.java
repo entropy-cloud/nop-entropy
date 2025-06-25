@@ -101,28 +101,46 @@ public class FilterBeans {
         return new TreeBean(op).attr(FILTER_ATTR_NAME, name).attr(FILTER_ATTR_MIN, min).attr(FILTER_ATTR_MAX, max);
     }
 
+    public static TreeBean betweenOp(String op, String name, Object min, Object max, boolean excludeMin, boolean excludeMax) {
+        TreeBean filter = betweenOp(op, name, min, max);
+        return addExclude(filter, excludeMin, excludeMax);
+    }
+
     public static TreeBean between(String name, Object min, Object max, boolean excludeMin, boolean excludeMax) {
-        return between(name, min, max).attr(FILTER_ATTR_EXCLUDE_MIN, excludeMin).attr(FILTER_ATTR_EXCLUDE_MAX, excludeMax);
+        TreeBean filter = between(name, min, max);
+        return addExclude(filter, excludeMin, excludeMax);
+    }
+
+    private static TreeBean addExclude(TreeBean filter, boolean excludeMin, boolean excludeMax) {
+        if (excludeMin)
+            filter.attr(FILTER_ATTR_EXCLUDE_MIN, true);
+        if (excludeMax)
+            filter.attr(FILTER_ATTR_EXCLUDE_MAX, true);
+        return filter;
     }
 
     public static TreeBean dateBetween(String name, LocalDate min, LocalDate max) {
-        return new TreeBean(FILTER_OP_DATE_BETWEEN).attr(FILTER_ATTR_NAME, name).attr(FILTER_ATTR_MIN, min).attr(FILTER_ATTR_MAX, max);
+        return new TreeBean(FILTER_OP_DATE_BETWEEN)
+                .attr(FILTER_ATTR_NAME, name)
+                .attr(FILTER_ATTR_MIN, min)
+                .attr(FILTER_ATTR_MAX, max);
     }
 
-    public static TreeBean dateBetween(String name, LocalDate min, LocalDate max, boolean excludeMin,
-                                       boolean excludeMax) {
-        return dateBetween(name, min, max).attr(FILTER_ATTR_EXCLUDE_MIN, excludeMin).attr(FILTER_ATTR_EXCLUDE_MAX,
-                excludeMax);
+    public static TreeBean dateBetween(String name, LocalDate min, LocalDate max, boolean excludeMin, boolean excludeMax) {
+        TreeBean filter = dateBetween(name, min, max);
+        return addExclude(filter, excludeMin, excludeMax);
     }
 
     public static TreeBean dateTimeBetween(String name, LocalDateTime min, LocalDateTime max) {
-        return new TreeBean(FILTER_OP_DATETIME_BETWEEN).attr(FILTER_ATTR_NAME, name).attr(FILTER_ATTR_MIN, min).attr(FILTER_ATTR_MAX, max);
+        return new TreeBean(FILTER_OP_DATETIME_BETWEEN)
+                .attr(FILTER_ATTR_NAME, name)
+                .attr(FILTER_ATTR_MIN, min)
+                .attr(FILTER_ATTR_MAX, max);
     }
 
-    public static TreeBean dateTimeBetween(String name, LocalDateTime min, LocalDateTime max, boolean excludeMin,
-                                           boolean excludeMax) {
-        return dateTimeBetween(name, min, max).attr(FILTER_ATTR_EXCLUDE_MIN, excludeMin).attr(FILTER_ATTR_EXCLUDE_MAX,
-                excludeMax);
+    public static TreeBean dateTimeBetween(String name, LocalDateTime min, LocalDateTime max, boolean excludeMin, boolean excludeMax) {
+        TreeBean filter = dateTimeBetween(name, min, max);
+        return addExclude(filter, excludeMin, excludeMax);
     }
 
     public static TreeBean length(String name, int value) {

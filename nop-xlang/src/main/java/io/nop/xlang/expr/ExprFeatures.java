@@ -28,4 +28,6 @@ public class ExprFeatures {
             | SELF_ASSIGN | CP_EXPR | TAG_FUNC | JSON | OBJECT_PROP | ARRAY_INDEX | SELF_INC | IMPORT | NEW;
 
     public static final int SIMPLE = FUNCTION_CALL | OBJECT_CALL | BIT_OP | JSON | OBJECT_PROP | ARRAY_INDEX;
+
+    public static final int FILTER_EXPR = OBJECT_PROP | JSON;
 }

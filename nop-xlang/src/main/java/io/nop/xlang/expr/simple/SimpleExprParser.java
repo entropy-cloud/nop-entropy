@@ -82,6 +82,13 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
         return parser;
     }
 
+    public static SimpleExprParser newFilterExprParser() {
+        SimpleExprParser parser = new SimpleExprParser();
+        parser.setUseEvalException(true);
+        parser.enableFeatures(ExprFeatures.FILTER_EXPR);
+        return parser;
+    }
+
     public SimpleExprParser subExpr(boolean subExpr) {
         this.subExpr = subExpr;
         return this;

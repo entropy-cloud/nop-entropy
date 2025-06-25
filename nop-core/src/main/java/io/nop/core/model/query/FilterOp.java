@@ -269,6 +269,18 @@ public class FilterOp extends EnumLike<FilterOp> implements IJsonSerializable {
         return type;
     }
 
+    public boolean isCompareOp() {
+        return biPredicate != null;
+    }
+
+    public boolean isAssertOp() {
+        return predicate != null;
+    }
+
+    public boolean isBetweenOp() {
+        return betweenOperator != null;
+    }
+
     public BiPredicate<Object, Object> getBiPredicate() {
         return biPredicate;
     }
@@ -292,6 +304,8 @@ public class FilterOp extends EnumLike<FilterOp> implements IJsonSerializable {
             return ">";
         } else if (this == GE) {
             return ">=";
+        } else if (this == NE) {
+            return "!=";
         }
         return null;
     }

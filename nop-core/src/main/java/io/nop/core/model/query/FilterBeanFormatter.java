@@ -13,6 +13,7 @@ import io.nop.api.core.json.JSON;
 import io.nop.api.core.util.IVariableScope;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.DisabledEvalScope;
+import io.nop.core.lang.json.JsonTool;
 
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ public class FilterBeanFormatter extends FilterBeanVisitor<Void> {
     private StringBuilder buf;
     private int depth;
     private boolean skipIndent;
+    private boolean useFunctionCall;
 
     public FilterBeanFormatter(Function<String, String> nameTransformer) {
         this.nameTransformer = nameTransformer;
@@ -43,6 +45,11 @@ public class FilterBeanFormatter extends FilterBeanVisitor<Void> {
         this.buf = new StringBuilder();
         visit(filter, DisabledEvalScope.INSTANCE);
         return buf.toString();
+    }
+
+    public FilterBeanFormatter useFunctionCall(boolean b) {
+        this.useFunctionCall = b;
+        return this;
     }
 
     void indent() {
@@ -77,13 +84,13 @@ public class FilterBeanFormatter extends FilterBeanVisitor<Void> {
     @Override
     public Void visitAlwaysTrue(ITreeBean filter, IVariableScope scope) {
         indent();
-        buf.append(" 1=1 ");
+        buf.append(" true ");
         return null;
     }
 
     @Override
     public Void visitAlwaysFalse(ITreeBean filter, IVariableScope sceop) {
-        buf.append(" 1=0 ");
+        buf.append(" false ");
         return null;
     }
 
@@ -92,19 +99,20 @@ public class FilterBeanFormatter extends FilterBeanVisitor<Void> {
         String label = nameTransformer.apply(getName(filter));
         indent();
         String opText = getOpText(filterOp);
-        buf.append(label).append(' ').append(opText).append(' ')
-                .append(getLabelOrValue(filter, FILTER_ATTR_VALUE_NAME, FILTER_ATTR_VALUE));
+        if (useFunctionCall && filterOp.getMathSymbol() == null) {
+            buf.append(opText).append('(').append(label).append(',').append(getLabelOrValue(filter, FILTER_ATTR_VALUE_NAME, FILTER_ATTR_VALUE));
+        } else {
+            buf.append(label).append(' ').append(opText).append(' ')
+                    .append(getLabelOrValue(filter, FILTER_ATTR_VALUE_NAME, FILTER_ATTR_VALUE));
+        }
         return null;
     }
 
-    protected Object getLabelOrValue(ITreeBean filter, String nameAttr, String valueAttr) {
+    protected String getLabelOrValue(ITreeBean filter, String nameAttr, String valueAttr) {
         String text = ConvertHelper.toString(filter.getAttr(nameAttr));
         if (StringHelper.isEmpty(text)) {
             Object value = filter.getAttr(valueAttr);
-            if (value == null || value instanceof Number)
-                return value;
-            String str = value.toString();
-            return StringHelper.quote(str);
+            return JsonTool.serialize(value, false);
         }
         return nameTransformer.apply(text);
     }
@@ -114,7 +122,11 @@ public class FilterBeanFormatter extends FilterBeanVisitor<Void> {
         String label = nameTransformer.apply(getName(filter));
         indent();
         String opText = getOpText(filterOp);
-        buf.append(label).append(' ').append(opText);
+        if (useFunctionCall) {
+            buf.append(opText).append('(').append(label).append(')');
+        } else {
+            buf.append(label).append(' ').append(opText);
+        }
         return null;
     }
 
