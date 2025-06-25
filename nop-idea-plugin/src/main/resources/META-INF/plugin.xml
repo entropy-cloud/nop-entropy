@@ -83,6 +83,7 @@
 
         <!-- 根据XDef文件定义，对XLang DSL进行语法校验 -->
         <annotator language="XLang" implementationClass="io.nop.idea.plugin.annotation.XLangAnnotator"/>
+        <languageInjector implementation="io.nop.idea.plugin.lang.XScriptLanguageInjector"/>
 
         <!-- 引用识别 -->
         <psi.referenceContributor implementation="io.nop.idea.plugin.reference.XLangReferenceContributor"/>

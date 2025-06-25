@@ -1,6 +1,52 @@
-<lib xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xlib.xdef">
+<lib xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"
+     x:schema="/nop/schema/xlib.xdef"
+>
     <tags>
         <Get/>
         <NewGet x:prototype="Get"/>
+
+        <DoFindByMdxQuery>
+            <attr name="method" type="String"/>
+            <attr name="queryBuilder"/>
+            <attr name="rowType" implicit="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.core.model.query.QueryBeanHelper;
+
+                    const queryNode = queryBuilder();
+                    const query = QueryBeanHelper.buildQueryBeanFromTreeBean(queryNode);
+                    const ormTemplate = inject('nopOrmTemplate');
+                    const mapper = ormTemplate.getRowMapper(rowType,false);
+
+                    const ret = thisObj.invoke('doDeleteByQuery', {
+                        query, authObjName, refNamesToCheck,
+                        prepareQuery: (qry, ctx) => {
+                            if (filter) {
+                                query.addFilter(filter(query,svcCtx));
+                            }
+
+                            if (orderBy) {
+                                query.addOrderByNode(orderBy(svcCtx));
+                            }
+
+                            if (prepareQuery != null) {
+                                prepareQuery(query, svcCtx);
+                            }
+                        },
+                        prepareDelete: (entity, ctx) => {
+                           if (prepareDelete) {
+                              prepareDelete(entity, svcCtx);
+                           }
+                        }
+                    }, null, svcCtx);
+
+                    if (method == 'findListByQuery') {
+                        return ormTemplate.findListByQuery(query,mapper);
+                    }
+                    return ormTemplate.findFirstByQuery(query, mapper);
+                ]]></c:script>
+            </source>
+        </DoFindByMdxQuery>
     </tags>
 </lib>
