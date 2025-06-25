@@ -2,7 +2,7 @@
 <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef"
       xmlns:view-gen="view-gen" xmlns:xpl="xpl">
 
-    <objMeta>/test/link/a.xmeta</objMeta>
+    <objMeta>/test/reference/a.xmeta</objMeta>
 
     <x:gen-extends>
         <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>

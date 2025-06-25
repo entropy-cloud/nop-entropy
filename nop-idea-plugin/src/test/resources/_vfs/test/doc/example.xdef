@@ -16,6 +16,8 @@
     -->
     <child name="string" type="dict:test/doc/child-type" xdef:unknown-attr="any"/>
 
+    <refs xdef:value="v-path-list"/>
+
     <!-- Any child node
 
     @xdef:unknown-attr Any attribute

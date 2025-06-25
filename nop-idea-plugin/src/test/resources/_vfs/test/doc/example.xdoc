@@ -2,4 +2,7 @@
          x:schema="example.xdef"
 >
     <child name="Child" type="leaf"/>
+
+    <refs>/test/reference/test-filter.xdef,
+        /nop/schema/xdsl.xdef</refs>
 </example>

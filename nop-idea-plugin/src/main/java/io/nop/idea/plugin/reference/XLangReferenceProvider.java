@@ -18,10 +18,12 @@ import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlAttributeValue;
 import com.intellij.psi.xml.XmlElement;
+import com.intellij.psi.xml.XmlElementType;
 import com.intellij.psi.xml.XmlTag;
-import com.intellij.psi.xml.XmlText;
 import com.intellij.util.ProcessingContext;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.text.MutableString;
+import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.StringHelper;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.resource.ProjectEnv;
@@ -33,6 +35,8 @@ import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import org.jetbrains.annotations.NotNull;
+
+import static io.nop.idea.plugin.utils.XmlPsiHelper.isElementType;
 
 /**
  * 针对 XLang 中的 {@link PsiElement 元素} 创建引用
@@ -79,8 +83,12 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
                     return getReferencesFromXmlAttributeValue(value, attr);
                 }
             } //
-            else if (element.getParent() instanceof XmlText text) {
-                return getReferencesFromXmlText(text, text.getParentTag());
+            else if (isElementType(element, XmlElementType.XML_DATA_CHARACTERS)) {
+                XmlTag tag = PsiTreeUtil.getParentOfType(element, XmlTag.class);
+
+                if (tag != null) {
+                    return getReferencesFromXmlText((XmlElement) element, tag);
+                }
             }
 
             return PsiReference.EMPTY_ARRAY;
@@ -166,34 +174,22 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
             return PsiReference.EMPTY_ARRAY;
         }
 
-        // 根据属性声明的类型，对属性值做文件/名字引用跳转处理
-        String stdDomain = attrDefType.getStdDomain();
+        // 根据属性声明的类型，对属性值做文件/名字引用
+        PsiReference[] refs = getReferencesByDefType(refElement, attrValue, attrDefType);
+        if (refs != null) {
+            return refs;
+        }
 
-        // Note: v-path 类型采用缺省处理
-        if (XDefConstants.STD_DOMAIN_V_PATH.equals(stdDomain) //
-            || XDefConstants.STD_DOMAIN_NAME_OR_V_PATH.equals(stdDomain) //
-        ) {
-            return getReferencesByVfsPath(refElement, attrValue);
-        } //
-        else if (XDefConstants.STD_DOMAIN_V_PATH_LIST.equals(stdDomain)) {
-            return getReferencesFromVfsPathCsv(refElement, attrValue);
-        } //
-        else if (XDefConstants.STD_DOMAIN_XDEF_REF.equals(stdDomain)) {
-            return getReferencesFromXDefRef(refElement, attrValue);
-        } //
-        else {
-            String xdslNs = XDefPsiHelper.getXDslNamespace(tagInfo.getTag());
+        String xdslNs = XDefPsiHelper.getXDslNamespace(tagInfo.getTag());
+        if ((xdslNs + ":prototype").equals(attrName)) {
+            return getReferencesFromPrototype(refElement, attrValue, tagInfo);
+        } else {
+            String xdefNs = XDefPsiHelper.getXDefNamespace(tagInfo.getTag());
 
-            if ((xdslNs + ":prototype").equals(attrName)) {
-                return getReferencesFromPrototype(refElement, attrValue, tagInfo);
-            } else {
-                String xdefNs = XDefPsiHelper.getXDefNamespace(tagInfo.getTag());
-
-                if ((xdefNs + ":key-attr").equals(attrName)) {
-                    return getReferencesFromKeyAttr(refElement, attrValue, tagInfo);
-                } else if ((xdefNs + ":unique-attr").equals(attrName)) {
-                    return getReferencesFromUniqueAttr(refElement, attrValue, tagInfo);
-                }
+            if ((xdefNs + ":key-attr").equals(attrName)) {
+                return getReferencesFromKeyAttr(refElement, attrValue, tagInfo);
+            } else if ((xdefNs + ":unique-attr").equals(attrName)) {
+                return getReferencesFromUniqueAttr(refElement, attrValue, tagInfo);
             }
         }
 
@@ -204,42 +200,78 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
         return getReferencesByDefault(refElement, attrValue);
     }
 
-    private PsiReference[] getReferencesFromXmlText(XmlText refElement, XmlTag tag) {
-        if (tag == null) {
+    private PsiReference[] getReferencesFromXmlText(XmlElement refElement, XmlTag tag) {
+        XmlTagInfo tagInfo = tag != null ? XDefPsiHelper.getTagInfo(tag) : null;
+        if (tagInfo == null) {
             return PsiReference.EMPTY_ARRAY;
         }
 
-        return PsiReference.EMPTY_ARRAY;
+        XDefTypeDecl tagDefType = tagInfo.getDefNode().getXdefValue();
+        if (tagDefType == null) {
+            return PsiReference.EMPTY_ARRAY;
+        }
+
+        String refValue = refElement.getText();
+        PsiReference[] refs = getReferencesByDefType(refElement, refValue, tagDefType);
+        if (refs != null) {
+            return refs;
+        }
+
+        return getReferencesByDefault(refElement, refValue);
+    }
+
+    /**
+     * 根据数据域类型识别引用
+     *
+     * @return 若返回 <code>null</code>，则表示未支持对指定类型的处理
+     */
+    private PsiReference[] getReferencesByDefType(
+            XmlElement refElement, String refValue, XDefTypeDecl refDefType
+    ) {
+        // Note: 计算引用源文本（XmlAttributeValue#getText 的结果包含引号）与引用值文本之间的文本偏移量，
+        // 从而精确匹配与引用相关的文本内容
+        int textRangeOffset = refElement.getText().indexOf(refValue);
+        TextRange textRange = new TextRange(textRangeOffset, refValue.length() + textRangeOffset);
+
+        String stdDomain = refDefType.getStdDomain();
+
+        if (XDefConstants.STD_DOMAIN_V_PATH.equals(stdDomain) //
+            || XDefConstants.STD_DOMAIN_NAME_OR_V_PATH.equals(stdDomain) //
+        ) {
+            return getReferencesByVfsPath(refElement, refValue, textRange);
+        } //
+        else if (XDefConstants.STD_DOMAIN_V_PATH_LIST.equals(stdDomain)) {
+            return getReferencesFromVfsPathCsv(refElement, refValue, textRangeOffset);
+        } //
+        else if (XDefConstants.STD_DOMAIN_XDEF_REF.equals(stdDomain)) {
+            return getReferencesFromXDefRef(refElement, refValue, textRange);
+        }
+
+        return null;
     }
 
     /** 对文本做默认的引用识别 */
-    private PsiReference[] getReferencesByDefault(XmlAttributeValue attrValueElement, String attrValue) {
-        if (!attrValue.endsWith(".xdef")) {
+    private PsiReference[] getReferencesByDefault(XmlElement refElement, String refValue) {
+        if (!refValue.endsWith(".xdef")) {
             return PsiReference.EMPTY_ARRAY;
         }
 
         // Note: XmlAttributeValue 的文本范围是包含引号的
-        TextRange textRange = new TextRange(1, attrValue.length() + 1);
+        int textRangeOffset = refElement instanceof XmlAttributeValue ? 1 : 0;
+        TextRange textRange = new TextRange(textRangeOffset, refValue.length() + textRangeOffset);
 
-        return getReferencesByVfsPath(attrValueElement, attrValue, textRange);
-    }
-
-    /** 获取指定路径的引用（文件） */
-    private PsiReference[] getReferencesByVfsPath(XmlAttributeValue attrValueElement, String attrValue) {
-        // Note: XmlAttributeValue 的文本范围是包含引号的
-        TextRange textRange = new TextRange(1, attrValue.length() + 1);
-
-        return getReferencesByVfsPath(attrValueElement, attrValue, textRange);
+        return getReferencesByVfsPath(refElement, refValue, textRange);
     }
 
     /** 从 csv 文本中获取引用 */
-    private PsiReference[] getReferencesFromVfsPathCsv(XmlAttributeValue attrValueElement, String attrValue) {
-        // Note: XmlAttributeValue 的文本范围是包含引号的
-        Map<TextRange, String> rangePathMap = extractPathsFromCsv(attrValue);
+    private PsiReference[] getReferencesFromVfsPathCsv(
+            XmlElement refElement, String refValue, int textRangeOffset
+    ) {
+        Map<TextRange, String> rangePathMap = extractPathsFromCsv(refValue);
 
         List<PsiReference> list = new ArrayList<>(rangePathMap.size());
         rangePathMap.forEach((textRange, path) -> {
-            PsiReference[] refs = getReferencesByVfsPath(attrValueElement, path, textRange.shiftRight(1));
+            PsiReference[] refs = getReferencesByVfsPath(refElement, path, textRange.shiftRight(textRangeOffset));
 
             list.addAll(Arrays.stream(refs).toList());
         });
@@ -248,38 +280,35 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
     }
 
     /** 从 <code>xdef-ref</code> 类型的属性值中获取引用 */
-    private PsiReference[] getReferencesFromXDefRef(XmlAttributeValue attrValueElement, String attrValue) {
+    private PsiReference[] getReferencesFromXDefRef(XmlElement refElement, String refValue, TextRange textRange) {
         // - /nop/schema/xdef.xdef:
         //   - `<schema xdef:ref="schema-node.xdef" />`
         //   - `<item xdef:ref="ISchema" />`
         // - /nop/schema/schema/schema-node.xdef:
         //   `<schema ref="/test/test-filter.xdef#FilterCondition" />`
 
-        // Note: XmlAttributeValue 的文本范围是包含引号的
-        TextRange textRange = new TextRange(1, attrValue.length() + 1);
-
         String ref;
         String path = null;
         List<PsiFile> psiFiles;
         // 含有后缀的，视为文件引用
-        if (attrValue.indexOf(".") > 0) {
-            int hashIndex = attrValue.indexOf('#');
+        if (refValue.indexOf(".") > 0) {
+            int hashIndex = refValue.indexOf('#');
 
-            path = hashIndex > 0 ? attrValue.substring(0, hashIndex) : attrValue;
-            ref = hashIndex > 0 ? attrValue.substring(hashIndex + 1) : null;
+            path = hashIndex > 0 ? refValue.substring(0, hashIndex) : refValue;
+            ref = hashIndex > 0 ? refValue.substring(hashIndex + 1) : null;
 
             // 文件引用直接返回
             if (ref == null) {
-                return getReferencesByVfsPath(attrValueElement, path, textRange);
+                return getReferencesByVfsPath(refElement, path, textRange);
             }
 
-            psiFiles = XmlPsiHelper.findPsiFilesByNopVfsPath(attrValueElement, path);
+            psiFiles = XmlPsiHelper.findPsiFilesByNopVfsPath(refElement, path);
         }
         // 否则，视为名字引用
         else {
-            ref = attrValue;
+            ref = refValue;
             // Note: 只能引用当前文件（不一定是 vfs）内的名字
-            psiFiles = Collections.singletonList(attrValueElement.getContainingFile());
+            psiFiles = Collections.singletonList(refElement.getContainingFile());
         }
 
         // 收集引用节点属性
@@ -297,7 +326,7 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
                                           return false;
                                       }))
                                       .filter(Objects::nonNull)
-                                      .map((attr) -> new XLangElementReference(attrValueElement, textRange, attr))
+                                      .map((attr) -> new XLangElementReference(refElement, textRange, attr))
                                       .toArray(PsiReference[]::new);
         if (refs.length > 0) {
             return refs;
@@ -307,7 +336,7 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
                      ? NopPluginBundle.message("xlang.annotation.reference.xdef-ref-not-found", ref)
                      : NopPluginBundle.message("xlang.annotation.reference.xdef-ref-not-found-in-path", ref, path);
         return new PsiReference[] {
-                new XLangNotFoundReference(attrValueElement, textRange, msg)
+                new XLangNotFoundReference(refElement, textRange, msg)
         };
     }
 
@@ -419,23 +448,21 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
     private Map<TextRange, String> extractPathsFromCsv(String csv) {
         Map<TextRange, String> rangePathMap = new HashMap<>();
 
-        int offset = 0;
-        for (int i = 0; i < csv.length(); i++) {
-            char ch = csv.charAt(i);
-            if (ch != ',') {
-                continue;
-            }
+        TextScanner sc = TextScanner.fromString(null, csv);
 
-            String path = csv.substring(offset, i);
-            rangePathMap.put(new TextRange(offset, i), path);
+        sc.skipBlank();
+        while (!sc.isEnd()) {
+            int offset = sc.pos;
+            MutableString buf = sc.useBuf();
+            sc.nextUntil(s -> s.cur == ',' || StringHelper.isSpace(sc.cur), sc::appendToBuf);
 
-            offset = i + 1;
+            String path = buf.toString();
+            rangePathMap.put(new TextRange(offset, sc.pos), path);
+
+            sc.next();
+            sc.skipBlank();
         }
 
-        if (offset < csv.length()) {
-            String path = csv.substring(offset);
-            rangePathMap.put(new TextRange(offset, csv.length()), path);
-        }
         return rangePathMap;
     }
 }

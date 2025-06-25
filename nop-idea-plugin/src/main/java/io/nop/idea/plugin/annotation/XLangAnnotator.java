@@ -18,6 +18,7 @@ import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlAttributeValue;
 import com.intellij.psi.xml.XmlElement;
 import com.intellij.psi.xml.XmlTag;
+import com.intellij.psi.xml.XmlText;
 import com.intellij.psi.xml.XmlToken;
 import com.intellij.xml.util.XmlTagUtil;
 import io.nop.api.core.beans.DictBean;
@@ -60,6 +61,14 @@ public class XLangAnnotator implements Annotator {
     }
 
     void doAnnotate(@NotNull PsiElement element, @NotNull AnnotationHolder holder) {
+        // Note: 在识别引用时，处理的是 XmlText 的 cdata 节点，因此，需要对其子节点做高亮处理
+        if (element instanceof XmlText text) {
+            for (PsiElement child : text.getChildren()) {
+                doAnnotate(child, holder);
+            }
+            return;
+        }
+
         for (PsiReference reference : element.getReferences()) {
             if (reference instanceof XLangVfsFileReference //
                 || reference instanceof XLangElementReference //

@@ -190,7 +190,9 @@ public class XmlPsiHelper {
     /** 获取指定行列的 {@link PsiElement 元素} */
     public static PsiElement getPsiElementAt(PsiFile psiFile, int line, int column) {
         Document document = PsiDocumentManager.getInstance(psiFile.getProject()).getDocument(psiFile);
-        assert document != null;
+        if (document == null) {
+            return null;
+        }
 
         int offset = document.getLineStartOffset(line - 1) + column - 1;
         return psiFile.findElementAt(offset);

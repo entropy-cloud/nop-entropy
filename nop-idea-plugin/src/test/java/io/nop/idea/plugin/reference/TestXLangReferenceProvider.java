@@ -221,7 +221,7 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
 //                       <c:include src="/test/<caret>reference/a.xlib" />
 //                       """, "/test/reference/a.xlib");
 //
-//        // TODO 声明属性将引用属性的类型定义
+//        // TODO 声明属性将 引用 属性的类型定义
 //        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("xdef:ref=\"xdef-ref\"",
 //                                                                "xdef:ref=\"xd<caret>ef-ref\""), "");
 //        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:prop name=\"!xml-name\"",
@@ -313,6 +313,47 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
                              re<caret>f="/test/reference/test-filter.xdef#FilterCondition"
                        />
                        """, "schema#ref=xdef-ref");
+    }
+
+    public void testGetReferencesFromXmlText() {
+        doTest(readVfsResource("/test/reference/user.view.xml").replace("<objMeta>", "<objMeta><caret>"),
+               "/test/reference/a.xmeta");
+
+        doTest("""
+                       <example xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/doc/example.xdef"
+                       >
+                           <refs>/test/reference/test<caret>-filter.xdef,/nop/schema/xdsl.xdef</refs>
+                       </example>
+                       """, "/test/reference/test-filter.xdef");
+        doTest("""
+                       <example xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/doc/example.xdef"
+                       >
+                           <refs>
+                                /test/reference/test-filter.xdef,/nop/schema/x<caret>dsl.xdef
+                           </refs>
+                       </example>
+                       """, "/nop/schema/xdsl.xdef");
+        doTest("""
+                       <example xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/doc/example.xdef"
+                       >
+                           <refs><![CDATA[
+                                /test/reference/tes<caret>t-filter.xdef, /nop/schema/xdsl.xdef
+                           ]]></refs>
+                       </example>
+                       """, "/test/reference/test-filter.xdef");
+        doTest("""
+                       <example xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/doc/example.xdef"
+                       >
+                           <refs><![CDATA[
+                                /test/reference/test-filter.xdef,
+                                  /nop/schema<caret>/xdsl.xdef
+                           ]]></refs>
+                       </example>
+                       """, "/nop/schema/xdsl.xdef");
     }
 
     /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */
