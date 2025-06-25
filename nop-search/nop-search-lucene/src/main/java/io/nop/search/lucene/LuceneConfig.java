@@ -15,6 +15,16 @@ public class LuceneConfig {
     private String highlightPreTag = "<B>";
     private String highlightPostTag = "</B>";
 
+    private int ramBufferSizeMB = 10;
+
+    public int getRamBufferSizeMB() {
+        return ramBufferSizeMB;
+    }
+
+    public void setRamBufferSizeMB(int ramBufferSizeMB) {
+        this.ramBufferSizeMB = ramBufferSizeMB;
+    }
+
     public String getIndexDir() {
         return indexDir;
     }

@@ -29,6 +29,7 @@ public class TestLuceneSearchEngine extends JunitBaseTestCase {
         searchEngine.removeTopic("test");
 
         SearchableDoc doc = new SearchableDoc();
+        doc.setId("123");
         doc.setName("123");
         doc.setTitle("测试标题");
         doc.setContent("测试内容");

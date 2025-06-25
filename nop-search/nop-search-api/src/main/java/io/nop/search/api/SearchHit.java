@@ -9,21 +9,72 @@ package io.nop.search.api;
 
 import io.nop.api.core.annotations.data.DataBean;
 
+import java.util.Set;
+
 @DataBean
 public class SearchHit {
 
     private float score;
+    private String id;
     private String name;
 
     private String title;
 
     private String content;
 
+    private String summary;
+
     private long publishTime;
 
     private long modifyTime;
 
-    private String link;
+    private long fileSize;
+
+    private String path;
+
+    private String bizKey;
+
+    private Set<String> tags;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public long getFileSize() {
+        return fileSize;
+    }
+
+    public void setFileSize(long fileSize) {
+        this.fileSize = fileSize;
+    }
+
+    public String getBizKey() {
+        return bizKey;
+    }
+
+    public void setBizKey(String bizKey) {
+        this.bizKey = bizKey;
+    }
+
+    public Set<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(Set<String> tags) {
+        this.tags = tags;
+    }
+
+    public String getSummary() {
+        return summary;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary;
+    }
 
     public float getScore() {
         return score;
@@ -73,11 +124,11 @@ public class SearchHit {
         this.modifyTime = modifyTime;
     }
 
-    public String getLink() {
-        return link;
+    public String getPath() {
+        return path;
     }
 
-    public void setLink(String link) {
-        this.link = link;
+    public void setPath(String path) {
+        this.path = path;
     }
 }

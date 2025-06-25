@@ -10,18 +10,42 @@ package io.nop.search.api;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ExtensibleBean;
 
+import java.util.Set;
+
 @DataBean
 public class SearchableDoc extends ExtensibleBean {
+    private String id;
     private String name;
     private String title;
     private String summary;
     private String content;
+    private Set<String> tagSet;
     private long publishTime;
     private long modifyTime;
-    private String entityId;
+    private long fileSize;
 
-    private String link;
+    // 同一个业务实体可能关联一批文件
+    private String bizKey;
+
+    private String path;
     private boolean storeContent;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public Set<String> getTagSet() {
+        return tagSet;
+    }
+
+    public void setTagSet(Set<String> tagSet) {
+        this.tagSet = tagSet;
+    }
+
     public String getName() {
         return name;
     }
@@ -70,14 +94,6 @@ public class SearchableDoc extends ExtensibleBean {
         this.modifyTime = modifyTime;
     }
 
-    public String getEntityId() {
-        return entityId;
-    }
-
-    public void setEntityId(String entityId) {
-        this.entityId = entityId;
-    }
-
     public boolean isStoreContent() {
         return storeContent;
     }
@@ -86,11 +102,27 @@ public class SearchableDoc extends ExtensibleBean {
         this.storeContent = storeContent;
     }
 
-    public String getLink() {
-        return link;
+    public String getPath() {
+        return path;
     }
 
-    public void setLink(String link) {
-        this.link = link;
+    public void setPath(String path) {
+        this.path = path;
+    }
+
+    public String getBizKey() {
+        return bizKey;
+    }
+
+    public void setBizKey(String bizKey) {
+        this.bizKey = bizKey;
+    }
+
+    public long getFileSize() {
+        return fileSize;
+    }
+
+    public void setFileSize(long fileSize) {
+        this.fileSize = fileSize;
     }
 }

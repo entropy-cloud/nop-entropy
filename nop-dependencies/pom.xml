@@ -47,8 +47,8 @@
         <nacos.version>2.3.0</nacos.version>
         <!--        <testcontainers.version>1.16.3</testcontainers.version>-->
 
-        <spring-boot.version>3.4.5</spring-boot.version>
-        <spring-cloud.version>2024.0.1</spring-cloud.version>
+        <spring-boot.version>3.5.3</spring-boot.version>
+        <spring-cloud.version>2025.0.0</spring-cloud.version>
 
         <tablesaw.version>0.43.1</tablesaw.version>
         <lucene.version>9.7.0</lucene.version>

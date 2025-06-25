@@ -10,17 +10,38 @@ package io.nop.search.api;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.TreeBean;
 
+import java.util.Set;
+
 @DataBean
 public class SearchRequest {
     private String topic;
 
     private String query;
 
+    private boolean matchAllTags;
+    private Set<String> tags;
+
     private int limit;
 
     private double similarityThreshold;
 
     private TreeBean filter;
+
+    public boolean isMatchAllTags() {
+        return matchAllTags;
+    }
+
+    public void setMatchAllTags(boolean matchAllTags) {
+        this.matchAllTags = matchAllTags;
+    }
+
+    public Set<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(Set<String> tags) {
+        this.tags = tags;
+    }
 
     public String getTopic() {
         return topic;

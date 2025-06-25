@@ -8,6 +8,8 @@
 package io.nop.search.api;
 
 public interface SearchConstants {
+    String FIELD_ID = "id";
+
     String FIELD_NAME = "name";
     String FIELD_TITLE = "title";
 
@@ -16,9 +18,13 @@ public interface SearchConstants {
 
     String FIELD_PUBLISH_TIME = "publishTime";
 
-    String FIELD_ENTITY_ID = "entityId";
+    String FIELD_BIZ_KEY = "bizKey";
 
     String FIELD_MODIFY_TIME = "modifyTime";
 
-    String FIELD_LINK = "link";
+    String FIELD_PATH = "path";
+
+    String FIELD_FILE_SIZE = "fileSize";
+
+    String FIELD_TAG = "tag";
 }
