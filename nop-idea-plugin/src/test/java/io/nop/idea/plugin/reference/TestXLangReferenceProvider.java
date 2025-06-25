@@ -27,12 +27,14 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
                                  "/nop/schema/xui/store.xdef",
                                  "/nop/core/xlib/meta-gen.xlib",
                                  "/nop/schema/schema/obj-schema.xdef",
+                                 "/nop/schema/schema/schema-node.xdef",
                                  "/dict/test/doc/child-type.dict.yaml",
-                                 "/test/link/a.xmeta",
-                                 "/test/link/b.xmeta",
-                                 "/test/link/a.xlib",
-                                 "/test/link/default.xform",
-                                 "/test/link/test-filter.xdef");
+                                 "/test/doc/example.xdef",
+                                 "/test/reference/a.xmeta",
+                                 "/test/reference/b.xmeta",
+                                 "/test/reference/a.xlib",
+                                 "/test/reference/default.xform",
+                                 "/test/reference/test-filter.xdef");
     }
 
     public void testGetReferencesFromXmlAttributeValue() {
@@ -52,9 +54,9 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
         // - xdef:default-extends=v-path
         doTest("""
                        <form xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xdef.xdef"
-                             xdef:default-extends="/test/link/de<caret>fault.xform"
+                             xdef:default-extends="/test/reference/de<caret>fault.xform"
                        />
-                       """, "/test/link/default.xform");
+                       """, "/test/reference/default.xform");
         // - xpl:lib=v-path
         doTest("""
                        <meta xmlns:x="/nop/schema/xdsl.xdef"
@@ -68,14 +70,14 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
         // 对 v-path-list 列表元素的引用
         doTest("""
                        <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
-                             x:extends="/test/link/a<caret>.xmeta,/test/link/b.xmeta"
+                             x:extends="/test/reference/a<caret>.xmeta,/test/reference/b.xmeta"
                        />
-                       """, "/test/link/a.xmeta");
+                       """, "/test/reference/a.xmeta");
         doTest("""
                        <meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
-                             x:extends="/test/link/a.xmeta,/test/link/b.x<caret>meta"
+                             x:extends="/test/reference/a.xmeta,/test/reference/b.x<caret>meta"
                        />
-                       """, "/test/link/b.xmeta");
+                       """, "/test/reference/b.xmeta");
 
         // 对 xdef-ref 类型属性的引用
         // - 在 *.xdef 中引用内部名字
@@ -116,21 +118,21 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
         doTest("""
                        <meta xmlns:x="/nop/schema/xdsl.xdef"
                              x:schema="/nop/schema/xmeta.xdef"
-                             ref="/test/link/test-filter.xdef<caret>#FilterCondition"
+                             ref="/test/reference/test-filter.xdef<caret>#FilterCondition"
                        />
                        """, "xdef:define#xdef:name=FilterCondition");
         // - 外部文件中的引用节点不存在
         doTest("""
                        <meta xmlns:x="/nop/schema/xdsl.xdef"
                              x:schema="/nop/schema/xmeta.xdef"
-                             ref="/test/link/test-filter.xdef<caret>#FilterCondition1"
+                             ref="/test/reference/test-filter.xdef<caret>#FilterCondition1"
                        />
                        """, null);
 
         // 对 x:prototype 属性值的引用
-        doTest(readVfsResource("/test/link/user.view.xml").replace("x:prototype=\"list\"",
-                                                                   "x:prototype=\"li<caret>st\""), "grid#id=list");
-        doTest(readVfsResource("/test/link/a.xlib").replace("x:prototype=\"Get\"", "x:prototype=\"G<caret>et\""),
+        doTest(readVfsResource("/test/reference/user.view.xml").replace("x:prototype=\"list\"",
+                                                                        "x:prototype=\"li<caret>st\""), "grid#id=list");
+        doTest(readVfsResource("/test/reference/a.xlib").replace("x:prototype=\"Get\"", "x:prototype=\"G<caret>et\""),
                "Get");
         // - 引用不存在
         doTest("""
@@ -175,13 +177,6 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
                        </example>
                        """, null);
 
-        // TODO 对 xpl 属性的文件引用
-//        doTest("""
-//                       <c:import from="/test/link/a.x<caret>lib" />
-//                       """, "/test/link/a.xlib");
-//        doTest("""
-//                       <c:include src="/test/<caret>link/a.xlib" />
-//                       """, "/test/link/a.xlib");
         doTest("""
                        <meta xmlns:x="/nop/schema/xdsl.xdef"
                              x:schema="/nop/schema/xdef.xdef"
@@ -204,10 +199,10 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
                        """, "/nop/core/xlib/meta-gen.xlib");
 
         // 非有效路径或未定义属性引用
-        doTest(readVfsResource("/test/link/user.view.xml").replace("xmlns:view-gen=\"view-gen\"",
-                                                                   "xmlns:view-gen=\"vie<caret>w-gen\""), null);
+        doTest(readVfsResource("/test/reference/user.view.xml").replace("xmlns:view-gen=\"view-gen\"",
+                                                                        "xmlns:view-gen=\"vie<caret>w-gen\""), null);
         doTest("""
-                       <dialog page="/test/link/de<caret>fault.xform" />
+                       <dialog page="/test/reference/de<caret>fault.xform" />
                        """, null);
 
         // 未知 schema 导致引用无法识别，但支持对 *.xdef 的引用识别
@@ -218,6 +213,14 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
                        <form xmlns:x="/nop/schema/xd<caret>sl.xdef" x:schema="/nop/schema/xform.xdef"/>
                        """, "/nop/schema/xdsl.xdef");
 
+//        // TODO 对 xpl 属性的文件引用
+//        doTest("""
+//                       <c:import from="/test/reference/a.x<caret>lib" />
+//                       """, "/test/reference/a.xlib");
+//        doTest("""
+//                       <c:include src="/test/<caret>reference/a.xlib" />
+//                       """, "/test/reference/a.xlib");
+//
 //        // TODO 声明属性将引用属性的类型定义
 //        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("xdef:ref=\"xdef-ref\"",
 //                                                                "xdef:ref=\"xd<caret>ef-ref\""), "");
@@ -227,14 +230,89 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
 //               "");
     }
 
+    public void testGetReferencesFromXmlAttributePartialValue() {
+        // TODO 字典/枚举的 options 引用
+        doTest("""
+                       <example xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                       >
+                           <child type="dict:test/doc/ch<caret>ild-type"/>
+                       </example>
+                       """, "/dict/test/doc/child-type.dict.yaml");
+        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace(
+                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"",
+                       "x:override=\"enum:io.nop.xlang.xdef.X<caret>DefOverride=merge\""), //
+               "io.nop.xlang.xdef.XDefOverride");
+
+        // TODO 字典/枚举的默认值引用
+        doTest("""
+                       <example xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                       >
+                           <child type="dict:test/doc/child-type=le<caret>af"/>
+                       </example>
+                       """, "");
+        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace(
+                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"",
+                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=me<caret>rge\""), //
+               "");
+
+        // TODO 缺省属性值中 @attr: 引用
+        doTest("""
+                       <component xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                       >
+                           <import as="!var-name=@attr<caret>:name" name="var-name" from="!string"/>
+                       </example>
+                       """, "");
+    }
+
     public void testGetReferencesFromXmlAttribute() {
-//        // 名字空间不做引用
-//        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"name\"",
-//                                                                "me<caret>ta:unique-attr=\"name\""), null);
+        // 名字空间不做引用
+        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"name\"",
+                                                                "me<caret>ta:unique-attr=\"name\""), null);
 
         doTest(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"name\"",
                                                                 "meta:unique<caret>-attr=\"name\""),
                "meta:define#xdef:unique-attr=xml-name");
+        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:prop name=\"!xml-name\"",
+                                                                "<xdef:prop na<caret>me=\"!xml-name\""),
+               "xdef:prop#name=!xml-name");
+        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:define xdef:name=\"!var-name\"",
+                                                                "<xdef:define xdef:n<caret>ame=\"!var-name\""),
+               "xdef:define#xdef:name=!var-name");
+
+        doTest(readVfsResource("/test/doc/example.xdef").replace("name=\"string\"", "na<caret>me=\"string\""),
+               "meta:define#xdef:unknown-attr=def-type");
+
+        doTest("""
+                       <example xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/doc/example.xdef"
+                       >
+                           <child ty<caret>pe="leaf"/>
+                       </example>
+                       """, "child#type=dict:test/doc/child-type");
+        doTest("""
+                       <example xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/doc/example.xdef"
+                       >
+                           <child a<caret>ge="22"/>
+                       </example>
+                       """, "child#xdef:unknown-attr=any");
+        doTest("""
+                       <example xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/test/doc/example.xdef"
+                       >
+                           <child2 a<caret>ge="23"/>
+                       </example>
+                       """, "xdef:unknown-tag#xdef:unknown-attr=any");
+
+        doTest("""
+                       <meta xmlns:x="/nop/schema/xdsl.xdef"
+                             x:schema="/nop/schema/xmeta.xdef"
+                             re<caret>f="/test/reference/test-filter.xdef#FilterCondition"
+                       />
+                       """, "schema#ref=xdef-ref");
     }
 
     /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */

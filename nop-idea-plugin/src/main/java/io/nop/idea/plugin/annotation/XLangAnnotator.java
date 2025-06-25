@@ -66,7 +66,7 @@ public class XLangAnnotator implements Annotator {
             ) {
                 holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
                       .range(reference.getAbsoluteRange())
-                      .textAttributes(DefaultLanguageHighlighterColors.CLASS_REFERENCE)
+                      .textAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT_TAG_VALUE)
                       .create();
             } else if (reference instanceof XLangNotFoundReference ref) {
                 holder.newAnnotation(HighlightSeverity.ERROR, ref.getMessage())

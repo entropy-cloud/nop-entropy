@@ -163,10 +163,7 @@ public class XmlTagInfo {
     public XDefTypeDecl getDefAttrType(String attrName) {
         IXDefAttribute attr = getDefAttr(attrName);
 
-        if (attr == null) {
-            return defNode != null ? defNode.getXdefUnknownAttr() : null;
-        }
-        return attr.getType();
+        return attr != null ? attr.getType() : null;
     }
 
     /** 获取节点注释 */
@@ -180,15 +177,11 @@ public class XmlTagInfo {
             return null;
         }
 
-        IXDefComment comment;
+        IXDefComment comment = null;
         DefAttrWithNode attr = getDefAttrInfo(attrName);
-        if (attr == null) {
-            comment = getDefNodeComment();
-            // 若无属性实体，则取当前节点上的 xdef:unknown-attr 属性的注释
-            attrName = "xdef:unknown-attr";
-        } else {
+        if (attr != null) {
             comment = attr.node.getComment();
-            attrName = attr.attr.getName();
+            attrName = attr.attr.isUnknownAttr() ? "xdef:unknown-attr" : attr.attr.getName();
         }
 
         return comment != null ? comment.getSubComments().get(attrName) : null;
@@ -249,6 +242,13 @@ public class XmlTagInfo {
             return new DefAttrWithNode(xdslDefNode, attr);
         }
 
+        // 查找当前节点上声明的 xdef:unknown-attr 属性：
+        // 在当前 dsl 为 *.xdef（即，x:schema 为 /nop/schema/xdef.xdef）时有效
+        attr = defNode != null ? defNode.getAttribute("xdef:unknown-attr") : null;
+        if (attr != null) {
+            return new DefAttrWithNode(defNode, attr);
+        }
+
         // 针对 xdef.xdef 中的未确定属性：本质上都是 XDefNode 节点上的属性
         if (isXDefNode()) {
             IXDefNode node = def.getXdefUnknownTag();
@@ -256,9 +256,24 @@ public class XmlTagInfo {
             return new DefAttrWithNode(node, node.getAttribute(attrName));
         }
 
-        // Note: xdef:unknown-attr 只记录了类型，没有 IXDefAttribute 实体，
+        // Note: 在普通 *.xdef 的 IXDefNode 中，
+        // 对 xdef:unknown-attr 只记录了类型，并没有 IXDefAttribute 实体，
         // 其处理逻辑见 XDefinitionParser#parseNode
+        XDefTypeDecl xdefUnknownAttrType = defNode != null ? defNode.getXdefUnknownAttr() : null;
+        if (xdefUnknownAttrType != null) {
+            XDefAttribute at = new XDefAttribute() {
+                @Override
+                public boolean isUnknownAttr() {
+                    return true;
+                }
+            };
+
+            at.setName(attrName);
+            at.setType(xdefUnknownAttrType);
+
+            return new DefAttrWithNode(defNode, at);
+        }
+
         return null;
     }
-
 }

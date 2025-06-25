@@ -15,4 +15,10 @@
     @xdef:unknown-attr This a unknown attribute
     -->
     <child name="string" type="dict:test/doc/child-type" xdef:unknown-attr="any"/>
+
+    <!-- Any child node
+
+    @xdef:unknown-attr Any attribute
+    -->
+    <xdef:unknown-tag xdef:unknown-attr="any"/>
 </example>

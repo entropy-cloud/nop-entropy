@@ -1,4 +1,4 @@
 <meta xmlns:x="/nop/schema/xdsl.xdef"
       x:schema="/nop/schema/xmeta.xdef"
-      ref="/test/link/test-filter.xdef#FilterCondition"
+      ref="/test/reference/test-filter.xdef#FilterCondition"
 />

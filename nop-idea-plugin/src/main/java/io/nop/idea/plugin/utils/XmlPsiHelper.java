@@ -57,6 +57,10 @@ public class XmlPsiHelper {
         return ProjectFileHelper.getNopVfsPath(vf);
     }
 
+    /**
+     * 获取 <code>path</code> 的 vfs 绝对路径。
+     * 若 <code>path</code> 为相对路径，则视为其相对于 <code>element</code> 所在文件的目录
+     */
     public static String getNopVfsAbsolutePath(String path, PsiElement element) {
         String filePath = getNopVfsPath(element);
 
@@ -190,6 +194,21 @@ public class XmlPsiHelper {
 
         int offset = document.getLineStartOffset(line - 1) + column - 1;
         return psiFile.findElementAt(offset);
+    }
+
+    /** 获取指定位置的 {@link PsiElement 元素} */
+    public static PsiElement getPsiElementAt(PsiFile psiFile, SourceLocation loc) {
+        return getPsiElementAt(psiFile, loc.getLine(), loc.getCol());
+    }
+
+    /** 获取指定行列的指定类型的 {@link PsiElement 元素} */
+    public static <T extends PsiElement> T getPsiElementAt(PsiFile psiFile, SourceLocation loc, Class<T> type) {
+        PsiElement element = getPsiElementAt(psiFile, loc);
+
+        if (type.isInstance(element)) {
+            return (T) element;
+        }
+        return PsiTreeUtil.getParentOfType(element, type);
     }
 
     public static SourceLocation getLocation(PsiElement element) {

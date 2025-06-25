@@ -91,7 +91,9 @@ public class XDefPsiHelper {
         String ns = getXDslNamespace(rootTag);
         String key = ns + ":schema";
 
-        return rootTag.getAttributeValue(key);
+        String schemaUrl = rootTag.getAttributeValue(key);
+        // Note: schema 可能为相对路径
+        return XmlPsiHelper.getNopVfsAbsolutePath(schemaUrl, rootTag);
     }
 
     public static IXDefinition loadSchema(String schemaUrl) {

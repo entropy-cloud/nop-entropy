@@ -96,17 +96,22 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
 
     /** 获取 xml 属性名对应的引用（属性定义） */
     private PsiReference @NotNull [] getReferencesFromXmlAttribute(XmlAttribute attr) {
-        String attrName = attr.getName();
         XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(attr);
-        IXDefAttribute attrDef = tagInfo != null ? tagInfo.getDefAttr(attrName) : null;
-
-        SourceLocation loc = attrDef != null ? attrDef.getLocation() : null;
-        if (loc == null) {
+        if (tagInfo == null) {
             return PsiReference.EMPTY_ARRAY;
         }
 
-        // Note: 在 jar 中的 vfs 路径会添加 classpath:_vfs 前缀
-        String path = loc.getPath().replace("classpath:_vfs", "");
+        String attrName = attr.getName();
+        IXDefAttribute attrDef = tagInfo.getDefAttr(attrName);
+        SourceLocation loc = attrDef != null ? attrDef.getLocation() : null;
+
+        // Note:
+        // - 属性可能定义在外部 xdef 中
+        // - SourceLocation#getPath() 得到的 jar 中的 vfs 路径会添加 classpath:_vfs 前缀
+        String path = loc != null //
+                      ? loc.getPath().replace("classpath:_vfs", "") //
+                      : tagInfo.getDef().resourcePath();
+
         // Note: 对于包含名字空间的属性，需仅对属性名建立引用，否则，会被默认的 xml 引用替代。
         // 不过，对于 XLang 而言，名字空间也无需建立引用
         TextRange textRange = new TextRange(attrName.indexOf(':') + 1, attrName.length());
@@ -114,12 +119,15 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
         PsiReference[] refs = XmlPsiHelper.findPsiFilesByNopVfsPath(attr, path)
                                           .stream()
                                           .map((file) -> {
-                                              PsiElement element = XmlPsiHelper.getPsiElementAt(file,
-                                                                                                loc.getLine(),
-                                                                                                loc.getCol());
-                                              return element instanceof XmlAttribute
-                                                     ? (XmlAttribute) element
-                                                     : PsiTreeUtil.getParentOfType(element, XmlAttribute.class);
+                                              if (loc == null) {
+                                                  // 尝试取 xdef:unknown-attr
+                                                  SourceLocation sl = tagInfo.getDefNode().getLocation();
+                                                  XmlTag tag = XmlPsiHelper.getPsiElementAt(file, sl, XmlTag.class);
+
+                                                  return tag != null ? tag.getAttribute("xdef:unknown-attr") : null;
+                                              } else {
+                                                  return XmlPsiHelper.getPsiElementAt(file, loc, XmlAttribute.class);
+                                              }
                                           })
                                           .filter(Objects::nonNull)
                                           .map((defAttr) -> new XLangXDefReference(attr, textRange, defAttr))

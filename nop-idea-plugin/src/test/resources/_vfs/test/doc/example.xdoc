@@ -1,0 +1,5 @@
+<example xmlns:x="/nop/schema/xdsl.xdef"
+         x:schema="example.xdef"
+>
+    <child name="Child" type="leaf"/>
+</example>
