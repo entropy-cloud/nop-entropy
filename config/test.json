@@ -1,0 +1,227 @@
+{
+  "type": "page",
+  "title": "文件2管理器",
+  "body": [
+    {
+      "type": "flex",
+      "className": "p-4 bg-white",
+      "items": [
+        {
+          "type": "input-text",
+          "name": "currentPath",
+          "placeholder": "输入文件路径 (例如: C:\\Users 或 /home)",
+          "clearable": false,
+          "addOn": {
+            "type": "button",
+            "label": "前往",
+            "level": "primary",
+            "onEvent": {
+              "click": {
+                "actions": [
+                  {
+                    "actionType": "reload",
+                    "componentId": "fileService"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "type": "button",
+          "label": "上传文件",
+          "level": "primary",
+          "className": "ml-2",
+          "onEvent": {
+            "click": {
+              "actions": [
+                {
+                  "actionType": "dialog",
+                  "dialog": {
+                    "title": "上传文件",
+                    "body": {
+                      "type": "form",
+                      "api": "post:/api/upload",
+                      "body": [
+                        {
+                          "type": "input-file",
+                          "name": "files",
+                          "label": "选择文件",
+                          "multiple": true,
+                          "drag": true
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "button",
+          "label": "新建文件夹",
+          "level": "default",
+          "className": "ml-2",
+          "onEvent": {
+            "click": {
+              "actions": [
+                {
+                  "actionType": "dialog",
+                  "dialog": {
+                    "title": "新建文件夹",
+                    "body": {
+                      "type": "form",
+                      "api": "post:/api/mkdir",
+                      "body": [
+                        {
+                          "type": "input-text",
+                          "name": "folderName",
+                          "label": "文件夹名称",
+                          "required": true
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "button",
+          "label": "刷新",
+          "level": "default",
+          "className": "ml-2",
+          "onEvent": {
+            "click": {
+              "actions": [
+                {
+                  "actionType": "reload",
+                  "componentId": "fileService"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "breadcrumb",
+      "className": "p-2 bg-gray-100",
+      "source": "${breadcrumbItems}",
+      "onEvent": {
+        "click": {
+          "actions": [
+            {
+              "actionType": "setValue",
+              "componentId": "currentPath",
+              "args": {
+                "value": "${event.data.path}"
+              }
+            },
+            {
+              "actionType": "reload",
+              "componentId": "fileService"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "service",
+      "id": "fileService",
+      "api": {
+        "method": "get",
+        "url": "/api/list?path=${currentPath}",
+        "adaptor": "return {\n  status: 0,\n  data: {\n    items: payload.items,\n    breadcrumbItems: payload.breadcrumbItems\n  }\n};"
+      },
+      "body": [
+        {
+          "type": "crud",
+          "source": "${items}",
+          "columns": [
+            {
+              "name": "icon",
+              "label": "类型",
+              "type": "mapping",
+              "map": {
+                "directory": "<i class='fa fa-folder text-yellow-400'></i>",
+                "file": "<i class='fa fa-file text-blue-400'></i>"
+              }
+            },
+            {
+              "name": "name",
+              "label": "名称",
+              "type": "link",
+              "onClick": {
+                "actionType": "ajax",
+                "api": "get:/api/changeDir?path=${path}",
+                "messages": {},
+                "reload": "fileService"
+              }
+            },
+            {
+              "name": "size",
+              "label": "大小",
+              "type": "text",
+              "placeholder": "-"
+            },
+            {
+              "name": "modified",
+              "label": "修改日期",
+              "type": "text"
+            },
+            {
+              "type": "operation",
+              "label": "操作",
+              "buttons": [
+                {
+                  "type": "button",
+                  "label": "下载",
+                  "level": "link",
+                  "visibleOn": "this.type === 'file'",
+                  "onClick": {
+                    "actionType": "url",
+                    "url": "/api/download?path=${path}",
+                    "blank": false
+                  }
+                },
+                {
+                  "type": "button",
+                  "label": "删除",
+                  "level": "link",
+                  "className": "text-red-500",
+                  "onClick": {
+                    "actionType": "ajax",
+                    "confirmText": "确定要删除 ${name} 吗?",
+                    "api": "delete:/api/delete?path=${path}"
+                  }
+                }
+              ]
+            }
+          ],
+          "headerToolbar": [
+            {
+              "type": "button",
+              "label": "返回上一级",
+              "level": "link",
+              "disabledOn": "!parentPath",
+              "onClick": {
+                "actionType": "setValue",
+                "componentId": "currentPath",
+                "args": {
+                  "value": "${parentPath}"
+                }
+              }
+            }
+          ],
+          "itemActions": []
+        }
+      ]
+    }
+  ],
+  "data": {
+    "currentPath": "/"
+  }
+}

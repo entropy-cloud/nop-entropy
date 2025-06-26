@@ -39,8 +39,13 @@ import static io.nop.orm.OrmErrors.ERR_ORM_INVALID_COMPOSITE_PK_PART_COUNT;
 public final class OrmCompositePk implements IOrmCompositePk, Serializable, IJsonString, IPropGetMissingHook {
     private final List<String> propNames;
     private final Object[] propValues;
+    private final int hashCode;
 
     public OrmCompositePk(List<String> propNames, Object[] propValues) {
+        for (Object propValue : propValues) {
+            Guard.notEmpty(propValue, "pk value");
+        }
+        this.hashCode = Arrays.hashCode(propValues);
         this.propNames = propNames;
         this.propValues = propValues;
     }
@@ -92,7 +97,7 @@ public final class OrmCompositePk implements IOrmCompositePk, Serializable, IJso
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(propValues);
+        return hashCode;
     }
 
     @Override
