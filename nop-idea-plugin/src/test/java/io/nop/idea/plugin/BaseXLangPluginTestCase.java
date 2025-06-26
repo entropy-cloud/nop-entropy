@@ -1,5 +1,13 @@
 package io.nop.idea.plugin;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.nio.charset.Charset;
+import java.nio.file.FileVisitResult;
+import java.util.ArrayList;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
 import com.intellij.codeInsight.TargetElementUtil;
 import com.intellij.codeInsight.documentation.DocumentationManager;
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationAction;
@@ -10,20 +18,15 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.impl.source.resolve.reference.impl.PsiMultiReference;
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
-import io.nop.api.core.ApiConfigs;
-import io.nop.api.core.config.AppConfig;
 import io.nop.commons.lang.impl.Cancellable;
-import io.nop.core.dict.DictProvider;
-import io.nop.core.initialize.ICoreInitializer;
-import io.nop.core.initialize.impl.ReflectionHelperMethodInitializer;
-import io.nop.core.initialize.impl.VirtualFileSystemInitializer;
+import io.nop.commons.util.FileHelper;
+import io.nop.commons.util.IoHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
-import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.idea.plugin.lang.XLangFileType;
 import io.nop.idea.plugin.reference.XLangReference;
-import io.nop.idea.plugin.resource.ProjectEnv;
-import io.nop.xlang.initialize.XLangCoreInitializer;
+import io.nop.idea.plugin.services.NopAppListener;
 
 /**
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
@@ -45,26 +48,13 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
             FileTypeManager.getInstance().associateExtension(XLangFileType.INSTANCE, "xdef");
 
             FileTypeManager.getInstance().associateExtension(XLangFileType.INSTANCE, XLANG_EXT);
-        });
 
-        // 初始化 XLang 环境：由于测试资源均在 classpath 中，故而，需采用默认的 ICoreInitializer 进行初始化，
-        // 而不能通过 NopAppListener 初始化
-        ProjectEnv.withProject(getProject(), () -> {
-            AppConfig.getConfigProvider().updateConfigValue(ApiConfigs.CFG_DEBUG, false);
+            new NopAppListener().appFrameCreated(new ArrayList<>());
 
-            ICoreInitializer[] initializers = new ICoreInitializer[] {
-                    new XLangCoreInitializer(),
-                    new VirtualFileSystemInitializer(),
-                    new ReflectionHelperMethodInitializer(),
-                    };
-            for (ICoreInitializer initializer : initializers) {
-                initializer.initialize();
-                cleanup.appendOnCancelTask(initializer::destroy);
-            }
-
-            cleanup.append(DictProvider.registerLoader());
-
-            return null;
+            // Note: 提前将被引用的 vfs 资源添加到 Project 中
+            addAllNopXDefsToProject();
+            addVfsResourcesToProject("/nop/core/xlib/meta-gen.xlib");
+            addAllTestVfsResourcesToProject();
         });
     }
 
@@ -78,21 +68,65 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         myFixture.configureByText("unit." + XLANG_EXT, text);
     }
 
+    protected void addAllNopXDefsToProject() {
+        String jarPath = getClass().getResource("/_vfs/nop/schema/xdef.xdef")
+                                   .getPath()
+                                   .replaceAll("^file:", "")
+                                   .replaceAll("!.+$", "");
+
+        try (ZipInputStream zip = new ZipInputStream(new FileInputStream(jarPath))) {
+            for (ZipEntry entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
+                if (!entry.getName().endsWith(".xdef")) {
+                    continue;
+                }
+
+                String path = entry.getName().replaceAll("^_vfs/", "/");
+                String text = IoHelper.readText(zip, Charset.defaultCharset().name());
+
+                addVfsResourceToProject('/' + path, text);
+            }
+        } catch (Exception ignore) {
+        }
+    }
+
+    /** 将 vfs 测试资源全部复制到 Project 中 */
+    protected void addAllTestVfsResourcesToProject() {
+        File vfsDir = new File(getClass().getResource("/_vfs").getFile());
+
+        FileHelper.walk(vfsDir, (file) -> {
+            if (file.isFile()) {
+                String path = FileHelper.getRelativePath(vfsDir, file);
+                String text = FileHelper.readText(file, Charset.defaultCharset().name());
+
+                addVfsResourceToProject('/' + path, text);
+            }
+            return FileVisitResult.CONTINUE;
+        });
+    }
+
     /**
      * 将测试环境中的 vfs 资源添加到 Project 中
      * <p/>
-     * 在需要做文件跳转时，需要将目标文件提前加入 Project 以确保目标文件已存在
+     * 在需要做文件引用时，需要将目标文件提前加入 Project 以确保目标文件已存在
      */
     protected void addVfsResourcesToProject(String... resources) {
         for (String resource : resources) {
             String text = readVfsResource(resource);
 
-            myFixture.addFileToProject("_vfs" + resource, text);
+            addVfsResourceToProject(resource, text);
+        }
+    }
+
+    protected void addVfsResourceToProject(String path, String text) {
+        if (path.endsWith(".java")) {
+            myFixture.addClass(text);
+        } else {
+            myFixture.addFileToProject("_vfs" + path, text);
         }
     }
 
     protected String readVfsResource(String resource) {
-        IResource res = VirtualFileSystem.instance().getResource(resource);
+        IResource res = new ClassPathResource("classpath:_vfs" + resource);
         return ResourceHelper.readText(res);
     }
 

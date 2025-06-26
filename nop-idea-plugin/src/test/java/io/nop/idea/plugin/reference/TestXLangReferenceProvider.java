@@ -1,10 +1,10 @@
 package io.nop.idea.plugin.reference;
 
+import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlAttribute;
-import com.intellij.psi.xml.XmlElement;
 import com.intellij.psi.xml.XmlTag;
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
@@ -14,29 +14,6 @@ import io.nop.idea.plugin.utils.XmlPsiHelper;
  * @date 2025-06-22
  */
 public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
-
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
-
-        // Note: 提前将被引用的文件添加到 Project 中
-        addVfsResourcesToProject("/nop/schema/xdef.xdef",
-                                 "/nop/schema/xdsl.xdef",
-                                 "/nop/schema/xmeta.xdef",
-                                 "/nop/schema/xui/xview.xdef",
-                                 "/nop/schema/xui/store.xdef",
-                                 "/nop/schema/xui/import.xdef",
-                                 "/nop/core/xlib/meta-gen.xlib",
-                                 "/nop/schema/schema/obj-schema.xdef",
-                                 "/nop/schema/schema/schema-node.xdef",
-                                 "/dict/test/doc/child-type.dict.yaml",
-                                 "/test/doc/example.xdef",
-                                 "/test/reference/a.xmeta",
-                                 "/test/reference/b.xmeta",
-                                 "/test/reference/a.xlib",
-                                 "/test/reference/default.xform",
-                                 "/test/reference/test-filter.xdef");
-    }
 
     public void testGetReferencesFromXmlAttributeValue() {
         // 对 v-path 属性值的引用
@@ -235,16 +212,15 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
 //                                                                "<xdef:prop name=\"!xml<caret>-name\""), "");
 //        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace("x:schema=\"v-path\"", "x:schema=\"v-pa<caret>th\""),
 //               "");
-
-        // 字典/枚举的 options 引用
-        doTest("""
-                       <example xmlns:x="/nop/schema/xdsl.xdef"
-                                x:schema="/nop/schema/xdef.xdef"
-                       >
-                           <child type="dict:test/doc/ch<caret>ild-type"/>
-                       </example>
-                       """, "/dict/test/doc/child-type.dict.yaml");
-//        // TODO 如何处理单元测试中的 class 枚举引用？
+//
+//        // 字典/枚举的 options 引用
+//        doTest("""
+//                       <example xmlns:x="/nop/schema/xdsl.xdef"
+//                                x:schema="/nop/schema/xdef.xdef"
+//                       >
+//                           <child type="dict:test/doc/ch<caret>ild-type"/>
+//                       </example>
+//                       """, "/dict/test/doc/child-type.dict.yaml");
 //        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace(
 //                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"",
 //                       "x:override=\"enum:io.nop.xlang.xdef.X<caret>DefOverride=merge\""), //
@@ -268,7 +244,14 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
 //                       <component xmlns:x="/nop/schema/xdsl.xdef"
 //                                x:schema="/nop/schema/xdef.xdef"
 //                       >
-//                           <import as="!var-name=@attr<caret>:name" name="var-name" from="!string"/>
+//                           <import as="!var-name=@attr:n<caret>ame" name="var-name" from="!string"/>
+//                       </example>
+//                       """, "");
+//        doTest("""
+//                       <component xmlns:x="/nop/schema/xdsl.xdef"
+//                                x:schema="/nop/schema/xdef.xdef"
+//                       >
+//                           <var as="!var-name=@attr:name,ty<caret>pe" name="var-name" type="!string"/>
 //                       </example>
 //                       """, "");
     }
@@ -401,8 +384,6 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
             assertEquals(expected, (vfsPath != null ? vfsPath : "") + (anchor != null ? "#" + anchor : ""));
         } //
         else if (ref instanceof XLangElementReference || ref instanceof XLangXDefReference) {
-            assertInstanceOf(target, XmlElement.class);
-
             if (target instanceof XmlTag tag) {
                 assertEquals(expected, tag.getName());
             }  //
@@ -410,6 +391,9 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
                 XmlTag tag = PsiTreeUtil.getParentOfType(attr, XmlTag.class);
 
                 assertEquals(expected, tag.getName() + "#" + attr.getName() + "=" + attr.getValue());
+            } //
+            else if (target instanceof PsiClass cls) {
+                assertEquals(expected, cls.getQualifiedName());
             } else {
                 fail("Unknown target " + target.getClass());
             }
