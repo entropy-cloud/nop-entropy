@@ -2,6 +2,7 @@ package io.nop.idea.plugin.reference;
 
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiManager;
 import com.intellij.psi.PsiReferenceBase;
 import com.intellij.psi.xml.XmlElement;
 import org.jetbrains.annotations.NotNull;
@@ -24,5 +25,12 @@ public class XLangXDefReference extends PsiReferenceBase<XmlElement> implements 
     @Override
     public @Nullable PsiElement resolve() {
         return target;
+    }
+
+    @Override
+    public boolean isReferenceTo(@NotNull PsiElement target) {
+        // XmlAttributeReference#isReferenceTo
+        PsiManager manager = getElement().getManager();
+        return manager.areElementsEquivalent(target, this.target);
     }
 }

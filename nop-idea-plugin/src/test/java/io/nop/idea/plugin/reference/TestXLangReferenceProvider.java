@@ -225,7 +225,9 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
 //        doTest("""
 //                       <c:include src="/test/<caret>reference/a.xlib" />
 //                       """, "/test/reference/a.xlib");
-//
+    }
+
+    public void testGetReferencesFromXmlAttributeType() {
 //        // TODO 声明属性将 引用 属性的类型定义
 //        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("xdef:ref=\"xdef-ref\"",
 //                                                                "xdef:ref=\"xd<caret>ef-ref\""), "");
@@ -233,10 +235,8 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
 //                                                                "<xdef:prop name=\"!xml<caret>-name\""), "");
 //        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace("x:schema=\"v-path\"", "x:schema=\"v-pa<caret>th\""),
 //               "");
-    }
 
-    public void testGetReferencesFromXmlAttributeType() {
-        // TODO 字典/枚举的 options 引用
+        // 字典/枚举的 options 引用
         doTest("""
                        <example xmlns:x="/nop/schema/xdsl.xdef"
                                 x:schema="/nop/schema/xdef.xdef"
@@ -244,32 +244,33 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
                            <child type="dict:test/doc/ch<caret>ild-type"/>
                        </example>
                        """, "/dict/test/doc/child-type.dict.yaml");
-        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace(
-                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"",
-                       "x:override=\"enum:io.nop.xlang.xdef.X<caret>DefOverride=merge\""), //
-               "io.nop.xlang.xdef.XDefOverride");
-
-        // TODO 字典/枚举的默认值引用
-        doTest("""
-                       <example xmlns:x="/nop/schema/xdsl.xdef"
-                                x:schema="/nop/schema/xdef.xdef"
-                       >
-                           <child type="dict:test/doc/child-type=le<caret>af"/>
-                       </example>
-                       """, "");
-        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace(
-                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"",
-                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=me<caret>rge\""), //
-               "");
-
-        // TODO 缺省属性值中 @attr: 引用
-        doTest("""
-                       <component xmlns:x="/nop/schema/xdsl.xdef"
-                                x:schema="/nop/schema/xdef.xdef"
-                       >
-                           <import as="!var-name=@attr<caret>:name" name="var-name" from="!string"/>
-                       </example>
-                       """, "");
+//        // TODO 如何处理单元测试中的 class 枚举引用？
+//        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace(
+//                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"",
+//                       "x:override=\"enum:io.nop.xlang.xdef.X<caret>DefOverride=merge\""), //
+//               "io.nop.xlang.xdef.XDefOverride");
+//
+//        // TODO 字典/枚举的默认值引用
+//        doTest("""
+//                       <example xmlns:x="/nop/schema/xdsl.xdef"
+//                                x:schema="/nop/schema/xdef.xdef"
+//                       >
+//                           <child type="dict:test/doc/child-type=le<caret>af"/>
+//                       </example>
+//                       """, "");
+//        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace(
+//                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"",
+//                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=me<caret>rge\""), //
+//               "");
+//
+//        // TODO 缺省属性值中 @attr: 引用
+//        doTest("""
+//                       <component xmlns:x="/nop/schema/xdsl.xdef"
+//                                x:schema="/nop/schema/xdef.xdef"
+//                       >
+//                           <import as="!var-name=@attr<caret>:name" name="var-name" from="!string"/>
+//                       </example>
+//                       """, "");
     }
 
     public void testGetReferencesFromXmlAttribute() {

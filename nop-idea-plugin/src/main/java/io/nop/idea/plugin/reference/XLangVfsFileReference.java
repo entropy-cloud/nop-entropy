@@ -3,6 +3,7 @@ package io.nop.idea.plugin.reference;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
 import com.intellij.psi.PsiReferenceBase;
 import com.intellij.psi.xml.XmlElement;
 import com.intellij.psi.xml.XmlElementType;
@@ -44,7 +45,7 @@ public class XLangVfsFileReference extends PsiReferenceBase<XmlElement> implemen
     public @Nullable PsiElement resolve() {
         PsiElement result = XmlPsiHelper.findFirstElement(file, (element) -> element instanceof XmlTag);
 
-        return result == null ? this.file : result;
+        return result == null ? file : result;
     }
 
     /** 得到补全建议元素列表，可以为字符串或 {@link PsiElement} */
@@ -56,6 +57,7 @@ public class XLangVfsFileReference extends PsiReferenceBase<XmlElement> implemen
     @Override
     public boolean isReferenceTo(@NotNull PsiElement target) {
         // XmlAttributeReference#isReferenceTo
-        return target instanceof PsiFile && ((PsiFile) target).getVirtualFile().getPath().endsWith("/_vfs" + file);
+        PsiManager manager = getElement().getManager();
+        return manager.areElementsEquivalent(target, this.file);
     }
 }

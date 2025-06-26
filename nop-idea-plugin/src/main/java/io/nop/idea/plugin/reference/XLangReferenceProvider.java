@@ -10,10 +10,12 @@ import java.util.Objects;
 
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceProvider;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlAttributeValue;
@@ -34,9 +36,14 @@ import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
+import io.nop.xlang.xdef.parse.XDefTypeDeclParser;
 import org.jetbrains.annotations.NotNull;
 
 import static io.nop.idea.plugin.utils.XmlPsiHelper.isElementType;
+import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_DICT;
+import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_ENUM;
+import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_ATTR_PREFIX;
+import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_PREFIX_OPTIONS;
 
 /**
  * 针对 XLang 中的 {@link PsiElement 元素} 创建引用
@@ -169,9 +176,9 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
             return getReferencesByDefault(refElement, attrValue);
         }
 
-        // TODO 对于声明属性，仅对其类型的定义（涉及枚举和字典）做跳转
+        // 对于声明属性，仅对其类型的定义（涉及枚举和字典）做引用识别
         if (tagInfo.isDefDeclaredAttr(attrName)) {
-            return PsiReference.EMPTY_ARRAY;
+            return getReferencesByDefDeclaredAttr(refElement, attrValue);
         }
 
         // 根据属性声明的类型，对属性值做文件/名字引用
@@ -231,7 +238,7 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
         // Note: 计算引用源文本（XmlAttributeValue#getText 的结果包含引号）与引用值文本之间的文本偏移量，
         // 从而精确匹配与引用相关的文本内容
         int textRangeOffset = refElement.getText().indexOf(refValue);
-        TextRange textRange = new TextRange(textRangeOffset, refValue.length() + textRangeOffset);
+        TextRange textRange = new TextRange(0, refValue.length()).shiftRight(textRangeOffset);
 
         String stdDomain = refDefType.getStdDomain();
 
@@ -250,15 +257,76 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
         return null;
     }
 
+    /** 根据属性的定义识别引用 */
+    private PsiReference[] getReferencesByDefDeclaredAttr(XmlElement refElement, String refValue) {
+        XDefTypeDecl refDefType = new XDefTypeDeclParser().parseFromText(null, refValue);
+
+        // (!~#)?{stdDomain}(:{options})?(={defaultValue})?
+        String stdDomain = refDefType.getStdDomain();
+        String options = refDefType.getOptions();
+        Object defaultValue = refDefType.getDefaultValue();
+        List<String> defaultAttrNames = refDefType.getDefaultAttrNames();
+
+        // Note: 计算引用源文本（XmlAttributeValue#getText 的结果包含引号）与引用值文本之间的文本偏移量，
+        // 从而精确匹配与引用相关的文本内容
+        int textRangeOffset = refElement.getText().indexOf(refValue);
+
+        int stdDomainIndex = refValue.indexOf(stdDomain);
+        int optionsIndex = options != null ? refValue.indexOf(XDEF_TYPE_PREFIX_OPTIONS + options) + 1 : -1;
+        int defaultValueIndex = defaultValue != null ? refValue.indexOf("=" + defaultValue) + 1 : -1;
+        int defaultAttrNamesIndex = defaultAttrNames != null ? refValue.indexOf('=' + XDEF_TYPE_ATTR_PREFIX)
+                                                               + 1
+                                                               + XDEF_TYPE_ATTR_PREFIX.length() : -1;
+
+        List<PsiReference> refs = new ArrayList<>();
+
+        // TODO 引用类型定义
+        TextRange textRange = new TextRange(0, stdDomain.length()).shiftRight(textRangeOffset + stdDomainIndex);
+        refs.add(new XLangElementReference(refElement, textRange, null));
+
+        if (optionsIndex > 0) {
+            textRange = new TextRange(0, options.length()).shiftRight(textRangeOffset + optionsIndex);
+
+            if (STD_DOMAIN_ENUM.equals(stdDomain)) {
+                if (StringHelper.isValidClassName(options)) {
+                    PsiElement target = JavaPsiFacade.getInstance(refElement.getProject())
+                                                     .findClass(options,
+                                                                GlobalSearchScope.allScope(refElement.getProject()));
+
+                    refs.add(new XLangElementReference(refElement, textRange, target));
+                }
+            } else if (STD_DOMAIN_DICT.equals(stdDomain)) {
+                List<PsiFile> files = XmlPsiHelper.findPsiFilesByNopVfsPath(refElement,
+                                                                            "/dict/" + options + ".dict.yaml");
+
+                for (PsiFile file : files) {
+                    refs.add(new XLangVfsFileReference(refElement, textRange, file));
+                }
+            }
+        }
+
+        // TODO 引用字典/枚举值
+        if (defaultValueIndex > 0) {
+            textRange = new TextRange(0, defaultValue.toString().length()).shiftRight(textRangeOffset
+                                                                                      + defaultValueIndex);
+            refs.add(new XLangElementReference(refElement, textRange, null));
+        }
+
+        // TODO 引用节点属性
+
+        return refs.toArray(PsiReference[]::new);
+    }
+
     /** 对文本做默认的引用识别 */
     private PsiReference[] getReferencesByDefault(XmlElement refElement, String refValue) {
         if (!refValue.endsWith(".xdef")) {
             return PsiReference.EMPTY_ARRAY;
         }
 
-        // Note: XmlAttributeValue 的文本范围是包含引号的
-        int textRangeOffset = refElement instanceof XmlAttributeValue ? 1 : 0;
-        TextRange textRange = new TextRange(textRangeOffset, refValue.length() + textRangeOffset);
+        // Note: 计算引用源文本（XmlAttributeValue#getText 的结果包含引号）与引用值文本之间的文本偏移量，
+        // 从而精确匹配与引用相关的文本内容
+        int textRangeOffset = refElement.getText().indexOf(refValue);
+        TextRange textRange = new TextRange(0, refValue.length()).shiftRight(textRangeOffset);
 
         return getReferencesByVfsPath(refElement, refValue, textRange);
     }
