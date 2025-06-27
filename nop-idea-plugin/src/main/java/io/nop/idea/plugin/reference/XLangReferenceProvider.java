@@ -11,10 +11,12 @@ import java.util.Objects;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.JavaPsiFacade;
+import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceProvider;
+import com.intellij.psi.impl.source.tree.LeafPsiElement;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlAttribute;
@@ -23,12 +25,17 @@ import com.intellij.psi.xml.XmlElement;
 import com.intellij.psi.xml.XmlElementType;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.util.ProcessingContext;
+import io.nop.api.core.beans.DictBean;
+import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.MutableString;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.dict.DictProvider;
 import io.nop.idea.plugin.messages.NopPluginBundle;
+import io.nop.idea.plugin.resource.EnumDictOptionBean;
 import io.nop.idea.plugin.resource.ProjectEnv;
+import io.nop.idea.plugin.utils.PsiClassHelper;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.utils.XmlTagInfo;
@@ -38,6 +45,7 @@ import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.parse.XDefTypeDeclParser;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.yaml.psi.YAMLKeyValue;
 
 import static io.nop.idea.plugin.utils.XmlPsiHelper.isElementType;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_DICT;
@@ -280,9 +288,13 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
 
         List<PsiReference> refs = new ArrayList<>();
 
-        // TODO 引用类型定义
+        // 引用数据域的类型定义
         TextRange textRange = new TextRange(0, stdDomain.length()).shiftRight(textRangeOffset + stdDomainIndex);
-        refs.add(new XLangElementReference(refElement, textRange, null));
+        List<PsiClass> stdDomainClsList = PsiClassHelper.findStdDomainHandlers(refElement.getProject())
+                                                        .getOrDefault(stdDomain, new ArrayList<>());
+        for (PsiClass cls : stdDomainClsList) {
+            refs.add(new XLangElementReference(refElement, textRange, cls));
+        }
 
         if (optionsIndex > 0) {
             textRange = new TextRange(0, options.length()).shiftRight(textRangeOffset + optionsIndex);
@@ -305,14 +317,41 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
             }
         }
 
-        // TODO 引用字典/枚举值
+        // 引用字典/枚举值
         if (defaultValueIndex > 0) {
             textRange = new TextRange(0, defaultValue.toString().length()).shiftRight(textRangeOffset
                                                                                       + defaultValueIndex);
-            refs.add(new XLangElementReference(refElement, textRange, null));
+
+            DictBean dictBean = DictProvider.instance().getDict(null, options, null, null);
+            DictOptionBean dictOpt = dictBean != null ? dictBean.getOptionByValue(defaultValue) : null;
+
+            if (dictOpt instanceof EnumDictOptionBean opt) {
+                refs.add(new XLangElementReference(refElement, textRange, opt.target));
+            } else if (STD_DOMAIN_DICT.equals(stdDomain)) {
+                List<PsiFile> files = XmlPsiHelper.findPsiFilesByNopVfsPath(refElement,
+                                                                            "/dict/" + options + ".dict.yaml");
+
+                for (PsiFile file : files) {
+                    PsiElement target = XmlPsiHelper.findFirstElement(file, (element) -> {
+                        if (element instanceof LeafPsiElement value //
+                            && defaultValue.equals(value.getText()) //
+                        ) {
+                            PsiElement parent = PsiTreeUtil.getParentOfType(element, YAMLKeyValue.class);
+                            PsiElement key = parent != null ? parent.getFirstChild() : null;
+
+                            return key != null && "value".equals(key.getText());
+                        }
+                        return false;
+                    });
+                    refs.add(new XLangElementReference(refElement, textRange, target));
+                }
+            }
         }
 
         // TODO 引用节点属性
+        if (defaultAttrNamesIndex > 0) {
+            //
+        }
 
         return refs.toArray(PsiReference[]::new);
     }

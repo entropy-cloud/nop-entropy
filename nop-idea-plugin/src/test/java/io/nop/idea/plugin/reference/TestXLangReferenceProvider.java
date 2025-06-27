@@ -2,7 +2,10 @@ package io.nop.idea.plugin.reference;
 
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiField;
+import com.intellij.psi.PsiPlainText;
 import com.intellij.psi.PsiReference;
+import com.intellij.psi.impl.source.tree.LeafPsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlTag;
@@ -205,39 +208,47 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
     }
 
     public void testGetReferencesFromXmlAttributeType() {
-//        // TODO 声明属性将 引用 属性的类型定义
-//        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("xdef:ref=\"xdef-ref\"",
-//                                                                "xdef:ref=\"xd<caret>ef-ref\""), "");
-//        doTest(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:prop name=\"!xml-name\"",
-//                                                                "<xdef:prop name=\"!xml<caret>-name\""), "");
-//        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace("x:schema=\"v-path\"", "x:schema=\"v-pa<caret>th\""),
-//               "");
-//
-//        // 字典/枚举的 options 引用
-//        doTest("""
-//                       <example xmlns:x="/nop/schema/xdsl.xdef"
-//                                x:schema="/nop/schema/xdef.xdef"
-//                       >
-//                           <child type="dict:test/doc/ch<caret>ild-type"/>
-//                       </example>
-//                       """, "/dict/test/doc/child-type.dict.yaml");
-//        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace(
-//                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"",
-//                       "x:override=\"enum:io.nop.xlang.xdef.X<caret>DefOverride=merge\""), //
-//               "io.nop.xlang.xdef.XDefOverride");
-//
-//        // TODO 字典/枚举的默认值引用
-//        doTest("""
-//                       <example xmlns:x="/nop/schema/xdsl.xdef"
-//                                x:schema="/nop/schema/xdef.xdef"
-//                       >
-//                           <child type="dict:test/doc/child-type=le<caret>af"/>
-//                       </example>
-//                       """, "");
-//        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace(
-//                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"",
-//                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=me<caret>rge\""), //
-//               "");
+        // 声明属性将 引用 属性的类型定义
+        doTest("""
+                       <example xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                       >
+                           <node type="vue-n<caret>ode"/>
+                       </example>
+                       """, "io.nop.xui.initialize.VueNodeStdDomainHandler");
+        doTest("""
+                       <example xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                       >
+                           <node type="x<caret>json"/>
+                       </example>
+                       """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
+
+        // 字典/枚举的 options 引用
+        doTest("""
+                       <example xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                       >
+                           <child type="dict:test/doc/ch<caret>ild-type"/>
+                       </example>
+                       """, "/dict/test/doc/child-type.dict.yaml");
+        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace(
+                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"",
+                       "x:override=\"enum:io.nop.xlang.xdef.X<caret>DefOverride=merge\""), //
+               "io.nop.xlang.xdef.XDefOverride");
+
+        // 字典/枚举的默认值引用
+        doTest("""
+                       <example xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                       >
+                           <child type="dict:test/doc/child-type=le<caret>af"/>
+                       </example>
+                       """, "/dict/test/doc/child-type.dict.yaml#leaf");
+        doTest(readVfsResource("/nop/schema/xdsl.xdef").replace(
+                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"",
+                       "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=me<caret>rge\""), //
+               "io.nop.xlang.xdef.XDefOverride#MERGE");
 //
 //        // TODO 缺省属性值中 @attr: 引用
 //        doTest("""
@@ -394,7 +405,21 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
             } //
             else if (target instanceof PsiClass cls) {
                 assertEquals(expected, cls.getQualifiedName());
-            } else {
+            } //
+            else if (target instanceof PsiField field) {
+                assertEquals(expected, field.getContainingClass().getQualifiedName() + "#" + field.getName());
+            } //
+            else if (target instanceof PsiPlainText txt) {
+                String vfsPath = XmlPsiHelper.getNopVfsPath(target);
+
+                assertEquals(expected, vfsPath + ":" + txt.getTextOffset());
+            } //
+            else if (target instanceof LeafPsiElement leaf) {
+                String vfsPath = XmlPsiHelper.getNopVfsPath(target);
+
+                assertEquals(expected, vfsPath + "#" + leaf.getText());
+            } //
+            else {
                 fail("Unknown target " + target.getClass());
             }
         }
