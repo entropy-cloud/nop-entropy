@@ -86,11 +86,8 @@
         <annotator language="XLang" implementationClass="io.nop.idea.plugin.annotation.XLangAnnotator"/>
         <languageInjector implementation="io.nop.idea.plugin.lang.XScriptLanguageInjector"/>
 
-        <!-- 引用识别 -->
+        <!-- 引用识别：支持跳转、重命名等操作 -->
         <psi.referenceContributor implementation="io.nop.idea.plugin.reference.XLangReferenceContributor"/>
-        <!-- 点击ctrl跳转到对应文件 -->
-<!--        <gotoDeclarationHandler implementation="io.nop.idea.plugin.link.XLangGotoDeclarationHandler"/>-->
-
 
         <fileTypeDetector implementation="io.nop.idea.plugin.lang.XLangFileTypeDetector" order="first" />
 

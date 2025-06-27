@@ -53,7 +53,7 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
 
             // Note: 提前将被引用的 vfs 资源添加到 Project 中
             addAllNopXDefsToProject();
-            addVfsResourcesToProject("/nop/core/xlib/meta-gen.xlib");
+            addVfsResourcesToProject("/nop/core/xlib/meta-gen.xlib", "/dict/core/std-domain.dict.yaml");
             addAllTestVfsResourcesToProject();
         });
     }
@@ -131,11 +131,15 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
     }
 
     protected PsiElement getElementAtCaret() {
+        assertCaretExists();
+
         return myFixture.getFile().findElementAt(myFixture.getCaretOffset());
     }
 
     /** 找到光标位置的 {@link XLangReference} 或者其他类型的唯一引用 */
     protected PsiReference findReferenceAtCaret() {
+        assertCaretExists();
+
         // 实际有多个引用时，将构造返回 PsiMultiReference，
         // 其会按 PsiMultiReference#COMPARATOR 对引用排序得到优先引用，
         // 再调用该优先引用的 #resolve() 得到 PsiElement
@@ -166,8 +170,14 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
     }
 
     protected PsiElement[] getGotoTargets() {
+        assertCaretExists();
+
         return GotoDeclarationAction.findAllTargetElements(getProject(),
                                                            myFixture.getEditor(),
                                                            myFixture.getCaretOffset());
+    }
+
+    private void assertCaretExists() {
+        assertTrue("No '<caret>' found in current text", myFixture.getCaretOffset() > 0);
     }
 }

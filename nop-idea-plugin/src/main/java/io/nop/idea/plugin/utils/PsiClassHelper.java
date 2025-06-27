@@ -39,7 +39,10 @@ public class PsiClassHelper {
     /**
      * 查找项目中 {@link io.nop.xlang.xdef.IStdDomainHandler IStdDomainHandler} 的实现类，
      * 并以其{@link io.nop.xlang.xdef.IStdDomainHandler#getName() 名字}为 Map Key
+     *
+     * @deprecated 只能用于源码分析，不能从 class 字节码中得到方法的返回结果
      */
+    @Deprecated
     public static Map<String, List<PsiClass>> findStdDomainHandlers(Project project) {
         Map<String, List<PsiClass>> map = new HashMap<>();
 
@@ -83,7 +86,7 @@ public class PsiClassHelper {
 
         PsiMethod method = methods[0];
         ReturnStatementAnalyzer analyzer = new ReturnStatementAnalyzer();
-        method.accept(analyzer);
+        method.getBody().accept(analyzer);
 
         return analyzer.getReturnValue();
     }
@@ -144,6 +147,26 @@ public class PsiClassHelper {
             return null;
         }
 
+        // 处理字面量表达式
+        if (expression instanceof PsiLiteralExpression) {
+            return ((PsiLiteralExpression) expression).getValue();
+        }
+        // 处理引用表达式（字段引用）
+        else if (expression instanceof PsiReferenceExpression) {
+            PsiElement resolved = ((PsiReferenceExpression) expression).resolve();
+
+            // 解析到常量字段（包含接口上的常量）
+            if (resolved instanceof PsiField field //
+                && field.hasModifierProperty(PsiModifier.STATIC) //
+                && field.hasModifierProperty(PsiModifier.FINAL) //
+            ) {
+                // 递归解析字段的初始化表达式
+                PsiExpression initializer = field.getInitializer();
+
+                return computeConstantExpression(initializer);
+            }
+        }
+
         PsiConstantEvaluationHelper helper = JavaPsiFacade.getInstance(expression.getProject())
                                                           .getConstantEvaluationHelper();
         return helper.computeConstantExpression(expression);
@@ -161,31 +184,7 @@ public class PsiClassHelper {
         }
 
         public Object getReturnValue() {
-            return evaluateExpression(returnExpr);
-        }
-
-        private Object evaluateExpression(PsiExpression expression) {
-            // 处理字面量表达式
-            if (expression instanceof PsiLiteralExpression) {
-                return ((PsiLiteralExpression) expression).getValue();
-            }
-            // 处理引用表达式（字段引用）
-            else if (expression instanceof PsiReferenceExpression) {
-                PsiElement resolved = ((PsiReferenceExpression) expression).resolve();
-
-                // 解析到常量字段（包含接口上的常量）
-                if (resolved instanceof PsiField field //
-                    && field.hasModifierProperty(PsiModifier.STATIC) //
-                    && field.hasModifierProperty(PsiModifier.FINAL) //
-                ) {
-                    // 递归解析字段的初始化表达式
-                    PsiExpression initializer = field.getInitializer();
-
-                    return evaluateExpression(initializer);
-                }
-            }
-
-            return computeConstantExpression(expression);
+            return computeConstantExpression(returnExpr);
         }
     }
 }

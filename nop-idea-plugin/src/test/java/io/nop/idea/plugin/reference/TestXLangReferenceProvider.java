@@ -209,20 +209,31 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
 
     public void testGetReferencesFromXmlAttributeType() {
         // 声明属性将 引用 属性的类型定义
+        // TODO 暂时无法通过分析 class 字节码得到可注册的数据域
+//        // - #getName 返回引用值
+//        doTest("""
+//                       <example xmlns:x="/nop/schema/xdsl.xdef"
+//                                x:schema="/nop/schema/xdef.xdef"
+//                       >
+//                           <node type="string"/>
+//                       </example>
+//                       """, "/dict/test/doc/child-type.dict.yaml#leaf");
+//        // - #getName 返回字面量值
+//        doTest("""
+//                       <example xmlns:x="/nop/schema/xdsl.xdef"
+//                                x:schema="/nop/schema/xdef.xdef"
+//                       >
+//                           <node type="x<caret>json"/>
+//                       </example>
+//                       """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
+        // - 引用字典中定义的数据域
         doTest("""
                        <example xmlns:x="/nop/schema/xdsl.xdef"
                                 x:schema="/nop/schema/xdef.xdef"
                        >
-                           <node type="vue-n<caret>ode"/>
+                           <node type="str<caret>ing"/>
                        </example>
-                       """, "io.nop.xui.initialize.VueNodeStdDomainHandler");
-        doTest("""
-                       <example xmlns:x="/nop/schema/xdsl.xdef"
-                                x:schema="/nop/schema/xdef.xdef"
-                       >
-                           <node type="x<caret>json"/>
-                       </example>
-                       """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
+                       """, "/dict/core/std-domain.dict.yaml#string");
 
         // 字典/枚举的 options 引用
         doTest("""
@@ -249,22 +260,29 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
                        "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"",
                        "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=me<caret>rge\""), //
                "io.nop.xlang.xdef.XDefOverride#MERGE");
-//
-//        // TODO 缺省属性值中 @attr: 引用
-//        doTest("""
-//                       <component xmlns:x="/nop/schema/xdsl.xdef"
-//                                x:schema="/nop/schema/xdef.xdef"
-//                       >
-//                           <import as="!var-name=@attr:n<caret>ame" name="var-name" from="!string"/>
-//                       </example>
-//                       """, "");
-//        doTest("""
-//                       <component xmlns:x="/nop/schema/xdsl.xdef"
-//                                x:schema="/nop/schema/xdef.xdef"
-//                       >
-//                           <var as="!var-name=@attr:name,ty<caret>pe" name="var-name" type="!string"/>
-//                       </example>
-//                       """, "");
+
+        // 缺省属性值中 @attr: 引用
+        doTest("""
+                       <component xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                       >
+                           <import as="!var-name=@attr:n<caret>ame" name="var-name" from="!string"/>
+                       </example>
+                       """, "import#name=var-name");
+        doTest("""
+                       <component xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                       >
+                           <var com="!var-name=@attr:name,ty<caret>pe" name="var-name" type="!string"/>
+                       </example>
+                       """, "var#type=!string");
+        doTest("""
+                       <component xmlns:x="/nop/schema/xdsl.xdef"
+                                x:schema="/nop/schema/xdef.xdef"
+                       >
+                           <var com="!var-name=@attr:ab<caret>c"/>
+                       </example>
+                       """, null);
     }
 
     public void testGetReferencesFromXmlAttribute() {
@@ -282,7 +300,8 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
                                                                 "<xdef:define xdef:n<caret>ame=\"!var-name\""),
                "xdef:define#xdef:name=!var-name");
 
-        doTest(readVfsResource("/test/doc/example.xdef").replace("name=\"string\"", "na<caret>me=\"string\""),
+        doTest(readVfsResource("/test/doc/example.xdef").replace("<child name=\"string\"",
+                                                                 "<child na<caret>me=\"string\""),
                "meta:define#xdef:unknown-attr=def-type");
 
         doTest("""
@@ -363,10 +382,10 @@ public class TestXLangReferenceProvider extends BaseXLangPluginTestCase {
                              xmlns:a="a" xmlns:xpl="xpl"
                        >
                              <x:gen-extends>
-                                 <a:DefaultView<caret>GenExtends xpl:lib="/test/reference/a.xlib"/>
+                                 <a:DoFind<caret>ByMdxQuery xpl:lib="/test/reference/a.xlib"/>
                              </x:gen-extends>
                        </view>
-                       """, "");
+                       """, "/test/reference/a.xlib#DoFindByMdxQuery");
     }
 
     /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */

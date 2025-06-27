@@ -14,9 +14,11 @@
     @name This is child name
     @xdef:unknown-attr This a unknown attribute
     -->
-    <child name="string" type="dict:test/doc/child-type" xdef:unknown-attr="any"/>
+    <child name="string" type="dict:test/doc/child-type=node" xdef:unknown-attr="any"/>
 
     <refs xdef:value="v-path-list"/>
+
+    <var com="!var-name=@attr:name,type" name="var-name" type="!string"/>
 
     <!-- Any child node
 

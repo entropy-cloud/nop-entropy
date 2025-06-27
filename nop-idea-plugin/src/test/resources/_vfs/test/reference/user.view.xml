@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef"
-      xmlns:view-gen="view-gen" xmlns:xpl="xpl">
+      xmlns:view-gen="view-gen" xmlns:xpl="xpl" xmlns:a="a">
 
     <objMeta>/test/reference/a.xmeta</objMeta>
 
@@ -8,7 +8,7 @@
         <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
     </x:gen-extends>
     <x:post-extends>
-        <view-gen:DefaultViewPostExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+        <a:DoFindByMdxQuery xpl:lib="/test/reference/a.xlib"/>
     </x:post-extends>
 
     <grids>

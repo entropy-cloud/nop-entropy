@@ -11,7 +11,6 @@ import java.util.Objects;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.JavaPsiFacade;
-import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiReference;
@@ -35,7 +34,6 @@ import io.nop.core.dict.DictProvider;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.resource.EnumDictOptionBean;
 import io.nop.idea.plugin.resource.ProjectEnv;
-import io.nop.idea.plugin.utils.PsiClassHelper;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.utils.XmlTagInfo;
@@ -112,9 +110,30 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
 
     /** 获取 xml 标签对应的引用（节点定义、xpl 函数定义等） */
     private PsiReference @NotNull [] getReferencesFromXmlTag(XmlTag tag) {
-        // TODO xpl 函数的引用
+        // TODO xpl 函数的引用：根据导入 xlib 中定义的函数进行识别
+        // TODO 引用节点定义
+        String tagName = tag.getName();
 
-        return PsiReference.EMPTY_ARRAY;
+        int pos = tagName.indexOf(':');
+        if (pos <= 0) {
+            return PsiReference.EMPTY_ARRAY;
+        }
+
+        // 内置的名字空间
+        String ns = tagName.substring(0, pos);
+
+        if (ns.equals("x") || ns.equals("xdef") || ns.equals("xdsl") || ns.equals("xpl") //
+            || ns.equals("c") || ns.equals("macro") || ns.equals("xmlns") //
+        ) {
+            return PsiReference.EMPTY_ARRAY;
+        }
+
+        // Note: 仅对名字做引用识别，忽略名字空间
+        TextRange textRange = new TextRange(pos + 1, tagName.length()).shiftRight(1);
+
+        return Arrays.stream(XmlPsiHelper.findXplTag(tag.getProject(), tag))
+                     .map((xpl) -> new XLangElementReference(tag, textRange, xpl))
+                     .toArray(PsiReference[]::new);
     }
 
     /** 获取 xml 属性名对应的引用（属性定义） */
@@ -290,11 +309,7 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
 
         // 引用数据域的类型定义
         TextRange textRange = new TextRange(0, stdDomain.length()).shiftRight(textRangeOffset + stdDomainIndex);
-        List<PsiClass> stdDomainClsList = PsiClassHelper.findStdDomainHandlers(refElement.getProject())
-                                                        .getOrDefault(stdDomain, new ArrayList<>());
-        for (PsiClass cls : stdDomainClsList) {
-            refs.add(new XLangElementReference(refElement, textRange, cls));
-        }
+        refs.addAll(getReferencesFromDictYaml(refElement, "core/std-domain", stdDomain, textRange));
 
         if (optionsIndex > 0) {
             textRange = new TextRange(0, options.length()).shiftRight(textRangeOffset + optionsIndex);
@@ -328,29 +343,28 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
             if (dictOpt instanceof EnumDictOptionBean opt) {
                 refs.add(new XLangElementReference(refElement, textRange, opt.target));
             } else if (STD_DOMAIN_DICT.equals(stdDomain)) {
-                List<PsiFile> files = XmlPsiHelper.findPsiFilesByNopVfsPath(refElement,
-                                                                            "/dict/" + options + ".dict.yaml");
-
-                for (PsiFile file : files) {
-                    PsiElement target = XmlPsiHelper.findFirstElement(file, (element) -> {
-                        if (element instanceof LeafPsiElement value //
-                            && defaultValue.equals(value.getText()) //
-                        ) {
-                            PsiElement parent = PsiTreeUtil.getParentOfType(element, YAMLKeyValue.class);
-                            PsiElement key = parent != null ? parent.getFirstChild() : null;
-
-                            return key != null && "value".equals(key.getText());
-                        }
-                        return false;
-                    });
-                    refs.add(new XLangElementReference(refElement, textRange, target));
-                }
+                refs.addAll(getReferencesFromDictYaml(refElement, options, defaultValue, textRange));
             }
         }
 
-        // TODO 引用节点属性
+        // 引用节点属性
         if (defaultAttrNamesIndex > 0) {
-            //
+            XmlTag tag = PsiTreeUtil.getParentOfType(refElement, XmlTag.class);
+            Map<TextRange, String> rangeNameMap = extractValuesFromCsv(refValue.substring(defaultAttrNamesIndex));
+
+            rangeNameMap.forEach((range, name) -> {
+                XmlAttribute attr = tag.getAttribute(name);
+
+                range = range.shiftRight(textRangeOffset + defaultAttrNamesIndex);
+                if (attr == null) {
+                    String msg = NopPluginBundle.message("xlang.annotation.reference.default-value-ref-attr-not-found",
+                                                         name);
+
+                    refs.add(new XLangNotFoundReference(refElement, range, msg));
+                } else {
+                    refs.add(new XLangElementReference(refElement, range, attr));
+                }
+            });
         }
 
         return refs.toArray(PsiReference[]::new);
@@ -374,7 +388,7 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
     private PsiReference[] getReferencesFromVfsPathCsv(
             XmlElement refElement, String refValue, int textRangeOffset
     ) {
-        Map<TextRange, String> rangePathMap = extractPathsFromCsv(refValue);
+        Map<TextRange, String> rangePathMap = extractValuesFromCsv(refValue);
 
         List<PsiReference> list = new ArrayList<>(rangePathMap.size());
         rangePathMap.forEach((textRange, path) -> {
@@ -523,7 +537,7 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
         XmlTag tag = tagInfo.getTag();
         XmlAttribute attr = tag.getAttribute(attrValue);
         if (attr == null) {
-            String msg = NopPluginBundle.message("xlang.annotation.reference.xdef-unique-attr-no-found", attrValue);
+            String msg = NopPluginBundle.message("xlang.annotation.reference.xdef-unique-attr-not-found", attrValue);
             return new PsiReference[] {
                     new XLangNotFoundReference(attrValueElement, textRange, msg)
             };
@@ -552,7 +566,32 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
         };
     }
 
-    private Map<TextRange, String> extractPathsFromCsv(String csv) {
+    private List<PsiReference> getReferencesFromDictYaml(
+            XmlElement refElement, String dictPath, Object dictOptionValue, TextRange textRange
+    ) {
+        List<PsiReference> refs = new ArrayList<>();
+        List<PsiFile> files = XmlPsiHelper.findPsiFilesByNopVfsPath(refElement, "/dict/" + dictPath + ".dict.yaml");
+
+        for (PsiFile file : files) {
+            PsiElement target = XmlPsiHelper.findFirstElement(file, (element) -> {
+                if (element instanceof LeafPsiElement value //
+                    && dictOptionValue.equals(value.getText()) //
+                ) {
+                    PsiElement parent = PsiTreeUtil.getParentOfType(element, YAMLKeyValue.class);
+                    PsiElement key = parent != null ? parent.getFirstChild() : null;
+
+                    return key != null && "value".equals(key.getText());
+                }
+                return false;
+            });
+
+            refs.add(new XLangElementReference(refElement, textRange, target));
+        }
+
+        return refs;
+    }
+
+    private Map<TextRange, String> extractValuesFromCsv(String csv) {
         Map<TextRange, String> rangePathMap = new HashMap<>();
 
         TextScanner sc = TextScanner.fromString(null, csv);
@@ -563,8 +602,8 @@ public class XLangReferenceProvider extends PsiReferenceProvider {
             MutableString buf = sc.useBuf();
             sc.nextUntil(s -> s.cur == ',' || StringHelper.isSpace(sc.cur), sc::appendToBuf);
 
-            String path = buf.toString();
-            rangePathMap.put(new TextRange(offset, sc.pos), path);
+            String value = buf.toString();
+            rangePathMap.put(new TextRange(offset, sc.pos), value);
 
             sc.next();
             sc.skipBlank();
