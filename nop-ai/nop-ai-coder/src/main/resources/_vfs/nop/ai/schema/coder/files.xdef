@@ -1,6 +1,6 @@
 <files x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-       xmlns:xdef="/nop/schema/xdef.xdef" xdef:body-type="list" xdef:key-attr="name">
-    <file name="file-name">
+       xmlns:xdef="/nop/schema/xdef.xdef" xdef:body-type="list" xdef:key-attr="path">
+    <file path="file-name"><![CDATA[
         file-content
-    </file>
+    ]]></file>
 </files>
