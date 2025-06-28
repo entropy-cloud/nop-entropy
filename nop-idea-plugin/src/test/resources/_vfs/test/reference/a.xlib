@@ -19,6 +19,12 @@
                     const ormTemplate = inject('nopOrmTemplate');
                     const mapper = ormTemplate.getRowMapper(rowType,false);
 
+                    // alskdfjlaksdf
+                    /** asdfasdf */
+                    let a = 12.3 + 0x234d + 0b101 + 123L + 'ab'; a.b?.c;
+                    let b = ```
+                    abcd efg
+                    ```;
                     const ret = thisObj.invoke('doDeleteByQuery', {
                         query, authObjName, refNamesToCheck,
                         prepareQuery: (qry, ctx) => {

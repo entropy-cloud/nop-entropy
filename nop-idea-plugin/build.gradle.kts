@@ -1,4 +1,3 @@
-
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.9.25"
@@ -28,26 +27,30 @@ intellij {
 }
 
 dependencies {
+    // ANTLR 适配器：https://github.com/antlr/antlr4-intellij-adaptor
+    implementation("org.antlr:antlr4-intellij-adaptor:0.1")
+
     implementation("io.github.entropy-cloud:nop-markdown:2.0.0-SNAPSHOT")
     implementation("io.github.entropy-cloud:nop-xlang-debugger:2.0.0-SNAPSHOT")
     implementation("io.github.entropy-cloud:nop-xlang:2.0.0-SNAPSHOT") {
         //exclude antlr4's dependency icu4j since it is not necessary and is too large.
         exclude(group = "com.ibm.icu")
     }
+
     testImplementation("junit:junit:4.13.2")
 }
 
 tasks {
 
-    compileJava{
+    compileJava {
         options.encoding = "UTF-8"
     }
 
-    compileTestJava{
+    compileTestJava {
         options.encoding = "UTF-8"
     }
 
-    javadoc{
+    javadoc {
         options.encoding = "UTF-8"
     }
 
