@@ -26,6 +26,8 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean>, Ite
     private static final long serialVersionUID = 3846253782985184968L;
     private static final char SEPARATOR = ',';
 
+    public static IntRangeBean EMPTY = new IntRangeBean(0, 0);
+
     private final int offset;
     private final int limit;
 
@@ -33,6 +35,10 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean>, Ite
     public IntRangeBean(@JsonProperty("offset") int offset, @JsonProperty("limit") int limit) {
         this.offset = offset;
         this.limit = Guard.nonNegativeInt(limit, "limit");
+    }
+
+    public static IntRangeBean build(int begin, int end) {
+        return new IntRangeBean(begin, end - begin);
     }
 
     public static IntRangeBean shortRange() {
@@ -104,6 +110,11 @@ public class IntRangeBean implements Serializable, Comparable<IntRangeBean>, Ite
         if (limit < 0)
             return Integer.MAX_VALUE - 1;
         return offset + limit - 1;
+    }
+
+    @JsonIgnore
+    public int getStart() {
+        return offset;
     }
 
     @PropMeta(propId = 1)
