@@ -62,8 +62,8 @@ public class OrmEntityChangeLogInterceptor implements IOrmInterceptor {
             NopSysChangeLog log = changeLog.cloneInstance();
             IColumnModel col = entityModel.getColumnByPropId(propId, false);
             log.setPropName(col.getName());
-            log.setOldValue(ConvertHelper.toString(entity.orm_propOldValue(propId)));
-            log.setNewValue(ConvertHelper.toString(value));
+            log.setOldValue(ConvertHelper.toString(value));
+            log.setNewValue(ConvertHelper.toString(entity.orm_propValue(propId)));
             dao.saveEntity(log);
         });
     }
