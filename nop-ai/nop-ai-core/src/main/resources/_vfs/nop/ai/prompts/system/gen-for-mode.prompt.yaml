@@ -1,14 +1,14 @@
 template: |
   [COGNITIVE ARCHITECTURE - ${aiWorkMode.toUpperCase()}]
-  <c:include src="/nop/ai/prompts/system/${mode}/cognitive.md" type="text" />
+  ${xpl`<c:include src="/nop/ai/prompts/system/${mode}/cognitive.md" type="text" />`}
   
   
   [META-PROMPT - ${aiWorkMode.toUpperCase()}]
-  <c:include src="/nop/ai/prompts/system/${mode}/meta.md" type="text"/>
+  ${xpl`<c:include src="/nop/ai/prompts/system/${mode}/meta.md" type="text"/>`}
   
   
   [SYSTEM PROMPT - ${aiWorkMode.toUpperCase()}]
-  <c:include src="/nop/ai/prompts/system/${mode}/system.md" type="text" />
+  ${xpl`<c:include src="/nop/ai/prompts/system/${mode}/system.md" type="text" />`}
 
   I understand these ${aiWorkMode} principles and I'm ready to help.
 

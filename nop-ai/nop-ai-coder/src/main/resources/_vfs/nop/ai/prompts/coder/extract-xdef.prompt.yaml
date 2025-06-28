@@ -4,7 +4,6 @@ template: |
   
   【XDef元模型规范】
   示例：
-  <c:print>
   ```xml
   <orm x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
      xmlns:orm="orm" xmlns:ext="ext">
@@ -45,7 +44,6 @@ template: |
   4. 枚举属性通过enum:A|B|C这种形式来表达
   
   IMPORTANT：返回之前再仔细检查一下所有标记了xdef:body-type的节点都必须具有xdef:key-attr属性。
-  </c:print>
   
   【待分析的DSL】
   ${dslText}

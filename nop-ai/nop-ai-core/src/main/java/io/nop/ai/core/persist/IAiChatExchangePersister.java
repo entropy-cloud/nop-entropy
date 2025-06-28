@@ -6,6 +6,8 @@ import io.nop.ai.core.api.messages.Prompt;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 
+import java.util.List;
+
 public interface IAiChatExchangePersister {
     default void save(IResource resource, AiChatExchange exchange) {
         ResourceHelper.writeText(resource, serialize(exchange));
@@ -20,4 +22,8 @@ public interface IAiChatExchangePersister {
     AiChatExchange deserialize(String text);
 
     String calcRequestHash(Prompt prompt, AiChatOptions options);
+
+    String serializeList(List<AiChatExchange> exchangeList);
+
+    List<AiChatExchange> deserializeList(String text);
 }

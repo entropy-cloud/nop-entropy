@@ -1,7 +1,7 @@
 package io.nop.ai.translate;
 
 import io.nop.ai.core.api.messages.AiChatExchange;
-import io.nop.ai.core.commons.debug.DebugMessageHelper;
+import io.nop.ai.core.persist.DefaultAiChatExchangePersister;
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.util.List;
@@ -32,9 +32,8 @@ public class AggregateText {
     }
 
     public String getDebugText() {
-        return DebugMessageHelper.buildDebugText(messages);
+        return DefaultAiChatExchangePersister.instance().serializeList(messages);
     }
-
 
     public List<AiChatExchange> getMessages() {
         return messages;

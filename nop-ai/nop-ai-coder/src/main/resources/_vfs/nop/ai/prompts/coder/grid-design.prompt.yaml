@@ -13,23 +13,11 @@ template: |
   4. xui:picker用于指定那些在picker页面中显示的最必要的3到5个字段
   
  
-  <c:script>
-  function buildPropList() {
-    const props = [...entityModel.columns];
-  
-    return props.map2((p,i) => (i+1)+'. '+ p.name+'['+p.displayName+']'+(p.mandatory?',必填':'')
-                   ).join('\n');
-  }
-  
-  function buildRoleList(){
-    return roleList.map2((role,i)=> (i+1)+'.'+ role.name + '[' + role.displayName+']:'+role.description).join('\n');
-  }
-  </c:script>
   【字段列表】
-  ${buildPropList()}
+  ${propListInfo}
   
   【role列表】
-  ${buildRoleList()}
+  ${roleListInfo}
   
   【要求】
   1. 严格检查语法合规性
@@ -46,6 +34,17 @@ inputs:
     mandatory: true
   - name: roleList
     mandatory: true
+
+preProcess: |
+  const props = [...entityModel.columns, ...entityModel.toManyRelations];
+  
+  const propListInfo =  props.map2((p,i) => (i+1)+'. '+ p.name+'['+p.displayName+']'+(p.mandatory?',必填':'')
+                   +(p.relationModel?',列表':'')).join('\n');
+  
+  const roleListInfo =  roleList.map2((role,i)=> (i+1)+'.'+ role.name + '[' + role.displayName+']:'+role.description).join('\n');
+  
+  assign('propListInfo', propListInfo);
+  assign('roleListInfo', roleListInfo);
 
 outputs:
   - name: RESULT

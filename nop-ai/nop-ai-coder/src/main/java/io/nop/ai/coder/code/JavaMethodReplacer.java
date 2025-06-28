@@ -1,4 +1,4 @@
-package io.nop.ai.coder.java;
+package io.nop.ai.coder.code;
 
 import java.io.IOException;
 import java.nio.file.Files;

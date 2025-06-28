@@ -27,6 +27,7 @@ import io.nop.ai.core.response.XmlResponseParser;
 import io.nop.ai.core.response.YamlResponseParser;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ErrorBean;
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.NopRebuildException;
 import io.nop.commons.util.StringHelper;
@@ -494,6 +495,10 @@ public class AiChatExchange {
 
     public Object getResultValue() {
         return getOutput(AiCoreConstants.OUTPUT_VAR_RESULT);
+    }
+
+    public String getResultText(){
+        return ConvertHelper.toString(getOutput(AiCoreConstants.OUTPUT_VAR_RESULT));
     }
 
     @Override

@@ -19,11 +19,11 @@ template: |
   - 是否考虑了异常处理场景
   
   4. 代码质量评估
-  - 是否合理使用XPL模板语法。`&lt;bo:DoUpdate>`等标签的data参数是否作为属性传递
+  - 是否合理使用XPL模板语法。`<bo:DoUpdate>`等标签的data参数是否作为属性传递
   - 是否避免不必要的服务导入。
-  - 变量作用域使用是否恰当。是否只在需要跨步骤访问时使用`&lt;task:output>`
-  - 是否所有变量都是先定义（通过let,`xpl:return`或者`&lt;task:output>`）再使用
-  - 绝对禁止在`&lt;c:script>`内直接写XPL标签
+  - 变量作用域使用是否恰当。是否只在需要跨步骤访问时使用`<task:output>`
+  - 是否所有变量都是先定义（通过let,`xpl:return`或者`<task:output>`）再使用
+  - 绝对禁止在`<c:script>`内直接写XPL标签
   - 是否符合XPL最佳实践
   
   【评估方法】
@@ -33,7 +33,7 @@ template: |
   4. 边界测试：检查异常情况处理
   
   特别注意：
-   - 如果实现中使用了`&lt;task:import>`，需验证是否确实必要
+   - 如果实现中使用了`<task:import>`，需验证是否确实必要
    - 确保所有数据操作都通过CRUD标签实现
    - 验证是否包含用例要求的所有业务逻辑
   
@@ -44,10 +44,10 @@ template: |
   ```xml
   ${promptModel.getOutput('RESULT').xdefForAi}
   ```
-  <c:include src="/nop/ai/prompts/coder/task-flow.md" type="text" />
+  $${xpl`<c:include src="/nop/ai/prompts/coder/task-flow.md" type="text" />`}
   
   【XPL模板语法】
-  <c:include src="/nop/ai/prompts/coder/xpl-lang.md" type="text"/>
+  ${xpl`<c:include src="/nop/ai/prompts/coder/xpl-lang.md" type="text"/>`}
   
   【待检查代码】
   ```xml

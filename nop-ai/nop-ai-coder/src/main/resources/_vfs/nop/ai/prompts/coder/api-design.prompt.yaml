@@ -10,16 +10,16 @@ template: |
   **重要**: 返回时必须返回一个完整的单一XML节点，不要把它拆分成多个markdown段落。
   
   【API设计规范】
-  <c:include src="/nop/ai/prompts/coder/api-model.md" type="text" />
+  ${xpl`<c:include src="/nop/ai/prompts/coder/api-model.md" type="text" />`}
   
   ## 数据库设计补充
    **极端重要**: 仔细考虑业务处理流程，需要用到的各种关键业务字段比如状态字段，以及相关明细表等必须要在数据库设计中体现。
-  如果API接口设计过程中发现数据库设计需要调整，则通过`&lt;orm:delta>`节点返回数据库设计变更。变更通过Nop平台的Delta差量语法表达，通过`x:override="remove"`表示删除节点。
-  <c:include src="/nop/ai/prompts/coder/orm-model.md" type="text" />
+  如果API接口设计过程中发现数据库设计需要调整，则通过`<orm:delta>`节点返回数据库设计变更。变更通过Nop平台的Delta差量语法表达，通过`x:override="remove"`表示删除节点。
+  ${xpl`<c:include src="/nop/ai/prompts/coder/orm-model.md" type="text" />`}
   
   【输出要求】
    - 仅需提交**非CRUD服务方法**
-   - generic-type表示该部分可以使用Java泛型语法，比如`List&lt;Order>`等
+   - generic-type表示该部分可以使用Java泛型语法，比如`List<Order>`等
    - 当前操作人、租户等信息会通过上下文自动传递，不需要在requestMessage中声明
   
   

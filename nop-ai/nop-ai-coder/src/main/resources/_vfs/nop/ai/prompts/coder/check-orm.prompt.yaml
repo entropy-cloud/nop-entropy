@@ -9,13 +9,12 @@ template: |
   ```
   
   【ORM格式规范】
-  <c:include src="/nop/ai/prompts/coder/orm-model.md" type="text" />
+  ${xpl`<c:include src="/nop/ai/prompts/coder/orm-model.md" type="text" />`}
  
   【需求描述】
   ${requirements}
 
 
-  <c:print>
   【返回格式】
   ```xml
   <orm>
@@ -25,7 +24,6 @@ template: |
     </entities>
   </orm>
   ```
-  </c:print>
 
 inputs:
   - name: ormModel

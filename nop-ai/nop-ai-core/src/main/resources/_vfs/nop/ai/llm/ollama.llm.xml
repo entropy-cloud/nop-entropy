@@ -1,7 +1,7 @@
 <llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
      apiStyle="ollama">
 
-    <!--    <baseUrl>http://localhost:11434/</baseUrl>-->
+    <baseUrl>http://localhost:11434/</baseUrl>
     <chatUrl>/api/chat</chatUrl>
     <generateUrl>/api/generate</generateUrl>
     <embedUrl>/api/embed</embedUrl>

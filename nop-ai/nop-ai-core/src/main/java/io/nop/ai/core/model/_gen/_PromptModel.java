@@ -68,18 +68,10 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
-     * xml name: responseEndMarker
-     * 用于标记整个输出结束的标记，必须以这个字符串为结尾才是合法输出。最终结果会自动删除这个标记
-     * 通过额外增加一些特殊的标记提示，可以简化结果解析并识别AI输出质量。如果不能严格按照格式要求输出，则往往质量不高。
-     */
-    private java.lang.String _responseEndMarker ;
-    
-    /**
-     *  
      * xml name: template
      * 通过xpl模板语言生成prompt，可以利用xpl的扩展能力实现Prompt的结构化抽象
      */
-    private io.nop.core.resource.tpl.ITextTemplateOutput _template ;
+    private io.nop.core.lang.eval.IEvalAction _template ;
     
     /**
      * 
@@ -269,36 +261,16 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
-     * xml name: responseEndMarker
-     *  用于标记整个输出结束的标记，必须以这个字符串为结尾才是合法输出。最终结果会自动删除这个标记
-     * 通过额外增加一些特殊的标记提示，可以简化结果解析并识别AI输出质量。如果不能严格按照格式要求输出，则往往质量不高。
-     */
-    
-    public java.lang.String getResponseEndMarker(){
-      return _responseEndMarker;
-    }
-
-    
-    public void setResponseEndMarker(java.lang.String value){
-        checkAllowChange();
-        
-        this._responseEndMarker = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: template
      *  通过xpl模板语言生成prompt，可以利用xpl的扩展能力实现Prompt的结构化抽象
      */
     
-    public io.nop.core.resource.tpl.ITextTemplateOutput getTemplate(){
+    public io.nop.core.lang.eval.IEvalAction getTemplate(){
       return _template;
     }
 
     
-    public void setTemplate(io.nop.core.resource.tpl.ITextTemplateOutput value){
+    public void setTemplate(io.nop.core.lang.eval.IEvalAction value){
         checkAllowChange();
         
         this._template = value;
@@ -334,7 +306,6 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("outputs",this.getOutputs());
         out.putNotNull("postProcess",this.getPostProcess());
         out.putNotNull("preProcess",this.getPreProcess());
-        out.putNotNull("responseEndMarker",this.getResponseEndMarker());
         out.putNotNull("template",this.getTemplate());
     }
 
@@ -354,7 +325,6 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
         instance.setOutputs(this.getOutputs());
         instance.setPostProcess(this.getPostProcess());
         instance.setPreProcess(this.getPreProcess());
-        instance.setResponseEndMarker(this.getResponseEndMarker());
         instance.setTemplate(this.getTemplate());
     }
 

@@ -5,21 +5,18 @@ import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.command.AiCommand;
 import io.nop.ai.core.commons.aggregator.IAiTextAggregator;
-import io.nop.ai.core.commons.debug.DebugMessageHelper;
-import io.nop.ai.core.commons.processor.IAiChatResponseChecker;
 import io.nop.ai.core.commons.processor.IAiChatResponseProcessor;
 import io.nop.ai.core.commons.splitter.IAiTextSplitter;
 import io.nop.ai.core.commons.splitter.MarkdownTextSplitter;
+import io.nop.ai.core.persist.ChatPersistHelper;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.api.core.annotations.core.PropertySetter;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
-import io.nop.api.core.util.ResolvedPromise;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
-import io.nop.commons.util.retry.RetryHelper;
 import io.nop.xlang.api.XLang;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,13 +24,13 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.nio.file.FileVisitResult;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static io.nop.ai.translate.AiTranslateConstants.VAR_CONTENT;
 import static io.nop.ai.translate.AiTranslateConstants.VAR_FROM_LANG;
@@ -51,9 +48,6 @@ public class AiTranslateCommand extends AiCommand {
     private Predicate<File> fileFilter;
     private int concurrencyLimit = 10;
     private IAiTextAggregator textAggregator;
-    private IAiChatResponseChecker needFixChecker;
-
-    private AiCheckTranslationCommand checkTranslationTool;
 
     /**
      * 将prompt和对应的结果保存到debug文件中
@@ -117,16 +111,6 @@ public class AiTranslateCommand extends AiCommand {
     }
 
     @PropertySetter
-    public AiTranslateCommand checkTranslationTool(AiCheckTranslationCommand checkTranslationTool) {
-        this.checkTranslationTool = checkTranslationTool;
-        if (fromLang != null)
-            checkTranslationTool.setFromLang(fromLang);
-        if (toLang != null)
-            checkTranslationTool.setToLang(toLang);
-        return this;
-    }
-
-    @PropertySetter
     public AiTranslateCommand fromLang(String fromLang) {
         this.fromLang = fromLang;
         return this;
@@ -178,12 +162,6 @@ public class AiTranslateCommand extends AiCommand {
         return this;
     }
 
-    @PropertySetter
-    public AiTranslateCommand needFixChecker(IAiChatResponseChecker resultChecker) {
-        this.needFixChecker = resultChecker;
-        return this;
-    }
-
     public void translateDir(File srcDir, File targetFir, ICancelToken cancelToken) {
         FutureHelper.syncGet(translateDirAsync(srcDir, targetFir, cancelToken));
     }
@@ -193,8 +171,8 @@ public class AiTranslateCommand extends AiCommand {
             if (!debugFile.getName().endsWith(".md"))
                 return FileVisitResult.CONTINUE;
 
-            List<AiChatExchange> messages = DebugMessageHelper.parseDebugFile(debugFile);
-            String aggText = DebugMessageHelper.getText(messages);
+            List<AiChatExchange> messages = ChatPersistHelper.parseMessagesFromFile(debugFile);
+            String aggText = ChatPersistHelper.getAggregateResults(messages);
 
             String text = FileHelper.readText(outFile, null);
             if (!aggText.equals(text)) {
@@ -255,7 +233,7 @@ public class AiTranslateCommand extends AiCommand {
                                                                     ICancelToken cancelToken, Semaphore limit) {
         LOG.info("nop.ai.translate-file-with-recover-mode:debugFile={}", FileHelper.getAbsolutePath(debugFile));
 
-        List<AiChatExchange> messages = DebugMessageHelper.parseDebugFile(debugFile);
+        List<AiChatExchange> messages = ChatPersistHelper.parseMessagesFromFile(debugFile);
 
         Cancellable cancellable = new Cancellable();
         Consumer<String> cleanup = cancellable::cancel;
@@ -326,36 +304,20 @@ public class AiTranslateCommand extends AiCommand {
         if (textAggregator != null) {
             text = textAggregator.aggregate(messages);
         } else {
-            text = messages.stream().map(AiChatExchange::getContent).collect(Collectors.joining("\n\n"));
+            text = ChatPersistHelper.getAggregateResults(messages);
         }
         return new AggregateText(messages, text);
     }
 
     public CompletionStage<AiChatExchange> translateTextAsync(String text, ICancelToken cancelToken) {
-        if (checkTranslationTool != null) {
-            return RetryHelper.retryNTimes(index -> {
-                        return doTranslateTextAsync(text, cancelToken).thenCompose(ret -> {
-                            if (!ret.isValid())
-                                return ResolvedPromise.success(ret);
-                            if (!needCheck(ret))
-                                return ResolvedPromise.success(ret);
-                            return checkTranslationTool.fixTranslationAsync(text, ret.getContent(), cancelToken);
-                        });
-                    },
-                    AiChatExchange::isValid, 1);
-        }
         return doTranslateTextAsync(text, cancelToken);
     }
 
-    protected boolean needCheck(AiChatExchange message) {
-        if (needFixChecker != null)
-            return needFixChecker.isAccepted(message);
-        return false;
-    }
-
     protected CompletionStage<AiChatExchange> doTranslateTextAsync(String text, ICancelToken cancelToken) {
-        Map<String, Object> vars = Map.of(VAR_CONTENT, text,
-                VAR_FROM_LANG, fromLang, VAR_TO_LANG, toLang);
+        Map<String, Object> vars = new HashMap<>();
+        vars.put(VAR_CONTENT, text);
+        vars.put(VAR_FROM_LANG, fromLang);
+        vars.put(VAR_TO_LANG, toLang);
 
         if (StringHelper.isBlank(text)) {
             AiChatExchange response = new AiChatExchange();

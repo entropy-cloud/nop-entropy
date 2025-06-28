@@ -6,7 +6,7 @@ template: |
   2. 字段精确：每个字段的长度需包含原始数据中的值+填充空格
   3. 动态适配：固定内容保持不变，变量部分通过智能padding自动对齐
   
-  <c:include src="report-tpl.md" type="text" />
+  ${xpl`<c:include src="report-tpl.md" type="text" />`}
   
   
   【返回格式】

@@ -122,7 +122,7 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
 
     @Override
     public String generatePrompt(IEvalScope scope) {
-        return promptModel.getTemplate().generateText(scope);
+        return ConvertHelper.toString(promptModel.getTemplate().invoke(scope), "");
     }
 
     @Override
@@ -155,10 +155,6 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
 
     @Override
     public void processChatResponse(AiChatExchange chatResponse, IEvalScope scope) {
-        if (promptModel.getResponseEndMarker() != null) {
-            chatResponse.checkAndRemoveEndLine(promptModel.getResponseEndMarker());
-        }
-
         parseOutputs(chatResponse, false, scope);
 
         IEvalFunction fn = promptModel.getPostProcess();
@@ -178,7 +174,7 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
                     } else if (output.getDefaultExpr() != null) {
                         Object value = output.getDefaultExpr().call1(null, chatResponse, scope);
                         chatResponse.setOutput(output.getName(), value);
-                    }else{
+                    } else {
                         chatResponse.setOutput(output.getName(), null);
                     }
                 }

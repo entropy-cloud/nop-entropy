@@ -13,6 +13,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DefaultAiChatExchangePersister implements IAiChatExchangePersister {
@@ -104,14 +105,29 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
     @Override
     public String serialize(AiChatExchange exchange) {
         StringBuilder sb = new StringBuilder();
+        writeExchange(sb, exchange);
+        return sb.toString();
+    }
+
+    @Override
+    public String serializeList(List<AiChatExchange> exchangeList) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0, n = exchangeList.size(); i < n; i++) {
+            if (i > 0)
+                sb.append("\n\n");
+            AiChatExchange exchange = exchangeList.get(i);
+            writeExchange(sb, exchange);
+        }
+        return sb.toString();
+    }
+
+    protected void writeExchange(StringBuilder sb, AiChatExchange exchange) {
         writeRequest(sb, exchange.getPrompt(), exchange.getChatOptions(),
                 exchange.getBeginTime(), exchange.getExchangeId());
 
         if (exchange.isInvalid()) {
             sb.append(TITLE_ERROR);
             ErrorBean errorBean = exchange.getInvalidReason();
-            if (errorBean == null)
-                errorBean = new ErrorBean("invalid");
             appendJson(sb, errorBean);
         }
 
@@ -126,14 +142,13 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
         }
 
         sb.append(MARKER_CHAT_END);
-
-        return sb.toString();
     }
 
     void appendJson(StringBuilder sb, Object bean) {
         sb.append('\n');
         sb.append(JSON_BLOCK_BEGIN);
-        sb.append(JsonTool.serialize(bean, true));
+        if (bean != null)
+            sb.append(JsonTool.serialize(bean, true));
         sb.append(JSON_BLOCK_END);
         sb.append("\n\n");
     }
@@ -176,36 +191,58 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
     public AiChatExchange deserialize(String text) {
         text = StringHelper.replace(text, "\r\n", "\n");
 
-        AiChatExchange response = new AiChatExchange();
         TextScanner scanner = TextScanner.fromString(null, text);
 
+        AiChatExchange response = readExchange(scanner);
+        scanner.checkEnd();
+        return response;
+    }
+
+    @Override
+    public List<AiChatExchange> deserializeList(String text) {
+        text = StringHelper.replace(text, "\r\n", "\n");
+
+        TextScanner scanner = TextScanner.fromString(null, text);
+        scanner.skipBlank();
+
+        List<AiChatExchange> ret = new ArrayList<>();
+        while (!scanner.isEnd()) {
+            AiChatExchange response = readExchange(scanner);
+            ret.add(response);
+        }
+        scanner.checkEnd();
+        return ret;
+    }
+
+    protected AiChatExchange readExchange(TextScanner scanner) {
+        AiChatExchange response = new AiChatExchange();
         Prompt prompt = new Prompt();
 
         // 解析Chat标题行
-        if (scanner.tryMatch(TITLE_CHAT)) {
-            int retryTimes = scanner.nextInt();
-            prompt.setRetryTimes(retryTimes);
-            scanner.consume('-');
-            String line = scanner.nextUntil('\n', true).toString();
-            int pos = line.indexOf('[');
-            String promptName = line;
-            if (pos < 0) {
-                if (promptName.length() > 0)
-                    prompt.setName(line);
-            } else {
-                promptName = line.substring(0, pos).trim();
-                int pos2 = line.indexOf(']', pos);
-                int pos3 = line.indexOf('@', pos);
-                if (pos2 > 0 && pos3 > 0) {
-                    String exchangeId = line.substring(pos + 1, pos3);
-                    Timestamp createTime = Timestamp.valueOf(line.substring(pos3 + 1, pos2));
-                    response.setBeginTime(createTime.getTime());
-                    response.setExchangeId(exchangeId);
-                }
-                prompt.setName(promptName);
+        scanner.match(TITLE_CHAT);
+
+        int retryTimes = scanner.nextInt();
+        prompt.setRetryTimes(retryTimes);
+        scanner.consume('-');
+        String line = scanner.nextUntil('\n', true).toString();
+        int pos = line.indexOf('[');
+        String promptName = line;
+        if (pos < 0) {
+            if (promptName.length() > 0)
+                prompt.setName(line);
+        } else {
+            promptName = line.substring(0, pos).trim();
+            int pos2 = line.indexOf(']', pos);
+            int pos3 = line.indexOf('@', pos);
+            if (pos2 > 0 && pos3 > 0) {
+                String exchangeId = line.substring(pos + 1, pos3);
+                Timestamp createTime = Timestamp.valueOf(line.substring(pos3 + 1, pos2));
+                response.setBeginTime(createTime.getTime());
+                response.setExchangeId(exchangeId);
             }
-            scanner.skipBlank();
+            prompt.setName(promptName);
         }
+        scanner.skipBlank();
 
         // 解析ChatOptions
         if (scanner.tryMatch(TITLE_CHAT_OPTIONS)) {
@@ -225,18 +262,20 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
             prompt.setVariables(JsonTool.parseMap(json));
         }
 
-        // 解析Error
-        if (scanner.tryMatch(TITLE_ERROR)) {
-            String errorText = consumeJsonBlock(scanner);
-            response.setInvalidReason(JsonTool.parseBeanFromText(errorText, ErrorBean.class));
-        }
-
-        response.setPrompt(prompt);
-
         // 解析Messages
         while (scanner.tryMatch(TITLE_MESSAGE)) {
             AiMessage message = parseMessage(scanner);
             prompt.addMessage(message);
+        }
+
+        response.setPrompt(prompt);
+
+        // 解析Error
+        if (scanner.tryMatch(TITLE_ERROR)) {
+            response.setInvalid(true);
+            String errorText = consumeJsonBlock(scanner);
+            if (!StringHelper.isEmpty(errorText))
+                response.setInvalidReason(JsonTool.parseBeanFromText(errorText, ErrorBean.class));
         }
 
         // 解析Response
@@ -251,7 +290,6 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
         }
 
         scanner.match(MARKER_CHAT_END);
-
         return response;
     }
 
@@ -260,7 +298,7 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
         String json = scanner.nextUntil(JSON_BLOCK_END, false).toString();
         scanner.consume(JSON_BLOCK_END);
         scanner.skipBlank();
-        return json;
+        return json.trim();
     }
 
     private AiMessage parseMessage(TextScanner scanner) {

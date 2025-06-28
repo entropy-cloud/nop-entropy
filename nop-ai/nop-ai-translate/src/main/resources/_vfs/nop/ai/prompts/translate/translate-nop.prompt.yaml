@@ -1,0 +1,33 @@
+template: |
+  【任务目标】
+  作为技术文档翻译专家，请将以下提供的中文技术文档准确、专业地翻译成英文。
+
+  【核心要求】
+  1. 保持原有Markdown格式，包括标题、列表和代码块。
+  2. 准确翻译技术术语和代码片段，同时保持其结构和缩进。
+  3. 不添加额外的说明，只提供译文。
+  4. 确保每个代码块作为一个整体处理，不拆分。
+  5. 确保翻译完整，不遗漏任何句子、段落、图表标题、脚注、注释等。
+
+  【术语对照表 (Mandatory Glossary)】
+  | 中文术语 | 指定英文翻译 | 
+  | :------- | :----------- | 
+  | 可逆计算 | Reversible Computation |
+  | 差量 | Delta |
+  
+  【返回格式】
+  <TRANSLATION_RESULT>翻译结果</TRANSLATION_RESULT>
+  
+  【待翻译的文档】
+  ${content}
+
+inputs:
+  - name: content
+    mandatory: true
+    description: 请将以下提供的中文技术文档准确、专业地翻译成英文。
+
+outputs:
+  - name: RESULT
+    parseFromResponse:
+      blockStartMarker: '<TRANSLATION_RESULT>'
+      blockEndMarker: '</TRANSLATION_RESULT>'

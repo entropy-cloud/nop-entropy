@@ -9,7 +9,7 @@ template: |
   ```
   
   【设计规范】
-   <c:include src="/nop/ai/prompts/coder/orm-model.md" type="text" />
+   ${xpl`<c:include src="/nop/ai/prompts/coder/orm-model.md" type="text" />`}
   
   
   【完整性检查】

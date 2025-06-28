@@ -157,7 +157,7 @@
             ]]></source>
         </Execute>
 
-        <IncludeXDefForAi outputMode="text">
+        <IncludeXDefForAi>
             <attr name="path" stdDomain="v-path"/>
 
             <source>
@@ -165,7 +165,7 @@
                     import io.nop.ai.core.xdef.AiXDefHelper;
 
                     const xml = AiXDefHelper.loadXDefForAi(path).xml();
-                    $out.text(locationFromPath(path),xml);
+                    return xml;
                 </c:script>
             </source>
         </IncludeXDefForAi>
