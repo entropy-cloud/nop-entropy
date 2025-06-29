@@ -10,8 +10,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.FileViewProvider;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
-import com.intellij.psi.impl.java.stubs.JavaStubElementType;
-import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.tree.IFileElementType;
 import com.intellij.psi.tree.TokenSet;
 import io.nop.xlang.parse.antlr.XLangLexer;
@@ -69,12 +67,7 @@ public class XLangScriptParserDefinition implements ParserDefinition {
     @NotNull
     @Override
     public PsiElement createElement(ASTNode node) {
-        IElementType type = node.getElementType();
-        if (type instanceof JavaStubElementType) {
-            return ((JavaStubElementType<?, ?>) type).createPsi(node);
-        }
-
-        //throw new IllegalArgumentException("Not a Java node: " + node + " (" + type + ", " + type.getLanguage() + ")");
+        // Note: 只有在 ASTFactory 中未创建 PsiElement 的节点才会调用该接口
         return new ANTLRPsiNode(node);
     }
 

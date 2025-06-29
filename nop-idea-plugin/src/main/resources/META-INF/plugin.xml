@@ -121,9 +121,9 @@
                                implementationClass="io.nop.idea.plugin.lang.script.XLangScriptParserDefinition"/>
         <lang.syntaxHighlighter language="XLangScript"
                                 implementationClass="io.nop.idea.plugin.lang.script.XLangScriptSyntaxHighlighter"/>
-        <lang.ast.factory language="XLangScript"
+        <!--<lang.ast.factory language="XLangScript"
                           implementationClass="io.nop.idea.plugin.lang.script.XLangScriptASTFactory"/>
         <completion.contributor language="XLangScript"
-                                implementationClass="io.nop.idea.plugin.lang.script.XLangScriptCompletionContributor"/>
+                                implementationClass="io.nop.idea.plugin.lang.script.XLangScriptCompletionContributor"/>-->
     </extensions>
 </idea-plugin>

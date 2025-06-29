@@ -41,19 +41,10 @@ public class XLangScriptSyntaxHighlighter extends SyntaxHighlighterBase {
         TextAttributesKey attrKey = switch (myType.getANTLRTokenType()) {
             case XLangLexer.Identifier -> //
                     DefaultLanguageHighlighterColors.IDENTIFIER;
-            case XLangLexer.Const, XLangLexer.Let, XLangLexer.While, //
-                 XLangLexer.If, XLangLexer.Else, XLangLexer.Return, //
-                 XLangLexer.Import, XLangLexer.Function, XLangLexer.New, //
-                 XLangLexer.Boolean, XLangLexer.NullLiteral, XLangLexer.BooleanLiteral, //
-                 XLangLexer.AndLiteral, XLangLexer.OrLiteral  //
-                    -> //
-                    JavaHighlightingColors.KEYWORD;
-            case XLangLexer.StringLiteral, XLangLexer.TemplateStringLiteral //
-                    -> //
+            case XLangLexer.StringLiteral, XLangLexer.TemplateStringLiteral -> //
                     JavaHighlightingColors.STRING;
             case XLangLexer.DecimalIntegerLiteral, XLangLexer.HexIntegerLiteral, //
-                 XLangLexer.BinaryIntegerLiteral, XLangLexer.DecimalLiteral //
-                    -> //
+                 XLangLexer.BinaryIntegerLiteral, XLangLexer.DecimalLiteral -> //
                     JavaHighlightingColors.NUMBER;
             case XLangLexer.OpenBracket, XLangLexer.CloseBracket, XLangLexer.CpExprStart -> //
                     JavaHighlightingColors.BRACKETS;
@@ -73,6 +64,29 @@ public class XLangScriptSyntaxHighlighter extends SyntaxHighlighterBase {
                     JavaHighlightingColors.LINE_COMMENT;
             case XLangLexer.MultiLineComment -> //
                     JavaHighlightingColors.JAVA_BLOCK_COMMENT;
+            case XLangLexer.Break, XLangLexer.Do, XLangLexer.Instanceof, //
+                 XLangLexer.Typeof, XLangLexer.Case, XLangLexer.Else, //
+                 XLangLexer.New, XLangLexer.Var, XLangLexer.Catch, //
+                 XLangLexer.Finally, XLangLexer.Return, XLangLexer.Void, //
+                 XLangLexer.Continue, XLangLexer.For, XLangLexer.Switch, //
+                 XLangLexer.While, XLangLexer.Debugger, XLangLexer.Function, //
+                 XLangLexer.This, XLangLexer.With, XLangLexer.Default, //
+                 XLangLexer.If, XLangLexer.Throw, XLangLexer.Delete, //
+                 XLangLexer.In, XLangLexer.Try, XLangLexer.As, //
+                 XLangLexer.From, XLangLexer.ReadOnly, XLangLexer.Async, //
+                 XLangLexer.Await, XLangLexer.Class, XLangLexer.Enum, //
+                 XLangLexer.Extends, XLangLexer.Super, XLangLexer.Const, //
+                 XLangLexer.Export, XLangLexer.Import, //
+                 XLangLexer.Implements, XLangLexer.Let, XLangLexer.Private, //
+                 XLangLexer.Public, XLangLexer.Interface, XLangLexer.Package,//
+                 XLangLexer.Protected, XLangLexer.Static, //
+                 XLangLexer.Any, XLangLexer.Number, XLangLexer.Boolean, //
+                 XLangLexer.String, XLangLexer.Symbol, XLangLexer.TypeAlias, //
+                 XLangLexer.Constructor, XLangLexer.Abstract, //
+                 //
+                 XLangLexer.NullLiteral, XLangLexer.BooleanLiteral, //
+                 XLangLexer.AndLiteral, XLangLexer.OrLiteral -> //
+                    JavaHighlightingColors.KEYWORD;
             default -> null;
         };
 
