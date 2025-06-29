@@ -7,24 +7,36 @@
  */
 package io.nop.idea.plugin.lang;
 
-import com.intellij.codeInsight.lookup.LookupElement;
-import com.intellij.testFramework.fixtures.LightPlatformCodeInsightFixture4TestCase;
+import java.util.List;
+
+import io.nop.idea.plugin.BaseXLangPluginTestCase;
 import io.nop.idea.plugin.lang.script.XLangScriptFileType;
-import org.junit.Test;
 
 /**
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-06-28
  */
-public class TestXLangScriptCompletionContributor extends LightPlatformCodeInsightFixture4TestCase {
+public class TestXLangScriptCompletionContributor extends BaseXLangPluginTestCase {
     private static final String ext = XLangScriptFileType.INSTANCE.getDefaultExtension();
 
-    @Test
     public void testImportCompletion() {
-        myFixture.configureByText("sample." + ext, "import io.nop");
-        myFixture.type(".");
+        String[] samples = new String[] {
+                //"io.nop.xlang.", //
+                "io.nop.xlang.x", //
+                "io.nop.xu", //
+        };
 
-        LookupElement[] items = myFixture.completeBasic();
-        assertTrue(items.length > 0);
+        for (String sample : samples) {
+            myFixture.configureByText("sample." + ext, "import " + sample + "<caret>;");
+            myFixture.completeBasic();
+
+            List<String> items = myFixture.getLookupElementStrings();
+            assertNotNull(items);
+            assertFalse(items.isEmpty());
+
+            items.forEach((item) -> assertTrue(item.startsWith(sample)));
+
+            doTestCompletion("import " + items.get(0) + ";");
+        }
     }
 }

@@ -12,11 +12,16 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.tree.IFileElementType;
 import com.intellij.psi.tree.TokenSet;
+import io.nop.idea.plugin.lang.script.psi.ImportAsDeclarationNode;
+import io.nop.idea.plugin.lang.script.psi.ImportQualifiedNameNode;
+import io.nop.idea.plugin.lang.script.psi.ImportSourceNode;
+import io.nop.idea.plugin.lang.script.psi.ProgramNode;
+import io.nop.idea.plugin.lang.script.psi.RuleSpecNode;
 import io.nop.xlang.parse.antlr.XLangLexer;
 import io.nop.xlang.parse.antlr.XLangParser;
 import org.antlr.intellij.adaptor.lexer.PSIElementTypeFactory;
+import org.antlr.intellij.adaptor.lexer.RuleIElementType;
 import org.antlr.intellij.adaptor.lexer.TokenIElementType;
-import org.antlr.intellij.adaptor.psi.ANTLRPsiNode;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -67,8 +72,22 @@ public class XLangScriptParserDefinition implements ParserDefinition {
     @NotNull
     @Override
     public PsiElement createElement(ASTNode node) {
+        if (!(node.getElementType() instanceof RuleIElementType rule)) {
+            return new RuleSpecNode(node);
+        }
+
         // Note: 只有在 ASTFactory 中未创建 PsiElement 的节点才会调用该接口
-        return new ANTLRPsiNode(node);
+        return switch (rule.getRuleIndex()) {
+            case XLangParser.RULE_importAsDeclaration ->   //
+                    new ImportAsDeclarationNode(node);
+            case XLangParser.RULE_ast_importSource ->   //
+                    new ImportSourceNode(node);
+            case XLangParser.RULE_qualifiedName ->   //
+                    new ImportQualifiedNameNode(node);
+            case XLangParser.RULE_program ->   //
+                    new ProgramNode(node);
+            default -> new RuleSpecNode(node);
+        };
     }
 
     @NotNull

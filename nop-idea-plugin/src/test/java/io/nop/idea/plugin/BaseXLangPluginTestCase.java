@@ -5,11 +5,16 @@ import java.io.FileInputStream;
 import java.nio.charset.Charset;
 import java.nio.file.FileVisitResult;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import com.intellij.codeInsight.TargetElementUtil;
 import com.intellij.codeInsight.documentation.DocumentationManager;
+import com.intellij.codeInsight.lookup.Lookup;
+import com.intellij.codeInsight.lookup.LookupElement;
+import com.intellij.codeInsight.lookup.LookupManager;
+import com.intellij.codeInsight.lookup.impl.LookupImpl;
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationAction;
 import com.intellij.lang.documentation.DocumentationProvider;
 import com.intellij.openapi.application.ApplicationManager;
@@ -62,6 +67,26 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
     protected void tearDown() throws Exception {
         cleanup.cancel();
         super.tearDown();
+    }
+
+    /** 自动补齐测试：默认选中第一个补全项 */
+    protected void doTestCompletion(String expectedText) {
+        // 获取当前查找元素
+        LookupImpl lookup = (LookupImpl) LookupManager.getActiveLookup(myFixture.getEditor());
+        assertNotNull("Lookup not active", lookup);
+
+        List<LookupElement> items = lookup.getItems();
+        assertFalse("No completion items", items.isEmpty());
+
+        // 选择第一个补全项
+        LookupElement item = items.get(0);
+        lookup.setCurrentItem(item);
+
+        // 模拟选中补全项
+        lookup.finishLookup(Lookup.NORMAL_SELECT_CHAR);
+
+        // 验证结果
+        myFixture.checkResult(expectedText);
     }
 
     protected void configureByXLangText(String text) {
