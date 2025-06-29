@@ -15,7 +15,7 @@ public class AggregateText {
     }
 
     public static AggregateText fromResultMessage(AiChatExchange message) {
-        return new AggregateText(List.of(message), message.getContent());
+        return new AggregateText(List.of(message), message.getResultText());
     }
 
     public AggregateText(List<AiChatExchange> messages, String text) {

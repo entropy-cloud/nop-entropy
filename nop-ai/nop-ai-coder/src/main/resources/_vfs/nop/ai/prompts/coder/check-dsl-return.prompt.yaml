@@ -3,7 +3,7 @@ template: |
   评判返回的DSL，判断是否已经满足需求，如果还需要改进，采用Delta差量格式返回。如果不需要修改，仅返回`[NO_CHANGE]`。
   
   【Delta差量格式】
-  ${xpl`<c:include src="/nop/ai/prompts/coder/delta-merge.md" type="text" />`}
+  ${xpl`<c:include src="/nop/ai/prompts/coder/delta-merge.md" type="text" returnResult="true" />`}
 
   
   

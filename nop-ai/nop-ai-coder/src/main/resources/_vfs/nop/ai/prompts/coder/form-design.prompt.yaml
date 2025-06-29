@@ -11,7 +11,7 @@ template: |
   2. role必须在【role列表】中定义
   
   【form-layout格式规范】
-   ${xpl`<c:include src="/nop/ai/prompts/coder/form-layout.md" type="text" />`}
+   ${xpl`<c:include src="/nop/ai/prompts/coder/form-layout.md" type="text" returnResult="true" />`}
   
   【字段列表】
   ${propListInfo}

@@ -16,14 +16,14 @@ template: |
   ${promptModel.getOutput('RESULT').xdefForAi}
   ```
 
-  ${xpl`<c:include src="/nop/ai/prompts/coder/task-flow.md" type="text" />`}
+  ${xpl`<c:include src="/nop/ai/prompts/coder/task-flow.md" type="text" returnResult="true"/>`}
   
   【导入服务】
-  ${xpl`<c:include src="/nop/ai/prompts/coder/task-import.md" type="text" />`}
+  ${xpl`<c:include src="/nop/ai/prompts/coder/task-import.md" type="text" returnResult="true" />`}
   
   
   【XPL模板语法】
-  ${xpl`<c:include src="/nop/ai/prompts/coder/xpl-lang.md" type="text" />`}
+  ${xpl`<c:include src="/nop/ai/prompts/coder/xpl-lang.md" type="text" returnResult="true" />`}
   
   
   【业务实体定义】

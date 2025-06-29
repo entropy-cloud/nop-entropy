@@ -5,7 +5,7 @@ template: |
   
   
   【DSL语法】
-  ${xpl`<c:include src="/nop/ai/prompts/coder/flow-dsl.md" type="text" enableXplExec="true" />`}
+  ${xpl`<c:include src="/nop/ai/prompts/coder/flow-dsl.md" type="text" enableXplExec="true" returnResult="true" />`}
   
   【业务实体定义】
   ```java

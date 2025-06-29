@@ -137,6 +137,8 @@ public interface XplConstants {
 
     String ENABLE_XPL_EXEC_NAME = "enableXplExec";
 
+    String RETURN_RESULT_NAME = "returnResult";
+
     String NAME_NAME = "name";
     String OUT_NAME = "out";
 

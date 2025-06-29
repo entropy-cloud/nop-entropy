@@ -126,12 +126,13 @@ public class TestAiTranslateCommand extends JunitBaseTestCase {
         translator.makeChatOptions().setContextLength(contextLength);
         //translator.getChatOptions().setMaxTokens(4096);
         translator.setDebug(true);
+        translator.useResponseCache(true);
 
         config.accept(translator);
 
         File docsDir = getDocsDir();
 
-        File srcFile = new File(docsDir, "compare/nop-vs-apijson.md");
+        File srcFile = new File(docsDir, "arch/index.md");//""compare/nop-vs-apijson.md");
         String normalizedName = model.replace(':', '-') + '-' + CoreMetrics.currentTimeMillis() + "-" + promptName
                 + "-" + translator.makeChatOptions().getContextLength() + "," + translator.makeChatOptions().getTemperature();
         File targetFile = getTargetFile("translated/" + normalizedName + ".md");
