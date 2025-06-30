@@ -1,6 +1,7 @@
 package io.nop.converter;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.util.StringHelper;
 import org.slf4j.Logger;
@@ -10,6 +11,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+
+import static io.nop.converter.DocConvertErrors.ARG_FILE_TYPE;
+import static io.nop.converter.DocConvertErrors.ARG_FROM_FILE_TYPE;
+import static io.nop.converter.DocConvertErrors.ARG_TO_FILE_TYPE;
+import static io.nop.converter.DocConvertErrors.ERR_NO_CONVERTER_FROM_TYPE_TO_TYPE;
+import static io.nop.converter.DocConvertErrors.ERR_NO_DOCUMENT_OBJECT_BUILDER;
 
 @GlobalInstance
 public class DocumentConverterRegistry {
@@ -74,5 +81,27 @@ public class DocumentConverterRegistry {
         if (oldBuilder != null && oldBuilder != builder) {
             LOG.warn("Duplicate document object builder for type {}: {} vs {}", fileType, oldBuilder.getClass().getName(), builder.getClass().getName());
         }
+    }
+
+    public IDocumentObjectBuilder getDocumentObjectBuilder(String fileType) {
+        return documentObjectBuilders.get(fileType);
+    }
+
+    public IDocumentObjectBuilder requireDocumentObjectBuilder(String fileType) {
+        IDocumentObjectBuilder builder = documentObjectBuilders.get(fileType);
+        if (builder == null) {
+            throw new NopException(ERR_NO_DOCUMENT_OBJECT_BUILDER).param(ARG_FILE_TYPE, fileType);
+        }
+        return builder;
+    }
+
+    public IDocumentConverter requireConverter(String fromFileType, String toFileType) {
+        IDocumentConverter converter = getConverter(fromFileType, toFileType);
+        if (converter == null) {
+            throw new NopException(ERR_NO_CONVERTER_FROM_TYPE_TO_TYPE)
+                    .param(ARG_FROM_FILE_TYPE, fromFileType)
+                    .param(ARG_TO_FILE_TYPE, toFileType);
+        }
+        return converter;
     }
 }

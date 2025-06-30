@@ -21,6 +21,7 @@ import io.nop.core.model.tree.TreeVisitors;
 import io.nop.core.resource.IFile;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.core.resource.impl.FileResource;
 
@@ -188,6 +189,10 @@ public class BaseTestCase {
             }
         }
         return files;
+    }
+
+    public IResource getResource(String path) {
+        return VirtualFileSystem.instance().getResource(path);
     }
 
     public MarkdownTestFile markdownTestFile(IResource resource) {

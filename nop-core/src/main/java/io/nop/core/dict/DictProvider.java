@@ -62,7 +62,7 @@ public class DictProvider implements IDictProvider {
     public static ICancellable registerLoader() {
         ComponentModelConfig config = new ComponentModelConfig();
         config.setModelType("dict");
-        config.loader("dict.yaml", path -> new DictModelParser().parseFromVirtualPath(path));
+        config.loader("dict.yaml", new ComponentModelConfig.LoaderConfig(null, null, path -> new DictModelParser().parseFromVirtualPath(path)));
         return ResourceComponentManager.instance().registerComponentModelConfig(config);
     }
 

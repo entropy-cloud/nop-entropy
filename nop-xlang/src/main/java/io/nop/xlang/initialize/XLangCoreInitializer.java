@@ -29,6 +29,7 @@ import io.nop.xlang.utils.DebugHelper;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdef.impl.XDefToObjMeta;
 import io.nop.xlang.xdef.parse.XDefinitionParser;
+import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xdsl.json.DeltaExtendsGenerator;
 import io.nop.xlang.xpath.DefaultXPathProvider;
 
@@ -101,7 +102,7 @@ public class XLangCoreInitializer implements ICoreInitializer {
         ComponentModelConfig config = new ComponentModelConfig();
         config.modelType(XLangConstants.MODEL_TYPE_XDEF);
 
-        config.loader(XLangConstants.MODEL_TYPE_XDEF, path -> new XDefinitionParser().parseFromVirtualPath(path));
+        config.loader(XLangConstants.MODEL_TYPE_XDEF, new ComponentModelConfig.LoaderConfig(null, XDslConstants.XDSL_SCHEMA_XDEF, path -> new XDefinitionParser().parseFromVirtualPath(path)));
 
         config.transformer(XLangConstants.MODEL_TYPE_XMETA, def -> new XDefToObjMeta().transform((IXDefinition) def));
 

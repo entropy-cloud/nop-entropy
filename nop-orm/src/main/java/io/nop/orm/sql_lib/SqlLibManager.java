@@ -87,7 +87,7 @@ public class SqlLibManager implements ISqlLibManager {
         config.modelType(OrmConstants.MODEL_TYPE_SQL_LIB);
 
         config.loader(OrmConstants.FILE_TYPE_SQL_LIB,
-                path -> new DslModelParser(OrmConstants.XDSL_SCHEMA_SQL_LIB).parseFromVirtualPath(path));
+                new ComponentModelConfig.LoaderConfig(null, null, path -> new DslModelParser(OrmConstants.XDSL_SCHEMA_SQL_LIB).parseFromVirtualPath(path)));
         cancellable = ResourceComponentManager.instance().registerComponentModelConfig(config);
     }
 
