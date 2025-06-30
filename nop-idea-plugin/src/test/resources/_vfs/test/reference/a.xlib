@@ -13,7 +13,6 @@
             <source>
                 <c:script><![CDATA[
                     import io.nop.core.model.query.QueryBeanHelper;
-                    import io.nop.;
 
                     const queryNode = queryBuilder();
                     const query = QueryBeanHelper.buildQueryBeanFromTreeBean(queryNode);

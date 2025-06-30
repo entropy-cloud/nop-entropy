@@ -1,0 +1,21 @@
+FILE(0,12)
+  ProgramNode(program)(0,12)
+    RuleSpecNode(topLevelStatements_)(0,12)
+      RuleSpecNode(ast_topLevelStatement)(0,12)
+        RuleSpecNode(statement)(0,12)
+          RuleSpecNode(variableDeclaration)(0,12)
+            RuleSpecNode(varModifier_)(0,5)
+              PsiElement('const')('const')(0,5)
+            RuleSpecNode(variableDeclarators_)(6,12)
+              RuleSpecNode(variableDeclarator)(6,12)
+                RuleSpecNode(ast_identifierOrPattern)(6,9)
+                  RuleSpecNode(identifier)(6,9)
+                    PsiElement(Identifier)('abc')(6,9)
+                RuleSpecNode(expression_initializer)(10,12)
+                  PsiElement('=')('=')(10,11)
+                  RuleSpecNode(expression_single)(12,12)
+                    PsiErrorElement:mismatched input '<EOF>' expecting {RegularExpressionLiteral, '[', '(', '{', '++', '--', '+', '-', '~', '!', 'null', BooleanLiteral, DecimalIntegerLiteral, HexIntegerLiteral, BinaryIntegerLiteral, DecimalLiteral, 'typeof', 'new', 'this', 'from', 'super', 'type', StringLiteral, TemplateStringLiteral, Identifier, '#{'}
+(12,12)
+                      <empty list>
+            RuleSpecNode(eos__)(12,12)
+              <empty list>

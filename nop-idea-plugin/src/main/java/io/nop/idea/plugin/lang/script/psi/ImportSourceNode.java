@@ -7,6 +7,8 @@ import com.intellij.psi.impl.source.resolve.reference.impl.providers.JavaClassRe
 import org.jetbrains.annotations.NotNull;
 
 /**
+ * <code>import</code> 语句中导入的类名的节点
+ *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-06-29
  */

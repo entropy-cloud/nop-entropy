@@ -5,11 +5,11 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
- * @date 2025-06-29
+ * @date 2025-06-30
  */
-public class ImportAsDeclarationNode extends RuleSpecNode {
+public class ArrowFunctionBodyNode extends RuleSpecNode {
 
-    public ImportAsDeclarationNode(@NotNull ASTNode node) {
+    public ArrowFunctionBodyNode(@NotNull ASTNode node) {
         super(node);
     }
 }

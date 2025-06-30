@@ -12,11 +12,22 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.tree.IFileElementType;
 import com.intellij.psi.tree.TokenSet;
-import io.nop.idea.plugin.lang.script.psi.ImportAsDeclarationNode;
-import io.nop.idea.plugin.lang.script.psi.ImportQualifiedNameNode;
+import io.nop.idea.plugin.lang.script.psi.ArrowFunctionBodyNode;
+import io.nop.idea.plugin.lang.script.psi.ArrowFunctionNode;
+import io.nop.idea.plugin.lang.script.psi.BlockStatementNode;
+import io.nop.idea.plugin.lang.script.psi.CalleeArgumentsNode;
+import io.nop.idea.plugin.lang.script.psi.ExpressionElementNode;
+import io.nop.idea.plugin.lang.script.psi.FunctionDeclarationNode;
+import io.nop.idea.plugin.lang.script.psi.FunctionParameterDeclarationNode;
+import io.nop.idea.plugin.lang.script.psi.ImportDeclarationNode;
 import io.nop.idea.plugin.lang.script.psi.ImportSourceNode;
+import io.nop.idea.plugin.lang.script.psi.ObjectPropertyAssignmentNode;
+import io.nop.idea.plugin.lang.script.psi.ObjectPropertyNode;
+import io.nop.idea.plugin.lang.script.psi.ParameterizedTypeNode;
 import io.nop.idea.plugin.lang.script.psi.ProgramNode;
 import io.nop.idea.plugin.lang.script.psi.RuleSpecNode;
+import io.nop.idea.plugin.lang.script.psi.StatementRootNode;
+import io.nop.idea.plugin.lang.script.psi.VariableDeclarationNode;
 import io.nop.xlang.parse.antlr.XLangLexer;
 import io.nop.xlang.parse.antlr.XLangParser;
 import org.antlr.intellij.adaptor.lexer.PSIElementTypeFactory;
@@ -78,14 +89,40 @@ public class XLangScriptParserDefinition implements ParserDefinition {
 
         // Note: 只有在 ASTFactory 中未创建 PsiElement 的节点才会调用该接口
         return switch (rule.getRuleIndex()) {
-            case XLangParser.RULE_importAsDeclaration ->   //
-                    new ImportAsDeclarationNode(node);
-            case XLangParser.RULE_ast_importSource ->   //
-                    new ImportSourceNode(node);
-            case XLangParser.RULE_qualifiedName ->   //
-                    new ImportQualifiedNameNode(node);
             case XLangParser.RULE_program ->   //
                     new ProgramNode(node);
+            case XLangParser.RULE_ast_topLevelStatement ->   //
+                    new StatementRootNode(node);
+            //
+            case XLangParser.RULE_importAsDeclaration ->   //
+                    new ImportDeclarationNode(node);
+            case XLangParser.RULE_ast_importSource ->   //
+                    new ImportSourceNode(node);
+            //
+            case XLangParser.RULE_variableDeclaration ->   //
+                    new VariableDeclarationNode(node);
+            case XLangParser.RULE_blockStatement ->   //
+                    new BlockStatementNode(node);
+            //
+            case XLangParser.RULE_parameterizedTypeNode ->   //
+                    new ParameterizedTypeNode(node);
+            case XLangParser.RULE_arguments_ ->   //
+                    new CalleeArgumentsNode(node);
+            case XLangParser.RULE_identifier_ex ->   //
+                    new ObjectPropertyNode(node);
+            case XLangParser.RULE_propertyAssignment ->   //
+                    new ObjectPropertyAssignmentNode(node);
+            case XLangParser.RULE_expression_single ->   //
+                    new ExpressionElementNode(node);
+            //
+            case XLangParser.RULE_functionDeclaration ->   //
+                    new FunctionDeclarationNode(node);
+            case XLangParser.RULE_parameterDeclaration ->   //
+                    new FunctionParameterDeclarationNode(node);
+            case XLangParser.RULE_arrowFunctionExpression ->   //
+                    new ArrowFunctionNode(node);
+            case XLangParser.RULE_expression_functionBody ->   //
+                    new ArrowFunctionBodyNode(node);
             default -> new RuleSpecNode(node);
         };
     }
