@@ -28,6 +28,12 @@
 
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ooxml-markdown</artifactId>
+        </dependency>
+
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-markdown</artifactId>
         </dependency>
 

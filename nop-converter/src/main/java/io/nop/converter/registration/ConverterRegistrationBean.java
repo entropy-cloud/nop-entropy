@@ -15,6 +15,7 @@ import io.nop.converter.impl.DslDocumentObjectBuilder;
 import io.nop.converter.impl.ExcelAdapter;
 import io.nop.core.module.ModuleManager;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.xlang.xdsl.DslModelHelper;
@@ -33,8 +34,6 @@ public class ConverterRegistrationBean {
     @PostConstruct
     public void register() {
         ConvertConfig config = loadMergedConfig();
-        if (config == null)
-            return;
 
         DocumentConverterRegistry registry = DocumentConverterRegistry.instance();
         if (config.getBuilders() != null) {
@@ -65,6 +64,10 @@ public class ConverterRegistrationBean {
 
     ConvertConfig loadMergedConfig() {
         List<IResource> resources = ModuleManager.instance().findModuleResources(false, "/registry", ".convert.xml");
+        IResource defaultResource = VirtualFileSystem.instance().getResource("/nop/converter/registry/default.convert.xml");
+        if (!resources.contains(defaultResource))
+            resources.add(defaultResource);
+
         ConvertConfig config = null;
         for (IResource resource : resources) {
             ConvertConfig subConfig = (ConvertConfig) DslModelHelper.loadDslModel(resource);

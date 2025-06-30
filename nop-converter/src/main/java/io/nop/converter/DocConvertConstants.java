@@ -9,6 +9,9 @@ public interface DocConvertConstants {
     String FILE_TYPE_XLSX = "xlsx";
     String FILE_TYPE_DOCX = "docx";
 
+    String FILE_TYPE_HTML = "html";
+    String FILE_TYPE_SHTML = "shtml";
+
     String FILE_TYPE_PDF = "pdf";
 
     String FILE_TYPE_PPTX = "pptx";

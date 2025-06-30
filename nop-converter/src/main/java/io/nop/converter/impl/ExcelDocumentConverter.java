@@ -8,12 +8,16 @@ import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.ooxml.xlsx.util.ExcelHelper;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
+import static io.nop.converter.DocConvertConstants.FILE_TYPE_HTML;
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_MD;
+import static io.nop.converter.DocConvertConstants.FILE_TYPE_SHTML;
+import static io.nop.converter.DocConvertConstants.FILE_TYPE_XLSX;
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_XML;
 
 public class ExcelDocumentConverter implements IDocumentConverter {
@@ -21,8 +25,20 @@ public class ExcelDocumentConverter implements IDocumentConverter {
     @Override
     public String convertToText(IDocumentObject doc, String toFileType) {
         String renderType = StringHelper.lastPart(toFileType, '.');
-        if (FILE_TYPE_XML.equals(renderType))
+        if (FILE_TYPE_XML.equals(renderType)) {
+            if (doc.getFileExt().equals(FILE_TYPE_XLSX)) {
+                ExcelWorkbook wk = ExcelDocHelper.loadExcel(doc);
+                return ExcelHelper.toWorkbookXmlNode(wk).xml();
+            }
             return doc.getNode().xml();
+        }
+
+        if (FILE_TYPE_HTML.equals(renderType)) {
+            return ExcelDocHelper.renderText(doc, FILE_TYPE_HTML);
+        }
+
+        if (FILE_TYPE_SHTML.equals(renderType))
+            return ExcelDocHelper.renderText(doc, FILE_TYPE_SHTML);
 
         if (DocConvertConstants.FILE_TYPE_MD.equals(renderType)) {
             ExcelWorkbook wk = ExcelDocHelper.loadExcel(doc);
@@ -36,7 +52,8 @@ public class ExcelDocumentConverter implements IDocumentConverter {
     @Override
     public void convertToStream(IDocumentObject doc, String toFileType, OutputStream out) throws IOException {
         String renderType = StringHelper.lastPart(toFileType, '.');
-        if (FILE_TYPE_XML.equals(renderType) || FILE_TYPE_MD.equals(renderType)) {
+        if (FILE_TYPE_XML.equals(renderType) || FILE_TYPE_MD.equals(renderType)
+                || FILE_TYPE_HTML.equals(renderType) || FILE_TYPE_SHTML.equals(renderType)) {
             String text = convertToText(doc, toFileType);
             out.write(text.getBytes(StandardCharsets.UTF_8));
             return;

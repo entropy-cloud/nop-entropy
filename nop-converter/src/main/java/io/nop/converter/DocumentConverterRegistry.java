@@ -68,10 +68,14 @@ public class DocumentConverterRegistry {
                 return converter;
 
             if (toFileType.indexOf('.') > 0) {
-                converter = map.get(StringHelper.lastPart(toFileType, '.'));
+                converter = map.get(StringHelper.fileExtFromFileType(toFileType));
                 if (converter != null)
                     return converter;
             }
+        }
+
+        if (fromFileType.indexOf('.') > 0) {
+            return getConverter(StringHelper.fileExtFromFileType(fromFileType), toFileType);
         }
         return null;
     }
@@ -84,11 +88,18 @@ public class DocumentConverterRegistry {
     }
 
     public IDocumentObjectBuilder getDocumentObjectBuilder(String fileType) {
-        return documentObjectBuilders.get(fileType);
+        IDocumentObjectBuilder builder = documentObjectBuilders.get(fileType);
+        if (builder == null) {
+            String fileExt = StringHelper.fileExtFromFileType(fileType);
+            if (!fileExt.equals(fileType)) {
+                builder = documentObjectBuilders.get(fileExt);
+            }
+        }
+        return builder;
     }
 
     public IDocumentObjectBuilder requireDocumentObjectBuilder(String fileType) {
-        IDocumentObjectBuilder builder = documentObjectBuilders.get(fileType);
+        IDocumentObjectBuilder builder = getDocumentObjectBuilder(fileType);
         if (builder == null) {
             throw new NopException(ERR_NO_DOCUMENT_OBJECT_BUILDER).param(ARG_FILE_TYPE, fileType);
         }

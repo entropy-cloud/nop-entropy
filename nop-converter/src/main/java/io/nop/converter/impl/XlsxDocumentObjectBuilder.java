@@ -6,12 +6,11 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
-import io.nop.report.core.XptConstants;
-import io.nop.xlang.xdsl.DslModelHelper;
+import io.nop.ooxml.xlsx.util.ExcelHelper;
 
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_XLSX;
 
-class XlsxDocumentObjectBuilder implements IDocumentObjectBuilder {
+public class XlsxDocumentObjectBuilder implements IDocumentObjectBuilder {
     @Override
     public IDocumentObject buildFromResource(String fileType, IResource resource) {
         return new XlsxDocumentObject(resource);
@@ -40,7 +39,7 @@ class XlsxDocumentObjectBuilder implements IDocumentObjectBuilder {
         @Override
         public XNode getNode() {
             ExcelWorkbook wk = getModelObject();
-            XNode node = DslModelHelper.dslModelToXNode(XptConstants.XDSL_SCHEMA_WORKBOOK, wk, true);
+            XNode node = ExcelHelper.toWorkbookXmlNode(wk);
             return node;
         }
     }

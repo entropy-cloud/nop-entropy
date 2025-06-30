@@ -3,10 +3,11 @@ package io.nop.converter.impl;
 import io.nop.converter.IDocumentObject;
 import io.nop.converter.IDocumentObjectBuilder;
 import io.nop.core.resource.IResource;
+import io.nop.ooxml.markdown.DocxToMarkdownConverter;
 
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_DOCX;
 
-class DocxDocumentObjectBuilder implements IDocumentObjectBuilder {
+public class DocxDocumentObjectBuilder implements IDocumentObjectBuilder {
     @Override
     public IDocumentObject buildFromResource(String fileType, IResource resource) {
         return new DocxDocumentObject(resource);
@@ -22,13 +23,9 @@ class DocxDocumentObjectBuilder implements IDocumentObjectBuilder {
             super(FILE_TYPE_DOCX, resource);
         }
 
-        public static IDocumentObjectBuilder newBuilder() {
-            return new DocxDocumentObjectBuilder();
-        }
-
         @Override
         public Object getModelObject() {
-            throw new UnsupportedOperationException("DocxDocumentObject does not support getModelObject");
+            return new DocxToMarkdownConverter().convertFromResource(getResource());
         }
 
     }

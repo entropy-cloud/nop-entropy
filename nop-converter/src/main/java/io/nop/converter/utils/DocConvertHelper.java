@@ -19,6 +19,10 @@ public class DocConvertHelper {
         String fromFileType = StringHelper.fileType(fromResource.getPath());
         String toFileType = StringHelper.fileType(toResource.getPath());
 
+        convertResource(fromResource, toResource, fromFileType, toFileType);
+    }
+
+    public static void convertResource(IResource fromResource, IResource toResource, String fromFileType, String toFileType) {
         IDocumentObjectBuilder builder = DocumentConverterRegistry.instance().requireDocumentObjectBuilder(fromFileType);
         IDocumentObject doc = builder.buildFromResource(fromFileType, fromResource);
         IDocumentConverter converter = DocumentConverterRegistry.instance().requireConverter(fromFileType, toFileType);

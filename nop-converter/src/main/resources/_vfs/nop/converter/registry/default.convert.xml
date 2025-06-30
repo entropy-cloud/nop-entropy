@@ -1,4 +1,4 @@
-<convert>
+<convert x:schema="/nop/schema/convert.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <builders>
         <builder fileType="xlsx" class="io.nop.converter.impl.XlsxDocumentObjectBuilder" optional="true"/>
         <builder fileType="docx" class="io.nop.converter.impl.DocxDocumentObjectBuilder" optional="true"/>
@@ -11,6 +11,12 @@
                    class="io.nop.converter.impl.ExcelDocumentConverter"/>
 
         <converter id="wk-xml-to-xlsx" from="workbook.xml" to="xlsx"
+                   class="io.nop.converter.impl.ExcelDocumentConverter"/>
+
+        <converter id="wk-xml-to-html" from="workbook.xml" to="html"
+                   class="io.nop.converter.impl.ExcelDocumentConverter"/>
+
+        <converter id="wk-xml-to-shtml" from="workbook.xml" to="shtml"
                    class="io.nop.converter.impl.ExcelDocumentConverter"/>
 
         <converter id="xlsx-to-shtml" from="xlsx" to="shtml"

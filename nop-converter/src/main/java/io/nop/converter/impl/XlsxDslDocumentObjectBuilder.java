@@ -3,12 +3,15 @@ package io.nop.converter.impl;
 import io.nop.api.core.util.Guard;
 import io.nop.converter.IDocumentObject;
 import io.nop.converter.IDocumentObjectBuilder;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.excel.imp.ImportExcelParser;
 import io.nop.excel.imp.model.ImportModel;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.report.core.XptConstants;
+import io.nop.xlang.xdsl.DslModelHelper;
 
 public class XlsxDslDocumentObjectBuilder implements IDocumentObjectBuilder {
 
@@ -41,6 +44,13 @@ public class XlsxDslDocumentObjectBuilder implements IDocumentObjectBuilder {
             parser.setReturnDynamicObject(true);
             ExcelWorkbook wk = ExcelDocHelper.loadExcel(this);
             return parser.parseFromWorkbook(wk);
+        }
+
+        @Override
+        public XNode getNode() {
+            Object obj = getModelObject();
+            XNode node = DslModelHelper.dslModelToXNode(XptConstants.XDSL_SCHEMA_WORKBOOK, obj, true);
+            return node;
         }
     }
 }
