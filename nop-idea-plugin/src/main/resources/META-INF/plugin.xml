@@ -117,7 +117,10 @@
                                 implementationClass="io.nop.idea.plugin.lang.script.XLangScriptSyntaxHighlighter"/>
         <lang.ast.factory language="XLangScript"
                           implementationClass="io.nop.idea.plugin.lang.script.XLangScriptASTFactory"/>
-        <completion.contributor language="XLangScript"
-                                implementationClass="io.nop.idea.plugin.lang.script.XLangScriptCompletionContributor"/>
+        <!-- Note: 通过实现 PsiElement#getReferences() 并返回 Java 相关的引用对象，
+        便可实现自动补全，无需单独注册 CompletionContributor
+        -->
+        <!--<completion.contributor language="XLangScript"
+                                implementationClass="io.nop.idea.plugin.lang.script.XLangScriptCompletionContributor"/>-->
     </extensions>
 </idea-plugin>

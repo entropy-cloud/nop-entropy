@@ -69,26 +69,6 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         super.tearDown();
     }
 
-    /** 自动补齐测试：默认选中第一个补全项 */
-    protected void doTestCompletion(String expectedText) {
-        // 获取当前查找元素
-        LookupImpl lookup = (LookupImpl) LookupManager.getActiveLookup(myFixture.getEditor());
-        assertNotNull("Lookup not active", lookup);
-
-        List<LookupElement> items = lookup.getItems();
-        assertFalse("No completion items", items.isEmpty());
-
-        // 选择第一个补全项
-        LookupElement item = items.get(0);
-        lookup.setCurrentItem(item);
-
-        // 模拟选中补全项
-        lookup.finishLookup(Lookup.NORMAL_SELECT_CHAR);
-
-        // 验证结果
-        myFixture.checkResult(expectedText);
-    }
-
     protected void configureByXLangText(String text) {
         myFixture.configureByText("unit." + XLANG_EXT, text);
     }
@@ -204,5 +184,25 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
 
     private void assertCaretExists() {
         assertTrue("No '<caret>' found in current text", myFixture.getCaretOffset() > 0);
+    }
+
+    /** 检查自动补全所选中的第一个补全项是否与预期相符 */
+    protected void assertCompletion(String expectedText) {
+        // 获取当前查找元素
+        LookupImpl lookup = (LookupImpl) LookupManager.getActiveLookup(myFixture.getEditor());
+        assertNotNull("Lookup not active", lookup);
+
+        List<LookupElement> items = lookup.getItems();
+        assertFalse("No completion items", items.isEmpty());
+
+        // 选择第一个补全项
+        LookupElement item = items.get(0);
+        lookup.setCurrentItem(item);
+
+        // 模拟选中补全项
+        lookup.finishLookup(Lookup.NORMAL_SELECT_CHAR);
+
+        // 验证结果
+        myFixture.checkResult(expectedText);
     }
 }

@@ -4,6 +4,8 @@ import com.intellij.lang.ASTFactory;
 import com.intellij.psi.impl.source.tree.LeafElement;
 import com.intellij.psi.impl.source.tree.LeafPsiElement;
 import com.intellij.psi.tree.IElementType;
+import io.nop.idea.plugin.lang.script.psi.IdentifierNode;
+import io.nop.xlang.parse.antlr.XLangLexer;
 import org.antlr.intellij.adaptor.lexer.TokenIElementType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -24,6 +26,9 @@ public class XLangScriptASTFactory extends ASTFactory {
             return null;
         }
 
-        return new LeafPsiElement(token, text);
+        return switch (token.getANTLRTokenType()) {
+            case XLangLexer.Identifier -> new IdentifierNode(token, text);
+            default -> new LeafPsiElement(token, text);
+        };
     }
 }

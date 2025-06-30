@@ -16,27 +16,30 @@ import io.nop.idea.plugin.lang.script.XLangScriptFileType;
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-06-28
  */
-public class TestXLangScriptCompletionContributor extends BaseXLangPluginTestCase {
+public class TestXLangScriptCompletions extends BaseXLangPluginTestCase {
     private static final String ext = XLangScriptFileType.INSTANCE.getDefaultExtension();
 
     public void testImportCompletion() {
+        // Note: 不能构造仅匹配唯一结果的样本，以避免 myFixture.getLookupElementStrings() 返回 null 或空结果
         String[] samples = new String[] {
-                //"io.nop.xlang.", //
-                "io.nop.xlang.x", //
-                "io.nop.xu", //
+                // 对包的补全
+                "io.nop.xlang.", //
+                "io.nop.x", //
+                // 对类的补全
+                "io.nop.xlang.xdef.XD", //
         };
 
         for (String sample : samples) {
             myFixture.configureByText("sample." + ext, "import " + sample + "<caret>;");
             myFixture.completeBasic();
 
+            // Note: 在仅有唯一匹配时，得到的结果为 null 或空
             List<String> items = myFixture.getLookupElementStrings();
             assertNotNull(items);
             assertFalse(items.isEmpty());
 
-            items.forEach((item) -> assertTrue(item.startsWith(sample)));
-
-            doTestCompletion("import " + items.get(0) + ";");
+            String expected = "import " + sample.replaceAll("\\.[^.]+$", ".") + items.get(0) + ";";
+            assertCompletion(expected);
         }
     }
 }
