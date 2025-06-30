@@ -1,0 +1,28 @@
+<convert>
+    <builders>
+        <builder fileType="xlsx" class="io.nop.converter.impl.XlsxDocumentObjectBuilder" optional="true"/>
+        <builder fileType="docx" class="io.nop.converter.impl.DocxDocumentObjectBuilder" optional="true"/>
+        <builder fileType="workbook.xml"
+                 class="io.nop.converter.impl.WorkbookXmlDocumentObjectBuilder" optional="true"/>
+    </builders>
+
+    <converters>
+        <converter id="xlsx-to-wk-xml" from="xlsx" to="workbook.xml"
+                   class="io.nop.converter.impl.ExcelDocumentConverter"/>
+
+        <converter id="wk-xml-to-xlsx" from="workbook.xml" to="xlsx"
+                   class="io.nop.converter.impl.ExcelDocumentConverter"/>
+
+        <converter id="xlsx-to-shtml" from="xlsx" to="shtml"
+                   class="io.nop.converter.impl.ExcelDocumentConverter"/>
+
+        <converter id="xlsx-to-html" from="xlsx" to="html"
+                   class="io.nop.converter.impl.ExcelDocumentConverter"/>
+
+        <converter id="xlsx-to-md" from="xlsx" to="md"
+                   class="io.nop.converter.impl.ExcelDocumentConverter"/>
+
+        <converter id="docx-to-md" from="docx" to="md"
+                   class="io.nop.converter.impl.WordDocumentConverter"/>
+    </converters>
+</convert>

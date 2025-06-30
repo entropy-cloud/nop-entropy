@@ -28,6 +28,7 @@ import io.nop.report.core.build.XptModelInitializer;
 import io.nop.report.core.engine.ExpandedSheetGenerator;
 import io.nop.report.core.engine.IReportEngine;
 import io.nop.report.core.engine.renderer.HtmlReportRendererFactory;
+import io.nop.report.core.engine.renderer.ReportRenderHelper;
 import io.nop.report.core.engine.renderer.XlsxReportRendererFactory;
 import io.nop.report.core.imp.ExcelTemplateToXptModelTransformer;
 import io.nop.xlang.api.XLang;
@@ -59,6 +60,17 @@ public class ExcelReportHelper extends ExcelHelper {
         ExcelWorkbook workbook = reportEngine.buildXptModelFromImpModel(impModelPath);
         ITemplateOutput output = reportEngine.getRendererForXptModel(workbook, renderType);
         output.generateToResource(resource, scope);
+    }
+
+    public static ExcelWorkbook generateExcelWorkbook(String impModelPath, Object obj) {
+        return generateExcelWorkbook(impModelPath, obj, XLang.newEvalScope());
+    }
+
+    public static ExcelWorkbook generateExcelWorkbook(String impModelPath, Object obj, IEvalScope scope) {
+        ExcelWorkbook xptModel = buildXptModelFromImpModel(impModelPath);
+
+        scope.setLocalValue(null, XptConstants.VAR_ENTITY, obj);
+        return ReportRenderHelper.renderModel(xptModel, new ExpandedSheetGenerator(xptModel), scope);
     }
 
     public static String getHtmlForXlsxObject(String impModelPath, Object obj) {

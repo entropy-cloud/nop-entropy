@@ -47,7 +47,7 @@ public interface ExcelConstants {
     String FILE_TYPE_IMP_XML = "imp.xml";
 
     String XDSL_SCHEMA_IMP = "/nop/schema/excel/imp.xdef";
-
+    String XDSL_SCHEMA_WORKBOOK = "/nop/schema/excel/workbook.xdef";
 
     String DISPLAY_MODE_TABLE = "table";
 

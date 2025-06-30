@@ -2727,6 +2727,11 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
+    public static String fileExtFromFileType(String fileType) {
+        return lastPart(fileType, '.');
+    }
+
+    @Deterministic
     public static String removeFileExt(String path) {
         if (path == null)
             return null;

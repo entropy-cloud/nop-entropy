@@ -12,16 +12,19 @@ import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.record.csv.CsvResourceRecordIO;
 import io.nop.core.resource.record.list.HeaderListRecordOutput;
+import io.nop.excel.ExcelConstants;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.imp.XlsxObjectLoader;
 import io.nop.ooxml.xlsx.output.ExcelTemplate;
 import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.ooxml.xlsx.parse.XlsxToRecordOutput;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.xdsl.DslModelHelper;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -36,6 +39,10 @@ public class ExcelHelper {
 
     public static void saveExcel(IResource resource, ExcelWorkbook workbook) {
         new ExcelTemplate(workbook, null).generateToResource(resource, XLang.newEvalScope());
+    }
+
+    public static XNode toWorkbookXmlNode(ExcelWorkbook wk) {
+        return DslModelHelper.dslModelToXNode(ExcelConstants.XDSL_SCHEMA_WORKBOOK, wk);
     }
 
     /**

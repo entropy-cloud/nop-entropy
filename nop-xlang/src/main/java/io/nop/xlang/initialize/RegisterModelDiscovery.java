@@ -169,20 +169,23 @@ public class RegisterModelDiscovery {
                 String fileType = (String) BeanTool.getProperty(loader, "fileType");
                 boolean optional = ConvertHelper.toPrimitiveBoolean(BeanTool.getProperty(loader, "optional"),
                         false, NopException::new);
+                String impPath = null;
+                String schemaPath = null;
 
                 if ("xdsl-loader".equals(type)) {
-                    String schemaPath = (String) BeanTool.getProperty(loader, "schemaPath");
+                    schemaPath = (String) BeanTool.getProperty(loader, "schemaPath");
                     config.setXdefPath(schemaPath);
-                    if (JsonTool.isJsonOrYaml(fileType)) {
-                        config.loader(fileType, new DslJsonResourceLoader(schemaPath, resolveInDir));
+                    if (JsonTool.isJsonOrYamlFileExt(StringHelper.fileExtFromFileType(fileType))) {
+                        config.loader(fileType, makeLoaderConfig(impPath, schemaPath, new DslJsonResourceLoader(schemaPath, resolveInDir)));
                     } else {
-                        config.loader(fileType, new DslXmlResourceLoader(schemaPath, resolveInDir));
+                        config.loader(fileType, makeLoaderConfig(impPath, schemaPath, new DslXmlResourceLoader(schemaPath, resolveInDir)));
                     }
                 } else if ("xlsx-loader".equals(type)) {
-                    String impPath = (String) BeanTool.getProperty(loader, "impPath");
+                    impPath = (String) BeanTool.getProperty(loader, "impPath");
                     config.setImpPath(impPath);
                     if (DslModelHelper.supportExcelModelLoader()) {
-                        config.loader(fileType, (IResourceObjectLoader<? extends IComponentModel>) DslModelHelper.newExcelModelLoader(impPath));
+                        config.loader(fileType, makeLoaderConfig(impPath, schemaPath,
+                                (IResourceObjectLoader<? extends IComponentModel>) DslModelHelper.newExcelModelLoader(impPath)));
                     } else {
                         LOG.warn("nop.registry.ignore-xlsx-loader-since-no-xlsx-parser:fileType={},impPath={}",
                                 fileType, impPath);
@@ -203,11 +206,15 @@ public class RegisterModelDiscovery {
         return config;
     }
 
+    private ComponentModelConfig.LoaderConfig makeLoaderConfig(String impPath, String xdefPath, IResourceObjectLoader<? extends IComponentModel> loader) {
+        return new ComponentModelConfig.LoaderConfig(impPath, xdefPath, loader);
+    }
+
     private void initLoader(ComponentModelConfig config, Object loader, String fileType, boolean optional) {
         String className = (String) BeanTool.getProperty(loader, "className");
 
         try {
-            config.loader(fileType, newLoader(className));
+            config.loader(fileType, makeLoaderConfig(null, null, newLoader(className)));
         } catch (NoClassDefFoundError | NopException e) {
             if (!optional) {
                 throw NopException.adapt(e);

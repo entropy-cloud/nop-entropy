@@ -210,24 +210,24 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
             ComponentModelConfig config = modelTypeConfigs.get(modelType);
             String dir = config.getResolveInDir();
             String fullPath = StringHelper.appendPath(dir, subName);
-            for (Map.Entry<String, IResourceObjectLoader<? extends IComponentModel>> entry : config.getLoaders().entrySet()) {
+            for (Map.Entry<String, ComponentModelConfig.LoaderConfig> entry : config.getLoaders().entrySet()) {
                 String fileType = entry.getKey();
                 IResource resource = VirtualFileSystem.instance().getResource(fullPath + "." + fileType);
                 if (resource.exists())
-                    return Pair.of(resource.getPath(), entry.getValue());
+                    return Pair.of(resource.getPath(), entry.getValue().getLoader());
                 LOG.info("nop.resource.try-resolve-file-not-exists:{}", resource.getPath());
             }
 
             // 如果支持版本且当前传入的路径没有包含版本，则尝试查找版本号最大的数据返回
             if (config.isSupportVersion() && !ResourceVersionHelper.endsWithNumberVersion(subName)) {
-                for (Map.Entry<String, IResourceObjectLoader<? extends IComponentModel>> entry : config.getLoaders().entrySet()) {
+                for (Map.Entry<String, ComponentModelConfig.LoaderConfig> entry : config.getLoaders().entrySet()) {
                     String fileType = entry.getKey();
                     Collection<? extends IResource> resources = VirtualFileSystem.instance().getChildren(fullPath);
                     resources = resources.stream().filter(res -> isVersionFile(res, fileType))
                             .sorted(ResourceVersionHelper::compareResourceVersion).collect(Collectors.toList());
                     if (!resources.isEmpty()) {
                         IResource resource = CollectionHelper.first(resources);
-                        return Pair.of(resource.getPath(), entry.getValue());
+                        return Pair.of(resource.getPath(), entry.getValue().getLoader());
                     }
                 }
             }
@@ -261,10 +261,10 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
         cancellable.appendOnCancel(r -> modelTypeConfigs.remove(modelType, config));
 
-        for (Map.Entry<String, IResourceObjectLoader<? extends IComponentModel>> entry : config.getLoaders()
+        for (Map.Entry<String, ComponentModelConfig.LoaderConfig> entry : config.getLoaders()
                 .entrySet()) {
             String fileType = entry.getKey();
-            cancellable.appendOnCancelTask(registerComponentModelLoader(modelType, fileType, entry.getValue(), false));
+            cancellable.appendOnCancelTask(registerComponentModelLoader(modelType, fileType, entry.getValue().getLoader(), false));
         }
 
         if (config.getTransformers() != null) {
@@ -336,6 +336,11 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         list.add(config);
 
         cancellable.appendOnCancel(r -> list.remove(config));
+    }
+
+    @Override
+    public Map<String, ComponentModelConfig> getAllModelConfigs() {
+        return modelTypeConfigs;
     }
 
     @Override
@@ -506,6 +511,12 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         }
 
         ComponentModelLoader loader = findByFileType(fileTypeLoaders, StringHelper.fileType(path));
+        return loader == null ? null : modelTypeConfigs.get(loader.getModelType());
+    }
+
+    @Override
+    public ComponentModelConfig getModelConfigByFileType(String fileType) {
+        ComponentModelLoader loader = findByFileType(fileTypeLoaders, fileType);
         return loader == null ? null : modelTypeConfigs.get(loader.getModelType());
     }
 

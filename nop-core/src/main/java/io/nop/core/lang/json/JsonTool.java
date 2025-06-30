@@ -97,7 +97,7 @@ public class JsonTool {
         if (JavaTypeHelper.getRawClass(options.getTargetType()) == JObject.class) {
             options.setKeepLocation(true);
         }
-        return (T)instance().parseFromText(null, text, options);
+        return (T) instance().parseFromText(null, text, options);
     }
 
     public static <T> T parseBeanFromYaml(String text, Type targetType) {
@@ -141,6 +141,10 @@ public class JsonTool {
             options.setKeepLocation(true);
         }
         return (T) instance().parseFromResource(resource, options);
+    }
+
+    public static boolean isJsonOrYamlFileExt(String fileExt) {
+        return ResourceConstants.JSON_FILE_EXTS.contains(fileExt);
     }
 
     public static boolean isJsonOrYaml(String filePath) {

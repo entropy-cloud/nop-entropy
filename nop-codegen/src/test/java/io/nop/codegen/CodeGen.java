@@ -45,6 +45,8 @@ public class CodeGen {
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-excel"), "", false);
             XCodeGenerator.runPrecompile(new File(projectDir, "../nop-record"), "", false);
 
+            XCodeGenerator.runPrecompile(new File(projectDir, "../nop-converter"), "", false);
+
             // XCodeGenerator.runProjectFile(new File(projectDir, "../nop-orm"),
             // "/src/test/resources/gen-demo-entity.xgen", true);
 

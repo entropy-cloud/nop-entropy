@@ -9,6 +9,7 @@ import io.nop.core.model.table.ITableView;
  * Markdown表格转换器
  */
 public class TableToMarkdownConverter {
+    public static final TableToMarkdownConverter INSTANCE = new TableToMarkdownConverter();
 
     /**
      * 将ITableView对象转换为Markdown表格字符串

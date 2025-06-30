@@ -1,0 +1,15 @@
+<convert x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+         xmlns:xdef="/nop/schema/xdef.xdef"
+         xdef:name="ConvertConfig" xdef:bean-package="io.nop.converter.config">
+
+    <builders xdef:body-type="list" xdef:key-attr="fileType">
+        <builder xdef:name="ConvertBuilderConfig"
+                 fileType="!file-type" class="!class-name" optional="!boolean=false"/>
+    </builders>
+
+    <converters xdef:body-type="list" xdef:key-attr="id">
+        <converter xdef:name="ConvertConverterConfig" optional="!boolean=false"
+                   id="!string" from="!file-type" to="!file-type" class="!class-name"/>
+    </converters>
+
+</convert>
