@@ -75,6 +75,10 @@ public class ComponentModelConfig {
         return this;
     }
 
+    public ComponentModelConfig loader(String fileType, IResourceObjectLoader<? extends IComponentModel> loader) {
+        return loader(fileType, new LoaderConfig(null, null, loader));
+    }
+
     public boolean isSupportVersion() {
         return supportVersion;
     }
