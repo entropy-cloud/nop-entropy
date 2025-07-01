@@ -4,7 +4,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.converter.DocConvertConstants;
-import io.nop.converter.DocumentConverterRegistry;
+import io.nop.converter.DocumentConverterManager;
 import io.nop.converter.IDocumentConverter;
 import io.nop.converter.IDocumentObjectBuilder;
 import io.nop.converter.config.ConvertBuilderConfig;
@@ -35,7 +35,7 @@ public class ConverterRegistrationBean {
     public void register() {
         ConvertConfig config = loadMergedConfig();
 
-        DocumentConverterRegistry registry = DocumentConverterRegistry.instance();
+        DocumentConverterManager registry = DocumentConverterManager.instance();
         if (config.getBuilders() != null) {
             config.getBuilders().forEach(builder -> {
                 registerBuilder(registry, builder);
@@ -80,7 +80,7 @@ public class ConverterRegistrationBean {
         return config;
     }
 
-    protected void registerBuilder(DocumentConverterRegistry registry, ConvertBuilderConfig builderConfig) {
+    protected void registerBuilder(DocumentConverterManager registry, ConvertBuilderConfig builderConfig) {
         try {
             IDocumentObjectBuilder builder = (IDocumentObjectBuilder) ClassHelper.newInstance(
                     builderConfig.getClassName(), IDocumentObjectBuilder.class.getClassLoader());
@@ -109,7 +109,7 @@ public class ConverterRegistrationBean {
         }
     }
 
-    protected void loadDslConverters(DocumentConverterRegistry registry,
+    protected void loadDslConverters(DocumentConverterManager registry,
                                      Map<String, Map<String, IDocumentConverter>> allConverters) {
         Collection<ComponentModelConfig> modelConfigs = ResourceComponentManager.instance().getAllModelConfigs().values();
         for (ComponentModelConfig modelConfig : modelConfigs) {

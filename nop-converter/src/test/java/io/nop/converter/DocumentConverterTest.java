@@ -4,7 +4,6 @@ import io.nop.api.core.annotations.autotest.EnableSnapshot;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.converter.registration.ConverterRegistrationBean;
-import io.nop.converter.utils.DocConvertHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import jakarta.inject.Inject;
@@ -25,14 +24,16 @@ public class DocumentConverterTest extends JunitAutoTestCase {
         IResource workbookResource = getTargetResource("/test.orm.workbook.xml");
         IResource htmlResource = getTargetResource("/test.orm.html");
 
-        DocConvertHelper.convertResource(xlsxResource, xmlResource);
+        DocumentConverterManager manager = DocumentConverterManager.instance();
+
+        manager.convertResource(xlsxResource, xmlResource, false);
 
         outputText("test.orm.xml", ResourceHelper.readText(xmlResource));
 
-        DocConvertHelper.convertResource(xlsxResource, workbookResource);
+        manager.convertResource(xlsxResource, workbookResource, false);
         outputText("test.orm.workbook.xml", ResourceHelper.readText(workbookResource));
 
-        DocConvertHelper.convertResource(workbookResource, htmlResource);
+        manager.convertResource(workbookResource, htmlResource, false);
         outputText("test.orm.html", ResourceHelper.readText(htmlResource));
     }
 }
