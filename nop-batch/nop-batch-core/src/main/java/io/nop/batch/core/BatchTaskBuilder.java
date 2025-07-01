@@ -23,6 +23,7 @@ import io.nop.batch.core.consumer.SingleModeBatchConsumer;
 import io.nop.batch.core.consumer.SkipBatchConsumer;
 import io.nop.batch.core.consumer.WithHistoryBatchConsumer;
 import io.nop.batch.core.impl.BatchTask;
+import io.nop.batch.core.loader.AsyncFetchPartitionDispatchLoaderProvider;
 import io.nop.batch.core.loader.ChunkSortBatchLoader;
 import io.nop.batch.core.loader.InvokerBatchLoader;
 import io.nop.batch.core.loader.PartitionDispatchLoaderProvider;
@@ -334,8 +335,12 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
             int fetchThreadCount = dispatchConfig.getFetchThreadCount();
             int loadBatchSize = dispatchConfig.getLoadBatchSize();
 
-            loader = new PartitionDispatchLoaderProvider<>(this::buildLoader1, executor, fetchThreadCount, loadBatchSize,
-                    dispatchConfig.getPartitionFn()).setup(context);
+            if (fetchThreadCount > 0) {
+                loader = new AsyncFetchPartitionDispatchLoaderProvider<>(this::buildLoader1, executor, fetchThreadCount, loadBatchSize,
+                        dispatchConfig.getPartitionFn()).setup(context);
+            } else {
+                loader = new PartitionDispatchLoaderProvider<>(this::buildLoader1, loadBatchSize, dispatchConfig.getPartitionFn()).setup(context);
+            }
         } else {
             loader = buildLoader0(context);
         }

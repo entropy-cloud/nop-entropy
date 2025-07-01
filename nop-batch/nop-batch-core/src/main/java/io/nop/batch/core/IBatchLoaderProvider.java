@@ -23,7 +23,7 @@ public interface IBatchLoaderProvider<S> {
      */
     interface IBatchLoader<S> {
         /**
-         * 加载数据
+         * 加载数据。这个方法必须是线程安全的
          *
          * @param batchSize 最多装载多少条数据
          * @return 返回空集合表示所有数据已经加载完毕

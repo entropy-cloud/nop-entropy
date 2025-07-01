@@ -7,19 +7,14 @@
  */
 package io.nop.batch.core.loader;
 
-import io.nop.api.core.exceptions.NopException;
-import io.nop.batch.core.IBatchChunkContext;
+import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.commons.collections.MapOfInt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 
 /**
@@ -29,40 +24,30 @@ import java.util.function.BiFunction;
  */
 public class PartitionDispatchLoaderProvider<S>
         implements IBatchLoaderProvider<S> {
-    static final Logger LOG = LoggerFactory.getLogger(PartitionDispatchLoaderProvider.class);
 
     private final IBatchLoaderProvider<S> loader;
-    private final Executor executor;
-    private final int fetchThreadCount;
     private final int loadBatchSize;
     private final BiFunction<S, IBatchTaskContext, Integer> partitionFn;
 
-    public PartitionDispatchLoaderProvider(IBatchLoaderProvider<S> loader, Executor executor, int fetchThreadCount,
+    public PartitionDispatchLoaderProvider(IBatchLoaderProvider<S> loader,
                                            int loadBatchSize, BiFunction<S, IBatchTaskContext, Integer> partitionFn) {
         this.loader = loader;
-        this.executor = executor;
-        this.fetchThreadCount = fetchThreadCount;
         this.loadBatchSize = loadBatchSize;
-        this.partitionFn = partitionFn;
+        this.partitionFn = Guard.notNull(partitionFn, "partitionFn");
     }
 
     @Override
     public IBatchLoader<S> setup(IBatchTaskContext context) {
         IBatchLoader<S> loader = this.loader.setup(context);
 
-        PartitionDispatchQueue<S> queue = new PartitionDispatchQueue<>(loadBatchSize * 20, item -> partitionFn.apply(item, context), fetchThreadCount);
-        AtomicReference<Exception> exception = new AtomicReference<>();
+        PartitionDispatchQueue<S> queue = new PartitionDispatchQueue<>(loadBatchSize * 20, item -> partitionFn.apply(item, context), 0);
 
         context.onAfterComplete(err -> {
             queue.finish();
         });
 
         IBatchLoader<S> resultLoader = (batchSize, ctx) -> {
-            Exception err = exception.get();
-            if (err != null)
-                throw NopException.adapt(err);
-
-            MapOfInt<List<S>> map = queue.takeBatch(batchSize, ctx.getThreadIndex());
+            MapOfInt<List<S>> map = queue.takeBatch(batchSize, ctx.getThreadIndex(), () -> loader.load(batchSize, ctx));
             if (map == null) {
                 return Collections.emptyList();
             }
@@ -77,33 +62,6 @@ public class PartitionDispatchLoaderProvider<S>
             });
             return ret;
         };
-
-        for (int i = 0; i < fetchThreadCount; i++) {
-            final int threadIndex = i;
-            executor.execute(() -> {
-                try {
-                    while (!context.isCancelled()) {
-                        IBatchChunkContext ctx = context.newChunkContext();
-                        ctx.setConcurrency(fetchThreadCount);
-                        ctx.setThreadIndex(threadIndex);
-                        try {
-                            List<S> list = loader.load(loadBatchSize, ctx);
-                            if (list.isEmpty()) {
-                                LOG.info("nop.batch.exit-fetch-thread:threadIndex={}", threadIndex);
-                                return;
-                            }
-                            queue.addBatch(list);
-                        } catch (Exception e) {
-                            LOG.info("nop.batch.exit-fetch-thread-when-fail:threadIndex={}", threadIndex, e);
-                            exception.set(e);
-                            return;
-                        }
-                    }
-                } finally {
-                    queue.exitFetchThread();
-                }
-            });
-        }
 
         return resultLoader;
     }

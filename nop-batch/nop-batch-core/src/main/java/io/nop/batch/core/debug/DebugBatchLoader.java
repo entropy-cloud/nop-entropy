@@ -26,7 +26,7 @@ public class DebugBatchLoader implements IBatchLoader<String> {
     }
 
     @Override
-    public List<String> load(int batchSize, IBatchChunkContext context) {
+    public synchronized List<String> load(int batchSize, IBatchChunkContext context) {
         if (readCount >= maxCount)
             return Collections.emptyList();
 

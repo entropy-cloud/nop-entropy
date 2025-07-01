@@ -324,18 +324,24 @@ public class ModelBasedBatchTaskBuilderFactory {
         if (dispatcherModel.getPartitionIndexField() != null) {
             config.setPartitionFn((item, ctx) -> {
                 Object value = BeanTool.getComplexProperty(item, dispatcherModel.getPartitionIndexField());
-                return ConvertHelper.toPrimitiveInt(value, NopException::new);
+                return limitHash(value);
             });
         } else if (dispatcherModel.getPartitionFn() != null) {
             config.setPartitionFn((item, ctx) -> {
                 Object value = dispatcherModel.getPartitionFn().call2(null, item, ctx, ctx.getEvalScope());
-                return ConvertHelper.toPrimitiveInt(value, NopException::new);
+                return limitHash(value);
             });
         } else {
             config.setPartitionFn((item, ctx) -> MathHelper.random().nextInt(0, Short.MAX_VALUE));
         }
 
         return config;
+    }
+
+    int limitHash(Object value) {
+        int hash = ConvertHelper.toPrimitiveInt(value, NopException::new);
+        hash = Math.abs(hash);
+        return (hash % Short.MAX_VALUE);
     }
 
     private IBatchProcessorProvider<Object, Object> newFilterProcessor(IEvalFunction func) {

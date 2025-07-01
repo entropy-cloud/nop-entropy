@@ -26,9 +26,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
- * 对每条记录计算得到一个partitionIndex，按照partitionIndex将记录拆分到多个队列中，每个队列只有一个线程负责处理
+ * 对每条记录计算得到一个partitionIndex，按照partitionIndex将记录拆分到多个队列中，每个队列只有一个线程负责处理。
+ * 这个类用于派发任务，partitionIndex相同的任务总是顺序被处理（不一定在同一个线程上）
  */
 public class PartitionDispatchQueue<T> {
     static final Logger LOG = LoggerFactory.getLogger(PartitionDispatchQueue.class);
@@ -54,6 +56,7 @@ public class PartitionDispatchQueue<T> {
     private final Condition notEmpty = lock.newCondition();
 
     private volatile boolean finished;
+    private volatile boolean noMoreData;
 
     /**
      * 当前尚未被处理的记录数
@@ -75,6 +78,7 @@ public class PartitionDispatchQueue<T> {
         fetchThreadCount.countDown();
         // 所有线程都已经结束
         if (fetchThreadCount.getCount() == 0) {
+            noMoreData = true;
             lock.lock();
             try {
                 notEmpty.signalAll();
@@ -82,6 +86,10 @@ public class PartitionDispatchQueue<T> {
                 lock.unlock();
             }
         }
+    }
+
+    public void markNoMorData() {
+        this.noMoreData = true;
     }
 
     public void finish() {
@@ -98,7 +106,7 @@ public class PartitionDispatchQueue<T> {
         return capacity;
     }
 
-    public MapOfInt<List<T>> takeBatch(int batchSize, long threadId) {
+    public MapOfInt<List<T>> takeBatch(int batchSize, long threadId, Supplier<List<T>> fetcher) {
         Guard.checkArgument(batchSize > 0, "batchSize must be non negative");
         MutableInt remainSize = new MutableInt(batchSize);
         MapOfInt<List<T>> ret = new IntHashMap<>();
@@ -127,6 +135,7 @@ public class PartitionDispatchQueue<T> {
                                 }
                                 ret.put(index, list);
                                 remainSize.addAndGet(-list.size());
+                                // 此时有可能已经空了，但是取到的数据还未处理，所以需要标记队列正在被threadId对应的线程处理
                                 queue.threadId = threadId;
                                 if (remainSize.get() <= 0)
                                     throw NopBreakException.INSTANCE;
@@ -147,25 +156,38 @@ public class PartitionDispatchQueue<T> {
                 }
 
                 // 如果所有fetch线程都已经结束，并且当前队列中也没有任何元素
-                if (count <= 0 && fetchThreadCount.getCount() == 0) {
+                if (count <= 0 && fetchThreadCount.getCount() == 0 && noMoreData) {
                     if (LOG.isDebugEnabled())
                         LOG.debug("nop.batch.no-more-data:count={},semaphore={},threadId={},queue={}", count,
                                 semaphore.availablePermits(), threadId, info());
                     return null;
                 }
 
-                // 等待addBatch加入数据
                 if (LOG.isDebugEnabled())
                     LOG.debug("nop.batch.wait-queue:count={},semaphore={},threadId={},queue={}", count,
                             semaphore.availablePermits(), threadId, info());
-                try {
-                    notEmpty.await(500, TimeUnit.MILLISECONDS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw NopException.adapt(e);
+
+                if (fetcher == null) {
+                    // 如果没有fetcher，则需要等待addBatch加入数据
+                    try {
+                        notEmpty.await(500, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw NopException.adapt(e);
+                    }
                 }
             } finally {
                 lock.unlock();
+            }
+
+            if (fetcher != null && !noMoreData) {
+                // fetcher返回空集合后表示所有数据都已经取完
+                List<T> list = fetcher.get();
+                if (!list.isEmpty()) {
+                    addBatch(list);
+                } else {
+                    noMoreData = true;
+                }
             }
         } while (true);
     }
