@@ -69,9 +69,16 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     /**
      *  
      * xml name: template
-     * 通过xpl模板语言生成prompt，可以利用xpl的扩展能力实现Prompt的结构化抽象
+     * 通过template表达式生成prompt。如果有复杂的动态处理逻辑，可以在preProcess段中完成
      */
     private io.nop.core.lang.eval.IEvalAction _template ;
+    
+    /**
+     *  
+     * xml name: usePlaceholder
+     * template段中是否使用{{name}}这种变量占位符
+     */
+    private boolean _usePlaceholder  = false;
     
     /**
      * 
@@ -262,7 +269,7 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: template
-     *  通过xpl模板语言生成prompt，可以利用xpl的扩展能力实现Prompt的结构化抽象
+     *  通过template表达式生成prompt。如果有复杂的动态处理逻辑，可以在preProcess段中完成
      */
     
     public io.nop.core.lang.eval.IEvalAction getTemplate(){
@@ -274,6 +281,25 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._template = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: usePlaceholder
+     *  template段中是否使用{{name}}这种变量占位符
+     */
+    
+    public boolean isUsePlaceholder(){
+      return _usePlaceholder;
+    }
+
+    
+    public void setUsePlaceholder(boolean value){
+        checkAllowChange();
+        
+        this._usePlaceholder = value;
            
     }
 
@@ -307,6 +333,7 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("postProcess",this.getPostProcess());
         out.putNotNull("preProcess",this.getPreProcess());
         out.putNotNull("template",this.getTemplate());
+        out.putNotNull("usePlaceholder",this.isUsePlaceholder());
     }
 
     public PromptModel cloneInstance(){
@@ -326,6 +353,7 @@ public abstract class _PromptModel extends io.nop.core.resource.component.Abstra
         instance.setPostProcess(this.getPostProcess());
         instance.setPreProcess(this.getPreProcess());
         instance.setTemplate(this.getTemplate());
+        instance.setUsePlaceholder(this.isUsePlaceholder());
     }
 
     protected PromptModel newInstance(){

@@ -33,8 +33,11 @@ import java.util.Map;
 
 import static io.nop.ai.core.AiCoreErrors.ARG_INPUT_NAME;
 import static io.nop.ai.core.AiCoreErrors.ARG_OUTPUT_NAME;
+import static io.nop.ai.core.AiCoreErrors.ARG_PROMPT_NAME;
+import static io.nop.ai.core.AiCoreErrors.ARG_VAR_NAME;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_MANDATORY_INPUT_IS_EMPTY;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_MANDATORY_OUTPUT_IS_EMPTY;
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_PROMPT_USE_UNDEFINED_VAR;
 
 public class ModelBasedPromptTemplate implements IPromptTemplate {
     static final Logger LOG = LoggerFactory.getLogger(ModelBasedPromptTemplate.class);
@@ -100,6 +103,8 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
                         if (fn != null) {
                             Object value = fn.call0(null, scope);
                             scope.setLocalValue(name, value);
+                        } else {
+                            scope.setLocalValue(input.getName(), null);
                         }
                     }
                 }
@@ -110,6 +115,8 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
                         throw new NopException(ERR_AI_MANDATORY_INPUT_IS_EMPTY)
                                 .source(input).param(ARG_INPUT_NAME, name);
                     }
+                } else if (!scope.containsLocalValue(name)) {
+                    scope.setLocalValue(name, value);
                 }
             }
         }
@@ -122,7 +129,19 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
 
     @Override
     public String generatePrompt(IEvalScope scope) {
-        return ConvertHelper.toString(promptModel.getTemplate().invoke(scope), "");
+        String prompt = ConvertHelper.toString(promptModel.getTemplate().invoke(scope), "");
+        if (promptModel.isUsePlaceholder()) {
+            prompt = StringHelper.renderTemplate(prompt, "{{", "}}", (name) -> {
+                Object value = scope.getLocalValue(name);
+                if (value == null && !scope.containsLocalValue(name))
+                    throw new NopException(ERR_AI_PROMPT_USE_UNDEFINED_VAR)
+                            .source(promptModel)
+                            .param(ARG_PROMPT_NAME, promptModel.getName())
+                            .param(ARG_VAR_NAME, name);
+                return value;
+            });
+        }
+        return prompt;
     }
 
     @Override
@@ -301,6 +320,7 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
         if (output.getXdefObj() != null) {
             XDslCleaner.INSTANCE.clean(node, output.getXdefObj());
             new XDslValidator(XDslKeys.DEFAULT).validate(node, output.getXdefObj(), true);
+            node.setAttr(XDslKeys.DEFAULT.SCHEMA, output.getXdefPath());
         }
     }
 

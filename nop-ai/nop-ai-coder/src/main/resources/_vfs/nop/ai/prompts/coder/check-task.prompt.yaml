@@ -44,10 +44,10 @@ template: |
   ```xml
   ${promptModel.getOutput('RESULT').xdefForAi}
   ```
-  $${xpl`<c:include src="/nop/ai/prompts/coder/task-flow.md" type="text" returnResult="true" returnResult="true" />`}
+  ${xpl`<c:include src="/nop/ai/prompts/coder/task-flow.md" type="text" returnResult="true" />`}
   
   【XPL模板语法】
-  ${xpl`<c:include src="/nop/ai/prompts/coder/xpl-lang.md" type="text" returnResult="true" returnResult="true" />`}
+  ${xpl`<c:include src="/nop/ai/prompts/coder/xpl-lang.md" type="text" returnResult="true" />`}
   
   【待检查代码】
   ```xml
