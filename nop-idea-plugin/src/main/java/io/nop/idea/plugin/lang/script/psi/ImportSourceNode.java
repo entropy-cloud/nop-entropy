@@ -13,6 +13,12 @@ import org.jetbrains.annotations.NotNull;
  * @date 2025-06-29
  */
 public class ImportSourceNode extends RuleSpecNode {
+    private static final JavaClassReferenceProvider provider = new JavaClassReferenceProvider();
+
+    static {
+        // 支持解析包名：JavaClassReference#advancedResolveInner
+        provider.setOption(JavaClassReferenceProvider.ADVANCED_RESOLVE, true);
+    }
 
     public ImportSourceNode(@NotNull ASTNode node) {
         super(node);
@@ -20,12 +26,8 @@ public class ImportSourceNode extends RuleSpecNode {
 
     /** 构造 Java 相关的引用对象，从而支持自动补全、引用跳转、文档显示等 */
     @Override
-    public PsiReference @NotNull [] getReferences() {
+    protected PsiReference @NotNull [] doGetReferences() {
         String fqn = getText();
-
-        JavaClassReferenceProvider provider = new JavaClassReferenceProvider();
-        // 支持解析包名：JavaClassReference#advancedResolveInner
-        provider.setOption(JavaClassReferenceProvider.ADVANCED_RESOLVE, true);
 
         JavaClassReferenceSet refSet = new JavaClassReferenceSet(fqn, this, 0, false, provider);
 

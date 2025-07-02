@@ -16,13 +16,17 @@ import io.nop.idea.plugin.lang.script.psi.ArrowFunctionBodyNode;
 import io.nop.idea.plugin.lang.script.psi.ArrowFunctionNode;
 import io.nop.idea.plugin.lang.script.psi.BlockStatementNode;
 import io.nop.idea.plugin.lang.script.psi.CalleeArgumentsNode;
-import io.nop.idea.plugin.lang.script.psi.ExpressionElementNode;
+import io.nop.idea.plugin.lang.script.psi.ExpressionNode;
 import io.nop.idea.plugin.lang.script.psi.FunctionDeclarationNode;
 import io.nop.idea.plugin.lang.script.psi.FunctionParameterDeclarationNode;
+import io.nop.idea.plugin.lang.script.psi.IdentifierNode;
 import io.nop.idea.plugin.lang.script.psi.ImportDeclarationNode;
 import io.nop.idea.plugin.lang.script.psi.ImportSourceNode;
+import io.nop.idea.plugin.lang.script.psi.LiteralNode;
+import io.nop.idea.plugin.lang.script.psi.ObjectDeclarationNode;
+import io.nop.idea.plugin.lang.script.psi.ObjectMemberNode;
 import io.nop.idea.plugin.lang.script.psi.ObjectPropertyAssignmentNode;
-import io.nop.idea.plugin.lang.script.psi.ObjectPropertyNode;
+import io.nop.idea.plugin.lang.script.psi.ObjectPropertyDeclarationNode;
 import io.nop.idea.plugin.lang.script.psi.ParameterizedTypeNode;
 import io.nop.idea.plugin.lang.script.psi.ProgramNode;
 import io.nop.idea.plugin.lang.script.psi.RuleSpecNode;
@@ -93,6 +97,10 @@ public class XLangScriptParserDefinition implements ParserDefinition {
                     new ProgramNode(node);
             case XLangParser.RULE_ast_topLevelStatement ->   //
                     new StatementRootNode(node);
+            case XLangParser.RULE_identifier ->   //
+                    new IdentifierNode(node);
+            case XLangParser.RULE_literal ->   //
+                    new LiteralNode(node);
             //
             case XLangParser.RULE_importAsDeclaration ->   //
                     new ImportDeclarationNode(node);
@@ -104,16 +112,20 @@ public class XLangScriptParserDefinition implements ParserDefinition {
             case XLangParser.RULE_blockStatement ->   //
                     new BlockStatementNode(node);
             //
+            case XLangParser.RULE_expression_single ->   //
+                    new ExpressionNode(node);
+            case XLangParser.RULE_objectExpression ->   //
+                    new ObjectDeclarationNode(node);
+            case XLangParser.RULE_ast_objectProperty ->   //
+                    new ObjectPropertyDeclarationNode(node);
             case XLangParser.RULE_parameterizedTypeNode ->   //
                     new ParameterizedTypeNode(node);
             case XLangParser.RULE_arguments_ ->   //
                     new CalleeArgumentsNode(node);
             case XLangParser.RULE_identifier_ex ->   //
-                    new ObjectPropertyNode(node);
+                    new ObjectMemberNode(node);
             case XLangParser.RULE_propertyAssignment ->   //
                     new ObjectPropertyAssignmentNode(node);
-            case XLangParser.RULE_expression_single ->   //
-                    new ExpressionElementNode(node);
             //
             case XLangParser.RULE_functionDeclaration ->   //
                     new FunctionDeclarationNode(node);

@@ -4,7 +4,7 @@ import com.intellij.lang.ASTNode;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * 对象的属性节点
+ * 对象成员（包含成员变量和方法）节点
  * <p/>
  * 如 <code>a.b.c()</code>、<code>{b, c: 1}</code> 中，
  * <code>b</code> 和 <code>c</code> 均为该类型节点
@@ -12,9 +12,9 @@ import org.jetbrains.annotations.NotNull;
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-06-30
  */
-public class ObjectPropertyNode extends RuleSpecNode {
+public class ObjectMemberNode extends RuleSpecNode {
 
-    public ObjectPropertyNode(@NotNull ASTNode node) {
+    public ObjectMemberNode(@NotNull ASTNode node) {
         super(node);
     }
 }
