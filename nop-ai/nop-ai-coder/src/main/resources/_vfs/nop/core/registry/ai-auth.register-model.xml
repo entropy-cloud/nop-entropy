@@ -1,0 +1,8 @@
+<model x:schema="/nop/schema/register-model.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       name="ai-auth">
+
+    <loaders>
+        <xdsl-loader fileType="ai-auth.xml" schemaPath="/nop/schema/coder/auth.xdef"/>
+    </loaders>
+
+</model>

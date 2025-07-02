@@ -37,7 +37,9 @@ import io.nop.markdown.simple.MarkdownDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static io.nop.ai.core.AiCoreErrors.ARG_BLOCK_BEGIN;
@@ -129,6 +131,21 @@ public class AiChatExchange {
         if (usage == null)
             usage = new AiChatUsage();
         usage.setUsedTime(usedTime);
+    }
+
+    public List<AiMessage> getAllMessages(boolean includeSystem) {
+        List<AiMessage> ret = new ArrayList<>();
+        if (includeSystem) {
+            ret.addAll(prompt.getMessages());
+        } else {
+            for (AiMessage message : prompt.getMessages()) {
+                if (!message.isSystemMessage())
+                    ret.add(message);
+            }
+        }
+        if (response != null)
+            ret.add(response);
+        return ret;
     }
 
     public Integer getPromptTokens() {
@@ -497,7 +514,7 @@ public class AiChatExchange {
         return getOutput(AiCoreConstants.OUTPUT_VAR_RESULT);
     }
 
-    public String getResultText(){
+    public String getResultText() {
         return ConvertHelper.toString(getOutput(AiCoreConstants.OUTPUT_VAR_RESULT));
     }
 

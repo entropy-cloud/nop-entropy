@@ -161,7 +161,7 @@ java -jar nop-cl.jar import-db test.import-db.xml -i=data
 java -jar nop-cl.jar import-db test.import-db.xml -i=data -s=import-status.json
 ```
 
-## transform格式转换
+## convert格式转换
 
 在 DSL 模型的 XML/JSON/YAML/XLSX 格式间进行转换
 
@@ -170,46 +170,30 @@ java -jar nop-cl.jar import-db test.import-db.xml -i=data -s=import-status.json
 ```bash
 java -jar nop-cli.jar transform <inputFile>
     [-o|--output <outputFile>]
-    [-t|--template <templatePath>]
-    [-f|--format <xml|json|json5|yaml|xlsx>]
 ```
 
 ### 参数说明
 
-| 参数               | 描述                                        |
-|------------------|-------------------------------------------|
-| `<inputFile>`    | 输入文件（支持 `.xml`/`.json`/`.yaml`/`.xlsx` 等） |
-| `-o, --output`   | 输出文件（不指定时自动生成同名文件）                        |
-| `-t, --template` | **Excel 专用**：转换模板路径（输入/输出含 `.xlsx` 时必填）   |
-| `-f, --format`   | 输出格式（不指定时按输出文件扩展名推断）                      |
+| 参数             | 描述                                             |
+|----------------|------------------------------------------------|
+| `<inputFile>`  | 输入文件（必须指定明确的文件类型，比如app.orm.xml, app.orm.xlsx等） |
+| `-o, --output` | 输出文件（波希指定明确的文件类型）                              |
+
+具体实现是使用DocumentConvertManager。
+
+1. 通过convert.xml注册文件注册各种格式之间的转换逻辑
+2. register-model.xml中注册的DSL各种格式之间可以自动双向转换
+3. 如果注册了 A->B和B->C，则可以自动支持A->C的转换（仅支持一级推导）
 
 ### 使用示例
 
-1. **基础转换**（自动推断格式）：
-   ```bash
-   # XML → JSON（生成 model.json）
-   java -jar nop-cli.jar transform model.xml  -o model.json
+ ```bash
+ # XML → XLSX
+ java -jar nop-cli.jar convert app.orm.xml  -o app.orm.xlsx
 
-   # JSON → YAML
-   java -jar nop-cli.jar transform data.json -f yaml
-   ```
-
-2. **Excel 转换**（必须用 `-t` 指定模板）：
-   ```bash
-   # Excel → XML
-   java -jar nop-cli.jar transform input.xlsx -t /nop/orm/imp/orm.imp.xml -o model.xml
-
-   # YAML → Excel
-   java -jar nop-cli.jar transform app.orm.yaml -f xlsx -t /nop/orm/imp/orm.imp.xml
-   ```
-
-#### 关键规则
-
-1. **Excel 必填模板**：输入或输出含 `.xlsx` 时，`-t` 参数**必须提供**导入模型imp.xml配置
-2. **自动推断逻辑**：
-
-- 未指定 `-f` 时，按输出文件扩展名确定格式
-- 未指定输出文件时，默认生成 JSON 格式（`输入文件名.json`）
+ # JSON → YAML
+ java -jar nop-cli.jar convert app.orm.json -o app.orm.yaml
+ ```
 
 ## 根据`page.yaml`文件生成页面json文件
 

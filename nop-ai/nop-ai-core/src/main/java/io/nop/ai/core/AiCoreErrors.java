@@ -27,6 +27,9 @@ public interface AiCoreErrors {
 
     String ARG_CONFIG_VAR = "configVar";
 
+    String ARG_PROMPT_NAME = "promptName";
+    String ARG_VAR_NAME = "varName";
+
     ErrorCode ERR_AI_SERVICE_NO_DEFAULT_LLMS =
             define("nop.err.ai.service.no-default-llms", "没有指定调用的大语言模型，也没有配置nop.ai.service.default-llm来指定缺省的大语言模型");
 
@@ -57,4 +60,7 @@ public interface AiCoreErrors {
     ErrorCode ERR_AI_MANDATORY_INPUT_IS_EMPTY = define("nop.err.ai.mandatory-input-is-empty", "输入参数{inputName}不能为空", ARG_INPUT_NAME);
 
     ErrorCode ERR_AI_MANDATORY_OUTPUT_IS_EMPTY = define("nop.err.ai.mandatory-output-is-empty", "输出参数{outputName}不能为空", ARG_OUTPUT_NAME);
+
+    ErrorCode ERR_AI_PROMPT_USE_UNDEFINED_VAR = define("nop.err.ai.prompt-var-not-defined", "提示词使用了未定义的变量{varName}",
+            ARG_PROMPT_NAME, ARG_VAR_NAME);
 }

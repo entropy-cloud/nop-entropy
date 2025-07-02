@@ -273,7 +273,7 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
                         node.appendChild(valueNode);
                     }
                 } else {
-                    addChild(node, propMeta, value);
+                    addChild(node, propMeta, loc, value);
                 }
                 break;
             }
@@ -346,13 +346,14 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
         return children;
     }
 
-    private void addChild(XNode node, IObjPropMeta propMeta, Object value) {
+    private void addChild(XNode node, IObjPropMeta propMeta, SourceLocation loc, Object value) {
         ISchema schema = propMeta.getSchema();
         switch (schema.getSchemaKind()) {
             case SIMPLE: {
                 XNode child = XNode.make(propMeta.getXmlName());
+                child.setLocation(loc);
                 value = serialize(propMeta, value);
-                child.content(value);
+                child.content(loc, value);
                 node.appendChild(child);
                 break;
             }
@@ -367,6 +368,7 @@ public class DslModelToXNodeTransformer implements IObjectToXNodeTransformer {
                 Collection<Object> list = (Collection<Object>) value;
                 if (propMeta.getXmlName() != null && !propMeta.getXmlName().equals(propMeta.getChildXmlName())) {
                     children = XNode.make(propMeta.getXmlName());
+                    children.setLocation(loc);
                 }
                 for (Object item : list) {
                     if (item == null) {

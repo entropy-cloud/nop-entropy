@@ -1,5 +1,6 @@
 package io.nop.converter.registration;
 
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.StringHelper;
@@ -10,11 +11,12 @@ import io.nop.converter.IDocumentObjectBuilder;
 import io.nop.converter.config.ConvertBuilderConfig;
 import io.nop.converter.config.ConvertConfig;
 import io.nop.converter.config.ConvertConverterConfig;
+import io.nop.converter.impl.ConvertModelBuilder;
 import io.nop.converter.impl.DslDocumentConverter;
 import io.nop.converter.impl.DslDocumentObjectBuilder;
 import io.nop.converter.impl.ExcelAdapter;
-import io.nop.core.module.ModuleManager;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
@@ -25,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class ConverterRegistrationBean {
@@ -60,13 +61,15 @@ public class ConverterRegistrationBean {
                 registry.registerConverter(fromFileType, toFileType, converter);
             });
         });
+
+        if (AppConfig.isDebugMode()) {
+            IResource resource = ResourceHelper.getDumpResource("/nop/converter/registry/merged-all.convert.xml");
+            ResourceHelper.writeXml(resource, new ConvertModelBuilder().buildConvertNode(registry));
+        }
     }
 
     ConvertConfig loadMergedConfig() {
-        List<IResource> resources = ModuleManager.instance().findModuleResources(false, "/registry", ".convert.xml");
-        IResource defaultResource = VirtualFileSystem.instance().getResource("/nop/converter/registry/default.convert.xml");
-        if (!resources.contains(defaultResource))
-            resources.add(defaultResource);
+        Collection<? extends IResource> resources = VirtualFileSystem.instance().getAllResources("/nop/converter/registry", ".convert.xml");
 
         ConvertConfig config = null;
         for (IResource resource : resources) {
@@ -77,6 +80,8 @@ public class ConverterRegistrationBean {
                 config.merge(subConfig);
             }
         }
+        if (config == null)
+            config = new ConvertConfig();
         return config;
     }
 

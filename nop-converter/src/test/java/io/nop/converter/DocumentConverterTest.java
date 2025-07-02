@@ -10,7 +10,7 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 //@Disabled
-@NopTestConfig(localDb = true)
+@NopTestConfig(localDb = true,debug=true)
 public class DocumentConverterTest extends JunitAutoTestCase {
 
     @Inject

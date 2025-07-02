@@ -13,7 +13,7 @@ public class ConvertConfig extends _ConvertConfig {
         List<ConvertBuilderConfig> builders = config.getBuilders();
         if (builders != null && !builders.isEmpty()) {
             builders.forEach(builder -> {
-                if (config.hasBuilder(builder.getFileType()))
+                if (this.hasBuilder(builder.getFileType()))
                     throw new IllegalArgumentException("Duplicate builder for file type: " + builder.getFileType());
                 this.addBuilder(builder);
             });
@@ -22,7 +22,7 @@ public class ConvertConfig extends _ConvertConfig {
         List<ConvertConverterConfig> converters = config.getConverters();
         if (converters != null && !converters.isEmpty()) {
             converters.forEach(converter -> {
-                if (config.hasConverter(converter.getId()))
+                if (this.hasConverter(converter.getId()))
                     throw new IllegalArgumentException("Duplicate converter : " + converter.getId());
                 this.addConverter(converter);
             });

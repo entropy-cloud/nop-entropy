@@ -15,6 +15,7 @@
  */
 package io.nop.ai.core.api.messages;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
@@ -43,6 +44,11 @@ public abstract class AiMessage extends Metadata {
         if(AiCoreConstants.ROLE_SYSTEM.equals(role))
             return new AiSystemMessage();
         throw new IllegalArgumentException("unknown role:" + role);
+    }
+
+    @JsonIgnore
+    public boolean isSystemMessage(){
+        return false;
     }
 
     public String getMessageId() {

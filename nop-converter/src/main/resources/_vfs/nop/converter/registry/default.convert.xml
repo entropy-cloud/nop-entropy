@@ -4,6 +4,9 @@
         <builder fileType="docx" class="io.nop.converter.impl.DocxDocumentObjectBuilder" optional="true"/>
         <builder fileType="workbook.xml"
                  class="io.nop.converter.impl.WorkbookXmlDocumentObjectBuilder" optional="true"/>
+        <builder fileType="json" class="io.nop.converter.impl.JsonDocumentObjectBuilder"/>
+        <builder fileType="json5" class="io.nop.converter.impl.JsonDocumentObjectBuilder"/>
+        <builder fileType="yaml" class="io.nop.converter.impl.JsonDocumentObjectBuilder"/>
     </builders>
 
     <converters>
@@ -30,5 +33,17 @@
 
         <converter id="docx-to-md" from="docx" to="md"
                    class="io.nop.converter.impl.WordDocumentConverter"/>
+
+        <converter id="json-to-json5" from="json" to="json5"
+                   class="io.nop.converter.impl.JsonDocumentConverter"/>
+
+        <converter id="json5-to-json" from="json5" to="json"
+                   class="io.nop.converter.impl.JsonDocumentConverter"/>
+
+        <converter id="json-to-yaml" from="json" to="yaml"
+                   class="io.nop.converter.impl.JsonDocumentConverter"/>
+
+        <converter id="yaml-to-json" from="yaml" to="json"
+                   class="io.nop.converter.impl.JsonDocumentConverter"/>
     </converters>
 </convert>

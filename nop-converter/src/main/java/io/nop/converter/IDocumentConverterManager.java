@@ -34,6 +34,8 @@ public interface IDocumentConverterManager {
     // 注册格式解析器
     void registerDocumentObjectBuilder(String fileType, IDocumentObjectBuilder builder);
 
+    Set<String> getDocumentFileTypes();
+
     // 获取格式解析器（可返回null）
     IDocumentObjectBuilder getDocumentObjectBuilder(String fileType);
 

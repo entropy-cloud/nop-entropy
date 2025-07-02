@@ -89,7 +89,7 @@ public class Prompt extends Metadata {
     }
 
     public void addMessages(Collection<AiMessage> messages) {
-        if (messages.isEmpty()) {
+        if (this.messages.isEmpty()) {
             this.messages = new ArrayList<>();
         }
         this.messages.addAll(messages);

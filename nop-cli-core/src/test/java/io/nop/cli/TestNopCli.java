@@ -128,32 +128,16 @@ public class TestNopCli extends BaseTestCase {
     }
 
     @Test
-    public void testTransform() {
+    public void testConvert() {
         CoreInitialization.destroy();
-        String[] args = new String[]{"transform", "../nop-cli/demo/_vfs/app/demo/orm/app.orm.xml",
-                "-t", "/nop/orm/imp/orm.imp.xml", "-o", "target/app.orm.xlsx"};
+        String[] args = new String[]{"convert", "../nop-cli/demo/_vfs/app/demo/orm/app.orm.xml",
+                "-o", "target/app.orm.xlsx"};
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);
         int ret = app.run(args);
         assertEquals(0, ret);
 
-        args = new String[]{"transform", "target/app.orm.xlsx",
-                "-t", "/nop/orm/imp/orm.imp.xml", "-o", "target/app.orm.json"};
-
-        app = new NopCliApplication();
-        app.setFactory(factory);
-        ret = app.run(args);
-        assertEquals(0, ret);
-
-        args = new String[]{"transform", "target/app.orm.xlsx",
-                "-t", "/nop/orm/imp/orm.imp.xml", "-o", "target/app.orm.xml"};
-
-        app = new NopCliApplication();
-        app.setFactory(factory);
-        ret = app.run(args);
-        assertEquals(0, ret);
-
-        args = new String[]{"transform", "../nop-cli/demo/_vfs/app/demo/orm/app.orm.xml",
+        args = new String[]{"convert", "target/app.orm.xlsx",
                 "-o", "target/app.orm.json"};
 
         app = new NopCliApplication();
@@ -161,7 +145,23 @@ public class TestNopCli extends BaseTestCase {
         ret = app.run(args);
         assertEquals(0, ret);
 
-        args = new String[]{"transform", "../nop-cli/demo/_vfs/app/demo/orm/app.orm.xml",
+        args = new String[]{"convert", "target/app.orm.xlsx",
+                "-o", "target/app.orm.xml"};
+
+        app = new NopCliApplication();
+        app.setFactory(factory);
+        ret = app.run(args);
+        assertEquals(0, ret);
+
+        args = new String[]{"convert", "../nop-cli/demo/_vfs/app/demo/orm/app.orm.xml",
+                "-o", "target/app.orm.json"};
+
+        app = new NopCliApplication();
+        app.setFactory(factory);
+        ret = app.run(args);
+        assertEquals(0, ret);
+
+        args = new String[]{"convert", "../nop-cli/demo/_vfs/app/demo/orm/app.orm.xml",
                 "-o", "target/app.orm.yaml"};
 
         app = new NopCliApplication();
@@ -169,7 +169,7 @@ public class TestNopCli extends BaseTestCase {
         ret = app.run(args);
         assertEquals(0, ret);
 
-        args = new String[]{"transform", "target/app.orm.xlsx",
+        args = new String[]{"convert", "target/app.orm.xlsx",
                 "-o", "target/app.orm.shtml"};
 
         app = new NopCliApplication();
@@ -177,8 +177,8 @@ public class TestNopCli extends BaseTestCase {
         ret = app.run(args);
         assertEquals(0, ret);
 
-        args = new String[]{"transform", "target/app.orm.xlsx",
-                "-o", "target/app.xml"};
+        args = new String[]{"convert", "target/app.orm.xlsx",
+                "-o", "target/app.orm.xml"};
 
         app = new NopCliApplication();
         app.setFactory(factory);

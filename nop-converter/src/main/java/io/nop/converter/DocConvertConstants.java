@@ -4,6 +4,7 @@ public interface DocConvertConstants {
     String FILE_TYPE_XML = "xml";
     String FILE_TYPE_JSON = "json";
     String FILE_TYPE_YAML = "yaml";
+    String FILE_TYPE_YML = "yml";
     String FILE_TYPE_JSON5 = "json5";
     String FILE_TYPE_MD = "md";
     String FILE_TYPE_XLSX = "xlsx";

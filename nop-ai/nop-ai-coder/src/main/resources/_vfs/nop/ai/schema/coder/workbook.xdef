@@ -39,8 +39,6 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
         </style>
     </styles>
 
-    <defaultFont xdef:ref="font.xdef"/>
-
     <sheets xdef:body-type="list" xdef:key-attr="name">
         <sheet name="!string" defaultColumnWidth="double" defaultRowHeight="double">
             <table>

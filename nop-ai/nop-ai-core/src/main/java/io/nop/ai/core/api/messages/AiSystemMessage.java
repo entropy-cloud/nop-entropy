@@ -15,6 +15,7 @@
  */
 package io.nop.ai.core.api.messages;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.ai.core.AiCoreConstants;
 import io.nop.api.core.annotations.data.DataBean;
 
@@ -31,5 +32,10 @@ public class AiSystemMessage extends AbstractTextMessage {
     @Override
     public String getRole() {
         return AiCoreConstants.ROLE_SYSTEM;
+    }
+
+    @JsonIgnore
+    public boolean isSystemMessage() {
+        return true;
     }
 }

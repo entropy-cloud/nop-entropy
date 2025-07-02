@@ -31,6 +31,8 @@ public @interface NopTestConfig {
      */
     boolean randomPort() default false;
 
+    boolean debug() default false;
+
     /**
      * 缺省使用lazy模式来执行单元测试
      */

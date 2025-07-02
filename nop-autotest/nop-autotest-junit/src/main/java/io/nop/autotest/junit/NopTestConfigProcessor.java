@@ -34,6 +34,9 @@ import static io.nop.orm.OrmConfigs.CFG_INIT_DATABASE_SCHEMA;
 public class NopTestConfigProcessor {
 
     public void process(NopTestConfig config) {
+        if (config.debug()) {
+            setTestConfig(ApiConfigs.CFG_DEBUG, true);
+        }
         if (config.useTestClock()) {
             CoreMetrics.registerClock(new TestClock());
         }

@@ -1,7 +1,10 @@
+<!--
+@usePlaceholder template段中是否使用{{name}}这种变量占位符
+-->
 <prompt xdef:name="PromptModel" xdef:bean-package="io.nop.ai.core.model"
         x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
         xmlns:xdef="/nop/schema/xdef.xdef"
-        displayName="string">
+        displayName="string" usePlaceholder="!boolean=false">
 
     <description xdef:value="string"/>
 
@@ -67,7 +70,7 @@
     </outputs>
 
     <!--
-    通过xpl模板语言生成prompt，可以利用xpl的扩展能力实现Prompt的结构化抽象
+    通过template表达式生成prompt。如果有复杂的动态处理逻辑，可以在preProcess段中完成
     -->
     <template>t-expr</template>
 

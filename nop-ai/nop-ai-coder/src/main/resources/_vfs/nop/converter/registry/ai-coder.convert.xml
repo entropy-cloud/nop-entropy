@@ -1,0 +1,15 @@
+<convert x:schema="/nop/schema/convert.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+
+    <converters>
+        <converter id="ai-orm-to-orm" from="ai-orm.xml" to="orm.xml"
+                   class="io.nop.ai.coder.convert.AiOrmDocumentConverter"/>
+
+        <converter id="orm-to-ai-orm" from="orm.xml" to="ai-orm.xml"
+                   class="io.nop.ai.coder.convert.AiOrmDocumentConverter"/>
+
+        <converter id="orm-xml-to-java" from="orm.xml" to="orm.java"
+                   class="io.nop.ai.coder.convert.AiOrmDocumentConverter"/>
+
+    </converters>
+</convert>

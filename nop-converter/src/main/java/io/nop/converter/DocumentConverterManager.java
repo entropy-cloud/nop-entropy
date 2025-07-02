@@ -179,6 +179,10 @@ public class DocumentConverterManager implements IDocumentConverterManager {
         }
     }
 
+    public Set<String> getDocumentFileTypes() {
+        return new TreeSet<>(documentObjectBuilders.keySet());
+    }
+
     @Override
     public IDocumentObjectBuilder getDocumentObjectBuilder(String fileType) {
         IDocumentObjectBuilder builder = documentObjectBuilders.get(fileType);

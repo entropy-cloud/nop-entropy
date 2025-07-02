@@ -26,7 +26,7 @@ public class NopCliApplication implements QuarkusApplication {
     private CommandLine.IFactory factory;
 
     @Inject
-    public void setFactory(CommandLine.IFactory factory){
+    public void setFactory(CommandLine.IFactory factory) {
         this.factory = factory;
     }
 
@@ -40,7 +40,9 @@ public class NopCliApplication implements QuarkusApplication {
         CommandLine cmd = new CommandLine(new MainCommand(), factory);
         cmd.setExitCodeExceptionMapper(new NopExitCodeExceptionMapper());
 
-        return new NopApplication().run(args, () -> cmd.execute(args));
+        int ret = new NopApplication().run(args, () -> cmd.execute(args));
+        CoreInitialization.destroy();
+        return ret;
     }
 
     public void stop(@Observes ShutdownEvent event) {

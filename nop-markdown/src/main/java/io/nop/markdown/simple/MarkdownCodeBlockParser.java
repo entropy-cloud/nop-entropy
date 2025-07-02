@@ -24,9 +24,12 @@ public class MarkdownCodeBlockParser {
         return null;
     }
 
-    public List<MarkdownCodeBlock> parseAllCodeBlocks(SourceLocation loc, String text) {
+    public List<MarkdownCodeBlock> parseAllCodeBlocks(SourceLocation loc, String text, String lang) {
         List<MarkdownCodeBlock> ret = new ArrayList<>();
-        forEachCodeBlock(loc, text, ret::add);
+        forEachCodeBlock(loc, text, block -> {
+            if (lang == null || lang.equals(block.getLang()))
+                ret.add(block);
+        });
         return ret;
     }
 
@@ -44,8 +47,8 @@ public class MarkdownCodeBlockParser {
     /**
      * 解析Markdown文本中的下一个代码块
      *
-     * @param loc 源码位置信息，可为null
-     * @param text 要解析的文本
+     * @param loc   源码位置信息，可为null
+     * @param text  要解析的文本
      * @param start 开始解析的位置
      * @return 解析到的代码块，如果没有找到则返回null
      * @throws IllegalArgumentException 如果text为null或start无效
@@ -122,8 +125,8 @@ public class MarkdownCodeBlockParser {
         if (pos == startPos)
             return pos;
         pos = text.indexOf(MIDDLE_CODE_BLOCK_START, startPos);
-        if(pos > 0)
-            pos ++;
+        if (pos > 0)
+            pos++;
         return pos;
     }
 

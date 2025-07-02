@@ -4,6 +4,7 @@ import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.chat.IAiChatLogger;
 import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.messages.AiChatExchange;
+import io.nop.ai.core.api.messages.AiMessage;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.api.tool.IToolProvider;
 import io.nop.ai.core.commons.processor.IAiChatResponseProcessor;
@@ -25,6 +26,7 @@ import io.nop.core.lang.eval.IEvalScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
@@ -42,6 +44,7 @@ public class AiCommand {
 
     private IPromptTemplate systemPromptTemplate;
     private IPromptTemplate promptTemplate;
+    private List<AiMessage> prevMessages;
     private IAiChatResponseProcessor chatResponseProcessor;
     private int retryTimesPerRequest = 3;
     private AiChatOptions chatOptions;
@@ -93,6 +96,14 @@ public class AiCommand {
 
     public void setRetryTimesPerRequest(int retryTimesPerRequest) {
         this.retryTimesPerRequest = retryTimesPerRequest;
+    }
+
+    public List<AiMessage> getPrevMessages() {
+        return prevMessages;
+    }
+
+    public void setPrevMessages(List<AiMessage> prevMessages) {
+        this.prevMessages = prevMessages;
     }
 
     public Set<String> getUseTools() {
@@ -336,7 +347,11 @@ public class AiCommand {
         String promptText = promptTemplate.generatePrompt(scope);
         Guard.notEmpty(promptText, "promptText");
         Prompt prompt = new Prompt();
-        addSystemPrompt(prompt, scope);
+        if (prevMessages != null) {
+            prompt.addMessages(prevMessages);
+        } else {
+            addSystemPrompt(prompt, scope);
+        }
         prompt.addUserMessage(promptText);
         prompt.setName(promptTemplate.getName());
 

@@ -13,11 +13,13 @@ import io.nop.task.ITask;
 import io.nop.task.ITaskFlowManager;
 import io.nop.task.ITaskRuntime;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.Set;
 
+@Disabled
 public class AiGenCodeTask extends JunitBaseTestCase {
     @Inject
     IPromptTemplateManager promptTemplateManager;
