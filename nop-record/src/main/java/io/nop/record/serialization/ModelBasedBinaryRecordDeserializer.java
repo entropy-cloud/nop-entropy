@@ -3,6 +3,7 @@ package io.nop.record.serialization;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.collections.bit.IBitSet;
+import io.nop.commons.util.StringHelper;
 import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldCodecContext;
@@ -23,6 +24,7 @@ import java.util.Arrays;
 
 import static io.nop.record.RecordErrors.ARG_EXPECTED;
 import static io.nop.record.RecordErrors.ARG_POS;
+import static io.nop.record.RecordErrors.ARG_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_VALUE_NOT_MATCH_STRING;
 import static io.nop.record.util.RecordMetaHelper.resolveBinaryCodec;
 import static io.nop.record.util.RecordMetaHelper.resolveTagBinaryCodec;
@@ -66,7 +68,8 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
         if (!Arrays.equals(bytes, read))
             throw new NopException(ERR_RECORD_VALUE_NOT_MATCH_STRING)
                     .param(ARG_POS, in.pos())
-                    .param(ARG_EXPECTED, str);
+                    .param(ARG_EXPECTED, str)
+                    .param(ARG_VALUE, StringHelper.bytesToHex(read));
     }
 
     @Override
@@ -79,7 +82,9 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
             String str = decodeString(in, field.getCharsetObj(), field.getLength());
             if (field.getContent() != null) {
                 if (!field.getContent().utf8().equals(str))
-                    throw new NopException(ERR_RECORD_VALUE_NOT_MATCH_STRING).param(ARG_POS, in.pos()).param(ARG_EXPECTED, field.getContent().utf8());
+                    throw new NopException(ERR_RECORD_VALUE_NOT_MATCH_STRING)
+                            .param(ARG_POS, in.pos()).param(ARG_EXPECTED, field.getContent().utf8())
+                            .param(ARG_VALUE, str);
             }
             str = RecordMetaHelper.trimText(str, field);
             return str;

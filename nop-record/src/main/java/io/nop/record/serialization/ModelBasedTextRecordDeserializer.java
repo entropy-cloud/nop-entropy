@@ -22,6 +22,7 @@ import java.util.Arrays;
 
 import static io.nop.record.RecordErrors.ARG_EXPECTED;
 import static io.nop.record.RecordErrors.ARG_POS;
+import static io.nop.record.RecordErrors.ARG_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_VALUE_NOT_MATCH_STRING;
 import static io.nop.record.util.RecordMetaHelper.resolveTagTextCodec;
 import static io.nop.record.util.RecordMetaHelper.resolveTextCodec;
@@ -63,7 +64,8 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
         if (!str.equals(read))
             throw new NopException(ERR_RECORD_VALUE_NOT_MATCH_STRING)
                     .param(ARG_POS, in.pos())
-                    .param(ARG_EXPECTED, str);
+                    .param(ARG_EXPECTED, str)
+                    .param(ARG_VALUE, read);
     }
 
     @Override
@@ -77,7 +79,9 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
             String str = in.read(field.getLength());
             if (field.getContent() != null) {
                 if (!field.getContent().utf8().equals(str))
-                    throw new NopException(ERR_RECORD_VALUE_NOT_MATCH_STRING).param(ARG_POS, in.pos()).param(ARG_EXPECTED, field.getContent().utf8());
+                    throw new NopException(ERR_RECORD_VALUE_NOT_MATCH_STRING)
+                            .param(ARG_POS, in.pos()).param(ARG_EXPECTED, field.getContent().utf8())
+                            .param(ARG_VALUE, str);
             }
             str = RecordMetaHelper.trimText(str, field);
             return str;
