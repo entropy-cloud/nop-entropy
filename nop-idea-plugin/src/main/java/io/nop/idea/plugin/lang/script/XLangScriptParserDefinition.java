@@ -29,8 +29,10 @@ import io.nop.idea.plugin.lang.script.psi.ObjectPropertyAssignmentNode;
 import io.nop.idea.plugin.lang.script.psi.ObjectPropertyDeclarationNode;
 import io.nop.idea.plugin.lang.script.psi.ParameterizedTypeNode;
 import io.nop.idea.plugin.lang.script.psi.ProgramNode;
+import io.nop.idea.plugin.lang.script.psi.ReturnStatementNode;
 import io.nop.idea.plugin.lang.script.psi.RuleSpecNode;
-import io.nop.idea.plugin.lang.script.psi.StatementRootNode;
+import io.nop.idea.plugin.lang.script.psi.StatementNode;
+import io.nop.idea.plugin.lang.script.psi.TopLevelStatementNode;
 import io.nop.idea.plugin.lang.script.psi.VariableDeclarationNode;
 import io.nop.xlang.parse.antlr.XLangLexer;
 import io.nop.xlang.parse.antlr.XLangParser;
@@ -96,7 +98,9 @@ public class XLangScriptParserDefinition implements ParserDefinition {
             case XLangParser.RULE_program ->   //
                     new ProgramNode(node);
             case XLangParser.RULE_ast_topLevelStatement ->   //
-                    new StatementRootNode(node);
+                    new TopLevelStatementNode(node);
+            case XLangParser.RULE_statement ->   //
+                    new StatementNode(node);
             case XLangParser.RULE_identifier ->   //
                     new IdentifierNode(node);
             case XLangParser.RULE_literal ->   //
@@ -135,6 +139,8 @@ public class XLangScriptParserDefinition implements ParserDefinition {
                     new ArrowFunctionNode(node);
             case XLangParser.RULE_expression_functionBody ->   //
                     new ArrowFunctionBodyNode(node);
+            case XLangParser.RULE_returnStatement ->   //
+                    new ReturnStatementNode(node);
             default -> new RuleSpecNode(node);
         };
     }

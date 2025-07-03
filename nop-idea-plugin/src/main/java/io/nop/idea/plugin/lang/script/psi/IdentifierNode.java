@@ -1,5 +1,7 @@
 package io.nop.idea.plugin.lang.script.psi;
 
+import java.util.Map;
+
 import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiClass;
 import org.jetbrains.annotations.NotNull;
@@ -18,7 +20,11 @@ public class IdentifierNode extends RuleSpecNode {
 
     /** 获取变量的数据类型 */
     public PsiClass getDataType() {
-        // TODO 至下而上查找上下文中的变量类型信息
-        return null;
+        String varName = getText();
+
+        Map<String, VarDecl> vars = getVisibleVarTypes();
+        VarDecl varDecl = vars.get(varName);
+
+        return varDecl != null ? varDecl.type : null;
     }
 }

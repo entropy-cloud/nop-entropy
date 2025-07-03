@@ -17,6 +17,4 @@ public class ProgramNode extends RuleSpecNode {
     public ProgramNode(@NotNull ASTNode node) {
         super(node);
     }
-
-    // TODO 获取上下文环境中可访问的变量
 }

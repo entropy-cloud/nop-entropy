@@ -2,6 +2,7 @@ package io.nop.idea.plugin.lang.script.reference;
 
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiReferenceBase;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -13,14 +14,16 @@ import org.jetbrains.annotations.Nullable;
  * @date 2025-07-01
  */
 public class ClassPropertyReference extends PsiReferenceBase<PsiElement> {
+    private final PsiField prop;
 
-    public ClassPropertyReference(@NotNull PsiElement element, TextRange rangeInElement) {
+    public ClassPropertyReference(@NotNull PsiElement element, PsiField prop, TextRange rangeInElement) {
         super(element, rangeInElement);
+        this.prop = prop;
     }
 
     @Override
     public @Nullable PsiElement resolve() {
-        return null;
+        return prop;
     }
 
     @Override

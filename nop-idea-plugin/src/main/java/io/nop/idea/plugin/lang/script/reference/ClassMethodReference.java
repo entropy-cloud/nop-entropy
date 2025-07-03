@@ -23,7 +23,7 @@ public class ClassMethodReference extends PsiReferenceBase<PsiElement> {
 
     @Override
     public @Nullable PsiElement resolve() {
-        return this.method;
+        return method;
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.impl.source.resolve.reference.impl.providers.JavaClassReferenceProvider;
 import com.intellij.psi.impl.source.resolve.reference.impl.providers.JavaClassReferenceSet;
+import com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -22,6 +23,14 @@ public class ImportSourceNode extends RuleSpecNode {
 
     public ImportSourceNode(@NotNull ASTNode node) {
         super(node);
+    }
+
+    public String getClassName() {
+        return PsiTreeUtil.getDeepestLast(this).getText();
+    }
+
+    public String getClassFullyQualifiedName() {
+        return getText();
     }
 
     /** 构造 Java 相关的引用对象，从而支持自动补全、引用跳转、文档显示等 */

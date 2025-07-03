@@ -19,40 +19,36 @@ public class TestXLangScriptParser extends BaseXLangPluginTestCase {
 //        assertParseTree("const abc = ", "/test/ast/statement-err-2.ast");
 //        assertParseTree("const abc = () =>", "/test/ast/statement-err-3.ast");
 //
-//        assertParseTree("import java.lang.String;", "/test/ast/statement-1.ast");
-//
-//        assertParseTree("""
-//                                import java.lang.String;
-//                                import java.lang.Number;
-//                                """, "/test/ast/statement-2.ast");
-//
-//        assertParseTree("""
-//                                import java.lang.String;
-//                                import java.lang.Number;
-//                                const abc = new String("abc");
-//                                const def = 123;
-//                                """, "/test/ast/statement-3.ast");
-//
-//        assertParseTree("""
-//                                import java.lang.Number;
-//                                const fn1 = (a, b) => a + b;
-//                                function fn2(a, b) {
-//                                    return a + b;
-//                                }
-//                                function fn3(a: string, b: number) {
-//                                    return a + b;
-//                                }
-//                                """, "/test/ast/statement-4.ast");
-
         assertParseTree("""
+                                import java.lang.String;
+                                import java.lang.Number;
+                                //
                                 const abc = ormTemplate.findListByQuery(query, mapper);
                                 query.addFilter(filter(query, svcCtx));
+                                //
                                 a(1, 2);
                                 a.b.c(1, 2);
+                                //
+                                let abc = new String("abc");
+                                let def = 123;
                                 const c = a.b.c;
                                 const def = {a, b: 1};
+                                //
+                                const fn1 = (a, b) => a + b;
+                                function fn2(a, b) {
+                                    const c = 5;
+                                    return a + b + c;
+                                }
+                                function fn3(a: string, b: number) {
+                                    return a + b;
+                                }
+                                //
+                                if (a > 2) {
+                                    let b = 3;
+                                    a.b(b, 1);
+                                }
                                 """, //
-                        "/test/ast/statement-5.ast");
+                        "/test/ast/statement-1.ast");
     }
 
     public void testJavaParseTree() {

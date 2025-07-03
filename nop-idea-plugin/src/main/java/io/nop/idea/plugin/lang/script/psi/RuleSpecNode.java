@@ -1,8 +1,12 @@
 package io.nop.idea.plugin.lang.script.psi;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.application.ReadAction;
+import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
 import org.antlr.intellij.adaptor.psi.Trees;
@@ -29,7 +33,46 @@ public class RuleSpecNode extends ASTWrapperPsiElement {
         return ReadAction.compute(this::doGetReferences);
     }
 
+    /** 获取当前节点可访问到的变量及其类型 */
+    public @NotNull Map<String, VarDecl> getVisibleVarTypes() {
+        Map<String, VarDecl> types = new HashMap<>();
+
+        PsiElement node = this;
+        while (node instanceof RuleSpecNode) {
+            PsiElement parent = node.getParent();
+
+            // Note: 下层的变量优先于上层的变量
+            if (parent instanceof RuleSpecNode) {
+                for (PsiElement child : parent.getChildren()) {
+                    if (child != node) {
+                        ((RuleSpecNode) child).getVarTypes().forEach(types::putIfAbsent);
+                    }
+                }
+            } else {
+                // TODO 从所在的 <c:script/> 标签中获取 xlib 函数的参数列表以及内置变量列表
+            }
+
+            node = parent;
+        }
+        return types;
+    }
+
+    /** 获取当前节点所定义的变量及其类型 */
+    public @NotNull Map<String, VarDecl> getVarTypes() {
+        return Map.of();
+    }
+
     protected PsiReference @NotNull [] doGetReferences() {
         return PsiReference.EMPTY_ARRAY;
+    }
+
+    public static class VarDecl {
+        public final PsiElement element;
+        public final PsiClass type;
+
+        VarDecl(PsiElement element, PsiClass type) {
+            this.element = element;
+            this.type = type;
+        }
     }
 }
