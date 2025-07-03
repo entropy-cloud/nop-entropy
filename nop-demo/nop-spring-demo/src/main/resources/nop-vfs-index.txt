@@ -385,6 +385,7 @@
 /nop/schema/biz/state-machine.xdef
 /nop/schema/biz/xbiz.xdef
 /nop/schema/conf.xdef
+/nop/schema/convert.xdef
 /nop/schema/data-auth.xdef
 /nop/schema/datav/chart.xdef
 /nop/schema/db/export-db.xdef
@@ -399,6 +400,7 @@
 /nop/schema/excel/imp.xdef
 /nop/schema/excel/page-margins.xdef
 /nop/schema/excel/page-setup.xdef
+/nop/schema/excel/sheet-protection.xdef
 /nop/schema/excel/style.xdef
 /nop/schema/excel/workbook.xdef
 /nop/schema/gateway.xdef

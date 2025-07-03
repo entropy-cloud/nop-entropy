@@ -538,6 +538,19 @@
     "fields": [],
     "methods": [
       {
+        "name": "readExchange",
+        "parameterTypes": [
+          "io.nop.commons.text.tokenizer.TextScanner"
+        ]
+      },
+      {
+        "name": "writeExchange",
+        "parameterTypes": [
+          "java.lang.StringBuilder",
+          "io.nop.ai.core.api.messages.AiChatExchange"
+        ]
+      },
+      {
         "name": "writeRequest",
         "parameterTypes": [
           "java.lang.StringBuilder",
@@ -6729,6 +6742,166 @@
       }
     ],
     "name": "io.nop.config.source.jdbc.JdbcConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.converter.config.ConvertBuilderConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.converter.config.ConvertConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.converter.config.ConvertConverterConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.converter.config.ConvertBuilderConfig"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.converter.config._gen._ConvertBuilderConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.converter.config.ConvertConfig"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.converter.config._gen._ConvertConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "copyTo",
+        "parameterTypes": [
+          "io.nop.converter.config.ConvertConverterConfig"
+        ]
+      },
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      },
+      {
+        "name": "outputJson",
+        "parameterTypes": [
+          "io.nop.core.lang.json.IJsonHandler"
+        ]
+      }
+    ],
+    "name": "io.nop.converter.config._gen._ConvertConverterConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "loadDslConverters",
+        "parameterTypes": [
+          "io.nop.converter.DocumentConverterManager",
+          "java.util.Map"
+        ]
+      },
+      {
+        "name": "newConverter",
+        "parameterTypes": [
+          "io.nop.converter.config.ConvertConverterConfig"
+        ]
+      },
+      {
+        "name": "newConverter",
+        "parameterTypes": [
+          "java.lang.String",
+          "io.nop.core.resource.component.ComponentModelConfig$LoaderConfig",
+          "io.nop.core.resource.component.ComponentModelConfig$LoaderConfig"
+        ]
+      },
+      {
+        "name": "putConverter",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.lang.String",
+          "java.lang.String",
+          "io.nop.converter.IDocumentConverter",
+          "boolean"
+        ]
+      },
+      {
+        "name": "registerBuilder",
+        "parameterTypes": [
+          "io.nop.converter.DocumentConverterManager",
+          "io.nop.converter.config.ConvertBuilderConfig"
+        ]
+      }
+    ],
+    "name": "io.nop.converter.registration.ConverterRegistrationBean"
   },
   {
     "allDeclaredConstructors": true,
@@ -25685,6 +25858,16 @@
       }
     ],
     "name": "io.nop.orm.utils.SingleSessionFunctionInvoker"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.record.initializer.RecordCoreInitializer"
   },
   {
     "allDeclaredConstructors": true,
