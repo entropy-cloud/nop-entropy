@@ -18,6 +18,7 @@
                     const query = QueryBeanHelper.buildQueryBeanFromTreeBean(queryNode);
                     const ormTemplate = inject('nopOrmTemplate');
                     const mapper = ormTemplate.getRowMapper(rowType,false);
+                    const s = "abc".startsWith("a");
 
                     while (true) {
                         let a = 's' instanceof string;

@@ -3,7 +3,6 @@ package io.nop.idea.plugin.lang.script.psi;
 import java.util.Map;
 
 import com.intellij.lang.ASTNode;
-import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import org.jetbrains.annotations.NotNull;
 
@@ -19,8 +18,6 @@ public class StatementNode extends RuleSpecNode {
 
     @Override
     public @NotNull Map<String, VarDecl> getVarTypes() {
-        PsiElement firstChild = getFirstChild();
-
         /* 变量声明：let def = 123;
         StatementNode(statement)
           VariableDeclarationNode(variableDeclaration)
@@ -40,18 +37,11 @@ public class StatementNode extends RuleSpecNode {
             RuleSpecNode(eos__)
               PsiElement(';')(';')
         */
-        if (firstChild instanceof VariableDeclarationNode declaration) {
-            RuleSpecNode declarator = (RuleSpecNode) declaration.getLastChild().getFirstChild();
-            IdentifierNode identifier = (IdentifierNode) declarator.getFirstChild().getFirstChild();
-            ExpressionNode expression = (ExpressionNode) declarator.getLastChild().getLastChild();
-
-            String varName = identifier.getText();
-            PsiClass varType = expression.getResultType();
-            VarDecl varDecl = new VarDecl(identifier, varType);
-
-            return Map.of(varName, varDecl);
+        for (PsiElement child : getChildren()) {
+            if (child instanceof VariableDeclarationNode declaration) {
+                return declaration.getVarTypes();
+            }
         }
-
         return Map.of();
     }
 }

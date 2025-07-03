@@ -5,6 +5,7 @@ import java.util.regex.Pattern;
 import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.impl.source.tree.LeafPsiElement;
+import com.intellij.psi.util.PsiTreeUtil;
 import io.nop.idea.plugin.utils.PsiClassHelper;
 import io.nop.xlang.parse.antlr.XLangLexer;
 import org.antlr.intellij.adaptor.lexer.TokenIElementType;
@@ -24,7 +25,7 @@ public class LiteralNode extends RuleSpecNode {
 
     /** 获取字面量的数据类型 */
     public PsiClass getDataType() {
-        LeafPsiElement target = (LeafPsiElement) getFirstChild().getFirstChild();
+        LeafPsiElement target = (LeafPsiElement) PsiTreeUtil.getDeepestLast(this);
 
         String typeName = switch (((TokenIElementType) target.getElementType()).getANTLRTokenType()) {
             case XLangLexer.NullLiteral  //

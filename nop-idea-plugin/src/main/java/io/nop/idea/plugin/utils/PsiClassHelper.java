@@ -7,10 +7,13 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.intellij.openapi.project.Project;
+import com.intellij.psi.CommonClassNames;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.JavaRecursiveElementVisitor;
 import com.intellij.psi.PsiAnnotation;
+import com.intellij.psi.PsiArrayType;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiClassType;
 import com.intellij.psi.PsiConstantEvaluationHelper;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementFactory;
@@ -20,10 +23,16 @@ import com.intellij.psi.PsiLiteralExpression;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiModifier;
 import com.intellij.psi.PsiNameValuePair;
+import com.intellij.psi.PsiPrimitiveType;
 import com.intellij.psi.PsiReferenceExpression;
 import com.intellij.psi.PsiReturnStatement;
+import com.intellij.psi.PsiType;
+import com.intellij.psi.PsiTypeParameter;
+import com.intellij.psi.PsiTypes;
+import com.intellij.psi.PsiWildcardType;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.searches.ClassInheritorsSearch;
+import com.intellij.psi.util.PsiUtil;
 import com.intellij.util.EmptyQuery;
 import com.intellij.util.Query;
 import io.nop.commons.util.StringHelper;
@@ -35,6 +44,96 @@ import org.jetbrains.annotations.NotNull;
  * @date 2025-06-26
  */
 public class PsiClassHelper {
+    private static final Map<PsiPrimitiveType, String> primitiveTypeWrapper = Map.of(PsiTypes.byteType(),
+                                                                                     "java.lang.Byte",
+                                                                                     PsiTypes.shortType(),
+                                                                                     "java.lang.Short",
+                                                                                     PsiTypes.intType(),
+                                                                                     "java.lang.Integer",
+                                                                                     PsiTypes.longType(),
+                                                                                     "java.lang.Long",
+                                                                                     PsiTypes.floatType(),
+                                                                                     "java.lang.Float",
+                                                                                     PsiTypes.doubleType(),
+                                                                                     "java.lang.Double",
+                                                                                     PsiTypes.charType(),
+                                                                                     "java.lang.Character",
+                                                                                     PsiTypes.booleanType(),
+                                                                                     "java.lang.Boolean",
+                                                                                     PsiTypes.voidType(),
+                                                                                     "java.lang.Void");
+
+    /** 得到 {@link PsiType} 对应的 {@link PsiClass} */
+    public static PsiClass getTypeClass(Project project, PsiType type) {
+        if (type == null) {
+            return null;
+        }
+
+//        String typeName = type.getCanonicalText(false);
+//        return PsiClassHelper.findClass(project, typeName);
+
+        // 处理通配符泛型
+        if (type instanceof PsiWildcardType t) {
+            PsiType bound = t.getBound();
+
+            return bound != null
+                   ? getTypeClass(project, bound)
+                   : PsiUtil.resolveClassInType(PsiType.getJavaLangObject(t.getManager(), t.getResolveScope()));
+        }
+        // 处理类型参数
+        else if (type instanceof PsiTypeParameter t) {
+            PsiClassType[] bounds = t.getExtendsListTypes();
+
+            if (bounds.length > 0) {
+                return getTypeClass(project, bounds[0]);
+            }
+            return PsiUtil.resolveClassInType(PsiType.getJavaLangObject(t.getManager(), t.getResolveScope()));
+        }
+        // 处理原始类型
+        else if (type instanceof PsiPrimitiveType t) {
+            String wrapperName = primitiveTypeWrapper.get(t);
+
+            if (wrapperName != null) {
+                return JavaPsiFacade.getInstance(project).findClass(wrapperName, GlobalSearchScope.allScope(project));
+            }
+            return null;
+        }
+        // 处理数组类型
+        else if (type instanceof PsiArrayType t) {
+            return getTypeClass(project, t.getComponentType());
+        }
+        // 处理类类型（包括泛型）
+        else if (type instanceof PsiClassType t) {
+            PsiClass cls = t.resolve();
+            // 泛型参数
+            PsiType[] parameters = t.getParameters();
+
+            if (cls != null && parameters.length > 0) {
+                // List<String> -> 返回 String.class
+                if (CommonClassNames.JAVA_UTIL_LIST.equals(cls.getQualifiedName())) {
+                    return getTypeClass(project, parameters[0]);
+                }
+
+                // 自定义泛型类
+                PsiTypeParameter[] typeParams = cls.getTypeParameters();
+                if (typeParams.length > 0) {
+                    // 查找实际使用的类型参数
+                    for (int i = 0; i < typeParams.length; i++) {
+                        if (i < parameters.length) {
+                            PsiClass resolved = getTypeClass(project, parameters[i]);
+
+                            if (resolved != null) {
+                                return resolved;
+                            }
+                        }
+                    }
+                }
+            }
+            return cls;
+        }
+
+        return null;
+    }
 
     /**
      * 查找项目中 {@link io.nop.xlang.xdef.IStdDomainHandler IStdDomainHandler} 的实现类，

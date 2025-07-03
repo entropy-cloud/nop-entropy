@@ -9,6 +9,7 @@ import com.intellij.openapi.application.ReadAction;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
+import org.antlr.intellij.adaptor.lexer.RuleIElementType;
 import org.antlr.intellij.adaptor.psi.Trees;
 import org.jetbrains.annotations.NotNull;
 
@@ -22,6 +23,7 @@ public class RuleSpecNode extends ASTWrapperPsiElement {
         super(node);
     }
 
+    /** @return 不含注释和空白节点 */
     @Override
     public PsiElement @NotNull [] getChildren() {
         return Trees.getChildren(this);
@@ -31,6 +33,14 @@ public class RuleSpecNode extends ASTWrapperPsiElement {
     public PsiReference @NotNull [] getReferences() {
         // 在没有写入动作时，才执行函数并返回结果，从而避免阻塞编辑操作
         return ReadAction.compute(this::doGetReferences);
+    }
+
+    public IdentifierNode getIdentifier() {
+        return findChildByClass(IdentifierNode.class);
+    }
+
+    public boolean isRuleNode(int ruleIndex) {
+        return ((RuleIElementType) getNode().getElementType()).getRuleIndex() == ruleIndex;
     }
 
     /** 获取当前节点可访问到的变量及其类型 */
@@ -44,8 +54,12 @@ public class RuleSpecNode extends ASTWrapperPsiElement {
             // Note: 下层的变量优先于上层的变量
             if (parent instanceof RuleSpecNode) {
                 for (PsiElement child : parent.getChildren()) {
-                    if (child != node) {
-                        ((RuleSpecNode) child).getVarTypes().forEach(types::putIfAbsent);
+                    if (child == node) {
+                        break; // 只取当前节点之前定义的变量
+                    }
+
+                    if (child instanceof RuleSpecNode c) {
+                        c.getVarTypes().forEach(types::putIfAbsent);
                     }
                 }
             } else {

@@ -34,6 +34,8 @@ import io.nop.idea.plugin.lang.script.psi.RuleSpecNode;
 import io.nop.idea.plugin.lang.script.psi.StatementNode;
 import io.nop.idea.plugin.lang.script.psi.TopLevelStatementNode;
 import io.nop.idea.plugin.lang.script.psi.VariableDeclarationNode;
+import io.nop.idea.plugin.lang.script.psi.VariableDeclaratorNode;
+import io.nop.idea.plugin.lang.script.psi.VariableDeclaratorsNode;
 import io.nop.xlang.parse.antlr.XLangLexer;
 import io.nop.xlang.parse.antlr.XLangParser;
 import org.antlr.intellij.adaptor.lexer.PSIElementTypeFactory;
@@ -113,6 +115,10 @@ public class XLangScriptParserDefinition implements ParserDefinition {
             //
             case XLangParser.RULE_variableDeclaration ->   //
                     new VariableDeclarationNode(node);
+            case XLangParser.RULE_variableDeclarators_ ->   //
+                    new VariableDeclaratorsNode(node);
+            case XLangParser.RULE_variableDeclarator ->   //
+                    new VariableDeclaratorNode(node);
             case XLangParser.RULE_blockStatement ->   //
                     new BlockStatementNode(node);
             //

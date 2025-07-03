@@ -251,23 +251,23 @@ public class ExpressionNode extends RuleSpecNode {
 
     /** 获取对象的方法 */
     protected PsiMethod @NotNull [] getObjectMethods() {
-        return getObjectMember((objClass, memberName) -> PsiClassImplUtil.findMethodsByName(objClass,
-                                                                                            memberName,
-                                                                                            true));
+        return getObjectMember((objClass, memberName) -> PsiClassImplUtil.findMethodsByName(objClass, memberName, true),
+                               PsiMethod.EMPTY_ARRAY);
     }
 
     /** 获取对象的属性 */
     protected PsiField getObjectProperty() {
-        return getObjectMember((objClass, memberName) -> PsiClassImplUtil.findFieldByName(objClass, memberName, true));
+        return getObjectMember((objClass, memberName) -> PsiClassImplUtil.findFieldByName(objClass, memberName, true),
+                               null);
     }
 
-    protected <T> T getObjectMember(BiFunction<PsiClass, String, T> consumer) {
+    protected <T> T getObjectMember(BiFunction<PsiClass, String, T> consumer, T defaultValue) {
         ExpressionNode obj = (ExpressionNode) getFirstChild();
         ObjectMemberNode member = (ObjectMemberNode) getLastChild();
 
         PsiClass objClass = obj.getResultType();
         if (objClass == null) {
-            return null;
+            return defaultValue;
         }
 
         String memberName = member.getText();
@@ -314,12 +314,13 @@ public class ExpressionNode extends RuleSpecNode {
             PsiMethod method = getObjectMethod();
             PsiType returnType = method != null ? method.getReturnType() : null;
 
-            if (returnType != null) {
-                String typeName = returnType.getCanonicalText(false);
+            return PsiClassHelper.getTypeClass(getProject(), returnType);
+        } //
+        else if (isObjectMember()) {
+            PsiField prop = getObjectProperty();
+            PsiType propType = prop != null ? prop.getType() : null;
 
-                return PsiClassHelper.findClass(getProject(), typeName);
-            }
-            return null;
+            return PsiClassHelper.getTypeClass(getProject(), propType);
         } //
         else if (isObjectConstructorCall()) {
             ParameterizedTypeNode cst = PsiTreeUtil.findChildOfType(this, ParameterizedTypeNode.class);

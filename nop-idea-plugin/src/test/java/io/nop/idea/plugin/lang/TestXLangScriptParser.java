@@ -80,7 +80,7 @@ public class TestXLangScriptParser extends BaseXLangPluginTestCase {
         assertEquals("", testTree);
     }
 
-    protected String toParseTreeText(@NotNull PsiElement file) {
-        return DebugUtil.psiToString(file, false, false);
+    protected String toParseTreeText(@NotNull PsiElement tree) {
+        return DebugUtil.psiToString(tree, false, false);
     }
 }

@@ -19,6 +19,10 @@ import com.intellij.codeInsight.navigation.actions.GotoDeclarationAction;
 import com.intellij.lang.documentation.DocumentationProvider;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
+import com.intellij.openapi.projectRoots.ProjectJdkTable;
+import com.intellij.openapi.projectRoots.Sdk;
+import com.intellij.openapi.projectRoots.impl.JavaSdkImpl;
+import com.intellij.openapi.roots.ModuleRootModificationUtil;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.impl.source.resolve.reference.impl.PsiMultiReference;
@@ -48,6 +52,17 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
 
         // Note: 消除异常 "Write access is allowed inside write-action only"
         ApplicationManager.getApplication().runWriteAction(() -> {
+            // 将真实的 JDK 注入到项目中，以确保能够通过 JavaPsiFacade 查找得到 JDK class
+            String jdkHome = System.getProperty("java.home");
+            Sdk jdk = JavaSdkImpl.getInstance().createJdk("System JDK", jdkHome, true);
+
+            ProjectJdkTable.getInstance().addJdk(jdk);
+            ModuleRootModificationUtil.setModuleSdk(getModule(), jdk);
+
+            cleanup.appendOnCancelTask(() -> {
+                ProjectJdkTable.getInstance().removeJdk(jdk);
+            });
+
             // Note: *.xdef 等需显式注册，否则，这类文件会被视为二进制文件，
             // 在通过 PsiDocumentManager 获取 Document 时，将返回 null
             FileTypeManager.getInstance().associateExtension(XLangFileType.INSTANCE, "xdef");
@@ -65,7 +80,10 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
 
     @Override
     protected void tearDown() throws Exception {
-        cleanup.cancel();
+        ApplicationManager.getApplication().runWriteAction(() -> {
+            cleanup.cancel();
+        });
+
         super.tearDown();
     }
 
