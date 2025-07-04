@@ -1,10 +1,16 @@
 package io.nop.ai.core.xdef;
 
+import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.cache.ICache;
+import io.nop.commons.cache.MapCache;
+import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
+import io.nop.core.dict.DictProvider;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdsl.DslNodeLoader;
 import io.nop.xlang.xdsl.XDslParseHelper;
@@ -89,19 +95,20 @@ public class AiXDefHelper {
     public static XNode loadXDefForAi(String path, boolean keepXDefAttr) {
         IResource resource = VirtualFileSystem.instance().getResource(path);
         XNode node = DslNodeLoader.INSTANCE.loadFromResource(resource).getNode();
-        return transformForAi(node, keepXDefAttr);
+        return transformForAi(node, keepXDefAttr, new MapCache<>());
     }
 
-    public static XNode transformForAi(XNode defNode, boolean keepXDefAttr) {
+
+    public static XNode transformForAi(XNode defNode, boolean keepXDefAttr, ICache<Object, Object> cache) {
         resolveXDefRef(defNode, keepXDefAttr);
 
         ValueWithLocation xdefValue = defNode.attrValueLoc("xdef:value");
         if (!xdefValue.isNull()) {
-            defNode.setContentValue(transformDefType(xdefValue.getLocation(), "xdef:value", xdefValue.asString()));
+            defNode.setContentValue(transformDefType(xdefValue.getLocation(), "xdef:value", xdefValue.asString(), cache));
         } else {
             ValueWithLocation content = defNode.content();
             if (!content.isNull())
-                defNode.setContentValue(transformDefType(content.getLocation(), "body", content.asString()));
+                defNode.setContentValue(transformDefType(content.getLocation(), "body", content.asString(), cache));
         }
 
         Iterator<Map.Entry<String, ValueWithLocation>> it = defNode.attrValueLocs().entrySet().iterator();
@@ -115,7 +122,7 @@ public class AiXDefHelper {
                     it.remove();
             } else {
                 ValueWithLocation vl = entry.getValue();
-                String defType = transformDefType(vl.getLocation(), name, vl.asString());
+                String defType = transformDefType(vl.getLocation(), name, vl.asString(), cache);
                 entry.setValue(ValueWithLocation.of(vl.getLocation(), defType));
             }
         }
@@ -123,7 +130,7 @@ public class AiXDefHelper {
         defNode.getChildren().removeIf(node -> node.getTagName().startsWith("xdef:"));
 
         for (XNode child : defNode.getChildren()) {
-            transformForAi(child, keepXDefAttr);
+            transformForAi(child, keepXDefAttr, cache);
         }
         return defNode;
     }
@@ -147,11 +154,23 @@ public class AiXDefHelper {
         }
     }
 
-    static String transformDefType(SourceLocation loc, String propName, String defType) {
+    static String transformDefType(SourceLocation loc, String propName, String defType, ICache<Object, Object> cache) {
         XDefTypeDecl typeDecl = XDslParseHelper.parseDefType(loc, propName, defType);
         String stdDomain = typeDecl.getStdDomain();
-        if (typeDecl.getOptions() != null)
-            return stdDomain + ":" + typeDecl.getOptions();
+        if (typeDecl.getOptions() != null) {
+            String options = typeDecl.getOptions();
+
+            if (stdDomain.equals(XDefConstants.STD_DOMAIN_ENUM)) {
+                if (StringHelper.isValidClassName(options)) {
+                    DictBean dict = DictProvider.instance().requireDict(null, options, cache, null);
+                    return stdDomain + ':' + dict.getOptionsText();
+                }
+            } else if (stdDomain.equals(XDefConstants.STD_DOMAIN_DICT)) {
+                DictBean dict = DictProvider.instance().requireDict(null, options, cache, null);
+                return XDefConstants.STD_DOMAIN_ENUM + ':' + dict.getOptionsText();
+            }
+            return stdDomain + ":" + options;
+        }
         return stdDomain;
     }
 }

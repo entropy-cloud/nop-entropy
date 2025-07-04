@@ -2,7 +2,6 @@ package io.nop.converter.impl;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.converter.DocumentConvertOptions;
-import io.nop.converter.IDocumentConverter;
 import io.nop.converter.IDocumentObject;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.ResourceConstants;
@@ -10,11 +9,7 @@ import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.xlang.xdsl.DslModelHelper;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-
-public class DslDocumentConverter implements IDocumentConverter {
+public class DslDocumentConverter implements ITextDocumentConverter {
 
     @Override
     public String convertToText(IDocumentObject doc, String toFileType, DocumentConvertOptions options) {
@@ -32,11 +27,5 @@ public class DslDocumentConverter implements IDocumentConverter {
             throw new IllegalArgumentException("fileType no xdef:" + toFileType);
 
         return DslModelHelper.dslModelToXNode(xdefPath, doc.getModelObject(options)).xml();
-    }
-
-    @Override
-    public void convertToStream(IDocumentObject doc, String toFileType, OutputStream out, DocumentConvertOptions options) throws IOException {
-        String text = convertToText(doc, toFileType, options);
-        out.write(text.getBytes(StandardCharsets.UTF_8));
     }
 }

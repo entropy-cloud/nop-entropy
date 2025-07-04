@@ -153,6 +153,18 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
         this.label = label;
     }
 
+    public String getOptionsText() {
+        StringBuilder sb = new StringBuilder();
+        if (this.getOptions() != null) {
+            for (DictOptionBean option : options) {
+                if (sb.length() > 0)
+                    sb.append('|');
+                sb.append(option.getStringValue());
+            }
+        }
+        return sb.toString();
+    }
+
     @PropMeta(propId = 3)
     public List<DictOptionBean> getOptions() {
         return options;
@@ -227,7 +239,7 @@ public class DictBean implements Serializable, IFreezable, IDeepCloneable,
     }
 
     @JsonIgnore
-    public List<String> getStringValues(){
+    public List<String> getStringValues() {
         return options.stream().map(DictOptionBean::getStringValue).collect(Collectors.toList());
     }
 

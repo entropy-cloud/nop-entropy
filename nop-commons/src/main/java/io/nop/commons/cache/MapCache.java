@@ -31,6 +31,10 @@ public class MapCache<K, V> implements ICache<K, V> {
         this.map = threadSafe ? new ConcurrentHashMap<>() : new HashMap<>();
     }
 
+    public MapCache() {
+        this("default", false);
+    }
+
     public static <K, V> MapCache<K, V> create(String name, boolean threadSafe) {
         return new MapCache<>(name, threadSafe);
     }

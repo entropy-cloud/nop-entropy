@@ -8,6 +8,8 @@ import io.nop.core.resource.IResource;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class AiConverterTest extends JunitBaseTestCase {
     @Inject
     ConverterRegistrationBean registrationBean;
@@ -24,5 +26,17 @@ public class AiConverterTest extends JunitBaseTestCase {
         manager.convertResource(aiOrmResource, ormResource, options);
         manager.convertResource(aiOrmResource, xlsxResource, options);
         manager.convertResource(aiOrmResource, javaResource, options);
+    }
+
+    @Test
+    public void testConvertXDef() {
+        IResource resource = getResource("/nop/schema/excel/workbook.xdef");
+        IResource toResource = getTargetResource("result/workbook.ai-xdef.xml");
+
+        DocumentConverterManager manager = DocumentConverterManager.instance();
+        DocumentConvertOptions options = DocumentConvertOptions.create();
+
+        manager.convertResource(resource, toResource, options);
+        assertTrue(toResource.readText().contains(" <anchor type=\"enum:twoCell|oneCell|absolute|anchor\""));
     }
 }

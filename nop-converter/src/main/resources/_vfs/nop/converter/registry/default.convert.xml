@@ -7,6 +7,7 @@
         <builder fileType="json" class="io.nop.converter.impl.JsonDocumentObjectBuilder"/>
         <builder fileType="json5" class="io.nop.converter.impl.JsonDocumentObjectBuilder"/>
         <builder fileType="yaml" class="io.nop.converter.impl.JsonDocumentObjectBuilder"/>
+        <builder fileType="xml" class="io.nop.converter.impl.XmlDocumentObjectBuilder"/>
     </builders>
 
     <converters>
@@ -44,6 +45,12 @@
                    class="io.nop.converter.impl.JsonDocumentConverter"/>
 
         <converter id="yaml-to-json" from="yaml" to="json"
+                   class="io.nop.converter.impl.JsonDocumentConverter"/>
+
+        <converter id="xml-to-json" from="xml" to="json"
+                   class="io.nop.converter.impl.JsonDocumentConverter"/>
+
+        <converter id="json-to-xml" from="json" to="xml"
                    class="io.nop.converter.impl.JsonDocumentConverter"/>
     </converters>
 </convert>

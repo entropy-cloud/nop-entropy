@@ -11,5 +11,8 @@
         <converter id="orm-xml-to-java" from="orm.xml" to="orm.java"
                    class="io.nop.ai.coder.convert.AiOrmDocumentConverter"/>
 
+        <converter id="xdef-to-ai-xdef" from="xdef" to="ai-xdef.xml"
+                   class="io.nop.ai.coder.convert.AiXdefDocumentConverter" />
+
     </converters>
 </convert>

@@ -1,20 +1,16 @@
 package io.nop.converter.impl;
 
 import io.nop.converter.DocumentConvertOptions;
-import io.nop.converter.IDocumentConverter;
 import io.nop.converter.IDocumentObject;
 import io.nop.core.lang.json.JsonTool;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_JSON;
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_JSON5;
+import static io.nop.converter.DocConvertConstants.FILE_TYPE_XML;
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_YAML;
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_YML;
 
-public class JsonDocumentConverter implements IDocumentConverter {
+public class JsonDocumentConverter implements ITextDocumentConverter {
 
     @Override
     public String convertToText(IDocumentObject doc, String toFileType, DocumentConvertOptions options) {
@@ -25,12 +21,10 @@ public class JsonDocumentConverter implements IDocumentConverter {
         if (FILE_TYPE_YAML.equals(toFileType) || FILE_TYPE_YML.equals(toFileType))
             return JsonTool.serializeToYaml(bean);
 
-        throw new IllegalArgumentException("Unsupported file type: " + toFileType);
-    }
+        if (FILE_TYPE_XML.equals(toFileType)) {
+            return doc.getNode(options).xml();
+        }
 
-    @Override
-    public void convertToStream(IDocumentObject doc, String toFileType, OutputStream out, DocumentConvertOptions options) throws IOException {
-        String text = convertToText(doc, toFileType, options);
-        out.write(text.getBytes(StandardCharsets.UTF_8));
+        throw new IllegalArgumentException("Unsupported file type: " + toFileType);
     }
 }
