@@ -21,7 +21,6 @@ import io.nop.idea.plugin.services.NopProjectService;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Supplier;
 
 public class ProjectResourceComponentManager implements IResourceComponentManager {
@@ -43,6 +42,16 @@ public class ProjectResourceComponentManager implements IResourceComponentManage
     @Override
     public Runnable registerComponentModelLoader(String modelType, String fileType, IResourceObjectLoader<? extends IComponentModel> loader, boolean replace) {
         return getImpl().registerComponentModelLoader(modelType, fileType, loader, replace);
+    }
+
+    @Override
+    public ComponentModelConfig getModelConfigByFileType(String fileType) {
+        return getImpl().getModelConfigByFileType(fileType);
+    }
+
+    @Override
+    public Map<String, ComponentModelConfig> getAllModelConfigs() {
+        return getImpl().getAllModelConfigs();
     }
 
     @Override
