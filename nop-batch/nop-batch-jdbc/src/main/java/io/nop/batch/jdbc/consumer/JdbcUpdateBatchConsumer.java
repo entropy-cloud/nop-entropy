@@ -85,16 +85,16 @@ public class JdbcUpdateBatchConsumer<S> implements IBatchConsumerProvider<S>, IB
         sb.where();
         first = true;
         for (String keyField : keyFields) {
+            sb.append(keyField).append('=');
             if (first) {
                 first = false;
             } else {
-                sb.append(',');
+                sb.and();
             }
 
             IDataParameterBinder binder = this.colBinders.get(keyField);
             appendParam(sb, binder, BeanTool.getProperty(record, keyField));
         }
-        sb.append(')');
         return sb.end();
     }
 

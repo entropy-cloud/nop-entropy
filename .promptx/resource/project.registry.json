@@ -4,11 +4,24 @@
   "metadata": {
     "version": "2.0.0",
     "description": "project 级资源注册表",
-    "createdAt": "2025-07-03T15:11:11.486Z",
-    "updatedAt": "2025-07-03T15:11:11.488Z",
-    "resourceCount": 3
+    "createdAt": "2025-07-03T15:47:42.058Z",
+    "updatedAt": "2025-07-03T15:47:42.060Z",
+    "resourceCount": 4
   },
   "resources": [
+    {
+      "id": "batch-report-format-expert",
+      "source": "project",
+      "protocol": "role",
+      "name": "Batch Report Format Expert 角色",
+      "description": "专业角色，提供特定领域的专业能力",
+      "reference": "@project://.promptx/resource/domain/batch-report-format-expert/batch-report-format-expert.role.md",
+      "metadata": {
+        "createdAt": "2025-07-03T15:47:42.059Z",
+        "updatedAt": "2025-07-03T15:47:42.059Z",
+        "scannedAt": "2025-07-03T15:47:42.059Z"
+      }
+    },
     {
       "id": "database-orm-expert",
       "source": "project",
@@ -17,9 +30,9 @@
       "description": "专业角色，提供特定领域的专业能力",
       "reference": "@project://.promptx/resource/domain/database-orm-expert/database-orm-expert.role.md",
       "metadata": {
-        "createdAt": "2025-07-03T15:11:11.487Z",
-        "updatedAt": "2025-07-03T15:11:11.487Z",
-        "scannedAt": "2025-07-03T15:11:11.487Z"
+        "createdAt": "2025-07-03T15:47:42.059Z",
+        "updatedAt": "2025-07-03T15:47:42.059Z",
+        "scannedAt": "2025-07-03T15:47:42.059Z"
       }
     },
     {
@@ -30,9 +43,9 @@
       "description": "思维模式，指导AI的思考方式",
       "reference": "@project://.promptx/resource/domain/database-orm-expert/thought/orm-design.thought.md",
       "metadata": {
-        "createdAt": "2025-07-03T15:11:11.488Z",
-        "updatedAt": "2025-07-03T15:11:11.488Z",
-        "scannedAt": "2025-07-03T15:11:11.488Z"
+        "createdAt": "2025-07-03T15:47:42.059Z",
+        "updatedAt": "2025-07-03T15:47:42.059Z",
+        "scannedAt": "2025-07-03T15:47:42.059Z"
       }
     },
     {
@@ -43,21 +56,21 @@
       "description": "执行模式，定义具体的行为模式",
       "reference": "@project://.promptx/resource/domain/database-orm-expert/execution/generate-orm.execution.md",
       "metadata": {
-        "createdAt": "2025-07-03T15:11:11.488Z",
-        "updatedAt": "2025-07-03T15:11:11.488Z",
-        "scannedAt": "2025-07-03T15:11:11.488Z"
+        "createdAt": "2025-07-03T15:47:42.060Z",
+        "updatedAt": "2025-07-03T15:47:42.060Z",
+        "scannedAt": "2025-07-03T15:47:42.060Z"
       }
     }
   ],
   "stats": {
-    "totalResources": 3,
+    "totalResources": 4,
     "byProtocol": {
-      "role": 1,
+      "role": 2,
       "thought": 1,
       "execution": 1
     },
     "bySource": {
-      "project": 3
+      "project": 4
     }
   }
 }
