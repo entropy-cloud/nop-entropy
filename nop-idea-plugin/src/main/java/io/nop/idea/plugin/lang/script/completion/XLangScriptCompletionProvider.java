@@ -71,7 +71,7 @@ public class XLangScriptCompletionProvider extends CompletionProvider<Completion
 
     private void addImportStatement(InsertionContext context, String pkgName) {
         // 补全插入的后处理
-        // TODO 对 Document 的修改可能会导致 AST 重建，从而使得对字符的定位不准，需调整补全插入思路
+        // 对 Document 的修改可能会导致 AST 重建，从而使得对字符的定位不准，需调整补全插入思路
         Editor editor = context.getEditor();
         Document document = editor.getDocument();
 

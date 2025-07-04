@@ -1,6 +1,7 @@
 package io.nop.idea.plugin.lang.script.psi;
 
 import com.intellij.lang.ASTNode;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.impl.source.resolve.reference.impl.providers.JavaClassReferenceProvider;
 import com.intellij.psi.impl.source.resolve.reference.impl.providers.JavaClassReferenceSet;
@@ -25,18 +26,20 @@ public class ImportSourceNode extends RuleSpecNode {
         super(node);
     }
 
-    public String getClassName() {
-        return PsiTreeUtil.getDeepestLast(this).getText();
+    public String getLastQualifiedName() {
+        PsiElement last = PsiTreeUtil.getDeepestLast(this);
+
+        return last.getText();
     }
 
-    public String getClassFullyQualifiedName() {
+    public String getFullyQualifiedName() {
         return getText();
     }
 
     /** 构造 Java 相关的引用对象，从而支持自动补全、引用跳转、文档显示等 */
     @Override
     protected PsiReference @NotNull [] doGetReferences() {
-        String fqn = getText();
+        String fqn = getFullyQualifiedName();
 
         JavaClassReferenceSet refSet = new JavaClassReferenceSet(fqn, this, 0, false, provider);
 

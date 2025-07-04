@@ -69,9 +69,6 @@ public class PsiClassHelper {
             return null;
         }
 
-//        String typeName = type.getCanonicalText(false);
-//        return PsiClassHelper.findClass(project, typeName);
-
         // 处理通配符泛型
         if (type instanceof PsiWildcardType t) {
             PsiType bound = t.getBound();

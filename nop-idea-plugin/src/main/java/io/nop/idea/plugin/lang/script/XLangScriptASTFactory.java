@@ -5,10 +5,10 @@ import com.intellij.psi.impl.source.tree.LeafElement;
 import com.intellij.psi.impl.source.tree.LeafPsiElement;
 import com.intellij.psi.tree.IElementType;
 import io.nop.idea.plugin.lang.script.psi.Identifier;
-import io.nop.xlang.parse.antlr.XLangLexer;
-import org.antlr.intellij.adaptor.lexer.TokenIElementType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import static io.nop.idea.plugin.lang.script.XLangScriptTokenTypes.TOKEN_Identifier;
 
 /**
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
@@ -21,14 +21,11 @@ public class XLangScriptASTFactory extends ASTFactory {
 
     /** 为 AST 树的叶子节点创建 {@link com.intellij.psi.PsiElement PsiElement} */
     @Override
-    public @Nullable LeafElement createLeaf(@NotNull IElementType type, @NotNull CharSequence text) {
-        if (!(type instanceof TokenIElementType token)) {
-            return null;
+    public @Nullable LeafElement createLeaf(@NotNull IElementType token, @NotNull CharSequence text) {
+        if (token == TOKEN_Identifier) {
+            return new Identifier(token, text);
         }
 
-        return switch (token.getANTLRTokenType()) {
-            case XLangLexer.Identifier -> new Identifier(token, text);
-            default -> new LeafPsiElement(token, text);
-        };
+        return new LeafPsiElement(token, text);
     }
 }

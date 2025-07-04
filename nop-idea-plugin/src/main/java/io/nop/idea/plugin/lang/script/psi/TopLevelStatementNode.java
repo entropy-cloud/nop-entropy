@@ -3,13 +3,40 @@ package io.nop.idea.plugin.lang.script.psi;
 import java.util.Map;
 
 import com.intellij.lang.ASTNode;
-import com.intellij.psi.PsiElement;
+import io.nop.idea.plugin.lang.XLangVarDecl;
 import org.jetbrains.annotations.NotNull;
+
+import static io.nop.idea.plugin.lang.script.XLangScriptTokenTypes.RULE_moduleDeclaration_import;
 
 /**
  * 各种语句的根节点
  * <p/>
- * 赋值、函数、导入、try 等语句，各自均有唯一的根节点
+ * 赋值、函数、导入、try 等语句，各自均有唯一的根节点：
+ * <pre>
+ * TopLevelStatementNode(ast_topLevelStatement)
+ *   RuleSpecNode(moduleDeclaration_import)
+ *     ImportDeclarationNode(importAsDeclaration)
+ * </pre>
+ * <pre>
+ * TopLevelStatementNode(ast_topLevelStatement)
+ *   StatementNode(statement)
+ *     VariableDeclarationNode(variableDeclaration)
+ * </pre>
+ * <pre>
+ * TopLevelStatementNode(ast_topLevelStatement)
+ *   StatementNode(statement)
+ *     FunctionDeclarationNode(functionDeclaration)
+ * </pre>
+ * <pre>
+ * TopLevelStatementNode(ast_topLevelStatement)
+ *   StatementNode(statement)
+ *     RuleSpecNode(ifStatement)
+ * </pre>
+ * <pre>
+ * TopLevelStatementNode(ast_topLevelStatement)
+ *   StatementNode(statement)
+ *     RuleSpecNode(expressionStatement)
+ * </pre>
  *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-06-30
@@ -21,16 +48,15 @@ public class TopLevelStatementNode extends RuleSpecNode {
     }
 
     @Override
-    public @NotNull Map<String, VarDecl> getVarTypes() {
-        PsiElement firstChild = getFirstChild();
+    public @NotNull Map<String, XLangVarDecl> getVars() {
+        RuleSpecNode firstChild = (RuleSpecNode) getFirstChild();
 
         if (firstChild instanceof StatementNode s) {
-            return s.getVarTypes();
+            return s.getVars();
         } //
-        else if (firstChild.getFirstChild() instanceof ImportDeclarationNode i) {
-            return i.getVarTypes();
+        else if (firstChild.isRuleType(RULE_moduleDeclaration_import)) {
+            return ((ImportDeclarationNode) firstChild.getFirstChild()).getVars();
         }
-
         return Map.of();
     }
 }

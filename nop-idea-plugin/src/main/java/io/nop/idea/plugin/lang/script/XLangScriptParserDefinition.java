@@ -1,7 +1,5 @@
 package io.nop.idea.plugin.lang.script;
 
-import java.util.List;
-
 import com.intellij.lang.ASTNode;
 import com.intellij.lang.ParserDefinition;
 import com.intellij.lang.PsiParser;
@@ -12,8 +10,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.tree.IFileElementType;
 import com.intellij.psi.tree.TokenSet;
+import io.nop.idea.plugin.lang.script.psi.ArrayExpressionNode;
 import io.nop.idea.plugin.lang.script.psi.ArrowFunctionBodyNode;
 import io.nop.idea.plugin.lang.script.psi.ArrowFunctionNode;
+import io.nop.idea.plugin.lang.script.psi.AssignmentExpressionNode;
 import io.nop.idea.plugin.lang.script.psi.BlockStatementNode;
 import io.nop.idea.plugin.lang.script.psi.CalleeArgumentsNode;
 import io.nop.idea.plugin.lang.script.psi.ExpressionNode;
@@ -36,12 +36,13 @@ import io.nop.idea.plugin.lang.script.psi.TopLevelStatementNode;
 import io.nop.idea.plugin.lang.script.psi.VariableDeclarationNode;
 import io.nop.idea.plugin.lang.script.psi.VariableDeclaratorNode;
 import io.nop.idea.plugin.lang.script.psi.VariableDeclaratorsNode;
-import io.nop.xlang.parse.antlr.XLangLexer;
 import io.nop.xlang.parse.antlr.XLangParser;
-import org.antlr.intellij.adaptor.lexer.PSIElementTypeFactory;
 import org.antlr.intellij.adaptor.lexer.RuleIElementType;
-import org.antlr.intellij.adaptor.lexer.TokenIElementType;
 import org.jetbrains.annotations.NotNull;
+
+import static io.nop.idea.plugin.lang.script.XLangScriptTokenTypes.TOKEN_comment;
+import static io.nop.idea.plugin.lang.script.XLangScriptTokenTypes.TOKEN_literal_string;
+import static io.nop.idea.plugin.lang.script.XLangScriptTokenTypes.TOKEN_whitespace;
 
 /**
  * 参考 https://github.com/antlr/antlr4-intellij-adaptor/blob/master/src/test/java/issue2/Issue2ParserDefinition.java
@@ -51,30 +52,6 @@ import org.jetbrains.annotations.NotNull;
  */
 public class XLangScriptParserDefinition implements ParserDefinition {
     public static final IFileElementType FILE = new IFileElementType(XLangScriptLanguage.INSTANCE);
-
-    public static TokenIElementType ID;
-
-    static {
-        PSIElementTypeFactory.defineLanguageIElementTypes(XLangScriptLanguage.INSTANCE,
-                                                          XLangLexer.tokenNames,
-                                                          XLangParser.ruleNames);
-        List<TokenIElementType> tokenIElementTypes
-                = PSIElementTypeFactory.getTokenIElementTypes(XLangScriptLanguage.INSTANCE);
-
-        ID = tokenIElementTypes.get(XLangLexer.Identifier);
-    }
-
-    public static final TokenSet COMMENTS = PSIElementTypeFactory.createTokenSet(XLangScriptLanguage.INSTANCE,
-                                                                                 XLangLexer.SingleLineComment,
-                                                                                 XLangLexer.MultiLineComment);
-
-    public static final TokenSet WHITESPACE = PSIElementTypeFactory.createTokenSet(XLangScriptLanguage.INSTANCE,
-                                                                                   XLangLexer.WhiteSpaces,
-                                                                                   XLangLexer.LineTerminator);
-
-    public static final TokenSet STRING = PSIElementTypeFactory.createTokenSet(XLangScriptLanguage.INSTANCE,
-                                                                               XLangLexer.StringLiteral,
-                                                                               XLangLexer.TemplateStringLiteral);
 
     @NotNull
     @Override
@@ -121,6 +98,10 @@ public class XLangScriptParserDefinition implements ParserDefinition {
                     new VariableDeclaratorNode(node);
             case XLangParser.RULE_blockStatement ->   //
                     new BlockStatementNode(node);
+            case XLangParser.RULE_assignmentExpression ->   //
+                    new AssignmentExpressionNode(node);
+            case XLangParser.RULE_arrayExpression ->   //
+                    new ArrayExpressionNode(node);
             //
             case XLangParser.RULE_expression_single ->   //
                     new ExpressionNode(node);
@@ -172,18 +153,18 @@ public class XLangScriptParserDefinition implements ParserDefinition {
     @NotNull
     @Override
     public TokenSet getWhitespaceTokens() {
-        return WHITESPACE;
+        return TOKEN_whitespace;
     }
 
     @NotNull
     @Override
     public TokenSet getCommentTokens() {
-        return COMMENTS;
+        return TOKEN_comment;
     }
 
     @NotNull
     @Override
     public TokenSet getStringLiteralElements() {
-        return STRING;
+        return TOKEN_literal_string;
     }
 }

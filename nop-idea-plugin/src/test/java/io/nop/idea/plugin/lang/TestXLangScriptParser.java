@@ -24,15 +24,20 @@ public class TestXLangScriptParser extends BaseXLangPluginTestCase {
                                 import java.lang.Number;
                                 //
                                 const abc = ormTemplate.findListByQuery(query, mapper);
-                                query.addFilter(filter(query, svcCtx));
                                 //
                                 a(1, 2);
                                 a.b.c(1, 2);
                                 //
                                 let abc = new String("abc");
-                                let def = 123;
+                                let def = new String("def").trim();
+                                let def = 123, lmn = 456 + abc;
                                 const c = a.b.c;
                                 const def = {a, b: 1};
+                                const arr = [a, b, c];
+                                arr[0] = 'a';
+                                //
+                                let xyz;
+                                xyz = "234";
                                 //
                                 const fn1 = (a, b) => a + b;
                                 function fn2(a, b) {
@@ -81,6 +86,6 @@ public class TestXLangScriptParser extends BaseXLangPluginTestCase {
     }
 
     protected String toParseTreeText(@NotNull PsiElement tree) {
-        return DebugUtil.psiToString(tree, false, false);
+        return DebugUtil.psiToString(tree, true, false);
     }
 }
