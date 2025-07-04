@@ -1,6 +1,7 @@
 package io.nop.converter.impl;
 
 import io.nop.api.core.util.Guard;
+import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.IDocumentObject;
 import io.nop.converter.IDocumentObjectBuilder;
 import io.nop.core.lang.xml.XNode;
@@ -31,7 +32,7 @@ public class XlsxDslDocumentObjectBuilder implements IDocumentObjectBuilder {
         }
 
         @Override
-        public Object getModelObject() {
+        public Object getModelObject(DocumentConvertOptions options) {
             String fileType = getFileType();
             ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByFileType(fileType);
             ComponentModelConfig.LoaderConfig loaderConfig = config.getLoader(fileType);
@@ -47,8 +48,13 @@ public class XlsxDslDocumentObjectBuilder implements IDocumentObjectBuilder {
         }
 
         @Override
-        public XNode getNode() {
-            Object obj = getModelObject();
+        public String getText(DocumentConvertOptions options) {
+            return getNode(options).xml();
+        }
+
+        @Override
+        public XNode getNode(DocumentConvertOptions options) {
+            Object obj = getModelObject(options);
             XNode node = DslModelHelper.dslModelToXNode(XptConstants.XDSL_SCHEMA_WORKBOOK, obj, true);
             return node;
         }

@@ -8,15 +8,15 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 public interface IDocumentConverter {
-    String convertToText(IDocumentObject doc, String toFileType);
+    String convertToText(IDocumentObject doc, String toFileType, DocumentConvertOptions options);
 
-    void convertToStream(IDocumentObject doc, String toFileType, OutputStream out) throws IOException;
+    void convertToStream(IDocumentObject doc, String toFileType, OutputStream out, DocumentConvertOptions options) throws IOException;
 
-    default void convertToResource(IDocumentObject doc, String toFileType, IResource resource) {
+    default void convertToResource(IDocumentObject doc, String toFileType, IResource resource, DocumentConvertOptions options) {
         OutputStream out = null;
         try {
             out = resource.getOutputStream();
-            convertToStream(doc, toFileType, out);
+            convertToStream(doc, toFileType, out, options);
             out.flush();
         } catch (IOException e) {
             throw NopException.adapt(e);

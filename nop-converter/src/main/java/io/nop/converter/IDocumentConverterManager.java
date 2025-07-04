@@ -1,5 +1,6 @@
 package io.nop.converter;
 
+import io.nop.api.core.annotations.data.DataBean;
 import io.nop.core.resource.IResource;
 
 import java.util.Set;
@@ -16,14 +17,14 @@ public interface IDocumentConverterManager {
     Set<String> getToFileTypes(String fromFileType, boolean allowChained);
 
     // 文本内容直接转换（path用于错误追踪）
-    String convertText(String path, String text, String fromFileType, String toFileType, boolean allowChained);
+    String convertText(String path, String text, String fromFileType, String toFileType, DocumentConvertOptions options);
 
     // 资源文件转换（自动识别格式）
-    void convertResource(IResource fromResource, IResource toResource, boolean allowChained);
+    void convertResource(IResource fromResource, IResource toResource, DocumentConvertOptions options);
 
     // 资源文件转换（手动指定格式）
     void convertResource(IResource fromResource, IResource toResource,
-                         String fromFileType, String toFileType, boolean allowChained);
+                         String fromFileType, String toFileType, DocumentConvertOptions options);
 
     // 注册转换器（from→to）
     void registerConverter(String fromFileType, String toFileType, IDocumentConverter converter);
@@ -44,4 +45,11 @@ public interface IDocumentConverterManager {
 
     // 获取转换器（不存在时报错）
     IDocumentConverter requireConverter(String fromFileType, String toFileType, boolean allowChained);
+
+    default boolean isBinaryOnly(String fileType) {
+        IDocumentObjectBuilder builder = getDocumentObjectBuilder(fileType);
+        return builder != null && builder.isBinaryOnly(fileType);
+    }
+
+
 }

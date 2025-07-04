@@ -1,5 +1,6 @@
 package io.nop.converter.impl;
 
+import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.IDocumentObject;
 import io.nop.converter.IDocumentObjectBuilder;
 import io.nop.core.lang.xml.XNode;
@@ -27,18 +28,18 @@ public class XlsxDocumentObjectBuilder implements IDocumentObjectBuilder {
         }
 
         @Override
-        public ExcelWorkbook getModelObject() {
+        public ExcelWorkbook getModelObject(DocumentConvertOptions options) {
             return new ExcelWorkbookParser().parseFromResource(getResource());
         }
 
         @Override
-        public String getText() {
-            return getNode().xml();
+        public String getText(DocumentConvertOptions options) {
+            return getNode(options).xml();
         }
 
         @Override
-        public XNode getNode() {
-            ExcelWorkbook wk = getModelObject();
+        public XNode getNode(DocumentConvertOptions options) {
+            ExcelWorkbook wk = getModelObject(options);
             XNode node = ExcelHelper.toWorkbookXmlNode(wk);
             return node;
         }

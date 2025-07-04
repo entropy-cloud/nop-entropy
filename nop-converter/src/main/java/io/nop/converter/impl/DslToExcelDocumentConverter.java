@@ -2,6 +2,7 @@ package io.nop.converter.impl;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.converter.DocConvertConstants;
+import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.IDocumentConverter;
 import io.nop.converter.IDocumentObject;
 import io.nop.core.resource.IResource;
@@ -18,12 +19,12 @@ import java.io.OutputStream;
 public class DslToExcelDocumentConverter implements IDocumentConverter {
 
     @Override
-    public String convertToText(IDocumentObject doc, String toFileType) {
+    public String convertToText(IDocumentObject doc, String toFileType, DocumentConvertOptions options) {
         ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByFileType(doc.getFileType());
 
         if (config.getImpPath() != null) {
             if (DocConvertConstants.FILE_TYPE_WORKBOOK_XML.equals(toFileType)) {
-                ExcelWorkbook wk = ExcelReportHelper.generateExcelWorkbook(config.getImpPath(), doc.getModelObject());
+                ExcelWorkbook wk = ExcelReportHelper.generateExcelWorkbook(config.getImpPath(), doc.getModelObject(options));
                 return ExcelHelper.toWorkbookXmlNode(wk).xml();
             }
         }
@@ -31,17 +32,17 @@ public class DslToExcelDocumentConverter implements IDocumentConverter {
     }
 
     @Override
-    public void convertToStream(IDocumentObject doc, String toFileType, OutputStream out) throws IOException {
+    public void convertToStream(IDocumentObject doc, String toFileType, OutputStream out, DocumentConvertOptions options) throws IOException {
         ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByFileType(doc.getFileType());
 
         if (config.getImpPath() != null) {
             if (DocConvertConstants.FILE_TYPE_WORKBOOK_XML.equals(toFileType)) {
-                ExcelWorkbook wk = ExcelReportHelper.generateExcelWorkbook(config.getImpPath(), doc.getModelObject());
+                ExcelWorkbook wk = ExcelReportHelper.generateExcelWorkbook(config.getImpPath(), doc.getModelObject(options));
                 ExcelHelper.toWorkbookXmlNode(wk).saveToStream(out, null);
                 return;
             } else if (DocConvertConstants.FILE_TYPE_XLSX.equals(StringHelper.lastPart(toFileType, '.'))) {
                 IResource resource = new OutputStreamResource("/out.xlsx", out);
-                ExcelReportHelper.saveXlsxObject(config.getImpPath(), resource, doc.getModelObject());
+                ExcelReportHelper.saveXlsxObject(config.getImpPath(), resource, doc.getModelObject(options));
                 return;
             }
         }

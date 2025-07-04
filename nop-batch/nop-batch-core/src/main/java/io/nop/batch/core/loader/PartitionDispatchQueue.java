@@ -74,6 +74,10 @@ public class PartitionDispatchQueue<T> {
         this.fetchThreadCount = new CountDownLatch(fetchThreadCount);
     }
 
+    public PartitionDispatchQueue(int capacity, Function<T, Integer> partitionFn) {
+        this(capacity, partitionFn, 0);
+    }
+
     public void exitFetchThread() {
         fetchThreadCount.countDown();
         // 所有线程都已经结束

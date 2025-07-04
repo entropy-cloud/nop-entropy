@@ -3,25 +3,26 @@ package io.nop.converter.impl;
 import io.nop.api.core.json.JsonParseOptions;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.IDocumentObject;
+import io.nop.converter.utils.DocConvertHelper;
 import io.nop.core.lang.json.JObject;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 
-import static io.nop.converter.DocConvertConstants.FILE_TYPE_DOCX;
-import static io.nop.converter.DocConvertConstants.FILE_TYPE_JAR;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_JSON;
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_JSON5;
-import static io.nop.converter.DocConvertConstants.FILE_TYPE_PDF;
-import static io.nop.converter.DocConvertConstants.FILE_TYPE_PPTX;
-import static io.nop.converter.DocConvertConstants.FILE_TYPE_XLSX;
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_XML;
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_YAML;
 import static io.nop.converter.DocConvertConstants.FILE_TYPE_YML;
-import static io.nop.converter.DocConvertConstants.FILE_TYPE_ZIP;
 import static io.nop.core.CoreConfigs.CFG_JSON_PARSE_IGNORE_UNKNOWN_PROP;
 
 public class ResourceDocumentObject implements IDocumentObject {
@@ -52,16 +53,11 @@ public class ResourceDocumentObject implements IDocumentObject {
 
     @Override
     public boolean isBinaryOnly() {
-        return FILE_TYPE_PDF.equals(fileType) ||
-                FILE_TYPE_DOCX.equals(fileType) ||
-                FILE_TYPE_XLSX.equals(fileType) ||
-                FILE_TYPE_PPTX.equals(fileType) ||
-                FILE_TYPE_ZIP.equals(fileType) ||
-                FILE_TYPE_JAR.equals(fileType);
+        return DocConvertHelper.defaultBinaryOnly(fileType);
     }
 
     @Override
-    public Object getModelObject() {
+    public Object getModelObject(DocumentConvertOptions options) {
         if (FILE_TYPE_JSON.equals(fileExt) || FILE_TYPE_YAML.equals(fileExt)
                 || FILE_TYPE_JSON5.equals(fileExt) || FILE_TYPE_YML.equals(fileExt)) {
             return parseJson();
@@ -85,10 +81,27 @@ public class ResourceDocumentObject implements IDocumentObject {
     }
 
     @Override
-    public String getText() {
+    public String getText(DocumentConvertOptions options) {
         if (isBinaryOnly())
             throw new UnsupportedOperationException("Binary document does not support text retrieval");
         return ResourceHelper.readText(resource);
+    }
+
+    @Override
+    public void saveToResource(IResource resource, DocumentConvertOptions options) {
+        this.resource.saveToResource(resource);
+    }
+
+    @Override
+    public void saveToStream(OutputStream out, DocumentConvertOptions options) throws IOException {
+        InputStream in = null;
+        try {
+            in = resource.getInputStream();
+            IoHelper.copy(in, out);
+            out.flush();
+        } finally {
+            IoHelper.safeCloseObject(in);
+        }
     }
 
     @Override

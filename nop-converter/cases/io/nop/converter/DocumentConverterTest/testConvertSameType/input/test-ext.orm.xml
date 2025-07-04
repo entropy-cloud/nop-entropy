@@ -1,0 +1,1 @@
+<orm x:extends="test.orm.xml" x:schema="/nop/schema/orm/orm.xdef"/>

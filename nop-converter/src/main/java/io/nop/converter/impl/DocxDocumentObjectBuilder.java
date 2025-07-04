@@ -1,5 +1,6 @@
 package io.nop.converter.impl;
 
+import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.IDocumentObject;
 import io.nop.converter.IDocumentObjectBuilder;
 import io.nop.core.resource.IResource;
@@ -24,7 +25,7 @@ public class DocxDocumentObjectBuilder implements IDocumentObjectBuilder {
         }
 
         @Override
-        public Object getModelObject() {
+        public Object getModelObject(DocumentConvertOptions options) {
             return new DocxToMarkdownConverter().convertFromResource(getResource());
         }
 

@@ -346,6 +346,41 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     }
 
     /**
+     * 根据统一名字映射（即 {旧名:新名}, 对tagName和所有属性名同时生效），递归重命名
+     */
+    public void renameNames(Map<String, String> nameMap) {
+        checkNotReadOnly();
+
+        // tagName映射
+        String newTagName = nameMap.get(this.tagName);
+        if (newTagName != null && !newTagName.equals(this.tagName)) {
+            this.setTagName(newTagName);
+        }
+
+        // 属性名映射
+        if (!attributes.isEmpty()) {
+            // 不能直接在遍历中修改map, 做个备份
+            List<String> toRename = new ArrayList<>();
+            for (String attrName : attributes.keySet()) {
+                if (nameMap.containsKey(attrName) && !nameMap.get(attrName).equals(attrName)) {
+                    toRename.add(attrName);
+                }
+            }
+            for (String oldName : toRename) {
+                String newName = nameMap.get(oldName);
+                renameAttr(oldName, newName);
+            }
+        }
+
+        // 递归处理子节点
+        if (this.hasChild()) {
+            for (XNode child : children) {
+                child.renameNames(nameMap);
+            }
+        }
+    }
+
+    /**
      * 占位使用，只有XDocNode具有docType
      */
     public String getDocType() {

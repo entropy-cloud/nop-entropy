@@ -69,7 +69,7 @@ x名字空间下的所有属性和子节点都只在合并过程中存在。合�
     <xdef:unknown-tag xdef:value="any" xdef:unknown-attr="any" xdef:allow-multiple="true" xdef:name="DslNode"
                       x:extends="v-path-list" x:override="enum:io.nop.xlang.xdef.XDefOverride=merge"
                       x:key-attr="xml-name" x:id="string" x:before="string" x:after="string"
-                      x:abstract="boolean" x:final="boolean" x:virtual="boolean"
+                      x:abstract="boolean" x:final="boolean" x:virtual="boolean" x:default-override="enum:io.nop.xlang.xdef.XDefOverride"
                       x:prototype="!string" x:prototype-override="enum:io.nop.xlang.xdef.XDefOverride=merge"
     >
         <x:gen-extends xdef:value="xpl-node"/>

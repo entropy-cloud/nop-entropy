@@ -93,28 +93,42 @@ public class DocumentConverterManager implements IDocumentConverterManager {
     }
 
     @Override
-    public String convertText(String path, String text, String fromFileType, String toFileType, boolean allowChained) {
+    public String convertText(String path, String text, String fromFileType, String toFileType, DocumentConvertOptions options) {
+        if (options == null)
+            options = DocumentConvertOptions.create();
+
         IDocumentObjectBuilder builder = requireDocumentObjectBuilder(fromFileType);
         IDocumentObject doc = builder.buildFromText(fromFileType, path, text);
-        IDocumentConverter converter = requireConverter(fromFileType, toFileType, allowChained);
-        return converter.convertToText(doc, toFileType);
+        if (fromFileType.equals(toFileType))
+            return doc.getText(options);
+
+        IDocumentConverter converter = requireConverter(fromFileType, toFileType, options.isAllowChained());
+        return converter.convertToText(doc, toFileType, options);
     }
 
     @Override
-    public void convertResource(IResource fromResource, IResource toResource, boolean allowChained) {
+    public void convertResource(IResource fromResource, IResource toResource, DocumentConvertOptions options) {
         String fromFileType = StringHelper.fileType(fromResource.getPath());
         String toFileType = StringHelper.fileType(toResource.getPath());
 
-        convertResource(fromResource, toResource, fromFileType, toFileType, allowChained);
+        convertResource(fromResource, toResource, fromFileType, toFileType, options);
     }
 
     @Override
     public void convertResource(IResource fromResource, IResource toResource,
-                                String fromFileType, String toFileType, boolean allowChained) {
+                                String fromFileType, String toFileType, DocumentConvertOptions options) {
+        if (options == null)
+            options = DocumentConvertOptions.create();
+
         IDocumentObjectBuilder builder = requireDocumentObjectBuilder(fromFileType);
         IDocumentObject doc = builder.buildFromResource(fromFileType, fromResource);
-        IDocumentConverter converter = requireConverter(fromFileType, toFileType, allowChained);
-        converter.convertToResource(doc, toFileType, toResource);
+        if (toFileType.equals(fromFileType)) {
+            doc.saveToResource(toResource, options);
+            return;
+        }
+
+        IDocumentConverter converter = requireConverter(fromFileType, toFileType, options.isAllowChained());
+        converter.convertToResource(doc, toFileType, toResource, options);
     }
 
     @Override

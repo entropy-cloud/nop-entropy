@@ -1,16 +1,25 @@
 package io.nop.converter.impl;
 
+import io.nop.api.core.util.IComponentModel;
 import io.nop.commons.util.StringHelper;
+import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.IDocumentObject;
 import io.nop.converter.IDocumentObjectBuilder;
+import io.nop.core.CoreConstants;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.impl.InMemoryTextResource;
-import io.nop.xlang.xdsl.DslModelParser;
+import io.nop.xlang.initialize.DslJsonResourceLoader;
+import io.nop.xlang.initialize.DslXmlResourceLoader;
+import io.nop.xlang.xdsl.IDslResourceObjectLoader;
 
-import java.util.Map;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 public class DslDocumentObjectBuilder implements IDocumentObjectBuilder {
 
@@ -32,9 +41,13 @@ public class DslDocumentObjectBuilder implements IDocumentObjectBuilder {
         }
 
         @Override
-        public Object getModelObject() {
+        public Object getModelObject(DocumentConvertOptions options) {
+            return newLoader(options).parseFromResource(getResource());
+        }
+
+        IDslResourceObjectLoader<IComponentModel> newLoader(DocumentConvertOptions options) {
             String fileType = getFileType();
-            ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByFileType(fileType);
+            ComponentModelConfig config = ResourceComponentManager.instance().requireModelConfigByFileType(fileType);
 
             ComponentModelConfig.LoaderConfig loaderConfig = config.getLoader(fileType);
             if (loaderConfig == null)
@@ -42,10 +55,38 @@ public class DslDocumentObjectBuilder implements IDocumentObjectBuilder {
 
             String fileExt = StringHelper.fileExtFromFileType(fileType);
             if (JsonTool.isJsonOrYamlFileExt(fileExt)) {
-                return JsonTool.parseBeanFromResource(getResource(), Map.class);
+                return new DslJsonResourceLoader(loaderConfig.getXdefPath(), config.getResolveInDir()).dynamic(true);
             } else {
-                return new DslModelParser().dynamic(true).parseFromResource(getResource());
+                return new DslXmlResourceLoader(loaderConfig.getXdefPath(), config.getResolveInDir()).dynamic(true);
             }
+        }
+
+        @Override
+        public void saveToResource(IResource resource, DocumentConvertOptions options) {
+            ResourceHelper.writeText(resource, getText(options));
+        }
+
+        @Override
+        public void saveToStream(OutputStream out, DocumentConvertOptions options) throws IOException {
+            out.write(getText(options).getBytes(StandardCharsets.UTF_8));
+        }
+
+        @Override
+        public String getText(DocumentConvertOptions options) {
+            IDslResourceObjectLoader<IComponentModel> loader = newLoader(options);
+            if (loader instanceof DslJsonResourceLoader) {
+                Object bean = loader.parseFromResource(getResource());
+                String fileExt = getFileExt();
+                if (CoreConstants.YAML_FILE_EXTS.contains(fileExt))
+                    return JsonTool.serializeToYaml(bean);
+                return JsonTool.serialize(bean, true);
+            }
+            return loader.parseNodeFromResource(getResource()).xml();
+        }
+
+        @Override
+        public XNode getNode(DocumentConvertOptions options) {
+            return newLoader(options).parseNodeFromResource(getResource());
         }
     }
 }

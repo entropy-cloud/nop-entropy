@@ -26,6 +26,7 @@ import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
 import io.nop.xlang.ast.ImportAsDeclaration;
 import io.nop.xlang.ast.definition.ScopeVarDefinition;
+import io.nop.xlang.feature.XModelInclude;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xpl.tags.ImportTagCompiler;
 import org.slf4j.Logger;
@@ -34,6 +35,9 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.nop.core.CoreErrors.ARG_RESOURCE;
+import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
+import static io.nop.core.CoreErrors.ERR_COMPONENT_PARSE_MISSING_RESOURCE;
 import static io.nop.xlang.XLangErrors.ARG_NODE;
 import static io.nop.xlang.XLangErrors.ERR_XDSL_CONFIG_CHILD_MUST_BE_IMPORT;
 
@@ -157,8 +161,8 @@ public abstract class AbstractDslParser<T extends IComponentModel> extends Abstr
             Object value = scope.getLocalValue(name);
             IGenericType type = value == null ? null : ReflectionManager.instance().buildRawType(value.getClass());
             ScopeVarDefinition varDef = ScopeVarDefinition.readOnly(name, type);
-            ScopeVarDefinition oldDef = scope.getScopeVarDefinition(name,true);
-            if(oldDef != null)
+            ScopeVarDefinition oldDef = scope.getScopeVarDefinition(name, true);
+            if (oldDef != null)
                 scope.unregisterScopeVarDefinition(oldDef, true);
             scope.registerScopeVarDefinition(varDef, true);
         }
@@ -235,6 +239,54 @@ public abstract class AbstractDslParser<T extends IComponentModel> extends Abstr
 
             LOG.debug("nop.core.component.parse-use-time:tm={}ms,node={},parser={}", CoreMetrics.nanoToMillis(diff),
                     node, getClass());
+        }
+    }
+
+    public XNode resolveDslNode(XNode node) {
+        XDslExtendResult extendResult = modelLoader.loadFromNode(node.cloneInstance(), getRequiredSchema(),
+                XDslExtendPhase.validate);
+        setXdef(extendResult.getXdef());
+        if (compileTool == null)
+            compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
+
+        applyCompileConfig(extendResult.getConfig());
+        runPreParse(extendResult);
+
+        return extendResult.getNode();
+    }
+
+    public XNode parseNodeFromResource(final IResource resource, boolean ignoreUnknown) {
+        this.setResourcePath(resource.getPath());
+
+        if (!resource.exists()) {
+            if (ignoreUnknown)
+                return null;
+            throw new NopException(ERR_COMPONENT_PARSE_MISSING_RESOURCE).param(ARG_RESOURCE_PATH, resource.getPath())
+                    .param(ARG_RESOURCE, resource);
+        }
+
+        LOG.debug("nop.core.component.begin-parse-node-from-resource:resourcePath={},parser={}", getResourcePath(), getClass());
+
+        long beginTime = CoreMetrics.nanoTime();
+        try {
+            if (shouldTraceDepends()) {
+                return ResourceComponentManager.instance().collectDepends(getResourcePath(),
+                        () -> {
+                            XNode node = XModelInclude.instance().loadActiveNodeFromResource(resource);
+                            return resolveDslNode(node);
+                        });
+            } else {
+                XNode node = XModelInclude.instance().loadActiveNodeFromResource(resource);
+                return resolveDslNode(node);
+            }
+        } catch (NopException e) {
+            e.addXplStack(getClass().getSimpleName() + ".parseNodeFromResource(" + getRequiredSchema() + ")");
+            throw e;
+        } finally {
+            long diff = CoreMetrics.nanoTimeDiff(beginTime);
+
+            LOG.info("nop.core.component.finish-parse-node-from-resource:usedTime={},path={},parser={}",
+                    CoreMetrics.nanoToMillis(diff), getResourcePath(), getClass());
         }
     }
 

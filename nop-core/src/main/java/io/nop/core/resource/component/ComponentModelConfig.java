@@ -8,6 +8,9 @@
 package io.nop.core.resource.component;
 
 import io.nop.api.core.util.IComponentModel;
+import io.nop.commons.util.StringHelper;
+import io.nop.commons.util.objects.Pair;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResourceObjectLoader;
 
 import java.util.HashMap;
@@ -60,6 +63,21 @@ public class ComponentModelConfig {
         public IResourceObjectLoader<? extends IComponentModel> getLoader() {
             return loader;
         }
+    }
+
+    public Pair<String, String> getXmlLoader() {
+        if (loaders == null)
+            return null;
+        for (Map.Entry<String, LoaderConfig> entry : loaders.entrySet()) {
+            String fileType = entry.getKey();
+            LoaderConfig loader = entry.getValue();
+            if (loader.getXdefPath() != null) {
+                String fileExt = StringHelper.fileExtFromFileType(fileType);
+                if (!JsonTool.isJsonOrYamlFileExt(fileExt))
+                    return Pair.of(fileType, loader.getXdefPath());
+            }
+        }
+        return null;
     }
 
     public LoaderConfig getLoader(String fileType) {

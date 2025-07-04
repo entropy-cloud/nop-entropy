@@ -1,6 +1,7 @@
 package io.nop.ai.coder;
 
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.DocumentConverterManager;
 import io.nop.converter.registration.ConverterRegistrationBean;
 import io.nop.core.resource.IResource;
@@ -18,9 +19,10 @@ public class AiConverterTest extends JunitBaseTestCase {
         IResource xlsxResource = getTargetResource("result/test.orm.xlsx");
         IResource javaResource = getTargetResource("result/test.orm.java");
 
+        DocumentConvertOptions options = DocumentConvertOptions.create().allowChained();
         DocumentConverterManager manager = DocumentConverterManager.instance();
-        manager.convertResource(aiOrmResource, ormResource, true);
-        manager.convertResource(aiOrmResource, xlsxResource, true);
-        manager.convertResource(aiOrmResource, javaResource, true);
+        manager.convertResource(aiOrmResource, ormResource, options);
+        manager.convertResource(aiOrmResource, xlsxResource, options);
+        manager.convertResource(aiOrmResource, javaResource, options);
     }
 }

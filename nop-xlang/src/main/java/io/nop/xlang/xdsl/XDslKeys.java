@@ -42,6 +42,7 @@ public final class XDslKeys implements Serializable {
     public final String PROTOTYPE;
     public final String PROTOTYPE_SUPER;
     public final String PROTOTYPE_OVERRIDE;
+    public final String DEFAULT_OVERRIDE;
 
     public final String ABSTRACT;
     public final String FINAL;
@@ -75,6 +76,7 @@ public final class XDslKeys implements Serializable {
         this.PROTOTYPE = getFullName(ns, "prototype");
         this.PROTOTYPE_SUPER = getFullName(ns, "prototype-super");
         this.PROTOTYPE_OVERRIDE = getFullName(ns, "prototype-override");
+        this.DEFAULT_OVERRIDE = getFullName(ns,"default-override");
 
         this.ABSTRACT = getFullName(ns, "abstract");
         this.FINAL = getFullName(ns, "final");
@@ -90,7 +92,7 @@ public final class XDslKeys implements Serializable {
         this.ARGS = getFullName(ns, "args");
 
         this.ATTR_NAMES = CollectionHelper.buildImmutableSet(ID, EXTENDS, PROTOTYPE, PROTOTYPE_OVERRIDE, ABSTRACT,
-                SCHEMA, KEY_ATTR, VALIDATED, VIRTUAL, INHERIT, FINAL, OVERRIDE, BEFORE, AFTER, ORDER, DUMP);
+                SCHEMA, KEY_ATTR, VALIDATED, VIRTUAL, INHERIT, FINAL, OVERRIDE, DEFAULT_OVERRIDE, BEFORE, AFTER, ORDER, DUMP);
 
         this.CHILD_NAMES = CollectionHelper.buildImmutableSet(ARGS, GEN_EXTENDS, CONFIG, POST_EXTENDS,
                 PRE_PARSE, POST_PARSE,

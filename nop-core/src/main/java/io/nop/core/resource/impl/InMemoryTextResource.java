@@ -7,6 +7,7 @@
  */
 package io.nop.core.resource.impl;
 
+import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.progress.IStepProgressListener;
@@ -14,6 +15,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -134,6 +136,26 @@ public class InMemoryTextResource extends AbstractResource {
         this.length = -1;
         this.lastModified = CoreMetrics.currentTimeMillis();
         this.exists = true;
+    }
+
+    @Override
+    public OutputStream getOutputStream(boolean append) {
+        if (append) {
+            String text = ConvertHelper.toString(this.text, "");
+            ByteArrayOutputStream out = new ByteArrayOutputStream() {
+                public void close() {
+                    writeText(text + new String(toByteArray(), StringHelper.CHARSET_UTF8), StringHelper.ENCODING_UTF8);
+                }
+            };
+            return out;
+        } else {
+            ByteArrayOutputStream out = new ByteArrayOutputStream() {
+                public void close() {
+                    writeText(new String(toByteArray(), StringHelper.CHARSET_UTF8), StringHelper.ENCODING_UTF8);
+                }
+            };
+            return out;
+        }
     }
 
     @Override

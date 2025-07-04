@@ -10,7 +10,7 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 //@Disabled
-@NopTestConfig(localDb = true,debug=true)
+@NopTestConfig(localDb = true, debug = true)
 public class DocumentConverterTest extends JunitAutoTestCase {
 
     @Inject
@@ -26,14 +26,27 @@ public class DocumentConverterTest extends JunitAutoTestCase {
 
         DocumentConverterManager manager = DocumentConverterManager.instance();
 
-        manager.convertResource(xlsxResource, xmlResource, false);
+        DocumentConvertOptions options = DocumentConvertOptions.create();
+
+        manager.convertResource(xlsxResource, xmlResource, options);
 
         outputText("test.orm.xml", ResourceHelper.readText(xmlResource));
 
-        manager.convertResource(xlsxResource, workbookResource, false);
+        manager.convertResource(xlsxResource, workbookResource, options);
         outputText("test.orm.workbook.xml", ResourceHelper.readText(workbookResource));
 
-        manager.convertResource(workbookResource, htmlResource, false);
+        manager.convertResource(workbookResource, htmlResource, options);
         outputText("test.orm.html", ResourceHelper.readText(htmlResource));
+    }
+
+    @EnableSnapshot
+    @Test
+    public void testConvertSameType() {
+        IResource resource = inputResource("test-ext.orm.xml");
+        IResource outResource = getTargetResource("test-ext.orm.xml");
+        DocumentConverterManager manager = DocumentConverterManager.instance();
+        DocumentConvertOptions options = DocumentConvertOptions.create();
+        manager.convertResource(resource, outResource, options);
+        outputText("test-ext.orm.xml", ResourceHelper.readText(outResource));
     }
 }

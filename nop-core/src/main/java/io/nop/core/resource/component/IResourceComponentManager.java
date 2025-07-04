@@ -49,6 +49,14 @@ public interface IResourceComponentManager extends IResourceDependencyManager {
 
     ComponentModelConfig getModelConfigByFileType(String fileType);
 
+    default ComponentModelConfig requireModelConfigByFileType(String fileType) {
+        ComponentModelConfig config = getModelConfigByFileType(fileType);
+        if (config == null)
+            throw new NopException(ERR_COMPONENT_UNKNOWN_MODEL_FILE_TYPE)
+                    .param(ARG_FILE_TYPE, fileType);
+        return config;
+    }
+
     Map<String, ComponentModelConfig> getAllModelConfigs();
 
     default String getXDefPathByModelPath(String path) {

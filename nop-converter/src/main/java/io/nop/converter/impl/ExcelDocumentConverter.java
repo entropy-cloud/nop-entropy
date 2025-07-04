@@ -2,6 +2,7 @@ package io.nop.converter.impl;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.converter.DocConvertConstants;
+import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.IDocumentConverter;
 import io.nop.converter.IDocumentObject;
 import io.nop.core.lang.eval.DisabledEvalScope;
@@ -23,14 +24,14 @@ import static io.nop.converter.DocConvertConstants.FILE_TYPE_XML;
 public class ExcelDocumentConverter implements IDocumentConverter {
 
     @Override
-    public String convertToText(IDocumentObject doc, String toFileType) {
+    public String convertToText(IDocumentObject doc, String toFileType, DocumentConvertOptions options) {
         String renderType = StringHelper.lastPart(toFileType, '.');
         if (FILE_TYPE_XML.equals(renderType)) {
             if (doc.getFileExt().equals(FILE_TYPE_XLSX)) {
                 ExcelWorkbook wk = ExcelDocHelper.loadExcel(doc);
                 return ExcelHelper.toWorkbookXmlNode(wk).xml();
             }
-            return doc.getNode().xml();
+            return doc.getNode(options).xml();
         }
 
         if (FILE_TYPE_HTML.equals(renderType)) {
@@ -50,11 +51,11 @@ public class ExcelDocumentConverter implements IDocumentConverter {
     }
 
     @Override
-    public void convertToStream(IDocumentObject doc, String toFileType, OutputStream out) throws IOException {
+    public void convertToStream(IDocumentObject doc, String toFileType, OutputStream out, DocumentConvertOptions options) throws IOException {
         String renderType = StringHelper.lastPart(toFileType, '.');
         if (FILE_TYPE_XML.equals(renderType) || FILE_TYPE_MD.equals(renderType)
                 || FILE_TYPE_HTML.equals(renderType) || FILE_TYPE_SHTML.equals(renderType)) {
-            String text = convertToText(doc, toFileType);
+            String text = convertToText(doc, toFileType, options);
             out.write(text.getBytes(StandardCharsets.UTF_8));
             return;
         }
