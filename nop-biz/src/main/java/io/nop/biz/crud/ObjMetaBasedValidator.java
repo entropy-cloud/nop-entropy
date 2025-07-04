@@ -223,7 +223,7 @@ public class ObjMetaBasedValidator {
         return ret;
     }
 
-    private void checkNoJoinProp(Map<String, Object> item, IObjPropMeta propMeta, String subPropName) {
+    protected void checkNoJoinProp(Map<String, Object> item, IObjPropMeta propMeta, String subPropName) {
         String rightJoinProp = (String) propMeta.prop_get(BizConstants.EXT_JOIN_RIGHT_PROP);
         if (rightJoinProp != null) {
             // 暂时选择删除多余的关联字段，避免错误提交父实体字段，导致关联到其他实体
@@ -236,11 +236,11 @@ public class ObjMetaBasedValidator {
         }
     }
 
-    private void doCheckWriteAuth(String objTypeName, IObjPropMeta propMeta) {
+    protected void doCheckWriteAuth(String objTypeName, IObjPropMeta propMeta) {
         doCheckAuth(objTypeName, propMeta, propMeta.getWriteAuth());
     }
 
-    private void doCheckAuth(String objTypeName, IObjPropMeta propMeta, ActionAuthMeta auth) {
+    protected void doCheckAuth(String objTypeName, IObjPropMeta propMeta, ActionAuthMeta auth) {
         IActionAuthChecker authChecker = this.context.getActionAuthChecker();
         if (authChecker == null || auth == null)
             return;
@@ -268,7 +268,7 @@ public class ObjMetaBasedValidator {
                 .param(ARG_FIELD_DISPLAY_NAME, propMeta.getDisplayName());
     }
 
-    private void setIn(Map<String, Object> ret, ISchema schema, IObjPropMeta propMeta, Object value) {
+    protected void setIn(Map<String, Object> ret, ISchema schema, IObjPropMeta propMeta, Object value) {
         // json component 转换为对jsonText的赋值
         String propName = propMeta.getName();
         if (propName.endsWith("Component") && propMeta.containsTag(OrmConstants.TAG_JSON)) {
@@ -287,7 +287,7 @@ public class ObjMetaBasedValidator {
         ret.put(propMeta.getName(), value);
     }
 
-    private Object transformIn(Object value, IObjPropMeta propMeta, Map<String, Object> data, Map<String, Object> ret) {
+    protected Object transformIn(Object value, IObjPropMeta propMeta, Map<String, Object> data, Map<String, Object> ret) {
         IEvalAction action = propMeta.getTransformIn();
         if (action != null) {
             IEvalScope scope = XLang.newEvalScope();
@@ -300,7 +300,7 @@ public class ObjMetaBasedValidator {
         return value;
     }
 
-    private void validateValue(ISchema schema, String subPropName, Object value, IObjPropMeta propMeta,
+    protected void validateValue(ISchema schema, String subPropName, Object value, IObjPropMeta propMeta,
                                IObjSchema objSchema, IEvalScope scope) {
         if (schema != null) {
             if (schema.isSimpleSchema()) {
@@ -340,7 +340,7 @@ public class ObjMetaBasedValidator {
         }
     }
 
-    private void validateRefValue(IObjPropMeta relProp, Object value) {
+    protected void validateRefValue(IObjPropMeta relProp, Object value) {
         ISchema relSchema = relProp.getSchema();
         if (relSchema != null) {
             String bizObjName = relSchema.getBizObjName();
@@ -366,7 +366,7 @@ public class ObjMetaBasedValidator {
         }
     }
 
-    private boolean isRefPrimary(IBizObject bizObject, String propName) {
+    protected boolean isRefPrimary(IBizObject bizObject, String propName) {
         if (StringHelper.isEmpty(propName))
             return true;
 
@@ -382,7 +382,7 @@ public class ObjMetaBasedValidator {
         return false;
     }
 
-    private Object convertValue(IObjPropMeta propMeta, Object value, Map<String, Object> data,
+    protected Object convertValue(IObjPropMeta propMeta, Object value, Map<String, Object> data,
                                 Map<String, Object> ret) {
         // 如果指定了transformIn，则以它的转换结果为准，不再需要根据类型进行转化。transformIn的结果类型也不一定和dataType一致
         IEvalAction action = propMeta.getTransformIn();
