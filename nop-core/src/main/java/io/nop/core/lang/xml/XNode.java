@@ -922,6 +922,10 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return children.get(i);
     }
 
+    public final XNode childByIndex(int i) {
+        return children.get(i);
+    }
+
     public XNode uniqueChild(String tagName, Function<ErrorCode, NopException> errorFactory) {
         List<XNode> children = this.childrenByTag(tagName);
         if (children.isEmpty())
@@ -1329,23 +1333,25 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     /**
      * 追加子节点到children集合尾部
      */
-    public void appendChild(XNode child) {
+    public XNode appendChild(XNode child) {
 
         checkNotReadOnly();
 
         attachChild(child);
         children.add(child);
+        return this;
     }
 
     /**
      * 增加节点到children集合头部
      */
-    public void prependChild(XNode child) {
+    public XNode prependChild(XNode child) {
 
         checkNotReadOnly();
 
         attachChild(child);
         children.add(0, child);
+        return this;
     }
 
     /**

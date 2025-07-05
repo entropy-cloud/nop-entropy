@@ -27,6 +27,8 @@ import io.nop.commons.collections.bit.IBitSet;
 import io.nop.commons.collections.bit.SmallBitSet;
 import io.nop.commons.functional.IEqualsChecker;
 import io.nop.commons.util.objects.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,6 +74,7 @@ public class CollectionHelper {
     private static final float DEFAULT_LOAD_FACTOR = 0.75f;
 
     private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+    private static final Logger log = LoggerFactory.getLogger(CollectionHelper.class);
 
     public static IBitSet newIndexBitSet(int expectedSize, int capacity) {
         if (capacity <= Long.SIZE)
@@ -100,8 +103,22 @@ public class CollectionHelper {
         return fromIndex;
     }
 
-    public static boolean isEmpty(Collection<?> c) {
+    public static boolean isEmptyCollection(Collection<?> c) {
         return c == null || c.isEmpty();
+    }
+
+    public static boolean notEmpty(Object c) {
+        return !isEmpty(c);
+    }
+
+    public static boolean isEmpty(Object c) {
+        if (c == null)
+            return true;
+        if (c instanceof Collection)
+            return ((Collection<?>) c).isEmpty();
+        if (c instanceof Map)
+            return ((Map<?, ?>) c).isEmpty();
+        return false;
     }
 
     public static boolean isEmptyMap(Map<?, ?> map) {
