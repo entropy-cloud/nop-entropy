@@ -14,12 +14,7 @@ import org.antlr.intellij.adaptor.lexer.TokenIElementType;
  * @date 2025-07-04
  */
 public class XLangScriptTokenTypes {
-    static {
-        PSIElementTypeFactory.defineLanguageIElementTypes(XLangScriptLanguage.INSTANCE,
-                                                          XLangLexer.tokenNames,
-                                                          XLangParser.ruleNames);
-    }
-
+    // Note: 需在 XLangScriptParserDefinition 中完成对 PSIElementTypeFactory 的初始化
     public static final List<TokenIElementType> TOKEN_ELEMENT_TYPES = //
             PSIElementTypeFactory.getTokenIElementTypes(XLangScriptLanguage.INSTANCE);
     public static final List<RuleIElementType> RULE_ELEMENT_TYPES = //
@@ -47,6 +42,7 @@ public class XLangScriptTokenTypes {
     public static final RuleIElementType RULE_objectProperties = rule(XLangParser.RULE_objectProperties_);
     public static final RuleIElementType RULE_namedTypeNode_annotation
             = rule(XLangParser.RULE_namedTypeNode_annotation);
+    public static final RuleIElementType RULE_parameterizedTypeNode = rule(XLangParser.RULE_parameterizedTypeNode);
 
     public static TokenSet tokenSet(int... types) {
         return PSIElementTypeFactory.createTokenSet(XLangScriptLanguage.INSTANCE, types);

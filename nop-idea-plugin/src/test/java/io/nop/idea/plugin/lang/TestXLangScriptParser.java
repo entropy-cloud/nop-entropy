@@ -15,13 +15,16 @@ public class TestXLangScriptParser extends BaseXLangPluginTestCase {
     private static final String ext = XLangScriptFileType.INSTANCE.getDefaultExtension();
 
     public void testParseStatement() {
-//        assertParseTree("import java.lang.;", "/test/ast/statement-err-1.ast");
-//        assertParseTree("const abc = ", "/test/ast/statement-err-2.ast");
-//        assertParseTree("const abc = () =>", "/test/ast/statement-err-3.ast");
-//
+        assertParseTree("""
+                                import java.lang.;
+                                const abc = ;
+                                const abc = () =>;
+                                """, "/test/ast/statement-err-1.ast");
+
         assertParseTree("""
                                 import java.lang.String;
                                 import java.lang.Number;
+                                import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                 //
                                 const abc = ormTemplate.findListByQuery(query, mapper);
                                 //
@@ -41,13 +44,15 @@ public class TestXLangScriptParser extends BaseXLangPluginTestCase {
                                 let xyz;
                                 xyz = "234";
                                 //
+                                const b = s instanceof string;
+                                //
                                 const fn1 = (a, b) => a + b;
                                 function fn2(a, b) {
                                     const c = 5;
                                     return a + b + c;
                                 }
-                                function fn3(a: string, b: number) {
-                                    return a + b;
+                                function fn3(a: string, b: number, c: XJsonDomainHandler, d: XJsonDomainHandler.Sub) {
+                                    return a + b + c.getName() + d.getName();
                                 }
                                 //
                                 if (a > 2) {

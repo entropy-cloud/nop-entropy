@@ -16,6 +16,8 @@ import io.nop.idea.plugin.lang.script.reference.PsiFieldReference;
 import io.nop.idea.plugin.lang.script.reference.PsiMethodReference;
 import org.jetbrains.annotations.NotNull;
 
+import static io.nop.idea.plugin.lang.script.XLangScriptTokenTypes.RULE_parameterizedTypeNode;
+
 /**
  * 表达式节点
  * <p/>
@@ -342,9 +344,10 @@ public class ExpressionNode extends RuleSpecNode {
             return i.getDataType();
         } //
         else if (isObjectConstructorCall()) {
-            ParameterizedTypeNode cons = findChildByClass(ParameterizedTypeNode.class);
+            RuleSpecNode ptn = findChildByType(RULE_parameterizedTypeNode);
+            QualifiedNameRootNode cons = ptn != null ? (QualifiedNameRootNode) ptn.getFirstChild() : null;
 
-            return cons != null ? cons.getParameterizedType() : null;
+            return cons != null ? cons.getQualifiedType() : null;
         } //
         else if (isObjectMethodCall()) {
             PsiMethod method = getObjectMethod();

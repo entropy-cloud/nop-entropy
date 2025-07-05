@@ -15,13 +15,14 @@ public class XJsonDomainHandler implements IStdDomainHandler {
     }
 
     public static class Sub {
+        private String name;
+
+        public String getName() {
+            return this.name;
+        }
 
         public static class Sub {
             private String name;
-
-            public SubSub(String name) {
-                this.name = name;
-            }
 
             public String getName() {
                 return this.name;

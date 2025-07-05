@@ -197,11 +197,38 @@ public class TestXLangScriptReferences extends BaseXLangPluginTestCase {
                                     return a1 + b1;
                                 }
                                 """, "java.lang.Number");
+
+        assertReference("""
+                                import io.nop.xlang.xdef.domain.XJsonDomainHandler;
+                                function fn1(a1: string, b1: XJsonDom<caret>ainHandler) {
+                                    return a1 + b1;
+                                }
+                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
+        assertReference("""
+                                import io.nop.xlang.xdef.domain.XJsonDomainHandler;
+                                function fn1(a1: string, b1: XJsonDomainHandler.S<caret>ub.Sub) {
+                                    return a1 + b1;
+                                }
+                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub");
+        assertReference("""
+                                import io.nop.xlang.xdef.domain.XJsonDomainHandler;
+                                function fn1(a1: XJsonDomainHandler.Sub.Sub) {
+                                    return a1.get<caret>Name();
+                                }
+                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.Sub#getName");
+
         assertReference("""
                                 const fn1 = (a1: st<caret>ring, b1: number) => a1 + b1;
                                 """, "java.lang.String");
         assertReference("""
                                 const fn1 = (a1: string, b1: num<caret>ber) => a1 + b1;
+                                """, "java.lang.Number");
+
+        assertReference("""
+                                const b = s instanceof str<caret>ing;
+                                """, "java.lang.String");
+        assertReference("""
+                                const b = s instanceof num<caret>ber;
                                 """, "java.lang.Number");
 
 //        // TODO 对函数调用的结果类型的引用

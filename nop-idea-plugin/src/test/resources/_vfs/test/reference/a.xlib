@@ -19,6 +19,8 @@
                     const ormTemplate = inject('nopOrmTemplate');
                     const mapper = ormTemplate.getRowMapper(rowType,false);
                     const s = "abc".startsWith("a");
+                    const fn = (a: any, b: string) => a + b;
+                    fn(1, 2);
 
                     while (true) {
                         let a = 's' instanceof string;

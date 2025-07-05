@@ -1,11 +1,7 @@
 package io.nop.idea.plugin.lang.script.psi;
 
 import com.intellij.lang.ASTNode;
-import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiReference;
-import io.nop.api.core.util.Symbol;
-import io.nop.idea.plugin.utils.PsiClassHelper;
 import org.jetbrains.annotations.NotNull;
 
 import static io.nop.idea.plugin.lang.script.XLangScriptTokenTypes.RULE_namedTypeNode_annotation;
@@ -51,45 +47,19 @@ public class FunctionParameterDeclarationNode extends RuleSpecNode {
     }
 
     public PsiClass getParameterType() {
-        PsiClassAndTextRange result = getClassAndTextRanges();
-
-        return result == null ? null : result.clazz();
-    }
-
-    @Override
-    protected PsiReference @NotNull [] doGetReferences() {
-        PsiClassAndTextRange result = getClassAndTextRanges();
-        if (result == null || result.clazz() == null) {
-            return PsiReference.EMPTY_ARRAY;
-        }
-
-        return new PsiReference[] {
-                PsiClassAndTextRange.createReference(this, result)
-        };
-    }
-
-    protected PsiClassAndTextRange getClassAndTextRanges() {
         RuleSpecNode typeNode = findChildByType(RULE_namedTypeNode_annotation);
         if (typeNode == null) {
             return null;
         }
 
-        // 仅包含确定类型，详见 nop-xlang/model/antlr/XLangTypeSystem.g4
-        RuleSpecNode typeNameNode = (RuleSpecNode) typeNode.getLastChild();
-        String typeName = typeNameNode.getText();
+        RuleSpecNode type = (RuleSpecNode) typeNode.getLastChild().getFirstChild();
 
-        Class<?> typeClass = switch (typeName) {
-            case "any" -> Object.class;
-            case "number" -> Number.class;
-            case "boolean" -> Boolean.class;
-            case "string" -> String.class;
-            case "symbol" -> Symbol.class;
-            default -> null;
-        };
-
-        PsiClass clazz = typeClass != null ? PsiClassHelper.findClass(getProject(), typeClass.getName()) : null;
-        TextRange textRange = typeNameNode.getTextRangeInParent().shiftRight(typeNode.getStartOffsetInParent());
-
-        return new PsiClassAndTextRange(clazz, textRange);
+        if (type instanceof TypeNameNodePredefinedNode tp) {
+            return tp.getPredefinedType();
+        } //
+        else if (type instanceof QualifiedNameRootNode qnr) {
+            return qnr.getQualifiedType();
+        }
+        return null;
     }
 }

@@ -28,17 +28,20 @@ import io.nop.idea.plugin.lang.script.psi.ObjectDeclarationNode;
 import io.nop.idea.plugin.lang.script.psi.ObjectMemberNode;
 import io.nop.idea.plugin.lang.script.psi.ObjectPropertyAssignmentNode;
 import io.nop.idea.plugin.lang.script.psi.ObjectPropertyDeclarationNode;
-import io.nop.idea.plugin.lang.script.psi.ParameterizedTypeNode;
 import io.nop.idea.plugin.lang.script.psi.ProgramNode;
 import io.nop.idea.plugin.lang.script.psi.QualifiedNameNode;
+import io.nop.idea.plugin.lang.script.psi.QualifiedNameRootNode;
 import io.nop.idea.plugin.lang.script.psi.ReturnStatementNode;
 import io.nop.idea.plugin.lang.script.psi.RuleSpecNode;
 import io.nop.idea.plugin.lang.script.psi.StatementNode;
 import io.nop.idea.plugin.lang.script.psi.TopLevelStatementNode;
+import io.nop.idea.plugin.lang.script.psi.TypeNameNodePredefinedNode;
 import io.nop.idea.plugin.lang.script.psi.VariableDeclarationNode;
 import io.nop.idea.plugin.lang.script.psi.VariableDeclaratorNode;
 import io.nop.idea.plugin.lang.script.psi.VariableDeclaratorsNode;
+import io.nop.xlang.parse.antlr.XLangLexer;
 import io.nop.xlang.parse.antlr.XLangParser;
+import org.antlr.intellij.adaptor.lexer.PSIElementTypeFactory;
 import org.antlr.intellij.adaptor.lexer.RuleIElementType;
 import org.jetbrains.annotations.NotNull;
 
@@ -54,6 +57,13 @@ import static io.nop.idea.plugin.lang.script.XLangScriptTokenTypes.TOKEN_whitesp
  */
 public class XLangScriptParserDefinition implements ParserDefinition {
     public static final IFileElementType FILE = new IFileElementType(XLangScriptLanguage.INSTANCE);
+
+    // Note: 确保在插件加载时，完成对 PSIElementTypeFactory 的初始化
+    static {
+        PSIElementTypeFactory.defineLanguageIElementTypes(XLangScriptLanguage.INSTANCE,
+                                                          XLangLexer.tokenNames,
+                                                          XLangParser.ruleNames);
+    }
 
     @NotNull
     @Override
@@ -106,6 +116,8 @@ public class XLangScriptParserDefinition implements ParserDefinition {
                     new AssignmentExpressionNode(node);
             case XLangParser.RULE_arrayExpression ->   //
                     new ArrayExpressionNode(node);
+            case XLangParser.RULE_typeNameNode_predefined ->   //
+                    new TypeNameNodePredefinedNode(node);
             //
             case XLangParser.RULE_expression_single ->   //
                     new ExpressionNode(node);
@@ -113,8 +125,8 @@ public class XLangScriptParserDefinition implements ParserDefinition {
                     new ObjectDeclarationNode(node);
             case XLangParser.RULE_ast_objectProperty ->   //
                     new ObjectPropertyDeclarationNode(node);
-            case XLangParser.RULE_parameterizedTypeNode ->   //
-                    new ParameterizedTypeNode(node);
+            case XLangParser.RULE_qualifiedName_ ->   //
+                    new QualifiedNameRootNode(node);
             case XLangParser.RULE_arguments_ ->   //
                     new CalleeArgumentsNode(node);
             case XLangParser.RULE_identifier_ex ->   //

@@ -11,46 +11,44 @@ import io.nop.idea.plugin.utils.PsiClassHelper;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * <code>new</code> 语句中的类名节点
+ * 类名节点
  * <p/>
  * <code>String</code>：
  * <pre>
- * ParameterizedTypeNode(parameterizedTypeNode)
- *   RuleSpecNode(qualifiedName_)
- *     QualifiedNameNode(qualifiedName)
- *       RuleSpecNode(qualifiedName_name_)
- *         IdentifierNode(identifier)
- *           PsiElement(Identifier)('String')
+ * RuleSpecNode(qualifiedName_)
+ *   QualifiedNameNode(qualifiedName)
+ *     RuleSpecNode(qualifiedName_name_)
+ *       IdentifierNode(identifier)
+ *         PsiElement(Identifier)('String')
  * </pre>
  *
  * <code>Abc.Def</code>：
  * <pre>
- * ParameterizedTypeNode(parameterizedTypeNode)
- *   RuleSpecNode(qualifiedName_)
+ * RuleSpecNode(qualifiedName_)
+ *   QualifiedNameNode(qualifiedName)
+ *     RuleSpecNode(qualifiedName_name_)
+ *       IdentifierNode(identifier)
+ *         PsiElement(Identifier)('Abc')
+ *     PsiElement('.')('.')
  *     QualifiedNameNode(qualifiedName)
  *       RuleSpecNode(qualifiedName_name_)
  *         IdentifierNode(identifier)
- *           PsiElement(Identifier)('Abc')
- *       PsiElement('.')('.')
- *       QualifiedNameNode(qualifiedName)
- *         RuleSpecNode(qualifiedName_name_)
- *           IdentifierNode(identifier)
- *             PsiElement(Identifier)('Def')
+ *           PsiElement(Identifier)('Def')
  * </pre>
  *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-06-30
  */
-public class ParameterizedTypeNode extends RuleSpecNode {
+public class QualifiedNameRootNode extends RuleSpecNode {
     private QualifiedNameNode qualifiedName;
 
-    public ParameterizedTypeNode(@NotNull ASTNode node) {
+    public QualifiedNameRootNode(@NotNull ASTNode node) {
         super(node);
     }
 
     public QualifiedNameNode getQualifiedName() {
         if (qualifiedName == null || !qualifiedName.isValid()) {
-            qualifiedName = (QualifiedNameNode) getFirstChild().getFirstChild();
+            qualifiedName = (QualifiedNameNode) getFirstChild();
         }
         return qualifiedName;
     }
@@ -69,7 +67,7 @@ public class ParameterizedTypeNode extends RuleSpecNode {
         return PsiClassAndTextRange.createReferences(this, result);
     }
 
-    public PsiClass getParameterizedType() {
+    public PsiClass getQualifiedType() {
         List<PsiClassAndTextRange> result = getClassAndTextRanges();
 
         String fqn = getText().replace(" ", "");
