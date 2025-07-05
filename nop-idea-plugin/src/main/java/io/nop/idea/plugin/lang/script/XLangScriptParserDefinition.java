@@ -29,6 +29,7 @@ import io.nop.idea.plugin.lang.script.psi.ObjectPropertyAssignmentNode;
 import io.nop.idea.plugin.lang.script.psi.ObjectPropertyDeclarationNode;
 import io.nop.idea.plugin.lang.script.psi.ParameterizedTypeNode;
 import io.nop.idea.plugin.lang.script.psi.ProgramNode;
+import io.nop.idea.plugin.lang.script.psi.QualifiedNameNode;
 import io.nop.idea.plugin.lang.script.psi.ReturnStatementNode;
 import io.nop.idea.plugin.lang.script.psi.RuleSpecNode;
 import io.nop.idea.plugin.lang.script.psi.StatementNode;
@@ -89,6 +90,8 @@ public class XLangScriptParserDefinition implements ParserDefinition {
                     new ImportDeclarationNode(node);
             case XLangParser.RULE_ast_importSource ->   //
                     new ImportSourceNode(node);
+            case XLangParser.RULE_qualifiedName ->   //
+                    new QualifiedNameNode(node);
             //
             case XLangParser.RULE_variableDeclaration ->   //
                     new VariableDeclarationNode(node);

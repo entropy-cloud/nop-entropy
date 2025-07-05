@@ -1,29 +1,29 @@
 package io.nop.idea.plugin.lang.script.reference;
 
 import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiReferenceBase;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 对类方法的引用
- *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
- * @date 2025-07-01
+ * @date 2025-07-04
  */
-public class ClassMethodReference extends PsiReferenceBase<PsiElement> {
-    private final PsiMethod method;
+public class PsiClassReference extends PsiReferenceBase<PsiElement> {
+    private final PsiClass clazz;
 
-    public ClassMethodReference(@NotNull PsiElement element, PsiMethod method, TextRange rangeInElement) {
+    public PsiClassReference(
+            @NotNull PsiElement element, PsiClass clazz, TextRange rangeInElement
+    ) {
         super(element, rangeInElement);
-        this.method = method;
+        this.clazz = clazz;
     }
 
     @Override
     public @Nullable PsiElement resolve() {
-        return method;
+        return clazz;
     }
 
     @Override

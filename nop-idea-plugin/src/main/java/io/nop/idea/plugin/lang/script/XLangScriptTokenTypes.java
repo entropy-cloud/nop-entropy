@@ -44,6 +44,7 @@ public class XLangScriptTokenTypes {
     public static final RuleIElementType RULE_expression_initializer = rule(XLangParser.RULE_expression_initializer);
     public static final RuleIElementType RULE_moduleDeclaration_import
             = rule(XLangParser.RULE_moduleDeclaration_import);
+    public static final RuleIElementType RULE_objectProperties = rule(XLangParser.RULE_objectProperties_);
 
     public static TokenSet tokenSet(int... types) {
         return PSIElementTypeFactory.createTokenSet(XLangScriptLanguage.INSTANCE, types);

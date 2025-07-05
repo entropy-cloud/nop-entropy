@@ -29,6 +29,8 @@ public class TestXLangScriptParser extends BaseXLangPluginTestCase {
                                 a.b.c(1, 2);
                                 //
                                 let abc = new String("abc");
+                                let abc = new Abc.Def("abc");
+                                let abc = new java.lang.String("abc");
                                 let def = new String("def").trim();
                                 let def = 123, lmn = 456 + abc;
                                 const c = a.b.c;

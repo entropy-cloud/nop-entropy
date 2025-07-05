@@ -28,7 +28,6 @@ import static io.nop.idea.plugin.lang.script.XLangScriptTokenTypes.TOKEN_literal
  * @date 2025-06-29
  */
 public class RuleSpecNode extends ASTWrapperPsiElement implements XLangVarScope {
-    private PsiReference[] refs;
 
     public RuleSpecNode(@NotNull ASTNode node) {
         super(node);
@@ -42,11 +41,10 @@ public class RuleSpecNode extends ASTWrapperPsiElement implements XLangVarScope 
 
     @Override
     public PsiReference @NotNull [] getReferences() {
-        if (refs == null) {
-            // 在没有写入动作时，才执行函数并返回结果，从而避免阻塞编辑操作
-            refs = ReadAction.compute(this::doGetReferences);
-        }
-        return refs;
+        // Note: 不能直接缓存 PsiReference，否则，容易造成数据不一致
+
+        // 在没有写入动作时，才执行函数并返回结果，从而避免阻塞编辑操作
+        return ReadAction.compute(this::doGetReferences);
     }
 
     protected PsiReference @NotNull [] doGetReferences() {
@@ -66,11 +64,12 @@ public class RuleSpecNode extends ASTWrapperPsiElement implements XLangVarScope 
 
             // Note: 下层的变量优先于上层的变量
             if (parent instanceof RuleSpecNode) {
-                for (PsiElement child : parent.getChildren()) {
-                    if (child == node) {
-                        break; // 只取当前节点之前定义的变量
-                    }
-                    if (!(child instanceof XLangVarScope scope)) {
+                PsiElement prev = node;
+
+                // 从当前节点开始往前查找，并选择靠得最近的变量
+                while (prev != null) {
+                    prev = prev.getPrevSibling();
+                    if (!(prev instanceof XLangVarScope scope)) {
                         continue;
                     }
 

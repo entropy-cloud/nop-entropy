@@ -22,7 +22,6 @@ import org.jetbrains.annotations.NotNull;
  */
 public class LiteralNode extends RuleSpecNode {
     private LeafPsiElement literal;
-    private PsiClass[] dataType;
 
     public LiteralNode(@NotNull ASTNode node) {
         super(node);
@@ -31,7 +30,6 @@ public class LiteralNode extends RuleSpecNode {
     public LeafPsiElement getLiteral() {
         if (literal == null || !literal.isValid()) {
             literal = (LeafPsiElement) PsiTreeUtil.getDeepestLast(this);
-            dataType = null;
         }
         return literal;
     }
@@ -39,12 +37,8 @@ public class LiteralNode extends RuleSpecNode {
     /** 获取字面量的数据类型 */
     public PsiClass getDataType() {
         LeafPsiElement target = getLiteral();
+        TokenIElementType token = (TokenIElementType) target.getElementType();
 
-        if (dataType == null) {
-            TokenIElementType token = (TokenIElementType) target.getElementType();
-
-            dataType = new PsiClass[] { getPsiClassByToken(token) };
-        }
-        return dataType[0];
+        return getPsiClassByToken(token);
     }
 }

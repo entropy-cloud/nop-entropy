@@ -60,7 +60,6 @@ import org.jetbrains.annotations.NotNull;
  * @date 2025-06-30
  */
 public class FunctionDeclarationNode extends RuleSpecNode {
-    private PsiClass[] returnType;
 
     public FunctionDeclarationNode(@NotNull ASTNode node) {
         super(node);
@@ -73,10 +72,7 @@ public class FunctionDeclarationNode extends RuleSpecNode {
     /** 获取函数的返回值类型 */
     public PsiClass getReturnType() {
         // TODO 分析函数的 return 表达式，得到返回类型
-        if (returnType == null) {
-            returnType = new PsiClass[] {};
-        }
-        return returnType[0];
+        return null;
     }
 
     /** 参数列表为函数内可访问的变量 */

@@ -12,9 +12,8 @@ import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.impl.PsiClassImplUtil;
-import com.intellij.psi.util.PsiTreeUtil;
-import io.nop.idea.plugin.lang.script.reference.ClassMethodReference;
-import io.nop.idea.plugin.lang.script.reference.ClassPropertyReference;
+import io.nop.idea.plugin.lang.script.reference.PsiFieldReference;
+import io.nop.idea.plugin.lang.script.reference.PsiMethodReference;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -272,27 +271,17 @@ import org.jetbrains.annotations.NotNull;
  * @date 2025-06-30
  */
 public class ExpressionNode extends RuleSpecNode {
-    private PsiClass[] resultType;
 
     public ExpressionNode(@NotNull ASTNode node) {
         super(node);
     }
 
-    /**
-     * 获取表达式结果的类型
-     *
-     * @return <code>null</code> 为有效值
-     */
-    public PsiClass getResultType() {
-        if (resultType == null) {
-            resultType = new PsiClass[] { doGetResultType() };
-        }
-        return resultType[0];
-    }
-
     @Override
     public PsiReference @NotNull [] doGetReferences() {
-        // Note: 仅识别当前表达式的最后一个有效元素的引用，其余部分，由其子表达式做识别处理
+        // Note:
+        // - 仅识别当前表达式的最后一个有效元素的引用，其余部分，由其子表达式做识别处理
+        // - 对象声明节点 ObjectDeclarationNode 的相关引用，由其自身负责构造
+        // - 对构造函数 ParameterizedTypeNode 的相关引用，由其自身负责构造
 
         PsiElement firstChild = getFirstChild();
         // 变量引用：abc
@@ -301,28 +290,15 @@ public class ExpressionNode extends RuleSpecNode {
 
             return i.createReferences(this, textRange);
         }
-        // 构造函数：new String("abc")
-        else if (isObjectConstructorCall()) {
-            ParameterizedTypeNode cons = PsiTreeUtil.findChildOfType(this, ParameterizedTypeNode.class);
-            TextRange textRange = cons.getTextRangeInParent();
-
-            IdentifierNode proto = (IdentifierNode) PsiTreeUtil.getDeepestLast(cons).getParent();
-
-            return proto.createReferences(this, textRange);
-        }
-        // 对象声明：{a, b: 1}
-        else if (isObjectDeclaration()) {
-            return PsiReference.EMPTY_ARRAY;
-        }
         // 对象方法调用：a.b.c(1, 2)
         else if (isObjectMethodCall()) {
-            ExpressionNode obj = (ExpressionNode) getFirstChild();
+            ExpressionNode obj = (ExpressionNode) firstChild;
             PsiMethod method = getObjectMethod();
 
             if (method != null) {
                 // Note: 需加上相对于当前表达式的对象偏移量
                 TextRange methodTextRange = obj.getObjectMemberTextRange().shiftLeft(obj.getStartOffsetInParent());
-                ClassMethodReference ref = new ClassMethodReference(this, method, methodTextRange);
+                PsiMethodReference ref = new PsiMethodReference(this, method, methodTextRange);
 
                 return new PsiReference[] { ref };
             }
@@ -333,14 +309,14 @@ public class ExpressionNode extends RuleSpecNode {
 
             if (prop != null) {
                 TextRange propTextRange = getObjectMemberTextRange();
-                ClassPropertyReference ref = new ClassPropertyReference(this, prop, propTextRange);
+                PsiFieldReference ref = new PsiFieldReference(this, prop, propTextRange);
 
                 return new PsiReference[] { ref };
             }
         }
         // 函数调用：fn1(1, 2, 3)
         else if (isFunctionCall()) {
-            ExpressionNode callee = (ExpressionNode) getFirstChild();
+            ExpressionNode callee = (ExpressionNode) firstChild;
             TextRange textRange = callee.getTextRangeInParent();
 
             IdentifierNode fn = (IdentifierNode) callee.getFirstChild();
@@ -351,7 +327,12 @@ public class ExpressionNode extends RuleSpecNode {
         return PsiReference.EMPTY_ARRAY;
     }
 
-    protected PsiClass doGetResultType() {
+    /**
+     * 获取表达式结果的类型
+     *
+     * @return <code>null</code> 为有效值
+     */
+    public PsiClass getResultType() {
         PsiElement firstChild = getFirstChild();
 
         if (firstChild instanceof LiteralNode l) {
@@ -361,10 +342,9 @@ public class ExpressionNode extends RuleSpecNode {
             return i.getDataType();
         } //
         else if (isObjectConstructorCall()) {
-            ParameterizedTypeNode cons = PsiTreeUtil.findChildOfType(this, ParameterizedTypeNode.class);
-            IdentifierNode proto = (IdentifierNode) PsiTreeUtil.getDeepestLast(cons).getParent();
+            ParameterizedTypeNode cons = findChildByClass(ParameterizedTypeNode.class);
 
-            return proto.getDataType();
+            return cons != null ? cons.getParameterizedType() : null;
         } //
         else if (isObjectMethodCall()) {
             PsiMethod method = getObjectMethod();
@@ -380,19 +360,19 @@ public class ExpressionNode extends RuleSpecNode {
             return getPsiClassByPsiType(propType);
         } //
         else if (isFunctionCall()) {
-            ExpressionNode callee = (ExpressionNode) getFirstChild();
+            ExpressionNode callee = (ExpressionNode) firstChild;
             IdentifierNode fn = (IdentifierNode) callee.getFirstChild();
 
             // Note: 对应的是函数的返回值类型
             return fn.getDataType();
         } //
         else if (isArrowFunction()) {
-            ArrowFunctionNode fn = (ArrowFunctionNode) getFirstChild();
+            ArrowFunctionNode fn = (ArrowFunctionNode) firstChild;
 
             return fn.getReturnType();
         } //
         else if (isArrayInit()) {
-            ArrayExpressionNode array = (ArrayExpressionNode) getFirstChild();
+            ArrayExpressionNode array = (ArrayExpressionNode) firstChild;
 
             return array.getElementType();
         }
@@ -408,18 +388,6 @@ public class ExpressionNode extends RuleSpecNode {
             return getLastChild() instanceof ObjectMemberNode;
         }
         return false;
-    }
-
-    /**
-     * 当前表达式是否为对象声明
-     * <p/>
-     * {@link ObjectDeclarationNode} 的直接父节点为 {@link ExpressionNode}，
-     * 因此，在构造 {@link ObjectMemberNode} 的成员引用时，
-     * 一般不为对象声明中的属性构造引用
-     */
-    public boolean isObjectDeclaration() {
-        // {a, b: 1}
-        return getFirstChild() instanceof ObjectDeclarationNode;
     }
 
     /** 当前表达式是否为对象方法调用 */

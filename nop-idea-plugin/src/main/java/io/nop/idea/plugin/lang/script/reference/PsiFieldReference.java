@@ -13,10 +13,10 @@ import org.jetbrains.annotations.Nullable;
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-07-01
  */
-public class ClassPropertyReference extends PsiReferenceBase<PsiElement> {
+public class PsiFieldReference extends PsiReferenceBase<PsiElement> {
     private final PsiField prop;
 
-    public ClassPropertyReference(@NotNull PsiElement element, PsiField prop, TextRange rangeInElement) {
+    public PsiFieldReference(@NotNull PsiElement element, PsiField prop, TextRange rangeInElement) {
         super(element, rangeInElement);
         this.prop = prop;
     }

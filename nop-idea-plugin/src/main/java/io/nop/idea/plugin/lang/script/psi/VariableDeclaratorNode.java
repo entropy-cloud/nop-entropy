@@ -61,7 +61,8 @@ public class VariableDeclaratorNode extends RuleSpecNode {
 
         String varName = identifier != null ? identifier.getText() : null;
         PsiClass varType = expression != null ? expression.getResultType() : null;
-        if (varName == null || varType == null) {
+        // Note: 变量类型可以是 null，表示未知类型
+        if (varName == null) {
             return Map.of();
         }
 

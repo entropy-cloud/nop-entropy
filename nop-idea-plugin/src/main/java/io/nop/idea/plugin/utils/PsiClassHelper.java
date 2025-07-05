@@ -23,13 +23,17 @@ import com.intellij.psi.PsiLiteralExpression;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiModifier;
 import com.intellij.psi.PsiNameValuePair;
+import com.intellij.psi.PsiPackage;
 import com.intellij.psi.PsiPrimitiveType;
+import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceExpression;
 import com.intellij.psi.PsiReturnStatement;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.PsiTypeParameter;
 import com.intellij.psi.PsiTypes;
 import com.intellij.psi.PsiWildcardType;
+import com.intellij.psi.impl.source.resolve.reference.impl.providers.JavaClassReferenceProvider;
+import com.intellij.psi.impl.source.resolve.reference.impl.providers.JavaClassReferenceSet;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.searches.ClassInheritorsSearch;
 import com.intellij.psi.util.PsiUtil;
@@ -44,6 +48,8 @@ import org.jetbrains.annotations.NotNull;
  * @date 2025-06-26
  */
 public class PsiClassHelper {
+    private static final JavaClassReferenceProvider javaClassRefProvider = new JavaClassReferenceProvider();
+
     private static final Map<PsiPrimitiveType, String> primitiveTypeWrapper = Map.of(PsiTypes.byteType(),
                                                                                      "java.lang.Byte",
                                                                                      PsiTypes.shortType(),
@@ -62,6 +68,23 @@ public class PsiClassHelper {
                                                                                      "java.lang.Boolean",
                                                                                      PsiTypes.voidType(),
                                                                                      "java.lang.Void");
+
+    static {
+        // 支持解析包名：JavaClassReference#advancedResolveInner
+        javaClassRefProvider.setOption(JavaClassReferenceProvider.ADVANCED_RESOLVE, true);
+    }
+
+    public static PsiReference @NotNull [] createJavaClassReferences(
+            String qualifiedName, PsiElement element, int startInElement
+    ) {
+        JavaClassReferenceSet refSet = new JavaClassReferenceSet(qualifiedName,
+                                                                 element,
+                                                                 startInElement,
+                                                                 false,
+                                                                 javaClassRefProvider);
+
+        return refSet.getReferences();
+    }
 
     /** 得到 {@link PsiType} 对应的 {@link PsiClass} */
     public static PsiClass getTypeClass(Project project, PsiType type) {
@@ -101,18 +124,18 @@ public class PsiClassHelper {
         }
         // 处理类类型（包括泛型）
         else if (type instanceof PsiClassType t) {
-            PsiClass cls = t.resolve();
+            PsiClass clazz = t.resolve();
             // 泛型参数
             PsiType[] parameters = t.getParameters();
 
-            if (cls != null && parameters.length > 0) {
+            if (clazz != null && parameters.length > 0) {
                 // List<String> -> 返回 String.class
-                if (CommonClassNames.JAVA_UTIL_LIST.equals(cls.getQualifiedName())) {
+                if (CommonClassNames.JAVA_UTIL_LIST.equals(clazz.getQualifiedName())) {
                     return getTypeClass(project, parameters[0]);
                 }
 
                 // 自定义泛型类
-                PsiTypeParameter[] typeParams = cls.getTypeParameters();
+                PsiTypeParameter[] typeParams = clazz.getTypeParameters();
                 if (typeParams.length > 0) {
                     // 查找实际使用的类型参数
                     for (int i = 0; i < typeParams.length; i++) {
@@ -126,7 +149,7 @@ public class PsiClassHelper {
                     }
                 }
             }
-            return cls;
+            return clazz;
         }
 
         return null;
@@ -143,39 +166,43 @@ public class PsiClassHelper {
         Map<String, List<PsiClass>> map = new HashMap<>();
 
         Query<PsiClass> query = findInheritors(project, IStdDomainHandler.class.getName());
-        query.filtering((cls) -> !cls.isInterface()
-                                 && !cls.isEnum()
-                                 && !cls.isAnnotationType()
-                                 && !cls.hasModifierProperty(PsiModifier.ABSTRACT) //
+        query.filtering((clazz) -> !clazz.isInterface()
+                                   && !clazz.isEnum()
+                                   && !clazz.isAnnotationType()
+                                   && !clazz.hasModifierProperty(PsiModifier.ABSTRACT) //
              ) //
-             .forEach((cls) -> {
-                 Object name = getMethodReturnConstantValue(cls, "getName");
+             .forEach((clazz) -> {
+                 Object name = getMethodReturnConstantValue(clazz, "getName");
 
                  if (name != null) {
-                     map.computeIfAbsent(name.toString(), (k) -> new ArrayList<>()).add(cls);
+                     map.computeIfAbsent(name.toString(), (k) -> new ArrayList<>()).add(clazz);
                  }
              });
 
         return map;
     }
 
-    public static PsiClass findClass(Project project, String clsName) {
-        return JavaPsiFacade.getInstance(project).findClass(clsName, GlobalSearchScope.allScope(project));
+    public static PsiClass findClass(Project project, String className) {
+        return JavaPsiFacade.getInstance(project).findClass(className, GlobalSearchScope.allScope(project));
+    }
+
+    public static PsiPackage findPackage(Project project, String pkgName) {
+        return JavaPsiFacade.getInstance(project).findPackage(pkgName);
     }
 
     /** 查找指定类的继承类 */
-    public static @NotNull Query<PsiClass> findInheritors(Project project, String clsName) {
-        PsiClass cls = findClass(project, clsName);
-        if (cls == null) {
+    public static @NotNull Query<PsiClass> findInheritors(Project project, String className) {
+        PsiClass clazz = findClass(project, className);
+        if (clazz == null) {
             return EmptyQuery.getEmptyQuery();
         }
 
-        return ClassInheritorsSearch.search(cls, true);
+        return ClassInheritorsSearch.search(clazz, true);
     }
 
     /** 获取指定方法返回的常量值 */
-    public static Object getMethodReturnConstantValue(PsiClass cls, String methodName) {
-        PsiMethod[] methods = cls.findMethodsByName(methodName, true);
+    public static Object getMethodReturnConstantValue(PsiClass clazz, String methodName) {
+        PsiMethod[] methods = clazz.findMethodsByName(methodName, true);
         if (methods.length == 0) {
             return null;
         }

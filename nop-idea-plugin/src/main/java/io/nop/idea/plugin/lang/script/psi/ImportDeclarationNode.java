@@ -36,7 +36,6 @@ import org.jetbrains.annotations.NotNull;
  * @date 2025-06-29
  */
 public class ImportDeclarationNode extends RuleSpecNode {
-    private PsiClass[] clazz;
 
     public ImportDeclarationNode(@NotNull ASTNode node) {
         super(node);
@@ -45,23 +44,20 @@ public class ImportDeclarationNode extends RuleSpecNode {
     @Override
     public @NotNull Map<String, XLangVarDecl> getVars() {
         ImportSourceNode imp = findChildByClass(ImportSourceNode.class);
-        if (imp == null) {
+
+        QualifiedNameNode qualifiedName = imp != null ? imp.getQualifiedName() : null;
+        if (qualifiedName == null) {
             return Map.of();
         }
 
+        String classFQN = qualifiedName.getFullyName();
+        PsiClass clazz = PsiClassHelper.findClass(getProject(), classFQN);
         if (clazz == null) {
-            String classFQN = imp.getFullyQualifiedName();
-
-            clazz = new PsiClass[] {
-                    PsiClassHelper.findClass(getProject(), classFQN)
-            };
-        }
-        if (clazz[0] == null) {
             return Map.of();
         }
 
-        String varName = imp.getLastQualifiedName();
-        XLangVarDecl varDecl = new XLangVarDecl(clazz[0], clazz[0]);
+        String varName = qualifiedName.getLastName();
+        XLangVarDecl varDecl = new XLangVarDecl(clazz, clazz);
 
         return Map.of(varName, varDecl);
     }

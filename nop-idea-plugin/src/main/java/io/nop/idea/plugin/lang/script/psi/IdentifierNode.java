@@ -5,9 +5,11 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
+import io.nop.commons.util.StringHelper;
 import io.nop.idea.plugin.lang.XLangVarDecl;
-import io.nop.idea.plugin.lang.script.reference.ClassReference;
+import io.nop.idea.plugin.lang.script.reference.PsiClassReference;
 import io.nop.idea.plugin.lang.script.reference.VariableDeclarationReference;
+import io.nop.idea.plugin.utils.PsiClassHelper;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -23,7 +25,6 @@ import org.jetbrains.annotations.NotNull;
  * @date 2025-07-02
  */
 public class IdentifierNode extends RuleSpecNode {
-    private XLangVarDecl[] varDecl;
 
     public IdentifierNode(@NotNull ASTNode node) {
         super(node);
@@ -38,7 +39,7 @@ public class IdentifierNode extends RuleSpecNode {
 
             return new PsiReference[] { ref };
         } else if (element instanceof PsiClass clazz) {
-            ClassReference ref = new ClassReference(source, clazz, textRange);
+            PsiClassReference ref = new PsiClassReference(source, clazz, textRange);
 
             return new PsiReference[] { ref };
         }
@@ -57,13 +58,21 @@ public class IdentifierNode extends RuleSpecNode {
     }
 
     public XLangVarDecl getVarDecl() {
-        if (varDecl == null) {
-            String varName = getText();
+        String varName = getText();
+        XLangVarDecl decl = findVisibleVar(varName);
 
-            varDecl = new XLangVarDecl[] {
-                    findVisibleVar(varName)
-            };
+        if (decl == null //
+            && varName.indexOf('.') < 0 //
+            && varName.indexOf('$') < 0 //
+            && StringHelper.isValidClassName(varName) //
+        ) {
+            // Note: java.lang 中的类不需要显式导入
+            PsiClass clazz = PsiClassHelper.findClass(getProject(), "java.lang." + varName);
+            if (clazz != null) {
+                decl = new XLangVarDecl(clazz, clazz);
+            }
         }
-        return varDecl[0];
+
+        return decl;
     }
 }

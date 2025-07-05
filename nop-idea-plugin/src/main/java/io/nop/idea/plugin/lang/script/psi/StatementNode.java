@@ -148,7 +148,6 @@ import org.jetbrains.annotations.NotNull;
  * @date 2025-07-03
  */
 public class StatementNode extends RuleSpecNode {
-    private VariableDeclarationNode[] varDeclaration;
 
     public StatementNode(@NotNull ASTNode node) {
         super(node);
