@@ -32,6 +32,10 @@ public class IdentifierNode extends RuleSpecNode {
 
     public PsiReference @NotNull [] createReferences(PsiElement source, TextRange textRange) {
         XLangVarDecl varDecl = getVarDecl();
+        if (varDecl == null) {
+            return PsiReference.EMPTY_ARRAY;
+        }
+
         PsiElement element = varDecl.element();
 
         if (element instanceof IdentifierNode id) {

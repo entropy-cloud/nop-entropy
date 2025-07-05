@@ -132,21 +132,6 @@ public class TestXLangScriptReferences extends BaseXLangPluginTestCase {
                                 sub.get<caret>Name();
                                 """, "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.Sub#getName");
 
-//        assertReference("""
-//                                function fn1(a, b) { return a + b; }
-//                                fn<caret>1(1, 2);
-//                                """, "@9");
-//        assertReference("""
-//                                function fn1(a1, b1) {
-//                                    return a<caret>1 + b1;
-//                                }
-//                                """, "");
-//        assertReference("""
-//                                function fn1(a1, b1) {
-//                                    return a1 + b<caret>1;
-//                                }
-//                                """, "");
-
         assertReference("""
                                 const a1 = 'a';
                                 const b1 = 1;
@@ -163,6 +148,75 @@ public class TestXLangScriptReferences extends BaseXLangPluginTestCase {
                                 const c1 = 'c';
                                 const obj = {a1, c<caret>1};
                                 """, "@36");
+    }
+
+    public void testFunctionReference() {
+        assertReference("""
+                                function fn1(a, b) { return a + b; }
+                                fn<caret>1(1, 2);
+                                """, "@9");
+        assertReference("""
+                                function fn1(a, b) { return a + b; }
+                                const a = fn<caret>1(1, 2);
+                                """, "@9");
+        assertReference("""
+                                const fn1 = (a1, b1) => a1 + b1;
+                                fn<caret>1(1, 2);
+                                """, "@6");
+        assertReference("""
+                                const fn1 = (a1, b1) => a1 + b1;
+                                const a = fn<caret>1(1, 2);
+                                """, "@6");
+
+        // 对函数参数的引用
+        assertReference("""
+                                function fn1(a1, b1) {
+                                    return a<caret>1 + b1;
+                                }
+                                """, "@13");
+        assertReference("""
+                                function fn1(a1, b1) {
+                                    return a1 + b<caret>1;
+                                }
+                                """, "@17");
+        assertReference("""
+                                const fn1 = (a1, b1) => a<caret>1 + b1;
+                                """, "@13");
+        assertReference("""
+                                const fn1 = (a1, b1) => a1 + b<caret>1;
+                                """, "@17");
+
+        // 对函数参数类型的引用
+        assertReference("""
+                                function fn1(a1: st<caret>ring, b1: number) {
+                                    return a1 + b1;
+                                }
+                                """, "java.lang.String");
+        assertReference("""
+                                function fn1(a1: string, b1: num<caret>ber) {
+                                    return a1 + b1;
+                                }
+                                """, "java.lang.Number");
+        assertReference("""
+                                const fn1 = (a1: st<caret>ring, b1: number) => a1 + b1;
+                                """, "java.lang.String");
+        assertReference("""
+                                const fn1 = (a1: string, b1: num<caret>ber) => a1 + b1;
+                                """, "java.lang.Number");
+
+//        // TODO 对函数调用的结果类型的引用
+//        assertReference("""
+//                                function fn1(a, b) { return a + b; }
+//                                const a = fn1('a', 'b');
+//                                a.tri<caret>m();
+//                                """, "java.lang.String#trim");
+//        assertReference("""
+//                                function fn1(a, b) { return a + b; }
+//                                const a = fn1('a', 'b');
+//                                a.trim();
+//                                const b = fn1(1, 2);
+//                                b.byte<caret>Value();
+//                                """, "java.lang.Integer#byteValue");
     }
 
     /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */

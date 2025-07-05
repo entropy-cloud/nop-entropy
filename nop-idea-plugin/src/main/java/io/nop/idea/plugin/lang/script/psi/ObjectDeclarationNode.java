@@ -54,7 +54,7 @@ public class ObjectDeclarationNode extends RuleSpecNode {
     }
 
     @Override
-    public PsiReference @NotNull [] doGetReferences() {
+    protected PsiReference @NotNull [] doGetReferences() {
         RuleSpecNode props = findChildByType(RULE_objectProperties);
         if (props == null) {
             return PsiReference.EMPTY_ARRAY;

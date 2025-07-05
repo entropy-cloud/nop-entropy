@@ -50,6 +50,6 @@ public class ImportSourceNode extends RuleSpecNode {
         QualifiedNameNode qnn = getQualifiedName();
         String fqn = qnn.getFullyName();
 
-        return PsiClassHelper.createJavaClassReferences(fqn, this, 0);
+        return PsiClassHelper.createJavaClassReferences(this, fqn, 0);
     }
 }

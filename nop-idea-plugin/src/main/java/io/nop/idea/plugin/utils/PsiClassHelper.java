@@ -75,7 +75,7 @@ public class PsiClassHelper {
     }
 
     public static PsiReference @NotNull [] createJavaClassReferences(
-            String qualifiedName, PsiElement element, int startInElement
+            PsiElement element, String qualifiedName, int startInElement
     ) {
         JavaClassReferenceSet refSet = new JavaClassReferenceSet(qualifiedName,
                                                                  element,

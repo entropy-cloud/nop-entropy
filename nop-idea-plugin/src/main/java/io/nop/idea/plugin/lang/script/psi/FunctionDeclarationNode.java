@@ -1,10 +1,7 @@
 package io.nop.idea.plugin.lang.script.psi;
 
-import java.util.Map;
-
 import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiClass;
-import io.nop.idea.plugin.lang.XLangVarDecl;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -18,7 +15,7 @@ import org.jetbrains.annotations.NotNull;
  *   IdentifierNode(identifier)
  *     PsiElement(Identifier)('fn')
  *   PsiElement('(')('(')
- *   RuleSpecNode(parameterList_)
+ *   FunctionParameterListNode(parameterList_)
  *     FunctionParameterDeclarationNode(parameterDeclaration)
  *       RuleSpecNode(ast_identifierOrPattern)
  *         IdentifierNode(identifier)
@@ -73,13 +70,5 @@ public class FunctionDeclarationNode extends RuleSpecNode {
     public PsiClass getReturnType() {
         // TODO 分析函数的 return 表达式，得到返回类型
         return null;
-    }
-
-    /** 参数列表为函数内可访问的变量 */
-    @Override
-    public @NotNull Map<String, XLangVarDecl> getVars() {
-        // TODO 分析参数列表，得到参数变量及其类型
-
-        return Map.of();
     }
 }

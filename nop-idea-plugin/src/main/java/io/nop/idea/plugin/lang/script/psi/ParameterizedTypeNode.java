@@ -4,11 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.intellij.lang.ASTNode;
-import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
-import io.nop.idea.plugin.lang.script.reference.PsiClassReference;
 import io.nop.idea.plugin.utils.PsiClassHelper;
 import org.jetbrains.annotations.NotNull;
 
@@ -65,12 +63,10 @@ public class ParameterizedTypeNode extends RuleSpecNode {
         if (result.isEmpty()) {
             String fqn = getText();
 
-            return PsiClassHelper.createJavaClassReferences(fqn, this, 0);
+            return PsiClassHelper.createJavaClassReferences(this, fqn, 0);
         }
 
-        return result.stream() //
-                     .map(r -> new PsiClassReference(this, r.clazz, r.textRange)) //
-                     .toArray(PsiReference[]::new);
+        return PsiClassAndTextRange.createReferences(this, result);
     }
 
     public PsiClass getParameterizedType() {
@@ -82,7 +78,7 @@ public class ParameterizedTypeNode extends RuleSpecNode {
             return PsiClassHelper.findClass(getProject(), fqn);
         }
 
-        PsiClass clazz = result.get(result.size() - 1).clazz;
+        PsiClass clazz = result.get(result.size() - 1).clazz();
         String clazzName = clazz.getQualifiedName();
 
         return clazzName != null //
@@ -122,6 +118,4 @@ public class ParameterizedTypeNode extends RuleSpecNode {
 
         findInnerClass(subClazz, subQnn, qnn.getStartOffsetInParent(), result);
     }
-
-    public record PsiClassAndTextRange(PsiClass clazz, TextRange textRange) {}
 }

@@ -6,6 +6,38 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * 箭头函数节点
+ * <p/>
+ * <code>(a, b) => a + b</code>：
+ * <pre>
+ * ArrowFunctionNode(arrowFunctionExpression)
+ *   PsiElement('(')('(')
+ *   FunctionParameterListNode(parameterList_)
+ *     FunctionParameterDeclarationNode(parameterDeclaration)
+ *       RuleSpecNode(ast_identifierOrPattern)
+ *         IdentifierNode(identifier)
+ *           PsiElement(Identifier)('a')
+ *     PsiElement(',')(',')
+ *     PsiWhiteSpace(' ')
+ *     FunctionParameterDeclarationNode(parameterDeclaration)
+ *       RuleSpecNode(ast_identifierOrPattern)
+ *         IdentifierNode(identifier)
+ *           PsiElement(Identifier)('b')
+ *   PsiElement(')')(')')
+ *   PsiWhiteSpace(' ')
+ *   PsiElement('=>')('=>')
+ *   PsiWhiteSpace(' ')
+ *   ArrowFunctionBodyNode(expression_functionBody)
+ *     ExpressionNode(expression_single)
+ *       ExpressionNode(expression_single)
+ *         IdentifierNode(identifier)
+ *           PsiElement(Identifier)('a')
+ *       PsiWhiteSpace(' ')
+ *       PsiElement('+')('+')
+ *       PsiWhiteSpace(' ')
+ *       ExpressionNode(expression_single)
+ *         IdentifierNode(identifier)
+ *           PsiElement(Identifier)('b')
+ * </pre>
  *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-06-30

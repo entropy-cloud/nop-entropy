@@ -277,7 +277,7 @@ public class ExpressionNode extends RuleSpecNode {
     }
 
     @Override
-    public PsiReference @NotNull [] doGetReferences() {
+    protected PsiReference @NotNull [] doGetReferences() {
         // Note:
         // - 仅识别当前表达式的最后一个有效元素的引用，其余部分，由其子表达式做识别处理
         // - 对象声明节点 ObjectDeclarationNode 的相关引用，由其自身负责构造

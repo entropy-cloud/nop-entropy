@@ -19,6 +19,7 @@ import io.nop.idea.plugin.lang.script.psi.CalleeArgumentsNode;
 import io.nop.idea.plugin.lang.script.psi.ExpressionNode;
 import io.nop.idea.plugin.lang.script.psi.FunctionDeclarationNode;
 import io.nop.idea.plugin.lang.script.psi.FunctionParameterDeclarationNode;
+import io.nop.idea.plugin.lang.script.psi.FunctionParameterListNode;
 import io.nop.idea.plugin.lang.script.psi.IdentifierNode;
 import io.nop.idea.plugin.lang.script.psi.ImportDeclarationNode;
 import io.nop.idea.plugin.lang.script.psi.ImportSourceNode;
@@ -123,6 +124,8 @@ public class XLangScriptParserDefinition implements ParserDefinition {
             //
             case XLangParser.RULE_functionDeclaration ->   //
                     new FunctionDeclarationNode(node);
+            case XLangParser.RULE_parameterList_ ->   //
+                    new FunctionParameterListNode(node);
             case XLangParser.RULE_parameterDeclaration ->   //
                     new FunctionParameterDeclarationNode(node);
             case XLangParser.RULE_arrowFunctionExpression ->   //
