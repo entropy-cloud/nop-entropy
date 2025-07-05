@@ -11,6 +11,7 @@ import io.nop.api.core.annotations.core.GlobalInstance;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.record.codec._gen.FieldBinaryCodecRegistrar;
 import io.nop.record.codec.impl.BitmapTagBinaryCodec;
+import io.nop.record.codec.impl.EOLFieldCodec;
 import io.nop.record.codec.impl.FixedLengthStringCodecFactory;
 
 import java.util.Map;
@@ -28,6 +29,7 @@ public class FieldCodecRegistry {
         FieldBinaryCodecRegistrar.registerWordType(DEFAULT);
         DEFAULT.registerTagBinaryCodec("bitmap128", BitmapTagBinaryCodec.INSTANCE);
         DEFAULT.registerCodec("FLS", FixedLengthStringCodecFactory.INSTANCE);
+        DEFAULT.registerCodec("EOL", EOLFieldCodec.INSTANCE);
     }
 
     private final Map<String, IFieldCodecFactory> codecFactories = new ConcurrentHashMap<>();

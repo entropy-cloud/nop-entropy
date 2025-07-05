@@ -110,4 +110,7 @@ public interface RecordErrors {
 
     ErrorCode ERR_RECORD_FIELD_NOT_COLLECTION_TYPE = define("nop.err.record.field-not-collection-type",
             "字段[{fieldName}]的值不是合法的集合类型", ARG_FIELD_NAME);
+
+    ErrorCode ERR_RECORD_NOT_END_OF_LINE = define("nop.err.record.not-enough-of-line",
+            "不是换行符", ARG_POS);
 }

@@ -13,6 +13,7 @@ import java.util.function.Function;
 
 import static io.nop.record.RecordErrors.ARG_LENGTH;
 import static io.nop.record.RecordErrors.ARG_MAX_LENGTH;
+import static io.nop.record.RecordErrors.ARG_POS;
 import static io.nop.record.RecordErrors.ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG;
 
 public class DynLVFieldBinaryCodec implements IFieldBinaryCodec {
@@ -37,6 +38,7 @@ public class DynLVFieldBinaryCodec implements IFieldBinaryCodec {
 
         if (length > 0 && len >= length) {
             throw new NopException(ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG)
+                    .param(ARG_POS, input.pos())
                     .param(ARG_LENGTH, len).param(ARG_MAX_LENGTH, length);
         }
 
