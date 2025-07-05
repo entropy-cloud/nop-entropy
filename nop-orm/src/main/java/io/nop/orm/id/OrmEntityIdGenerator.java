@@ -10,6 +10,7 @@ package io.nop.orm.id;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.dao.DaoConstants;
 import io.nop.dao.seq.ISequenceGenerator;
 import io.nop.orm.IOrmEntity;
 import io.nop.orm.OrmConstants;
@@ -50,7 +51,13 @@ public class OrmEntityIdGenerator implements IEntityIdGenerator {
             } else {
                 Object value = entity.orm_propValue(col.getPropId());
                 if (value == null) {
-                    value = forceGenRef(entity, col);
+                    if (col.getPropId() == entityModel.getDeleteFlagPropId()) {
+                        value = DaoConstants.NO_VALUE;
+                    } else if (col.getPropId() == entityModel.getDeleteVersionPropId()) {
+                        value = 0;
+                    } else {
+                        value = forceGenRef(entity, col);
+                    }
                 }
                 if (value == null)
                     throw new OrmException(ERR_ORM_ENTITY_ID_NOT_SET).param(ARG_ENTITY_NAME, entityModel.getName())
