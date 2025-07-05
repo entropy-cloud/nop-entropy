@@ -42,7 +42,8 @@ public class OrmEntityIdGenerator implements IEntityIdGenerator {
     @Override
     public void generateId(IOrmEntity entity) {
         for (IColumnModel col : entityModel.getPkColumns()) {
-            if (col.getPropId() == entityModel.getTenantPropId()) {
+            int propId = col.getPropId();
+            if (propId == entityModel.getTenantPropId()) {
                 initTenantId(col, entity);
             } else if (col.containsTag(OrmConstants.TAG_SEQ_DEFAULT)) {
                 genSeq(entity, col, true);
@@ -51,10 +52,12 @@ public class OrmEntityIdGenerator implements IEntityIdGenerator {
             } else {
                 Object value = entity.orm_propValue(col.getPropId());
                 if (value == null) {
-                    if (col.getPropId() == entityModel.getDeleteFlagPropId()) {
-                        value = DaoConstants.NO_VALUE;
-                    } else if (col.getPropId() == entityModel.getDeleteVersionPropId()) {
+                    if (propId == entityModel.getDeleteVersionPropId()) {
                         value = 0;
+                        entity.orm_propValue(propId, value);
+                    } else if (col.getPropId() == entityModel.getDeleteFlagPropId()) {
+                        value = DaoConstants.NO_VALUE;
+                        entity.orm_propValue(propId, value);
                     } else {
                         value = forceGenRef(entity, col);
                     }
