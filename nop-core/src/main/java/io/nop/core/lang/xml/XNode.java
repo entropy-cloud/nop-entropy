@@ -2046,6 +2046,18 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         }
     }
 
+    public String getHtml() {
+        return html();
+    }
+
+    public String getXml() {
+        return xml();
+    }
+
+    public String getText() {
+        return text();
+    }
+
     public String html() {
         return outerXml(true, true);
     }

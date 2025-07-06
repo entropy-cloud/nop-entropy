@@ -5,15 +5,15 @@ template: |
   2. 添加必要的注释
   3. 仅需要实现服务函数，实体类定义等可以导入。服务函数的逻辑要覆盖需求中的全部要求，首先要检查前置条件是否满足。
   4. 返回结果请用```python代码块包裹
-  
+
   【服务方法定义】
-  ${apiModel.getMethodJava(serviceName,methodName)}
-  
+  {{methodText}}
+
   【业务实体定义】
-  ${ormModel.ormModelJava}
+  {{ormModel.ormModelJava}}
   
   【需求文档】
-  ${requirements}
+  {{requirements}}
 
 inputs:
   - name: ormModel
@@ -30,6 +30,8 @@ inputs:
 
   - name: requirements
     mandatory: true
+
+  - name: methodText
 
 outputs:
   - name: RESULT

@@ -1,7 +1,7 @@
 template: |
   分析以下代码，生成mermaid图(图中不必强调输入输出)，并做简要说明
   
-  ${code}
+  {{code}}
 
 inputs:
   - name: code

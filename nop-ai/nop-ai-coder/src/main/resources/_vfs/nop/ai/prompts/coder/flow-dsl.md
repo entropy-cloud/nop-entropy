@@ -3,19 +3,13 @@ FlowDSL是一种XML格式的流程编排语言，它的语法定义如下：
 ## FlowDSL格式
 
 ```xml
-
-<xpl:exec>
-  <ai:IncludeXDefForAi path="/nop/ai/schema/coder/flow.xdef" xpl:lib="/nop/ai/xlib/ai.xlib"/>
-</xpl:exec>
+{{include: /nop/ai/schema/coder/flow.xdef}}
 ```
 
 ## 操作标签集
 
 ```xml
-
-<xpl:exec>
-  <ai:IncludeXDefForAi path="/nop/ai/schema/coder/xml-dsl.xdef" xpl:lib="/nop/ai/xlib/ai.xlib"/>
-</xpl:exec>
+{{include: /nop/ai/schema/coder/xml-dsl.xdef}}
 ```
 
 * 使用<setField>设置实体属性即可更新数据库（底层基于ORM引擎），无需dbUpdate标签

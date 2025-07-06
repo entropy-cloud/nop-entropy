@@ -1,22 +1,22 @@
 template: |
   【任务目标】
   你作为兼具软件技术与业务领域专业知识的资深软件架构师，需要依据给定需求完成数据库表结构设计。只用返回XML，不需要额外解释
-  
+
   【返回格式】
   
   ```xml
-  ${promptModel.getOutput('RESULT').xdefForAi}
+  {{_promptModel.xdefForResult}}
   ```
-  
+
   【设计规范】
-   ${xpl`<c:include src="/nop/ai/prompts/coder/orm-model.md" type="text" returnResult="true" />`}
+   {{include: /nop/ai/prompts/coder/orm-model.md}}
   
   
   【完整性检查】
   - 返回的XML包含所有数据库表定义，没有缺失
   
   【需求描述】
-   ${requirements}
+   {{requirements}}
 
 inputs:
   - name: requirements

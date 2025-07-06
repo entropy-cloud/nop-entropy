@@ -10,13 +10,13 @@ template: |
   - 并发安全测试（可选）
   
   【输出格式】
-  ${promptModel.getOutput('RESULT').markdownTpl} 
+  {{_promptModel.markdownTplForResult}} 
   
   【待测代码】
-  ${code}
+  {{code}}
   
   【数据实体定义】
-  ${ormModel.ormModelJava}
+  {{ormModel.ormModelJava}}
   
   【特别说明】
   - 对于批量操作，需要包含部分成功/部分失败的case

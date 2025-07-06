@@ -1,23 +1,23 @@
 template: |
   【任务目标】
-  使用form-layout语法创建【${entityModel.displayName}】实体的详细信息页面，它能够实现【需求描述】中涉及到的实体页面
+  使用form-layout语法创建【{{entityModel.displayName}}】实体的详细信息页面，它能够实现【需求描述】中涉及到的实体页面
 
   【返回格式】
   ```xml
-  ${promptModel.getOutput('RESULT').xdefForAi}
+  {{_promptModel.xdefForResult}}
   ```
   
   1. handler表示触发的后台业务方法名，比如resetPassword等
   2. role必须在【role列表】中定义
   
   【form-layout格式规范】
-   ${xpl`<c:include src="/nop/ai/prompts/coder/form-layout.md" type="text" returnResult="true" />`}
+   {{include:/nop/ai/prompts/coder/form-layout.md}}
   
   【字段列表】
-  ${propListInfo}
+  {{_propListInfo}}
   
   【role列表】
-  ${roleListInfo}
+  {{_roleListInfo}}
   
   【要求】
   1. 严格检查语法合规性
@@ -25,7 +25,7 @@ template: |
   3. 避免冗余visibleOn配置
   
   【需求描述】
-  ${requirements}
+  {{requirements}}
 
 inputs:
   - name: entityModel
@@ -43,8 +43,8 @@ preProcess: |
   
   const roleListInfo =  roleList.map2((role,i)=> (i+1)+'.'+ role.name + '[' + role.displayName+']:'+role.description).join('\n');
   
-  assign('propListInfo', propListInfo);
-  assign('roleListInfo', roleListInfo);
+  assign('_propListInfo', propListInfo);
+  assign('_roleListInfo', roleListInfo);
 
 outputs:
   - name: RESULT

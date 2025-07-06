@@ -5,16 +5,16 @@ template: |
   
   
   【DSL语法】
-  ${xpl`<c:include src="/nop/ai/prompts/coder/flow-dsl.md" type="text" enableXplExec="true" returnResult="true" />`}
+  {{include:/nop/ai/prompts/coder/flow-dsl.md}}
   
   【业务实体定义】
   ```java
-  ${ormModel.ormModelJava}
+  {{ormModel.ormModelJava}}
   ```
   
   【待实现的服务方法】
   ```java
-  ${apiModel.getMethodJava(serviceName,methodName)}
+  {{methodText}}
   ```
   
   【需求文档】
@@ -31,6 +31,9 @@ inputs:
     mandatory: true
 
   - name: methodName
+    mandatory: true
+
+  - name: methodText
     mandatory: true
 
   - name: requirements

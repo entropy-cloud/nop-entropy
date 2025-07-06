@@ -7,11 +7,11 @@ template: |
   
   【API模型】
   ```xml
-  ${apiNode.xml()}
+  {{apiNode.xml}}
   ```
   
   【需求文档】
-  ${requirements}
+  {{requirements}}
 
 inputs:
   - name: apiNode

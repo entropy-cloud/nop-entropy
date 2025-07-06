@@ -36,10 +36,10 @@ template: |
   ✓ 没有使用JSON类型的字段
 
   【输出格式】
-  ${promptModel.getOutput('RESULT').markdownTpl.toText()}
+  {{_promptModel.markdownTplForResult}}
   
   【需求描述】
-  ${requirements}
+  {{requirements}}
 
 inputs:
   - name: requirements

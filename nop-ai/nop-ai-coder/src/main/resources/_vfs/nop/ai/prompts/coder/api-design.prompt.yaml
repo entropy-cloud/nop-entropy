@@ -4,18 +4,18 @@ template: |
   
   【返回格式】
   ```xml
-  ${promptModel.getOutput('RESULT').xdefForAi}
+  {{_promptModel.xdefForResult}}
   ```
   
   **重要**: 返回时必须返回一个完整的单一XML节点，不要把它拆分成多个markdown段落。
   
   【API设计规范】
-  ${xpl`<c:include src="/nop/ai/prompts/coder/api-model.md" type="text" returnResult="true" />`}
+  {{include:/nop/ai/prompts/coder/api-model.md}}
   
   ## 数据库设计补充
    **极端重要**: 仔细考虑业务处理流程，需要用到的各种关键业务字段比如状态字段，以及相关明细表等必须要在数据库设计中体现。
   如果API接口设计过程中发现数据库设计需要调整，则通过`<orm:delta>`节点返回数据库设计变更。变更通过Nop平台的Delta差量语法表达，通过`x:override="remove"`表示删除节点。
-  ${xpl`<c:include src="/nop/ai/prompts/coder/orm-model.md" type="text" returnResult="true" />`}
+  {{include: /nop/ai/prompts/coder/orm-model.md}}
   
   【输出要求】
    - 仅需提交**非CRUD服务方法**
@@ -25,16 +25,16 @@ template: |
   
   【已有字典定义】
   ```xml
-  ${ormModel.dictsXml}
+  {{ormModel.dictsXml}}
   ```
   
   【数据库实体】
   ```java
-  ${ormModel.ormModelJava}
+  {{ormModel.ormModelJava}}
   ```
   
   【需求描述】
-  ${requirements}
+  {{requirements}}
 
 inputs:
   - name: ormModel

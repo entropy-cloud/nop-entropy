@@ -30,6 +30,12 @@ public interface AiCoreErrors {
     String ARG_PROMPT_NAME = "promptName";
     String ARG_VAR_NAME = "varName";
 
+    String ARG_DEFINED_VARS = "definedVars";
+
+    String ARG_PREFIX = "prefix";
+
+    String ARG_INPUT = "input";
+
     ErrorCode ERR_AI_SERVICE_NO_DEFAULT_LLMS =
             define("nop.err.ai.service.no-default-llms", "没有指定调用的大语言模型，也没有配置nop.ai.service.default-llm来指定缺省的大语言模型");
 
@@ -63,4 +69,17 @@ public interface AiCoreErrors {
 
     ErrorCode ERR_AI_PROMPT_USE_UNDEFINED_VAR = define("nop.err.ai.prompt-var-not-defined", "提示词使用了未定义的变量{varName}",
             ARG_PROMPT_NAME, ARG_VAR_NAME);
+
+    ErrorCode ERR_AI_UNKNOWN_PROMPT_EXPR_PREFIX = define("nop.err.ai.prompt-expr-prefix-unknown", "未定义的提示词表达式前缀:{prefix}", ARG_PREFIX);
+
+    ErrorCode ERR_AI_NO_VAR_IN_SCOPE = define("nop.err.ai.no-var-in-scope", "上下文中不存在对应变量:{varName}", ARG_VAR_NAME);
+
+    ErrorCode ERR_AI_PROMPT_UNCLOSED_EXPR =
+            define("nop.err.ai.prompt-unclosed-expr", "提示词表达式两侧的括号没有正确匹配");
+
+    ErrorCode ERR_AI_PROMPT_EMPTY_EXPR =
+            define("nop.err.ai.prompt-empty-expr", "提示词表达式内容为空");
+
+    ErrorCode ERR_AI_INVALID_EXPR_VAR_NAME =
+            define("nop.err.ai.invalid-expr-var-name", "提示词表达式中的变量名无效:{varName}", ARG_VAR_NAME);
 }

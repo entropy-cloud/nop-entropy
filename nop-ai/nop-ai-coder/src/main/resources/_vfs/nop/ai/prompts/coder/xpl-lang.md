@@ -48,7 +48,7 @@ filter的语法
 
 ```xpl
 <c:check errorDescription="金额{amount}超过限额 {limit}"
-         params="${{amount, limit: user.credit}}">
+         params="${ {amount, limit: user.credit} }">
   <between name="order.amount" min="${0}" max="${user.credit}"/>
 </c:check>
 ```
@@ -116,9 +116,9 @@ filter的语法
 ```xpl
 <bo:DoUpdate bizObjName="Order"
             id="${orderId}"
-            data="${{status: 'APPROVED', updateTime: now()}}"/>
+            data="${ {status: 'APPROVED', updateTime: now()} }"/>
 
-<bo:DoSave bizObjName="Product" data="${{name: 'New Product'}}" xpl:return="product" />
+<bo:DoSave bizObjName="Product" data="${ {name: 'New Product'} }" xpl:return="product" />
 ```
 
 **严重错误**：
@@ -228,7 +228,7 @@ filter的语法
   <c:if test="${!items}">
     <c:throw errorCode="app.demo.order-no-items"
              errorDescription="订单{no}没有商品"
-             params="${{no:order.orderNo}}"/>
+             params="${ {no:order.orderNo} }"/>
   </c:if>
 
 ```

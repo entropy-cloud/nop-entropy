@@ -46,4 +46,8 @@ template: |
   IMPORTANT：返回之前再仔细检查一下所有标记了xdef:body-type的节点都必须具有xdef:key-attr属性。
   
   【待分析的DSL】
-  ${dslText}
+  {{dslText}}
+
+inputs:
+  - name: dslText
+    mandatory: true

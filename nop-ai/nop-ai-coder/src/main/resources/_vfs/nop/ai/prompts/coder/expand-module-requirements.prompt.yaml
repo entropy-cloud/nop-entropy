@@ -36,10 +36,10 @@ template: |
   6. **严格结构**：严格按照指定的文档结构输出，不要改变标题名称和嵌套层次，也不要添加额外的段落
   
   【输出文档结构】
-  ${promptModel.getOutput('RESULT').markdownTpl.toText()}
+  {{_promptModel.markdownTplForResult}}
   
   【原始需求】
-  ${moduleRequirements}
+  {{moduleRequirements}}
 
 inputs:
   - name: moduleRequirements

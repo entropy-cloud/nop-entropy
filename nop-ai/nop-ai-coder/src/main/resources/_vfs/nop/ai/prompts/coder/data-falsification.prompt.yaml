@@ -15,7 +15,7 @@ template: |
     4. 将原始数据中的敏感字段替换为伪造数据后，保持原始数据的格式返回
 
    【原始数据】
-    ${text}
+    {{text}}
 
 inputs:
   - name: text

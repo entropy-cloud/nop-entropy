@@ -20,17 +20,17 @@ template: |
 
   【已有字典定义】
   ```xml
-  ${ormModel.dictsXml}
+  {{ormModel.dictsXml}}
   ```
   
   【数据库实体】
   ```java
-  ${ormModel.ormModelJava}
+  {{ormModel.ormModelJava}}
   ```
   
   【API模型】
   ```xml
-  ${apiNode.xml()}
+  {{apiNode.xml}}
   ```
 
 inputs:

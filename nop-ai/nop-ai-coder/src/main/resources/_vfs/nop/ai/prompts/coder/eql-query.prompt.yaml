@@ -6,7 +6,13 @@ template: |
   EQL=SQL+AutoJoin，它在SQL语言的基础上补充了对于to-one关联对象的`entity.refEntity.name`这种关联属性路径支持，引擎自动根据关联属性推导得到join条件。
   
   【对象模型】
-  ${ormModelJava}
+  {{ormModelJava}}
   
   【需求描述】
-  ${requirements}
+  {{requirements}}
+
+inputs:
+  - name: ormModelJava
+    mandatory: true
+  - name: requirements
+    mandatory: true

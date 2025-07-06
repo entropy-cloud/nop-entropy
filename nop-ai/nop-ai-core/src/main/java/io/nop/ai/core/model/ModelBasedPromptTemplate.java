@@ -4,6 +4,8 @@ import io.nop.ai.core.AiCoreConstants;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.prompt.IPromptTemplate;
+import io.nop.ai.core.prompt.node.IPromptSyntaxNode;
+import io.nop.ai.core.prompt.node.PromptSyntaxParser;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
@@ -92,7 +94,7 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
         } else {
             scope = ctx.getEvalScope().newChildScope(vars);
         }
-        scope.setLocalValue(AiCoreConstants.VAR_PROMPT_MODEL, this);
+        scope.setLocalValue(AiCoreConstants.SYS_VAR_PROMPT_MODEL, this);
 
         if (getInputs() != null) {
             for (PromptInputModel input : getInputs()) {
@@ -129,19 +131,27 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
 
     @Override
     public String generatePrompt(IEvalScope scope) {
-        String prompt = ConvertHelper.toString(promptModel.getTemplate().invoke(scope), "");
-        if (promptModel.isUsePlaceholder()) {
-            prompt = StringHelper.renderTemplate(prompt, "{{", "}}", (name) -> {
+        StringBuilder sb = new StringBuilder();
+        promptModel.getTemplate().accept(new IPromptSyntaxNode.IPromptSyntaxNodeVisitor() {
+            @Override
+            public void visitText(PromptSyntaxParser.TextNode expr) {
+                sb.append(expr.getText());
+            }
+
+            @Override
+            public void visitVariable(PromptSyntaxParser.VariableNode expr) {
+                String name = expr.getVarName();
                 Object value = scope.getLocalValue(name);
                 if (value == null && !scope.containsLocalValue(name))
                     throw new NopException(ERR_AI_PROMPT_USE_UNDEFINED_VAR)
                             .source(promptModel)
                             .param(ARG_PROMPT_NAME, promptModel.getName())
                             .param(ARG_VAR_NAME, name);
-                return value;
-            });
-        }
-        return prompt;
+                if(value != null)
+                    sb.append(value);
+            }
+        });
+        return sb.toString();
     }
 
     @Override

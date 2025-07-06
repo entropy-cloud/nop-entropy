@@ -6,7 +6,7 @@ template: |
   以下映射规则说明了从from对象如何映射到to对象
   
   ```json
-  ${$JSON.stringify(dslModel)}
+  {{dslModel}}
   ```
   
   1. itemMapping用于指定Map或者List结构中每一项的映射规则
@@ -21,6 +21,11 @@ template: |
     }
   }
   ```
+
+inputs:
+  - name: dslModel
+    mandatory: true
+
 
 outputs:
   - name: RESULT

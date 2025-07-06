@@ -32,7 +32,7 @@ public interface AiCoreConstants {
 
     String PLACE_HOLDER_LLM_NAME = "{llmName}";
 
-    String VAR_PROMPT_MODEL = "promptModel";
+    String SYS_VAR_PROMPT_MODEL = "_promptModel";
 
     String ATTR_AI_PROMPT_NAME = "ai:promptName";
 
@@ -47,4 +47,6 @@ public interface AiCoreConstants {
     String BEAN_NOP_AI_CHAT_SERVICE = "nopAiChatService";
 
     String CODE_LANG_YAML = "yaml";
+
+    String PROMPT_PREFIX_INCLUDE = "include";
 }

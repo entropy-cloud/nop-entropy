@@ -5,12 +5,12 @@ template: |
   【输出要求】
   1. 如果存在XML或者表格，需要确保它们语法正确
   2. IMPORTANT: 不要擅自添加原文档中没有的内容
-  
+
   【要求的文档结构】
-  ${markdownTpl.toText()}
-  
+  {{markdownTpl.text}}
+
   【待检查的文档】
-  ${markdownDoc.toText()}
+   {{markdownDoc.text}}
 
 inputs:
   - name: markdownDoc

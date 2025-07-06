@@ -133,6 +133,8 @@ public interface XDefConstants {
 
     String STD_DOMAIN_PEEK_MATCH_RULE = "peek-match-rule";
 
+    String STD_DOMAIN_PROMPT_SYNTAX = "prompt-syntax";
+
     String STD_DOMAIN_EVAL_CODE = "eval-code";
 
     String STD_DOMAIN_XT_VALUE = "xt-value";

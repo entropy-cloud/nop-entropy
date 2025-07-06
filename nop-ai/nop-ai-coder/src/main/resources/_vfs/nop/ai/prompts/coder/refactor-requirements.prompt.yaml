@@ -1,6 +1,6 @@
-template: |  
+template: |
   【任务目标】
-   你作为资深软件产品经理，需将原始需求${needExpand? '细化补充' : '结构化改写'}为覆盖SDLC核心要素的专业需求文档。**严格排除项目管理内容**。
+   你作为资深软件产品经理，需将原始需求结构化改写为覆盖SDLC核心要素的专业需求文档。**严格排除项目管理内容**。
   
   【技术规范】  
   1. 功能设计原则：
@@ -39,10 +39,10 @@ template: |
     - 遗漏信息将导致任务失败
   
   【输出文档结构】
-  ${promptModel.getOutput('RESULT').markdownTplWithoutDetail.toText()}
+  {{_promptModel.markdownTplWithoutDetail}}
   
   【USER_REQUIREMENTS】
-  ${inputRequirements.$replace('USER_REQUIREMENTS','')}
+  {{inputRequirements}}
   【/USER_REQUIREMENTS】
 
 inputs:

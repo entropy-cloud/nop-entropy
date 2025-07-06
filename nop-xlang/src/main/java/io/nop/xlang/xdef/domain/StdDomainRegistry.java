@@ -168,5 +168,7 @@ public class StdDomainRegistry implements IStdDomainRegistry {
 
 
         registerStdDomainHandler(new SimpleStdDomainHandlers.FormLayoutType());
+
+        registerStdDomainHandler(new MockTypes.MockPromptSyntaxType());
     }
 }

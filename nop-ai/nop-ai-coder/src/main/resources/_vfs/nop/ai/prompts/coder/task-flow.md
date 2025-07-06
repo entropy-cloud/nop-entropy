@@ -27,7 +27,7 @@
     <step name="validate">
       <source>
         <c:check errorCode="app.demo.invalid-amount" description="金额必须在{min}和{max}范围之内"
-                 params="${{min:0, max:user.credit}}">
+                 params="${ {min:0, max:user.credit} }">
           <between name="request.amount" min="${0}" max="${user.credit}" />
         </c:check>
       </source>

@@ -2,9 +2,9 @@ template: |
   【任务描述】
   你作为兼具软件技术与业务领域专业知识的资深软件架构师，需要仔细分析如下resource节点的属性设置，判断它的属性值与需求描述是否相符。
   如果不需要修改，仅输出`[NO_CHANGE]`，否则输出修改后的完整XML，不要进行额外解释
-  
+
   ```xml
-  ${menuNode.xml()}
+  {{menuNode.xml}}
   ```
   
   【要求】
@@ -14,10 +14,10 @@ template: |
   3. role必须是roles集合中定义的角色
   
   【实体定义】
-  ${ormModel.entityListInfo}
+  {{ormModel.entityListInfo}}
   
   【需求描述】
-  ${requirements}
+  {{requirements}}
 
 inputs:
   - name: menuNode

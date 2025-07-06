@@ -62,6 +62,10 @@ public class AiOrmModel {
         return buildFromOrmNode(node);
     }
 
+    public String getOrmXmlForAi() {
+        return getOrmNodeForAi().xml();
+    }
+
     public XNode getOrmNodeForAi() {
         if (node == null) {
             XNode normalized = getOrmNode();

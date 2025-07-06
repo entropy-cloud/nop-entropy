@@ -5,7 +5,7 @@ template: |
   【返回格式】
   
   ```xml
-  ${promptModel.getOutput('RESULT').xdefForAi}
+  {{_promptModel.xdefForResult}}
   ```
   
   1. 每个业务表都对应一个实体，并存在一个main页面，包含完整的增删改查操作。
@@ -19,10 +19,10 @@ template: |
   
   
   【实体定义】
-  ${ormModel.entityListInfo}
+  {{ormModel.entityListInfo}}
   
   【需求描述】
-  ${requirements}
+  {{requirements}}
 
 inputs:
   - name: requirements

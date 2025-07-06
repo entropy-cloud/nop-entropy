@@ -25,16 +25,16 @@ template: |
   
   【服务方法定义】
   ```java
-  ${apiModel.getMethodJava(serviceName,methodName)}
+  {{methodText}}
   ```
   
   【业务实体定义】
   ```java
-  ${ormModel.ormModelJava}
+  {{ormModel.ormModelJava}}
   ```
   
   【需求文档】
-  ${requirements}
+  {{requirements}}
 
 inputs:
   - name: ormModel
@@ -51,6 +51,8 @@ inputs:
 
   - name: requirements
     mandatory: true
+
+  - name: methodText
 
 outputs:
   - name: RESULT

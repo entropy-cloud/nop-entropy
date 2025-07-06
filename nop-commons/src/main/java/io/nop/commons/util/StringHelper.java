@@ -1299,7 +1299,7 @@ public class StringHelper extends ApiStringHelper {
         }
         final String abrevMarker = "...";
         if (offset <= 4) {
-            return str.subSequence(0, maxWidth - 3).toString() + abrevMarker;
+            return str.subSequence(0, maxWidth - 3) + abrevMarker;
         }
         if (maxWidth < 7) {
             maxWidth = 7; // throw new
@@ -1307,7 +1307,7 @@ public class StringHelper extends ApiStringHelper {
             // width with offset is 7");
         }
         if (offset + maxWidth - 3 < str.length()) {
-            return abrevMarker + limitLen(str.subSequence(offset, str.length()), maxWidth - 3);
+            return abrevMarker + str.subSequence(offset,offset + maxWidth -3) + abrevMarker;
         }
         return abrevMarker + str.subSequence(str.length() - (maxWidth - 3), str.length());
     }
@@ -4606,4 +4606,32 @@ public class StringHelper extends ApiStringHelper {
         return printable;
     }
 
+    /**
+     * 在当前行查找目标字符串（直接向后查找，再检查是否跨行）
+     *
+     * @param input  输入字符串
+     * @param start  起始搜索位置
+     * @param target 要查找的目标字符串（如 "}}"）
+     * @return 目标字符串的位置（如果找到且在同一行），否则返回 -1
+     */
+    @Deterministic
+    public static int findInCurrentLine(String input, String target, int start) {
+        if (input == null || target == null || start < 0 || start >= input.length()) {
+            return -1;
+        }
+
+        // 1. 直接向后查找目标字符串
+        int end = input.indexOf(target, start);
+        if (end == -1) {
+            return -1; // 没找到
+        }
+
+        // 2. 检查是否跨行（查找 start 到 end 之间是否有换行符）
+        int nextNewline = input.indexOf('\n', start);
+        if (nextNewline != -1 && end > nextNewline) {
+            return -1; // 如果换行符在 start 和 end 之间，说明跨行
+        }
+
+        return end; // 找到且在同一行
+    }
 }

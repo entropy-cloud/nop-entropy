@@ -11,11 +11,11 @@ template: |
   【表定义】
   
   ```xml
-  ${ormModel.ormModelText}
+  {{ormModel.ormModelText}}
   ```
   
   【需求描述】
-  ${requirements}
+  {{requirements}}
 
 inputs:
   - name: requirements

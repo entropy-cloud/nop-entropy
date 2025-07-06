@@ -27,5 +27,6 @@
         <module>nop-ai-service</module>
         <module>nop-ai-web</module>
         <module>nop-ai-app</module>
+        <module>nop-ai-mcp-server</module>
     </modules>
 </project>
