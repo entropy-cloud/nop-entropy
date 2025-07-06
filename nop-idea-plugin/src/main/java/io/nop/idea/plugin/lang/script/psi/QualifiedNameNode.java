@@ -28,17 +28,13 @@ import org.jetbrains.annotations.NotNull;
  * @date 2025-07-04
  */
 public class QualifiedNameNode extends RuleSpecNode {
-    private IdentifierNode identifier;
 
     public QualifiedNameNode(@NotNull ASTNode node) {
         super(node);
     }
 
     public IdentifierNode getIdentifier() {
-        if (identifier == null || !identifier.isValid()) {
-            identifier = (IdentifierNode) getFirstChild().getFirstChild();
-        }
-        return identifier;
+        return (IdentifierNode) getFirstChild().getFirstChild();
     }
 
     public String getLastName() {

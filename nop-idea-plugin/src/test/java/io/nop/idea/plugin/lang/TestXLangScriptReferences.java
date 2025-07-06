@@ -108,12 +108,25 @@ public class TestXLangScriptReferences extends BaseXLangPluginTestCase {
                                 const handler = new XJsonDo<caret>mainHandler();
                                 """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
         assertReference("""
-                                const handler = new io.nop.xlang.xdef.domain.XJsonDo<caret>mainHandler();
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
+                                import io.nop.xlang.xdef.domain.XJsonDomainHandler;
+                                const sub = new XJsonDomainHandler.S<caret>ub.Sub();
+                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub");
         assertReference("""
                                 import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                 const sub = new XJsonDomainHandler.Sub.S<caret>ub();
                                 """, "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.Sub");
+        assertReference("""
+                                const handler = new io.nop.xlang.xd<caret>ef.domain.XJsonDomainHandler();
+                                """, "io.nop.xlang.xdef");
+        assertReference("""
+                                const handler = new io.nop.xlang.xdef.domain.XJsonDo<caret>mainHandler();
+                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
+        assertReference("""
+                                const sub = new io.nop.xlang.xdef.domain.XJsonD<caret>omainHandler.Sub.Sub();
+                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
+        assertReference("""
+                                const sub = new io.nop.xlang.xdef.domain.XJsonDomainHandler.S<caret>ub.Sub();
+                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub");
         assertReference("""
                                 const sub = new io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.S<caret>ub();
                                 """, "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.Sub");
@@ -244,6 +257,24 @@ public class TestXLangScriptReferences extends BaseXLangPluginTestCase {
 //                                const b = fn1(1, 2);
 //                                b.byte<caret>Value();
 //                                """, "java.lang.Integer#byteValue");
+    }
+
+    public void testGenericTypeReference() {
+        assertReference("""
+                                import java.util.HashMap;
+                                import java.util.List;
+                                const s = new Has<caret>hMap<String, List>();
+                                """, "java.util.HashMap");
+        assertReference("""
+                                import java.util.HashMap;
+                                import java.util.List;
+                                const s = new HashMap<St<caret>ring, List>();
+                                """, "java.lang.String");
+        assertReference("""
+                                import java.util.HashMap;
+                                import java.util.List;
+                                const s = new HashMap<String, Li<caret>st>();
+                                """, "java.util.List");
     }
 
     /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */

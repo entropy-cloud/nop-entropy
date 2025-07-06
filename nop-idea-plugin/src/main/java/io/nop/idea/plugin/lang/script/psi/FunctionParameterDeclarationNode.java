@@ -33,17 +33,13 @@ import static io.nop.idea.plugin.lang.script.XLangScriptTokenTypes.RULE_namedTyp
  * @date 2025-06-30
  */
 public class FunctionParameterDeclarationNode extends RuleSpecNode {
-    private IdentifierNode parameterName;
 
     public FunctionParameterDeclarationNode(@NotNull ASTNode node) {
         super(node);
     }
 
     public IdentifierNode getParameterName() {
-        if (parameterName == null || !parameterName.isValid()) {
-            parameterName = (IdentifierNode) getFirstChild().getFirstChild();
-        }
-        return parameterName;
+        return (IdentifierNode) getFirstChild().getFirstChild();
     }
 
     public PsiClass getParameterType() {

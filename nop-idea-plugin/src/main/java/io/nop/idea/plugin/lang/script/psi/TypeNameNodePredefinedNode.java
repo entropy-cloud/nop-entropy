@@ -1,12 +1,11 @@
 package io.nop.idea.plugin.lang.script.psi;
 
 import com.intellij.lang.ASTNode;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
-import io.nop.api.core.util.Symbol;
-import io.nop.idea.plugin.lang.script.reference.PsiClassReference;
-import io.nop.idea.plugin.utils.PsiClassHelper;
+import io.nop.idea.plugin.lang.script.reference.PredefinedTypeReference;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -21,48 +20,28 @@ import org.jetbrains.annotations.NotNull;
  * @date 2025-07-05
  */
 public class TypeNameNodePredefinedNode extends RuleSpecNode {
-    private PsiElement typeName;
 
     public TypeNameNodePredefinedNode(@NotNull ASTNode node) {
         super(node);
     }
 
     public PsiElement getTypeName() {
-        if (typeName == null || !typeName.isValid()) {
-            typeName = getLastChild();
-        }
-        return typeName;
+        return getLastChild();
     }
 
     public PsiClass getPredefinedType() {
-        // 仅包含确定类型，详见 nop-xlang/model/antlr/XLangTypeSystem.g4
-        PsiElement typeNameNode = getTypeName();
-        String typeName = typeNameNode.getText();
+        String typeName = getTypeName().getText();
 
-        Class<?> typeClass = switch (typeName) {
-            case "any" -> Object.class;
-            case "number" -> Number.class;
-            case "boolean" -> Boolean.class;
-            case "string" -> String.class;
-            case "symbol" -> Symbol.class;
-            case "void" -> Void.class;
-            default -> null;
-        };
-
-        return typeClass != null ? PsiClassHelper.findClass(getProject(), typeClass.getName()) : null;
+        return PredefinedTypeReference.getPredefinedType(getProject(), typeName);
     }
 
     @Override
     protected PsiReference @NotNull [] doGetReferences() {
-        PsiClass clazz = getPredefinedType();
-        if (clazz == null) {
-            return PsiReference.EMPTY_ARRAY;
-        }
+        PsiElement typeName = getTypeName();
+        TextRange textRange = typeName.getTextRangeInParent();
 
-        PsiElement typeNameNode = getTypeName();
+        PredefinedTypeReference ref = new PredefinedTypeReference(this, typeName, textRange);
 
-        return new PsiReference[] {
-                new PsiClassReference(this, clazz, typeNameNode.getTextRangeInParent())
-        };
+        return new PsiReference[] { ref };
     }
 }

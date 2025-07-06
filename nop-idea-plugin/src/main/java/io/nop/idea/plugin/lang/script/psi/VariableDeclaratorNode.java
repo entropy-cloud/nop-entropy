@@ -25,6 +25,47 @@ import static io.nop.idea.plugin.lang.script.XLangScriptTokenTypes.RULE_expressi
  *           PsiElement(DecimalIntegerLiteral)('123')
  * </pre>
  *
+ * <code>map = new HashMap&lt;String, List>()</code>：
+ * <pre>
+ * VariableDeclaratorNode(variableDeclarator)
+ *   RuleSpecNode(ast_identifierOrPattern)
+ *     IdentifierNode(identifier)
+ *       PsiElement(Identifier)('map')
+ *   PsiWhiteSpace(' ')
+ *   RuleSpecNode(expression_initializer)
+ *     PsiElement('=')('=')
+ *     PsiWhiteSpace(' ')
+ *     ExpressionNode(expression_single)
+ *       PsiElement('new')('new')
+ *       PsiWhiteSpace(' ')
+ *       RuleSpecNode(parameterizedTypeNode)
+ *         QualifiedNameRootNode(qualifiedName_)
+ *           QualifiedNameNode(qualifiedName)
+ *             RuleSpecNode(qualifiedName_name_)
+ *               IdentifierNode(identifier)
+ *                 PsiElement(Identifier)('HashMap')
+ *         RuleSpecNode(typeArguments_)
+ *           PsiElement('<')('<')
+ *           RuleSpecNode(namedTypeNode)
+ *             QualifiedNameRootNode(qualifiedName_)
+ *               QualifiedNameNode(qualifiedName)
+ *                 RuleSpecNode(qualifiedName_name_)
+ *                   IdentifierNode(identifier)
+ *                     PsiElement(Identifier)('String')
+ *           PsiElement(',')(',')
+ *           PsiWhiteSpace(' ')
+ *           RuleSpecNode(namedTypeNode)
+ *             QualifiedNameRootNode(qualifiedName_)
+ *               QualifiedNameNode(qualifiedName)
+ *                 RuleSpecNode(qualifiedName_name_)
+ *                   IdentifierNode(identifier)
+ *                     PsiElement(Identifier)('List')
+ *           PsiElement('>')('>')
+ *       CalleeArgumentsNode(arguments_)
+ *         PsiElement('(')('(')
+ *         PsiElement(')')(')')
+ * </pre>
+ *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-07-03
  */

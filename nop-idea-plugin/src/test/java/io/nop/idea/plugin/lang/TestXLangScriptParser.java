@@ -34,6 +34,8 @@ public class TestXLangScriptParser extends BaseXLangPluginTestCase {
                                 let abc = new String("abc");
                                 let abc = new Abc.Def("abc");
                                 let abc = new java.lang.String("abc");
+                                const map = new HashMap<String, List>();
+                                //
                                 let def = new String("def").trim();
                                 let def = 123, lmn = 456 + abc;
                                 const c = a.b.c;

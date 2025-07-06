@@ -1,14 +1,9 @@
 package io.nop.idea.plugin.lang.script.psi;
 
 import com.intellij.lang.ASTNode;
-import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiReference;
 import io.nop.commons.util.StringHelper;
 import io.nop.idea.plugin.lang.XLangVarDecl;
-import io.nop.idea.plugin.lang.script.reference.PsiClassReference;
-import io.nop.idea.plugin.lang.script.reference.VariableDeclarationReference;
 import io.nop.idea.plugin.utils.PsiClassHelper;
 import org.jetbrains.annotations.NotNull;
 
@@ -30,37 +25,14 @@ public class IdentifierNode extends RuleSpecNode {
         super(node);
     }
 
-    public PsiReference @NotNull [] createReferences(PsiElement source, TextRange textRange) {
-        XLangVarDecl varDecl = getVarDecl();
-        if (varDecl == null) {
-            return PsiReference.EMPTY_ARRAY;
-        }
-
-        PsiElement element = varDecl.element();
-
-        if (element instanceof IdentifierNode id) {
-            VariableDeclarationReference ref = new VariableDeclarationReference(source, id, textRange);
-
-            return new PsiReference[] { ref };
-        } else if (element instanceof PsiClass clazz) {
-            PsiClassReference ref = new PsiClassReference(source, clazz, textRange);
-
-            return new PsiReference[] { ref };
-        }
-        return PsiReference.EMPTY_ARRAY;
-    }
-
-    /**
-     * 获取变量的数据类型
-     * <p/>
-     * 若标识符为函数名，则返回函数的返回值类型
-     */
-    public PsiClass getDataType() {
+    /** 获取变量的类型 */
+    public PsiClass getVarType() {
         XLangVarDecl varDecl = getVarDecl();
 
         return varDecl != null ? varDecl.type() : null;
     }
 
+    /** 获取变量的定义信息 */
     public XLangVarDecl getVarDecl() {
         String varName = getText();
         XLangVarDecl decl = findVisibleVar(varName);

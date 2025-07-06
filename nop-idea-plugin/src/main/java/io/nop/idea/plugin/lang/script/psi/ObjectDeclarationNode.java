@@ -1,13 +1,13 @@
 package io.nop.idea.plugin.lang.script.psi;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
+import io.nop.idea.plugin.lang.script.reference.IdentifierReference;
 import org.jetbrains.annotations.NotNull;
 
 import static io.nop.idea.plugin.lang.script.XLangScriptTokenTypes.RULE_objectProperties;
@@ -74,8 +74,9 @@ public class ObjectDeclarationNode extends RuleSpecNode {
             TextRange textRange = propDecl.getTextRangeInParent();
             IdentifierNode propNameNode = prop.getPropNameNode();
 
-            PsiReference[] refs = propNameNode.createReferences(this, textRange);
-            Collections.addAll(result, refs);
+            IdentifierReference ref = new IdentifierReference(this, propNameNode, textRange);
+
+            result.add(ref);
         }
 
         return result.toArray(PsiReference.EMPTY_ARRAY);

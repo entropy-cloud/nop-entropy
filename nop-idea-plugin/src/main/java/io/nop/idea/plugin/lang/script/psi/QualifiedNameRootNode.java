@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.intellij.lang.ASTNode;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
-import io.nop.idea.plugin.utils.PsiClassHelper;
+import io.nop.idea.plugin.lang.script.reference.QualifiedNameReference;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -40,80 +41,70 @@ import org.jetbrains.annotations.NotNull;
  * @date 2025-06-30
  */
 public class QualifiedNameRootNode extends RuleSpecNode {
-    private QualifiedNameNode qualifiedName;
 
     public QualifiedNameRootNode(@NotNull ASTNode node) {
         super(node);
     }
 
     public QualifiedNameNode getQualifiedName() {
-        if (qualifiedName == null || !qualifiedName.isValid()) {
-            qualifiedName = (QualifiedNameNode) getFirstChild();
-        }
-        return qualifiedName;
+        return (QualifiedNameNode) getFirstChild();
     }
 
     @Override
     protected PsiReference @NotNull [] doGetReferences() {
-        List<PsiClassAndTextRange> result = getClassAndTextRanges();
+        List<QualifiedNameReference> result = createReferences();
 
-        // 若未找到已导入的类，则尝试按包查找
-        if (result.isEmpty()) {
-            String fqn = getText();
-
-            return PsiClassHelper.createJavaClassReferences(this, fqn, 0);
-        }
-
-        return PsiClassAndTextRange.createReferences(this, result);
+        return result.toArray(PsiReference.EMPTY_ARRAY);
     }
 
     public PsiClass getQualifiedType() {
-        List<PsiClassAndTextRange> result = getClassAndTextRanges();
-
-        String fqn = getText().replace(" ", "");
+        List<QualifiedNameReference> result = createReferences();
         if (result.isEmpty()) {
-            // 按全类名处理
-            return PsiClassHelper.findClass(getProject(), fqn);
+            return null;
         }
 
-        PsiClass clazz = result.get(result.size() - 1).clazz();
-        String clazzName = clazz.getQualifiedName();
+        String fqn = getText().replace(" ", "");
+        QualifiedNameReference ref = result.get(result.size() - 1);
+        PsiElement element = ref.resolve();
 
-        return clazzName != null //
-               && (fqn.equals(clazzName) //
-                   || clazzName.endsWith('.' + fqn)) //
+        if (!(element instanceof PsiClass clazz)) {
+            return null;
+        }
+
+        String className = clazz.getQualifiedName();
+
+        return className != null //
+               && (fqn.equals(className) //
+                   || className.endsWith('.' + fqn)) //
                ? clazz : null;
     }
 
-    protected List<PsiClassAndTextRange> getClassAndTextRanges() {
+    protected List<QualifiedNameReference> createReferences() {
         QualifiedNameNode qnn = getQualifiedName();
-        IdentifierNode identifier = qnn.getIdentifier();
 
-        PsiClass clazz = identifier.getDataType();
-
-        List<PsiClassAndTextRange> result = new ArrayList<>();
-        findInnerClass(clazz, qnn, 0, result);
+        List<QualifiedNameReference> result = new ArrayList<>();
+        createReferences(null, qnn, 0, result);
 
         return result;
     }
 
-    protected void findInnerClass(
-            PsiClass clazz, QualifiedNameNode qnn, int offset, List<PsiClassAndTextRange> result
+    protected void createReferences(
+            QualifiedNameReference parentReference, QualifiedNameNode qnn, int offset,
+            List<QualifiedNameReference> result
     ) {
-        if (clazz == null) {
-            return;
-        }
+        IdentifierNode identifier = qnn.getIdentifier();
+        // Note: 取相对于 qnn 的 TextRange 并做偏移
+        TextRange textRange = identifier.getParent().getTextRangeInParent().shiftRight(offset);
 
-        result.add(new PsiClassAndTextRange(clazz, qnn.getTextRangeInParent().shiftRight(offset)));
+        QualifiedNameReference ref = new QualifiedNameReference(this, identifier, textRange, parentReference);
+
+        result.add(ref);
 
         PsiElement sub = qnn.getLastChild();
         if (!(sub instanceof QualifiedNameNode subQnn)) {
             return;
         }
 
-        String subName = subQnn.getIdentifier().getText();
-        PsiClass subClazz = clazz.findInnerClassByName(subName, true);
-
-        findInnerClass(subClazz, subQnn, qnn.getStartOffsetInParent(), result);
+        createReferences(ref, subQnn, subQnn.getStartOffsetInParent() + offset, result);
     }
 }

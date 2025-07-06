@@ -31,17 +31,13 @@ import org.jetbrains.annotations.NotNull;
  * @date 2025-06-29
  */
 public class ImportSourceNode extends RuleSpecNode {
-    private QualifiedNameNode qualifiedName;
 
     public ImportSourceNode(@NotNull ASTNode node) {
         super(node);
     }
 
     public QualifiedNameNode getQualifiedName() {
-        if (qualifiedName == null || !qualifiedName.isValid()) {
-            qualifiedName = (QualifiedNameNode) getFirstChild();
-        }
-        return qualifiedName;
+        return (QualifiedNameNode) getFirstChild();
     }
 
     /** 构造 Java 相关的引用对象，从而支持自动补全、引用跳转、文档显示等 */
