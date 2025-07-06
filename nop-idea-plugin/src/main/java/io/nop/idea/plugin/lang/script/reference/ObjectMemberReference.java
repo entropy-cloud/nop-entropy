@@ -9,16 +9,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 对象属性引用
- * <p/>
- * 根据 {@link ExpressionNode} 表达式得到唯一的对象属性
+ * 对象成员（属性或方法）引用
  *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-07-06
  */
-public class ObjectPropertyReference extends XLangReferenceBase {
+public class ObjectMemberReference extends XLangReferenceBase {
 
-    public ObjectPropertyReference(ExpressionNode myElement) {
+    public ObjectMemberReference(ExpressionNode myElement) {
         super(myElement, null);
     }
 
@@ -29,7 +27,7 @@ public class ObjectPropertyReference extends XLangReferenceBase {
 
     @Override
     public @Nullable PsiElement resolveInner() {
-        return ((ExpressionNode) myElement).getObjectProperty();
+        return ((ExpressionNode) myElement).getObjectMember();
     }
 
     @Override

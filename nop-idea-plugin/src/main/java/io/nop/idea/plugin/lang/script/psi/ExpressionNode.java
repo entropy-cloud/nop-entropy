@@ -16,8 +16,8 @@ import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiType;
 import com.intellij.psi.impl.PsiClassImplUtil;
 import io.nop.idea.plugin.lang.script.reference.IdentifierReference;
+import io.nop.idea.plugin.lang.script.reference.ObjectMemberReference;
 import io.nop.idea.plugin.lang.script.reference.ObjectMethodReference;
-import io.nop.idea.plugin.lang.script.reference.ObjectPropertyReference;
 import org.jetbrains.annotations.NotNull;
 
 import static io.nop.idea.plugin.lang.script.XLangScriptTokenTypes.RULE_parameterizedTypeNode;
@@ -304,8 +304,8 @@ public class ExpressionNode extends RuleSpecNode {
             return new PsiReference[] { ref };
         }
         // 对象属性访问：a.b.c
-        else if (isObjectPropertyAccess()) {
-            ObjectPropertyReference ref = new ObjectPropertyReference(this);
+        else if (isObjectMemberAccess()) {
+            ObjectMemberReference ref = new ObjectMemberReference(this);
 
             return new PsiReference[] { ref };
         }
@@ -344,9 +344,13 @@ public class ExpressionNode extends RuleSpecNode {
 
             return getPsiClassByPsiType(returnType);
         } //
-        else if (isObjectPropertyAccess()) {
-            PsiField prop = getObjectProperty();
-            PsiType propType = prop != null ? prop.getType() : null;
+        else if (isObjectMemberAccess()) {
+            PsiElement member = getObjectMember();
+            if (!(member instanceof PsiField prop)) {
+                return null;
+            }
+
+            PsiType propType = prop.getType();
 
             return getPsiClassByPsiType(propType);
         } //
@@ -393,11 +397,14 @@ public class ExpressionNode extends RuleSpecNode {
     }
 
     /**
-     * 当前表达式是否为对象变量访问
+     * 当前表达式是否为对象成员（属性或方法）访问
      * <p/>
      * 从最后一个对象成员的视角向上观察
+     * <p/>
+     * 在父节点未包含 {@link CalleeArgumentsNode} 节点时，
+     * 当前对象成员可能是变量，也可能是方法
      */
-    public boolean isObjectPropertyAccess() {
+    public boolean isObjectMemberAccess() {
         // a.b.c
         if (getFirstChild() instanceof ExpressionNode) {
             return getLastChild() instanceof ObjectMemberNode //
@@ -455,10 +462,17 @@ public class ExpressionNode extends RuleSpecNode {
         return filterMethodByArgs(methods, () -> ((ExpressionNode) getParent()).getObjectMethodArgumentTypes());
     }
 
-    /** 获取对象的属性 */
-    public PsiField getObjectProperty() {
-        return getObjectMember((objClass, memberName) -> PsiClassImplUtil.findFieldByName(objClass, memberName, true),
-                               null);
+    /** 获取对象的成员（属性或方法） */
+    public PsiElement getObjectMember() {
+        return getObjectMember((objClass, memberName) -> {
+            PsiField prop = PsiClassImplUtil.findFieldByName(objClass, memberName, true);
+            if (prop != null) {
+                return prop;
+            }
+
+            PsiMethod[] methods = PsiClassImplUtil.findMethodsByName(objClass, memberName, true);
+            return methods.length > 0 ? methods[0] : null;
+        }, null);
     }
 
     /** 获取对象成员在当前表达式中的 {@link TextRange} */
@@ -518,7 +532,8 @@ public class ExpressionNode extends RuleSpecNode {
             }
         }
 
-        return null;
+        // 若都不匹配，则取第一个
+        return methods.length > 0 ? methods[0] : null;
     }
 
     protected boolean matchMethodParams(PsiParameter[] params, PsiClass[] args) {

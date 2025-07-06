@@ -21,6 +21,8 @@
                     const s = "abc".startsWith("a");
                     const fn = (a: any, b: string) => a + b;
                     fn(1, 2);
+                    Integer.valueOf;
+                    Integer.valueOf('a');
 
                     while (true) {
                         let a = 's' instanceof string;

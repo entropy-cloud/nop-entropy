@@ -56,6 +56,16 @@ public class TestXLangScriptReferences extends BaseXLangPluginTestCase {
                                 """, "java.lang.String#trim");
 
         assertReference("""
+                                Integer.val<caret>ueOf;
+                                """, "java.lang.Integer#valueOf");
+        assertReference("""
+                                Integer.val<caret>ueOf();
+                                """, "java.lang.Integer#valueOf");
+        assertReference("""
+                                Integer.val<caret>ueOf('123');
+                                """, "java.lang.Integer#valueOf");
+
+        assertReference("""
                                 import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                 const handler = new XJsonDomainHandler();
                                 handler.get<caret>Name();
