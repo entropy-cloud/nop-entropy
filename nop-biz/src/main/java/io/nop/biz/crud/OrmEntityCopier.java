@@ -438,12 +438,22 @@ public class OrmEntityCopier {
             List<? extends IColumnModel> pkCols = entityModel.getPkColumns();
             Object[] pkValues = new Object[pkCols.size()];
             for (int i = 0, n = pkCols.size(); i < n; i++) {
-                pkValues[i] = BeanTool.instance().getProperty(bean, pkCols.get(i).getName());
+                IColumnModel col = pkCols.get(i);
+                Object value = BeanTool.instance().getProperty(bean, pkCols.get(i).getName());
+                if (value == null)
+                    return null;
+                value = col.getStdDataType().convert(value, err -> new NopException(err).param(ARG_PROP_NAME, col.getName()));
+                pkValues[i] = value;
             }
             return OrmCompositePk.buildNotNull(entityModel.getPkColumnNames(), pkValues);
         } else {
-            String pkName = entityModel.getPkColumns().get(0).getName();
-            return BeanTool.instance().getProperty(bean, pkName);
+            IColumnModel col = entityModel.getPkColumns().get(0);
+            String pkName = col.getName();
+            Object value = BeanTool.instance().getProperty(bean, pkName);
+            if (value == null)
+                return null;
+            value = col.getStdDataType().convert(value, err -> new NopException(err).param(ARG_PROP_NAME, col.getName()));
+            return value;
         }
     }
 
