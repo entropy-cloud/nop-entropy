@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
  * <p/>
  * <code>String</code>：
  * <pre>
- * RuleSpecNode(qualifiedName_)
+ * QualifiedNameRootNode(qualifiedName_)
  *   QualifiedNameNode(qualifiedName)
  *     RuleSpecNode(qualifiedName_name_)
  *       IdentifierNode(identifier)
@@ -25,7 +25,7 @@ import org.jetbrains.annotations.NotNull;
  *
  * <code>Abc.Def</code>：
  * <pre>
- * RuleSpecNode(qualifiedName_)
+ * QualifiedNameRootNode(qualifiedName_)
  *   QualifiedNameNode(qualifiedName)
  *     RuleSpecNode(qualifiedName_name_)
  *       IdentifierNode(identifier)
@@ -97,7 +97,6 @@ public class QualifiedNameRootNode extends RuleSpecNode {
         TextRange textRange = identifier.getParent().getTextRangeInParent().shiftRight(offset);
 
         QualifiedNameReference ref = new QualifiedNameReference(this, identifier, textRange, parentReference);
-
         result.add(ref);
 
         PsiElement sub = qnn.getLastChild();

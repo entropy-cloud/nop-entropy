@@ -7,6 +7,7 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiPackage;
 import com.intellij.util.IncorrectOperationException;
 import io.nop.idea.plugin.lang.reference.XLangReferenceBase;
+import io.nop.idea.plugin.lang.script.psi.Identifier;
 import io.nop.idea.plugin.lang.script.psi.IdentifierNode;
 import io.nop.idea.plugin.utils.PsiClassHelper;
 import org.jetbrains.annotations.NotNull;
@@ -73,13 +74,29 @@ public class QualifiedNameReference extends XLangReferenceBase {
         return null;
     }
 
+    /** 在构造函数中，用于修改包名 */
     @Override
     public PsiElement handleElementRename(@NotNull String newElementName) throws IncorrectOperationException {
-        return null;
+        PsiElement element = myElement;
+        TextRange rangeInElement = getRangeInElement();
+
+        // 直接替换名字
+        ((Identifier) identifier.getFirstChild()).replaceWithText(newElementName);
+
+        rangeInElement = identifier.getTextRangeInParent().shiftRight(rangeInElement.getStartOffset());
+        setRangeInElement(rangeInElement);
+
+        return element;
     }
 
+    /** 在构造函数中，用于修改类名 */
     @Override
-    public PsiElement bindToElement(@NotNull PsiElement element) throws IncorrectOperationException {
-        return null;
+    public PsiElement bindToElement(@NotNull PsiElement source) throws IncorrectOperationException {
+        String newName = null;
+        if (source instanceof PsiClass clazz) {
+            newName = clazz.getName();
+        }
+
+        return newName != null ? handleElementRename(newName) : null;
     }
 }

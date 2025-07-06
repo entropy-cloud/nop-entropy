@@ -2,11 +2,9 @@ package io.nop.idea.plugin.lang.script.reference;
 
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
-import com.intellij.util.IncorrectOperationException;
 import io.nop.idea.plugin.lang.XLangVarDecl;
 import io.nop.idea.plugin.lang.reference.XLangReferenceBase;
 import io.nop.idea.plugin.lang.script.psi.IdentifierNode;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -34,15 +32,5 @@ public class IdentifierReference extends XLangReferenceBase {
         XLangVarDecl varDecl = identifier.getVarDecl();
 
         return varDecl != null ? varDecl.element() : null;
-    }
-
-    @Override
-    public PsiElement handleElementRename(@NotNull String newElementName) throws IncorrectOperationException {
-        return null;
-    }
-
-    @Override
-    public PsiElement bindToElement(@NotNull PsiElement element) throws IncorrectOperationException {
-        return null;
     }
 }

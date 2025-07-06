@@ -4,6 +4,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.impl.source.resolve.reference.impl.CachingReference;
+import com.intellij.util.IncorrectOperationException;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -65,6 +66,20 @@ public abstract class XLangReferenceBase extends CachingReference {
             LOG.error("Wrong range in reference " + this + ": " + range + ". Reference text: '" + text + "'", e);
             return text;
         }
+    }
+
+    @Override
+    public PsiElement handleElementRename(@NotNull String newElementName) throws IncorrectOperationException {
+        return null;
+    }
+
+    @Override
+    public PsiElement bindToElement(@NotNull PsiElement element) throws IncorrectOperationException {
+        return null;
+    }
+
+    public void setRangeInElement(TextRange rangeInElement) {
+        myRangeInElement = rangeInElement;
     }
 
     protected TextRange calculateDefaultRangeInElement() {

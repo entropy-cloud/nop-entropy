@@ -1,6 +1,7 @@
 package io.nop.idea.plugin.lang.script.reference;
 
 import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.ElementManipulator;
 import com.intellij.psi.PsiElement;
 import com.intellij.util.IncorrectOperationException;
 import io.nop.idea.plugin.lang.reference.XLangReferenceBase;
@@ -32,11 +33,15 @@ public class ObjectMemberReference extends XLangReferenceBase {
 
     @Override
     public PsiElement handleElementRename(@NotNull String newElementName) throws IncorrectOperationException {
-        return null;
-    }
+        PsiElement element = myElement;
+        TextRange rangeInElement = getRangeInElement();
 
-    @Override
-    public PsiElement bindToElement(@NotNull PsiElement element) throws IncorrectOperationException {
-        return null;
+        ElementManipulator<PsiElement> manipulator = getManipulator(element);
+        element = manipulator.handleContentChange(element, rangeInElement, newElementName);
+
+        rangeInElement = ((ExpressionNode) element).getObjectMemberTextRange();
+        setRangeInElement(rangeInElement);
+
+        return element;
     }
 }

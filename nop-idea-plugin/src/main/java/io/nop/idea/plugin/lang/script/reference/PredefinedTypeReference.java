@@ -4,11 +4,9 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
-import com.intellij.util.IncorrectOperationException;
 import io.nop.api.core.util.Symbol;
 import io.nop.idea.plugin.lang.reference.XLangReferenceBase;
 import io.nop.idea.plugin.utils.PsiClassHelper;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -34,16 +32,6 @@ public class PredefinedTypeReference extends XLangReferenceBase {
         Project project = myElement.getProject();
 
         return getPredefinedType(project, typeName.getText());
-    }
-
-    @Override
-    public PsiElement handleElementRename(@NotNull String newElementName) throws IncorrectOperationException {
-        return null;
-    }
-
-    @Override
-    public PsiElement bindToElement(@NotNull PsiElement element) throws IncorrectOperationException {
-        return null;
     }
 
     public static PsiClass getPredefinedType(Project project, String typeName) {
