@@ -422,6 +422,9 @@
 
                         <field name="ignoreDepends" displayName="忽略依赖">
                             <schema stdDomain="boolFlag"/>
+                            <xpt:valueExpr>
+                                cell.rp.ev.type == 'to-one' ? cell.rp.ev.ignoreDepends : null;
+                            </xpt:valueExpr>
                         </field>
 
                         <field name="ui:control" displayName="控件">
@@ -434,10 +437,16 @@
 
                                 return OrderBySqlParser.INSTANCE.parseFromText(cell.location,value);
                          ]]></valueExpr>
+                            <xpt:valueExpr>
+                                cell.rp.ev.type == 'to-one' ? cell.rp.ev.refSet?.sort : null;
+                            </xpt:valueExpr>
                         </field>
 
                         <field name="refSet.keyProp" displayName="唯一标识">
                             <schema stdDomain="string"/>
+                            <xpt:valueExpr>
+                                cell.rp.ev.type == 'to-one' ? cell.rp.ev.refSet?.keyProp : null;
+                            </xpt:valueExpr>
                         </field>
 
                         <field name="join" displayName="关联条件" list="true" mandatory="true">
