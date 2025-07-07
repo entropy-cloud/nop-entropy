@@ -1,6 +1,8 @@
 package io.nop.idea.plugin.lang.script.reference;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import com.intellij.codeInsight.completion.JavaClassNameCompletionContributor;
@@ -17,10 +19,10 @@ import com.intellij.psi.PsiNameHelper;
 import com.intellij.psi.PsiPackage;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.IncorrectOperationException;
-import com.intellij.util.containers.ContainerUtil;
 import io.nop.idea.plugin.lang.reference.XLangReferenceBase;
 import io.nop.idea.plugin.lang.script.psi.IdentifierNode;
 import io.nop.idea.plugin.utils.PsiClassHelper;
+import one.util.streamex.StreamEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -125,27 +127,39 @@ public class QualifiedNameReference extends XLangReferenceBase {
 
         if (context instanceof PsiPackage pkg) {
             String pkgName = pkg.getQualifiedName();
-            for (PsiPackage subPkg : pkg.getSubPackages(scope)) {
-                String shortName = subPkg.getQualifiedName().substring(pkgName.length());
 
-                if (PsiNameHelper.getInstance(subPkg.getProject()).isIdentifier(shortName)) {
-                    result.add(LookupElementBuilder.create(subPkg)
-                                                   .withIcon(subPkg.getIcon(Iconable.ICON_FLAG_VISIBILITY)));
-                }
-            }
+            LookupElement[] subPkgs = createPackageLookupItems(StreamEx.of(pkg.getSubPackages(scope)).filter(p -> {
+                String shortName = p.getQualifiedName().substring(pkgName.length() + 1);
 
-            List<PsiClass> classes = ContainerUtil.filter(pkg.getClasses(scope),
-                                                          clazz -> StringUtil.isNotEmpty(clazz.getName()));
-            for (PsiClass clazz : classes) {
-                result.add(JavaClassNameCompletionContributor.createClassLookupItem(clazz, false));
-            }
+                return PsiNameHelper.getInstance(p.getProject()).isIdentifier(shortName);
+            }));
+            Collections.addAll(result, subPkgs);
+
+            LookupElement[] classes = createClassLookupItems(StreamEx.of(pkg.getClasses(scope))
+                                                                     .filter(clazz -> StringUtil.isNotEmpty(clazz.getName())));
+            Collections.addAll(result, classes);
         } //
         else if (context instanceof PsiClass clazz) {
-            List<PsiClass> classes = ContainerUtil.filter(clazz.getInnerClasses(),
-                                                          c -> c.hasModifierProperty(PsiModifier.STATIC));
-            result.addAll(classes);
+            LookupElement[] classes = createClassLookupItems(StreamEx.of(clazz.getInnerClasses())
+                                                                     .filter(c -> c.hasModifierProperty(PsiModifier.STATIC)));
+            Collections.addAll(result, classes);
         }
 
         return result.toArray();
+    }
+
+    protected LookupElement[] createPackageLookupItems(StreamEx<PsiPackage> stream) {
+        return stream.distinct(PsiPackage::getQualifiedName)
+                     .sorted(Comparator.comparing(PsiPackage::getQualifiedName))
+                     .map(p -> LookupElementBuilder.create(p).withIcon(p.getIcon(Iconable.ICON_FLAG_VISIBILITY)))
+                     .toArray(LookupElement[]::new);
+    }
+
+    protected LookupElement[] createClassLookupItems(StreamEx<PsiClass> stream) {
+        return stream.filter(c -> c.getQualifiedName() != null)
+                     .distinct(PsiClass::getQualifiedName)
+                     .sorted(Comparator.comparing(PsiClass::getQualifiedName))
+                     .map(c -> JavaClassNameCompletionContributor.createClassLookupItem(c, false))
+                     .toArray(LookupElement[]::new);
     }
 }

@@ -57,6 +57,11 @@ public class TestXLangScriptCompletions extends BaseXLangPluginTestCase {
                                  """, """
                                  const handler = new io.nop.xlang.xdef.domain.XJsonDomainHandler
                                  """);
+        assertCompletion("""
+                                 const handler = new io.nop.xlang.xdef.d<caret>
+                                 """, """
+                                 const handler = new io.nop.xlang.xdef.domain
+                                 """);
 
         assertCompletion("""
                                  import io.nop.xlang.xdef.domain.XJsonDomainHandler;
