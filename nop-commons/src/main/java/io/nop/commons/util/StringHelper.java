@@ -1307,7 +1307,7 @@ public class StringHelper extends ApiStringHelper {
             // width with offset is 7");
         }
         if (offset + maxWidth - 3 < str.length()) {
-            return abrevMarker + str.subSequence(offset,offset + maxWidth -3) + abrevMarker;
+            return abrevMarker + str.subSequence(offset, offset + maxWidth - 6) + abrevMarker;
         }
         return abrevMarker + str.subSequence(str.length() - (maxWidth - 3), str.length());
     }
