@@ -1,11 +1,23 @@
 package io.nop.idea.plugin.lang.script.reference;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.intellij.codeInsight.completion.JavaClassNameCompletionContributor;
+import com.intellij.codeInsight.lookup.LookupElement;
+import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Iconable;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiModifier;
+import com.intellij.psi.PsiNameHelper;
 import com.intellij.psi.PsiPackage;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.IncorrectOperationException;
+import com.intellij.util.containers.ContainerUtil;
 import io.nop.idea.plugin.lang.reference.XLangReferenceBase;
 import io.nop.idea.plugin.lang.script.psi.IdentifierNode;
 import io.nop.idea.plugin.utils.PsiClassHelper;
@@ -35,7 +47,8 @@ public class QualifiedNameReference extends XLangReferenceBase {
             return null;
         }
 
-        Project project = myElement.getProject();
+        PsiElement context = myElement;
+        Project project = context.getProject();
         String subName = identifier.getText();
 
         // 最顶层标志符
@@ -66,7 +79,7 @@ public class QualifiedNameReference extends XLangReferenceBase {
                 }
 
                 // 若包不存在，则可能是类
-                return PsiClassHelper.findClass(project, subName);
+                return PsiClassHelper.findClass(context, subName);
             }
         }
 
@@ -97,5 +110,42 @@ public class QualifiedNameReference extends XLangReferenceBase {
         }
 
         return newName != null ? handleElementRename(newName) : null;
+    }
+
+    @Override
+    public Object @NotNull [] getVariants() {
+        // Note: 只有在当前引用的结果不存在时，才需要补全，而其可补全项由上层引用结果确定
+        PsiElement context = parentReference != null ? parentReference.resolve() : null;
+        if (context == null) {
+            return LookupElement.EMPTY_ARRAY;
+        }
+
+        List<Object> result = new ArrayList<>();
+        GlobalSearchScope scope = PsiClassHelper.getSearchScope(context);
+
+        if (context instanceof PsiPackage pkg) {
+            String pkgName = pkg.getQualifiedName();
+            for (PsiPackage subPkg : pkg.getSubPackages(scope)) {
+                String shortName = subPkg.getQualifiedName().substring(pkgName.length());
+
+                if (PsiNameHelper.getInstance(subPkg.getProject()).isIdentifier(shortName)) {
+                    result.add(LookupElementBuilder.create(subPkg)
+                                                   .withIcon(subPkg.getIcon(Iconable.ICON_FLAG_VISIBILITY)));
+                }
+            }
+
+            List<PsiClass> classes = ContainerUtil.filter(pkg.getClasses(scope),
+                                                          clazz -> StringUtil.isNotEmpty(clazz.getName()));
+            for (PsiClass clazz : classes) {
+                result.add(JavaClassNameCompletionContributor.createClassLookupItem(clazz, false));
+            }
+        } //
+        else if (context instanceof PsiClass clazz) {
+            List<PsiClass> classes = ContainerUtil.filter(clazz.getInnerClasses(),
+                                                          c -> c.hasModifierProperty(PsiModifier.STATIC));
+            result.addAll(classes);
+        }
+
+        return result.toArray();
     }
 }

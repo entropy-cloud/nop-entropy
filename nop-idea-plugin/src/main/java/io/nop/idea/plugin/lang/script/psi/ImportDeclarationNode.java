@@ -51,7 +51,7 @@ public class ImportDeclarationNode extends RuleSpecNode {
         }
 
         String classFQN = qualifiedName.getFullyName();
-        PsiClass clazz = PsiClassHelper.findClass(getProject(), classFQN);
+        PsiClass clazz = PsiClassHelper.findClass(this, classFQN);
         if (clazz == null) {
             return Map.of();
         }

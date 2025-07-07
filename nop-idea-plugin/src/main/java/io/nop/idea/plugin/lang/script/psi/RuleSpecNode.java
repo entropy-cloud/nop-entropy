@@ -93,7 +93,7 @@ public class RuleSpecNode extends ASTWrapperPsiElement implements XLangVarScope 
     }
 
     protected PsiClass getPsiClassByPsiType(PsiType type) {
-        return PsiClassHelper.getTypeClass(getProject(), type);
+        return PsiClassHelper.getTypeClass(this, type);
     }
 
     protected PsiClass getPsiClassByToken(TokenIElementType token) {
@@ -110,6 +110,6 @@ public class RuleSpecNode extends ASTWrapperPsiElement implements XLangVarScope 
         } else if (TOKEN_literal_string.contains(token)) {
             clazz = String.class;
         }
-        return clazz != null ? PsiClassHelper.findClass(getProject(), clazz.getName()) : null;
+        return clazz != null ? PsiClassHelper.findClass(this, clazz.getName()) : null;
     }
 }

@@ -65,19 +65,6 @@ public class TestXLangScriptParser extends BaseXLangPluginTestCase {
                         "/test/ast/statement-1.ast");
     }
 
-    public void testJavaParseTree() {
-        assertJavaParseTree("""
-                                    public class Sample {
-                                        public static void main(String[] args) {
-                                            String s1 = StringHelper.trim(b);
-                                            String s2 = a.b.c(1, 2);
-                                            String s3 = a.b.c.e;
-                                            some.other.another.start();
-                                        }
-                                    }
-                                    """);
-    }
-
     protected void assertParseTree(String code, String expectedAstFile) {
         PsiFile testFile = myFixture.configureByText("sample." + ext, code);
         String testTree = toParseTreeText(testFile);
@@ -85,13 +72,6 @@ public class TestXLangScriptParser extends BaseXLangPluginTestCase {
         String expectedTree = readVfsResource(expectedAstFile);
 
         assertEquals(expectedTree, testTree);
-    }
-
-    protected void assertJavaParseTree(String code) {
-        PsiFile testFile = myFixture.configureByText("Sample.java", code);
-        String testTree = toParseTreeText(testFile);
-
-        assertEquals("", testTree);
     }
 
     protected String toParseTreeText(@NotNull PsiElement tree) {

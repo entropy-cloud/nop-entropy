@@ -1,6 +1,5 @@
 package io.nop.idea.plugin.lang.script.reference;
 
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
@@ -29,12 +28,10 @@ public class PredefinedTypeReference extends XLangReferenceBase {
             return null;
         }
 
-        Project project = myElement.getProject();
-
-        return getPredefinedType(project, typeName.getText());
+        return getPredefinedType(myElement, typeName.getText());
     }
 
-    public static PsiClass getPredefinedType(Project project, String typeName) {
+    public static PsiClass getPredefinedType(PsiElement context, String typeName) {
         // 仅包含确定类型，详见 nop-xlang/model/antlr/XLangTypeSystem.g4
         Class<?> typeClass = switch (typeName) {
             case "any" -> Object.class;
@@ -46,6 +43,6 @@ public class PredefinedTypeReference extends XLangReferenceBase {
             default -> null;
         };
 
-        return typeClass != null ? PsiClassHelper.findClass(project, typeClass.getName()) : null;
+        return typeClass != null ? PsiClassHelper.findClass(context, typeClass.getName()) : null;
     }
 }

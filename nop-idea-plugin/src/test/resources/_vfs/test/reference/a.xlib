@@ -19,12 +19,15 @@
                     const query = QueryBeanHelper.buildQueryBeanFromTreeBean(queryNode);
                     const ormTemplate = inject('nopOrmTemplate');
                     const mapper = ormTemplate.getRowMapper(rowType,false);
+                    const scanner = new io.nop.commons.text.tokenizer.TextScanner();
+                    const c = new java.lang.StringBuffer();
                     const s = "abc".startsWith("a");
                     const fn = (a: any, b: string) => a + b;
                     fn(1, 2);
                     Integer.valueOf;
                     Integer.valueOf('a');
                     PsiClassHelper.findClass();
+                    scanner.col;
 
                     while (true) {
                         let a = 's' instanceof string;

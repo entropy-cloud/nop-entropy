@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import com.intellij.openapi.module.Module;
+import com.intellij.openapi.module.ModuleUtilCore;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.CommonClassNames;
 import com.intellij.psi.JavaPsiFacade;
@@ -74,6 +76,20 @@ public class PsiClassHelper {
         javaClassRefProvider.setOption(JavaClassReferenceProvider.ADVANCED_RESOLVE, true);
     }
 
+    public static @NotNull GlobalSearchScope getSearchScope(@NotNull PsiElement element) {
+        Project project = element.getProject();
+
+        GlobalSearchScope scope = javaClassRefProvider.getScope(project);
+        if (scope == null) {
+            Module module = ModuleUtilCore.findModuleForPsiElement(element);
+
+            scope = module == null
+                    ? GlobalSearchScope.allScope(project)
+                    : module.getModuleWithDependenciesAndLibrariesScope(true);
+        }
+        return scope;
+    }
+
     public static PsiReference @NotNull [] createJavaClassReferences(
             PsiElement element, String qualifiedName, int startInElement
     ) {
@@ -87,17 +103,18 @@ public class PsiClassHelper {
     }
 
     /** 得到 {@link PsiType} 对应的 {@link PsiClass} */
-    public static PsiClass getTypeClass(Project project, PsiType type) {
+    public static PsiClass getTypeClass(PsiElement context, PsiType type) {
         if (type == null) {
             return null;
         }
 
+        Project project = context.getProject();
         // 处理通配符泛型
         if (type instanceof PsiWildcardType t) {
             PsiType bound = t.getBound();
 
             return bound != null
-                   ? getTypeClass(project, bound)
+                   ? getTypeClass(context, bound)
                    : PsiUtil.resolveClassInType(PsiType.getJavaLangObject(t.getManager(), t.getResolveScope()));
         }
         // 处理类型参数
@@ -105,7 +122,7 @@ public class PsiClassHelper {
             PsiClassType[] bounds = t.getExtendsListTypes();
 
             if (bounds.length > 0) {
-                return getTypeClass(project, bounds[0]);
+                return getTypeClass(context, bounds[0]);
             }
             return PsiUtil.resolveClassInType(PsiType.getJavaLangObject(t.getManager(), t.getResolveScope()));
         }
@@ -114,13 +131,13 @@ public class PsiClassHelper {
             String wrapperName = primitiveTypeWrapper.get(t);
 
             if (wrapperName != null) {
-                return JavaPsiFacade.getInstance(project).findClass(wrapperName, GlobalSearchScope.allScope(project));
+                return findClass(context, wrapperName);
             }
             return null;
         }
         // 处理数组类型
         else if (type instanceof PsiArrayType t) {
-            return getTypeClass(project, t.getComponentType());
+            return getTypeClass(context, t.getComponentType());
         }
         // 处理类类型（包括泛型）
         else if (type instanceof PsiClassType t) {
@@ -131,7 +148,7 @@ public class PsiClassHelper {
             if (clazz != null && parameters.length > 0) {
                 // List<String> -> 返回 String.class
                 if (CommonClassNames.JAVA_UTIL_LIST.equals(clazz.getQualifiedName())) {
-                    return getTypeClass(project, parameters[0]);
+                    return getTypeClass(context, parameters[0]);
                 }
 
                 // 自定义泛型类
@@ -140,7 +157,7 @@ public class PsiClassHelper {
                     // 查找实际使用的类型参数
                     for (int i = 0; i < typeParams.length; i++) {
                         if (i < parameters.length) {
-                            PsiClass resolved = getTypeClass(project, parameters[i]);
+                            PsiClass resolved = getTypeClass(context, parameters[i]);
 
                             if (resolved != null) {
                                 return resolved;
@@ -182,8 +199,15 @@ public class PsiClassHelper {
         return map;
     }
 
-    public static PsiClass findClass(Project project, String className) {
-        return JavaPsiFacade.getInstance(project).findClass(className, GlobalSearchScope.allScope(project));
+    public static PsiClass findClass(PsiElement context, String className) {
+        Project project = context.getProject();
+        GlobalSearchScope scope = PsiClassHelper.getSearchScope(context);
+
+        return JavaPsiFacade.getInstance(project).findClass(className, scope);
+    }
+
+    public static PsiClass findClass(Project project, String className, GlobalSearchScope scope) {
+        return JavaPsiFacade.getInstance(project).findClass(className, scope);
     }
 
     public static PsiPackage findPackage(Project project, String pkgName) {
@@ -192,7 +216,9 @@ public class PsiClassHelper {
 
     /** 查找指定类的继承类 */
     public static @NotNull Query<PsiClass> findInheritors(Project project, String className) {
-        PsiClass clazz = findClass(project, className);
+        GlobalSearchScope scope = GlobalSearchScope.allScope(project);
+
+        PsiClass clazz = findClass(project, className, scope);
         if (clazz == null) {
             return EmptyQuery.getEmptyQuery();
         }

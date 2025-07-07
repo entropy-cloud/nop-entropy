@@ -455,6 +455,13 @@ public class ExpressionNode extends RuleSpecNode {
         return getFirstChild() instanceof ArrayExpressionNode;
     }
 
+    /** 获取对象的 class */
+    public PsiClass getObjectClass() {
+        ExpressionNode obj = (ExpressionNode) getFirstChild();
+
+        return obj.getResultType();
+    }
+
     /** 获取对象的方法 */
     public PsiMethod getObjectMethod() {
         PsiMethod[] methods = getObjectMethods();
@@ -496,9 +503,7 @@ public class ExpressionNode extends RuleSpecNode {
     }
 
     protected <T> T getObjectMember(BiFunction<PsiClass, String, T> consumer, T defaultValue) {
-        ExpressionNode obj = (ExpressionNode) getFirstChild();
-        PsiClass objClass = obj.getResultType();
-
+        PsiClass objClass = getObjectClass();
         if (objClass == null) {
             return defaultValue;
         }

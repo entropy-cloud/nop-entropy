@@ -32,7 +32,7 @@ public class TypeNameNodePredefinedNode extends RuleSpecNode {
     public PsiClass getPredefinedType() {
         String typeName = getTypeName().getText();
 
-        return PredefinedTypeReference.getPredefinedType(getProject(), typeName);
+        return PredefinedTypeReference.getPredefinedType(this, typeName);
     }
 
     @Override

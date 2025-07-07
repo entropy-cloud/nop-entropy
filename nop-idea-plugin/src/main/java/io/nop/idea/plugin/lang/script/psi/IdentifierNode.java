@@ -64,7 +64,7 @@ public class IdentifierNode extends RuleSpecNode implements PsiNamedElement {
             && StringHelper.isValidClassName(varName) //
         ) {
             // Note: java.lang 中的类不需要显式导入
-            PsiClass clazz = PsiClassHelper.findClass(getProject(), "java.lang." + varName);
+            PsiClass clazz = PsiClassHelper.findClass(this, "java.lang." + varName);
             if (clazz != null) {
                 decl = new XLangVarDecl(clazz, clazz);
             }

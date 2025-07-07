@@ -14,6 +14,7 @@ import com.intellij.lang.jvm.JvmEnumField;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiField;
+import com.intellij.psi.search.GlobalSearchScope;
 import io.nop.api.core.annotations.core.Description;
 import io.nop.api.core.annotations.core.Label;
 import io.nop.api.core.annotations.core.Option;
@@ -69,7 +70,9 @@ public class ProjectDictProvider implements IDictProvider {
         }
         // 从枚举类中得到字典信息
         else if (dictName.indexOf('.') > 0 && StringHelper.isValidClassName(dictName)) {
-            PsiClass clazz = PsiClassHelper.findClass(project, dictName);
+            GlobalSearchScope scope = GlobalSearchScope.allScope(project);
+
+            PsiClass clazz = PsiClassHelper.findClass(project, dictName, scope);
             if (clazz == null) {
                 return null;
             }

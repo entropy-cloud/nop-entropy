@@ -16,6 +16,7 @@ public class XJsonDomainHandler implements IStdDomainHandler {
 
     public static class Sub {
         private String name;
+        public final String age;
 
         public String getName() {
             return this.name;
