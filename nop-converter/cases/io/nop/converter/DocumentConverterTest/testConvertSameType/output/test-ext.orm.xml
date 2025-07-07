@@ -1,6 +1,6 @@
 <orm ext:mavenArtifactId="nop-ai" ext:entityPackageName="nop.ai.dao.entity" ext:allowIdAsColName="true"
      ext:basePackageName="nop.ai" ext:appName="nop-ai" ext:registerShortName="true"
-     ext:mavenGroupId="io.github.entropy-cloud" xmlns:x="/nop/schema/xdsl.xdef">
+     ext:mavenGroupId="io.github.entropy-cloud" xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/orm/orm.xdef">
     <dicts>
         <dict label="消息类型" name="ai/message_type">
             <description>对话消息的角色类型</description>
