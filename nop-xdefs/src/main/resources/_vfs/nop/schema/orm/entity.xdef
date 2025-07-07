@@ -149,7 +149,7 @@
         <!--
         必须是关联到相关实体的主键上
         -->
-        <join xdef:body-type="list">
+        <join xdef:body-type="list" xdef:default-override="replace">
             <on leftProp="prop-name" leftValue="any" rightProp="prop-name" rightValue="any"
                 xdef:name="OrmJoinOnModel" xdef:allow-multiple="true"/>
         </join>
