@@ -9,6 +9,7 @@ import io.nop.core.resource.VirtualFileSystem;
 import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.DslModelParser;
 import io.nop.xlang.xdsl.IDslResourceObjectLoader;
+import io.nop.xlang.xdsl.XDslKeys;
 
 public class DslJsonResourceLoader implements IDslResourceObjectLoader<IComponentModel> {
     private final String schemaPath;
@@ -29,7 +30,10 @@ public class DslJsonResourceLoader implements IDslResourceObjectLoader<IComponen
     public XNode parseNodeFromResource(IResource resource) {
         Object bean = JsonTool.parseBeanFromResource(resource, JObject.class, true);
         XNode node = DslModelHelper.dslModelToXNode(schemaPath, bean);
-        return new DslModelParser(schemaPath).resolveInDir(resolveInDir).dynamic(dynamic).resolveDslNode(node);
+        XNode ret = new DslModelParser(schemaPath).resolveInDir(resolveInDir).dynamic(dynamic).resolveDslNode(node);
+        if (schemaPath != null)
+            ret.setAttr(XDslKeys.DEFAULT.SCHEMA, schemaPath);
+        return ret;
     }
 
     @Override

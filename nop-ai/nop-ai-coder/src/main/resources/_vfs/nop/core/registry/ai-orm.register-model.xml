@@ -2,7 +2,7 @@
        name="ai-orm">
 
     <loaders>
-        <xdsl-loader fileType="ai-orm.xml" schemaPath="/nop/schema/coder/orm.xdef"/>
+        <xdsl-loader fileType="ai-orm.xml" schemaPath="/nop/ai/schema/coder/orm.xdef"/>
     </loaders>
 
 </model>

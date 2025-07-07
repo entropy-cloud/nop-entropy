@@ -123,7 +123,7 @@ public class StylesPart implements IOfficePackagePart {
             styleN.setAttr("xfId", "0");
 
             Boolean locked = style.getLocked();
-            if (locked != null) {
+            if (Boolean.TRUE.equals(locked)) {
                 XNode protection = styleN.makeChild("protection");
                 protection.setAttr("locked", locked ? "1" : "0");
                 // 标记应用保护设置
@@ -131,9 +131,10 @@ public class StylesPart implements IOfficePackagePart {
             }
 
             Boolean hidden = style.getHidden();
-            if (hidden != null) {
+            if (Boolean.TRUE.equals(hidden)) {
                 XNode protection = styleN.makeChild("protection");
                 protection.setAttr("hidden", hidden ? "1" : "0");
+                styleN.setAttr("applyProtection", "1");
             }
 
             if (style.getVerticalAlign() != null) {

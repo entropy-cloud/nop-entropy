@@ -47,7 +47,7 @@ public class ChainedDocumentConverter implements IDocumentConverter {
 
         // Create byte array resource from the intermediate result
         byte[] intermediateBytes = intermediateOut.toByteArray();
-        String path = "/temp/" + StringHelper.replaceFileType(doc.resourcePath(), intermediateType);
+        String path = "/temp/" + StringHelper.replaceFileType(StringHelper.fileFullName(doc.resourcePath()), intermediateType);
         IResource intermediateResource = new ByteArrayResource(path, intermediateBytes, -1L);
 
         // Create a document object from the intermediate resource

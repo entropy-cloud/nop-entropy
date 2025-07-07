@@ -4,8 +4,10 @@ import io.nop.ai.core.xdef.AiXDefHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.component.parse.AbstractTextResourceParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -257,12 +259,15 @@ public class PromptSyntaxParser extends AbstractTextResourceParser<IPromptSyntax
             path = StringHelper.absolutePath(path, arg);
         }
         if (path.endsWith(".xdef")) {
-            AiXDefHelper.loadXDefForAi(path).xml();
-
-        } else {
+            String xml = AiXDefHelper.loadXDefForAi(path).xml();
+            addTextNode(exprs, SourceLocation.fromPath(path), xml);
+        } else if (path.endsWith(".md") || JsonTool.isJsonOrYaml(path)) {
             IResource resource = VirtualFileSystem.instance().getResource(path);
-            String content = resource.readText();
-            parseExprs(exprs, resource.location(), content);
+            ResourceComponentManager.instance().collectDepends(path, () -> {
+                String content = resource.readText();
+                parseExprs(exprs, resource.location(), content);
+                return null;
+            });
         }
     }
 

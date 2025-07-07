@@ -80,11 +80,15 @@ public class EnumStdDomainHandler implements IStdDomainHandler {
 
         }
         DictBean dict = EnumDictLoader.INSTANCE.loadDict(null, options, null);
-        if (dict.getOptionByValue(text) == null)
+        if (dict.getOptionByValue(text) == null) {
+            if(text.equals("none"))
+                return null;
+
             throw new NopException(ERR_XDEF_INVALID_ENUM_VALUE_FOR_PROP).loc(loc).param(ARG_PROP_NAME, propName)
                     .when(dict.getOptions().size() < 50, e -> {
                         e.param(ARG_ALLOWED_NAMES, dict.getLabels());
                     }).param(ARG_VALUE, text).param(ARG_DICT_NAME, options);
+        }
 
         return text;
     }

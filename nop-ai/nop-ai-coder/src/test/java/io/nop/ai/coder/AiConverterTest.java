@@ -30,13 +30,24 @@ public class AiConverterTest extends JunitBaseTestCase {
 
     @Test
     public void testConvertXDef() {
-        IResource resource = getResource("/nop/schema/excel/workbook.xdef");
+        IResource resource = getResource("/nop/ai/schema/coder/workbook.xdef");
         IResource toResource = getTargetResource("result/workbook.ai-xdef.xml");
 
         DocumentConverterManager manager = DocumentConverterManager.instance();
         DocumentConvertOptions options = DocumentConvertOptions.create();
 
         manager.convertResource(resource, toResource, options);
-        assertTrue(toResource.readText().contains(" <anchor type=\"enum:twoCell|oneCell|absolute|anchor\""));
+        assertTrue(toResource.readText().contains("horizontalAlign=\"enum:general|left|center|right|fill|justify|centerSelection|distributed\""));
+    }
+
+    @Test
+    public void testConvertExcel(){
+        IResource resource = attachmentResource("test.workbook.xml");
+        IResource toResource = getTargetResource("result/result.xlsx");
+
+        DocumentConverterManager manager = DocumentConverterManager.instance();
+        DocumentConvertOptions options = DocumentConvertOptions.create();
+
+        manager.convertResource(resource,toResource, options);
     }
 }

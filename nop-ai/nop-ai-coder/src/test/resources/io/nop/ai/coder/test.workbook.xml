@@ -1,0 +1,148 @@
+<workbook>
+    <styles>
+        <!-- 标题样式 -->
+        <style id="header" name="Header" horizontalAlign="center" verticalAlign="center" fillFgColor="4472C4" fillPattern="solid" wrapText="true">
+            <font fontSize="28" fontName="Calibri" fontColor="FFFFFF" bold="true"/>
+            <topBorder type="medium" color="FFFFFF"/>
+            <bottomBorder type="medium" color="FFFFFF"/>
+            <leftBorder type="medium" color="FFFFFF"/>
+            <rightBorder type="medium" color="FFFFFF"/>
+        </style>
+
+        <!-- 日期列样式 -->
+        <style id="dateCol" name="DateColumn" horizontalAlign="center" verticalAlign="center" fillFgColor="8EA9DB" fillPattern="solid">
+            <font fontSize="14" fontName="Calibri" fontColor="000000" bold="true"/>
+            <numberFormat>yyyy-mm-dd;@</numberFormat>
+            <topBorder type="thin" color="FFFFFF"/>
+            <bottomBorder type="thin" color="FFFFFF"/>
+            <leftBorder type="thin" color="FFFFFF"/>
+            <rightBorder type="thin" color="FFFFFF"/>
+        </style>
+
+        <!-- 时间列样式 -->
+        <style id="timeCol" name="TimeColumn" horizontalAlign="center" verticalAlign="center" fillFgColor="D9E1F2" fillPattern="solid">
+            <font fontSize="12" fontName="Calibri"/>
+            <numberFormat>hh:mm;@</numberFormat>
+            <topBorder type="thin" color="FFFFFF"/>
+            <bottomBorder type="thin" color="FFFFFF"/>
+            <leftBorder type="thin" color="FFFFFF"/>
+            <rightBorder type="thin" color="FFFFFF"/>
+        </style>
+
+        <!-- 内容区域样式 -->
+        <style id="content" name="Content" horizontalAlign="left" verticalAlign="top" wrapText="true" fillFgColor="FFFFFF" fillPattern="solid">
+            <font fontSize="12" fontName="Calibri"/>
+            <topBorder type="thin" color="8EA9DB"/>
+            <bottomBorder type="thin" color="8EA9DB"/>
+            <leftBorder type="thin" color="8EA9DB"/>
+            <rightBorder type="thin" color="8EA9DB"/>
+        </style>
+
+        <!-- 周末样式 -->
+        <style id="weekend" name="Weekend" horizontalAlign="left" verticalAlign="top" wrapText="true" fillFgColor="F2F2F2" fillPattern="solid">
+            <font fontSize="12" fontName="Calibri"/>
+            <topBorder type="thin" color="8EA9DB"/>
+            <bottomBorder type="thin" color="8EA9DB"/>
+            <leftBorder type="thin" color="8EA9DB"/>
+            <rightBorder type="thin" color="8EA9DB"/>
+        </style>
+    </styles>
+    <sheets>
+        <sheet name="日程安排" defaultColumnWidth="60" defaultRowHeight="20">
+            <table>
+                <cols>
+                    <col width="100"/>
+                    <col width="80"/>
+                    <col width="200"/>
+                    <col width="200"/>
+                    <col width="120"/>
+                </cols>
+                <rows>
+                    <row height="40" autoFitHeight="true">
+                        <cells>
+                            <cell mergeAcross="4" styleId="header">
+                                <value>我的日程安排</value>
+                            </cell>
+                        </cells>
+                    </row>
+                    <row height="30" autoFitHeight="true">
+                        <cells>
+                            <cell styleId="dateCol">
+                                <value>日期</value>
+                            </cell>
+                            <cell styleId="timeCol">
+                                <value>时间</value>
+                            </cell>
+                            <cell styleId="content">
+                                <value>事项</value>
+                            </cell>
+                            <cell styleId="content">
+                                <value>地点</value>
+                            </cell>
+                            <cell styleId="content">
+                                <value>状态</value>
+                            </cell>
+                        </cells>
+                    </row>
+                    <row height="60" autoFitHeight="true">
+                        <cells>
+                            <cell styleId="dateCol" type="date">
+                                <value>2023-10-02</value>
+                            </cell>
+                            <cell styleId="timeCol" type="datetime">
+                                <value>09:00</value>
+                            </cell>
+                            <cell styleId="content" type="string">
+                                <value>项目会议</value>
+                            </cell>
+                            <cell styleId="content" type="string">
+                                <value>会议室A</value>
+                            </cell>
+                            <cell styleId="content" type="string">
+                                <value>已确认</value>
+                            </cell>
+                        </cells>
+                    </row>
+                    <row height="60" autoFitHeight="true">
+                        <cells>
+                            <cell styleId="dateCol" type="date">
+                                <value>2023-10-02</value>
+                            </cell>
+                            <cell styleId="timeCol" type="datetime">
+                                <value>14:00</value>
+                            </cell>
+                            <cell styleId="content" type="string">
+                                <value>客户拜访</value>
+                            </cell>
+                            <cell styleId="content" type="string">
+                                <value>客户办公室</value>
+                            </cell>
+                            <cell styleId="content" type="string">
+                                <value>待确认</value>
+                            </cell>
+                        </cells>
+                    </row>
+                    <row height="60" autoFitHeight="true">
+                        <cells>
+                            <cell styleId="weekend" type="date">
+                                <value>2023-10-07</value>
+                            </cell>
+                            <cell styleId="timeCol" type="datetime">
+                                <value>全天</value>
+                            </cell>
+                            <cell styleId="weekend" type="string">
+                                <value>周末休息</value>
+                            </cell>
+                            <cell styleId="weekend" type="string">
+                                <value>家里</value>
+                            </cell>
+                            <cell styleId="weekend" type="string">
+                                <value>已安排</value>
+                            </cell>
+                        </cells>
+                    </row>
+                </rows>
+            </table>
+        </sheet>
+    </sheets>
+</workbook>

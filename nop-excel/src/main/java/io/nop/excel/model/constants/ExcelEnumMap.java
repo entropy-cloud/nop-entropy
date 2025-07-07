@@ -26,6 +26,10 @@ public class ExcelEnumMap<T extends IExcelEnumValue> {
         }
     }
 
+    public void addExcelText(String text, T item){
+        excelTextMap.put(text,item);
+    }
+
     public T fromCssText(String text) {
         return cssTextMap.get(text);
     }

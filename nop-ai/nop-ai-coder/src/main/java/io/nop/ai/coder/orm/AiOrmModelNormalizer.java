@@ -121,8 +121,7 @@ public class AiOrmModelNormalizer {
     }
 
     public XNode normalizeOrm(XNode node, AiOrmConfig config) {
-        if (!node.hasAttr("x:schema"))
-            node.setAttr("x:schema", OrmModelConstants.XDSL_SCHEMA_ORM);
+        node.setAttr("x:schema", OrmModelConstants.XDSL_SCHEMA_ORM);
         node.setAttr("xmlns:x", "/nop/schema/xdsl.xdef");
         node.setAttr(OrmModelConstants.EXT_ALLOW_ID_AS_COL_NAME, true);
         node.setAttr("ext:registerShortName", true);

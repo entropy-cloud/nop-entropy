@@ -10,6 +10,7 @@ import io.nop.core.resource.tpl.ITemplateOutput;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.util.ExcelHelper;
+import io.nop.xlang.api.XLang;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -47,7 +48,7 @@ public class ExcelDocumentConverter implements IDocumentConverter {
         }
 
         ITextTemplateOutput renderer = (ITextTemplateOutput) ExcelDocHelper.getExcelRenderer(doc, renderType);
-        return renderer.generateText(DisabledEvalScope.INSTANCE);
+        return renderer.generateText(XLang.newEvalScope());
     }
 
     @Override
@@ -61,6 +62,6 @@ public class ExcelDocumentConverter implements IDocumentConverter {
         }
 
         ITemplateOutput renderer = ExcelDocHelper.getExcelRenderer(doc, renderType);
-        renderer.generateToStream(out, DisabledEvalScope.INSTANCE);
+        renderer.generateToStream(out, XLang.newEvalScope());
     }
 }

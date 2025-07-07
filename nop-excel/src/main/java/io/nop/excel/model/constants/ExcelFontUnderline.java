@@ -143,6 +143,10 @@ public enum ExcelFontUnderline implements IExcelEnumValue {
 
     static ExcelEnumMap<ExcelFontUnderline> s_map = new ExcelEnumMap<>(values());
 
+    static {
+        s_map.addExcelText("none", NONE);
+    }
+
     @StaticFactoryMethod
     public static ExcelFontUnderline fromExcelText(String text) {
         return s_map.fromExcelText(text);

@@ -26,11 +26,11 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
             <font fontSize="float" charSet="int"
                   fontName="string" fontFamily="string" fontColor="string"
                   italic="!boolean=false" bold="!boolean=false" strikeout="!boolean=false"
-                  underlineStyle="dict:single|double|none|singleAccounting|doubleAccounting"
-                  verticalAlign="dict:1|2"/>
+                  underlineStyle="enum:single|double|none|singleAccounting|doubleAccounting"
+                  verticalAlign="enum:subscript|subscript"/>
 
             <topBorder xdef:name="ExcelBorderStyle"
-                       type="dict:none|thin|medium|dashed|dotted|thick|double|hair|mediumDashed|dashDot|mediumDashDot|dashDotDot|mediumDashDotDot"
+                       type="enum:none|thin|medium|dashed|dotted|thick|double|hair|mediumDashed|dashDot|mediumDashDot|dashDotDot|mediumDashDotDot"
                        weight="!int=0" color="string"/>
 
             <bottomBorder xdef:ref="ExcelBorderStyle"/>
@@ -60,7 +60,7 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
                                -->
                             <cell name="string" mergeAcross="!int=0" mergeDown="!int=0"
                                   linkUrl="string" protected="boolean"
-                                  styleId="string" type="dict:string|int|boolean|decimal|date|datetime">
+                                  styleId="string" type="enum:string|int|boolean|decimal|date|datetime">
                                 <value>string</value>
                                 <formula>string</formula>
                             </cell>

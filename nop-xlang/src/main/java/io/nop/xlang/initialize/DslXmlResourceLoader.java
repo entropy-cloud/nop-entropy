@@ -6,6 +6,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.xlang.xdsl.DslModelParser;
 import io.nop.xlang.xdsl.IDslResourceObjectLoader;
+import io.nop.xlang.xdsl.XDslKeys;
 
 public class DslXmlResourceLoader implements IDslResourceObjectLoader<IComponentModel> {
     private final String schemaPath;
@@ -29,7 +30,10 @@ public class DslXmlResourceLoader implements IDslResourceObjectLoader<IComponent
 
     @Override
     public XNode parseNodeFromResource(IResource resource) {
-        return new DslModelParser(schemaPath).resolveInDir(resolveInDir).dynamic(dynamic).parseNodeFromResource(resource, false);
+        XNode ret = new DslModelParser(schemaPath).resolveInDir(resolveInDir).dynamic(dynamic).parseNodeFromResource(resource, false);
+        if (schemaPath != null)
+            ret.setAttr(XDslKeys.DEFAULT.SCHEMA, schemaPath);
+        return ret;
     }
 
     @Override

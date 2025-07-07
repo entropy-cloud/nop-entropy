@@ -150,20 +150,30 @@ public class DocumentConverterManager implements IDocumentConverterManager {
         Guard.checkArgument(!fromFileType.equals(toFileType), "fromFileType and toFileType must not be the same: ");
 
         // First try direct converter
-        IDocumentConverter converter = getDirectConverter(fromFileType, toFileType);
+        IDocumentConverter converter = getDirectConverter(fromFileType, toFileType, false);
         if (converter != null) {
             return converter;
         }
 
         // If no direct converter and chained is allowed, try to find a two-step converter
         if (allowChained) {
-            return findChainedConverter(fromFileType, toFileType);
+            converter = findChainedConverter(fromFileType, toFileType, false);
+            if (converter != null)
+                return converter;
         }
 
-        return null;
+        converter = getDirectConverter(fromFileType, toFileType, true);
+        if (converter != null)
+            return converter;
+
+        if (allowChained) {
+            converter = findChainedConverter(fromFileType, toFileType, true);
+        }
+
+        return converter;
     }
 
-    protected IDocumentConverter getDirectConverter(String fromFileType, String toFileType) {
+    protected IDocumentConverter getDirectConverter(String fromFileType, String toFileType, boolean allowFileExt) {
         Guard.checkArgument(!fromFileType.equals(toFileType), "fromFileType and toFileType must not be the same: ");
 
         Map<String, IDocumentConverter> map = converters.get(fromFileType);
@@ -172,15 +182,15 @@ public class DocumentConverterManager implements IDocumentConverterManager {
             if (converter != null)
                 return converter;
 
-            if (toFileType.indexOf('.') > 0) {
+            if (allowFileExt && toFileType.indexOf('.') > 0) {
                 converter = map.get(StringHelper.fileExtFromFileType(toFileType));
                 if (converter != null)
                     return converter;
             }
         }
 
-        if (fromFileType.indexOf('.') > 0) {
-            return getDirectConverter(StringHelper.fileExtFromFileType(fromFileType), toFileType);
+        if (allowFileExt && fromFileType.indexOf('.') > 0) {
+            return getDirectConverter(StringHelper.fileExtFromFileType(fromFileType), toFileType, allowFileExt);
         }
         return null;
     }
@@ -229,7 +239,7 @@ public class DocumentConverterManager implements IDocumentConverterManager {
         return converter;
     }
 
-    private IDocumentConverter findChainedConverter(String fromFileType, String toFileType) {
+    private IDocumentConverter findChainedConverter(String fromFileType, String toFileType, boolean allowFileExt) {
         // 查找所有能转换到目标类型的中间类型
         Set<String> intermediateTypes = fromFileTypeMap.get(toFileType);
         if (intermediateTypes == null || intermediateTypes.isEmpty()) {
@@ -238,9 +248,9 @@ public class DocumentConverterManager implements IDocumentConverterManager {
 
         // 尝试每个中间类型
         for (String intermediateType : intermediateTypes) {
-            IDocumentConverter firstStep = getDirectConverter(fromFileType, intermediateType);
+            IDocumentConverter firstStep = getDirectConverter(fromFileType, intermediateType, allowFileExt);
             if (firstStep != null) {
-                IDocumentConverter secondStep = getDirectConverter(intermediateType, toFileType);
+                IDocumentConverter secondStep = getDirectConverter(intermediateType, toFileType, allowFileExt);
                 if (secondStep != null) {
                     IDocumentObjectBuilder objectBuilder = requireDocumentObjectBuilder(intermediateType);
                     return new ChainedDocumentConverter(objectBuilder, firstStep, secondStep, intermediateType);
@@ -249,8 +259,8 @@ public class DocumentConverterManager implements IDocumentConverterManager {
         }
 
         // 尝试使用文件扩展名
-        if (fromFileType.indexOf('.') > 0) {
-            return findChainedConverter(StringHelper.fileExtFromFileType(fromFileType), toFileType);
+        if (allowFileExt && fromFileType.indexOf('.') > 0) {
+            return findChainedConverter(StringHelper.fileExtFromFileType(fromFileType), toFileType, true);
         }
 
         return null;

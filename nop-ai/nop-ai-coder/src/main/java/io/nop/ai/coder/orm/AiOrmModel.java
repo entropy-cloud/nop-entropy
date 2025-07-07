@@ -91,10 +91,9 @@ public class AiOrmModel {
 
         AiOrmConfig config = this.config;
         if (config == null) {
-            config = new AiOrmConfig();
-            config.setBasePackageName("app");
+            config = AiOrmConfig.fromOrmNode(node);
         }
-        normalizedNode = new AiOrmModelNormalizer().normalizeOrm(node, config);
+        normalizedNode = new AiOrmModelNormalizer().normalizeOrm(node.cloneInstance(), config);
         return this;
     }
 

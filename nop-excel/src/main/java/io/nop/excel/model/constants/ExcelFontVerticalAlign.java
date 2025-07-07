@@ -33,12 +33,12 @@ public enum ExcelFontVerticalAlign {
 
     @StaticFactoryMethod
     public static ExcelFontVerticalAlign fromText(String text) {
-        if (StringHelper.isEmpty(text))
+        if (StringHelper.isEmpty(text) || "none".equals(text))
             return null;
 
-        if (subscript.name().equals(text)) {
+        if (subscript.name().equals(text) || "2".equals(text)) {
             return subscript;
-        } else if (superscript.name().equals(text)) {
+        } else if (superscript.name().equals(text) || "1".equals(text)) {
             return superscript;
         }
         return null;

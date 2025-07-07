@@ -1,5 +1,6 @@
 package io.nop.converter.impl;
 
+import io.nop.commons.util.StringHelper;
 import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.IDocumentObject;
 import io.nop.core.lang.json.JsonTool;
@@ -15,13 +16,15 @@ public class JsonDocumentConverter implements ITextDocumentConverter {
     @Override
     public String convertToText(IDocumentObject doc, String toFileType, DocumentConvertOptions options) {
         Object bean = doc.getModelObject(options);
-        if (FILE_TYPE_JSON.equals(toFileType) || FILE_TYPE_JSON5.equals(toFileType))
+        String fileExt = StringHelper.fileExtFromFileType(toFileType);
+
+        if (FILE_TYPE_JSON.equals(fileExt) || FILE_TYPE_JSON5.equals(fileExt))
             return JsonTool.serialize(bean, true);
 
-        if (FILE_TYPE_YAML.equals(toFileType) || FILE_TYPE_YML.equals(toFileType))
+        if (FILE_TYPE_YAML.equals(fileExt) || FILE_TYPE_YML.equals(fileExt))
             return JsonTool.serializeToYaml(bean);
 
-        if (FILE_TYPE_XML.equals(toFileType)) {
+        if (FILE_TYPE_XML.equals(fileExt)) {
             return doc.getNode(options).xml();
         }
 
