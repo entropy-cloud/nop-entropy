@@ -11,7 +11,6 @@ import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.excel.imp.ImportExcelParser;
 import io.nop.excel.imp.model.ImportModel;
 import io.nop.excel.model.ExcelWorkbook;
-import io.nop.report.core.XptConstants;
 import io.nop.xlang.xdsl.DslModelHelper;
 
 public class XlsxDslDocumentObjectBuilder implements IDocumentObjectBuilder {
@@ -55,8 +54,24 @@ public class XlsxDslDocumentObjectBuilder implements IDocumentObjectBuilder {
         @Override
         public XNode getNode(DocumentConvertOptions options) {
             Object obj = getModelObject(options);
-            XNode node = DslModelHelper.dslModelToXNode(XptConstants.XDSL_SCHEMA_WORKBOOK, obj, true);
+            XNode node = DslModelHelper.dslModelToXNode(getXdefPath(obj), obj, true);
             return node;
+        }
+
+        String getXdefPath(Object obj) {
+            String xdefPath = DslModelHelper.getXdefPath(obj, null);
+            if (xdefPath != null)
+                return xdefPath;
+
+            String fileType = getFileType();
+            ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByFileType(fileType);
+            ComponentModelConfig.LoaderConfig loaderConfig = config.getLoader(fileType);
+            Guard.notNull(loaderConfig, "loaderConfig");
+            Guard.notEmpty(loaderConfig.getImpPath(), "impPath");
+
+            ImportModel importModel = (ImportModel) ResourceComponentManager.instance()
+                    .loadComponentModel(loaderConfig.getImpPath());
+            return importModel.getXdef();
         }
     }
 }

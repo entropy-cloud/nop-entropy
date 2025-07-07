@@ -74,11 +74,7 @@ public class DslModelHelper {
 
     public static XNode dslModelToXNode(String xdefPath, Object model, boolean defaultValueAsNull) {
         if (xdefPath == null) {
-            if (model instanceof IXDslModel) {
-                xdefPath = ((IXDslModel) model).getXdslSchema();
-            } else if (model instanceof IPropGetMissingHook) {
-                xdefPath = (String) ((IPropGetMissingHook) model).prop_get(XDslKeys.DEFAULT.SCHEMA);
-            }
+            xdefPath = getXdefPath(model, null);
         }
 
         Guard.notEmpty(xdefPath, "xdefPath");
@@ -111,6 +107,10 @@ public class DslModelHelper {
             xdefPath = ((IXDslModel) model).getXdslSchema();
             if (StringHelper.isEmpty(xdefPath))
                 xdefPath = defaultXdefPath;
+        } else if (model instanceof IPropGetMissingHook) {
+            IPropGetMissingHook hook = (IPropGetMissingHook) model;
+            if (hook.prop_has(XDslKeys.DEFAULT.SCHEMA))
+                return (String) hook.prop_get(XDslKeys.DEFAULT.SCHEMA);
         }
         return xdefPath;
     }

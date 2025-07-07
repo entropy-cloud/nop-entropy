@@ -26,6 +26,7 @@ public class XDefNode extends _XDefNode implements IXDefNode {
 
     private boolean explicitDefine;
     private Map<String, IXDefNode> childrenByPropName;
+    private boolean CDataValue;
 
     public String toString() {
         return getClass().getSimpleName() + "[tagName=" + getTagName() + ",loc=" + getLocation() + "]";
@@ -53,6 +54,14 @@ public class XDefNode extends _XDefNode implements IXDefNode {
     public void setRefNode(IXDefNode refNode) {
         checkAllowChange();
         this.refNode = refNode;
+    }
+
+    public boolean isCDataValue() {
+        return CDataValue;
+    }
+
+    public void setCDataValue(boolean CDataValue) {
+        this.CDataValue = CDataValue;
     }
 
     @Override

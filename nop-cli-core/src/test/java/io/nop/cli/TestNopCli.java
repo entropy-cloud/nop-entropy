@@ -218,11 +218,11 @@ public class TestNopCli extends BaseTestCase {
     public void testRunTaskWithParam() {
         CoreInitialization.destroy();
         String[] args = new String[]{"run-task", "v:/nop/ai/tasks/ai-coder.task.xml",
-                "-PmavenGroupId=app.demo", "-PoutputDir=target/demo","-PappName=app-demo",
-        "-PbasePackageName=app.demo",
-        "-PinputRequirementsPath=req.md",
-        "-PaiProvider=deepseek","-PaiModel=deepseek-chat",
-        "-PsessionId=test","-PneedExpand=false"};
+                "-PmavenGroupId=app.demo", "-PoutputDir=target/demo", "-PappName=app-demo",
+                "-PbasePackageName=app.demo",
+                "-PinputRequirementsPath=req.md",
+                "-PaiProvider=deepseek", "-PaiModel=deepseek-chat",
+                "-PsessionId=test", "-PneedExpand=false"};
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);
         int ret = app.run(args);

@@ -206,6 +206,8 @@ public interface IXDefNode extends IComponentModel, IFreezable {
 
     XDefTypeDecl getXdefValue();
 
+    boolean isCDataValue();
+
     /**
      * 是否除了ref属性之外，没有任何其他属性和子节点。这种情况下完全继承父对象的结构，可以不用生成新的对象类。
      */
