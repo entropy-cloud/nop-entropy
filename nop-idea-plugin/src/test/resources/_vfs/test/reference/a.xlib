@@ -13,6 +13,7 @@
             <source>
                 <c:script><![CDATA[
                     import io.nop.core.model.query.QueryBeanHelper;
+                    import io.nop.idea.plugin.utils.PsiClassHelper;
 
                     const queryNode = queryBuilder();
                     const query = QueryBeanHelper.buildQueryBeanFromTreeBean(queryNode);
@@ -23,6 +24,7 @@
                     fn(1, 2);
                     Integer.valueOf;
                     Integer.valueOf('a');
+                    PsiClassHelper.findClass();
 
                     while (true) {
                         let a = 's' instanceof string;

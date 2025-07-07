@@ -119,7 +119,8 @@
                           implementationClass="io.nop.idea.plugin.lang.script.XLangScriptASTFactory"/>
         <!-- Note: 可针对父类注册元素修改器 -->
         <lang.elementManipulator forClass="io.nop.idea.plugin.lang.script.psi.RuleSpecNode"
-                                 implementationClass="io.nop.idea.plugin.lang.script.XLangScriptElementManipulator"/>
+                                 implementationClass="io.nop.idea.plugin.lang.script.XLangScriptNodeManipulator"/>
+        <renamePsiElementProcessor implementation="io.nop.idea.plugin.lang.script.XLangScriptNodeRenameProcessor"/>
         <!-- Note: 通过实现 PsiElement#getReferences() 并返回 Java 相关的引用对象，
         便可实现自动补全，无需单独注册 CompletionContributor
         -->

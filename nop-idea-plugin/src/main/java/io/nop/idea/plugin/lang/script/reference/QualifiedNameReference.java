@@ -7,7 +7,6 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiPackage;
 import com.intellij.util.IncorrectOperationException;
 import io.nop.idea.plugin.lang.reference.XLangReferenceBase;
-import io.nop.idea.plugin.lang.script.psi.Identifier;
 import io.nop.idea.plugin.lang.script.psi.IdentifierNode;
 import io.nop.idea.plugin.utils.PsiClassHelper;
 import org.jetbrains.annotations.NotNull;
@@ -81,7 +80,7 @@ public class QualifiedNameReference extends XLangReferenceBase {
         TextRange rangeInElement = getRangeInElement();
 
         // 直接替换名字
-        ((Identifier) identifier.getFirstChild()).replaceWithText(newElementName);
+        identifier.setName(newElementName);
 
         rangeInElement = identifier.getTextRangeInParent().shiftRight(rangeInElement.getStartOffset());
         setRangeInElement(rangeInElement);

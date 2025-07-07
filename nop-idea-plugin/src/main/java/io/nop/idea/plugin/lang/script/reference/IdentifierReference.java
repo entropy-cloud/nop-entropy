@@ -23,6 +23,10 @@ public class IdentifierReference extends XLangReferenceBase {
         this.identifier = identifier;
     }
 
+    public IdentifierNode getIdentifier() {
+        return this.identifier;
+    }
+
     @Override
     public @Nullable PsiElement resolveInner() {
         if (!identifier.isValid()) {

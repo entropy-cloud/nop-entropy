@@ -23,8 +23,9 @@ import org.jetbrains.annotations.Nullable;
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-07-06
  */
-public class XLangScriptElementManipulator extends AbstractElementManipulator<RuleSpecNode> {
+public class XLangScriptNodeManipulator extends AbstractElementManipulator<RuleSpecNode> {
 
+    /** 对 <code>element</code> 采取就地更新策略 */
     @Override
     public @Nullable RuleSpecNode handleContentChange(
             @NotNull RuleSpecNode element, @NotNull TextRange rangeInElement, String newContent
@@ -36,19 +37,9 @@ public class XLangScriptElementManipulator extends AbstractElementManipulator<Ru
         if (element instanceof ImportSourceNode imp && needToReplaceElement) {
             PsiElement node = PsiFileFactory.getInstance(element.getProject())
                                             .createFileFromText(element.getLanguage(), "import " + newContent);
-            while (node != null) {
-                if (node instanceof QualifiedNameNode) {
-                    imp.getQualifiedName().replace(node);
-                    break;
-                }
 
-                if (node instanceof ImportDeclarationNode) {
-                    // 跳过 import 和 空白
-                    node = node.getFirstChild().getNextSibling().getNextSibling();
-                } else {
-                    node = node.getFirstChild();
-                }
-            }
+            QualifiedNameNode qn = findQualifiedNameNode(node);
+            imp.getQualifiedName().replace(qn);
 
             return element;
         }
@@ -64,5 +55,21 @@ public class XLangScriptElementManipulator extends AbstractElementManipulator<Ru
         }
 
         return element;
+    }
+
+    protected QualifiedNameNode findQualifiedNameNode(PsiElement node) {
+        while (node != null) {
+            if (node instanceof QualifiedNameNode qn) {
+                return qn;
+            }
+
+            if (node instanceof ImportDeclarationNode) {
+                // 跳过 import 和 空白
+                node = node.getFirstChild().getNextSibling().getNextSibling();
+            } else {
+                node = node.getFirstChild();
+            }
+        }
+        return null;
     }
 }
