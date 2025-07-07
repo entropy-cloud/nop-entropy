@@ -19,7 +19,8 @@ public class XLangScriptParserAdaptor extends ANTLRParserAdaptor {
 
     @Override
     protected ParseTree parse(Parser parser, IElementType root) {
-        // TODO 为 dot 节点之后的空白添加占位节点，以便于触发代码补全
+        // Note: 不需要为 dot 节点之后的空白添加占位节点，只要延迟到在
+        // PsiReference#resolve 中才获取引用元素，即可正常触发代码补全
         if (root instanceof IFileElementType) {
             return ((XLangParser) parser).program();
         }
