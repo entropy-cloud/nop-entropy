@@ -98,9 +98,50 @@ public class TestXLangScriptCompletions extends BaseXLangPluginTestCase {
                                  """);
     }
 
+    public void testCompletionInXLib() {
+        assertCompletionInXLib("""
+                                       <lib xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"
+                                            x:schema="/nop/schema/xlib.xdef">
+                                           <tags>
+                                               <DoTest>
+                                                   <source>
+                                                       <c:script><![CDATA[
+                                                           import io.nop.xlang.xdef.domain.XJsonDomainHandler;
+                                                           const handler = new XJsonDomainHandler();
+                                                           handler.getN<caret>();
+                                                       ]]></c:script>
+                                                   </source>
+                                               </DoTest>
+                                           </tags>
+                                       </lib>
+                                       """, """
+                                       <lib xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"
+                                            x:schema="/nop/schema/xlib.xdef">
+                                           <tags>
+                                               <DoTest>
+                                                   <source>
+                                                       <c:script><![CDATA[
+                                                           import io.nop.xlang.xdef.domain.XJsonDomainHandler;
+                                                           const handler = new XJsonDomainHandler();
+                                                           handler.getName();
+                                                       ]]></c:script>
+                                                   </source>
+                                               </DoTest>
+                                           </tags>
+                                       </lib>
+                                       """);
+    }
+
     /** 需确保仅有唯一一项自动填充项：匹配是模糊匹配，需增加输入长度才能做唯一匹配 */
     protected void assertCompletion(String text, String expectedText) {
         myFixture.configureByText("sample." + ext, text);
+        myFixture.completeBasic();
+
+        myFixture.checkResult(expectedText);
+    }
+
+    protected void assertCompletionInXLib(String text, String expectedText) {
+        configureByXLangText(text);
         myFixture.completeBasic();
 
         myFixture.checkResult(expectedText);
