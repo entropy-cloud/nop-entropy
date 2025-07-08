@@ -16,6 +16,9 @@ import org.jetbrains.annotations.NotNull;
  * XScript 脚本的 {@link LanguageInjector}
  * <p/>
  * 用于识别脚本语言，以提供高亮、引用、自动补全等编码支持
+ * <p/>
+ * 通过 <code>InjectedLanguageManager.getInstance(host.getProject()).findInjectedElementAt(host, offset);</code>
+ * 可以从目标元素内查找到已注入的其他语言节点
  *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-06-25

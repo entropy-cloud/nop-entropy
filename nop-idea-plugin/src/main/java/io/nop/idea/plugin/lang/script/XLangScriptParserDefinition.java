@@ -77,6 +77,7 @@ public class XLangScriptParserDefinition implements ParserDefinition {
         return new XLangScriptParserAdaptor();
     }
 
+    /** Note: 只有在 {@link com.intellij.lang.ASTFactory ASTFactory} 中未创建 PsiElement 的节点才会调用该接口 */
     @NotNull
     @Override
     public PsiElement createElement(ASTNode node) {
@@ -84,7 +85,6 @@ public class XLangScriptParserDefinition implements ParserDefinition {
             return new RuleSpecNode(node);
         }
 
-        // Note: 只有在 ASTFactory 中未创建 PsiElement 的节点才会调用该接口
         return switch (rule.getRuleIndex()) {
             case XLangParser.RULE_program ->   //
                     new ProgramNode(node);

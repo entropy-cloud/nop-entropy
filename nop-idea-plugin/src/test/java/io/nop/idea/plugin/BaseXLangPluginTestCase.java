@@ -24,7 +24,9 @@ import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.projectRoots.impl.JavaSdkImpl;
 import com.intellij.openapi.roots.ModuleRootModificationUtil;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiReference;
+import com.intellij.psi.impl.DebugUtil;
 import com.intellij.psi.impl.source.resolve.reference.impl.PsiMultiReference;
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
 import io.nop.commons.lang.impl.Cancellable;
@@ -87,8 +89,8 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         super.tearDown();
     }
 
-    protected void configureByXLangText(String text) {
-        myFixture.configureByText("unit." + XLANG_EXT, text);
+    protected PsiFile configureByXLangText(String text) {
+        return myFixture.configureByText("unit." + XLANG_EXT, text);
     }
 
     protected void addAllNopXDefsToProject() {
@@ -222,5 +224,16 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
 
         // 验证结果
         myFixture.checkResult(expectedText);
+    }
+
+    /**
+     * 检查 {@link PsiElement} 的解析树是否与指定的 vfs 文件 <code>expectedAstFile</code> 的内容相同
+     */
+    protected void assertASTTree(PsiElement tree, String expectedAstFile) {
+        String testTree = DebugUtil.psiToString(tree, true, false);
+
+        String expectedTree = readVfsResource(expectedAstFile);
+
+        assertEquals(expectedTree, testTree);
     }
 }
