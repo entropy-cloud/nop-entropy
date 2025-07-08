@@ -1,4 +1,4 @@
-package io.nop.ai.coder.file;
+package io.nop.core.lang.utils;
 
 import io.nop.api.core.annotations.core.GlobalInstance;
 
