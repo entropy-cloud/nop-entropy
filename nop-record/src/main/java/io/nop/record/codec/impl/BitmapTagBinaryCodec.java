@@ -45,7 +45,7 @@ public class BitmapTagBinaryCodec implements IFieldTagBinaryCodec {
         if (nextBytes != null) {
             for (int i = 0; i < 8; i++) {
                 for (int j = 7; j >= 0; j--) {
-                    if (((bytes[i] >> j) & 0x01) != 0) {
+                    if (((nextBytes[i] >> j) & 0x01) != 0) {
                         bs.set(index);
                     }
                     index++;
