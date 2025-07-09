@@ -12,9 +12,26 @@ public class TestXLangParser extends BaseXLangPluginTestCase {
     public void testParseASTTree() {
         assertASTTree("""
                               <example xmlns:x="/nop/schema/xdsl.xdef"
-                                       x:schema="/nop/schema/xdef.xdef"
+                                       x:schema="/path/to/example.xdef"
                               >
-                                  <child name="string"/>
+                                  <tag name="Child"/>
+                                  <refs>/nop/schema/xdef.xdef,/nop/schema/xdsl.xdef</refs>
+                                  <refs>
+                                      /nop/schema/xdef.xdef,
+                                      /nop/schema/xdsl.xdef
+                                  </refs>
+                                  <text><![CDATA[
+                                      This is CDATA text.
+                                  ]]></text>
+                                  <mix>
+                                      This is a text.
+                                      <tag>
+                                          This is a child tag.
+                                      </tag>
+                                      <tag><![CDATA[
+                                          This is a CDATA tag.
+                                      ]]></tag>
+                                  </mix>
                               </example>
                               """, //
                       "/test/ast/xlang-1.ast");

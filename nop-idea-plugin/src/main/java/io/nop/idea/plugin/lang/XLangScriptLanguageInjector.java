@@ -53,6 +53,8 @@ public class XLangScriptLanguageInjector implements LanguageInjector {
         };
 
         if (lang != null) {
+            // Note: 第二个参数为有效文本在 host 中的范围，而 XmlText 的文本是不包含 CDATA 标签的，
+            // 因此，直接根据文本内容确定有效文本的范围即可
             registrar.addPlace(lang, TextRange.create(0, host.getTextLength()), null, null);
         }
     }

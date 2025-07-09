@@ -18,11 +18,27 @@ import com.intellij.psi.FileViewProvider;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.impl.source.tree.CompositeElement;
+import com.intellij.psi.impl.source.tree.LeafElement;
 import com.intellij.psi.impl.source.xml.XmlFileImpl;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.tree.IFileElementType;
 import com.intellij.psi.tree.TokenSet;
+import io.nop.idea.plugin.lang.psi.XLangAttribute;
+import io.nop.idea.plugin.lang.psi.XLangAttributeValue;
+import io.nop.idea.plugin.lang.psi.XLangDocument;
+import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.lang.psi.XLangText;
+import io.nop.idea.plugin.lang.psi.XLangTextToken;
+import io.nop.idea.plugin.lang.psi.XLangValueToken;
 import org.jetbrains.annotations.NotNull;
+
+import static com.intellij.psi.xml.XmlElementType.XML_ATTRIBUTE;
+import static com.intellij.psi.xml.XmlElementType.XML_ATTRIBUTE_VALUE;
+import static com.intellij.psi.xml.XmlElementType.XML_DOCUMENT;
+import static com.intellij.psi.xml.XmlElementType.XML_TAG;
+import static com.intellij.psi.xml.XmlElementType.XML_TEXT;
+import static com.intellij.psi.xml.XmlTokenType.XML_ATTRIBUTE_VALUE_TOKEN;
+import static com.intellij.psi.xml.XmlTokenType.XML_DATA_CHARACTERS;
 
 /**
  * 复用 XML 的解析能力，并对得到的 {@link PsiElement} 做 XLang 节点包装
@@ -51,7 +67,34 @@ public class XLangParserDefinition extends XmlASTFactory implements ParserDefini
 
     @Override
     public CompositeElement createComposite(@NotNull IElementType type) {
+        if (type == XML_DOCUMENT) {
+            return new XLangDocument();
+        } //
+        else if (type == XML_TAG) {
+            return new XLangTag();
+        } //
+        else if (type == XML_ATTRIBUTE) {
+            return new XLangAttribute();
+        } //
+        else if (type == XML_ATTRIBUTE_VALUE) {
+            return new XLangAttributeValue();
+        } //
+        else if (type == XML_TEXT) {
+            return new XLangText();
+        }
         return super.createComposite(type);
+    }
+
+    @Override
+    public LeafElement createLeaf(@NotNull final IElementType type, @NotNull CharSequence text) {
+        if (type == XML_DATA_CHARACTERS) {
+            return new XLangTextToken(type, text);
+        } //
+        else if (type == XML_ATTRIBUTE_VALUE_TOKEN) {
+            return new XLangValueToken(type, text);
+        } //
+
+        return super.createLeaf(type, text);
     }
 
     // <<<<<<<<<<<<<<<<<< 委派到 XMLParserDefinition，从而复用 xml 的 AST 解析逻辑

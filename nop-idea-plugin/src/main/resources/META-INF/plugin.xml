@@ -74,26 +74,30 @@
 
         <projectService serviceImplementation="io.nop.idea.plugin.services.NopProjectService"/>
 
+        <!-- XLang 注册与解析 -->
         <fileTypeDetector implementation="io.nop.idea.plugin.lang.XLangFileTypeDetector" order="first"/>
         <!-- 2019.2版本之后通过此扩展点注册文件类型 -->
-        <fileType name="XLang" language="XLang" implementationClass="io.nop.idea.plugin.lang.XLangFileType"
-                  fieldName="INSTANCE" extensions="xpl;xgen;xui;xlib;xrun;xwf;xmeta"
+        <fileType name="XLang"
+                  language="XLang"
+                  implementationClass="io.nop.idea.plugin.lang.XLangFileType"
+                  fieldName="INSTANCE"
+                  extensions="xpl;xgen;xui;xlib;xrun;xwf;xmeta"
                   patterns="*.xpl;*.xgen;*.xui;*.xlib;*.xrun;*.xwf;*.orm.xml;*.xmeta;*.xpage;*.beans.xml;*.xrule;*.action-auth.xml;*.view.xml;*.sql-lib.xml"/>
-        <!-- XLang 解析 -->
         <lang.parserDefinition language="XLang"
                                implementationClass="io.nop.idea.plugin.lang.XLangParserDefinition"/>
         <!-- 根据XDef文件定义，对XLang DSL进行语法校验 -->
         <annotator language="XLang"
                    implementationClass="io.nop.idea.plugin.annotation.XLangAnnotator"/>
         <!-- 根据xdef定义进行语法提示 -->
-        <completion.contributor language="XLang"
-                                implementationClass="io.nop.idea.plugin.completion.XLangCompletionContributor"/>
+        <!--<completion.contributor language="XLang"
+                                implementationClass="io.nop.idea.plugin.completion.XLangCompletionContributor"/>-->
         <!-- 鼠标Hover到XLang语法元素上显示相关文档信息 -->
-        <lang.documentationProvider language="XLang" order="first"
-                                    implementationClass="io.nop.idea.plugin.doc.XLangDocumentationProvider"/>
+        <!--<lang.documentationProvider language="XLang" order="first"
+                                    implementationClass="io.nop.idea.plugin.doc.XLangDocumentationProvider"/>-->
         <!-- 引用识别：支持跳转、重命名等操作 -->
-        <psi.referenceContributor implementation="io.nop.idea.plugin.reference.XLangReferenceContributor"/>
+        <!--<psi.referenceContributor implementation="io.nop.idea.plugin.reference.XLangReferenceContributor"/>-->
 
+        <!-- XLang 调试 -->
         <xdebugger.breakpointType implementation="io.nop.idea.plugin.debugger.XLangBreakpointType"/>
         <programRunner id="XLangDebugger"
                        implementation="io.nop.idea.plugin.debugger.XLangDebuggerRunner"
@@ -102,9 +106,7 @@
                   implementation="io.nop.idea.plugin.execution.XLangDebugExecutor"
                   order="first,after run"/>
 
-        <!--    <fileDocumentManagerListener id="XLangFile" implementation="io.nop.idea.plugin.file.XLangFileDocumentManagerListener" />-->
-
-        <!-- XLang Script 解析 -->
+        <!-- XLang Script 注册与解析 -->
         <languageInjector implementation="io.nop.idea.plugin.lang.XLangScriptLanguageInjector"/>
         <fileType name="XLang Script"
                   language="XLangScript"

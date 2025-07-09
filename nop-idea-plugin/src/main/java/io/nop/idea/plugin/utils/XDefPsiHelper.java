@@ -81,6 +81,7 @@ public class XDefPsiHelper {
         return ns;
     }
 
+    /** 从根节点获取 dsl 的元模型的 vfs 路径 */
     public static String getSchemaPath(XmlTag rootTag) {
         PsiFile file = rootTag.getContainingFile();
         String fileExt = StringHelper.fileExt(file.getName());
