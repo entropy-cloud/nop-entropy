@@ -71,4 +71,9 @@ public class GraphQLNonNullType extends _GraphQLNonNullType {
     public GraphQLType getNullableType() {
         return getType().getNullableType();
     }
+
+    @Override
+    public GraphQLDefinition getResolvedType() {
+        return getType().getResolvedType();
+    }
 }

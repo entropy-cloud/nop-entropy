@@ -57,6 +57,7 @@ public class GraphQLNamedType extends _GraphQLNamedType {
         return getName();
     }
 
+    @Override
     public GraphQLDefinition getResolvedType() {
         return resolvedType;
     }

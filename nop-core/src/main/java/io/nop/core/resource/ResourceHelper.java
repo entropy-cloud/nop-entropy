@@ -222,6 +222,11 @@ public class ResourceHelper {
         return VirtualFileSystem.instance().getResource(relativeStdPath);
     }
 
+    public static IResource resolveChildResource(IResource resource, String subPath) {
+        String fullPath = StringHelper.appendPath(resource.getStdPath(), subPath);
+        return VirtualFileSystem.instance().getResource(fullPath);
+    }
+
     public static boolean startsWithNamespace(String path, String ns) {
         if (!path.startsWith(ns))
             return false;

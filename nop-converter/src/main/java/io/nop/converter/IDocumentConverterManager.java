@@ -1,6 +1,5 @@
 package io.nop.converter;
 
-import io.nop.api.core.annotations.data.DataBean;
 import io.nop.core.resource.IResource;
 
 import java.util.Set;

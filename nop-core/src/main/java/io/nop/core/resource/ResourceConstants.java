@@ -81,9 +81,11 @@ public interface ResourceConstants {
     String FILE_POSTFIX_YAML = ".yaml";
     String FILE_POSTFIX_YML = ".yml";
 
-    List<String> JSON_FILE_EXTS = CollectionHelper.buildImmutableList("json", "json5", "yaml", "yml");
+    List<String> JSON_OR_YAML_FILE_EXTS = CollectionHelper.buildImmutableList("json", "json5", "yaml", "yml");
 
     List<String> YAML_FILE_EXTS = CollectionHelper.buildImmutableList("yaml", "yml");
+
+    List<String> JSON_FILE_EXTS = CollectionHelper.buildImmutableList("json", "json5");
 
     String FILE_POSTFIX_XML = ".xml";
 

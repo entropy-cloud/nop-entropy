@@ -1,13 +1,12 @@
 package io.nop.ai.coder.simplifier;
 
+import io.nop.ai.coder.AiCoderConstants;
 import io.nop.commons.util.CollectionHelper;
-import io.nop.commons.util.StringHelper;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -23,6 +22,10 @@ public class JsonSimplifier {
     public JsonSimplifier(Set<String> keysToKeep, Set<String> positioningKeys) {
         this.keysToKeep = keysToKeep != null ? keysToKeep : Collections.emptySet();
         this.positioningKeys = positioningKeys != null ? positioningKeys : Collections.emptySet();
+    }
+
+    public JsonSimplifier(Set<String> keysToKeep) {
+        this(keysToKeep, AiCoderConstants.DEFAULT_POSITIONING_KEYS);
     }
 
     /**

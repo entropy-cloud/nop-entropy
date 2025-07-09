@@ -11,4 +11,8 @@ public interface IDocumentObjectBuilder {
     default boolean isBinaryOnly(String fileType) {
         return DocConvertHelper.defaultBinaryOnly(fileType);
     }
+
+    default String getXdefPath(String fileType) {
+        return null;
+    }
 }

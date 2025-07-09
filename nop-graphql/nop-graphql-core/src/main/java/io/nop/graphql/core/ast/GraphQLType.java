@@ -56,6 +56,8 @@ public abstract class GraphQLType extends _GraphQLType {
         return null;
     }
 
+    public abstract GraphQLDefinition getResolvedType();
+
     public StdDataType getStdDataType() {
         GraphQLScalarType scalarType = getScalarType();
         return scalarType == null ? null : scalarType.getStdDataType();

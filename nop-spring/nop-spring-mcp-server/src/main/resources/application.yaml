@@ -1,0 +1,38 @@
+nop:
+  debug: true
+
+logging:
+  level:
+    root: info
+
+nop.datasource.driver-class-name: org.h2.Driver
+nop.datasource.jdbc-url: jdbc:h2:./db/test
+nop.datasource.username: sa
+nop.datasource.password:
+
+spring.ai.mcp.client.toolcallback.enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+
+spring:
+  ai:
+    mcp:
+      server:
+        enabled: true
+
+
+        name: nop-spring-mcp-server
+        version: 1.0.0
+        type: SYNC
+        instructions: "This server provides Nop File related tools"
+        sse-message-endpoint: /mcp/message
+        sse-endpoint: /sse
+        capabilities:
+          tool: true
+          resource: true
+          prompt: true
+          completion: true

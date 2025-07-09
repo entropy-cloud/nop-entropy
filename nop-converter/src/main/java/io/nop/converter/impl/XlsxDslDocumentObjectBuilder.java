@@ -25,6 +25,22 @@ public class XlsxDslDocumentObjectBuilder implements IDocumentObjectBuilder {
         throw new UnsupportedOperationException("DslDocumentObject does not support buildFromText");
     }
 
+    @Override
+    public String getXdefPath(String fileType) {
+        return getXdefPathFromFileType(fileType);
+    }
+
+    static String getXdefPathFromFileType(String fileType) {
+        ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByFileType(fileType);
+        ComponentModelConfig.LoaderConfig loaderConfig = config.getLoader(fileType);
+        Guard.notNull(loaderConfig, "loaderConfig");
+        Guard.notEmpty(loaderConfig.getImpPath(), "impPath");
+
+        ImportModel importModel = (ImportModel) ResourceComponentManager.instance()
+                .loadComponentModel(loaderConfig.getImpPath());
+        return importModel.getXdef();
+    }
+
     public static class XlsxDslDocumentObject extends ResourceDocumentObject {
         public XlsxDslDocumentObject(String fileType, IResource resource) {
             super(fileType, resource);
@@ -47,6 +63,12 @@ public class XlsxDslDocumentObjectBuilder implements IDocumentObjectBuilder {
         }
 
         @Override
+        public String getXdefPath() {
+            String fileType = getFileType();
+            return getXdefPathFromFileType(fileType);
+        }
+
+        @Override
         public String getText(DocumentConvertOptions options) {
             return getNode(options).xml();
         }
@@ -63,15 +85,7 @@ public class XlsxDslDocumentObjectBuilder implements IDocumentObjectBuilder {
             if (xdefPath != null)
                 return xdefPath;
 
-            String fileType = getFileType();
-            ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByFileType(fileType);
-            ComponentModelConfig.LoaderConfig loaderConfig = config.getLoader(fileType);
-            Guard.notNull(loaderConfig, "loaderConfig");
-            Guard.notEmpty(loaderConfig.getImpPath(), "impPath");
-
-            ImportModel importModel = (ImportModel) ResourceComponentManager.instance()
-                    .loadComponentModel(loaderConfig.getImpPath());
-            return importModel.getXdef();
+            return getXdefPath();
         }
     }
 }

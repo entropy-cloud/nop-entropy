@@ -26,6 +26,10 @@ public interface IDocumentObject extends ISourceLocationGetter {
         return XNodeParser.instance().parseFromText(getLocation(), getText(options));
     }
 
+    default String getXdefPath(){
+        return null;
+    }
+
     IResource getResource();
 
     void saveToResource(IResource resource, DocumentConvertOptions options);

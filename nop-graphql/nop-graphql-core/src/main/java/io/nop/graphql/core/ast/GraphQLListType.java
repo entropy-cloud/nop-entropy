@@ -49,6 +49,11 @@ public class GraphQLListType extends _GraphQLListType {
     }
 
     @Override
+    public GraphQLDefinition getResolvedType() {
+        return null;
+    }
+
+    @Override
     public GraphQLType getItemType() {
         return getType();
     }

@@ -35,6 +35,20 @@ public class DslDocumentObjectBuilder implements IDocumentObjectBuilder {
         return buildFromResource(fileType, new InMemoryTextResource(path, text));
     }
 
+    @Override
+    public String getXdefPath(String fileType) {
+        return getXdefPathFromFileType(fileType);
+    }
+
+    static String getXdefPathFromFileType(String fileType) {
+        ComponentModelConfig config = ResourceComponentManager.instance().requireModelConfigByFileType(fileType);
+
+        ComponentModelConfig.LoaderConfig loaderConfig = config.getLoader(fileType);
+        if (loaderConfig == null)
+            throw new IllegalArgumentException("unsupported fileType: " + fileType);
+        return loaderConfig.getXdefPath();
+    }
+
     public static class DslDocumentObject extends ResourceDocumentObject {
         public DslDocumentObject(String fileType, IResource resource) {
             super(fileType, resource);
@@ -43,6 +57,12 @@ public class DslDocumentObjectBuilder implements IDocumentObjectBuilder {
         @Override
         public Object getModelObject(DocumentConvertOptions options) {
             return newLoader(options).parseFromResource(getResource());
+        }
+
+        @Override
+        public String getXdefPath() {
+            String fileType = getFileType();
+            return getXdefPathFromFileType(fileType);
         }
 
         IDslResourceObjectLoader<IComponentModel> newLoader(DocumentConvertOptions options) {

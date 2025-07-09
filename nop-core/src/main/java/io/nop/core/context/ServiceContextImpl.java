@@ -38,6 +38,11 @@ public class ServiceContextImpl extends ExecutionContextImpl implements IService
         getEvalScope().setLocalValue(null, CoreConstants.VAR_SVC_CTX, this);
     }
 
+    public ServiceContextImpl(Map<String, Object> vars) {
+        super(vars);
+        getEvalScope().setLocalValue(null, CoreConstants.VAR_SVC_CTX, this);
+    }
+
     @Override
     public IServiceContext getParentContext() {
         return parentContext;

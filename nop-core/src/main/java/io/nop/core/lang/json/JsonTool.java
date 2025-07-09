@@ -144,12 +144,20 @@ public class JsonTool {
     }
 
     public static boolean isJsonOrYamlFileExt(String fileExt) {
-        return ResourceConstants.JSON_FILE_EXTS.contains(fileExt);
+        return ResourceConstants.JSON_OR_YAML_FILE_EXTS.contains(fileExt);
     }
 
     public static boolean isJsonOrYaml(String filePath) {
         String fileExt = StringHelper.fileExt(filePath);
-        return ResourceConstants.JSON_FILE_EXTS.contains(fileExt);
+        return ResourceConstants.JSON_OR_YAML_FILE_EXTS.contains(fileExt);
+    }
+
+    public static boolean isJsonFileExt(String fileExt) {
+        return ResourceConstants.JSON_OR_YAML_FILE_EXTS.contains(fileExt);
+    }
+
+    public static boolean isYamlFileExt(String fileExt) {
+        return ResourceConstants.YAML_FILE_EXTS.contains(fileExt);
     }
 
     public static <T> T loadBean(String path, Class<?> beanClass) {
