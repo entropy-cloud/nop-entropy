@@ -32,6 +32,5 @@ public class TestXLangCompletionContributor extends LightPlatformCodeInsightFixt
 
         myFixture.type("foo");
         LookupElement[] items = myFixture.completeBasic();
-        // fixme: test the completion items
     }
 }

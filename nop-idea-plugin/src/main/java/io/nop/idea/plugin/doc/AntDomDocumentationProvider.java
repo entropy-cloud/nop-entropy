@@ -178,7 +178,7 @@
 //
 //  @Override
 //  @Nullable
-//  public @Nls String getQuickNavigateInfo(PsiElement element, PsiElement originalElement) {  // todo!
+//  public @Nls String getQuickNavigateInfo(PsiElement element, PsiElement originalElement) {
 //    if (element instanceof PomTargetPsiElement) {
 //      final PomTarget pomTarget = ((PomTargetPsiElement)element).getTarget();
 //      if (pomTarget instanceof DomTarget) {

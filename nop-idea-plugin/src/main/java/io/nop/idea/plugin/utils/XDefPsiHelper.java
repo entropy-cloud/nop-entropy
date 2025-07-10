@@ -15,7 +15,9 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.xml.XmlTag;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.ClassPathResource;
+import io.nop.core.resource.impl.InMemoryTextResource;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdef.XDefKeys;
@@ -100,6 +102,19 @@ public class XDefPsiHelper {
     public static IXDefinition loadSchema(String schemaUrl) {
         try {
             return SchemaLoader.loadXDefinition(schemaUrl);
+        } catch (Exception e) {
+            LOG.debug("nop.load-schema-fail", e);
+            return null;
+        }
+    }
+
+    public static IXDefinition loadSchema(PsiFile file) {
+        String content = file.getText();
+        // Note: 解析过程中，会检查路径的有效性，需保证以 / 开头，并添加 .xdef 后缀
+        IResource resource = new InMemoryTextResource('/' + file.getVirtualFile().getName() + ".xdef", content);
+
+        try {
+            return new XDefinitionParser().parseFromResource(resource);
         } catch (Exception e) {
             LOG.debug("nop.load-schema-fail", e);
             return null;

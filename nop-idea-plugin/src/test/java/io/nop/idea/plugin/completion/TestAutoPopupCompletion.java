@@ -26,7 +26,6 @@ public class TestAutoPopupCompletion extends BasePlatformTestCase {
 
             tester.joinCompletion();
 //            tester.getLookup().getItems();
-            // fixme: test completion items via tester.getLookup()
         });
     }
 }
