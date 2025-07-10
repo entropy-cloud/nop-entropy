@@ -256,10 +256,16 @@ public class XLangASTBuilder {
     public static Expression buildPropExpr(SourceLocation loc, String propName) {
         int pos = propName.indexOf('.');
         if (pos < 0)
-            return Identifier.valueOf(loc, propName);
+            return Identifier.valueOf(loc, removeOptional(propName));
 
-        Expression id = Identifier.valueOf(loc, propName.substring(0, pos));
+        Expression id = Identifier.valueOf(loc, removeOptional(propName.substring(0, pos)));
         return buildPropExpr(id, loc, propName.substring(pos + 1));
+    }
+
+    static String removeOptional(String name) {
+        if (name.endsWith("?"))
+            return name.substring(0, name.length() - 1);
+        return name;
     }
 
     public static Expression buildPropExpr(Expression obj, SourceLocation loc, String propName) {

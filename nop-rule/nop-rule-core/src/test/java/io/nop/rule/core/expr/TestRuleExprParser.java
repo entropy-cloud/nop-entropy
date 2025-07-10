@@ -30,6 +30,12 @@ public class TestRuleExprParser {
     }
 
     @Test
+    public void testIn(){
+        String expr = "in [1,2,3]";
+        checkExpr("obj?.myVar in [1,2,3]", expr);
+    }
+
+    @Test
     public void testToFilter() {
         String expr = " >= 3 and < 5 and ==2";
         Expression exprObj = new RuleExprParser("obj.myVar").parseExpr(null, expr);

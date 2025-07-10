@@ -135,7 +135,7 @@ public class ExpressionToFilterBeanTransformer {
 
     TreeBean transformAssertOp(AssertOpExpression expr) {
         if (XLangASTHelper.isQualifiedName(expr.getValue())) {
-            String name = expr.getValue().toExprString();
+            String name = XLangASTHelper.getQualifiedName(expr.getValue());
             return FilterBeans.assertOp(expr.getOp(), name);
         } else {
             return transformOtherExpr(expr);
@@ -145,7 +145,7 @@ public class ExpressionToFilterBeanTransformer {
     TreeBean transformCompareOp(CompareOpExpression expr) {
         if (XLangASTHelper.isQualifiedName(expr.getLeft())) {
             if (XLangASTHelper.isJsonValue(expr.getRight())) {
-                String name = expr.getLeft().toExprString();
+                String name = XLangASTHelper.getQualifiedName(expr.getLeft());
                 return FilterBeans.compareOp(expr.getOp(), name, XLangASTHelper.toJsonValue(expr.getRight()));
             }
         }
@@ -172,7 +172,7 @@ public class ExpressionToFilterBeanTransformer {
             if (!XLangASTHelper.isQualifiedName(arg))
                 throw new NopException(ERR_FILTER_NOT_ALLOW_EXPR).source(expr).param(ARG_EXPR, expr);
 
-            String name = arg.toExprString();
+            String name = XLangASTHelper.getQualifiedName(arg);
             return FilterBeans.assertOp(op, name);
         } else if (filterOp.isCompareOp()) {
             if (expr.getArguments().size() != 2)
@@ -188,16 +188,16 @@ public class ExpressionToFilterBeanTransformer {
             boolean rightIsName = XLangASTHelper.isQualifiedName(right);
 
             if (leftIsName && rightIsName) {
-                String leftName = left.toExprString();
-                String rightName = right.toExprString();
+                String leftName = XLangASTHelper.getQualifiedName(left);
+                String rightName = XLangASTHelper.getQualifiedName(right);
                 return FilterBeans.propCompareOp(op, leftName, rightName);
             } else if (leftIsName) {
-                String name = left.toExprString();
+                String name = XLangASTHelper.getQualifiedName(left);
                 Object value = XLangASTHelper.toJsonValue(right);
                 return FilterBeans.compareOp(op, name, value);
             } else if (rightIsName) {
                 Object value = XLangASTHelper.toJsonValue(left);
-                String name = right.toExprString();
+                String name = XLangASTHelper.getQualifiedName(right);
                 return FilterBeans.compareOp(op, name, value);
             } else {
                 throw new NopException(ERR_FILTER_NOT_ALLOW_EXPR).source(expr).param(ARG_EXPR, expr);
@@ -225,7 +225,7 @@ public class ExpressionToFilterBeanTransformer {
                 return transformOtherExpr(expr);
             }
 
-            String name = nameExpr.toExprString();
+            String name = XLangASTHelper.getQualifiedName(nameExpr);
             Object min = XLangASTHelper.toJsonValue(minExpr);
             Object max = XLangASTHelper.toJsonValue(maxExpr);
             boolean excludeMin = excludeMinExpr != null && ConvertHelper.toTruthy(((Literal) excludeMinExpr).getValue());

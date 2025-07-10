@@ -10,6 +10,7 @@ package io.nop.xlang.compile;
 import io.nop.commons.util.StringHelper;
 import io.nop.xlang.ast.ArrowFunctionExpression;
 import io.nop.xlang.ast.BlockStatement;
+import io.nop.xlang.ast.CompareOpExpression;
 import io.nop.xlang.ast.FunctionDeclaration;
 import io.nop.xlang.ast.Identifier;
 import io.nop.xlang.ast.Program;
@@ -68,6 +69,14 @@ public class PrintResolvedIdentifier extends XLangASTVisitor {
         } else {
             buf.append(id.getResolvedDefinition()).append("\n");
         }
+    }
+
+    @Override
+    public void visitCompareOpExpression(CompareOpExpression node) {
+
+        this.visitChild(node.getLeft());
+        buf.append(' ').append(node.getOp()).append(' ');
+        this.visitChild(node.getRight());
     }
 
     @Override

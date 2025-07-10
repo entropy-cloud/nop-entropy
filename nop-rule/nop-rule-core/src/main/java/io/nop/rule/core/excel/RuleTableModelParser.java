@@ -41,6 +41,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.nop.rule.core.RuleConstants.COMMENT_VAR_NAMES;
+import static io.nop.rule.core.RuleErrors.ARG_ALLOWED_NAMES;
 import static io.nop.rule.core.RuleErrors.ARG_CELL_POS;
 import static io.nop.rule.core.RuleErrors.ARG_TEXT;
 import static io.nop.rule.core.RuleErrors.ARG_VAR_NAME;
@@ -48,6 +50,7 @@ import static io.nop.rule.core.RuleErrors.ERR_RULE_INVALID_DECISION_TREE_TABLE;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_INVALID_INPUT_VAR;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_INVALID_OUTPUT_CELL;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_NOT_ALLOW_MERGED_CELL;
+import static io.nop.rule.core.RuleErrors.ERR_RULE_UNKNOWN_CONFIG_VAR;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_UNKNOWN_INPUT_VAR;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_UNKNOWN_OUTPUT_VAR;
 import static io.nop.rule.core.RuleErrors.ERR_RULE_VAR_CELL_SPAN_MUST_BE_ONE;
@@ -436,7 +439,20 @@ public class RuleTableModelParser {
             return null;
 
         SourceLocation loc = getLocation(cell, sheetName, rowIndex, colIndex);
-        return MultiLineConfigParser.INSTANCE.parseConfig(loc, cell.getComment());
+        Map<String, ValueWithLocation> vars = MultiLineConfigParser.INSTANCE.parseConfig(loc, cell.getComment());
+        if (vars != null) {
+            if (COMMENT_VAR_NAMES.containsAll(vars.keySet())) {
+                for (String varName : vars.keySet()) {
+                    if (!COMMENT_VAR_NAMES.contains(varName))
+                        throw new NopException(ERR_RULE_UNKNOWN_CONFIG_VAR)
+                                .loc(loc)
+                                .param(ARG_CELL_POS, CellPosition.toABString(rowIndex, colIndex))
+                                .param(ARG_VAR_NAME, varName)
+                                .param(ARG_ALLOWED_NAMES, COMMENT_VAR_NAMES);
+                }
+            }
+        }
+        return vars;
     }
 
     private String getCommentVar(Map<String, ValueWithLocation> vars, String name) {

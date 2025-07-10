@@ -21,6 +21,8 @@ public interface RuleErrors {
     String ARG_RULE_NAME = "ruleName";
     String ARG_OUTPUT_NAME = "outputName";
 
+    String ARG_ALLOWED_NAMES = "allowedNames";
+
     ErrorCode ERR_RULE_WORKBOOK_NO_RULE_SHEET =
             define("nop.err.rule.workbook-no-rule-sheet",
                     "工作簿中没有名称为Rule的Sheet");
@@ -73,4 +75,7 @@ public interface RuleErrors {
 
     ErrorCode ERR_RULE_OUTPUT_VAR_NOT_ALLOW_EMPTY =
             define("nop.err.rule.output-var-not-allow-empty", "输出变量不允许为空:name={varName},displayName={displayName}", ARG_VAR_NAME, ARG_DISPLAY_NAME);
+
+    ErrorCode ERR_RULE_UNKNOWN_CONFIG_VAR =
+            define("nop.err.rule.unknown-config-var", "非法的配置变量名:{varName}, 允许的变量为:{allowedNames}", ARG_VAR_NAME, ARG_ALLOWED_NAMES);
 }

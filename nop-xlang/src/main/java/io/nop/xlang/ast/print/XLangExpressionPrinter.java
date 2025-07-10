@@ -8,6 +8,7 @@
 package io.nop.xlang.ast.print;
 
 import io.nop.commons.util.StringHelper;
+import io.nop.core.model.query.FilterOp;
 import io.nop.xlang.ast.ArrayBinding;
 import io.nop.xlang.ast.ArrayElementBinding;
 import io.nop.xlang.ast.ArrayExpression;
@@ -117,6 +118,7 @@ import io.nop.xlang.ast.XLangASTVisitor;
 import io.nop.xlang.ast.XLangOperator;
 
 import java.util.List;
+import java.util.Objects;
 
 public class XLangExpressionPrinter extends XLangASTVisitor {
     protected final StringBuilder sb;
@@ -710,8 +712,14 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
 
     @Override
     public void visitCompareOpExpression(CompareOpExpression node) {
-        super.visitCompareOpExpression(node);
+
+        this.visitChild(node.getLeft());
+        FilterOp filterOp = FilterOp.fromName(node.getOp());
+        String op = filterOp == null ? node.getOp() : Objects.toString(filterOp.getMathSymbol(), node.getOp());
+        sb.append(' ').append(op).append(' ');
+        this.visitChild(node.getRight());
     }
+
 
     @Override
     public void visitAssertOpExpression(AssertOpExpression node) {

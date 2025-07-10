@@ -7,6 +7,8 @@
  */
 package io.nop.rule.core;
 
+import java.util.Set;
+
 public interface RuleConstants {
     String SHEET_NAME_RULE = "Rule";
     String SHEET_NAME_RULE_LIST = "RuleList";
@@ -29,6 +31,8 @@ public interface RuleConstants {
     String NAME_MULTI_MATCH = "multiMatch";
 
     String NAME_ID = "id";
+
+    Set<String> COMMENT_VAR_NAMES = Set.of(NAME_VAR, NAME_VALUE_EXPR, NAME_MULTI_MATCH, NAME_ID);
 
     String MESSAGE_MISMATCH = "MISMATCH";
     String MESSAGE_MATCH = "MATCH";

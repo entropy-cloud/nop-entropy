@@ -81,6 +81,10 @@ public class XLangASTHelper {
     }
 
     public static String getQualifiedName(Expression expr) {
+        if (expr.getASTKind() == XLangASTKind.Identifier) {
+            return ((Identifier) expr).getName();
+        }
+
         StringBuilder sb = new StringBuilder();
         _getQualifiedName(expr, sb);
         return sb.toString();

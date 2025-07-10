@@ -64,6 +64,23 @@ public class TestRuleExcelParser extends BaseTestCase {
     }
 
     @Test
+    public void testIn() {
+        IRuleManager ruleManager = getRuleManager();
+        IRuleRuntime ruleRt = ruleManager.newRuleRuntime();
+        ruleRt.setInput("season", "Winter");
+        ruleRt.setInput("guest", Map.of("count", 4));
+        Map<String, Object> output = ruleManager.executeRule("test/test-table-in", null, ruleRt);
+        System.out.println(JsonTool.serialize(ruleRt.getLogMessages(), true));
+        assertEquals("Roastbeef", output.get("dish"));
+
+        ruleRt = ruleManager.newRuleRuntime();
+        ruleRt.setInput("season", "Summer");
+        ruleRt.setInput("guest", Map.of("count", 4));
+        output = ruleManager.executeRule("test/test-table-in", null, ruleRt);
+        assertEquals("Light Salad and nice Steak", output.get("dish"));
+    }
+
+    @Test
     public void testExecuteDecisionMatrix() {
         IRuleManager ruleManager = getRuleManager();
         IRuleRuntime ruleRt = ruleManager.newRuleRuntime();
