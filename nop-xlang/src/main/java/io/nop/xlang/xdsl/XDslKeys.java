@@ -21,6 +21,7 @@ public final class XDslKeys implements Serializable {
 
     public static final XDslKeys XPL = new XDslKeys("xpl");
 
+    public final String NS;
     public final String X_NS_PREFIX;
 
     public final String SCHEMA;
@@ -61,6 +62,7 @@ public final class XDslKeys implements Serializable {
     public final Set<String> CHILD_NAMES;
 
     public XDslKeys(String ns) {
+        this.NS = ns;
         this.X_NS_PREFIX = ns + ':';
         this.SCHEMA = getFullName(ns, "schema");
         this.ID = getFullName(ns, "id");
