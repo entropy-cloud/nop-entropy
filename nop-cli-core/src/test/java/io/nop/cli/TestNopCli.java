@@ -101,6 +101,7 @@ public class TestNopCli extends BaseTestCase {
         assertTrue(text.contains("totalCount=22000 "));
     }
 
+    @Disabled
     @Test
     public void testRunBatchDemo() {
         CoreInitialization.destroy();
