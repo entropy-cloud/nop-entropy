@@ -1,8 +1,11 @@
 <example xmlns:x="/nop/schema/xdsl.xdef"
          x:schema="example.xdef"
 >
-    <child name="Child" type="leaf"/>
+    <child name="Child" type="leaf" abc="abc"/>
 
     <refs>/test/reference/test-filter.xdef,
-        /nop/schema/xdsl.xdef</refs>
+        /nop/schema/xdsl.xdef
+    </refs>
+
+    <unknown name="abc"/>
 </example>

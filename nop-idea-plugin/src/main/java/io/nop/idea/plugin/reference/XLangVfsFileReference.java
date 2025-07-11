@@ -8,6 +8,7 @@ import com.intellij.psi.PsiReferenceBase;
 import com.intellij.psi.xml.XmlElement;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.util.ArrayUtil;
+import io.nop.idea.plugin.lang.reference.XLangReference;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

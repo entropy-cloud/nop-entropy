@@ -3,8 +3,9 @@ package io.nop.idea.plugin.lang.psi;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceService;
+import com.intellij.psi.impl.source.xml.SchemaPrefixReference;
 import com.intellij.psi.impl.source.xml.XmlAttributeImpl;
-import com.intellij.psi.xml.XmlElement;
+import io.nop.commons.util.StringHelper;
 import io.nop.idea.plugin.lang.reference.XLangAttributeReference;
 import io.nop.xlang.xdef.IXDefAttribute;
 import org.jetbrains.annotations.NotNull;
@@ -24,16 +25,24 @@ public class XLangAttribute extends XmlAttributeImpl {
 
     @Override
     public PsiReference @NotNull [] getReferences(@NotNull PsiReferenceService.Hints hints) {
-        XmlElement attrName = getNameElement();
-        if (attrName == null) {
-            return PsiReference.EMPTY_ARRAY;
+        // 参考 XmlAttributeDelegate#getDefaultReferences
+        String ns = getNamespacePrefix();
+        String name = getLocalName();
+
+        if (name.isEmpty() || isNamespaceDeclaration()) {
+            return super.getReferences(hints);
         }
 
-        TextRange textRange = attrName.getTextRangeInParent();
-        XLangAttributeReference ref = new XLangAttributeReference(this, textRange);
+        // 保留对名字空间的引用，以支持对其做高亮、重命名等
+        SchemaPrefixReference ref0 = !ns.isEmpty()
+                                     ? new SchemaPrefixReference(this, TextRange.allOf(ns), ns, null)
+                                     : null;
 
-        //return super.getReferences(hints);
-        return new PsiReference[] { ref };
+        int nameOffset = (ns.isEmpty() ? -1 : ns.length()) + 1;
+        TextRange nameTextRange = TextRange.allOf(name).shiftRight(nameOffset);
+        XLangAttributeReference ref1 = new XLangAttributeReference(this, nameTextRange);
+
+        return ref0 != null ? new PsiReference[] { ref0, ref1 } : new PsiReference[] { ref1 };
     }
 
     /** 获取当前属性的 xdef 定义 */
@@ -54,11 +63,11 @@ public class XLangAttribute extends XmlAttributeImpl {
 
         if (tag.isInXDef()) {
             // 取 xdef.xdef 中声明的属性
-            if (attrName.startsWith(xdefNs + ':')) {
+            if (StringHelper.startsWithNamespace(attrName, xdefNs)) {
                 attrDef = tag.getXDefNodeAttr(attrName);
             }
             // 取 xdsl.xdef 中声明的属性
-            else if (attrName.startsWith(xdslNs + ':')) {
+            else if (StringHelper.startsWithNamespace(attrName, xdslNs)) {
                 attrDef = tag.getXDslDefNodeAttr(attrName);
             }
             // 取自身声明的属性
@@ -66,7 +75,7 @@ public class XLangAttribute extends XmlAttributeImpl {
                 attrDef = tag.getSelfDefNodeAttr(attrName);
             }
         } else {
-            if (attrName.startsWith(xdslNs + ':')) {
+            if (StringHelper.startsWithNamespace(attrName, xdslNs)) {
                 attrDef = tag.getXDslDefNodeAttr(attrName);
             } else {
                 attrDef = tag.getXDefNodeAttr(attrName);
@@ -74,5 +83,13 @@ public class XLangAttribute extends XmlAttributeImpl {
         }
 
         return attrDef;
+    }
+
+    /** 是否为当前属性自身的 xdef 定义 */
+    public boolean isSelfDefAttr(IXDefAttribute attr) {
+        String attrName = getName();
+        XLangTag tag = (XLangTag) getParent();
+
+        return tag != null && attr == tag.getSelfDefNodeAttr(attrName);
     }
 }

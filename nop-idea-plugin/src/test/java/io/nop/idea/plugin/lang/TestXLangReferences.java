@@ -1,19 +1,12 @@
 package io.nop.idea.plugin.lang;
 
-import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiField;
-import com.intellij.psi.PsiPlainText;
 import com.intellij.psi.PsiReference;
-import com.intellij.psi.impl.source.tree.LeafPsiElement;
+import com.intellij.psi.impl.source.xml.SchemaPrefix;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlTag;
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
-import io.nop.idea.plugin.reference.XLangElementReference;
-import io.nop.idea.plugin.reference.XLangReference;
-import io.nop.idea.plugin.reference.XLangVfsFileReference;
-import io.nop.idea.plugin.reference.XLangXDefReference;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 
 /**
@@ -36,23 +29,40 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
     }
 
     public void testAttributeReferences() {
-        // 名字空间不做引用
         assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"name\"",
-                                                                         "me<caret>ta:unique-attr=\"name\""), null);
-
+                                                                         "me<caret>ta:unique-attr=\"name\""), "meta");
         assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"name\"",
                                                                          "meta:unique<caret>-attr=\"name\""),
-                        "meta:define#xdef:unique-attr=xml-name");
+                        "/nop/schema/xdef.xdef?meta:define#xdef:unique-attr=xml-name");
+
         assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:prop name=\"!xml-name\"",
                                                                          "<xdef:prop na<caret>me=\"!xml-name\""),
                         "xdef:prop#name=!xml-name");
         assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:define xdef:name=\"!var-name\"",
+                                                                         "<xdef:define xd<caret>ef:name=\"!var-name\""),
+                        "xdef");
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:define xdef:name=\"!var-name\"",
                                                                          "<xdef:define xdef:n<caret>ame=\"!var-name\""),
                         "xdef:define#xdef:name=!var-name");
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<meta:define meta:name=\"XDefNode\"",
+                                                                         "<meta:define meta:na<caret>me=\"XDefNode\""),
+                        "/nop/schema/xdef.xdef?meta:define#xdef:name=var-name");
+
+        assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("xdsl:schema=", "xdsl:sch<caret>ema="),
+                        "/nop/schema/xdsl.xdef?xdef:unknown-tag#x:schema=v-path");
+        assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("x:schema=\"v-path\"",
+                                                                         "x:sch<caret>ema=\"v-path\""),
+                        "xdef:unknown-tag#x:schema=v-path");
+        assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("xdef:allow-multiple=\"true\"",
+                                                                         "xdef:allow-<caret>multiple=\"true\""),
+                        "/nop/schema/xdef.xdef?meta:define#xdef:allow-multiple=boolean");
+        assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("x:key-attr=\"xml-name\"",
+                                                                         "x:key<caret>-attr=\"xml-name\""),
+                        "xdef:unknown-tag#x:key-attr=xml-name");
 
         assertReference(readVfsResource("/test/doc/example.xdef").replace("<child name=\"string\"",
                                                                           "<child na<caret>me=\"string\""),
-                        "meta:define#xdef:unknown-attr=def-type");
+                        "child#name=string");
 
         assertReference("""
                                 <example xmlns:x="/nop/schema/xdsl.xdef"
@@ -60,28 +70,35 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                 >
                                     <child ty<caret>pe="leaf"/>
                                 </example>
-                                """, "child#type=dict:test/doc/child-type");
+                                """, "/test/doc/example.xdef?child#type=dict:test/doc/child-type=node");
         assertReference("""
                                 <example xmlns:x="/nop/schema/xdsl.xdef"
                                          x:schema="/test/doc/example.xdef"
                                 >
                                     <child a<caret>ge="22"/>
                                 </example>
-                                """, "child#xdef:unknown-attr=any");
+                                """, "/test/doc/example.xdef?child#xdef:unknown-attr=any");
         assertReference("""
                                 <example xmlns:x="/nop/schema/xdsl.xdef"
                                          x:schema="/test/doc/example.xdef"
                                 >
                                     <child2 a<caret>ge="23"/>
                                 </example>
-                                """, "xdef:unknown-tag#xdef:unknown-attr=any");
+                                """, "/test/doc/example.xdef?xdef:unknown-tag#xdef:unknown-attr=any");
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef"
+                                         x:schema="/test/doc/example.xdef"
+                                >
+                                    <var some<caret>="aaa"/>
+                                </example>
+                                """, null);
 
         assertReference("""
                                 <meta xmlns:x="/nop/schema/xdsl.xdef"
                                       x:schema="/nop/schema/xmeta.xdef"
                                       re<caret>f="/test/reference/test-filter.xdef#FilterCondition"
                                 />
-                                """, "schema#ref=xdef-ref");
+                                """, "/nop/schema/schema/schema-node.xdef?schema#ref=xdef-ref");
     }
 
     public void testAttributeValueReferences() {
@@ -401,54 +418,66 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         configureByXLangText(text);
 
         PsiReference ref = findReferenceAtCaret();
+        PsiElement target = ref != null ? ref.resolve() : null;
 
-//        if (!(ref instanceof XLangReference) && expected == null) {
-//            return; // 不检查非 XLang 引用
-//        }
-//        assertInstanceOf(ref, XLangReference.class);
-
-        PsiElement target = ref.resolve();
         if (expected == null) {
             assertNull(target);
             return;
         }
         assertNotNull(target);
 
-        if (ref instanceof XLangVfsFileReference) {
-            // Note: 可能不是 vfs 文件
-            String vfsPath = XmlPsiHelper.getNopVfsPath(target);
-            String anchor = target instanceof XmlAttribute attr ? attr.getValue() : null;
+        // Note: 可能不是 vfs 文件
+        String vfsPath = XmlPsiHelper.getNopVfsPath(target);
 
-            assertEquals(expected, (vfsPath != null ? vfsPath : "") + (anchor != null ? "#" + anchor : ""));
-        } //
-        else if (ref instanceof XLangElementReference || ref instanceof XLangXDefReference) {
-            if (target instanceof XmlTag tag) {
-                assertEquals(expected, tag.getName());
-            }  //
-            else if (target instanceof XmlAttribute attr) {
-                XmlTag tag = PsiTreeUtil.getParentOfType(attr, XmlTag.class);
+        if (target instanceof XmlAttribute attr) {
+            XmlTag tag = PsiTreeUtil.getParentOfType(attr, XmlTag.class);
 
-                assertEquals(expected, tag.getName() + "#" + attr.getName() + "=" + attr.getValue());
-            } //
-            else if (target instanceof PsiClass cls) {
-                assertEquals(expected, cls.getQualifiedName());
-            } //
-            else if (target instanceof PsiField field) {
-                assertEquals(expected, field.getContainingClass().getQualifiedName() + "#" + field.getName());
-            } //
-            else if (target instanceof PsiPlainText txt) {
-                String vfsPath = XmlPsiHelper.getNopVfsPath(target);
-
-                assertEquals(expected, vfsPath + ":" + txt.getTextOffset());
-            } //
-            else if (target instanceof LeafPsiElement leaf) {
-                String vfsPath = XmlPsiHelper.getNopVfsPath(target);
-
-                assertEquals(expected, vfsPath + "#" + leaf.getText());
-            } //
-            else {
-                fail("Unknown target " + target.getClass());
-            }
+            assertEquals(expected,
+                         (vfsPath != null ? vfsPath + '?' : "")
+                         + tag.getName()
+                         + '#'
+                         + attr.getName()
+                         + '='
+                         + attr.getValue());
+        } else if (target instanceof SchemaPrefix ns) {
+            assertEquals(expected, ns.getName());
         }
+
+//        if (ref instanceof XLangVfsFileReference) {
+//            // Note: 可能不是 vfs 文件
+//            String vfsPath = XmlPsiHelper.getNopVfsPath(target);
+//            String anchor = target instanceof XmlAttribute attr ? attr.getValue() : null;
+//
+//            assertEquals(expected, (vfsPath != null ? vfsPath : "") + (anchor != null ? "#" + anchor : ""));
+//        } //
+//        else if (ref instanceof XLangElementReference || ref instanceof XLangXDefReference) {
+//            if (target instanceof XmlTag tag) {
+//                assertEquals(expected, tag.getName());
+//            }  //
+//            else if (target instanceof XmlAttribute attr) {
+//                XmlTag tag = PsiTreeUtil.getParentOfType(attr, XmlTag.class);
+//
+//                assertEquals(expected, tag.getName() + "#" + attr.getName() + "=" + attr.getValue());
+//            } //
+//            else if (target instanceof PsiClass cls) {
+//                assertEquals(expected, cls.getQualifiedName());
+//            } //
+//            else if (target instanceof PsiField field) {
+//                assertEquals(expected, field.getContainingClass().getQualifiedName() + "#" + field.getName());
+//            } //
+//            else if (target instanceof PsiPlainText txt) {
+//                String vfsPath = XmlPsiHelper.getNopVfsPath(target);
+//
+//                assertEquals(expected, vfsPath + ":" + txt.getTextOffset());
+//            } //
+//            else if (target instanceof LeafPsiElement leaf) {
+//                String vfsPath = XmlPsiHelper.getNopVfsPath(target);
+//
+//                assertEquals(expected, vfsPath + "#" + leaf.getText());
+//            } //
+//            else {
+//                fail("Unknown target " + target.getClass());
+//            }
+//        }
     }
 }

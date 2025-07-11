@@ -4,6 +4,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceService;
 import com.intellij.psi.impl.source.xml.XmlTagImpl;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.idea.plugin.resource.ProjectEnv;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
@@ -12,6 +13,8 @@ import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdef.XDefKeys;
+import io.nop.xlang.xdef.XDefTypeDecl;
+import io.nop.xlang.xdef.impl.XDefAttribute;
 import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xdsl.XDslKeys;
 import org.jetbrains.annotations.NotNull;
@@ -117,19 +120,45 @@ public class XLangTag extends XmlTagImpl {
 
     /** 获取 {@link IXDefNode} 上指定属性的 xdef 定义 */
     private static IXDefAttribute getXDefNodeAttr(IXDefNode xdefNode, String attrName) {
-        IXDefAttribute attr = xdefNode != null ? xdefNode.getAttribute(attrName) : null;
+        if (xdefNode == null) {
+            return null;
+        }
 
-        return attr;
+        IXDefAttribute attr = xdefNode.getAttribute(attrName);
+        if (attr != null) {
+            return attr;
+        }
+
+        // Note: 在普通 *.xdef 的 IXDefNode 中，
+        // 对 xdef:unknown-attr 只记录了类型，并没有 IXDefAttribute 实体，
+        // 其处理逻辑见 XDefinitionParser#parseNode
+        XDefTypeDecl xdefUnknownAttrType = xdefNode.getXdefUnknownAttr();
+        if (xdefUnknownAttrType != null) {
+            XDefAttribute at = new XDefAttribute() {
+                @Override
+                public boolean isUnknownAttr() {
+                    return true;
+                }
+            };
+
+            at.setName(XDefKeys.DEFAULT.UNKNOWN_ATTR);
+            at.setType(xdefUnknownAttrType);
+            // Note: 在需要时，通过节点位置再定位具体的属性位置
+            at.setLocation(xdefNode.getLocation());
+
+            return at;
+        }
+
+        return null;
     }
 
     private static String changeNamespace(String name, String fromNs, String toNs) {
-        if (fromNs.equals(toNs)) {
+        if (fromNs == null || toNs == null || fromNs.equals(toNs)) {
             return name;
         }
 
-        String ns = fromNs + ':';
-        if (name.startsWith(ns)) {
-            return toNs + ':' + name.substring(ns.length());
+        if (StringHelper.startsWithNamespace(name, fromNs)) {
+            return toNs + ':' + name.substring(fromNs.length() + 1);
         }
         return name;
     }
@@ -188,16 +217,22 @@ public class XLangTag extends XmlTagImpl {
             return SchemaMeta.UNDEFINED;
         }
 
+        String tagName = getName();
         String xdefNs = parentTag.getXDefNs();
         String xdslNs = parentTag.getXDslNs();
         IXDefNode parentXDefNode = parentTag.getXDefNode();
         IXDefNode parentXDslDefNode = parentTag.getXDslDefNode();
         IXDefNode parentSelfDefNode = parentTag.getSelfDefNode();
 
-        String tagName = getName();
-        tagName = changeNamespace(tagName, xdefNs, XDefKeys.DEFAULT.NS);
+        // Note: 如果是 xdef.xdef 中的节点，则其节点 xdef 定义均为 xdef:unknown-tag
+        boolean inXDefXDef = xdef.getXdefCheckNs().contains(XDefKeys.DEFAULT.NS) //
+                             && !XDefKeys.DEFAULT.NS.equals(xdefNs); // 在单元测试中只能基于内容做判断，而不是 vfs 路径
+        IXDefNode xdefNode = parentXDefNode != null //
+                             ? inXDefXDef //
+                               ? parentXDefNode.getXdefUnknownTag() //
+                               : parentXDefNode.getChild(tagName) //
+                             : null;
 
-        IXDefNode xdefNode = parentXDefNode != null ? parentXDefNode.getChild(tagName) : null;
         IXDefNode xdslDefNode = parentXDslDefNode != null ? parentXDslDefNode.getChild(tagName) : null;
         IXDefNode selfDefNode = parentSelfDefNode != null ? parentSelfDefNode.getChild(tagName) : null;
 

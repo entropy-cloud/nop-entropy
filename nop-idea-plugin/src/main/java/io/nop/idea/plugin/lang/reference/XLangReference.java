@@ -1,4 +1,4 @@
-package io.nop.idea.plugin.reference;
+package io.nop.idea.plugin.lang.reference;
 
 /**
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>

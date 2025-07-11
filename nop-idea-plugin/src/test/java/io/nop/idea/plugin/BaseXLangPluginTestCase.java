@@ -36,7 +36,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.idea.plugin.lang.XLangFileType;
-import io.nop.idea.plugin.reference.XLangReference;
+import io.nop.idea.plugin.lang.reference.XLangReference;
 import io.nop.idea.plugin.services.NopAppListener;
 
 /**
