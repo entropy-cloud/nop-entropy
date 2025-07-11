@@ -135,24 +135,6 @@ public class XDefPsiHelper {
     }
 
     public static XmlTagInfo getTagInfo(String schemaUrl, XmlTag tag) {
-        // 在对应解析 xml 标签的元模型节点时，需要注意以下几点
-        // - 若根节点的 `x:schema` 为 `/nop/schema/xdef.xdef`，则其在定义某类 DSL 的元模型，
-        //   若引用的是其他 xdef，则其是在定义某个具体的 DSL 模型
-        // - 在普通的 XDef 元模型中，必须在根节点固定定义 `xdef` 和 `x` 名字空间：
-        //   - `xmlns:x="/nop/schema/xdsl.xdef"`
-        //   - `xmlns:xdef="/nop/schema/xdef.xdef"`
-        //   其中，以 `xdef` 为名字空间的节点和属性，用于定义 DSL 的结构，而以
-        //   `x` 为名字空间的节点和属性，则用于定义差量规则
-        // - 而在普通的 DSL 模型中，必须在根节点固定定义 `x` 名字空间：
-        //   - `xmlns:x="/nop/schema/xdsl.xdef"`
-        //   其中，以 `x` 为名字空间的节点和属性，则用于定义差量规则
-        // - `/nop/schema/xdef.xdef` 本身的定义是**自举**的，其描述的是所有元模型的结构。
-        //   其以 `meta` 作为名字空间来定义其 DSL 结构，
-        //   而以 `xdef` 为名字空间的属性和节点，则为其 DSL 的**元属性**和**元节点**，
-        //   用于声明其 DSL 模型所包含的属性和节点类型
-        // - `/nop/schema/xdsl.xdef` 自身的定义也是**自举**的，其描述的是所有 DSL 模型的结构。
-        //   其以 `xdsl` 作为名字空间，对其进行差量控制（这里主要为指定其 `schema` 为 `/nop/schema/xdef.xdef`）
-        // - `/nop/schema/xpl.xdef` 为 Xpl 类型节点的元模型，且以 `xpl` 为其固定的名字空间
         IXDefinition def = loadSchema(schemaUrl);
         if (def == null) {
             return null;
@@ -198,7 +180,7 @@ public class XDefPsiHelper {
 
                 tagInfo = new XmlTagInfo(xmlTag, parentTagInfo, def, defNode, xdslDefNode, xdefNs, xdslNs);
 
-                if (isXplNode(defNode)) {
+                if (isXplDefNode(defNode)) {
                     xpl = true;
                 }
                 // xlib.xdef 中的 source 标签设置为 xml 类型，是因为在获取 XplLib 模型的时候会根据 xlib.xdef 来解析，
@@ -229,13 +211,13 @@ public class XDefPsiHelper {
         return xmlName;
     }
 
-    static boolean isXplNode(IXDefNode defNode) {
+    public static boolean isXplDefNode(IXDefNode defNode) {
         String stdDomain = getDefNodeType(defNode);
 
         return stdDomain != null && (stdDomain.equals("xpl") || stdDomain.startsWith("xpl-"));
     }
 
-    static String getDefNodeType(IXDefNode defNode) {
+    public static String getDefNodeType(IXDefNode defNode) {
         if (defNode == null || defNode.getXdefValue() == null) {
             return null;
         }

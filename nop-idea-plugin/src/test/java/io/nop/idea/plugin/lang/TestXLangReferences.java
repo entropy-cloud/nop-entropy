@@ -29,6 +29,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
     }
 
     public void testAttributeReferences() {
+        // xdef.xdef 中的引用识别
         assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"name\"",
                                                                          "me<caret>ta:unique-attr=\"name\""), "meta");
         assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"name\"",
@@ -48,6 +49,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                                                          "<meta:define meta:na<caret>me=\"XDefNode\""),
                         "/nop/schema/xdef.xdef?meta:define#xdef:name=var-name");
 
+        // xdsl.xdef 中的引用识别
         assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("xdsl:schema=", "xdsl:sch<caret>ema="),
                         "/nop/schema/xdsl.xdef?xdef:unknown-tag#x:schema=v-path");
         assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("x:schema=\"v-path\"",
@@ -60,6 +62,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                                                          "x:key<caret>-attr=\"xml-name\""),
                         "xdef:unknown-tag#x:key-attr=xml-name");
 
+        //
         assertReference(readVfsResource("/test/doc/example.xdef").replace("<child name=\"string\"",
                                                                           "<child na<caret>me=\"string\""),
                         "child#name=string");
@@ -99,6 +102,53 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                       re<caret>f="/test/reference/test-filter.xdef#FilterCondition"
                                 />
                                 """, "/nop/schema/schema/schema-node.xdef?schema#ref=xdef-ref");
+
+        // 对 Xpl 属性的引用识别
+        assertReference("""
+                                <meta xmlns:x="/nop/schema/xdsl.xdef"
+                                      x:schema="/nop/schema/xmeta.xdef"
+                                >
+                                    <x:gen-extends>
+                                        <div xpl:output<caret>Mode="node"/>
+                                    </x:gen-extends>
+                                </meta>
+                                """,
+                        "/nop/schema/xpl.xdef?xdef:define#xpl:outputMode=enum:io.nop.xlang.ast.XLangOutputMode");
+        assertReference("""
+                                <meta xmlns:x="/nop/schema/xdsl.xdef"
+                                      x:schema="/nop/schema/xmeta.xdef"
+                                >
+                                    <x:gen-extends>
+                                        <div xpl:outputMode="node">
+                                            <xpl:decorator xpl:i<caret>f="true"/>
+                                        </div>
+                                    </x:gen-extends>
+                                </meta>
+                                """, null);
+        assertReference("""
+                                <meta xmlns:x="/nop/schema/xdsl.xdef"
+                                      x:schema="/nop/schema/xmeta.xdef"
+                                >
+                                    <x:gen-extends>
+                                        <div xpl:outputMode="node">
+                                            <xpl:decorator>
+                                               <windowing xpl:i<caret>f="true"/>
+                                            </xpl:decorator>
+                                        </div>
+                                    </x:gen-extends>
+                                </meta>
+                                """, "/nop/schema/xpl.xdef?xdef:define#xpl:if=expr");
+        assertReference("""
+                                <lib xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xlib.xdef">
+                                    <tags>
+                                        <Get>
+                                            <source>
+                                                <http-get xpl:i<caret>f="a > b"/>
+                                            </source>
+                                        </Get>
+                                    </tags>
+                                </lib>
+                                """, "/nop/schema/xpl.xdef?xdef:define#xpl:if=expr");
     }
 
     public void testAttributeValueReferences() {

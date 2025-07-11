@@ -64,15 +64,13 @@ public class XLangTag extends XmlTagImpl {
     }
 
     /** @see SchemaMeta#xdef */
-    public IXDefinition getXDef() {
-        prepareSchema();
-        return schemaMeta.xdef;
+    private IXDefinition getXDef() {
+        return getSchemaMeta().xdef;
     }
 
     /** @see SchemaMeta#xdefNode */
     public IXDefNode getXDefNode() {
-        prepareSchema();
-        return schemaMeta.xdefNode;
+        return getSchemaMeta().xdefNode;
     }
 
     public IXDefAttribute getXDefNodeAttr(String attrName) {
@@ -84,22 +82,19 @@ public class XLangTag extends XmlTagImpl {
 
     /** @see SchemaMeta#xdslDefNode */
     public IXDefNode getXDslDefNode() {
-        prepareSchema();
-        return schemaMeta.xdslDefNode;
+        return getSchemaMeta().xdslDefNode;
     }
 
     public IXDefAttribute getXDslDefNodeAttr(String attrName) {
         // Note: xdsl.xdef 的属性在固定的名字空间 x 中声明
-        String xNs = XDslKeys.DEFAULT.X_NS_PREFIX.substring(0, XDslKeys.DEFAULT.X_NS_PREFIX.length() - 1);
-        attrName = changeNamespace(attrName, getXDslNs(), xNs);
+        attrName = changeNamespace(attrName, getXDslNs(), XDslKeys.DEFAULT.NS);
 
         return getXDefNodeAttr(getXDslDefNode(), attrName);
     }
 
     /** @see SchemaMeta#selfDefNode */
     public IXDefNode getSelfDefNode() {
-        prepareSchema();
-        return schemaMeta.selfDefNode;
+        return getSchemaMeta().selfDefNode;
     }
 
     public IXDefAttribute getSelfDefNodeAttr(String attrName) {
@@ -108,14 +103,12 @@ public class XLangTag extends XmlTagImpl {
 
     /** @see SchemaMeta#xdefNs */
     public String getXDefNs() {
-        prepareSchema();
-        return schemaMeta.xdefNs;
+        return getSchemaMeta().xdefNs;
     }
 
     /** @see SchemaMeta#xdslNs */
     public String getXDslNs() {
-        prepareSchema();
-        return schemaMeta.xdslNs;
+        return getSchemaMeta().xdslNs;
     }
 
     /** 获取 {@link IXDefNode} 上指定属性的 xdef 定义 */
@@ -163,13 +156,13 @@ public class XLangTag extends XmlTagImpl {
         return name;
     }
 
-    private synchronized void prepareSchema() {
-        if (this.schemaMeta != null) {
-            return;
-        }
+    private synchronized SchemaMeta getSchemaMeta() {
+        if (schemaMeta == null) {
+            Project project = getProject();
 
-        Project project = getProject();
-        schemaMeta = ProjectEnv.withProject(project, this::createSchemaMeta);
+            schemaMeta = ProjectEnv.withProject(project, this::createSchemaMeta);
+        }
+        return schemaMeta;
     }
 
     private SchemaMeta createSchemaMeta() {
@@ -179,12 +172,12 @@ public class XLangTag extends XmlTagImpl {
         if (parentTag == null) {
             String schemaUrl = XDefPsiHelper.getSchemaPath(this);
             if (schemaUrl == null) {
-                return SchemaMeta.UNDEFINED;
+                return SchemaMeta.UNKNOWN;
             }
 
             IXDefinition xdef = XDefPsiHelper.loadSchema(schemaUrl);
             if (xdef == null) {
-                return SchemaMeta.UNDEFINED;
+                return SchemaMeta.UNKNOWN;
             }
 
             String xdefNs = XmlPsiHelper.getXmlnsForUrl(this, XDslConstants.XDSL_SCHEMA_XDEF);
@@ -214,7 +207,7 @@ public class XLangTag extends XmlTagImpl {
 
         IXDefinition xdef = parentTag.getXDef();
         if (xdef == null) {
-            return SchemaMeta.UNDEFINED;
+            return SchemaMeta.UNKNOWN;
         }
 
         String tagName = getName();
@@ -224,17 +217,41 @@ public class XLangTag extends XmlTagImpl {
         IXDefNode parentXDslDefNode = parentTag.getXDslDefNode();
         IXDefNode parentSelfDefNode = parentTag.getSelfDefNode();
 
-        // Note: 如果是 xdef.xdef 中的节点，则其节点 xdef 定义均为 xdef:unknown-tag
-        boolean inXDefXDef = xdef.getXdefCheckNs().contains(XDefKeys.DEFAULT.NS) //
-                             && !XDefKeys.DEFAULT.NS.equals(xdefNs); // 在单元测试中只能基于内容做判断，而不是 vfs 路径
-        IXDefNode xdefNode = parentXDefNode != null //
-                             ? inXDefXDef //
-                               ? parentXDefNode.getXdefUnknownTag() //
-                               : parentXDefNode.getChild(tagName) //
-                             : null;
+        boolean xpl = XDefPsiHelper.isXplDefNode(parentXDefNode) //
+                      // xlib.xdef 中的 source 标签设置为 xml 类型，是因为在获取 XplLib 模型的时候会根据 xlib.xdef 来解析，
+                      // 但此时这个 source 段无法自动进行编译，必须结合它的 outputMode 和 attrs 配置等才能决定。
+                      // 因此，将其子节点同样视为 xpl 节点处理
+                      || ((xdef.resourcePath().equals(XDslConstants.XDSL_SCHEMA_XLIB) //
+                           || xdef.resourcePath().endsWith("_vfs" + XDslConstants.XDSL_SCHEMA_XLIB) //
+                          ) //
+                          && "xml".equals(XDefPsiHelper.getDefNodeType(parentXDefNode)) //
+                          && "source".equals(parentTag.getName()) //
+                      );
+        if (xpl) {
+            // 对于 Xpl 节点，始终采用 xpl.xdef 作为其子节点的元模型
+            xdef = XDefPsiHelper.getXplDef();
+            // Xpl 子节点均为 xdef:unknown-tag
+            parentXDefNode = xdef.getRootNode().getXdefUnknownTag();
+        }
 
         IXDefNode xdslDefNode = parentXDslDefNode != null ? parentXDslDefNode.getChild(tagName) : null;
         IXDefNode selfDefNode = parentSelfDefNode != null ? parentSelfDefNode.getChild(tagName) : null;
+
+        IXDefNode xdefNode;
+        if (tagName.startsWith(XDslKeys.DEFAULT.X_NS_PREFIX)) {
+            xdef = XDefPsiHelper.getXDslDef();
+            xdefNode = xdslDefNode;
+        } else {
+            // Note: 如果是 xdef.xdef 中的节点，则其节点 xdef 定义均为 xdef:unknown-tag
+            boolean inXDefXDef = xdef.getXdefCheckNs().contains(XDefKeys.DEFAULT.NS) //
+                                 && !XDefKeys.DEFAULT.NS.equals(xdefNs); // 在单元测试中只能基于内容做判断，而不是 vfs 路径
+
+            xdefNode = parentXDefNode != null //
+                       ? inXDefXDef //
+                         ? parentXDefNode.getXdefUnknownTag() //
+                         : parentXDefNode.getChild(tagName) //
+                       : null;
+        }
 
         return new SchemaMeta(xdef, xdefNode, xdslDefNode, selfDefNode, xdefNs, xdslNs);
     }
@@ -262,6 +279,6 @@ public class XLangTag extends XmlTagImpl {
                                IXDefNode selfDefNode, //
                                String xdefNs, String xdslNs //
     ) {
-        public static final SchemaMeta UNDEFINED = new SchemaMeta(null, null, null, null, null, null);
+        public static final SchemaMeta UNKNOWN = new SchemaMeta(null, null, null, null, null, null);
     }
 }

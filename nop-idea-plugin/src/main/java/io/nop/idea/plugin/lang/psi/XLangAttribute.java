@@ -5,7 +5,6 @@ import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceService;
 import com.intellij.psi.impl.source.xml.SchemaPrefixReference;
 import com.intellij.psi.impl.source.xml.XmlAttributeImpl;
-import io.nop.commons.util.StringHelper;
 import io.nop.idea.plugin.lang.reference.XLangAttributeReference;
 import io.nop.xlang.xdef.IXDefAttribute;
 import org.jetbrains.annotations.NotNull;
@@ -52,34 +51,31 @@ public class XLangAttribute extends XmlAttributeImpl {
             return null;
         }
 
-        // - 对于声明属性，从其自身（*.xdef）中取其定义
-        // - 对于赋值属性，从其 x:schema 中取其定义
+        // - 对于声明属性（定义属性名及其类型），从其自身（*.xdef）中取其定义
+        // - 对于赋值属性（为具体属性赋予相应类型的值），从其 x:schema 中取其定义
         // - 对于名字空间对应 xdsl.xdef 和 xdef.xdef 的属性，则分别从这两个元模型中取属性定义
         IXDefAttribute attrDef;
 
+        String ns = getNamespacePrefix();
         String attrName = getName();
-        String xdefNs = tag.getXDefNs();
-        String xdslNs = tag.getXDslNs();
+        boolean hasXDefNs = !ns.isEmpty() && ns.equals(tag.getXDefNs());
+        boolean hasXDslNs = !ns.isEmpty() && ns.equals(tag.getXDslNs());
 
-        if (tag.isInXDef()) {
+        // 取 xdsl.xdef 中声明的属性
+        if (hasXDslNs) {
+            attrDef = tag.getXDslDefNodeAttr(attrName);
+        } //
+        else if (tag.isInXDef()) {
             // 取 xdef.xdef 中声明的属性
-            if (StringHelper.startsWithNamespace(attrName, xdefNs)) {
+            if (hasXDefNs) {
                 attrDef = tag.getXDefNodeAttr(attrName);
-            }
-            // 取 xdsl.xdef 中声明的属性
-            else if (StringHelper.startsWithNamespace(attrName, xdslNs)) {
-                attrDef = tag.getXDslDefNodeAttr(attrName);
             }
             // 取自身声明的属性
             else {
                 attrDef = tag.getSelfDefNodeAttr(attrName);
             }
         } else {
-            if (StringHelper.startsWithNamespace(attrName, xdslNs)) {
-                attrDef = tag.getXDslDefNodeAttr(attrName);
-            } else {
-                attrDef = tag.getXDefNodeAttr(attrName);
-            }
+            attrDef = tag.getXDefNodeAttr(attrName);
         }
 
         return attrDef;
