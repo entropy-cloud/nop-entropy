@@ -247,6 +247,26 @@ public class UnitsHelper {
         return points / 2.835F;
     }
 
+    /**
+     * 将磅（pt）转换为 twips（1/20磅）
+     *
+     * @param points 磅值（pt）
+     * @return twips 值
+     */
+    public static int pointsToTwips(double points) {
+        return (int) Math.rint(points * 20);
+    }
+
+    /**
+     * 将 twips（1/20磅）转换为磅（pt）
+     *
+     * @param twips twips 值
+     * @return 磅值（pt）
+     */
+    public static double twipsToPoints(int twips) {
+        return twips / 20.0;
+    }
+
 //    private static final FontRenderContext fontRenderContext = new FontRenderContext(null, true, true);
 //
 //    public static double getDefaultCharWidth() {

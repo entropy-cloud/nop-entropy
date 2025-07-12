@@ -8,9 +8,9 @@
 package io.nop.report.core.model;
 
 import io.nop.core.model.table.ICellView;
-import io.nop.core.model.table.IColumnConfig;
 import io.nop.excel.model.ExcelColumnConfig;
 import io.nop.excel.model.IExcelCol;
+import io.nop.excel.util.UnitsHelper;
 import jakarta.annotation.Nonnull;
 
 import java.util.ArrayList;
@@ -46,7 +46,7 @@ public class ExpandedCol implements IExcelCol {
     public void setGeneratorCell(ExpandedCell generatorCell) {
         this.generatorCell = generatorCell;
     }
-    
+
 
     public void forEachCell(Consumer<ExpandedCell> action) {
         ExpandedCell cell = firstCell;
@@ -69,6 +69,15 @@ public class ExpandedCol implements IExcelCol {
     @Override
     public Double getWidth() {
         return colModel == null ? null : colModel.getWidth();
+    }
+
+    public double getWidth(double defaultWidth) {
+        Double d = getWidth();
+        return d == null ? defaultWidth : d;
+    }
+
+    public int getWidthInTwips(double defaultHeight) {
+        return UnitsHelper.pointsToTwips(getWidth(defaultHeight));
     }
 
     @Override

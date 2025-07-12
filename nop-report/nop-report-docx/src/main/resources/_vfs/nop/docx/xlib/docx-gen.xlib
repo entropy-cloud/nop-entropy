@@ -1,0 +1,16 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+
+    <tags>
+        <GenXptTable macro="true">
+           <slot name="default" type="node"/>
+
+           <source>
+             <c:script><![CDATA[
+                import io.nop.report.docx.parse.XptWordTableParser;
+
+                return XptWordTableParser.fromCompileScope($scope).compileTable(slot_default().child(0));
+             ]]></c:script>
+           </source>
+        </GenXptTable>
+    </tags>
+</lib>

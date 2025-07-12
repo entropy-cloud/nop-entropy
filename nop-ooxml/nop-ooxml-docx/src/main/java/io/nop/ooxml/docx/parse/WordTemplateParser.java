@@ -57,7 +57,7 @@ public class WordTemplateParser {
         try {
             pkg.loadFromFile(resource.toFile());
 
-            XNode doc = pkg.getFile(DocxConstants.PATH_WORD_DOCUMENT).buildXml(null);
+            XNode doc = pkg.getWordXml();
             XplGenConfig config = getGenConfig(doc);
             config.addImportLib(DocxConstants.LIB_DOCX_GEN);
 
@@ -95,12 +95,18 @@ public class WordTemplateParser {
         normalizeLinks(links);
 
         processDrawings(pkg, doc);
+        postProcessDocNode(pkg, config, cp, doc);
 
         boolean dumpToFile = path.equals(DocxConstants.PATH_WORD_DOCUMENT);
         if (config.isDump() && !dumpToFile) {
             doc.dump();
         }
         return config.compile(cp, doc, XLangOutputMode.xml, dumpToFile);
+    }
+
+    protected void postProcessDocNode(WordOfficePackage pkg, XplGenConfig config,
+                                      XLangCompileTool cp, XNode doc) {
+
     }
 
     private Map<String, ITextTemplateOutput> compileOutputs(WordOfficePackage pkg,

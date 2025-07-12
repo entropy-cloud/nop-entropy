@@ -81,6 +81,13 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: toolCallsPath
+     * 
+     */
+    private java.lang.String _toolCallsPath ;
+    
+    /**
+     *  
      * xml name: totalTokensPath
      * 
      */
@@ -259,6 +266,25 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: toolCallsPath
+     *  
+     */
+    
+    public java.lang.String getToolCallsPath(){
+      return _toolCallsPath;
+    }
+
+    
+    public void setToolCallsPath(java.lang.String value){
+        checkAllowChange();
+        
+        this._toolCallsPath = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: totalTokensPath
      *  
      */
@@ -300,6 +326,7 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
         out.putNotNull("reasoningContentPath",this.getReasoningContentPath());
         out.putNotNull("rolePath",this.getRolePath());
         out.putNotNull("statusPath",this.getStatusPath());
+        out.putNotNull("toolCallsPath",this.getToolCallsPath());
         out.putNotNull("totalTokensPath",this.getTotalTokensPath());
     }
 
@@ -321,6 +348,7 @@ public abstract class _LlmResponseModel extends io.nop.core.resource.component.A
         instance.setReasoningContentPath(this.getReasoningContentPath());
         instance.setRolePath(this.getRolePath());
         instance.setStatusPath(this.getStatusPath());
+        instance.setToolCallsPath(this.getToolCallsPath());
         instance.setTotalTokensPath(this.getTotalTokensPath());
     }
 

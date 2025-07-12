@@ -10,6 +10,7 @@ import io.nop.ai.core.api.messages.AiChatUsage;
 import io.nop.ai.core.api.messages.AiMessage;
 import io.nop.ai.core.api.messages.MessageStatus;
 import io.nop.ai.core.api.messages.Prompt;
+import io.nop.ai.core.api.messages.ToolCall;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
 import io.nop.ai.core.model.LlmRequestModel;
@@ -433,6 +434,12 @@ public class DefaultAiChatService implements IAiChatService {
         chatExchange.setStatus(getMessageStatus(result, responseModel.getStatusPath()));
         chatExchange.setUsage(usage);
 
+        List<ToolCall> toolCalls = parseToolCalls(llmModel, result);
+        chatExchange.makeResponse().setToolCalls(toolCalls);
+    }
+
+    protected List<ToolCall> parseToolCalls(LlmModel llmModel, Map<String,Object> result){
+        return null;
     }
 
     protected MessageStatus getMessageStatus(Map<String, Object> body, String propPath) {

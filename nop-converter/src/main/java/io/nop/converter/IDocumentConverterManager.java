@@ -7,7 +7,7 @@ import java.util.Set;
 /**
  * 文档转换核心能力接口
  */
-public interface IDocumentConverterManager {
+public interface IDocumentConverterManager extends IDocumentObjectBuilder {
 
     // 获取所有支持的源文件格式
     Set<String> getFromFileTypes();
@@ -41,6 +41,16 @@ public interface IDocumentConverterManager {
 
     // 获取格式解析器（不存在时报错）
     IDocumentObjectBuilder requireDocumentObjectBuilder(String fileType);
+
+    @Override
+    default IDocumentObject buildFromResource(String fileType, IResource resource) {
+        return requireDocumentObjectBuilder(fileType).buildFromResource(fileType, resource);
+    }
+
+    @Override
+    default IDocumentObject buildFromText(String fileType, String path, String text) {
+        return requireDocumentObjectBuilder(fileType).buildFromText(fileType, path, text);
+    }
 
     // 获取转换器（不存在时报错）
     IDocumentConverter requireConverter(String fromFileType, String toFileType, boolean allowChained);

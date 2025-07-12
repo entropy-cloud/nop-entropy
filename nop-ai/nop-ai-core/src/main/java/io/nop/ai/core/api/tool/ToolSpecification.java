@@ -1,16 +1,15 @@
 package io.nop.ai.core.api.tool;
 
 import io.nop.api.core.annotations.data.DataBean;
-
-import java.util.Map;
+import io.nop.api.core.json.JsonSchema;
 
 @DataBean
 public class ToolSpecification {
     private String name;
     private String description;
     private Boolean returnDirect;
-    private Map<String, Object> inputSchema;
-    private Map<String, Object> outputSchema;
+    private JsonSchema inputSchema;
+    private JsonSchema outputSchema;
 
     public String getName() {
         return name;
@@ -36,19 +35,19 @@ public class ToolSpecification {
         this.returnDirect = returnDirect;
     }
 
-    public Map<String, Object> getInputSchema() {
+    public JsonSchema getInputSchema() {
         return inputSchema;
     }
 
-    public void setInputSchema(Map<String, Object> inputSchema) {
+    public void setInputSchema(JsonSchema inputSchema) {
         this.inputSchema = inputSchema;
     }
 
-    public Map<String, Object> getOutputSchema() {
+    public JsonSchema getOutputSchema() {
         return outputSchema;
     }
 
-    public void setOutputSchema(Map<String, Object> outputSchema) {
+    public void setOutputSchema(JsonSchema outputSchema) {
         this.outputSchema = outputSchema;
     }
 }

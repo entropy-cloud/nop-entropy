@@ -8,10 +8,13 @@
 package io.nop.ooxml.docx;
 
 import io.nop.ooxml.common.OfficeConstants;
+import io.nop.ooxml.common.model.PackagePartName;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+
+import static io.nop.ooxml.common.model.PackagingURIHelper.createPartName;
 
 public interface DocxConstants extends OfficeConstants {
 
@@ -46,4 +49,11 @@ public interface DocxConstants extends OfficeConstants {
     Set<String> WML_NS_LIST = new HashSet<>(Arrays.asList("w", "mc"));
 
     String HEADER_XPL_GEN_CONFIG = "XplGenConfig";
+
+    PackagePartName PART_NAME_STYLES = createPartName("/word/styles.xml");
+
+    PackagePartName PART_NAME_COMMENTS = createPartName("/word/comments.xml");
+    PackagePartName PART_NAME_COMMENTS_EXTENDED = createPartName("/word/commentsExtended.xml");
+    PackagePartName PART_NAME_COMMENTS_EXTENSIBLE = createPartName("/word/commentsExtensible.xml");
+    PackagePartName PART_NAME_COMMENTS_IDS = createPartName("/word/commentsIds.xml");
 }

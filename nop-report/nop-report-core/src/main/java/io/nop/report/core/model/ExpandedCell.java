@@ -17,6 +17,7 @@ import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.IExcelCell;
 import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.constants.XptExpandType;
+import io.nop.excel.util.UnitsHelper;
 import io.nop.report.core.coordinate.CellCoordinate;
 import io.nop.report.core.coordinate.CellLayerCoordinate;
 import io.nop.report.core.dataset.KeyedReportDataSet;
@@ -89,6 +90,24 @@ public class ExpandedCell implements IExcelCell {
         return "ExpandedCell[name=" + getName() + ",expandIndex=" + getExpandIndex() + ",text=" + getText()
                 + ",coord=" + getColCoordinates() + "]";
     }
+
+    public double getCellWidth(double defaultColWidth) {
+        double totalW = 0;
+        ExpandedCell c = this;
+        for (int i = 0; i <= mergeAcross; i++) {
+            double w = c.getCol().getWidth(defaultColWidth);
+            totalW += w;
+            c = c.getRight();
+            if (c == null)
+                break;
+        }
+        return totalW;
+    }
+
+    public double getCellWidthTwips(double defaultColWidth) {
+        return UnitsHelper.pointsToTwips(getCellWidth(defaultColWidth));
+    }
+
 
     public CellLayerCoordinate getLayerCoordinate() {
         CellLayerCoordinate coord = new CellLayerCoordinate();
@@ -460,7 +479,7 @@ public class ExpandedCell implements IExcelCell {
         this.styleId = styleId;
     }
 
-    public Object getV(){
+    public Object getV() {
         return getValue();
     }
 

@@ -20,6 +20,7 @@
               totalTokensPath="usage.total_tokens"
               statusPath="done"
               errorPath="error"
+              toolCallsPath="tool_calls"
     />
 
 </llm>

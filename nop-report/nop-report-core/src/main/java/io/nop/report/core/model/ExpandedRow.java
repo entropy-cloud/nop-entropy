@@ -7,9 +7,9 @@
  */
 package io.nop.report.core.model;
 
-import io.nop.core.model.table.IRowView;
 import io.nop.excel.model.IExcelRow;
 import io.nop.excel.model.XptRowModel;
+import io.nop.excel.util.UnitsHelper;
 import jakarta.annotation.Nonnull;
 
 import java.util.ArrayList;
@@ -95,6 +95,17 @@ public class ExpandedRow implements IExcelRow {
 
     public void setHidden(boolean hidden) {
         this.hidden = hidden;
+    }
+
+    public double getHeight(double defaultHeight) {
+        Double h = this.height;
+        if (h == null)
+            return defaultHeight;
+        return h;
+    }
+
+    public int getHeightInTwips(double defaultHeight) {
+        return UnitsHelper.pointsToTwips(getHeight(defaultHeight));
     }
 
     @Override

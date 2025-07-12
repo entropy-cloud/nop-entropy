@@ -36,6 +36,8 @@ public interface AiCoreErrors {
 
     String ARG_INPUT = "input";
 
+    String ARG_TOOL_NAME = "toolName";
+
     ErrorCode ERR_AI_SERVICE_NO_DEFAULT_LLMS =
             define("nop.err.ai.service.no-default-llms", "没有指定调用的大语言模型，也没有配置nop.ai.service.default-llm来指定缺省的大语言模型");
 
@@ -82,4 +84,7 @@ public interface AiCoreErrors {
 
     ErrorCode ERR_AI_INVALID_EXPR_VAR_NAME =
             define("nop.err.ai.invalid-expr-var-name", "提示词表达式中的变量名无效:{varName}", ARG_VAR_NAME);
+
+    ErrorCode ERR_AI_UNKNOWN_TOOL_CALL =
+            define("nop.err.ai.unknown-tool-call", "调用的工具未注册:{toolName}", ARG_TOOL_NAME);
 }

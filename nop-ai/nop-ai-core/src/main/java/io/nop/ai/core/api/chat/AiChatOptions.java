@@ -10,10 +10,15 @@ package io.nop.ai.core.api.chat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.ai.core.api.messages.AiChatExchange;
+import io.nop.ai.core.api.tool.IToolSet;
+import io.nop.ai.core.api.tool.ToolSpecification;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ExtensibleBean;
+import io.nop.commons.collections.IKeyedList;
+import io.nop.commons.collections.KeyedList;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -60,6 +65,8 @@ public class AiChatOptions extends ExtensibleBean {
 
     private String userId;
 
+    private IKeyedList<ToolSpecification> tools = KeyedList.emptyList();
+
     public AiChatOptions cloneInstance() {
         AiChatOptions clone = new AiChatOptions();
 
@@ -96,6 +103,9 @@ public class AiChatOptions extends ExtensibleBean {
         clone.setUserId(this.userId);
 
         clone.addAttrs(this.getAttrs());
+
+        if (tools != null)
+            clone.setTools(new ArrayList<>(tools));
 
         return clone;
     }
@@ -179,6 +189,9 @@ public class AiChatOptions extends ExtensibleBean {
         if (options.getAttrs() != null) {
             this.addAttrs(options.getAttrs());
         }
+
+        if (options.getTools() != null)
+            this.addTools(options.getTools());
     }
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -404,5 +417,32 @@ public class AiChatOptions extends ExtensibleBean {
 
     public void setDisableCache(Boolean disableCache) {
         this.disableCache = disableCache;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public List<ToolSpecification> getTools() {
+        return tools;
+    }
+
+    public void setTools(List<ToolSpecification> tools) {
+        this.tools = KeyedList.fromList(tools, ToolSpecification::getName);
+    }
+
+    public ToolSpecification getTool(String name) {
+        return tools.getByKey(name);
+    }
+
+    public AiChatOptions addTool(ToolSpecification tool) {
+        tools.add(tool);
+        return this;
+    }
+
+    public AiChatOptions addTools(Collection<ToolSpecification> tools) {
+        this.tools.addAll(tools);
+        return this;
+    }
+
+    public AiChatOptions addToolSet(IToolSet toolSet) {
+        return addTools(toolSet.getTools());
     }
 }

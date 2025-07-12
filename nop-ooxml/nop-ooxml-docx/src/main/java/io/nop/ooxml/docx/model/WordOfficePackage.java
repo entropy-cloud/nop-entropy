@@ -11,8 +11,10 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
+import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.common.OfficePackage;
 import io.nop.ooxml.common.constants.ContentTypes;
+import io.nop.ooxml.common.impl.ResourceOfficePackagePart;
 import io.nop.ooxml.common.model.ContentTypesPart;
 import io.nop.ooxml.common.model.OfficeRelationship;
 import io.nop.ooxml.common.model.OfficeRelsPart;
@@ -21,6 +23,10 @@ import io.nop.ooxml.docx.DocxConstants;
 import static io.nop.ooxml.common.OfficeErrors.ARG_FILE_EXT;
 import static io.nop.ooxml.common.OfficeErrors.ARG_PATH;
 import static io.nop.ooxml.common.OfficeErrors.ERR_OOXML_UNSUPPORTED_CONTENT_TYPE;
+import static io.nop.ooxml.docx.DocxConstants.PART_NAME_COMMENTS;
+import static io.nop.ooxml.docx.DocxConstants.PART_NAME_COMMENTS_EXTENDED;
+import static io.nop.ooxml.docx.DocxConstants.PART_NAME_COMMENTS_EXTENSIBLE;
+import static io.nop.ooxml.docx.DocxConstants.PART_NAME_COMMENTS_IDS;
 
 public class WordOfficePackage extends OfficePackage {
     @Override
@@ -28,6 +34,20 @@ public class WordOfficePackage extends OfficePackage {
         WordOfficePackage pkg = new WordOfficePackage();
         copyTo(pkg);
         return pkg;
+    }
+
+    public CommentsPart getComments(String path) {
+        IOfficePackagePart file = getFile(path);
+        if (file == null)
+            return null;
+
+        if (file instanceof CommentsPart)
+            return (CommentsPart) file;
+
+        ResourceOfficePackagePart res = (ResourceOfficePackagePart) file;
+        CommentsPart part = new CommentsPart(file.getPath(), res.loadXml());
+        addFile(part);
+        return part;
     }
 
     public OfficeRelationship addImage(IResource resource) {
@@ -52,5 +72,18 @@ public class WordOfficePackage extends OfficePackage {
 
     public XNode getWordXml() {
         return getFile(DocxConstants.PATH_WORD_DOCUMENT).buildXml(null);
+    }
+
+    public void removeCommentsFile() {
+        this.removeFile("word/comments.xml");
+        this.removeFile("word/commentsExtended.xml");
+        this.removeFile("word/commentsExtensible.xml");
+        this.removeFile("word/commentsIds.xml");
+
+        ContentTypesPart part = getContentTypes();
+        part.removeContentType(PART_NAME_COMMENTS);
+        part.removeContentType(PART_NAME_COMMENTS_EXTENDED);
+        part.removeContentType(PART_NAME_COMMENTS_EXTENSIBLE);
+        part.removeContentType(PART_NAME_COMMENTS_IDS);
     }
 }

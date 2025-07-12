@@ -19,6 +19,7 @@ import io.nop.excel.imp.model.ImportSheetModel;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelSheet;
+import io.nop.excel.model.ExcelTable;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.XptSheetModel;
@@ -46,6 +47,7 @@ import static io.nop.report.core.XptErrors.ERR_XPT_UNDEFINED_IMAGE_MODEL_PROP;
  * 将Excel模型转换为Xpt报表模型
  */
 public class ExcelToXptModelTransformer {
+    public static final ExcelToXptModelTransformer INSTANCE = new ExcelToXptModelTransformer();
 
     public void transform(ExcelWorkbook workbook) {
         ImportModel importModel = ImportModelHelper.getImportModel(XptConstants.XPT_IMP_MODEL_PATH);
@@ -72,7 +74,7 @@ public class ExcelToXptModelTransformer {
                             XptSheetModel.class);
                     sheet.setModel(sheetModel);
                 }
-                parseCellModel(sheet, cellModelNode, transformer);
+                parseCellModel(sheet.getTable(), cellModelNode, transformer);
                 parseImageModel(sheet, imageNode, transformer);
             }
         }
@@ -92,8 +94,20 @@ public class ExcelToXptModelTransformer {
         ExcelReportHelper.dumpXptModel(workbook);
     }
 
-    private void parseCellModel(ExcelSheet sheet, IXDefNode cellModelNode, DslXNodeToJsonTransformer transformer) {
-        sheet.getTable().forEachRealCell((cell, rowIndex, colIndex) -> {
+    public void transformTable(ExcelTable table) {
+        IXDefinition xptXDef = SchemaLoader.loadXDefinition(XptConstants.XDSL_SCHEMA_WORKBOOK);
+        IXDefinition tableDef = SchemaLoader.loadXDefinition(XptConstants.XDSL_SCHEMA_EXCEL_TABLE);
+        IXDefNode cellModelNode = tableDef.getXdefDefine(XptConstants.XDEF_NODE_EXCEL_CELL).getChild(XptConstants.PROP_MODEL);
+
+        XLangCompileTool compileTool = XLang.newCompileTool().allowUnregisteredScopeVar(true);
+        DslXNodeToJsonTransformer transformer =
+                new DslXNodeToJsonTransformer(false, xptXDef, compileTool);
+
+        parseCellModel(table, cellModelNode, transformer);
+    }
+
+    private void parseCellModel(ExcelTable table, IXDefNode cellModelNode, DslXNodeToJsonTransformer transformer) {
+        table.forEachRealCell((cell, rowIndex, colIndex) -> {
             XptCellModel cellModel = new XptCellModel();
             ExcelCell ec = (ExcelCell) cell;
             ec.setModel(cellModel);

@@ -3,10 +3,16 @@ package io.nop.ai.core.command;
 import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.chat.IAiChatLogger;
 import io.nop.ai.core.api.chat.IAiChatService;
+import io.nop.ai.core.api.messages.AiAssistantMessage;
 import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.AiMessage;
 import io.nop.ai.core.api.messages.Prompt;
-import io.nop.ai.core.api.tool.IToolProvider;
+import io.nop.ai.core.api.messages.ToolCall;
+import io.nop.ai.core.api.messages.ToolResponseMessage;
+import io.nop.ai.core.api.tool.CallToolRequest;
+import io.nop.ai.core.api.tool.CallToolResult;
+import io.nop.ai.core.api.tool.IToolCaller;
+import io.nop.ai.core.api.tool.ToolSpecification;
 import io.nop.ai.core.commons.processor.IAiChatResponseProcessor;
 import io.nop.ai.core.persist.IAiChatResponseCache;
 import io.nop.ai.core.prompt.DefaultSystemPromptLoader;
@@ -26,6 +32,7 @@ import io.nop.core.lang.eval.IEvalScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,7 +41,9 @@ import java.util.concurrent.CompletionStage;
 
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_ENABLE_WORK_MODE_SYSTEM_PROMPT;
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_LOG_MESSAGE;
+import static io.nop.ai.core.AiCoreErrors.ARG_TOOL_NAME;
 import static io.nop.ai.core.AiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
+import static io.nop.ai.core.AiCoreErrors.ERR_AI_UNKNOWN_TOOL_CALL;
 
 public class AiCommand {
     static final Logger LOG = LoggerFactory.getLogger(AiCommand.class);
@@ -51,9 +60,10 @@ public class AiCommand {
     private IAiChatResponseCache chatCache;
     private boolean returnExceptionAsResponse = true;
     private IAiChatLogger chatLogger;
-    private IToolProvider toolProvider;
+    private IToolCaller toolCaller;
 
     private Set<String> useTools;
+    private int maxSteps;
 
     public AiCommand(IAiChatService chatService, IPromptTemplateManager promptTemplateManager) {
         this.chatService = chatService;
@@ -64,6 +74,19 @@ public class AiCommand {
         return new AiCommand(
                 BeanContainer.getBeanByType(IAiChatService.class),
                 BeanContainer.getBeanByType(IPromptTemplateManager.class));
+    }
+
+    public int getMaxSteps() {
+        return maxSteps;
+    }
+
+    public void setMaxSteps(int maxSteps) {
+        this.maxSteps = maxSteps;
+    }
+
+    public AiCommand maxSteps(int maxSteps) {
+        setMaxSteps(maxSteps);
+        return this;
     }
 
     public IAiChatService getChatService() {
@@ -208,16 +231,16 @@ public class AiCommand {
         return returnExceptionAsResponse;
     }
 
-    public IToolProvider getToolProvider() {
-        return toolProvider;
+    public IToolCaller getToolCaller() {
+        return toolCaller;
     }
 
-    public void setToolProvider(IToolProvider toolProvider) {
-        this.toolProvider = toolProvider;
+    public void setToolCaller(IToolCaller toolCaller) {
+        this.toolCaller = toolCaller;
     }
 
-    public AiCommand toolProvider(IToolProvider toolProvider) {
-        this.toolProvider = toolProvider;
+    public AiCommand toolProvider(IToolCaller toolProvider) {
+        this.toolCaller = toolProvider;
         return this;
     }
 
@@ -305,12 +328,11 @@ public class AiCommand {
 
     public CompletionStage<AiChatExchange> executeOnceAsync(Prompt prompt, AiChatOptions chatOptions,
                                                             IEvalScope scope, ICancelToken cancelToken) {
-        if (cancelToken != null && cancelToken.isCancelled()) {
-            LOG.info("nop.ai.cancel-call-ai");
-            return FutureHelper.reject(new CancellationException("cancel-call-ai"));
-        }
+        CompletionStage<AiChatExchange> future = executeWithTools(0, prompt, chatOptions, scope, cancelToken);
+        if (FutureHelper.isError(future))
+            return future;
 
-        CompletionStage<AiChatExchange> future = chatService.sendChatAsync(prompt, chatOptions, cancelToken).thenApply(ret -> {
+        future = future.thenApply(ret -> {
             promptTemplate.processChatResponse(ret, scope);
             return ret;
         });
@@ -337,6 +359,58 @@ public class AiCommand {
             return r;
         });
         return future;
+    }
+
+    protected CompletionStage<AiChatExchange> executeWithTools(int stepIndex, Prompt prompt, AiChatOptions options,
+                                                               IEvalScope scope, ICancelToken cancelToken) {
+        if (cancelToken != null && cancelToken.isCancelled()) {
+            LOG.info("nop.ai.cancel-call-ai");
+            return FutureHelper.reject(new CancellationException("cancel-call-ai"));
+        }
+
+        CompletionStage<AiChatExchange> future = chatService.sendChatAsync(prompt, chatOptions, cancelToken);
+        return future.thenCompose(exchange -> {
+            int maxSteps = getMaxSteps();
+            if (maxSteps == 0)
+                maxSteps = 3;
+            if (stepIndex >= maxSteps)
+                return FutureHelper.success(exchange);
+
+            AiAssistantMessage result = exchange.getResponse();
+            if (result.getToolCalls() == null || result.getToolCalls().isEmpty()) {
+                return FutureHelper.success(exchange);
+            }
+
+            return executeTools(stepIndex + 1, result.getToolCalls(), prompt, options, scope, cancelToken);
+        });
+    }
+
+    protected CompletionStage<AiChatExchange> executeTools(int stepIndex, List<ToolCall> toolCalls,
+                                                 Prompt prompt, AiChatOptions options,
+                                                 IEvalScope scope, ICancelToken cancelToken) {
+        List<CompletionStage<CallToolResult>> toolResults = new ArrayList<>(toolCalls.size());
+        for (ToolCall toolCall : toolCalls) {
+            ToolSpecification toolSpec = options.getTool(toolCall.getName());
+            if (toolSpec == null)
+                throw new NopException(ERR_AI_UNKNOWN_TOOL_CALL).param(ARG_TOOL_NAME, toolCall.getName());
+
+
+            CallToolRequest request = new CallToolRequest();
+            request.setName(toolCall.getName());
+            request.setArguments(toolCall.getArguments());
+
+            toolResults.add(toolCaller.callToolAsync(toolSpec, request, scope));
+        }
+
+        return FutureHelper.waitAll(toolResults).thenCompose(ret -> {
+            for (int i = 0; i < toolResults.size(); i++) {
+                CallToolResult result = toolResults.get(i).toCompletableFuture().join();
+                ToolResponseMessage message = new ToolResponseMessage();
+                message.setResponses(ret.getResponses().get(i));
+                prompt.getMessages().add(message);
+            }
+            return executeWithTools(stepIndex, prompt, options, scope, cancelToken);
+        });
     }
 
     protected AiChatExchange postProcess(AiChatExchange ret) {

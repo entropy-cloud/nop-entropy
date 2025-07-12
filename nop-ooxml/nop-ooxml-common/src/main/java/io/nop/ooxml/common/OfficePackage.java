@@ -45,7 +45,7 @@ import java.util.TreeMap;
 import static io.nop.ooxml.common.OfficeErrors.ARG_PATH;
 import static io.nop.ooxml.common.OfficeErrors.ERR_OOXML_FILE_PATH_MUST_HAS_EXT;
 
-public class OfficePackage implements Closeable , ISourceLocationGetter {
+public class OfficePackage implements Closeable, ISourceLocationGetter {
     private SourceLocation location;
 
     private IResourceStore resourceStore;
