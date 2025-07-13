@@ -22,7 +22,7 @@ public class XDefKeys implements Serializable {
 
     public static XDefKeys of(XNode node) {
         String ns = node.getXmlnsForUrl(XDslConstants.XDSL_SCHEMA_XDEF);
-        if (ns == null || ns.equals("xdef"))
+        if (ns == null || ns.equals(DEFAULT.NS))
             return DEFAULT;
         return new XDefKeys(ns);
     }
