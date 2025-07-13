@@ -17,7 +17,7 @@ import org.jetbrains.annotations.Nullable;
 public class PredefinedTypeReference extends XLangReferenceBase {
     private final PsiElement typeName;
 
-    public PredefinedTypeReference(PsiElement myElement, PsiElement typeName, TextRange myRangeInElement) {
+    public PredefinedTypeReference(PsiElement myElement, TextRange myRangeInElement, PsiElement typeName) {
         super(myElement, myRangeInElement);
         this.typeName = typeName;
     }

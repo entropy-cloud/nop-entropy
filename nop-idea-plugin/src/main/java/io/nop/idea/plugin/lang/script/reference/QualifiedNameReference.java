@@ -35,8 +35,8 @@ public class QualifiedNameReference extends XLangReferenceBase {
     private final QualifiedNameReference parentReference;
 
     public QualifiedNameReference(
-            PsiElement myElement, IdentifierNode identifier, TextRange myRangeInElement,
-            QualifiedNameReference parentReference
+            PsiElement myElement, TextRange myRangeInElement, //
+            IdentifierNode identifier, QualifiedNameReference parentReference
     ) {
         super(myElement, myRangeInElement);
         this.identifier = identifier;

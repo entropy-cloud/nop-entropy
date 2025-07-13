@@ -96,7 +96,7 @@ public class QualifiedNameRootNode extends RuleSpecNode {
         // Note: 取相对于 qnn 的 TextRange 并做偏移
         TextRange textRange = identifier.getParent().getTextRangeInParent().shiftRight(offset);
 
-        QualifiedNameReference ref = new QualifiedNameReference(this, identifier, textRange, parentReference);
+        QualifiedNameReference ref = new QualifiedNameReference(this, textRange, identifier, parentReference);
         result.add(ref);
 
         PsiElement sub = qnn.getLastChild();

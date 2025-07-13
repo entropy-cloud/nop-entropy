@@ -40,7 +40,7 @@ public class TypeNameNodePredefinedNode extends RuleSpecNode {
         PsiElement typeName = getTypeName();
         TextRange textRange = typeName.getTextRangeInParent();
 
-        PredefinedTypeReference ref = new PredefinedTypeReference(this, typeName, textRange);
+        PredefinedTypeReference ref = new PredefinedTypeReference(this, textRange, typeName);
 
         return new PsiReference[] { ref };
     }

@@ -8,6 +8,7 @@ import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlTag;
 import io.nop.idea.plugin.BaseXLangPluginTestCase;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
+import io.nop.idea.plugin.vfs.NopVirtualFile;
 
 /**
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
@@ -345,24 +346,25 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
     }
 
     public void testAttributeTypeReferences() {
-        // 声明属性将 引用 属性的类型定义
-        // TODO 暂时无法通过分析 class 字节码得到可注册的数据域
+//        // 声明属性将 引用 属性的类型定义
+//        // TODO 暂时无法通过分析 class 字节码得到可注册的数据域
 //        // - #getName 返回引用值
-//        doTest("""
-//                       <example xmlns:x="/nop/schema/xdsl.xdef"
-//                                x:schema="/nop/schema/xdef.xdef"
-//                       >
-//                           <node type="string"/>
-//                       </example>
-//                       """, "/dict/test/doc/child-type.dict.yaml#leaf");
+//        assertReference("""
+//                                <example xmlns:x="/nop/schema/xdsl.xdef"
+//                                         x:schema="/nop/schema/xdef.xdef"
+//                                >
+//                                    <node type="string"/>
+//                                </example>
+//                                """, "/dict/test/doc/child-type.dict.yaml#leaf");
 //        // - #getName 返回字面量值
-//        doTest("""
-//                       <example xmlns:x="/nop/schema/xdsl.xdef"
-//                                x:schema="/nop/schema/xdef.xdef"
-//                       >
-//                           <node type="x<caret>json"/>
-//                       </example>
-//                       """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
+//        assertReference("""
+//                                <example xmlns:x="/nop/schema/xdsl.xdef"
+//                                         x:schema="/nop/schema/xdef.xdef"
+//                                >
+//                                    <node type="x<caret>json"/>
+//                                </example>
+//                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
+
         // - 引用字典中定义的数据域
         assertReference("""
                                 <example xmlns:x="/nop/schema/xdsl.xdef"
@@ -491,6 +493,8 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                          + attr.getValue());
         } else if (target instanceof SchemaPrefix ns) {
             assertEquals(expected, ns.getName());
+        } else if (target instanceof NopVirtualFile vfs) {
+            assertEquals(expected, vfs.getName());
         }
 
 //        if (ref instanceof XLangVfsFileReference) {

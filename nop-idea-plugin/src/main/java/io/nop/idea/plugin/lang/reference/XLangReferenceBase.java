@@ -11,11 +11,13 @@ import org.jetbrains.annotations.NotNull;
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-07-06
  */
-public abstract class XLangReferenceBase extends CachingReference {
+public abstract class XLangReferenceBase extends CachingReference implements XLangReference {
     private static final Logger LOG = Logger.getInstance(XLangReferenceBase.class);
 
     protected final PsiElement myElement;
     private TextRange myRangeInElement;
+
+    private String message;
 
     /**
      * 在元素 <code>myElement</code> 可以被拆分为多个相互间有关联的引用时，
@@ -80,6 +82,15 @@ public abstract class XLangReferenceBase extends CachingReference {
 
     public void setRangeInElement(TextRange rangeInElement) {
         myRangeInElement = rangeInElement;
+    }
+
+    @Override
+    public String getMessage() {
+        return this.message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     protected TextRange calculateDefaultRangeInElement() {

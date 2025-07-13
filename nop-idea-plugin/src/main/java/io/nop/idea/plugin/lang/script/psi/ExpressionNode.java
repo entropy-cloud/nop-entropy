@@ -293,7 +293,7 @@ public class ExpressionNode extends RuleSpecNode {
         // 变量引用：abc
         if (firstChild instanceof IdentifierNode identifier) {
             TextRange textRange = identifier.getTextRangeInParent();
-            IdentifierReference ref = new IdentifierReference(this, identifier, textRange);
+            IdentifierReference ref = new IdentifierReference(this, textRange, identifier);
 
             return new PsiReference[] { ref };
         }
@@ -316,7 +316,7 @@ public class ExpressionNode extends RuleSpecNode {
             TextRange textRange = callee.getTextRangeInParent();
             IdentifierNode fn = (IdentifierNode) callee.getFirstChild();
 
-            IdentifierReference ref = new IdentifierReference(this, fn, textRange);
+            IdentifierReference ref = new IdentifierReference(this, textRange, fn);
 
             return new PsiReference[] { ref };
         }

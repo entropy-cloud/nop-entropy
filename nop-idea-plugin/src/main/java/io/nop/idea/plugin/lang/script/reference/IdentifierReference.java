@@ -18,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
 public class IdentifierReference extends XLangReferenceBase {
     private final IdentifierNode identifier;
 
-    public IdentifierReference(PsiElement myElement, IdentifierNode identifier, TextRange myRangeInElement) {
+    public IdentifierReference(PsiElement myElement, TextRange myRangeInElement, IdentifierNode identifier) {
         super(myElement, myRangeInElement);
         this.identifier = identifier;
     }

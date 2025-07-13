@@ -27,6 +27,7 @@ import io.nop.api.core.validate.IValidationErrorCollector;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.dict.DictProvider;
 import io.nop.core.exceptions.ErrorMessageManager;
+import io.nop.idea.plugin.lang.reference.XLangReference;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.reference.XLangVfsFileReference;
 import io.nop.idea.plugin.reference.XLangElementReference;
@@ -77,11 +78,16 @@ public class XLangAnnotator implements Annotator {
                       .range(reference.getAbsoluteRange())
                       .textAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT_TAG_VALUE)
                       .create();
-            } else if (reference instanceof XLangNotFoundReference ref) {
-                holder.newAnnotation(HighlightSeverity.ERROR, ref.getMessage())
-                      .range(ref.getAbsoluteRange())
-                      .highlightType(ProblemHighlightType.ERROR)
-                      .create();
+            } else if (reference instanceof XLangReference ref) {
+                ref.resolve(); // 确保已检查异常状态
+                String msg = ref.getMessage();
+
+                if (msg != null) {
+                    holder.newAnnotation(HighlightSeverity.ERROR, msg)
+                          .range(ref.getAbsoluteRange())
+                          .highlightType(ProblemHighlightType.ERROR)
+                          .create();
+                }
             }
         }
 

@@ -5,7 +5,7 @@ import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceService;
 import com.intellij.psi.impl.source.xml.SchemaPrefixReference;
 import com.intellij.psi.impl.source.xml.XmlAttributeImpl;
-import io.nop.idea.plugin.lang.reference.XLangAttributeReference;
+import io.nop.idea.plugin.lang.reference.XLangDefAttrReference;
 import io.nop.xlang.xdef.IXDefAttribute;
 import org.jetbrains.annotations.NotNull;
 
@@ -39,7 +39,7 @@ public class XLangAttribute extends XmlAttributeImpl {
 
         int nameOffset = (ns.isEmpty() ? -1 : ns.length()) + 1;
         TextRange nameTextRange = TextRange.allOf(name).shiftRight(nameOffset);
-        XLangAttributeReference ref1 = new XLangAttributeReference(this, nameTextRange);
+        XLangDefAttrReference ref1 = new XLangDefAttrReference(this, nameTextRange);
 
         return ref0 != null ? new PsiReference[] { ref0, ref1 } : new PsiReference[] { ref1 };
     }
@@ -58,8 +58,8 @@ public class XLangAttribute extends XmlAttributeImpl {
 
         String ns = getNamespacePrefix();
         String attrName = getName();
-        boolean hasXDefNs = !ns.isEmpty() && ns.equals(tag.getXDefNs());
-        boolean hasXDslNs = !ns.isEmpty() && ns.equals(tag.getXDslNs());
+        boolean hasXDefNs = !ns.isEmpty() && ns.equals(tag.getXDefKeys().NS);
+        boolean hasXDslNs = !ns.isEmpty() && ns.equals(tag.getXDslKeys().NS);
 
         // 取 xdsl.xdef 中声明的属性
         if (hasXDslNs) {
@@ -81,8 +81,8 @@ public class XLangAttribute extends XmlAttributeImpl {
         return attrDef;
     }
 
-    /** 是否为当前属性自身的 xdef 定义 */
-    public boolean isSelfDefAttr(IXDefAttribute attr) {
+    /** 是否为声明属性（定义属性名及其类型） */
+    public boolean isDeclaredDefAttr(IXDefAttribute attr) {
         String attrName = getName();
         XLangTag tag = (XLangTag) getParent();
 

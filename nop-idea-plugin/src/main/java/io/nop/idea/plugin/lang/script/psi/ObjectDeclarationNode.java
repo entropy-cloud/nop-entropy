@@ -74,7 +74,7 @@ public class ObjectDeclarationNode extends RuleSpecNode {
             TextRange textRange = propDecl.getTextRangeInParent();
             IdentifierNode propNameNode = prop.getPropNameNode();
 
-            IdentifierReference ref = new IdentifierReference(this, propNameNode, textRange);
+            IdentifierReference ref = new IdentifierReference(this, textRange, propNameNode);
 
             result.add(ref);
         }
