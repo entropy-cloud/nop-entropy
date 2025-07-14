@@ -14,9 +14,11 @@ import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefKeys;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.impl.XDefAttribute;
+import io.nop.xlang.xdef.parse.XDefTypeDeclParser;
 import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xdsl.XDslKeys;
 import org.jetbrains.annotations.NotNull;
@@ -30,6 +32,9 @@ import org.jetbrains.annotations.NotNull;
  * @date 2025-07-09
  */
 public class XLangTag extends XmlTagImpl {
+    private static final XDefTypeDecl STD_DOMAIN_XDEF_REF = new XDefTypeDeclParser().parseFromText(null,
+                                                                                                   XDefConstants.STD_DOMAIN_XDEF_REF);
+
     private SchemaMeta schemaMeta;
 
     @Override
@@ -115,6 +120,14 @@ public class XLangTag extends XmlTagImpl {
 
     /** 获取 {@link IXDefNode} 上指定属性的 xdef 定义 */
     private static IXDefAttribute getXDefNodeAttr(IXDefNode xdefNode, String attrName) {
+        if (attrName.startsWith("xmlns:")) {
+            XDefAttribute at = new XDefAttribute();
+            at.setName(attrName);
+            at.setType(STD_DOMAIN_XDEF_REF);
+
+            return at;
+        }
+
         if (xdefNode == null) {
             return null;
         }
@@ -183,12 +196,11 @@ public class XLangTag extends XmlTagImpl {
                 return SchemaMeta.UNKNOWN;
             }
 
+            // Note: 允许元模型不存在，以支持检查 xdsl.xdef 对应的节点
             IXDefinition xdef = XDefPsiHelper.loadSchema(schemaUrl);
-            if (xdef == null) {
-                return SchemaMeta.UNKNOWN;
-            }
 
-            XDefKeys xdefKeys = xdef.getDefKeys();
+            String xdefNs = XmlPsiHelper.getXmlnsForUrl(this, XDslConstants.XDSL_SCHEMA_XDEF);
+            XDefKeys xdefKeys = XDefKeys.of(xdefNs);
             String xdslNs = XmlPsiHelper.getXmlnsForUrl(this, XDslConstants.XDSL_SCHEMA_XDSL);
             XDslKeys xdslKeys = XDslKeys.of(xdslNs);
 
@@ -208,16 +220,14 @@ public class XLangTag extends XmlTagImpl {
                 selfDefNode = selfDef != null ? selfDef.getRootNode() : null;
             }
 
-            IXDefNode xdefNode = xdef.getRootNode();
+            IXDefNode xdefNode = xdef != null ? xdef.getRootNode() : null;
             IXDefNode xdslDefNode = XDefPsiHelper.getXDslDef().getRootNode();
 
             return new SchemaMeta(xdef, xdefNode, xdslDefNode, selfDefNode, xdefKeys, xdslKeys);
         }
 
+        // Note: 允许元模型不存在，以支持检查 xdsl.xdef 对应的节点
         IXDefinition xdef = parentTag.getXDef();
-        if (xdef == null) {
-            return SchemaMeta.UNKNOWN;
-        }
 
         String tagName = getName();
         XDefKeys xdefKeys = parentTag.getXDefKeys();
@@ -230,8 +240,9 @@ public class XLangTag extends XmlTagImpl {
                       // xlib.xdef 中的 source 标签设置为 xml 类型，是因为在获取 XplLib 模型的时候会根据 xlib.xdef 来解析，
                       // 但此时这个 source 段无法自动进行编译，必须结合它的 outputMode 和 attrs 配置等才能决定。
                       // 因此，将其子节点同样视为 xpl 节点处理
-                      || ((xdef.resourcePath().equals(XDslConstants.XDSL_SCHEMA_XLIB) //
-                           || xdef.resourcePath().endsWith("_vfs" + XDslConstants.XDSL_SCHEMA_XLIB) //
+                      || (xdef != null //
+                          && (xdef.resourcePath().equals(XDslConstants.XDSL_SCHEMA_XLIB) //
+                              || xdef.resourcePath().endsWith("_vfs" + XDslConstants.XDSL_SCHEMA_XLIB) //
                           ) //
                           && "xml".equals(XDefPsiHelper.getDefNodeType(parentXDefNode)) //
                           && "source".equals(parentTag.getName()) //
@@ -253,7 +264,8 @@ public class XLangTag extends XmlTagImpl {
             xdefNode = xdslDefNode;
         } else {
             // Note: 如果是 xdef.xdef 中的节点，则其节点 xdef 定义均为 xdef:unknown-tag
-            boolean inXDefXDef = xdef.getXdefCheckNs().contains(XDefKeys.DEFAULT.NS) //
+            boolean inXDefXDef = xdef != null //
+                                 && xdef.getXdefCheckNs().contains(XDefKeys.DEFAULT.NS) //
                                  && !XDefKeys.DEFAULT.equals(xdefKeys); // 在单元测试中只能基于内容做判断，而不是 vfs 路径
 
             xdefNode = parentXDefNode != null //

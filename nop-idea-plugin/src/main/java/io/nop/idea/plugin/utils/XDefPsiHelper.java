@@ -111,7 +111,7 @@ public class XDefPsiHelper {
     public static IXDefinition loadSchema(PsiFile file) {
         String content = file.getText();
         // Note: 解析过程中，会检查路径的有效性，需保证以 / 开头，并添加 .xdef 后缀
-        IResource resource = new InMemoryTextResource('/' + file.getVirtualFile().getName() + ".xdef", content);
+        IResource resource = new InMemoryTextResource("/" + file.getText().hashCode() + ".xdef", content);
 
         try {
             return new XDefinitionParser().parseFromResource(resource);

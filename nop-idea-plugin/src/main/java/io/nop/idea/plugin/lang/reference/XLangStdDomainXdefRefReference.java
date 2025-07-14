@@ -67,7 +67,7 @@ public class XLangStdDomainXdefRefReference extends XLangReferenceBase {
                            : NopPluginBundle.message("xlang.annotation.reference.xdef-ref-not-found-in-path",
                                                      ref,
                                                      path);
-            setMessage(msg);
+            setUnresolvedMessage(msg);
         }
         return target;
     }

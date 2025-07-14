@@ -52,6 +52,11 @@ public class NopVirtualFile extends PsiElementBase implements PsiNamedElement {
     }
 
     @Override
+    public String toString() {
+        return getClass().getSimpleName() + ':' + getPath();
+    }
+
+    @Override
     public boolean canNavigate() {
         return true;
     }
@@ -88,6 +93,11 @@ public class NopVirtualFile extends PsiElementBase implements PsiNamedElement {
         return getChildren().length == 0;
     }
 
+    /** {@link #getChildren()} 是否为 {@link PsiFile} */
+    public boolean forFileChildren() {
+        return targetResolver == null;
+    }
+
     @Override
     public @NotNull PsiElement @NotNull [] getChildren() {
         if (children == null) {
@@ -105,9 +115,13 @@ public class NopVirtualFile extends PsiElementBase implements PsiNamedElement {
         return project;
     }
 
+    public String getPath() {
+        return path;
+    }
+
     @Override
     public String getName() {
-        return path;
+        return getPath();
     }
 
     @Override

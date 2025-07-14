@@ -2,7 +2,8 @@
 
 <!-- This is root node
 -->
-<example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="xdef" xmlns:c="c" xmlns:xpl="xpl"
+<example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+         xmlns:c="c" xmlns:xpl="xpl"
          x:schema="/nop/schema/xdef.xdef"
 >
     <xdef:post-parse>

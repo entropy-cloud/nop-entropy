@@ -31,11 +31,11 @@ import io.nop.idea.plugin.lang.reference.XLangReference;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.reference.XLangVfsFileReference;
 import io.nop.idea.plugin.reference.XLangElementReference;
-import io.nop.idea.plugin.reference.XLangNotFoundReference;
 import io.nop.idea.plugin.resource.ProjectEnv;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.utils.XmlTagInfo;
+import io.nop.idea.plugin.vfs.NopVirtualFile;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.IXDefNode;
@@ -70,26 +70,7 @@ public class XLangAnnotator implements Annotator {
             return;
         }
 
-        for (PsiReference reference : element.getReferences()) {
-            if (reference instanceof XLangVfsFileReference //
-                || reference instanceof XLangElementReference //
-            ) {
-                holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
-                      .range(reference.getAbsoluteRange())
-                      .textAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT_TAG_VALUE)
-                      .create();
-            } else if (reference instanceof XLangReference ref) {
-                ref.resolve(); // 确保已检查异常状态
-                String msg = ref.getMessage();
-
-                if (msg != null) {
-                    holder.newAnnotation(HighlightSeverity.ERROR, msg)
-                          .range(ref.getAbsoluteRange())
-                          .highlightType(ProblemHighlightType.ERROR)
-                          .create();
-                }
-            }
-        }
+        checkReferences(element, holder);
 
         if (element instanceof XmlTag) {
             XmlTag tag = (XmlTag) element;
@@ -125,6 +106,30 @@ public class XLangAnnotator implements Annotator {
 
     private XmlTagInfo getTagInfo(PsiElement element) {
         return XDefPsiHelper.getTagInfo(element);
+    }
+
+    private void checkReferences(@NotNull PsiElement element, @NotNull AnnotationHolder holder) {
+        for (PsiReference reference : element.getReferences()) {
+            if (!(reference instanceof XLangReference ref)) {
+                continue;
+            }
+
+            PsiElement target = ref.resolve();
+            if (target instanceof NopVirtualFile vfs && vfs.forFileChildren()) {
+                holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
+                      .range(reference.getAbsoluteRange())
+                      .textAttributes(DefaultLanguageHighlighterColors.DOC_COMMENT_TAG_VALUE)
+                      .create();
+            }
+
+            String msg = ref.getUnresolvedMessage();
+            if (target == null && msg != null) {
+                holder.newAnnotation(HighlightSeverity.ERROR, msg)
+                      .range(ref.getAbsoluteRange())
+                      .highlightType(ProblemHighlightType.ERROR)
+                      .create();
+            }
+        }
     }
 
     private boolean checkTag(XmlTagInfo tagInfo, AnnotationHolder holder) {

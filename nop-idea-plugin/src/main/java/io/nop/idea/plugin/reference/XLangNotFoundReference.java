@@ -23,7 +23,7 @@ public class XLangNotFoundReference extends PsiReferenceBase<XmlElement> impleme
         this.message = message;
     }
 
-    public String getMessage() {
+    public String getUnresolvedMessage() {
         return message;
     }
 

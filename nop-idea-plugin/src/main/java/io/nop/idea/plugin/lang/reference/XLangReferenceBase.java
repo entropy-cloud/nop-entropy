@@ -17,7 +17,7 @@ public abstract class XLangReferenceBase extends CachingReference implements XLa
     protected final PsiElement myElement;
     private TextRange myRangeInElement;
 
-    private String message;
+    private String unresolvedMessage;
 
     /**
      * 在元素 <code>myElement</code> 可以被拆分为多个相互间有关联的引用时，
@@ -85,12 +85,12 @@ public abstract class XLangReferenceBase extends CachingReference implements XLa
     }
 
     @Override
-    public String getMessage() {
-        return this.message;
+    public String getUnresolvedMessage() {
+        return this.unresolvedMessage;
     }
 
-    public void setMessage(String message) {
-        this.message = message;
+    public void setUnresolvedMessage(String unresolvedMessage) {
+        this.unresolvedMessage = unresolvedMessage;
     }
 
     protected TextRange calculateDefaultRangeInElement() {

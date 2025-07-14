@@ -5,10 +5,10 @@ import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceService;
 import com.intellij.psi.impl.source.xml.XmlAttributeValueImpl;
 import io.nop.commons.util.StringHelper;
-import io.nop.idea.plugin.lang.reference.XLangReferenceHelper;
-import io.nop.idea.plugin.lang.reference.XLangXdefKeyAttrReference;
 import io.nop.idea.plugin.lang.reference.XLangParentTagAttrReference;
+import io.nop.idea.plugin.lang.reference.XLangReferenceHelper;
 import io.nop.idea.plugin.lang.reference.XLangXPrototypeReference;
+import io.nop.idea.plugin.lang.reference.XLangXdefKeyAttrReference;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.XDefKeys;
 import io.nop.xlang.xdef.XDefTypeDecl;
@@ -39,9 +39,11 @@ public class XLangAttributeValue extends XmlAttributeValueImpl {
             return PsiReference.EMPTY_ARRAY;
         }
 
+        String attrName = attr.getName();
         IXDefAttribute attrDef = attr.getXDefAttr();
+        // 对于未定义属性，不做引用识别
         if (attrDef == null) {
-            return XLangReferenceHelper.getReferencesFromText(this, attrValue);
+            return PsiReference.EMPTY_ARRAY;
         }
 
         XDefTypeDecl attrDefType = attrDef.getType();
@@ -52,6 +54,7 @@ public class XLangAttributeValue extends XmlAttributeValueImpl {
 
         // 根据属性的类型，对属性值做文件/名字引用
         PsiReference[] refs = XLangReferenceHelper.getReferencesByStdDomain(this,
+                                                                            attrName,
                                                                             attrValue,
                                                                             attrDefType.getStdDomain());
         if (refs != null) {
@@ -62,7 +65,6 @@ public class XLangAttributeValue extends XmlAttributeValueImpl {
         XDslKeys xdslKeys = tag.getXDslKeys();
         XDefKeys xdefKeys = tag.getXDefKeys();
 
-        String attrName = attr.getName();
         // Note: XmlAttributeValue 的文本范围是包含引号的
         TextRange attrValueTextRange = getValueTextRange().shiftLeft(getStartOffset());
         if (xdslKeys.PROTOTYPE.equals(attrName)) {

@@ -36,7 +36,9 @@ public class NopVirtualFileReference extends XLangReferenceBase {
 
         if (target.hasEmptyChildren()) {
             String msg = NopPluginBundle.message("xlang.annotation.reference.vfs-file-not-found", path);
-            setMessage(msg);
+            setUnresolvedMessage(msg);
+
+            return null;
         }
         return target;
     }

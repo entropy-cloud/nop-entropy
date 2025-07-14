@@ -32,7 +32,7 @@ public class XLangParentTagAttrReference extends XLangReferenceBase {
 
         if (target == null) {
             String msg = NopPluginBundle.message("xlang.annotation.reference.parent-tag-attr-not-found", attrValue);
-            setMessage(msg);
+            setUnresolvedMessage(msg);
         }
         return target;
     }

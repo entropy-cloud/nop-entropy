@@ -32,7 +32,7 @@ public class XLangXPrototypeReference extends XLangReferenceBase {
         XLangTag parentTag = (XLangTag) tag.getParentTag();
         if (parentTag == null) {
             String msg = NopPluginBundle.message("xlang.annotation.reference.x-prototype-no-parent");
-            setMessage(msg);
+            setUnresolvedMessage(msg);
 
             return null;
         }
@@ -55,7 +55,7 @@ public class XLangXPrototypeReference extends XLangReferenceBase {
                          : NopPluginBundle.message("xlang.annotation.reference.x-prototype-attr-not-found",
                                                    keyAttr,
                                                    attrValue);
-            setMessage(msg);
+            setUnresolvedMessage(msg);
 
             return null;
         }

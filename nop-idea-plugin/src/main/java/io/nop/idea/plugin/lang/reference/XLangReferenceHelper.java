@@ -9,13 +9,16 @@ import java.util.Map;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.xml.XmlElement;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.MutableString;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.StringHelper;
 import io.nop.idea.plugin.utils.PsiClassHelper;
+import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFileReference;
 import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
+import io.nop.xlang.xdsl.XDslParseHelper;
 
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_DICT;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_ENUM;
@@ -34,7 +37,7 @@ public class XLangReferenceHelper {
      * @return 若返回 <code>null</code>，则表示未支持对指定类型的处理
      */
     public static PsiReference[] getReferencesByStdDomain(
-            XmlElement refElement, String refValue, String stdDomain
+            XmlElement refElement, String attrName, String refValue, String stdDomain
     ) {
         // Note: 计算引用源文本（XmlAttributeValue#getText 的结果包含引号）与引用值文本之间的文本偏移量，
         // 从而精确匹配与引用相关的文本内容
@@ -53,6 +56,12 @@ public class XLangReferenceHelper {
             return new PsiReference[] {
                     new XLangStdDomainXdefRefReference(refElement, textRange, refValue)
             };
+        } //
+        else if (XDefConstants.STD_DOMAIN_DEF_TYPE.equals(stdDomain)) {
+            SourceLocation loc = XmlPsiHelper.getLocation(refElement);
+            XDefTypeDecl refDefType = XDslParseHelper.parseDefType(loc, attrName, refValue);
+
+            return getReferencesFromDefType(refElement, refValue, refDefType);
         }
 
         return null;

@@ -33,7 +33,7 @@ public class XLangXdefKeyAttrReference extends XLangReferenceBase implements Psi
 
         if (results.length == 0) {
             String msg = NopPluginBundle.message("xlang.annotation.reference.xdef-key-attr-not-found", attrValue);
-            setMessage(msg);
+            setUnresolvedMessage(msg);
         }
 
         return results.length == 1 ? results[0].getElement() : null;

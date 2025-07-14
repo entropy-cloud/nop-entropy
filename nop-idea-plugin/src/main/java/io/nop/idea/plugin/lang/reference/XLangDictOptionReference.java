@@ -92,7 +92,7 @@ public class XLangDictOptionReference extends XLangReferenceBase {
                                                        dictOptionValue,
                                                        path)
                              : NopPluginBundle.message("xlang.annotation.reference.dict-yaml-not-found", path);
-                setMessage(msg);
+                setUnresolvedMessage(msg);
             }
             return target;
         }

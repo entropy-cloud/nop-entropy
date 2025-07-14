@@ -8,6 +8,6 @@ import com.intellij.psi.PsiReference;
  */
 public interface XLangReference extends PsiReference {
 
-    /** 得到告警信息，如，文件不存在、引用目标不存在等 */
-    default String getMessage() {return null;}
+    /** {@link #resolve()} 结果为 <code>null</code> 时的消息，如，文件不存在、引用目标不存在等 */
+    default String getUnresolvedMessage() {return null;}
 }
