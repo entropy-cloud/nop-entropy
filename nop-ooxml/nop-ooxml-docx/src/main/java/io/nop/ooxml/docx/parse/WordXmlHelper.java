@@ -8,6 +8,8 @@
 package io.nop.ooxml.docx.parse;
 
 import io.nop.commons.util.IoHelper;
+import io.nop.commons.util.MathHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.ooxml.docx.model.WordOfficePackage;
@@ -52,6 +54,7 @@ public class WordXmlHelper {
             public void beginParagraph() {
                 if (sb.length() > 0)
                     sb.append('\n');
+
             }
 
             @Override
@@ -101,5 +104,10 @@ public class WordXmlHelper {
         } finally {
             IoHelper.safeCloseObject(pkg);
         }
+    }
+
+    public static String generateParaId() {
+        // 32位十六进制 (8字节)，兼容Word Online
+        return StringHelper.intToHex(MathHelper.random().nextInt());
     }
 }

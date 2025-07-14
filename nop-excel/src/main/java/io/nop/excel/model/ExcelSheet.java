@@ -35,6 +35,16 @@ public class ExcelSheet extends _ExcelSheet implements IExcelSheet, INeedInit {
         return sheet;
     }
 
+    public XptSheetModel makeModel() {
+        XptSheetModel model = getModel();
+        if (model == null) {
+            model = new XptSheetModel();
+            model.setLocation(getLocation());
+            setModel(model);
+        }
+        return model;
+    }
+
     @Override
     public void init() {
         getTable().init();

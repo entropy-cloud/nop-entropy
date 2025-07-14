@@ -98,10 +98,10 @@ public class WordTableParser {
         // 解析行高
         XNode trPrN = node.childByTag("w:trPr");
         if (trPrN != null) {
-            Integer height = ConvertHelper.toInt(trPrN.childAttr("w:gridSpan", "w:val"));
-            String heightRule = (String) trPrN.childAttr("w:trHeight", "w:hRule");
-
-            if (height != null) {
+            XNode trHeight = trPrN.childByTag("w:trHeight");
+            if (trHeight != null) {
+                Integer height = trHeight.attrInt("w:val");
+                String heightRule = trHeight.attrText("w:hRule");
                 // 如果高度规则是"exact"或"atLeast"，则设置行高
                 if ("exact".equals(heightRule) || "atLeast".equals(heightRule)) {
                     return UnitsHelper.twipsToPoints(height); // 转换为磅值
@@ -118,16 +118,20 @@ public class WordTableParser {
     protected boolean parseCell(XNode node, ExcelCell cell) {
         XNode tcPrN = node.childByTag("w:tcPr");
         if (tcPrN != null) {
-            // 处理垂直合并
-            String merge = (String) tcPrN.childAttr("w:vMerge", "w:val");
-            if ("continue".equals(merge)) {
-                return false; // 当前单元格是合并的延续部分，不需要处理
-            }
 
             // 处理水平合并
             Integer span = ConvertHelper.toInt(tcPrN.childAttr("w:gridSpan", "w:val"));
-            if (span != null && span > 1) {
+            if (span == null)
+                span = 1;
+
+            if (span > 1) {
                 cell.setMergeAcross(span - 1);
+            }
+
+            // 处理垂直合并
+            String merge = getVMerge(tcPrN);
+            if ("continue".equals(merge)) {
+                return false; // 当前单元格是合并的延续部分，不需要处理
             }
 
             // 处理垂直合并的起始单元格
@@ -152,14 +156,17 @@ public class WordTableParser {
 
                     // 检查是否是垂直合并的延续
                     if (nextTcPrN != null) {
-                        String nextMerge = (String) nextTcPrN.childAttr("w:vMerge", "w:val");
+                        String nextMerge = getVMerge(nextTcPrN);
                         if (!"continue".equals(nextMerge)) {
                             break; // 不是延续，结束合并
                         }
 
                         // 确保水平合并范围一致
                         Integer nextSpan = ConvertHelper.toInt(nextTcPrN.childAttr("w:gridSpan", "w:val"));
-                        if (nextSpan == null || nextSpan != (span != null ? span : 1)) {
+                        if (nextSpan == null)
+                            nextSpan = 1;
+
+                        if (nextSpan.intValue() != span.intValue()) {
                             break;
                         }
                     } else {
@@ -177,6 +184,14 @@ public class WordTableParser {
         String data = this.parseData(node);
         cell.setValue(data);
         return true;
+    }
+
+    private String getVMerge(XNode tcPr) {
+        String merge = (String) tcPr.childAttr("w:vMerge", "w:val");
+        if (merge == null && tcPr.hasChild("w:vMerge")) {
+            merge = "continue";
+        }
+        return merge;
     }
 
     public String getFirstCellData(XNode node) {

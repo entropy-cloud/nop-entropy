@@ -27,4 +27,13 @@ public class ExcelRow extends _ExcelRow implements IExcelRow {
         }
         return cell;
     }
+
+    public XptRowModel makeModel() {
+        XptRowModel model = getModel();
+        if (model == null) {
+            model = new XptRowModel();
+            setModel(model);
+        }
+        return model;
+    }
 }

@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Consumer;
 
-public class ExpandedRow implements IExcelRow {
+public class ExpandedRow implements IExcelRow, Iterable<ExpandedCell> {
     private XptRowModel model;
 
     /**

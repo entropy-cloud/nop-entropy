@@ -14,8 +14,8 @@ import io.nop.xlang.xpl.IXplCompiler;
 import io.nop.xlang.xpl.IXplTagCompiler;
 import io.nop.xlang.xpl.XLangParseBuffer;
 
-public class InfoTagCompiler implements IXplTagCompiler {
-    public static final InfoTagCompiler INSTANCE = new InfoTagCompiler();
+public class IgnoreTagCompiler implements IXplTagCompiler {
+    public static final IgnoreTagCompiler INSTANCE = new IgnoreTagCompiler();
 
     @Override
     public Expression parseTag(XNode node, IXplCompiler cp, IXLangCompileScope scope) {

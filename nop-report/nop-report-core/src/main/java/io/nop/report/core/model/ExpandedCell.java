@@ -104,7 +104,7 @@ public class ExpandedCell implements IExcelCell {
         return totalW;
     }
 
-    public double getCellWidthTwips(double defaultColWidth) {
+    public int getCellWidthTwips(double defaultColWidth) {
         return UnitsHelper.pointsToTwips(getCellWidth(defaultColWidth));
     }
 

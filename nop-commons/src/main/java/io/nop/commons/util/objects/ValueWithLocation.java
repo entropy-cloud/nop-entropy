@@ -38,6 +38,10 @@ public class ValueWithLocation implements Serializable, ISourceLocationGetter, I
         this.value = value;
     }
 
+    public static ValueWithLocation vl(SourceLocation loc, Object value) {
+        return of(loc, value);
+    }
+
     private Object readResolve() {
         if (value == null) {
             if (loc == null)

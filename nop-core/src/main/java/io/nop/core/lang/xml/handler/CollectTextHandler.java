@@ -21,6 +21,10 @@ public class CollectTextHandler extends XNodeHandlerAdapter {
         this.out = out;
     }
 
+    public Appendable getWriter(){
+        return out;
+    }
+
     @Override
     public void value(SourceLocation loc, Object value) {
         if (value == null)

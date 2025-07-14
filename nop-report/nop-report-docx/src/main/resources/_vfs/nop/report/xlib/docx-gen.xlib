@@ -1,0 +1,19 @@
+<lib x:schema="/nop/schema/xlib.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c">
+
+    <tags>
+        <GenXptTable macro="true">
+           <attr name="dump" stdDomain="boolean" />
+           <slot name="default" slotType="node"/>
+
+           <source>
+             <c:script><![CDATA[
+                import io.nop.report.docx.parse.XptWordTableParser;
+
+                const output = XptWordTableParser.fromCompileScope($scope).compileTable(slot_default.child(0), get('ofcPkg'),dump);
+                let ast = xpl `<c:ast>${output.generateToWriter($out.writer,$scope)}</c:ast>`;
+                return ast.replaceIdentifier('output', output);
+             ]]></c:script>
+           </source>
+        </GenXptTable>
+    </tags>
+</lib>

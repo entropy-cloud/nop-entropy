@@ -49,6 +49,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.UUID;
@@ -680,14 +681,37 @@ public class StringHelper extends ApiStringHelper {
         return d;
     }
 
+    private static final char[] HEX_DIGITS_UPPER = "0123456789ABCDEF".toCharArray();
+
+    //===== int 转十六进制（自动补零）=====
     @Deterministic
-    public static String longToHex(long value, int padLen) {
-        return leftPad(Long.toHexString(value), padLen, '0');
+    public static String intToHex(int value, int minLength) {
+        Objects.requireNonNull(minLength >= 0, "minLength must be >= 0");
+        char[] buf = new char[Math.max(8, minLength)]; // int最多8个十六进制字符
+        int pos = buf.length;
+        do {
+            buf[--pos] = HEX_DIGITS_UPPER[value & 0xF];
+            value >>>= 4;
+        } while (value != 0 || pos > 0);
+        return new String(buf);
     }
 
     @Deterministic
-    public static String intToHex(int value, int padLen) {
-        return leftPad(Integer.toHexString(value), padLen, '0');
+    public static String intToHex(int value) {
+        return intToHex(value, 8); // 默认补零到8位
+    }
+
+    //===== long 转十六进制（自动补零）=====
+    @Deterministic
+    public static String longToHex(long value, int minLength) {
+        Objects.requireNonNull(minLength >= 0, "minLength must be >= 0");
+        char[] buf = new char[Math.max(16, minLength)]; // long最多16个十六进制字符
+        int pos = buf.length;
+        do {
+            buf[--pos] = HEX_DIGITS_UPPER[(int) (value & 0xF)];
+            value >>>= 4;
+        } while (value != 0 || pos > 0);
+        return new String(buf);
     }
 
     @Deterministic

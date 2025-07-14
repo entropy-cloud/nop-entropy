@@ -108,10 +108,7 @@ public class ExcelToXptModelTransformer {
 
     private void parseCellModel(ExcelTable table, IXDefNode cellModelNode, DslXNodeToJsonTransformer transformer) {
         table.forEachRealCell((cell, rowIndex, colIndex) -> {
-            XptCellModel cellModel = new XptCellModel();
             ExcelCell ec = (ExcelCell) cell;
-            ec.setModel(cellModel);
-
             if (ec.getComment() != null) {
                 parseCellModelFromComment(ec, cellModelNode, transformer);
                 ec.setComment(null);
@@ -122,7 +119,7 @@ public class ExcelToXptModelTransformer {
     }
 
     private void parseCellModelFromComment(ExcelCell cell, IXDefNode cellModelNode, DslXNodeToJsonTransformer transformer) {
-        XptCellModel cellModel = cell.getModel();
+        XptCellModel cellModel = cell.makeModel();
 
         Map<String, ValueWithLocation> config =
                 MultiLineConfigParser.INSTANCE.parseConfig(cell.getLocation(), cell.getComment());

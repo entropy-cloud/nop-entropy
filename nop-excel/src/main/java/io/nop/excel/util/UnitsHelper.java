@@ -171,14 +171,6 @@ public class UnitsHelper {
         return points;
     }
 
-    public static int pointsToTwip(double points) {
-        return (int) points * 20;
-    }
-
-    public static double twipToPoints(int twips) {
-        return twips / 20d;
-    }
-
     public static int charactersToEMU(double characters) {
         return (int) (characters * EMU_PER_CHARACTER);
     }

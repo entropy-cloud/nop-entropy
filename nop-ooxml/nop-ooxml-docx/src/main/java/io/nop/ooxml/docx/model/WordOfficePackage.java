@@ -36,7 +36,8 @@ public class WordOfficePackage extends OfficePackage {
         return pkg;
     }
 
-    public CommentsPart getComments(String path) {
+    public CommentsPart getComments() {
+        String path = "word/comments.xml";
         IOfficePackagePart file = getFile(path);
         if (file == null)
             return null;

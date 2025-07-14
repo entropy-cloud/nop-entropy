@@ -21,6 +21,8 @@ public class XptCellModel extends _XptCellModel {
 
     }
 
+    private ExcelCell cell;
+
     private String name;
     private CellPosition cellPosition;
 
@@ -53,6 +55,14 @@ public class XptCellModel extends _XptCellModel {
 
     private ExcelCell rowParentCell;
     private ExcelCell colParentCell;
+
+    public ExcelCell getCell() {
+        return cell;
+    }
+
+    public void setCell(ExcelCell cell) {
+        this.cell = cell;
+    }
 
     public boolean isTopRowCell() {
         return getRowParent() == null || getRowParent() == CellPosition.NONE;

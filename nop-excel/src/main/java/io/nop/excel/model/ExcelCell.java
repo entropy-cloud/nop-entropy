@@ -70,6 +70,7 @@ public class ExcelCell extends _ExcelCell implements IExcelCell {
         XptCellModel model = getModel();
         if (model == null) {
             model = new XptCellModel();
+            model.setCell(this);
             setModel(model);
         }
         return model;

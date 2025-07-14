@@ -38,7 +38,7 @@ import io.nop.xlang.xpl.IXplTagLib;
 import io.nop.xlang.xpl.XLangParseBuffer;
 import io.nop.xlang.xpl.output.IXplUnknownTagCompiler;
 import io.nop.xlang.xpl.output.OutputModelHandlers;
-import io.nop.xlang.xpl.tags.InfoTagCompiler;
+import io.nop.xlang.xpl.tags.IgnoreTagCompiler;
 import io.nop.xlang.xpl.tags.InternalTagCompilers;
 import io.nop.xlang.xpl.tags.XplSlotProcessor;
 import io.nop.xlang.xpl.utils.XplParseHelper;
@@ -280,7 +280,7 @@ public class XplCompiler extends XLangExprParser implements IXplCompiler {
             }
 
             if (ns.equals(XPL_INFO_NS)) {
-                return InfoTagCompiler.INSTANCE;
+                return IgnoreTagCompiler.INSTANCE;
             }
             IXplTagCompiler tagCompiler = scope.getTagCompiler(tagName);
             if (tagCompiler != null)

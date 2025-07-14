@@ -2010,7 +2010,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         if (out instanceof IXNodeHandler) {
             process((IXNodeHandler) out);
         } else if (out instanceof WriterEvalOutput) {
-            Writer writer = ((WriterEvalOutput) out).getOut();
+            Writer writer = ((WriterEvalOutput) out).getWriter();
             try {
                 this.saveToWriter(writer);
             } catch (Exception e) {

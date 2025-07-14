@@ -64,6 +64,7 @@ public class WordTemplateParser {
             doc = config.checkDump(doc, "before-normalize");
 
             XLangCompileTool cp = config.newCompileTool();
+            cp.getScope().setLocalValue(DocxConstants.VAR_OFC_PKG, pkg);
 
             IEvalAction beforeGen = config.compileBeforeGen(cp);
 
@@ -76,13 +77,19 @@ public class WordTemplateParser {
 
             outputs.put(DocxConstants.PATH_WORD_DOCUMENT, output);
 
-            IEvalAction afterGen = config.compileBeforeGen(cp);
+            IEvalAction afterGen = config.compileAfterGen(cp);
 
-            return new WordTemplate(pkg, beforeGen, outputs, afterGen, config);
+            return buildWordTemplate(pkg, beforeGen, outputs, afterGen, config);
         } catch (Exception e) {
             IoHelper.safeClose(pkg);
             throw NopException.adapt(e);
         }
+    }
+
+    protected WordTemplate buildWordTemplate(WordOfficePackage pkg, IEvalAction beforeGen,
+                                             Map<String, ITextTemplateOutput> outputs,
+                                             IEvalAction afterGen, XplGenConfig config) {
+        return new WordTemplate(pkg, beforeGen, outputs, afterGen, config);
     }
 
     private ITextTemplateOutput compile(WordOfficePackage pkg, XplGenConfig config,

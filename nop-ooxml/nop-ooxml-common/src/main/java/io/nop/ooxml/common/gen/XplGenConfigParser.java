@@ -48,7 +48,7 @@ class XplGenConfigParser {
             if (cell == null || cell.isBlankCell())
                 continue;
 
-            String text = cell.getText();
+            String text = StringHelper.strip(cell.getText());
             String valueText = table.getCellText(i, cell.getColSpan());
 
             if (VAR_DUMP.equals(text)) {
@@ -65,7 +65,7 @@ class XplGenConfigParser {
                 ret.setAfterGen(parseXpl(valueText));
             } else if (VAR_DUMP_FILE.equals(text)) {
                 ret.setDumpFile(valueText);
-            }else if(VAR_NORMALIZE_QUOTE.equals(text)){
+            } else if (VAR_NORMALIZE_QUOTE.equals(text)) {
                 ret.setNormalizeQuote(ConvertHelper.toPrimitiveBoolean(valueText));
             } else if (VAR_DELETE_ALL_AFTER_CONFIG_TABLE.equals(text)) {
                 if (valueText != null)

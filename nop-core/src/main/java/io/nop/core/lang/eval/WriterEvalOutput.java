@@ -27,7 +27,7 @@ public class WriterEvalOutput implements IEvalOutput {
 
     }
 
-    public Writer getOut() {
+    public Writer getWriter() {
         return out;
     }
 

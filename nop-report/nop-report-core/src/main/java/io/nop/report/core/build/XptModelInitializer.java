@@ -24,7 +24,6 @@ import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelTable;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.XptCellModel;
-import io.nop.excel.model.XptRowModel;
 import io.nop.excel.model.XptSheetModel;
 import io.nop.excel.model.XptWorkbookModel;
 import io.nop.excel.model.constants.XptExpandType;
@@ -116,11 +115,7 @@ public class XptModelInitializer {
         int rowCount = table.getRowCount();
         for (int i = 0; i < rowCount; i++) {
             ExcelRow row = table.getRow(i);
-            XptRowModel model = row.getModel();
-            if (model == null) {
-                model = new XptRowModel();
-                row.setModel(model);
-            }
+            row.makeModel();
 
             for (int j = 0; j < colCount; j++) {
                 ICell cell = row.getCell(j);
@@ -134,11 +129,7 @@ public class XptModelInitializer {
                 ExcelCell ec = (ExcelCell) cell;
                 String name = CellPosition.toABString(i, j);
 
-                XptCellModel xptModel = ec.getModel();
-                if (xptModel == null) {
-                    xptModel = new XptCellModel();
-                    ec.setModel(xptModel);
-                }
+                XptCellModel xptModel = ec.makeModel();
                 xptModel.setCellPosition(CellPosition.of(i, j));
                 xptModel.setName(name);
 

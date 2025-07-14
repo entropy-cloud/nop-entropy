@@ -27,6 +27,7 @@ public class InternalTagCompilers {
         registerTagCompiler("c:iif", IifTagCompiler.INSTANCE);
         registerTagCompiler("c:import", ImportTagCompiler.INSTANCE);
         registerTagCompiler("c:include", IncludeTagCompiler.INSTANCE);
+        registerTagCompiler("c:ignore", IgnoreTagCompiler.INSTANCE);
 
         registerTagCompiler("c:log", LogTagCompiler.INSTANCE);
         registerTagCompiler("c:out", OutTagCompiler.INSTANCE);

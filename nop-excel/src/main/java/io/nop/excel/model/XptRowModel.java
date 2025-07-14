@@ -9,8 +9,8 @@ package io.nop.excel.model;
 
 import io.nop.excel.model._gen._XptRowModel;
 
-public class XptRowModel extends _XptRowModel{
-    public XptRowModel(){
+public class XptRowModel extends _XptRowModel {
+    public XptRowModel() {
 
     }
 }

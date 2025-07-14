@@ -12,7 +12,6 @@ import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.ooxml.common.OfficeConstants;
-import io.nop.ooxml.common.OfficePackage;
 import io.nop.ooxml.common.gen.XplGenConfig;
 import io.nop.ooxml.common.output.AbstractOfficeTemplate;
 import io.nop.ooxml.docx.model.WordOfficePackage;
@@ -46,6 +45,8 @@ public class WordTemplate extends AbstractOfficeTemplate {
     private final IEvalAction afterGen;
     private final XplGenConfig genConfig;
 
+    private boolean removeComments;
+
     public WordTemplate(WordOfficePackage pkg,
                         IEvalAction beforeGen,
                         Map<String, ITextTemplateOutput> outputs,
@@ -61,10 +62,14 @@ public class WordTemplate extends AbstractOfficeTemplate {
         pkg.loadInMemory();
     }
 
+    public void setRemoveComments(boolean removeComments) {
+        this.removeComments = removeComments;
+    }
+
     @Override
     public void generateToDir(File tempDir, IEvalContext context) {
         IEvalScope scope = context.getEvalScope();
-        OfficePackage copy = pkg.copy();
+        WordOfficePackage copy = pkg.copy();
         scope.setLocalValue(null, OfficeConstants.VAR_OFC_PKG, copy);
         scope.setLocalValue(null, OfficeConstants.VAR_XPL_GEN_CONFIG, genConfig);
 
@@ -77,6 +82,9 @@ public class WordTemplate extends AbstractOfficeTemplate {
 
         if (afterGen != null)
             afterGen.invoke(context);
+
+        if (removeComments)
+            copy.removeCommentsFile();
 
         copy.generateToDir(tempDir, scope);
     }
