@@ -61,7 +61,7 @@ public class ZipFileWatcher {
     }
 
     public static void main(String[] inputArgs) {
-        String[] args =  new String[]{"C:/can/nop/nop-entropy/nop-ai/nop-ai-coder/target/result/result.xlsx"};
+        String[] args =  new String[]{"C:/can/nop/nop-entropy/nop-report/nop-report-docx/target/test-result.docx"};
         NioFileWatchService watchService = new NioFileWatchService();
         watchService.start();
 

@@ -105,7 +105,7 @@ public class XptWordTableRenderer implements ITextTemplateOutput {
 
 
         int width = realCell.getCellWidthTwips(DEFAULT_WIDTH);
-        Map<String, ValueWithLocation> attrs = Map.of("w:val", ValueWithLocation.of(null, width),
+        Map<String, ValueWithLocation> attrs = Map.of("w:w", ValueWithLocation.of(null, width),
                 "w:type", ValueWithLocation.of(null, "dxa"));
         handler.simpleNode(null, "w:tcW", attrs);
 
@@ -151,7 +151,7 @@ public class XptWordTableRenderer implements ITextTemplateOutput {
 
 
         int width = cell.getCellWidthTwips(DEFAULT_WIDTH);
-        Map<String, ValueWithLocation> attrs = Map.of("w:val", ValueWithLocation.of(null, width),
+        Map<String, ValueWithLocation> attrs = Map.of("w:w", ValueWithLocation.of(null, width),
                 "w:type", ValueWithLocation.of(null, "dxa"));
         handler.simpleNode(null, "w:tcW", attrs);
 
