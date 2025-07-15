@@ -1,16 +1,46 @@
-# 使用NopReport展开算法动态生成Word表格
+# 集成NopReport动态生成Word表格
 
-## 概述
+## 背景与需求
 
-nop-ooxml-docx模块提供的Word模板插入超链接和表达式的方法功能有限，难以满足复杂表格的需求。`nop-report-docx`
-模块提供了基于NopReport中国式报表展开算法的解决方案，能够实现：
+在[如何用800行代码实现类似poi-tl的可视化Word模板](https://zhuanlan.zhihu.com/p/537439335)一文中，我们介绍了通过Word超链接嵌入扩展信息实现报表模板的方案。其核心原理是：
+
+1. 利用Nop平台内置的XML格式XPL模板语言
+2. 将Word模板中的超链接替换为XPL模板标签
+
+![](word-template/loop-demo.png)
+
+比如上面的Word模板将会被翻译为如下XPL实现
+
+```xml
+
+<orm-docx:for-each-table xpl:slotScope="table">
+  <w:tbl>
+    ...
+    <c:for var="col" items="${table.columns.subList(0,3)}">
+      <w:tr w:rsidR="00AD00A2" w14:paraId="2EAAC2A3" w14:textId="77777777" w:rsidTr="00AD00A2">
+        ...
+      </w:tr>
+    </c:for>
+  </w:tbl>
+</orm-docx:for-each-table>
+```
+
+以上设计的关键要点是，**我们完全不需要了解Office XML的样式细节，只需要在合适的地方插入循环标签、表达式标签就可以实现动态Word生成
+**。因此实现起来非常简单，只需要不到1000行代码。
+
+但是，它的缺点是功能有限，难以满足复杂表格的需求。另外一方面，Nop平台内置了一个非常强大的中国式报表引擎，可以直接使用Excel模板来定义报表，具体参见[采用Excel作为设计器的开源中国式报表引擎：NopReport](https://zhuanlan.zhihu.com/p/620250740)
+一文的介绍。
+
+那么，能不能将NopReport的能力引入Word模板，使用NopReport来动态生成Word表格呢？答案是，可以，而且实现起来非常简单。
+
+`nop-report-docx`模块提供了基于NopReport中国式报表展开算法的解决方案，能够实现：
 
 - 动态列生成
 - 自动单元格合并
 - 复杂表格布局
 - 数据分组展示
 
-## 配置指南
+## NopReport增强的Word模板配置
 
 ### 1. 启用NopReport表格展开
 
@@ -106,7 +136,7 @@ graph LR
 2. 通过AST语法树变换将编译结果传递到运行期
 3. 运行期直接使用预编译的`XptWordTableRenderer`进行渲染
 
-## 3. 报表展开和渲染
+### 3. 报表展开和渲染
 
 ```java
 public class XptWordTableRenderer implements ITextTemplateOutput {
@@ -162,5 +192,16 @@ public class XptWordTableRenderer implements ITextTemplateOutput {
 
 * XptWordTableRenderer的成员变量xptTable是解析Word表格得到的报表模型对象
 * ExpandedSheetGenerator执行报表展开算法，从ExcelSheet得到ExpandedSheet对象
-* ExpandedSheet/ExpandedCell等可以通过getModel来返回报表模型对象，在报表模型对象的扩展属性中保存了原始的Word表格样式(XNode形式)
+* ExpandedSheet/ExpandedCell等可以通过getModel来返回报表模型对象，在报表模型对象的扩展属性中保存了原始的Word表格样式(
+  XNode形式)
 * 使用保存的Word样式对象生成最终的xml文件。基本不需要了解word样式的具体结构，只需要修改其中的`w:tblW/w:gridCol`等部分节点信息。
+
+## 核心设计要点
+
+XptWordTemplate的设计充分利用Nop平台内置的各种可扩展能力，利用元编程将各种结构变换联系在一起。
+
+1. 总体实现原理并没有改变，仍然是根据Word模板中的标注信息来将WordXML转换为XPL标签。
+2. `<docx-gen:GenXptTable>`在编译期执行了一个局部结构变换，利用编译期变量来保存解析结果，不需要额外的中间变量存储机制
+3. 将Word表格解析为ExcelTable时只处理了单元格大小、合并关系等，并不需要解析单元格的样式配置，只是将Word单元格对应的XNode作为扩展属性保存在ExcelCell中。
+4. XptWordTableRenderer先调用ExpandedSheetGenerator执行报表展开算法，然后再结合保存的Word表格样式信息动态生成Word XML。
+
