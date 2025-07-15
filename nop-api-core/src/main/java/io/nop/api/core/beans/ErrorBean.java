@@ -161,6 +161,10 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
         return params != null && params.size() > 0;
     }
 
+    public boolean hasParam(String name){
+        return params != null && params.containsKey(name);
+    }
+
     @PropMeta(propId = 6)
     @JsonInclude(Include.NON_EMPTY)
     public String getErrorStack() {

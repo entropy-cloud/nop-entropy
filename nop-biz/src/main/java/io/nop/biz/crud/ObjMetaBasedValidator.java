@@ -17,6 +17,7 @@ import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.validate.IValidationErrorCollector;
+import io.nop.api.core.validate.ThrowValidationErrorCollector;
 import io.nop.auth.api.AuthApiErrors;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
@@ -85,6 +86,8 @@ public class ObjMetaBasedValidator {
 
     private final Lazy<DictBean> dictLoader;
 
+    private final IValidationErrorCollector errorCollector;
+
     public ObjMetaBasedValidator(IBizObjectManager bizObjManager, String bizObjName, IObjMeta objMeta,
                                  IServiceContext context, boolean checkWriteAuth) {
         this.bizObjectManager = bizObjManager;
@@ -93,6 +96,7 @@ public class ObjMetaBasedValidator {
         this.context = context;
         this.checkWriteAuth = checkWriteAuth;
         this.dictLoader = Lazy.of(() -> BizExprHelper.getBizExprDict(context));
+        this.errorCollector = new ThrowValidationErrorCollector().bizObjName(bizObjName);
     }
 
     public Map<String, Object> validateAndConvert(Map<String, Object> data, FieldSelectionBean selection,
@@ -301,11 +305,11 @@ public class ObjMetaBasedValidator {
     }
 
     protected void validateValue(ISchema schema, String subPropName, Object value, IObjPropMeta propMeta,
-                               IObjSchema objSchema, IEvalScope scope) {
+                                 IObjSchema objSchema, IEvalScope scope) {
         if (schema != null) {
             if (schema.isSimpleSchema()) {
                 SimpleSchemaValidator.INSTANCE.validate(schema, null, subPropName, value, scope,
-                        IValidationErrorCollector.THROW_ERROR);
+                        errorCollector);
             }
 
             if (schema.getValidator() != null) {
@@ -383,7 +387,7 @@ public class ObjMetaBasedValidator {
     }
 
     protected Object convertValue(IObjPropMeta propMeta, Object value, Map<String, Object> data,
-                                Map<String, Object> ret) {
+                                  Map<String, Object> ret) {
         // 如果指定了transformIn，则以它的转换结果为准，不再需要根据类型进行转化。transformIn的结果类型也不一定和dataType一致
         IEvalAction action = propMeta.getTransformIn();
         if (action != null) {
