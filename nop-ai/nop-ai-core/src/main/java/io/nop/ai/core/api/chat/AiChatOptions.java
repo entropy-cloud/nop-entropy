@@ -419,7 +419,7 @@ public class AiChatOptions extends ExtensibleBean {
         this.disableCache = disableCache;
     }
 
-    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public List<ToolSpecification> getTools() {
         return tools;
     }
