@@ -95,13 +95,13 @@ public class GlobalFunctions {
         return TemplateMacroImpls.xpl(scope, expr);
     }
 
-    @Description("编译并执行xpl语言片段，outputMode=html")
+    @Description("编译并执行模板表达式，表达式中通过${expr}嵌入代码")
     @Macro
     public static Expression tpl(@Name("scope") IXLangCompileScope scope, @Name("expr") CallExpression expr) {
         return TemplateMacroImpls.tpl(scope, expr);
     }
 
-    @Description("编译并执行xpl语言片段，outputMode=xml")
+    @Description("解析xml生成XNode节点")
     @Macro
     public static Expression xml(@Name("scope") IXLangCompileScope scope, @Name("expr") CallExpression expr) {
         return TemplateMacroImpls.xml(scope, expr);
