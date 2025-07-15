@@ -124,6 +124,16 @@ public class XLangTag extends XmlTagImpl {
     }
 
     /**
+     * 获取 {@link #getSchemaDefNode()} 节点的 {@link XDefKeys#VALUE xdef:value}，
+     * 即，其子节点（包括文本节点）对应的{@link XDefTypeDecl 类型}
+     */
+    public XDefTypeDecl getDefNodeXdefValue() {
+        IXDefNode defNode = getSchemaDefNode();
+
+        return defNode != null ? defNode.getXdefValue() : null;
+    }
+
+    /**
      * 获取当前标签在 xdsl.xdef 中对应的节点
      *
      * @see SchemaMeta#xdslDefNode

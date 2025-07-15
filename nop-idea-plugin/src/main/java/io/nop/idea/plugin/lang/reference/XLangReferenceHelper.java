@@ -53,19 +53,19 @@ import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_PREFIX_OPTIONS;
 public class XLangReferenceHelper {
 
     /**
-     * 根据{@link XDefTypeDecl 属性定义类型}识别引用
+     * 根据{@link XDefTypeDecl 定义类型}识别引用
      *
      * @return 若返回 <code>null</code>，则表示未支持对指定类型的处理
      */
-    public static PsiReference[] getReferencesByAttrDefType(
-            XmlElement refElement, String refValue, XDefTypeDecl attrDefType
+    public static PsiReference[] getReferencesByDefType(
+            XmlElement refElement, String refValue, XDefTypeDecl refDefType
     ) {
         // Note: 计算引用源文本（XmlAttributeValue#getText 的结果包含引号）与引用值文本之间的文本偏移量，
         // 从而精确匹配与引用相关的文本内容
         int textRangeOffset = refElement.getText().indexOf(refValue);
         TextRange textRange = new TextRange(0, refValue.length()).shiftRight(textRangeOffset);
 
-        String stdDomain = attrDefType.getStdDomain();
+        String stdDomain = refDefType.getStdDomain();
         return switch (stdDomain) {
             case STD_DOMAIN_XDEF_REF -> //
                     new PsiReference[] {
@@ -83,7 +83,7 @@ public class XLangReferenceHelper {
                     PsiClassHelper.createPackageReferences(refElement, refValue, textRangeOffset);
             case STD_DOMAIN_DICT, STD_DOMAIN_ENUM -> //
                     new PsiReference[] {
-                            new XLangDictOptionReference(refElement, textRange, attrDefType.getOptions(), refValue)
+                            new XLangDictOptionReference(refElement, textRange, refDefType.getOptions(), refValue)
                     };
             case STD_DOMAIN_XDEF_ATTR, STD_DOMAIN_DEF_TYPE -> //
                     getReferencesFromDefType(refElement, refValue, refValue);

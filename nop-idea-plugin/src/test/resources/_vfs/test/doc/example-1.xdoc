@@ -1,0 +1,9 @@
+<example xmlns:x="/nop/schema/xdsl.xdef"
+         x:schema="example.xdef"
+>
+
+    <refs><![CDATA[
+         /test/reference/test-filter.xdef,
+           /nop/schema<caret>/xdsl.xdef
+    ]]></refs>
+</example>

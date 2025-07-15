@@ -57,7 +57,7 @@ public class XLangAttributeValue extends XmlAttributeValueImpl {
         }
 
         // 根据属性定义类型，从属性值中查找引用
-        refs = XLangReferenceHelper.getReferencesByAttrDefType(this, attrValue, attrDef.getType());
+        refs = XLangReferenceHelper.getReferencesByDefType(this, attrValue, attrDef.getType());
         if (refs != null) {
             return refs;
         }
