@@ -184,6 +184,8 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
         args = removeStdStartParam(args, record);
         initArgs(wfModel.getStart(), args, NopWfCoreConstants.SYS_ACTION_START, wfRt);
 
+        saveWfParams(args, wfModel, record);
+
         // 判断是否允许执行
         if (!passConditions(wfModel.getStart(), wfRt))
             throw wfRt.newError(ERR_WF_NOT_ALLOW_START);
@@ -219,6 +221,19 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             throw wfRt.newError(ERR_WF_START_WF_FAIL);
 
         saveStarted(wfRt);
+    }
+
+    private void saveWfParams(Map<String, Object> args, WfModel wfModel, IWorkflowRecord record) {
+        if (args == null || args.isEmpty())
+            return;
+
+        Map<String, Object> params = new LinkedHashMap<>();
+        for (WfArgVarModel argModel : wfModel.getStart().getArgs()) {
+            if (args.containsKey(argModel.getName())) {
+                params.put(argModel.getName(), args.get(argModel.getName()));
+            }
+        }
+        record.setParams(params);
     }
 
     private Map<String, Object> removeStdStartParam(Map<String, Object> args, IWorkflowRecord wfRecord) {

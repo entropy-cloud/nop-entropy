@@ -13,6 +13,7 @@ import io.nop.wf.api.actor.IWfActor;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
 public interface IWorkflowRecord extends ITagSetSupport {
@@ -150,4 +151,8 @@ public interface IWorkflowRecord extends ITagSetSupport {
     void addTags(Collection<String> tags);
 
     void removeTag(String tag);
+
+    Map<String, Object> getParams();
+
+    void setParams(Map<String, Object> params);
 }

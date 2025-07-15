@@ -32,7 +32,6 @@ public class WorkflowRecordBean implements IWorkflowRecord {
 
     private String workScope;
 
-    private Map<String, Object> wfParams;
     private Integer status;
 
     private String title;
@@ -80,6 +79,18 @@ public class WorkflowRecordBean implements IWorkflowRecord {
     private Set<String> tagSet;
 
     private KeyedList<WorkflowStepRecordBean> steps = new KeyedList<>(WorkflowStepRecordBean::getStepId);
+
+    private Map<String, Object> params;
+
+    @Override
+    public Map<String, Object> getParams() {
+        return params;
+    }
+
+    @Override
+    public void setParams(Map<String, Object> params) {
+        this.params = params;
+    }
 
     public List<WorkflowStepRecordBean> getSteps() {
         return steps;
@@ -164,14 +175,6 @@ public class WorkflowRecordBean implements IWorkflowRecord {
             setLastOperatorName(null);
             setLastOperatorDeptId(null);
         }
-    }
-
-    public Map<String, Object> getWfParams() {
-        return wfParams;
-    }
-
-    public void setWfParams(Map<String, Object> wfParams) {
-        this.wfParams = wfParams;
     }
 
     public String getTitle() {

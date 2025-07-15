@@ -11,11 +11,13 @@ import io.nop.api.core.annotations.biz.BizObjName;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.TagsHelper;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.wf.api.actor.IWfActor;
 import io.nop.wf.core.store.IWorkflowRecord;
 import io.nop.wf.dao.entity._gen._NopWfInstance;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 
@@ -129,5 +131,19 @@ public class NopWfInstance extends _NopWfInstance implements IWorkflowRecord {
     @Override
     public void removeTag(String tag) {
         setTagText(TagsHelper.toString(TagsHelper.remove(getTagSet(), tag), ','));
+    }
+
+    @Override
+    public Map<String, Object> getParams() {
+        return JsonTool.parseMap(getWfParams());
+    }
+
+    @Override
+    public void setParams(Map<String, Object> params) {
+        if (params == null || params.isEmpty()) {
+            setWfParams(null);
+        } else {
+            setWfParams(JsonTool.stringify(params));
+        }
     }
 }
