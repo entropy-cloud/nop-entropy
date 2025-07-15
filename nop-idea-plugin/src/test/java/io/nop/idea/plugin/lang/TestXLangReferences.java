@@ -418,6 +418,18 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                         xdef:bean-package="io.nop.xlang.xd<caret>ef"
                                 />
                                 """, "io.nop.xlang.xdef");
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                        xdef:bean-package="io.nop.xlang.xdef.domain" xdef:name="XJso<caret>nDomainHandler"
+                                />
+                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                        xdef:name="XJso<caret>nDomainHandler"
+                                />
+                                """, null);
 
         // dict/enum 类型的值引用
         assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("xdef:default-override=\"append\"",

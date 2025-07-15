@@ -45,6 +45,23 @@ public class XLangTag extends XmlTagImpl {
     }
 
     @Override
+    public XLangTag getParentTag() {
+        return (XLangTag) super.getParentTag();
+    }
+
+    public XLangTag getRootTag() {
+        XLangTag tag = this;
+
+        do {
+            XLangTag parent = tag.getParentTag();
+            if (parent == null) {
+                return tag;
+            }
+            tag = parent;
+        } while (true);
+    }
+
+    @Override
     public void clearCaches() {
         this.schemaMeta = null;
 
@@ -133,6 +150,7 @@ public class XLangTag extends XmlTagImpl {
         return getSchemaMeta().selfDefNode;
     }
 
+    /** 获取 {@link #getSelfDefNode()} 上指定的属性 */
     public IXDefAttribute getSelfDefNodeAttr(String attrName) {
         return getXDefNodeAttr(getSelfDefNode(), attrName);
     }
@@ -171,7 +189,14 @@ public class XLangTag extends XmlTagImpl {
 
     /** 获取 {@link IXDefNode} 上指定属性的 xdef 定义 */
     private IXDefAttribute getXDefNodeAttr(IXDefNode xdefNode, String attrName) {
-        if (attrName.startsWith("xmlns:")) {
+        String xmlnsPrefix = "xmlns:";
+        if (attrName.startsWith(xmlnsPrefix)) {
+            String attrValue = getAttributeValue(attrName);
+            // 忽略 xmlns:biz="biz" 形式的属性
+            if (attrName.equals(xmlnsPrefix + attrValue)) {
+                return null;
+            }
+
             XDefAttribute at = new XDefAttribute();
             at.setName(attrName);
             at.setType(STD_DOMAIN_XDEF_REF);
@@ -243,13 +268,16 @@ public class XLangTag extends XmlTagImpl {
             } catch (ProcessCanceledException e) {
                 // Note: 若处理被中断，则保持元模型信息为空，以便于后续再重新初始化
                 schemaMeta = null;
+
+                // Note: 避免后续访问成员变量出现 NPE 问题
+                return SchemaMeta.UNKNOWN;
             }
         }
         return schemaMeta;
     }
 
     private SchemaMeta createSchemaMeta() {
-        XLangTag parentTag = (XLangTag) getParentTag();
+        XLangTag parentTag = getParentTag();
         if (parentTag == null) {
             return createSchemaMetaForRootTag(this);
         }

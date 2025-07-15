@@ -1,23 +1,34 @@
 package io.nop.idea.plugin.lang.reference;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiReference;
+import com.intellij.psi.impl.source.tree.LeafPsiElement;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlElement;
 import io.nop.commons.text.MutableString;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.type.IGenericType;
 import io.nop.idea.plugin.utils.PsiClassHelper;
+import io.nop.idea.plugin.utils.XmlPsiHelper;
+import io.nop.idea.plugin.vfs.NopVirtualFile;
 import io.nop.idea.plugin.vfs.NopVirtualFileReference;
 import io.nop.xlang.xdef.XDefTypeDecl;
+import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xdsl.XDslParseHelper;
+import org.jetbrains.yaml.psi.YAMLKeyValue;
 
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_CLASS_NAME;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_CLASS_NAME_SET;
@@ -66,8 +77,10 @@ public class XLangReferenceHelper {
                     getReferencesFromVfsPathCsv(refElement, refValue, textRangeOffset);
             case STD_DOMAIN_GENERIC_TYPE, STD_DOMAIN_GENERIC_TYPE_LIST -> //
                     getReferencesFromGenericTypeCsv(refElement, refValue, textRangeOffset);
-            case STD_DOMAIN_CLASS_NAME, STD_DOMAIN_CLASS_NAME_SET, STD_DOMAIN_PACKAGE_NAME -> //
+            case STD_DOMAIN_CLASS_NAME, STD_DOMAIN_CLASS_NAME_SET -> //
                     PsiClassHelper.createJavaClassReferences(refElement, refValue, textRangeOffset);
+            case STD_DOMAIN_PACKAGE_NAME -> //
+                    PsiClassHelper.createPackageReferences(refElement, refValue, textRangeOffset);
             case STD_DOMAIN_DICT, STD_DOMAIN_ENUM -> //
                     new PsiReference[] {
                             new XLangDictOptionReference(refElement, textRange, attrDefType.getOptions(), refValue)
@@ -117,7 +130,7 @@ public class XLangReferenceHelper {
 
         // 引用数据域的类型定义
         TextRange textRange = new TextRange(0, stdDomain.length()).shiftRight(textRangeOffset + stdDomainIndex);
-        refs.add(new XLangDictOptionReference(refElement, textRange, "core/std-domain", stdDomain));
+        refs.add(new XLangStdDomainReference(refElement, textRange, stdDomain));
 
         if (optionsIndex > 0) {
             int offset = textRangeOffset + optionsIndex;
@@ -215,6 +228,46 @@ public class XLangReferenceHelper {
         });
 
         return list.toArray(PsiReference[]::new);
+    }
+
+    public static NopVirtualFile createNopVfsForDict(
+            PsiElement refElement, String dictName, Object dictOptionValue
+    ) {
+        Project project = refElement.getProject();
+
+        Function<PsiFile, PsiElement> targetResolver = //
+                (file) -> XmlPsiHelper.findFirstElement(file, (element) -> {
+                    if (element instanceof LeafPsiElement value //
+                        && dictOptionValue.equals(value.getText()) //
+                    ) {
+                        PsiElement parent = //
+                                PsiTreeUtil.getParentOfType(element, YAMLKeyValue.class);
+                        PsiElement key = parent != null ? parent.getFirstChild() : null;
+
+                        return key != null && "value".equals(key.getText());
+                    }
+                    return false;
+                });
+
+        String path = "/dict/" + dictName + ".dict.yaml";
+
+        return new NopVirtualFile(project, path, dictOptionValue != null ? targetResolver : null);
+    }
+
+    public static List<String> getRegisteredStdDomains() {
+        StdDomainRegistry registry = StdDomainRegistry.instance();
+
+        try {
+            Field field = registry.getClass().getDeclaredField("domainHandlers");
+            field.setAccessible(true);
+
+            List<String> result = new ArrayList<>(((Map<String, ?>) field.get(registry)).keySet());
+            Collections.sort(result);
+
+            return result;
+        } catch (Exception ignore) {
+            return new ArrayList<>();
+        }
     }
 
     private static Map<TextRange, String> extractValuesFromCsv(String csv) {

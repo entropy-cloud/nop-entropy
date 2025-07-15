@@ -5,6 +5,7 @@
 <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
          xmlns:c="c" xmlns:xpl="xpl"
          x:schema="/nop/schema/xdef.xdef" x:dump="true"
+         xdef:bean-package="io.nop.xlang.xdef.domain" xdef:name="XJsonDomainHandler"
 >
     <xdef:post-parse>
         <c:script xpl:dump="true"/>

@@ -22,6 +22,10 @@ public class XLangAttribute extends XmlAttributeImpl {
         return getClass().getSimpleName() + ':' + getElementType() + "('" + getName() + "')";
     }
 
+    public XLangTag getParentTag() {
+        return (XLangTag) getParent();
+    }
+
     @Override
     public PsiReference @NotNull [] getReferences(@NotNull PsiReferenceService.Hints hints) {
         // 参考 XmlAttributeDelegate#getDefaultReferences
@@ -46,7 +50,7 @@ public class XLangAttribute extends XmlAttributeImpl {
 
     /** 获取当前属性在元模型中的定义 */
     public IXDefAttribute getDefAttr() {
-        XLangTag tag = (XLangTag) getParent();
+        XLangTag tag = getParentTag();
         if (tag == null) {
             return null;
         }

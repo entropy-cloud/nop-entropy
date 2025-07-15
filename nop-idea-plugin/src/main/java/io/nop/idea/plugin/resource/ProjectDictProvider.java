@@ -87,7 +87,7 @@ public class ProjectDictProvider implements IDictProvider {
                 options.add(option);
             }
 
-            DictBean dict = new DictBean();
+            DictBean dict = new EnumDictBean();
             dict.setOptions(options);
 
             DictModel ret = new DictModel();

@@ -27,9 +27,11 @@ public class XLangXPrototypeReference extends XLangReferenceBase {
     @Override
     public @Nullable PsiElement resolveInner() {
         XLangTag tag = PsiTreeUtil.getParentOfType(myElement, XLangTag.class);
-        assert tag != null;
+        if (tag == null) {
+            return null;
+        }
 
-        XLangTag parentTag = (XLangTag) tag.getParentTag();
+        XLangTag parentTag = tag.getParentTag();
         if (parentTag == null) {
             String msg = NopPluginBundle.message("xlang.annotation.reference.x-prototype-no-parent");
             setUnresolvedMessage(msg);

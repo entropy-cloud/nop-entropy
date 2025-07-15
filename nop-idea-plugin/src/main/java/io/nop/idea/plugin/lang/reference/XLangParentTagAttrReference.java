@@ -26,7 +26,9 @@ public class XLangParentTagAttrReference extends XLangReferenceBase {
     @Override
     public @Nullable PsiElement resolveInner() {
         XLangTag tag = PsiTreeUtil.getParentOfType(myElement, XLangTag.class);
-        assert tag != null;
+        if (tag == null) {
+            return null;
+        }
 
         XmlAttribute target = tag.getAttribute(attrValue);
 

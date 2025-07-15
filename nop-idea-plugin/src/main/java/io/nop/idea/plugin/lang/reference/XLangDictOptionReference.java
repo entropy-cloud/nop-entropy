@@ -1,23 +1,15 @@
 package io.nop.idea.plugin.lang.reference;
 
-import java.util.function.Function;
-
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.impl.source.tree.LeafPsiElement;
-import com.intellij.psi.util.PsiTreeUtil;
 import io.nop.api.core.beans.DictBean;
-import io.nop.api.core.beans.DictOptionBean;
 import io.nop.core.dict.DictProvider;
 import io.nop.idea.plugin.messages.NopPluginBundle;
+import io.nop.idea.plugin.resource.EnumDictBean;
 import io.nop.idea.plugin.resource.EnumDictOptionBean;
 import io.nop.idea.plugin.resource.ProjectEnv;
-import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFile;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.yaml.psi.YAMLKeyValue;
 
 /**
  * 对字典选项的引用
@@ -49,7 +41,7 @@ public class XLangDictOptionReference extends XLangReferenceBase {
 
     public DictBean getDictBean() {
         if (dictBean == null) {
-            dictBean = ProjectEnv.withProject(getElement().getProject(),
+            dictBean = ProjectEnv.withProject(myElement.getProject(),
                                               () -> DictProvider.instance().getDict(null, dictName, null, null));
         }
         return dictBean;
@@ -62,30 +54,25 @@ public class XLangDictOptionReference extends XLangReferenceBase {
             return null;
         }
 
-        DictOptionBean dictOpt = dictBean.getOptionByValue(dictOptionValue);
-        if (dictOpt instanceof EnumDictOptionBean opt) {
-            return opt.target;
-        } else {
-            Function<PsiFile, PsiElement> targetResolver = //
-                    (file) -> XmlPsiHelper.findFirstElement(file, (element) -> {
-                        if (element instanceof LeafPsiElement value //
-                            && dictOptionValue.equals(value.getText()) //
-                        ) {
-                            PsiElement parent = //
-                                    PsiTreeUtil.getParentOfType(element, YAMLKeyValue.class);
-                            PsiElement key = parent != null ? parent.getFirstChild() : null;
+        if (dictBean instanceof EnumDictBean) {
+            EnumDictOptionBean dictOpt = (EnumDictOptionBean) dictBean.getOptionByValue(dictOptionValue);
 
-                            return key != null && "value".equals(key.getText());
-                        }
-                        return false;
-                    });
+            if (dictOpt != null) {
+                return dictOpt.target;
+            }
 
-            Project project = getElement().getProject();
-            String path = "/dict/" + dictName + ".dict.yaml";
+            String msg = NopPluginBundle.message("xlang.annotation.reference.enum-option-not-defined",
+                                                 dictOptionValue,
+                                                 dictBean.getValues());
+            setUnresolvedMessage(msg);
 
-            NopVirtualFile target = new NopVirtualFile(project, path, dictOptionValue != null ? targetResolver : null);
+            return null;
+        } //
+        else {
+            NopVirtualFile target = XLangReferenceHelper.createNopVfsForDict(myElement, dictName, dictOptionValue);
 
             if (target.hasEmptyChildren()) {
+                String path = target.getPath();
                 String msg = dictOptionValue != null
                              //
                              ? NopPluginBundle.message("xlang.annotation.reference.dict-option-not-defined",
@@ -93,6 +80,8 @@ public class XLangDictOptionReference extends XLangReferenceBase {
                                                        path)
                              : NopPluginBundle.message("xlang.annotation.reference.dict-yaml-not-found", path);
                 setUnresolvedMessage(msg);
+
+                return null;
             }
             return target;
         }

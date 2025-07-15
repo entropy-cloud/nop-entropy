@@ -42,7 +42,9 @@ public class XLangXdefKeyAttrReference extends XLangReferenceBase implements Psi
     @Override
     public ResolveResult @NotNull [] multiResolve(boolean incompleteCode) {
         XLangTag tag = PsiTreeUtil.getParentOfType(myElement, XLangTag.class);
-        assert tag != null;
+        if (tag == null) {
+            return ResolveResult.EMPTY_ARRAY;
+        }
 
         return XmlPsiHelper.getAttrsFromChildTag(tag, attrValue).stream() //
                            .map(PsiElementResolveResult::new) //

@@ -36,6 +36,7 @@ import com.intellij.psi.PsiTypes;
 import com.intellij.psi.PsiWildcardType;
 import com.intellij.psi.impl.source.resolve.reference.impl.providers.JavaClassReferenceProvider;
 import com.intellij.psi.impl.source.resolve.reference.impl.providers.JavaClassReferenceSet;
+import com.intellij.psi.impl.source.resolve.reference.impl.providers.PackageReferenceSet;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.search.searches.ClassInheritorsSearch;
 import com.intellij.psi.util.PsiUtil;
@@ -100,6 +101,14 @@ public class PsiClassHelper {
                                                                  javaClassRefProvider);
 
         return refSet.getReferences();
+    }
+
+    public static PsiReference @NotNull [] createPackageReferences(
+            PsiElement element, String qualifiedName, int startInElement
+    ) {
+        PackageReferenceSet refSet = new PackageReferenceSet(qualifiedName, element, startInElement);
+
+        return refSet.getPsiReferences();
     }
 
     /** 得到 {@link PsiType} 对应的 {@link PsiClass} */
