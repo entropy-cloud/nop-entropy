@@ -1,0 +1,5 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:task="task"
+      xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
+      xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
+      x:extends="/nop/task/lib/common.task.xml">
+</task>

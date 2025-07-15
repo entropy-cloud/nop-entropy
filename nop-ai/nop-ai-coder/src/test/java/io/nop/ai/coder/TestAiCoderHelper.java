@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.List;
 
 import static io.nop.xlang.XLangErrors.ERR_XDSL_UNKNOWN_PROP;
@@ -55,7 +56,7 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
 
     @Test
     public void parseAllPrompts() {
-        List<? extends IResource> resources = VirtualFileSystem.instance().getChildren("/nop/ai/prompts/coder");
+        Collection<? extends IResource> resources = VirtualFileSystem.instance().getAllResources("/nop/ai/prompts","prompt.yaml");
         for (IResource resource : resources) {
             if (resource.getName().endsWith(".prompt.yaml")) {
                 promptTemplateManager.loadPromptTemplateFromPath(resource.getPath());
@@ -65,7 +66,7 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
 
     @Test
     public void parseAllTasks() {
-        List<? extends IResource> resources = VirtualFileSystem.instance().findAll("/nop/ai/tasks", ".task.xml");
+        Collection<? extends IResource> resources = VirtualFileSystem.instance().getAllResources("/nop/ai/tasks", ".task.xml");
         for (IResource resource : resources) {
             taskFlowManager.loadTaskFromPath(resource.getStdPath());
         }

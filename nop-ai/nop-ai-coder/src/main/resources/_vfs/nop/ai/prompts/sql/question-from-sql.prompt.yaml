@@ -1,0 +1,13 @@
+displayName: SQL逆向业务问题生成
+template: |
+  【任务目标】
+  你会收到一条SQL语句，请你推测其背后的业务问题。只需用中文精炼描述问题本身，不提及表名，无需解释。
+  
+  【SQL语句】
+  {{sql}}
+
+inputs:
+  - name: sql
+
+outputs:
+  - name: RESULT

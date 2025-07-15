@@ -1,0 +1,25 @@
+displayName: 问题重写/串联
+template: |
+  【任务目标】
+  你的任务是将下面两个问题合成为一个更具体的新问题。如果第二个问题独立、与第一个无关，则直接返回第二个问题。只输出最终的新问题，无需解释，且需可用一条SQL语句回答。
+  
+  【第一个问题】
+  {{lastQuestion}}
+
+  【第二个问题】
+  {{newQuestion}}
+
+  【返回格式】
+  ```xml
+  <rewrite>string</rewrite>
+  ```
+
+inputs:
+  - name: lastQuestion
+  - name: newQuestion
+
+outputs:
+  - name: RESULT
+    parseFromResponse:
+      blockStartMarker: "<rewrite>"
+      blockEndMarker: '</rewrite>'

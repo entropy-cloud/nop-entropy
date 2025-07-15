@@ -1,0 +1,33 @@
+displayName: SQL生成
+template: |
+  【任务目标】
+  你是一名经验丰富的SQL生成助手。请根据用户提出的问题，综合参考相关SQL示例、数据库表结构、文档说明，生成能正确解答的标准SQL语句。只输出SQL，无需任何解释。
+  
+  【用户问题】
+  {{question}}
+  
+  【相关SQL示例】
+  {{examples}}
+
+  【数据库表结构】
+  {{ddls}}
+
+  【相关说明文档】
+  {{docs}}
+
+  【输出格式】
+  ```xml
+  <sql><![CDATA[sql-clause]]</sql>
+  ```
+
+inputs:
+  - name: question
+  - name: examples
+  - name: ddls
+  - name: docs
+
+outputs:
+  - name: RESULT
+    parseFromResponse:
+      blockStartMarker: "<sql><![CDATA["
+      blockEndMarker: ']]></sql>'

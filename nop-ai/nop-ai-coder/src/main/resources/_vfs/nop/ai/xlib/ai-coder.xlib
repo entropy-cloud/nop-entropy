@@ -160,8 +160,11 @@
             <attr name="inputDir" optional="true"/>
 
             <source>
-                const resource = ResourceHelper.resolveResourceInDir(outputDir, fileName);
-                return loadDslModel(resource.path);
+                import io.nop.core.resource.ResourceHelper;
+                import  io.nop.xlang.xdsl.DslModelHelper;
+
+                const resource = ResourceHelper.resolveResourceInDir(inputDir, fileName);
+                return  DslModelHelper.loadDslModel(resource.path);
             </source>
         </LoadDslModel>
 

@@ -1,0 +1,17 @@
+displayName: 数据总结
+template: |
+  【任务目标】
+  你是一名智能数据分析助手。用Markdown格式简明扼要地总结与问题相关的数据要点。只需结论，无需解释
+  
+  【用户问题】
+  {{question}}
+  
+  【数据结果】
+  {{context}}
+
+inputs:
+  - name: question
+  - name: context
+
+outputs:
+  - name: RESULT

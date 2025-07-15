@@ -269,6 +269,8 @@ switch(贵公司很有钱吗()){
 }
 ```
 
+关于第三方依赖的版权声明，详见NOTICE文件。
+
 ## 技术支持
 
 使用中遇到问题或者BUG可以在[Gitee上提Issues](https://gitee.com/canonical-entropy/nop-entropy/issues)，或者[在GitCode上提Issues](https://gitcode.com/canonical-entropy/nop-entropy/issues)

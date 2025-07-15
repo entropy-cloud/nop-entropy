@@ -15,7 +15,7 @@
     <steps>
         <step name="loadDslModel" customType="ai-coder:LoadDslModel">
             <input name="fileName" value="${modelPath}"/>
-            <input name="modelDir" value="${modelDir}"/>
+            <input name="inputDir" value="${modelDir}"/>
 
             <output name="RESULT" exportAs="dslModel"/>
         </step>
@@ -31,6 +31,7 @@
         <step name="saveTestData" customType="file-utils:WriteText">
             <input name="fileName" value="${testDataFileName}"/>
             <input name="outputDir"/>
+            <input name="text" value="${testData}"/>
         </step>
 
     </steps>
