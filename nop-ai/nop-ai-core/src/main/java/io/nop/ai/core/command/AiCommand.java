@@ -406,7 +406,7 @@ public class AiCommand {
             for (int i = 0; i < toolResults.size(); i++) {
                 CallToolResult result = toolResults.get(i).toCompletableFuture().join();
                 ToolResponseMessage message = new ToolResponseMessage();
-                message.setResponses(ret.getResponses().get(i));
+                //message.setResponses(ret.getResponse().get(i));
                 prompt.getMessages().add(message);
             }
             return executeWithTools(stepIndex, prompt, options, scope, cancelToken);
