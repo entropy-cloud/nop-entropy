@@ -44,48 +44,26 @@ public class XLangAttribute extends XmlAttributeImpl {
         return ref0 != null ? new PsiReference[] { ref0, ref1 } : new PsiReference[] { ref1 };
     }
 
-    /** 获取当前属性的 xdef 定义 */
-    public IXDefAttribute getXDefAttr() {
+    /** 获取当前属性在元模型中的定义 */
+    public IXDefAttribute getDefAttr() {
         XLangTag tag = (XLangTag) getParent();
         if (tag == null) {
             return null;
         }
 
-        // - 对于声明属性（定义属性名及其类型），从其自身（*.xdef）中取其定义
-        // - 对于赋值属性（为具体属性赋予相应类型的值），从其 x:schema 中取其定义
-        // - 对于名字空间对应 xdsl.xdef 和 xdef.xdef 的属性，则分别从这两个元模型中取属性定义
-        IXDefAttribute attrDef;
-
         String ns = getNamespacePrefix();
         String attrName = getName();
-        boolean hasXDefNs = !ns.isEmpty() && ns.equals(tag.getXDefKeys().NS);
         boolean hasXDslNs = !ns.isEmpty() && ns.equals(tag.getXDslKeys().NS);
 
+        IXDefAttribute attrDef;
         // 取 xdsl.xdef 中声明的属性
         if (hasXDslNs) {
             attrDef = tag.getXDslDefNodeAttr(attrName);
         } //
-        else if (tag.isInXDef()) {
-            // 取 xdef.xdef 中声明的属性
-            if (hasXDefNs) {
-                attrDef = tag.getXDefNodeAttr(attrName);
-            }
-            // 取自身声明的属性
-            else {
-                attrDef = tag.getSelfDefNodeAttr(attrName);
-            }
-        } else {
-            attrDef = tag.getXDefNodeAttr(attrName);
+        else {
+            attrDef = tag.getSchemaDefNodeAttr(attrName);
         }
 
         return attrDef;
-    }
-
-    /** 是否为声明属性（定义属性名及其类型） */
-    public boolean isDeclaredDefAttr(IXDefAttribute attr) {
-        String attrName = getName();
-        XLangTag tag = (XLangTag) getParent();
-
-        return tag != null && attr == tag.getSelfDefNodeAttr(attrName);
     }
 }

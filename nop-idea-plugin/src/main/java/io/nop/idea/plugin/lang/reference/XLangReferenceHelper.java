@@ -5,23 +5,33 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.xml.XmlElement;
-import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.text.MutableString;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.type.IGenericType;
 import io.nop.idea.plugin.utils.PsiClassHelper;
-import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFileReference;
-import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdsl.XDslParseHelper;
 
+import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_CLASS_NAME;
+import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_CLASS_NAME_SET;
+import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_DEF_TYPE;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_DICT;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_ENUM;
+import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_GENERIC_TYPE;
+import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_GENERIC_TYPE_LIST;
+import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_NAME_OR_V_PATH;
+import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_PACKAGE_NAME;
+import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_V_PATH;
+import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_V_PATH_LIST;
+import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_XDEF_ATTR;
+import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_XDEF_REF;
 import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_ATTR_PREFIX;
 import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_PREFIX_OPTIONS;
 
@@ -32,61 +42,76 @@ import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_PREFIX_OPTIONS;
 public class XLangReferenceHelper {
 
     /**
-     * 根据数据域类型识别引用
+     * 根据{@link XDefTypeDecl 属性定义类型}识别引用
      *
      * @return 若返回 <code>null</code>，则表示未支持对指定类型的处理
      */
-    public static PsiReference[] getReferencesByStdDomain(
-            XmlElement refElement, String attrName, String refValue, String stdDomain
+    public static PsiReference[] getReferencesByAttrDefType(
+            XmlElement refElement, String refValue, XDefTypeDecl attrDefType
     ) {
         // Note: 计算引用源文本（XmlAttributeValue#getText 的结果包含引号）与引用值文本之间的文本偏移量，
         // 从而精确匹配与引用相关的文本内容
         int textRangeOffset = refElement.getText().indexOf(refValue);
         TextRange textRange = new TextRange(0, refValue.length()).shiftRight(textRangeOffset);
 
-        if (XDefConstants.STD_DOMAIN_V_PATH.equals(stdDomain) //
-            || XDefConstants.STD_DOMAIN_NAME_OR_V_PATH.equals(stdDomain) //
-        ) {
-            return getReferencesByVfsPath(refElement, refValue, textRange);
-        } //
-        else if (XDefConstants.STD_DOMAIN_V_PATH_LIST.equals(stdDomain)) {
-            return getReferencesFromVfsPathCsv(refElement, refValue, textRangeOffset);
-        } //
-        else if (XDefConstants.STD_DOMAIN_XDEF_REF.equals(stdDomain)) {
-            return new PsiReference[] {
-                    new XLangStdDomainXdefRefReference(refElement, textRange, refValue)
-            };
-        } //
-        else if (XDefConstants.STD_DOMAIN_DEF_TYPE.equals(stdDomain)) {
-            SourceLocation loc = XmlPsiHelper.getLocation(refElement);
-            XDefTypeDecl refDefType = XDslParseHelper.parseDefType(loc, attrName, refValue);
-
-            return getReferencesFromDefType(refElement, refValue, refDefType);
-        }
-
-        return null;
+        String stdDomain = attrDefType.getStdDomain();
+        return switch (stdDomain) {
+            case STD_DOMAIN_XDEF_REF -> //
+                    new PsiReference[] {
+                            new XLangStdDomainXdefRefReference(refElement, textRange, refValue)
+                    };
+            case STD_DOMAIN_V_PATH, STD_DOMAIN_NAME_OR_V_PATH -> //
+                    getReferencesByVfsPath(refElement, refValue, textRange);
+            case STD_DOMAIN_V_PATH_LIST -> //
+                    getReferencesFromVfsPathCsv(refElement, refValue, textRangeOffset);
+            case STD_DOMAIN_GENERIC_TYPE, STD_DOMAIN_GENERIC_TYPE_LIST -> //
+                    getReferencesFromGenericTypeCsv(refElement, refValue, textRangeOffset);
+            case STD_DOMAIN_CLASS_NAME, STD_DOMAIN_CLASS_NAME_SET, STD_DOMAIN_PACKAGE_NAME -> //
+                    PsiClassHelper.createJavaClassReferences(refElement, refValue, textRangeOffset);
+            case STD_DOMAIN_DICT, STD_DOMAIN_ENUM -> //
+                    new PsiReference[] {
+                            new XLangDictOptionReference(refElement, textRange, attrDefType.getOptions(), refValue)
+                    };
+            case STD_DOMAIN_XDEF_ATTR, STD_DOMAIN_DEF_TYPE -> //
+                    getReferencesFromDefType(refElement, refValue, refValue);
+            default -> null;
+        };
     }
 
-    /** 根据属性的类型定义文本识别引用 */
+    /** 根据属性的类型定义识别引用 */
     public static PsiReference[] getReferencesFromDefType(
-            XmlElement refElement, String refValue, XDefTypeDecl refDefType
+            XmlElement refElement, String refValue, String refDefTypeText
     ) {
+        XDefTypeDecl refDefType;
+        try {
+            refDefType = XDslParseHelper.parseDefType(null, null, refDefTypeText);
+        } catch (Exception ignore) {
+            return PsiReference.EMPTY_ARRAY;
+        }
+
         // (!~#)?{stdDomain}(:{options})?(={defaultValue})?
         String stdDomain = refDefType.getStdDomain();
         String options = refDefType.getOptions();
-        Object defaultValue = refDefType.getDefaultValue();
+        String defaultValue = Objects.toString(refDefType.getDefaultValue(), null);
         List<String> defaultAttrNames = refDefType.getDefaultAttrNames();
 
         // Note: 计算引用源文本（XmlAttributeValue#getText 的结果包含引号）与引用值文本之间的文本偏移量，
         // 从而精确匹配与引用相关的文本内容
         int textRangeOffset = refElement.getText().indexOf(refValue);
 
-        int stdDomainIndex = refValue.indexOf(stdDomain);
-        int optionsIndex = options != null ? refValue.indexOf(XDEF_TYPE_PREFIX_OPTIONS + options) + 1 : -1;
-        int defaultValueIndex = defaultValue != null ? refValue.indexOf("=" + defaultValue) + 1 : -1;
-        int defaultAttrNamesIndex = defaultAttrNames != null ? refValue.indexOf('=' + XDEF_TYPE_ATTR_PREFIX)
-                                                               + 1
-                                                               + XDEF_TYPE_ATTR_PREFIX.length() : -1;
+        int indexOffset = 0;
+        int stdDomainIndex = refValue.indexOf(stdDomain, indexOffset);
+
+        indexOffset = stdDomainIndex + stdDomain.length();
+        int optionsIndex = options != null ? refValue.indexOf(XDEF_TYPE_PREFIX_OPTIONS + options, indexOffset) + 1 : -1;
+
+        indexOffset = optionsIndex + (options != null ? options.length() : 1);
+        int defaultValueIndex = defaultValue != null ? refValue.indexOf('=' + defaultValue, indexOffset) + 1 : -1;
+        int defaultAttrNamesIndex = defaultAttrNames != null //
+                                    ? refValue.indexOf('=' + XDEF_TYPE_ATTR_PREFIX, indexOffset)
+                                      + 1
+                                      + XDEF_TYPE_ATTR_PREFIX.length() //
+                                    : -1;
 
         List<PsiReference> refs = new ArrayList<>();
 
@@ -113,8 +138,8 @@ public class XLangReferenceHelper {
 
         // 引用字典/枚举值
         if (defaultValueIndex > 0) {
-            textRange = new TextRange(0, defaultValue.toString().length()).shiftRight(textRangeOffset
-                                                                                      + defaultValueIndex);
+            textRange = new TextRange(0, defaultValue.length()).shiftRight(textRangeOffset + defaultValueIndex);
+
             refs.add(new XLangDictOptionReference(refElement, textRange, options, defaultValue));
         }
 
@@ -137,12 +162,12 @@ public class XLangReferenceHelper {
     public static PsiReference[] getReferencesFromVfsPathCsv(
             XmlElement refElement, String refValue, int textRangeOffset
     ) {
-        Map<TextRange, String> rangePathMap = extractValuesFromCsv(refValue);
+        Map<TextRange, String> rangeMap = extractValuesFromCsv(refValue);
 
-        List<PsiReference> list = new ArrayList<>(rangePathMap.size());
-        rangePathMap.forEach((textRange, path) -> {
+        List<PsiReference> list = new ArrayList<>(rangeMap.size());
+        rangeMap.forEach((textRange, value) -> {
             TextRange range = textRange.shiftRight(textRangeOffset);
-            PsiReference[] refs = getReferencesByVfsPath(refElement, path, range);
+            PsiReference[] refs = getReferencesByVfsPath(refElement, value, range);
 
             Collections.addAll(list, refs);
         });
@@ -173,6 +198,23 @@ public class XLangReferenceHelper {
         return new PsiReference[] {
                 new NopVirtualFileReference(refElement, textRange, path)
         };
+    }
+
+    /** 从 csv 文本中识别对 {@link IGenericType} 的引用 */
+    public static PsiReference[] getReferencesFromGenericTypeCsv(
+            XmlElement refElement, String refValue, int textRangeOffset
+    ) {
+        Map<TextRange, String> rangeMap = extractValuesFromCsv(refValue);
+
+        List<PsiReference> list = new ArrayList<>(rangeMap.size());
+        rangeMap.forEach((textRange, value) -> {
+            TextRange range = textRange.shiftRight(textRangeOffset);
+            PsiReference ref = new XLangStdDomainGenericTypeReference(refElement, range, value);
+
+            list.add(ref);
+        });
+
+        return list.toArray(PsiReference[]::new);
     }
 
     private static Map<TextRange, String> extractValuesFromCsv(String csv) {

@@ -40,31 +40,17 @@ public class XLangAttributeValue extends XmlAttributeValueImpl {
         }
 
         String attrName = attr.getName();
-        IXDefAttribute attrDef = attr.getXDefAttr();
+        IXDefAttribute attrDef = attr.getDefAttr();
         // 对于未定义属性，不做引用识别
         if (attrDef == null) {
             return PsiReference.EMPTY_ARRAY;
-        }
-
-        XDefTypeDecl attrDefType = attrDef.getType();
-        // 对于声明属性（定义属性名及其类型），仅对其类型的定义（涉及枚举和字典）做引用识别
-        if (attr.isDeclaredDefAttr(attrDef)) {
-            return XLangReferenceHelper.getReferencesFromDefType(this, attrValue, attrDefType);
-        }
-
-        // 根据属性的类型，对属性值做文件/名字引用
-        PsiReference[] refs = XLangReferenceHelper.getReferencesByStdDomain(this,
-                                                                            attrName,
-                                                                            attrValue,
-                                                                            attrDefType.getStdDomain());
-        if (refs != null) {
-            return refs;
         }
 
         XLangTag tag = (XLangTag) attr.getParent();
         XDslKeys xdslKeys = tag.getXDslKeys();
         XDefKeys xdefKeys = tag.getXDefKeys();
 
+        // 根据属性名，从属性值中查找引用
         // Note: XmlAttributeValue 的文本范围是包含引号的
         TextRange attrValueTextRange = getValueTextRange().shiftLeft(getStartOffset());
         if (xdslKeys.PROTOTYPE.equals(attrName)) {
@@ -77,10 +63,19 @@ public class XLangAttributeValue extends XmlAttributeValueImpl {
                     new XLangXdefKeyAttrReference(this, attrValueTextRange, attrValue)
             };
         } //
-        else if (xdefKeys.UNIQUE_ATTR.equals(attrName)) {
+        else if (xdefKeys.UNIQUE_ATTR.equals(attrName) //
+                 || xdefKeys.ORDER_ATTR.equals(attrName) //
+        ) {
             return new PsiReference[] {
                     new XLangParentTagAttrReference(this, attrValueTextRange, attrValue)
             };
+        }
+
+        // 根据属性定义类型，从属性值中查找引用
+        XDefTypeDecl attrDefType = attrDef.getType();
+        PsiReference[] refs = XLangReferenceHelper.getReferencesByAttrDefType(this, attrValue, attrDefType);
+        if (refs != null) {
+            return refs;
         }
 
         // TODO 其他引用识别

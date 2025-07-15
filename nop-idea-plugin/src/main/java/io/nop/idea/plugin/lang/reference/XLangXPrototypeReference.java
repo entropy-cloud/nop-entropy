@@ -39,8 +39,8 @@ public class XLangXPrototypeReference extends XLangReferenceBase {
 
         // 仅从父节点中取引用到的子节点
         // io.nop.xlang.delta.DeltaMerger#mergePrototype
-        IXDefNode defNode = tag.getXDefNode();
-        IXDefNode parentDefNode = parentTag.getXDefNode();
+        IXDefNode defNode = tag.getSchemaDefNode();
+        IXDefNode parentDefNode = parentTag.getSchemaDefNode();
 
         String keyAttr = parentDefNode.getXdefKeyAttr();
         if (keyAttr == null) {

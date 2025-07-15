@@ -67,8 +67,7 @@ public class XDefPsiHelper {
         String ns = XmlPsiHelper.getXmlnsForUrl(rootTag, XDslConstants.XDSL_SCHEMA_XDSL);
 
         if (ns == null) {
-            String prefix = XDslKeys.DEFAULT.X_NS_PREFIX;
-            ns = prefix.substring(0, prefix.length() - 1);
+            ns = XDslKeys.DEFAULT.NS;
         }
         return ns;
     }

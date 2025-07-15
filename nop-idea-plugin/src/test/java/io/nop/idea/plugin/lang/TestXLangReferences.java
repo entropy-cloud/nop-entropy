@@ -4,6 +4,7 @@ import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiPackage;
 import com.intellij.psi.PsiPlainText;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.impl.source.tree.LeafPsiElement;
@@ -36,46 +37,87 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
     }
 
     public void testAttributeReferences() {
-        // xdef.xdef 中的引用识别
+        // xdef.xdef 属性的交叉定义识别
+        // - 名字空间引用其自身
         assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"name\"",
                                                                          "me<caret>ta:unique-attr=\"name\""), "meta");
-        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unique-attr=\"name\"",
-                                                                         "meta:unique<caret>-attr=\"name\""),
-                        "/nop/schema/xdef.xdef?meta:define#xdef:unique-attr=xml-name");
-
-        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:prop name=\"!xml-name\"",
-                                                                         "<xdef:prop na<caret>me=\"!xml-name\""),
-                        "xdef:prop#name=!xml-name");
         assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:define xdef:name=\"!var-name\"",
                                                                          "<xdef:define xd<caret>ef:name=\"!var-name\""),
                         "xdef");
+        // - 以 meta 为名字空间的属性（含 meta:unknown-attr）由对应的 xdef:xxx 定义
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unknown-attr=\"!xdef-attr\"",
+                                                                         "meta:unknown<caret>-attr=\"!xdef-attr\""),
+                        "/nop/schema/xdef.xdef?meta:define#xdef:unknown-attr=def-type");
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("meta:bean-tag-prop=\"tagName\"",
+                                                                         "meta:bean-<caret>tag-prop=\"tagName\""),
+                        "/nop/schema/xdef.xdef?meta:define#xdef:bean-tag-prop=prop-name");
+        // - 全部以 xdef 为名字空间的属性均由 meta:unknown-attr 定义
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("xdef:unknown-attr=\"def-type\"",
+                                                                         "xdef:unknown<caret>-attr=\"def-type\""),
+                        "/nop/schema/xdef.xdef?meta:define#meta:unknown-attr=!xdef-attr");
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("xdef:unique-attr=\"xml-name\"",
+                                                                         "xdef:unique<caret>-attr=\"xml-name\""),
+                        "/nop/schema/xdef.xdef?meta:define#meta:unknown-attr=!xdef-attr");
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("xdef:ref=\"xdef-ref\"",
+                                                                         "xdef:r<caret>ef=\"xdef-ref\""),
+                        "/nop/schema/xdef.xdef?meta:define#meta:unknown-attr=!xdef-attr");
+        // - xdef 或 meta 名字空间的节点属性，也满足以上规则
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<meta:unknown-tag meta:ref=\"XDefNode\"/>",
+                                                                         "<meta:unknown-tag meta:re<caret>f=\"XDefNode\"/>"),
+                        "/nop/schema/xdef.xdef?meta:define#xdef:ref=xdef-ref");
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:unknown-tag meta:ref=\"XDefNode\"/>",
+                                                                         "<xdef:unknown-tag meta:re<caret>f=\"XDefNode\"/>"),
+                        "/nop/schema/xdef.xdef?meta:define#xdef:ref=xdef-ref");
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:prop name=\"!xml-name\"",
+                                                                         "<xdef:prop na<caret>me=\"!xml-name\""),
+                        "/nop/schema/xdef.xdef?meta:define#meta:unknown-attr=!xdef-attr");
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("meta:unknown-attr=\"string\"",
+                                                                         "meta:unkn<caret>own-attr=\"string\""),
+                        "/nop/schema/xdef.xdef?meta:define#xdef:unknown-attr=def-type");
         assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:define xdef:name=\"!var-name\"",
                                                                          "<xdef:define xdef:n<caret>ame=\"!var-name\""),
-                        "xdef:define#xdef:name=!var-name");
+                        "/nop/schema/xdef.xdef?meta:define#meta:unknown-attr=!xdef-attr");
         assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<meta:define meta:name=\"XDefNode\"",
                                                                          "<meta:define meta:na<caret>me=\"XDefNode\""),
                         "/nop/schema/xdef.xdef?meta:define#xdef:name=var-name");
 
-        // xdsl.xdef 中的引用识别
+        // xdsl.xdef 中的属性定义识别
+        // - 交叉识别
         assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("xdsl:schema=", "xdsl:sch<caret>ema="),
                         "/nop/schema/xdsl.xdef?xdef:unknown-tag#x:schema=v-path");
+        // - 普通定义
         assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("x:schema=\"v-path\"",
                                                                          "x:sch<caret>ema=\"v-path\""),
-                        "xdef:unknown-tag#x:schema=v-path");
+                        "/nop/schema/xdef.xdef?meta:define#xdef:unknown-attr=def-type");
         assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("xdef:allow-multiple=\"true\"",
                                                                          "xdef:allow-<caret>multiple=\"true\""),
                         "/nop/schema/xdef.xdef?meta:define#xdef:allow-multiple=boolean");
         assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("x:key-attr=\"xml-name\"",
                                                                          "x:key<caret>-attr=\"xml-name\""),
-                        "xdef:unknown-tag#x:key-attr=xml-name");
+                        "/nop/schema/xdef.xdef?meta:define#xdef:unknown-attr=def-type");
+        assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("<x:gen-extends xdef:value=\"xpl-node\"/>",
+                                                                         "<x:gen-extends xdef:va<caret>lue=\"xpl-node\"/>"),
+                        "/nop/schema/xdef.xdef?meta:define#xdef:value=def-type");
+        assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("<x:super xdef:internal=\"true\"/>",
+                                                                         "<x:super xdef:int<caret>ernal=\"true\"/>"),
+                        "/nop/schema/xdef.xdef?meta:define#xdef:internal=boolean");
 
-        //
+        // 普通 xdef 的属性定义识别
         assertReference(readVfsResource("/test/doc/example.xdef").replace("<child name=\"string\"",
                                                                           "<child na<caret>me=\"string\""),
-                        "child#name=string");
+                        "/nop/schema/xdef.xdef?meta:define#xdef:unknown-attr=def-type");
+        assertReference(readVfsResource("/test/doc/example.xdef").replace("x:dump", "x:du<caret>mp"),
+                        "/nop/schema/xdsl.xdef?xdef:unknown-tag#x:dump=boolean");
         assertReference(readVfsResource("/test/doc/example.xdef").replace("xpl:dump", "xpl:du<caret>mp"),
                         "/nop/schema/xpl.xdef?xdef:define#xpl:dump=boolean");
 
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef"
+                                         x:schema="/test/doc/example.xdef"
+                                >
+                                    <child type="leaf" x:abst<caret>ract="true"/>
+                                </example>
+                                """, "/nop/schema/xdsl.xdef?xdef:unknown-tag#x:abstract=boolean");
         assertReference("""
                                 <example xmlns:x="/nop/schema/xdsl.xdef"
                                          x:schema="/test/doc/example.xdef"
@@ -355,6 +397,40 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                 <dialog page="/test/reference/de<caret>fault.xform" />
                                 """, null);
 
+        // generic-type、class-name、package-name 类型的值引用
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-body-type="st<caret>ring"/>
+                                </example>
+                                """, "java.lang.String");
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop xdef:bean-class="io.nop.xui.initialize.VueNode<caret>StdDomainHandler"/>
+                                </example>
+                                """, "io.nop.xui.initialize.VueNodeStdDomainHandler");
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                        xdef:bean-package="io.nop.xlang.xd<caret>ef"
+                                />
+                                """, "io.nop.xlang.xdef");
+
+        // dict/enum 类型的值引用
+        assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("xdef:default-override=\"append\"",
+                                                                         "xdef:default-override=\"app<caret>end\""), //
+                        "io.nop.xlang.xdef.XDefOverride#APPEND");
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef"
+                                         x:schema="/test/doc/example.xdef"
+                                >
+                                    <child type="l<caret>eaf"/>
+                                </example>
+                                """, "/dict/test/doc/child-type.dict.yaml#leaf");
+
         // x:schema 指定的 *.xdef 不存在，使得 DSL 的元模型未定义，导致模型属性未知，其引用将无法识别
         // - *.xdef 不存在
         assertReference("""
@@ -376,8 +452,13 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
 //                                """, "/test/reference/a.xlib");
     }
 
-    public void testAttributeValueTypeReferences() {
-        // 声明属性将 引用 属性的类型定义
+    public void testAttributeValueDefTypeReferences() {
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace(
+                                "xdef:default-override=\"enum:io.nop.xlang.xdef.XDefOverride\"",
+                                "xdef:default-override=\"enum:io.nop.xlang.xdef.XDe<caret>fOverride\""),
+                        "io.nop.xlang.xdef.XDefOverride");
+
+        // 引用字典中定义的数据域
         assertReference("""
                                 <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
                                          x:schema="/nop/schema/xdef.xdef"
@@ -385,16 +466,6 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                     <node xdef:value="v-<caret>path"/>
                                 </example>
                                 """, "/dict/core/std-domain.dict.yaml#v-path");
-//        // TODO 暂时无法通过分析 class 字节码得到可注册的数据域
-//        assertReference("""
-//                                <example xmlns:x="/nop/schema/xdsl.xdef"
-//                                         x:schema="/nop/schema/xdef.xdef"
-//                                >
-//                                    <node type="x<caret>json"/>
-//                                </example>
-//                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
-
-        // - 引用字典中定义的数据域
         assertReference("""
                                 <example xmlns:x="/nop/schema/xdsl.xdef"
                                          x:schema="/nop/schema/xdef.xdef"
@@ -551,6 +622,9 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         } //
         else if (target instanceof PsiClass cls) {
             return cls.getQualifiedName();
+        } //
+        else if (target instanceof PsiPackage pkg) {
+            return pkg.getQualifiedName();
         } //
         else if (target instanceof PsiField field) {
             return field.getContainingClass().getQualifiedName() + "#" + field.getName();

@@ -16,9 +16,7 @@ import io.nop.xlang.xdef.IXDefAttribute;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 对属性定义的引用
- * <p/>
- * 指向属性的定义位置
+ * 对属性定义的引用：指向属性的定义位置
  *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-07-10
@@ -32,14 +30,9 @@ public class XLangDefAttrReference extends XLangReferenceBase {
     @Override
     public @Nullable PsiElement resolveInner() {
         XLangAttribute attr = (XLangAttribute) myElement;
-        IXDefAttribute attrDef = attr.getXDefAttr();
+        IXDefAttribute attrDef = attr.getDefAttr();
         if (attrDef == null) {
             return null;
-        }
-
-        // 若为声明属性（定义属性名及其类型），则直接返回
-        if (attr.isDeclaredDefAttr(attrDef)) {
-            return attr;
         }
 
         SourceLocation loc = attrDef.getLocation();
@@ -47,7 +40,7 @@ public class XLangDefAttrReference extends XLangReferenceBase {
             return null;
         }
 
-        Project project = getElement().getProject();
+        Project project = myElement.getProject();
         // Note: SourceLocation#getPath() 得到的 jar 中的 vfs 路径会添加 classpath:_vfs 前缀
         String path = loc.getPath().replace("classpath:_vfs", "");
 
@@ -57,8 +50,9 @@ public class XLangDefAttrReference extends XLangReferenceBase {
             if (target == null) {
                 target = XmlPsiHelper.getPsiElementAt(file, loc, XmlTag.class);
 
-                if (target instanceof XmlTag t) {
-                    target = t.getAttribute(attrDef.getName());
+                if (target instanceof XmlTag tag) {
+                    // Note: 在交叉定义时，属性定义中的属性名字与当前属性名字是不相同的
+                    target = tag.getAttribute(attrDef.getName());
                 }
             }
             return target;
