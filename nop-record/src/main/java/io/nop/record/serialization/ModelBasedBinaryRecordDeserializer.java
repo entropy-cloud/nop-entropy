@@ -74,12 +74,14 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
 
     @Override
     protected Object readField0(IBinaryDataReader in, RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
+        int length = getFieldLength(in, field, record, context);
+
         IFieldBinaryCodec codec = resolveBinaryCodec(field, registry);
         if (codec != null) {
-            Object value = codec.decode(in, record, field.getLength(), context, this);
+            Object value = codec.decode(in, record, length, context, this);
             return value;
         } else {
-            String str = decodeString(in, field.getCharsetObj(), field.getLength());
+            String str = decodeString(in, field.getCharsetObj(), length);
             if (field.getContent() != null) {
                 if (!field.getContent().utf8().equals(str))
                     throw new NopException(ERR_RECORD_VALUE_NOT_MATCH_STRING)

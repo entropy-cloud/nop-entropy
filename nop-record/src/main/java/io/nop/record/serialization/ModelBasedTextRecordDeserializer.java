@@ -71,12 +71,14 @@ public class ModelBasedTextRecordDeserializer extends AbstractModelBasedRecordDe
     @Override
     protected Object readField0(ITextDataReader in, RecordSimpleFieldMeta field,
                                 Object record, IFieldCodecContext context) throws IOException {
+        int length = getFieldLength(in, field, record, context);
+
         IFieldTextCodec decoder = resolveTextCodec(field, registry);
         if (decoder != null) {
-            Object value = decoder.decode(in, record, field.getLength(), context, this);
+            Object value = decoder.decode(in, record, length, context, this);
             return value;
         } else {
-            String str = in.read(field.getLength());
+            String str = in.read(length);
             if (field.getContent() != null) {
                 if (!field.getContent().utf8().equals(str))
                     throw new NopException(ERR_RECORD_VALUE_NOT_MATCH_STRING)

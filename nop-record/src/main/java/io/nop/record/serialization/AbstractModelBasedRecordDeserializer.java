@@ -116,6 +116,18 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
         return true;
     }
 
+    protected int getFieldLength(Input in, RecordSimpleFieldMeta field, Object record, IFieldCodecContext context) {
+        int length = field.getLength();
+        if (field.getLengthExpr() != null) {
+            Object lengthValue = field.getLengthExpr().call3(null, in, record, context, context.getEvalScope());
+
+            length = ConvertHelper.toPrimitiveInt(lengthValue,
+                    field.getLength(),
+                    err -> new NopException(err).param(ARG_FIELD_NAME, field.getName()).param(ARG_FIELD_PATH, context.getFieldPath()));
+        }
+        return length;
+    }
+
     protected void readCollection(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
         Collection<Object> coll = (Collection<Object>) BeanTool.makeComplexProperty(record, field.getPropOrFieldName(), ArrayList::new);
         IEvalFunction repeatUntil = field.getRepeatUntil();
@@ -125,7 +137,10 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
                 coll.add(value);
             }
         } else if (field.getRepeatKind() == FieldRepeatKind.fixed) {
-            Input subInput = (Input) in.subInput(field.getLength());
+            int length = getFieldLength(in, field, record, context);
+
+            Input subInput = length > 0 ? (Input) in.subInput(length) : in;
+
             do {
                 Object value = readSwitch(subInput, field, coll, context);
                 if (value == null)
