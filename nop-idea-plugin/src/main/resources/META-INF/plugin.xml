@@ -107,11 +107,11 @@
 
         <!-- XLang Script 注册与解析 -->
         <languageInjector implementation="io.nop.idea.plugin.lang.XLangScriptLanguageInjector"/>
-        <!--<fileType name="XLang Script"
+        <fileType name="XLang Script"
                   language="XLangScript"
                   implementationClass="io.nop.idea.plugin.lang.script.XLangScriptFileType"
                   fieldName="INSTANCE"
-                  extensions="xlangscript"/>-->
+                  extensions="xlangscript"/>
         <lang.parserDefinition language="XLangScript"
                                implementationClass="io.nop.idea.plugin.lang.script.XLangScriptParserDefinition"/>
         <lang.syntaxHighlighter language="XLangScript"
