@@ -12,7 +12,22 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * CDATA 节点（{@link com.intellij.psi.xml.XmlElementType#XML_CDATA XML_CDATA}）中的全部文本，
- * 或者 {@link XLangText} 节点中的非空白文本
+ * 或者 {@link XLangText} 节点中的非空白文本：
+ * <pre>
+ * XLangText:XML_TEXT
+ *   PsiElement(XML_CDATA)
+ *     XmlToken:XML_CDATA_START('<![CDATA[')
+ *     XLangTextToken:XML_DATA_CHARACTERS('\n        abc\n    ')
+ *     XmlToken:XML_CDATA_END(']]>')
+ * </pre>
+ * <pre>
+ * XLangText:XML_TEXT
+ *   PsiWhiteSpace('\n        ')
+ *   XLangTextToken:XML_DATA_CHARACTERS('abc')
+ *   PsiWhiteSpace('\n        ')
+ *   XLangTextToken:XML_DATA_CHARACTERS('def')
+ *   PsiWhiteSpace('\n    ')
+ * </pre>
  *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-07-09

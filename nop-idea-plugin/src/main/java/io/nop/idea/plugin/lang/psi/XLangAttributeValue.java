@@ -16,7 +16,15 @@ import io.nop.xlang.xdsl.XDslKeys;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * 属性值，由引号和 {@link XLangValueToken} 组成
+ * 属性值，由引号和 {@link XLangValueToken} 组成：
+ * <pre>
+ * XLangAttributeValue
+ *   XmlToken:XML_ATTRIBUTE_VALUE_START_DELIMITER('"')
+ *   XLangValueToken:XML_ATTRIBUTE_VALUE_TOKEN('Child ')
+ *   XmlToken:XML_CHAR_ENTITY_REF('&amp;amp;')
+ *   XLangValueToken:XML_ATTRIBUTE_VALUE_TOKEN(' Tag')
+ *   XmlToken:XML_ATTRIBUTE_VALUE_END_DELIMITER('"')
+ * </pre>
  *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-07-09

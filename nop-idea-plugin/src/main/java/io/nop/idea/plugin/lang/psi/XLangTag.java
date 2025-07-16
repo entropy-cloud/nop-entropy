@@ -18,12 +18,16 @@ import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefKeys;
 import io.nop.xlang.xdef.XDefTypeDecl;
+import io.nop.xlang.xdef.domain.StdDomainRegistry;
 import io.nop.xlang.xdef.impl.XDefAttribute;
 import io.nop.xlang.xdef.parse.XDefTypeDeclParser;
 import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xpl.xlib.XlibConstants;
 import org.jetbrains.annotations.NotNull;
+
+import static com.intellij.psi.xml.XmlElementType.XML_TAG;
+import static com.intellij.psi.xml.XmlElementType.XML_TEXT;
 
 /**
  * {@link XNode} 标签（其名字含名字空间）
@@ -45,6 +49,13 @@ public class XLangTag extends XmlTagImpl {
     }
 
     @Override
+    public void clearCaches() {
+        this.schemaMeta = null;
+
+        super.clearCaches();
+    }
+
+    @Override
     public XLangTag getParentTag() {
         return (XLangTag) super.getParentTag();
     }
@@ -61,11 +72,16 @@ public class XLangTag extends XmlTagImpl {
         } while (true);
     }
 
-    @Override
-    public void clearCaches() {
-        this.schemaMeta = null;
+    /** 当前标签是否有子标签 */
+    public boolean hasChildTag() {
+        return getNode().findChildByType(XML_TAG) != null;
+    }
 
-        super.clearCaches();
+    /** 获取当前标签内的文本内容（特殊符号已转义） */
+    public @NotNull String getBodyText() {
+        XLangText text = (XLangText) findPsiChildByType(XML_TEXT);
+
+        return text != null ? text.getTextChars() : "";
     }
 
     @Override
@@ -160,11 +176,6 @@ public class XLangTag extends XmlTagImpl {
         return getSchemaMeta().selfDefNode;
     }
 
-    /** 获取 {@link #getSelfDefNode()} 上指定的属性 */
-    public IXDefAttribute getSelfDefNodeAttr(String attrName) {
-        return getXDefNodeAttr(getSelfDefNode(), attrName);
-    }
-
     /** @see SchemaMeta#xdefKeys */
     public XDefKeys getXDefKeys() {
         return getSchemaMeta().xdefKeys;
@@ -195,6 +206,45 @@ public class XLangTag extends XmlTagImpl {
         return def != null //
                && def.getXdefCheckNs().contains(XDslKeys.DEFAULT.NS) //
                && !XDslKeys.DEFAULT.equals(xdslKeys);
+    }
+
+    /** 当前标签是否允许拥有子标签 */
+    public boolean isAllowedChildTag() {
+        IXDefNode defNode = getSchemaDefNode();
+        if (defNode == null) {
+            return false;
+        } else if (defNode.hasChild()) {
+            return true;
+        }
+
+        return isXdefValueSupportBody();
+    }
+
+    /** 当前标签的 {@link #getDefNodeXdefValue() xdef:value} 类型是否支持内嵌节点 */
+    public boolean isXdefValueSupportBody() {
+        XDefTypeDecl xdefValue = getDefNodeXdefValue();
+
+        return xdefValue != null && xdefValue.isSupportBody(StdDomainRegistry.instance());
+    }
+
+    /**
+     * 当前标签是否为可被允许的未知标签
+     * <p/>
+     * 仅当前标签包含自定义名字空间，且 {@link #getSchemaDef()} 的
+     * {@link IXDefinition#getXdefCheckNs() xdef:check-ns}
+     * 不包含该名字空间时，该标签才是被许可的
+     */
+    public boolean isAllowedUnknownTag() {
+        String name = getName();
+        IXDefinition def = getSchemaDef();
+        String ns = StringHelper.getNamespace(name);
+
+        if (def == null || ns == null) {
+            return false;
+        }
+
+        return def.getXdefCheckNs() == null //
+               || !def.getXdefCheckNs().contains(ns);
     }
 
     /** 获取 {@link IXDefNode} 上指定属性的 xdef 定义 */

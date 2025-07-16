@@ -6,6 +6,7 @@
          xmlns:c="c" xmlns:xpl="xpl"
          x:schema="/nop/schema/xdef.xdef" x:dump="true"
          xdef:bean-package="io.nop.xlang.xdef.domain" xdef:name="XJsonDomainHandler"
+         xdef:check-ns="xui"
 >
     <xdef:post-parse>
         <c:script xpl:dump="true"/>
@@ -21,6 +22,9 @@
     <refs xdef:value="v-path-list"/>
 
     <var com="!var-name=@attr:name,type" name="var-name" type="!string"/>
+
+    <tag-no-child/>
+    <tag-allow-child xdef:value="xml"/>
 
     <!-- Any child node
 

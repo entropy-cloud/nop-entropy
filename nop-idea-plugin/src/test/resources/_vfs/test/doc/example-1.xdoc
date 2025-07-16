@@ -1,9 +1,26 @@
 <example xmlns:x="/nop/schema/xdsl.xdef"
+         xmlns:xui="xui" xmlns:xx="xx"
          x:schema="example.xdef"
 >
 
     <refs><![CDATA[
          /test/reference/test-filter.xdef,
-           /nop/schema<caret>/xdsl.xdef
+           /nop/schema/xdsl.xdef
     ]]></refs>
+
+    <xui:invalid/>
+    <tag-no-child>
+        <def/>
+        <unknown value="abc">
+        </unknown>
+        <xx:valid value="ddd"/>
+        <xui:invalid/>
+        <xui:def value="def"/>  
+    </tag-no-child>
+
+    <tag-allow-child>
+        <abc/>
+        <xx:def value="def"/>
+        <xui:abc/>
+    </tag-allow-child>
 </example>

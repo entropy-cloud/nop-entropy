@@ -14,7 +14,7 @@ public class TestXLangParser extends BaseXLangPluginTestCase {
                               <example xmlns:x="/nop/schema/xdsl.xdef"
                                        x:schema="/path/to/example.xdef"
                               >
-                                  <tag name="Child"/>
+                                  <tag name="Child &amp; Tag"/>
                                   <refs>/nop/schema/xdef.xdef,/nop/schema/xdsl.xdef</refs>
                                   <refs>
                                       /nop/schema/xdef.xdef,
@@ -24,7 +24,7 @@ public class TestXLangParser extends BaseXLangPluginTestCase {
                                       This is CDATA text.
                                   ]]></text>
                                   <mix>
-                                      This is a text.
+                                      This is a &lt;text/&gt; node.
                                       <tag>
                                           This is a child tag.
                                       </tag>

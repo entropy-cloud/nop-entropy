@@ -240,16 +240,6 @@ public class XmlPsiHelper {
         return SourceLocation.fromLine(path, sourceLine, sourceColumn, len);
     }
 
-    private static PsiElement getRootElement(PsiElement element) {
-        do {
-            PsiElement parent = element.getParent();
-            if (parent == null) {
-                return element;
-            }
-            element = parent;
-        } while (true);
-    }
-
     public static String getAttrName(XmlAttributeValue value) {
         if (value == null) {
             return null;
@@ -261,23 +251,6 @@ public class XmlPsiHelper {
 
         XmlAttribute attr = (XmlAttribute) value.getParent();
         return attr.getName();
-    }
-
-    public static XmlAttribute getAttr(XmlAttributeValue value) {
-        if (value == null) {
-            return null;
-        }
-
-        if (!(value.getParent() instanceof XmlAttribute)) {
-            return null;
-        }
-
-        XmlAttribute attr = (XmlAttribute) value.getParent();
-        return attr;
-    }
-
-    public static boolean hasChild(XmlTag tag) {
-        return tag.getNode().findChildByType(XmlElementType.XML_TAG) != null;
     }
 
     public static boolean isInComment(PsiElement element) {

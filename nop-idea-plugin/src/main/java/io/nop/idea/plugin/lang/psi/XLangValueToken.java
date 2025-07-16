@@ -5,7 +5,13 @@ import com.intellij.psi.tree.IElementType;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * {@link XLangAttributeValue} 中不含引号的部分
+ * {@link XLangAttributeValue} 中不含引号的部分：
+ * <pre>
+ * XLangAttributeValue
+ *   XmlToken:XML_ATTRIBUTE_VALUE_START_DELIMITER('"')
+ *   XLangValueToken:XML_ATTRIBUTE_VALUE_TOKEN('/nop/schema/xdsl.xdef')
+ *   XmlToken:XML_ATTRIBUTE_VALUE_END_DELIMITER('"')
+ * </pre>
  *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-07-09
