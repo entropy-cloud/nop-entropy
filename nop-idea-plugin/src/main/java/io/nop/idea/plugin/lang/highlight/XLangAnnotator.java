@@ -187,7 +187,12 @@ public class XLangAnnotator implements Annotator {
         if (!blankBodyText) {
             SourceLocation loc = XmlPsiHelper.getValueLocation(tag);
 
-            checkStdDomain(holder, textRange, xdefValue.getStdDomain(), loc, "body", bodyText);
+            String stdDomain = xdefValue.getStdDomain();
+            if (tag.isXlibSourceNode()) {
+                stdDomain = "xpl";
+            }
+
+            checkStdDomain(holder, textRange, stdDomain, loc, "body", bodyText);
         }
     }
 

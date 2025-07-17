@@ -38,12 +38,12 @@ public class XLangTagReference extends XLangReferenceBase {
         XLangTag tag = (XLangTag) myElement;
         IXDefNode defNode = tag.getSchemaDefNode();
 
-        SourceLocation loc = defNode != null ? defNode.getLocation() : null;
-        String path = XmlPsiHelper.getNopVfsPath(loc);
+        String path = XmlPsiHelper.getNopVfsPath(defNode);
         if (path == null) {
             return null;
         }
 
+        SourceLocation loc = defNode.getLocation();
         Function<PsiFile, PsiElement> targetResolver = (file) -> XmlPsiHelper.getPsiElementAt(file, loc, XmlTag.class);
 
         return new NopVirtualFile(myElement, path, targetResolver);

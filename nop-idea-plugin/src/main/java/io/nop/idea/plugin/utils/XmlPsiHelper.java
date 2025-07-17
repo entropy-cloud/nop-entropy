@@ -35,6 +35,7 @@ import com.intellij.psi.xml.XmlAttributeValue;
 import com.intellij.psi.xml.XmlElementType;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.psi.xml.XmlTokenType;
+import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.ResourceHelper;
@@ -43,7 +44,8 @@ import org.jetbrains.annotations.NotNull;
 
 public class XmlPsiHelper {
 
-    public static String getNopVfsPath(SourceLocation loc) {
+    public static String getNopVfsPath(ISourceLocationGetter locGetter) {
+        SourceLocation loc = locGetter != null ? locGetter.getLocation() : null;
         String path = loc != null ? loc.getPath() : null;
 
         // Note: SourceLocation#getPath() 得到的 jar 中的 vfs 路径会添加 classpath:_vfs 前缀

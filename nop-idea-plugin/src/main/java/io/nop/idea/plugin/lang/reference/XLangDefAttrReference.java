@@ -42,12 +42,12 @@ public class XLangDefAttrReference extends XLangReferenceBase {
             return null;
         }
 
-        SourceLocation loc = attrDef.getLocation();
-        String path = XmlPsiHelper.getNopVfsPath(loc);
+        String path = XmlPsiHelper.getNopVfsPath(attrDef);
         if (path == null) {
             return null;
         }
 
+        SourceLocation loc = attrDef.getLocation();
         Function<PsiFile, PsiElement> targetResolver = (file) -> {
             PsiElement target = XmlPsiHelper.getPsiElementAt(file, loc, XmlAttribute.class);
 

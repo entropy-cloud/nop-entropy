@@ -12,11 +12,10 @@ import com.intellij.lang.Language;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.InjectedLanguagePlaces;
 import com.intellij.psi.LanguageInjector;
-import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiLanguageInjectionHost;
-import com.intellij.psi.xml.XmlTag;
-import com.intellij.psi.xml.XmlText;
 import io.nop.commons.util.StringHelper;
+import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.lang.psi.XLangText;
 import io.nop.idea.plugin.lang.script.XLangScriptLanguage;
 import org.jetbrains.annotations.NotNull;
 
@@ -37,16 +36,12 @@ public class XLangScriptLanguageInjector implements LanguageInjector {
     public void getLanguagesToInject(
             @NotNull PsiLanguageInjectionHost host, @NotNull InjectedLanguagePlaces registrar
     ) {
-        if (!(host instanceof XmlText)) {
-            return;
-        }
-
-        PsiElement parent = host.getParent();
-        if (!(parent instanceof XmlTag tag)) {
-            return;
-        }
-
-        if (!"c:script".equals(tag.getName())) {
+        // 针对仅包含文本内容的 Xpl 类型节点（xdef:value=xpl*）
+        if (!(host instanceof XLangText) //
+            || !(host.getParent() instanceof XLangTag tag) //
+            || !tag.isXplDefNode() //
+            || tag.hasChildTag() //
+        ) {
             return;
         }
 

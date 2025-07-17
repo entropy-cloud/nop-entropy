@@ -130,6 +130,33 @@ public class TestXLangScriptCompletions extends BaseXLangPluginTestCase {
                                            </tags>
                                        </lib>
                                        """);
+        assertCompletionInXLib("""
+                                       <lib xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"
+                                            x:schema="/nop/schema/xlib.xdef">
+                                           <tags>
+                                               <DoTest>
+                                                   <source>
+                                                       import io.nop.xlang.xdef.domain.XJsonDomainHandler;
+                                                       const handler = new XJsonDomainHandler();
+                                                       handler.getN<caret>();
+                                                   </source>
+                                               </DoTest>
+                                           </tags>
+                                       </lib>
+                                       """, """
+                                       <lib xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"
+                                            x:schema="/nop/schema/xlib.xdef">
+                                           <tags>
+                                               <DoTest>
+                                                   <source>
+                                                       import io.nop.xlang.xdef.domain.XJsonDomainHandler;
+                                                       const handler = new XJsonDomainHandler();
+                                                       handler.getName();
+                                                   </source>
+                                               </DoTest>
+                                           </tags>
+                                       </lib>
+                                       """);
     }
 
     /** 需确保仅有唯一一项自动填充项：匹配是模糊匹配，需增加输入长度才能做唯一匹配 */

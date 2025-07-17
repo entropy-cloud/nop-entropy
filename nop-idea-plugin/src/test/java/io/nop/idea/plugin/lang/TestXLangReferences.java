@@ -142,32 +142,56 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
     }
 
     public void testXplReferences() {
+        // xlib 中的 source 标签内的引用
         assertReference("""
-                                <view xmlns:x="/nop/schema/xdsl.xdef"
-                                      x:schema="/nop/schema/xui/xview.xdef"
-                                      xmlns:a="a" xmlns:xpl="xpl"
+                                <lib xmlns:x="/nop/schema/xdsl.xdef"
+                                     x:schema="/nop/schema/xlib.xdef"
                                 >
-                                      <x:gen-extends>
-                                          <c:imp<caret>ort from="/test/reference/a.xlib"/>
-                                      </x:gen-extends>
-                                </view>
-                                """, "");
+                                    <tags>
+                                        <Call>
+                                            <source></so<caret>urce>
+                                        </Call>
+                                    </tags>
+                                </lib>
+                                """, "/nop/schema/xlib.xdef?source");
         assertReference("""
-                                <view xmlns:x="/nop/schema/xdsl.xdef"
-                                      x:schema="/nop/schema/xui/xview.xdef"
-                                      xmlns:a="a" xmlns:xpl="xpl"
+                                <lib xmlns:x="/nop/schema/xdsl.xdef"
+                                     x:schema="/nop/schema/xlib.xdef"
                                 >
-                                      <x:gen-extends>
-                                          <c:script></c:scr<caret>ipt>
-                                      </x:gen-extends>
-                                </view>
-                                """, "");
+                                    <tags>
+                                        <Call>
+                                            <source>
+                                                <a<caret>bc xpl:if="true"/>
+                                            </source>
+                                        </Call>
+                                    </tags>
+                                </lib>
+                                """, "/nop/schema/xpl.xdef?xdef:unknown-tag");
+
+//        // TODO xpl 节点内引用内置的 xpl 标签函数
+//        assertReference("""
+//                                <view xmlns:x="/nop/schema/xdsl.xdef"
+//                                      x:schema="/nop/schema/xui/xview.xdef"
+//                                >
+//                                      <x:gen-extends>
+//                                          <c:imp<caret>ort from="/test/reference/a.xlib"/>
+//                                      </x:gen-extends>
+//                                </view>
+//                                """, "");
+//        assertReference("""
+//                                <view xmlns:x="/nop/schema/xdsl.xdef"
+//                                      x:schema="/nop/schema/xui/xview.xdef"
+//                                >
+//                                      <x:gen-extends>
+//                                          <c:script></c:scr<caret>ipt>
+//                                      </x:gen-extends>
+//                                </view>
+//                                """, "");
 
         // 通过 xpl:lib 导入 xlib
         assertReference("""
                                 <view xmlns:x="/nop/schema/xdsl.xdef"
                                       x:schema="/nop/schema/xui/xview.xdef"
-                                      xmlns:a="a" xmlns:xpl="xpl"
                                 >
                                       <x:gen-extends>
                                           <a:DoFind<caret>ByMdxQuery xpl:lib="/test/reference/a.xlib"/>
@@ -177,7 +201,6 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         assertReference("""
                                 <view xmlns:x="/nop/schema/xdsl.xdef"
                                       x:schema="/nop/schema/xui/xview.xdef"
-                                      xmlns:a="a" xmlns:xpl="xpl"
                                 >
                                       <x:gen-extends>
                                           <a:DoFindByMdxQuery met<caret>hod="post" xpl:lib="/test/reference/a.xlib"/>
@@ -189,7 +212,6 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         assertReference("""
                                 <view xmlns:x="/nop/schema/xdsl.xdef"
                                       x:schema="/nop/schema/xui/xview.xdef"
-                                      xmlns:a="a" xmlns:xpl="xpl"
                                 >
                                       <x:gen-extends>
                                           <c:import from="/test/reference/a.xlib"/>
@@ -200,7 +222,6 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         assertReference("""
                                 <view xmlns:x="/nop/schema/xdsl.xdef"
                                       x:schema="/nop/schema/xui/xview.xdef"
-                                      xmlns:a="a" xmlns:xpl="xpl"
                                 >
                                       <x:gen-extends>
                                           <c:import from="/test/reference/a.xlib"/>
@@ -211,7 +232,6 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         assertReference("""
                                 <view xmlns:x="/nop/schema/xdsl.xdef"
                                       x:schema="/nop/schema/xui/xview.xdef"
-                                      xmlns:a="a" xmlns:xpl="xpl"
                                 >
                                       <x:gen-extends>
                                           <c:import as="gen" from="/test/reference/a.xlib"/>
@@ -222,7 +242,6 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         assertReference("""
                                 <view xmlns:x="/nop/schema/xdsl.xdef"
                                       x:schema="/nop/schema/xui/xview.xdef"
-                                      xmlns:a="a" xmlns:xpl="xpl"
                                 >
                                       <x:gen-extends>
                                           <c:import as="gen" from="/test/reference/a.xlib"/>

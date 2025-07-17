@@ -2,8 +2,14 @@
      x:schema="/nop/schema/xlib.xdef"
 >
     <tags>
-        <Get/>
         <NewGet x:prototype="Get"/>
+        <Get>
+            <source>
+                import io.nop.commons.util.StringHelper;
+
+                StringHelper.escapeXml('abc');
+            </source>
+        </Get>
 
         <DoFindByMdxQuery>
             <attr name="method" type="String"/>
