@@ -1,25 +1,43 @@
 package io.nop.ooxml.markdown;
 
+import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.excel.model.ExcelTable;
 import io.nop.markdown.simple.MarkdownDocument;
 import io.nop.markdown.simple.MarkdownSection;
 import io.nop.markdown.simple.TableToMarkdownConverter;
+import io.nop.ooxml.common.model.ImageUrlMapper;
+import io.nop.ooxml.common.model.RelsImageUrlMapper;
+import io.nop.ooxml.docx.DocxConstants;
+import io.nop.ooxml.docx.model.WordOfficePackage;
 import io.nop.ooxml.docx.parse.WordTableParser;
 import io.nop.ooxml.docx.parse.WordXmlHelper;
 
 import java.util.Stack;
 
 public class DocxToMarkdownConverter {
+
     public MarkdownDocument convertFromResource(IResource resource) {
-
-        XNode doc = WordXmlHelper.loadDocxXml(resource);
-
-        return convertFromNode(doc);
+        return convertFromResource(resource, null);
     }
 
-    public MarkdownDocument convertFromNode(XNode node) {
+    public MarkdownDocument convertFromResource(IResource resource, String imageBaseUrl) {
+
+        WordOfficePackage pkg = new WordOfficePackage();
+        try {
+            pkg.loadFromResource(resource);
+
+            XNode doc = pkg.getWordXml();
+
+            ImageUrlMapper urlMapper = new RelsImageUrlMapper(pkg.getRels(DocxConstants.PATH_WORD_DOCUMENT), imageBaseUrl);
+            return convertFromNode(doc, urlMapper);
+        } finally {
+            IoHelper.safeCloseObject(pkg);
+        }
+    }
+
+    public MarkdownDocument convertFromNode(XNode node, ImageUrlMapper urlMapper) {
         MarkdownDocument doc = new MarkdownDocument();
         XNode bodyNode = node.childByTag("w:body");
         if (bodyNode == null)
@@ -37,13 +55,13 @@ public class DocxToMarkdownConverter {
         for (XNode child : bodyNode.getChildren()) {
             if ("w:p".equals(child.getTagName())) {
                 ParagraphInfo paraInfo = getParagraphInfo(child);
-                handleParagraph(child, sectionStack, currentText, paraInfo, currentListLevel);
+                handleParagraph(child, urlMapper, sectionStack, currentText, paraInfo, currentListLevel);
             } else if ("w:tbl".equals(child.getTagName())) {
                 // 处理表格前重置列表状态
                 if (currentListLevel[0] != -1) {
                     currentListLevel[0] = -1;
                 }
-                handleTable(child, currentText);
+                handleTable(child, currentText, urlMapper);
             }
         }
 
@@ -55,7 +73,7 @@ public class DocxToMarkdownConverter {
     }
 
     // 修改：增加paraInfo和currentListLevel参数
-    private void handleParagraph(XNode paraNode, Stack<MarkdownSection> sectionStack,
+    private void handleParagraph(XNode paraNode, ImageUrlMapper urlMapper, Stack<MarkdownSection> sectionStack,
                                  StringBuilder currentText, ParagraphInfo paraInfo,
                                  int[] currentListLevel) {
         switch (paraInfo.type) {
@@ -65,12 +83,12 @@ public class DocxToMarkdownConverter {
                 if (currentText.length() > 0) {
                     appendTextToCurrentSection(sectionStack.peek(), currentText);
                 }
-                createNewSection(paraNode, sectionStack);
+                createNewSection(paraNode, urlMapper, sectionStack);
                 break;
 
             case LIST_ITEM:
                 // 列表项处理
-                handleListItem(paraNode, currentText, paraInfo.listInfo, currentListLevel);
+                handleListItem(paraNode, urlMapper, currentText, paraInfo.listInfo, currentListLevel);
                 break;
 
             default:
@@ -78,7 +96,7 @@ public class DocxToMarkdownConverter {
                 if (currentListLevel[0] != -1) {
                     currentListLevel[0] = -1;
                 }
-                String text = extractParagraphText(paraNode);
+                String text = extractParagraphText(paraNode, urlMapper);
                 if (!text.isEmpty()) {
                     if (currentText.length() > 0) {
                         currentText.append("\n\n");
@@ -87,9 +105,8 @@ public class DocxToMarkdownConverter {
                 }
         }
     }
-
-    // 新增：专门处理列表项
-    private void handleListItem(XNode paraNode, StringBuilder currentText,
+    private void handleListItem(XNode paraNode, ImageUrlMapper urlMapper,
+                                StringBuilder currentText,
                                 ListInfo listInfo, int[] currentListLevel) {
         int newLevel = listInfo.level;
 
@@ -98,17 +115,19 @@ public class DocxToMarkdownConverter {
             currentText.append("\n");
         }
 
-        // 如果已经有内容且不是新列表的开始，添加一个换行
-        if (currentText.length() > 0 &&
-                (currentListLevel[0] == -1 || newLevel == currentListLevel[0])) {
+        // 在任何列表项开始前加空行（确保换行）
+        if (currentText.length() > 0) {
             currentText.append("\n");
         }
 
         // 生成缩进（每级2空格）
         String indent = "  ".repeat(newLevel);
-        currentText.append(indent).append("- ").append(extractParagraphText(paraNode));
+        String listItemText = extractParagraphText(paraNode, urlMapper);
 
-        // 更新当前层级状态
+        // 添加列表项
+        currentText.append(indent).append("- ").append(listItemText);
+
+        // 设置当前层级
         currentListLevel[0] = newLevel;
     }
 
@@ -181,9 +200,9 @@ public class DocxToMarkdownConverter {
     }
 
 
-    private void createNewSection(XNode headingNode, Stack<MarkdownSection> sectionStack) {
+    private void createNewSection(XNode headingNode, ImageUrlMapper urlMapper, Stack<MarkdownSection> sectionStack) {
         int level = getHeadingLevel(headingNode);
-        String title = extractParagraphText(headingNode);
+        String title = extractParagraphText(headingNode, urlMapper);
 
         // Pop stack until we reach appropriate parent level
         while (sectionStack.size() > 1 && sectionStack.peek().getLevel() >= level) {
@@ -198,8 +217,8 @@ public class DocxToMarkdownConverter {
         sectionStack.push(newSection);
     }
 
-    private void handleTable(XNode tableNode, StringBuilder currentText) {
-        ExcelTable table = new WordTableParser().parseTable(tableNode);
+    private void handleTable(XNode tableNode, StringBuilder currentText, ImageUrlMapper urlMapper) {
+        ExcelTable table = new WordTableParser().forMarkdown(true).imageUrlMapper(urlMapper).parseTable(tableNode);
         currentText.append("\n"); // 多插入一个空行，否则有些Markdown渲染器不识别
         new TableToMarkdownConverter().convertToMarkdown(table, currentText);
     }
@@ -231,7 +250,7 @@ public class DocxToMarkdownConverter {
         return 0;
     }
 
-    private String extractParagraphText(XNode paraNode) {
-        return WordXmlHelper.getText(paraNode);
+    private String extractParagraphText(XNode paraNode, ImageUrlMapper urlMapper) {
+        return WordXmlHelper.getText(paraNode, true, urlMapper);
     }
 }

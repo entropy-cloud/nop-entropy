@@ -14,6 +14,7 @@ import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelRow;
 import io.nop.excel.model.ExcelTable;
 import io.nop.excel.util.UnitsHelper;
+import io.nop.ooxml.common.model.ImageUrlMapper;
 
 import java.util.Objects;
 
@@ -55,6 +56,18 @@ import java.util.Objects;
  </w:tbl>
  */
 public class WordTableParser {
+    private ImageUrlMapper urlMapper;
+    private boolean forMarkdown;
+
+    public WordTableParser imageUrlMapper(ImageUrlMapper urlMapper) {
+        this.urlMapper = urlMapper;
+        return this;
+    }
+
+    public WordTableParser forMarkdown(boolean forMarkdown) {
+        this.forMarkdown = forMarkdown;
+        return this;
+    }
 
     public ExcelTable parseTable(XNode tblNode) {
         ExcelTable tbl = new ExcelTable();
@@ -112,7 +125,7 @@ public class WordTableParser {
     }
 
     protected String parseData(XNode node) {
-        return WordXmlHelper.getText(node);
+        return WordXmlHelper.getText(node, forMarkdown, urlMapper);
     }
 
     protected boolean parseCell(XNode node, ExcelCell cell) {

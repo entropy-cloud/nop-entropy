@@ -125,6 +125,13 @@ public class OfficeRelsPart implements Serializable, IOfficePackagePart {
         return id;
     }
 
+    public String getTarget(String rId) {
+        OfficeRelationship rel = getRelationship(rId);
+        if (rel == null)
+            return null;
+        return rel.getTarget(); // 返回如 "media/image1.png"
+    }
+
     public static OfficeRelsPart parse(String path, IResource resource) {
         XNode node = XNodeParser.instance().parseFromResource(resource);
         OfficeRelsPart file = new OfficeRelsPart(path);

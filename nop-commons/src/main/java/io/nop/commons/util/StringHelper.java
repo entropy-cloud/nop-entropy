@@ -165,6 +165,31 @@ public class StringHelper extends ApiStringHelper {
         return escape(str, XML_ATTR_ESCAPE_CHARS, XML_ATTR_ESCAPE_STRS);
     }
 
+
+    public static final char[] MARKDOWN_ESCAPE_CHARS = new char[]{
+            '\\', // 注意反斜杠优先
+            '*',
+            '_',
+            '~',
+            '`'
+    };
+
+    public static final String[] MARKDOWN_ESCAPE_STRS = new String[]{
+            "\\\\",
+            "\\*",
+            "\\_",
+            "\\~",
+            "\\`"
+    };
+
+    /**
+     * 对Markdown特殊字符进行转义
+     */
+    @Deterministic
+    public static String escapeMarkdown(String str) {
+        return escape(str, MARKDOWN_ESCAPE_CHARS, MARKDOWN_ESCAPE_STRS);
+    }
+
     public static int escapeCharTo(char c, char[] fromChars, String[] toStrs, Appendable buf) throws IOException {
         int index = _indexOf(fromChars, c);
         if (index < 0) {
