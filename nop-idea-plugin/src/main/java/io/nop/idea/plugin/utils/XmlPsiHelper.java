@@ -43,6 +43,13 @@ import org.jetbrains.annotations.NotNull;
 
 public class XmlPsiHelper {
 
+    public static String getNopVfsPath(SourceLocation loc) {
+        String path = loc != null ? loc.getPath() : null;
+
+        // Note: SourceLocation#getPath() 得到的 jar 中的 vfs 路径会添加 classpath:_vfs 前缀
+        return path != null ? path.replace("classpath:_vfs", "") : null;
+    }
+
     public static String getNopVfsPath(PsiElement element) {
         PsiFile file = element.getContainingFile();
         if (file == null) {
@@ -87,14 +94,6 @@ public class XmlPsiHelper {
             }
         }
         return ret;
-    }
-
-    public static PsiFile[] findPsiFiles(Project project, String path) {
-        List<PsiFile> list = findPsiFileList(project, path);
-        if (list.isEmpty()) {
-            return PsiFile.EMPTY_ARRAY;
-        }
-        return list.toArray(PsiFile.EMPTY_ARRAY);
     }
 
     public static List<PsiFile> findPsiFilesByNopVfsPath(PsiElement element, String path) {

@@ -38,6 +38,9 @@ public abstract class XLangReferenceBase extends CachingReference implements XLa
      * <code>myRangeInElement</code> 为该元素的文本自身，即，<code>[0, 文本长度]</code>
      * <br/><br/>
      * 相关处理逻辑见 {@link com.intellij.psi.impl.SharedPsiElementImplUtil#addReferences SharedPsiElementImplUtil#addReferences}
+     *
+     * @param myElement
+     *         需创建当前引用的元素
      */
     public XLangReferenceBase(PsiElement myElement, TextRange myRangeInElement) {
         this.myElement = myElement;

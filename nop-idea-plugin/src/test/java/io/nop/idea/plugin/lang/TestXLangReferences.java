@@ -23,7 +23,147 @@ import org.jetbrains.annotations.NotNull;
  */
 public class TestXLangReferences extends BaseXLangPluginTestCase {
 
-    public void testTagReferences() {
+    public void testTagDefReferences() {
+        // 名字空间保持名字引用
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:pre-parse", "<x<caret>def:pre-parse"),
+                        "xdef");
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("</meta:define>", "</me<caret>ta:define>"),
+                        "meta");
+
+        // *.xdef 的根节点定义始终对应 xdef.xdef 的根节点 meta:unknown-tag，
+        // 同时，在 xdef.xdef 中未定义的子节点也为对应的 meta:unknown-tag
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<meta:unknown-tag x:schema",
+                                                                         "<meta:unkn<caret>own-tag x:schema"),
+                        "/nop/schema/xdef.xdef?meta:unknown-tag");
+        assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("<xdef:unknown-tag xdsl:schema",
+                                                                         "<xdef:unk<caret>nown-tag xdsl:schema"),
+                        "/nop/schema/xdef.xdef?meta:unknown-tag");
+        assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("<x:post-parse", "<x:post<caret>-parse"),
+                        "/nop/schema/xdef.xdef?meta:unknown-tag");
+        assertReference(readVfsResource("/nop/schema/xpl.xdef").replace("<xpl:decorator xdef:value=\"xpl\"/>",
+                                                                        "<xpl:decorator<caret> xdef:value=\"xpl\"/>"),
+                        "/nop/schema/xdef.xdef?meta:unknown-tag");
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef"
+                                         x:schema="/nop/schema/xdef.xdef"
+                                >
+                                </exa<caret>mple>
+                                """, "/nop/schema/xdef.xdef?meta:unknown-tag");
+
+        // xdef.xdef 中的节点交叉定义
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:pre-parse", "<xdef:pre-<caret>parse"),
+                        "/nop/schema/xdef.xdef?meta:unknown-tag");
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<xdef:unknown-tag",
+                                                                         "<xdef:unknow<caret>n-tag"),
+                        "/nop/schema/xdef.xdef?meta:unknown-tag");
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("</meta:define>", "</meta:de<caret>fine>"),
+                        "/nop/schema/xdef.xdef?xdef:define");
+        assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<meta:unknown-tag meta:ref=\"XDefNode\"/>",
+                                                                         "<meta:unkn<caret>own-tag meta:ref=\"XDefNode\"/>"),
+                        "/nop/schema/xdef.xdef?xdef:unknown-tag");
+
+        // 对 xdef.xdef 中同名子节点的定义引用
+        assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("<xdef:unknown-tag xdef:ref=\"DslNode\"/>",
+                                                                         "<xdef:unkn<caret>own-tag xdef:ref=\"DslNode\"/>"),
+                        "/nop/schema/xdef.xdef?xdef:unknown-tag");
+        assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("<xdef:unknown-tag xdef:value",
+                                                                         "<xdef:unk<caret>nown-tag xdef:value"),
+                        "/nop/schema/xdef.xdef?xdef:unknown-tag");
+
+        assertReference(readVfsResource("/nop/schema/xpl.xdef").replace("<xdef:define xdef:name",
+                                                                        "<xdef:def<caret>ine xdef:name"),
+                        "/nop/schema/xdef.xdef?xdef:define");
+        assertReference(readVfsResource("/nop/schema/xpl.xdef").replace("<xdef:unknown-tag xpl:unknown-attr",
+                                                                        "<xdef:unkn<caret>own-tag xpl:unknown-attr"),
+                        "/nop/schema/xdef.xdef?xdef:unknown-tag");
+
+        // 普通 xdef 内的定义引用
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                         x:schema="/nop/schema/xdef.xdef"
+                                >
+                                    <xdef:post<caret>-parse/>
+                                </example>
+                                """, "/nop/schema/xdef.xdef?xdef:post-parse");
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                         x:schema="/nop/schema/xdef.xdef"
+                                >
+                                    <chi<caret>ld name="string"/>
+                                </example>
+                                """, "/nop/schema/xdef.xdef?meta:unknown-tag");
+
+        // DSL 内的定义引用
+        assertReference("""
+                                <exa<caret>mple xmlns:x="/nop/schema/xdsl.xdef"
+                                           x:schema="/test/doc/example.xdef"
+                                >
+                                </example>
+                                """, "/test/doc/example.xdef?example");
+        assertReference("""
+                                <exa<caret>mple xmlns:x="/nop/schema/xdsl.xdef"
+                                           x:schema="/test/doc/example.xdef"
+                                >
+                                    <x:gen-<caret>extends/>
+                                </example>
+                                """, "/nop/schema/xdsl.xdef?x:gen-extends");
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef"
+                                           x:schema="/test/doc/example.xdef"
+                                >
+                                    <ch<caret>ild name="Child"/>
+                                </example>
+                                """, "/test/doc/example.xdef?child");
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef"
+                                           x:schema="/test/doc/example.xdef"
+                                >
+                                    <unkn<caret>own name="abc"/>
+                                </example>
+                                """, "/test/doc/example.xdef?xdef:unknown-tag");
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef"
+                                           x:schema="/test/doc/example.xdef"
+                                >
+                                    <tag-no-child>
+                                        <ab<caret>c name="abc"/>
+                                    </tag-no-child>
+                                </example>
+                                """, null);
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef"
+                                           x:schema="/test/doc/example.xdef"
+                                >
+                                    <tag-no-child>
+                                        <x:gen-e<caret>xtends/>
+                                    </tag-no-child>
+                                </example>
+                                """, "/nop/schema/xdsl.xdef?x:gen-extends");
+    }
+
+    public void testXplReferences() {
+        assertReference("""
+                                <view xmlns:x="/nop/schema/xdsl.xdef"
+                                      x:schema="/nop/schema/xui/xview.xdef"
+                                      xmlns:a="a" xmlns:xpl="xpl"
+                                >
+                                      <x:gen-extends>
+                                          <c:imp<caret>ort from="/test/reference/a.xlib"/>
+                                      </x:gen-extends>
+                                </view>
+                                """, "");
+        assertReference("""
+                                <view xmlns:x="/nop/schema/xdsl.xdef"
+                                      x:schema="/nop/schema/xui/xview.xdef"
+                                      xmlns:a="a" xmlns:xpl="xpl"
+                                >
+                                      <x:gen-extends>
+                                          <c:script></c:scr<caret>ipt>
+                                      </x:gen-extends>
+                                </view>
+                                """, "");
+
+        // 通过 xpl:lib 导入 xlib
         assertReference("""
                                 <view xmlns:x="/nop/schema/xdsl.xdef"
                                       x:schema="/nop/schema/xui/xview.xdef"
@@ -31,6 +171,62 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                 >
                                       <x:gen-extends>
                                           <a:DoFind<caret>ByMdxQuery xpl:lib="/test/reference/a.xlib"/>
+                                      </x:gen-extends>
+                                </view>
+                                """, "/test/reference/a.xlib#DoFindByMdxQuery");
+        assertReference("""
+                                <view xmlns:x="/nop/schema/xdsl.xdef"
+                                      x:schema="/nop/schema/xui/xview.xdef"
+                                      xmlns:a="a" xmlns:xpl="xpl"
+                                >
+                                      <x:gen-extends>
+                                          <a:DoFindByMdxQuery met<caret>hod="post" xpl:lib="/test/reference/a.xlib"/>
+                                      </x:gen-extends>
+                                </view>
+                                """, "/test/reference/a.xlib#DoFindByMdxQuery");
+
+        // 通过 c:import 导入 xlib
+        assertReference("""
+                                <view xmlns:x="/nop/schema/xdsl.xdef"
+                                      x:schema="/nop/schema/xui/xview.xdef"
+                                      xmlns:a="a" xmlns:xpl="xpl"
+                                >
+                                      <x:gen-extends>
+                                          <c:import from="/test/reference/a.xlib"/>
+                                          <a:DoFind<caret>ByMdxQuery/>
+                                      </x:gen-extends>
+                                </view>
+                                """, "/test/reference/a.xlib#DoFindByMdxQuery");
+        assertReference("""
+                                <view xmlns:x="/nop/schema/xdsl.xdef"
+                                      x:schema="/nop/schema/xui/xview.xdef"
+                                      xmlns:a="a" xmlns:xpl="xpl"
+                                >
+                                      <x:gen-extends>
+                                          <c:import from="/test/reference/a.xlib"/>
+                                          <a:DoFindByMdxQuery met<caret>hod="post"/>
+                                      </x:gen-extends>
+                                </view>
+                                """, "/test/reference/a.xlib#DoFindByMdxQuery");
+        assertReference("""
+                                <view xmlns:x="/nop/schema/xdsl.xdef"
+                                      x:schema="/nop/schema/xui/xview.xdef"
+                                      xmlns:a="a" xmlns:xpl="xpl"
+                                >
+                                      <x:gen-extends>
+                                          <c:import as="gen" from="/test/reference/a.xlib"/>
+                                          <gen:DoFind<caret>ByMdxQuery/>
+                                      </x:gen-extends>
+                                </view>
+                                """, "/test/reference/a.xlib#DoFindByMdxQuery");
+        assertReference("""
+                                <view xmlns:x="/nop/schema/xdsl.xdef"
+                                      x:schema="/nop/schema/xui/xview.xdef"
+                                      xmlns:a="a" xmlns:xpl="xpl"
+                                >
+                                      <x:gen-extends>
+                                          <c:import as="gen" from="/test/reference/a.xlib"/>
+                                          <gen:DoFindByMdxQuery met<caret>hod="post"/>
                                       </x:gen-extends>
                                 </view>
                                 """, "/test/reference/a.xlib#DoFindByMdxQuery");
@@ -79,7 +275,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                         "/nop/schema/xdef.xdef?meta:define#meta:unknown-attr=!xdef-attr");
         assertReference(readVfsResource("/nop/schema/xdef.xdef").replace("<meta:define meta:name=\"XDefNode\"",
                                                                          "<meta:define meta:na<caret>me=\"XDefNode\""),
-                        "/nop/schema/xdef.xdef?meta:define#xdef:name=var-name");
+                        "/nop/schema/xdef.xdef?xdef:define#xdef:name=!var-name");
 
         // xdsl.xdef 中的属性定义识别
         // - 交叉识别
@@ -271,7 +467,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("xdef:ref=\"DslNode\"",
                                                                          "xdef:ref=\"Dsl<caret>Node\""),
                         "xdef:unknown-tag#xdef:name=DslNode");
-        // - 引用文件的相对路径出现在开头：单元测试中暂时无法查找 vfs 相对路径
+//        // - 引用文件的相对路径出现在开头：单元测试中暂时无法查找 vfs 相对路径
 //        assertReference(readVfsResource("/nop/schema/xui/simple-component.xdef").replace(
 //                "xdef:ref=\"../xui/import.xdef\"",
 //                "xdef:ref=\"../xui/<caret>import.xdef\""), "/nop/schema/xui/import.xdef");
@@ -435,6 +631,13 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         assertReference(readVfsResource("/nop/schema/xdsl.xdef").replace("xdef:default-override=\"append\"",
                                                                          "xdef:default-override=\"app<caret>end\""), //
                         "io.nop.xlang.xdef.XDefOverride#APPEND");
+        assertReference(readVfsResource("/nop/schema/xlib.xdef").replace("macro=\"!boolean=false\"",
+                                                                         "macro=\"!boo<caret>lean=false\""), //
+                        "/dict/core/std-domain.dict.yaml#boolean");
+        assertReference(readVfsResource("/nop/schema/xlib.xdef").replace("macro=\"!boolean=false\"",
+                                                                         "macro=\"!boolean=fal<caret>se\""), //
+                        null);
+
         assertReference("""
                                 <example xmlns:x="/nop/schema/xdsl.xdef"
                                          x:schema="/test/doc/example.xdef"
@@ -612,7 +815,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         String vfsPath = XmlPsiHelper.getNopVfsPath(target);
 
         if (target instanceof XmlTag tag) {
-            return tag.getName();
+            return (vfsPath != null ? vfsPath + '?' : "") + tag.getName();
         } //
         else if (target instanceof SchemaPrefix ns) {
             return ns.getName();
@@ -624,13 +827,9 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         } //
         else if (target instanceof XmlAttribute attr) {
             XmlTag tag = PsiTreeUtil.getParentOfType(attr, XmlTag.class);
+            assert tag != null;
 
-            return (vfsPath != null ? vfsPath + '?' : "")
-                   + tag.getName()
-                   + '#'
-                   + attr.getName()
-                   + '='
-                   + attr.getValue();
+            return toString(tag) + '#' + attr.getName() + '=' + attr.getValue();
         } //
         else if (target instanceof PsiClass cls) {
             return cls.getQualifiedName();
@@ -639,7 +838,10 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
             return pkg.getQualifiedName();
         } //
         else if (target instanceof PsiField field) {
-            return field.getContainingClass().getQualifiedName() + "#" + field.getName();
+            PsiClass clazz = field.getContainingClass();
+            assert clazz != null;
+
+            return clazz.getQualifiedName() + "#" + field.getName();
         } //
         else if (target instanceof PsiPlainText txt) {
             return vfsPath + ":" + txt.getTextOffset();

@@ -1,7 +1,14 @@
 <example xmlns:x="/nop/schema/xdsl.xdef"
-         xmlns:xui="xui" xmlns:xx="xx"
+         xmlns:c="c" xmlns:xui="xui" xmlns:xx="xx"
          x:schema="example.xdef"
 >
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+    <x:post-extends>
+        <a:DoFindByMdxQuery xpl:lib="/test/reference/a.xlib"/>
+    </x:post-extends>
 
     <refs><![CDATA[
          /test/reference/test-filter.xdef,
@@ -10,12 +17,16 @@
 
     <xui:invalid/>
     <tag-no-child>
+        <x:gen-extends>
+            <c:script />
+        </x:gen-extends>
+
         <def/>
         <unknown value="abc">
         </unknown>
         <xx:valid value="ddd"/>
         <xui:invalid/>
-        <xui:def value="def"/>  
+        <xui:def value="def"/>
     </tag-no-child>
 
     <tag-allow-child>

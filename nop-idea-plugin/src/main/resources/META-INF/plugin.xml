@@ -87,8 +87,8 @@
                                implementationClass="io.nop.idea.plugin.lang.XLangParserDefinition"/>
         <!-- 根据XDef文件定义，对XLang DSL进行语法校验 -->
         <annotator language="XLang"
-                   implementationClass="io.nop.idea.plugin.lang.annotator.XLangAnnotator"/>
-        <highlightRangeExtension implementation="io.nop.idea.plugin.lang.annotator.XLangHighlightRangeExtension"/>
+                   implementationClass="io.nop.idea.plugin.lang.highlight.XLangAnnotator"/>
+        <highlightRangeExtension implementation="io.nop.idea.plugin.lang.highlight.XLangHighlightRangeExtension"/>
         <!-- 根据xdef定义进行语法提示 -->
         <!--<completion.contributor language="XLang"
                                 implementationClass="io.nop.idea.plugin.completion.XLangCompletionContributor"/>-->

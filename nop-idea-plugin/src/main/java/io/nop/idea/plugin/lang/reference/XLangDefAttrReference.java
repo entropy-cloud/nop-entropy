@@ -43,12 +43,10 @@ public class XLangDefAttrReference extends XLangReferenceBase {
         }
 
         SourceLocation loc = attrDef.getLocation();
-        if (loc == null) {
+        String path = XmlPsiHelper.getNopVfsPath(loc);
+        if (path == null) {
             return null;
         }
-
-        // Note: SourceLocation#getPath() 得到的 jar 中的 vfs 路径会添加 classpath:_vfs 前缀
-        String path = loc.getPath().replace("classpath:_vfs", "");
 
         Function<PsiFile, PsiElement> targetResolver = (file) -> {
             PsiElement target = XmlPsiHelper.getPsiElementAt(file, loc, XmlAttribute.class);

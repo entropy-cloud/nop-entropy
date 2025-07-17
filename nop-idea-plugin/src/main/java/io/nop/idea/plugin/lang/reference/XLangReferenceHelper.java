@@ -143,24 +143,30 @@ public class XLangReferenceHelper {
             int offset = textRangeOffset + optionsIndex;
             textRange = new TextRange(0, options.length()).shiftRight(offset);
 
-            if (STD_DOMAIN_ENUM.equals(stdDomain)) {
-                // Note: 忽略 enum:a|b|c|d 形式的数据
-                if (StringHelper.isValidClassName(options)) {
-                    PsiReference[] ref = PsiClassHelper.createJavaClassReferences(refElement, options, offset);
+            switch (stdDomain) {
+                case STD_DOMAIN_ENUM -> {
+                    // Note: 忽略 enum:a|b|c|d 形式的数据
+                    if (StringHelper.isValidClassName(options)) {
+                        PsiReference[] ref = PsiClassHelper.createJavaClassReferences(refElement, options, offset);
 
-                    Collections.addAll(refs, ref);
+                        Collections.addAll(refs, ref);
+                    }
                 }
-            } //
-            else if (STD_DOMAIN_DICT.equals(stdDomain)) {
-                refs.add(new XLangDictOptionReference(refElement, textRange, options));
+                case STD_DOMAIN_DICT -> {
+                    refs.add(new XLangDictOptionReference(refElement, textRange, options));
+                }
             }
         }
 
-        // 引用字典/枚举值
         if (defaultValueIndex > 0) {
             textRange = new TextRange(0, defaultValue.length()).shiftRight(textRangeOffset + defaultValueIndex);
 
-            refs.add(new XLangDictOptionReference(refElement, textRange, options, defaultValue));
+            // 引用字典项或枚举值
+            switch (stdDomain) {
+                case STD_DOMAIN_ENUM, STD_DOMAIN_DICT -> {
+                    refs.add(new XLangDictOptionReference(refElement, textRange, options, defaultValue));
+                }
+            }
         }
 
         // 引用节点属性

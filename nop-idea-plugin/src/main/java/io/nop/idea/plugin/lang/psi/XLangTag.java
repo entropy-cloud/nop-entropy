@@ -8,15 +8,23 @@
 
 package io.nop.idea.plugin.lang.psi;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceService;
+import com.intellij.psi.impl.source.xml.TagNameReference;
 import com.intellij.psi.impl.source.xml.XmlTagImpl;
+import com.intellij.psi.xml.XmlToken;
+import com.intellij.xml.util.XmlTagUtil;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.idea.plugin.lang.reference.XLangTagReference;
 import io.nop.idea.plugin.resource.ProjectEnv;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
@@ -94,18 +102,41 @@ public class XLangTag extends XmlTagImpl {
 
     @Override
     public PsiReference @NotNull [] getReferences(@NotNull PsiReferenceService.Hints hints) {
-        // TODO 通过 CachedValuesManager.getCachedValue 缓存结果，并支持在依赖项变更时丢弃缓存结果
-//        if (hints == PsiReferenceService.Hints.NO_HINTS) {
-//            return CachedValuesManager.getCachedValue(this,
-//                                                      () -> CachedValueProvider.Result.create(getReferencesImpl(
-//                                                                                                      PsiReferenceService.Hints.NO_HINTS),
-//                                                                                              PsiModificationTracker.MODIFICATION_COUNT,
-//                                                                                              externalResourceModificationTracker(
-//                                                                                                      myTag))).clone();
-//        }
+        List<PsiReference> refs = new ArrayList<>();
 
-        // TODO 合并 xml 与 xlang 的引用
-        return super.getReferences(hints);
+        // TODO xlib 函数标签的名字空间引用的是 xlib 的文件名字
+        // 参考 XmlTagDelegate#getReferencesImpl
+        PsiReference[] xmlRefs = super.getReferences(hints);
+        // Note: 仅保留对名字空间的引用，以支持对其做高亮、重命名等
+        for (PsiReference ref : xmlRefs) {
+            if (!(ref instanceof TagNameReference)) {
+                refs.add(ref);
+            }
+        }
+
+        // 对起止标签均做引用识别
+        XmlToken[] tagNameTokens = new XmlToken[] {
+                XmlTagUtil.getStartTagNameElement(this), //
+                XmlTagUtil.getEndTagNameElement(this)
+        };
+        for (XmlToken token : tagNameTokens) {
+            if (token == null) {
+                continue;
+            }
+
+            String name = token.getText();
+            int nsIndex = name.indexOf(':');
+            // Note: 针对起止标签名在当前标签中的文本范围创建引用，而不是针对起止标签名自身创建引用
+            TextRange textRange = TextRange.allOf(name.substring(nsIndex + 1))
+                                           .shiftRight(token.getStartOffsetInParent() + nsIndex + 1);
+            XLangTagReference ref = new XLangTagReference(this, textRange);
+
+            // TODO 对 xlib 标签单独做引用识别
+
+            refs.add(ref);
+        }
+
+        return refs.toArray(PsiReference.EMPTY_ARRAY);
     }
 
     /**
@@ -135,11 +166,11 @@ public class XLangTag extends XmlTagImpl {
      * 即，二者形成交叉定义
      */
     public IXDefAttribute getSchemaDefNodeAttr(String attrName) {
-        // 在元元模型中，以 xdef 为名字空间的属性，需迫使其以 meta:unknown-attr 作为其属性定义
+        // 在元元模型中，以 xdef 为名字空间的属性，需以 meta:unknown-attr 作为其属性定义
         if (isInXDefXDef() && attrName.startsWith(XDefKeys.DEFAULT.NS + ':')) {
             attrName = "*";
         }
-        // xdef.xdef 的属性在固定的名字空间 x 中声明
+        // xdef.xdef 的属性在固定的名字空间 xdef 中声明
         else {
             attrName = changeNamespace(attrName, getXDefKeys().NS, XDefKeys.DEFAULT.NS);
         }
@@ -385,14 +416,20 @@ public class XLangTag extends XmlTagImpl {
         IXDefNode schemaDefNode = null;
         if (tagNs.equals(XDslKeys.DEFAULT.NS) && !parentTag.isInXDslXDef()) {
             schemaDefNode = xdslDefNode;
+            selfDefNode = null;
         } //
         else if (parentSchemaDefNode != null) {
-            // Note: 如果是 xdef.xdef 中的节点，则其节点定义均为 xdef:unknown-tag
-            boolean inXDefXDef = parentTag.isInXDefXDef();
+            // 在元元模型中，以 xdef 为名字空间的标签，
+            // 需以 meta:unknown-tag 作为其节点定义，即，交叉定义
+            if (parentTag.isInXDefXDef() && tagNs.equals(XDefKeys.DEFAULT.NS)) {
+                schemaDefNode = parentSchemaDefNode.getXdefUnknownTag();
+            }
+            // 其余的，则将标签的 xdef 名字空间固定为名字 xdef
+            else {
+                tagName = changeNamespace(tagName, xdefKeys.NS, XDefKeys.DEFAULT.NS);
 
-            schemaDefNode = inXDefXDef //
-                            ? parentSchemaDefNode.getXdefUnknownTag() //
-                            : parentSchemaDefNode.getChild(tagName);
+                schemaDefNode = parentSchemaDefNode.getChild(tagName);
+            }
         }
 
         return new SchemaMeta(schemaDef, schemaDefNode, xdslDefNode, selfDef, selfDefNode, xdefKeys, xdslKeys);

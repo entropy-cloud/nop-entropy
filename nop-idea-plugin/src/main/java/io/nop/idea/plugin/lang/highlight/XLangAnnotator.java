@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.idea.plugin.lang.annotator;
+package io.nop.idea.plugin.lang.highlight;
 
 import com.intellij.codeInsight.daemon.impl.HighlightRangeExtension;
 import com.intellij.codeInspection.ProblemHighlightType;
