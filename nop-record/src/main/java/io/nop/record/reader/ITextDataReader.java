@@ -14,7 +14,9 @@ public interface ITextDataReader extends IDataReaderBase {
 
     void skip(int n) throws IOException;
 
-    String read(int len) throws IOException;
+    String tryRead(int len) throws IOException;
+
+    String readFully(int len) throws IOException;
 
     default String readAvailableText() throws IOException {
         long len = available();
@@ -22,7 +24,7 @@ public interface ITextDataReader extends IDataReaderBase {
             return null;
         if (len == 0)
             return "";
-        return read((int) len);
+        return readFully((int) len);
     }
 
     int readChar() throws IOException;
@@ -39,7 +41,7 @@ public interface ITextDataReader extends IDataReaderBase {
 
     default String peek(int len) throws IOException {
         long pos = pos();
-        String data = read(len);
+        String data = tryRead(len);
         seek(pos);
         return data;
     }
@@ -47,7 +49,7 @@ public interface ITextDataReader extends IDataReaderBase {
     default String peekNext(int offset, int len) throws IOException {
         long pos = pos();
         skip(offset);
-        String data = read(len);
+        String data = tryRead(len);
         seek(pos);
         return data;
     }

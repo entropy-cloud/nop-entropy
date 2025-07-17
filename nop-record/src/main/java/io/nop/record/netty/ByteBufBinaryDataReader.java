@@ -38,12 +38,13 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * 基于Kaitai项目的ByteBufferKaitaiStream类修改。
- * An implementation of {@link IBinaryDataReader} backed by a {@link ByteBuffer}.
- * Any underlying implementation of ByteBuffer can be used, for example:
+ * An implementation of {@link IBinaryDataReader} backed by a {@link ByteBuf}.
+ * Any underlying implementation of ByteBuf can be used, for example:
  * <ul>
- *     <li>ByteBuffer returned as result of {@link ByteBuffer#wrap}, wrapping
+ *     <li>ByteBuf returned as result of {@link Unpooled#wrappedBuffer}, wrapping
  *         a byte array into a buffer.</li>
- *     <li>{@link MappedByteBuffer} backed by {@link FileChannel}</li>
+ *     <li>Direct ByteBuf backed by native memory</li>
+ *     <li>Composite ByteBuf for complex data structures</li>
  * </ul>
  */
 public class ByteBufBinaryDataReader implements IBinaryDataReader {
@@ -51,10 +52,9 @@ public class ByteBufBinaryDataReader implements IBinaryDataReader {
     private int bitsLeft;
     private long bits;
 
-
     /**
      * Initializes a stream that will get data from given byte array when read.
-     * Internally, ByteBuffer wrapping given array will be used.
+     * Internally, ByteBuf wrapping given array will be used.
      *
      * @param arr byte array to read
      */
@@ -83,16 +83,16 @@ public class ByteBufBinaryDataReader implements IBinaryDataReader {
     }
 
     /**
-     * Initializes a stream that will get data from given ByteBuffer when read.
+     * Initializes a stream that will get data from given ByteBuf when read.
      *
-     * @param buffer ByteBuffer to read
+     * @param buffer ByteBuf to read
      */
     public ByteBufBinaryDataReader(ByteBuf buffer) {
         bb = buffer;
     }
 
     /**
-     * Provide a read-only version of the {@link ByteBuffer} backing the data of this instance.
+     * Provide a read-only version of the {@link ByteBuf} backing the data of this instance.
      * <p>
      * This way one can access the underlying raw bytes associated with this structure, but it is
      * important to note that the caller needs to know what this raw data is: Depending on the
@@ -103,60 +103,36 @@ public class ByteBufBinaryDataReader implements IBinaryDataReader {
      * underlying raw data. Using a substream in KSY and directly passing some raw data to a user
      * type outside of normal KS parse order is equivalent and will provide the same results. If no
      * substream is used instead, the here provided data might differ depending on the context in
-     * which the associated type was parsed, because the underlying {@link ByteBuffer} might
+     * which the associated type was parsed, because the underlying {@link ByteBuf} might
      * contain the data of all parent types and such as well and not only the one the caller is
      * actually interested in.
      * </p>
      * <p>
-     * The returned {@link ByteBuffer} is always rewinded to position 0, because this stream was
+     * The returned {@link ByteBuf} is always rewinded to position 0, because this stream was
      * most likely used to parse a type already, in which case the former position would have been
      * at the end of the buffer. Such a position doesn't help a common reading user much and that
      * fact can easily be forgotten, repositioning to another index than the start is pretty easy
      * as well. Rewinding/repositioning doesn't even harm performance in any way.
      * </p>
      *
-     * @return read-only {@link ByteBuffer} to access raw data for the associated type.
+     * @return read-only {@link ByteBuf} to access raw data for the associated type.
      */
     public ByteBuf asRoBuffer() {
         ByteBuf retVal = this.bb.asReadOnly();
         retVal.resetReaderIndex();
-
         return retVal;
     }
 
     /**
-     * Closes the stream safely. If there was an open file associated with it, closes that file.
-     * For streams that were reading from in-memory array, does nothing.
-     *
-     * @implNote <p>
-     * Unfortunately, there is no simple way to close memory-mapped ByteBuffer in
-     * Java and unmap underlying file. As {@link MappedByteBuffer} documentation suggests,
-     * "mapped byte buffer and the file mapping that it represents remain valid until the
-     * buffer itself is garbage-collected". Thus, the best we can do is to delete all
-     * references to it, which breaks all subsequent <code>read..</code> methods with
-     * {@link NullPointerException}. Afterwards, a call to {@link System#gc()} will
-     * typically release the mmap, if garbage collection will be triggered.
-     * </p>
-     * <p>
-     * There is a <a href="https://bugs.java.com/bugdatabase/view_bug.do?bug_id=4724038">
-     * JDK-4724038 request for adding unmap method</a> filed at Java bugtracker since 2002,
-     * but as of 2018, it is still unresolved.
-     * </p>
-     * <p>
-     * A couple of unsafe approaches (such as using JNI, or using reflection to invoke JVM
-     * internal APIs) have been suggested and used with some success, but these are either
-     * unportable or dangerous (may crash JVM), so we're not using them in this general
-     * purpose code.
-     * </p>
-     * <p>
-     * For more examples and suggestions, see:
-     * <a href="https://stackoverflow.com/q/2972986">How to unmap a file from memory mapped using FileChannel in java?</a>
-     * </p>
+     * Closes the stream safely. Releases the underlying ByteBuf reference count.
+     * For streams that were reading from in-memory array, properly releases the ByteBuf.
      */
     @Override
     public void close() {
-        ReferenceCountUtil.release(bb);
-        bb = null;
+        if (bb != null) {
+            ReferenceCountUtil.release(bb);
+            bb = null;
+        }
     }
 
     //region Stream positioning
@@ -174,10 +150,12 @@ public class ByteBufBinaryDataReader implements IBinaryDataReader {
     @Override
     public void seek(long newPos) {
         if (newPos > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Java ByteBuffer can't be seeked past Integer.MAX_VALUE");
+            throw new IllegalArgumentException("ByteBuf can't be seeked past Integer.MAX_VALUE");
+        }
+        if (newPos < 0) {
+            throw new IllegalArgumentException("Position cannot be negative: " + newPos);
         }
         bb.readerIndex((int) newPos);
-        asRoBuffer().duplicate();
     }
 
     @Override
@@ -209,7 +187,7 @@ public class ByteBufBinaryDataReader implements IBinaryDataReader {
     @Override
     public int read() throws IOException {
         if (bb.isReadable())
-            return bb.readByte();
+            return bb.readUnsignedByte();  // 返回0-255的无符号值
         return -1;
     }
 
@@ -217,19 +195,16 @@ public class ByteBufBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public short readS2be() {
-        //bb.order(ByteOrder.BIG_ENDIAN);
         return bb.readShort();
     }
 
     @Override
     public int readS4be() {
-        //bb.order(ByteOrder.BIG_ENDIAN);
         return bb.readInt();
     }
 
     @Override
     public long readS8be() {
-        //bb.order(ByteOrder.BIG_ENDIAN);
         return bb.readLong();
     }
 
@@ -267,14 +242,17 @@ public class ByteBufBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public int readU2be() {
-        //bb.order(ByteOrder.BIG_ENDIAN);
         return bb.readUnsignedShort();
     }
 
     @Override
     public long readU4be() {
-        // bb.order(ByteOrder.BIG_ENDIAN);
         return bb.readUnsignedInt();
+    }
+
+    @Override
+    public long readU8be() {
+        return bb.readLong();
     }
 
     //endregion
@@ -283,19 +261,17 @@ public class ByteBufBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public int readU2le() {
-        //bb.order(ByteOrder.LITTLE_ENDIAN);
         return bb.readUnsignedShortLE();
     }
 
     @Override
     public long readU4le() {
-        //bb.order(ByteOrder.LITTLE_ENDIAN);
         return bb.readUnsignedIntLE();
     }
 
     @Override
-    public long readU8be() {
-        return bb.readLong();
+    public long readU8le() {
+        return bb.readLongLE();
     }
 
     //endregion
@@ -338,12 +314,6 @@ public class ByteBufBinaryDataReader implements IBinaryDataReader {
 
     //region Byte arrays
 
-    /**
-     * Reads designated number of bytes from the stream.
-     *
-     * @param n number of bytes to read
-     * @return read bytes as byte array
-     */
     /**
      * Reads designated number of bytes from the stream.
      *
@@ -401,6 +371,16 @@ public class ByteBufBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public IBinaryDataReader subInput(long n) {
+        if (n > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("ByteBuf can't be limited beyond Integer.MAX_VALUE");
+        }
+        if (n < 0) {
+            throw new IllegalArgumentException("Length cannot be negative: " + n);
+        }
+        if (n > bb.readableBytes()) {
+            throw new IllegalArgumentException("Requested length " + n + " exceeds readable bytes " + bb.readableBytes());
+        }
+
         ByteBuf newBuffer = bb.slice();
         newBuffer.writerIndex((int) n);
         // 更新原始 ByteBuf 的读索引
@@ -429,6 +409,9 @@ public class ByteBufBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public void readFully(byte[] data, int offset, int len) {
+        if (len > bb.readableBytes()) {
+            throw new IndexOutOfBoundsException("Requested " + len + " bytes but only " + bb.readableBytes() + " available");
+        }
         bb.readBytes(data, offset, len);
     }
 

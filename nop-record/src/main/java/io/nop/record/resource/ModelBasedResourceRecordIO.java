@@ -17,11 +17,15 @@ import io.nop.dataset.record.IRecordInput;
 import io.nop.dataset.record.IRecordOutput;
 import io.nop.record.RecordConstants;
 import io.nop.record.model.RecordFileMeta;
+import io.nop.record.reader.BlockCachedBinaryDataReader;
+import io.nop.record.reader.BlockCachedTextDataReader;
 import io.nop.record.reader.ByteBufferBinaryDataReader;
 import io.nop.record.reader.IBinaryDataReader;
 import io.nop.record.reader.ITextDataReader;
 import io.nop.record.reader.RandomAccessFileBinaryDataReader;
+import io.nop.record.reader.ReaderTextDataReader;
 import io.nop.record.reader.SimpleTextDataReader;
+import io.nop.record.reader.StreamBinaryDataReader;
 import io.nop.record.writer.AppendableTextDataWriter;
 import io.nop.record.writer.IBinaryDataWriter;
 import io.nop.record.writer.ITextDataWriter;
@@ -37,6 +41,12 @@ public class ModelBasedResourceRecordIO<T> implements IResourceRecordIO<T> {
 
     private String modelFilePath = "/model/record/";
     private RecordFileMeta fileMeta;
+
+    private int maxInMemorySize = 1024 * 1024;
+
+    public void setMaxInMemorySize(int maxInMemorySize) {
+        this.maxInMemorySize = maxInMemorySize;
+    }
 
     public void setModelFilePath(String modelFilePath) {
         this.modelFilePath = modelFilePath;
@@ -57,20 +67,37 @@ public class ModelBasedResourceRecordIO<T> implements IResourceRecordIO<T> {
     public IRecordInput<T> openInput(IResource resource, String encoding) {
         RecordFileMeta fileMeta = getFileMeta(resource);
         if (fileMeta.isBinary()) {
-            File file = resource.toFile();
-            IBinaryDataReader reader;
-            if (file != null) {
-                reader = new RandomAccessFileBinaryDataReader(file);
-            } else {
-                byte[] bytes = ResourceHelper.readBytes(resource);
-                reader = new ByteBufferBinaryDataReader(ByteBuffer.wrap(bytes));
-            }
-            return new ModelBasedBinaryRecordInput<>(reader, fileMeta);
+            return createBinaryInput(resource);
         } else {
-            String text = ResourceHelper.readText(resource, encoding);
-            ITextDataReader reader = new SimpleTextDataReader(text);
-            return new ModelBasedTextRecordInput<>(reader, fileMeta);
+            return createTextInput(resource, encoding);
         }
+    }
+
+    protected IRecordInput<T> createBinaryInput(IResource resource) {
+        File file = resource.toFile();
+        IBinaryDataReader reader;
+        if (file != null) {
+            reader = new RandomAccessFileBinaryDataReader(file);
+        } else if (resource.length() <= maxInMemorySize) {
+            byte[] bytes = ResourceHelper.readBytes(resource);
+            reader = new ByteBufferBinaryDataReader(ByteBuffer.wrap(bytes));
+        } else {
+            IBinaryDataReader baseReader = new StreamBinaryDataReader(resource.getInputStream());
+            reader = new BlockCachedBinaryDataReader(baseReader, 4096, false, maxInMemorySize / 4096);
+        }
+        return new ModelBasedBinaryRecordInput<>(reader, fileMeta);
+    }
+
+    protected IRecordInput<T> createTextInput(IResource resource, String encoding) {
+        ITextDataReader reader;
+        if (resource.length() <= maxInMemorySize) {
+            String text = ResourceHelper.readText(resource, encoding);
+            reader = new SimpleTextDataReader(text);
+        } else {
+            ITextDataReader baseReader = new ReaderTextDataReader(resource.getReader(encoding));
+            reader = new BlockCachedTextDataReader(baseReader, 4096, maxInMemorySize / 4096, Long.MAX_VALUE, 2);
+        }
+        return new ModelBasedTextRecordInput<>(reader, fileMeta);
     }
 
     @Override

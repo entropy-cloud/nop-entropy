@@ -75,11 +75,24 @@ public class SubTextDataReader implements ITextDataReader {
     }
 
     @Override
-    public String read(int len) throws IOException {
+    public String readFully(int len) throws IOException {
         long avail = maxLength - pos();
         if (avail < len)
             throw new NopException(ERR_RECORD_NO_ENOUGH_DATA);
-        return input.read(len);
+        return input.readFully(len);
+    }
+
+    /**
+     * 尝试从当前子区间尽量读取n个字符，遇到区间结尾或底层EOF时最多返回可用部分，不抛异常。
+     */
+    public String tryRead(int n) throws IOException {
+        if (n < 0)
+            throw new IllegalArgumentException("tryRead length cannot be negative: " + n);
+        long avail = maxLength - pos();
+        if (avail <= 0 || n == 0)
+            return "";
+        int toRead = (int) Math.min(n, avail);
+        return input.tryRead(toRead);
     }
 
     @Override

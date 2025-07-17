@@ -23,6 +23,8 @@
 
 package io.nop.record.reader;
 
+import io.nop.api.core.util.Guard;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -82,6 +84,7 @@ public class ByteBufferBinaryDataReader implements IBinaryDataReader {
      * @param buffer ByteBuffer to read
      */
     public ByteBufferBinaryDataReader(ByteBuffer buffer) {
+        Guard.checkArgument(buffer.order() == ByteOrder.BIG_ENDIAN);
         bb = buffer;
     }
 
@@ -285,12 +288,24 @@ public class ByteBufferBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public int readU2le() {
-        return bb.getShort() & 0xffff;
+        ByteOrder originalOrder = bb.order();
+        bb.order(ByteOrder.LITTLE_ENDIAN);
+        try {
+            return bb.getShort() & 0xffff;
+        } finally {
+            bb.order(originalOrder);
+        }
     }
 
     @Override
     public long readU4le() {
-        return bb.getInt() & 0xffffffffL;
+        ByteOrder originalOrder = bb.order();
+        bb.order(ByteOrder.LITTLE_ENDIAN);
+        try {
+            return bb.getInt() & 0xffffffffL;
+        } finally {
+            bb.order(originalOrder);
+        }
     }
 
     //endregion
@@ -395,8 +410,12 @@ public class ByteBufferBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public IBinaryDataReader subInput(long n) {
-        if (n > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Java ByteBuffer can't be limited beyond Integer.MAX_VALUE");
+        if (n < 0) {
+            throw new IllegalArgumentException("Length cannot be negative: " + n);
+        }
+
+        if (n > bb.remaining()) {
+            throw new IllegalArgumentException("Requested length " + n + " exceeds remaining bytes " + bb.remaining());
         }
 
         ByteBuffer newBuffer = bb.slice();

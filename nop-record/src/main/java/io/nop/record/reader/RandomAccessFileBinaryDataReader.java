@@ -29,8 +29,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
-import static io.nop.record.reader.BinaryReaderHelper.toByteArrayLength;
-
 /**
  * An implementation of {@link IBinaryDataReader} backed by a {@link RandomAccessFile}.
  * <p>
@@ -145,18 +143,8 @@ public class RandomAccessFileBinaryDataReader implements IBinaryDataReader {
     }
 
     @Override
-    public IBinaryDataReader subInput(long n) throws IOException {
-        // This implementation mirrors what ksc was doing up to v0.10, and the fallback that
-        // it is still doing in case something non-trivial has to happen with the byte contents.
-        //
-        // Given that RandomAccessFile-based stream is not really efficient anyway, this seems
-        // to be a reasonable fallback without resorting to a special limiting implementation.
-        //
-        // If and when somebody will come up with a reason why substreams have to implemented
-        // for RAF, feel free to contribute relevant implementation with some rationale (e.g. a
-        // benchmark).
-
-        return new ByteBufferBinaryDataReader(readBytes(toByteArrayLength(n)));
+    public IBinaryDataReader subInput(long maxLength) throws IOException {
+        return new SubBinaryDataReader(this, maxLength);
     }
 
     //region Helper methods

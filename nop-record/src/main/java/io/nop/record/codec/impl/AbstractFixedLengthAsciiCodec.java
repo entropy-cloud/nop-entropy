@@ -59,7 +59,7 @@ public abstract class AbstractFixedLengthAsciiCodec implements IFieldCodec {
     @Override
     public Object decode(ITextDataReader input, Object record,
                          int length, IFieldCodecContext context, IModelBasedTextRecordDeserializer deserializer) throws IOException {
-        String text = input.read(length);
+        String text = input.readFully(length);
         text = trimString(text);
         return decodeString(text, err -> new NopException(err).param(ARG_FIELD_PATH, context.getFieldPath()));
     }

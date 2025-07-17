@@ -18,6 +18,9 @@ public class SimpleTextDataReader implements ITextDataReader {
     private int offset;
 
     public SimpleTextDataReader(CharSequence text) {
+        if (text == null) {
+            throw new IllegalArgumentException("text cannot be null");
+        }
         this.text = text;
     }
 
@@ -28,9 +31,8 @@ public class SimpleTextDataReader implements ITextDataReader {
 
     @Override
     public void skip(int n) {
-        if (offset + n > text.length())
+        if (n < 0 || offset + n > text.length())
             throw new NopException(ERR_RECORD_NO_ENOUGH_DATA);
-
         offset += n;
     }
 
@@ -41,14 +43,34 @@ public class SimpleTextDataReader implements ITextDataReader {
 
     @Override
     public void close() throws IOException {
-
+        // No resources to close
     }
 
     @Override
-    public String read(int len) {
+    public String readFully(int len) {
+        if (len < 0 || offset + len > text.length())
+            throw new NopException(ERR_RECORD_NO_ENOUGH_DATA);
         String ret = text.subSequence(offset, offset + len).toString();
         offset += len;
         return ret;
+    }
+
+    /**
+     * 尝试读取最多 n 个字符，遇到结尾可少于 n 个字符，未读到任何字符时返回空串。
+     * 不抛异常。
+     */
+    public String tryRead(int n) {
+        if (n < 0) {
+            throw new IllegalArgumentException("tryRead length cannot be negative: " + n);
+        }
+        int avail = text.length() - offset;
+        if (avail <= 0 || n == 0) {
+            return "";
+        }
+        int count = Math.min(n, avail);
+        String str = text.subSequence(offset, offset + count).toString();
+        offset += count;
+        return str;
     }
 
     @Override
@@ -60,6 +82,9 @@ public class SimpleTextDataReader implements ITextDataReader {
 
     @Override
     public String readLine(int maxLength) {
+        if (maxLength < 0) {
+            throw new NopException(ERR_RECORD_NO_ENOUGH_DATA);
+        }
         long avail = available();
         if (avail <= 0)
             return "";
@@ -93,6 +118,8 @@ public class SimpleTextDataReader implements ITextDataReader {
     }
 
     public void seek(long pos) {
+        if (pos < 0 || pos > text.length())
+            throw new NopException(ERR_RECORD_NO_ENOUGH_DATA);
         this.offset = (int) pos;
     }
 

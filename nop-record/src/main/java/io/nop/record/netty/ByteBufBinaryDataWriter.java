@@ -4,7 +4,12 @@
  * Blog:   https://www.zhihu.com/people/canonical-entropy
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
+ * <p>
+ * 警告：
+ * 1. 该类非线程安全，其实例只应被单线程使用。
+ * 2. 若byteBuf由外部传入，则资源回收（release）责任清晰，防止多次release。
  */
+
 package io.nop.record.netty;
 
 import io.netty.buffer.ByteBuf;
@@ -15,137 +20,167 @@ import java.nio.ByteBuffer;
 
 public class ByteBufBinaryDataWriter implements IBinaryDataWriter {
     private final ByteBuf byteBuf;
+    private boolean closed = false;
 
     public ByteBufBinaryDataWriter() {
-        this(Unpooled.buffer()); // 使用Unpooled工具类创建一个ByteBuf实例
+        this(Unpooled.buffer());
     }
 
     public ByteBufBinaryDataWriter(ByteBuf byteBuf) {
+        if (byteBuf == null) {
+            throw new IllegalArgumentException("ByteBuf must not be null");
+        }
         this.byteBuf = byteBuf;
     }
 
     @Override
     public void writeBytes(byte[] bytes) {
-        byteBuf.writeBytes(bytes); // 将整个字节数组写入ByteBuf
+        if (bytes == null)
+            throw new NullPointerException("bytes must not be null");
+        byteBuf.writeBytes(bytes);
     }
 
     @Override
     public void writeBytesPart(byte[] str, int start, int end) {
-        byteBuf.writeBytes(str, start, end - start); // 将字节数组的一部分写入ByteBuf
+        if (str == null)
+            throw new NullPointerException("str must not be null");
+        if (start < 0 || end > str.length || start > end)
+            throw new IndexOutOfBoundsException("start/end out of bounds");
+        byteBuf.writeBytes(str, start, end - start);
     }
 
     @Override
     public long getWrittenCount() {
-        return byteBuf.readableBytes();
+        // writerIndex() 表示已写入的字节总数
+        return byteBuf.writerIndex();
     }
 
     @Override
     public void writeS1(byte c) {
-        byteBuf.writeByte(c); // 写入一个字节
+        byteBuf.writeByte(c);
     }
 
     @Override
     public void writeU1(int c) {
-        byteBuf.writeByte(c); // 写入一个字节
+        if (c < 0 || c > 0xFF)
+            throw new IllegalArgumentException("Unsigned byte (U1) out of range: " + c);
+        byteBuf.writeByte(c);
     }
 
     @Override
     public void writeByteBuffer(ByteBuffer buf) {
-        byteBuf.writeBytes(buf); // 将ByteBuffer的内容写入ByteBuf
+        if (buf == null)
+            throw new NullPointerException("ByteBuffer must not be null");
+        byteBuf.writeBytes(buf);
     }
 
     @Override
     public void writeS2be(short c) {
-        byteBuf.writeShort(c); // 写入一个short类型的数据
+        byteBuf.writeShort(c);
     }
 
     @Override
     public void writeS2le(short c) {
-        byteBuf.writeShortLE(c); // 写入一个short类型的数据
+        byteBuf.writeShortLE(c);
     }
 
     @Override
     public void writeU2be(int c) {
-        byteBuf.writeShort(c); // 写入一个short类型的数据
+        if (c < 0 || c > 0xFFFF)
+            throw new IllegalArgumentException("Unsigned short (U2) out of range: " + c);
+        byteBuf.writeShort(c);
     }
 
     @Override
     public void writeU2le(int c) {
-        byteBuf.writeShortLE(c); // 写入一个short类型的数据
+        if (c < 0 || c > 0xFFFF)
+            throw new IllegalArgumentException("Unsigned short (U2) out of range: " + c);
+        byteBuf.writeShortLE(c);
     }
 
     @Override
     public void writeS4be(int c) {
-        byteBuf.writeInt(c); // 写入一个int类型的数据
+        byteBuf.writeInt(c);
     }
 
     @Override
     public void writeS4le(int c) {
-        byteBuf.writeIntLE(c); // 写入一个int类型的数据
+        byteBuf.writeIntLE(c);
     }
 
     @Override
     public void writeU4be(long c) {
-        byteBuf.writeInt((int) c); // 写入一个int类型的数据
+        if (c < 0 || c > 0xFFFFFFFFL)
+            throw new IllegalArgumentException("Unsigned int (U4) out of range: " + c);
+        byteBuf.writeInt((int) c);
     }
 
     @Override
     public void writeU4le(long c) {
-        byteBuf.writeIntLE((int) c); // 写入一个int类型的数据
+        if (c < 0 || c > 0xFFFFFFFFL)
+            throw new IllegalArgumentException("Unsigned int (U4) out of range: " + c);
+        byteBuf.writeIntLE((int) c);
     }
 
     @Override
     public void writeS8be(long c) {
-        byteBuf.writeLong(c); // 写入一个long类型的数据
+        byteBuf.writeLong(c);
     }
 
     @Override
     public void writeS8le(long c) {
-        byteBuf.writeLongLE(c); // 写入一个long类型的数据
+        byteBuf.writeLongLE(c);
     }
 
     @Override
     public void writeU8be(long c) {
-        byteBuf.writeLong(c); // 写入一个long类型的数据
+        byteBuf.writeLong(c); // Java long本身就是64位
     }
 
     @Override
     public void writeU8le(long c) {
-        byteBuf.writeLongLE(c); // 写入一个long类型的数据
+        byteBuf.writeLongLE(c);
     }
 
     @Override
     public void writeF4be(float c) {
-        byteBuf.writeFloat(c); // 写入一个float类型的数据
+        byteBuf.writeFloat(c);
     }
 
     @Override
     public void writeF4le(float c) {
-        byteBuf.writeFloatLE(c); // 写入一个float类型的数据
+        byteBuf.writeFloatLE(c);
     }
 
     @Override
     public void writeF8be(double c) {
-        byteBuf.writeDouble(c); // 写入一个double类型的数据
+        byteBuf.writeDouble(c);
     }
 
     @Override
     public void writeF8le(double c) {
-        byteBuf.writeDoubleLE(c); // 写入一个double类型的数据
+        byteBuf.writeDoubleLE(c);
     }
 
-    // 其他方法，比如获取ByteBuf实例，可能需要实现
+    /**
+     * 获取底层 ByteBuf。
+     */
     public ByteBuf getByteBuf() {
         return byteBuf;
     }
 
-    // 当不再需要时，释放ByteBuf资源
+    /**
+     * 释放 ByteBuf。注意不能多次调用。
+     */
     public void close() {
-        byteBuf.release();
+        if (!closed) {
+            closed = true;
+            byteBuf.release();
+        }
     }
 
     @Override
     public void flush() {
-
+        // 对于内存缓冲对象无实际意义，可留空
     }
 }
