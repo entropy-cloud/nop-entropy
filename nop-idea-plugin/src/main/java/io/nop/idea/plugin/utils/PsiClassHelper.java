@@ -14,8 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import com.intellij.openapi.module.Module;
-import com.intellij.openapi.module.ModuleUtilCore;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.CommonClassNames;
 import com.intellij.psi.JavaPsiFacade;
@@ -59,7 +57,17 @@ import org.jetbrains.annotations.NotNull;
  * @date 2025-06-26
  */
 public class PsiClassHelper {
-    private static final JavaClassReferenceProvider javaClassRefProvider = new JavaClassReferenceProvider();
+    private static final JavaClassReferenceProvider javaClassRefProvider = new JavaClassReferenceProvider() {
+        @Override
+        public @NotNull GlobalSearchScope getScope(@NotNull Project project) {
+//            Module module = ModuleUtilCore.findModuleForPsiElement(element);
+//            scope = module == null
+//                    ? GlobalSearchScope.allScope(project)
+//                    : module.getModuleWithDependenciesAndLibrariesScope(true);
+            // Note: DSL 可能定义在独立的项目中，因此，其可能引入非其所在模块依赖包中的 class
+            return GlobalSearchScope.allScope(project);
+        }
+    };
 
     private static final Map<PsiPrimitiveType, String> primitiveTypeWrapper = Map.of(PsiTypes.byteType(),
                                                                                      "java.lang.Byte",
@@ -88,15 +96,7 @@ public class PsiClassHelper {
     public static @NotNull GlobalSearchScope getSearchScope(@NotNull PsiElement element) {
         Project project = element.getProject();
 
-        GlobalSearchScope scope = javaClassRefProvider.getScope(project);
-        if (scope == null) {
-            Module module = ModuleUtilCore.findModuleForPsiElement(element);
-
-            scope = module == null
-                    ? GlobalSearchScope.allScope(project)
-                    : module.getModuleWithDependenciesAndLibrariesScope(true);
-        }
-        return scope;
+        return javaClassRefProvider.getScope(project);
     }
 
     public static PsiReference @NotNull [] createJavaClassReferences(
@@ -125,7 +125,6 @@ public class PsiClassHelper {
             return null;
         }
 
-        Project project = context.getProject();
         // 处理通配符泛型
         if (type instanceof PsiWildcardType t) {
             PsiType bound = t.getBound();
