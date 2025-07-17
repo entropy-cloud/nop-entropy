@@ -98,7 +98,7 @@ public class CliExtractCommand implements Callable<Integer> {
     IComponentModel parseModel(IResource resource) {
         String path = resource.getPath();
         if (path.endsWith(".xlsx")) {
-            if (templatePath.endsWith(".imp.xml")) {
+            if (templatePath != null && templatePath.endsWith(".imp.xml")) {
                 // 使用指定的imp.xml模型文件来解析
                 return (IComponentModel) ExcelReportHelper.loadXlsxObject(templatePath, resource);
             }
