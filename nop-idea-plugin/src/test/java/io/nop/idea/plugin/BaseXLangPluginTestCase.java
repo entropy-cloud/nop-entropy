@@ -23,7 +23,6 @@ import com.intellij.codeInsight.lookup.Lookup;
 import com.intellij.codeInsight.lookup.LookupElement;
 import com.intellij.codeInsight.lookup.LookupManager;
 import com.intellij.codeInsight.lookup.impl.LookupImpl;
-import com.intellij.codeInsight.navigation.actions.GotoDeclarationAction;
 import com.intellij.lang.documentation.DocumentationProvider;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
@@ -189,7 +188,7 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         return ref;
     }
 
-    protected String getDoc() {
+    protected String getDocAtCaret() {
         // Note: 通过 ApplicationManager.getApplication().runReadAction(() -> {})
         // 消除异常 "Read access is allowed from inside read-action"
         PsiElement originalElement = getElementAtCaret();
@@ -200,14 +199,6 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         DocumentationProvider docProvider = DocumentationManager.getProviderFromElement(originalElement);
 
         return docProvider.generateDoc(element, originalElement);
-    }
-
-    protected PsiElement[] getGotoTargets() {
-        assertCaretExists();
-
-        return GotoDeclarationAction.findAllTargetElements(getProject(),
-                                                           myFixture.getEditor(),
-                                                           myFixture.getCaretOffset());
     }
 
     private void assertCaretExists() {

@@ -139,7 +139,7 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
     private void doTest(String text, Consumer<String> checker) {
         configureByXLangText(text);
 
-        String genDoc = getDoc();
+        String genDoc = getDocAtCaret();
 
         checker.accept(genDoc);
     }

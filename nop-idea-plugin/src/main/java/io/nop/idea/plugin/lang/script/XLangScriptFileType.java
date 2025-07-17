@@ -39,7 +39,7 @@ public class XLangScriptFileType extends LanguageFileType {
     @NotNull
     @Override
     public String getDescription() {
-        return "XLang script file";
+        return "XLang Script (Embedded in XLang DSL)";
     }
 
     @NotNull

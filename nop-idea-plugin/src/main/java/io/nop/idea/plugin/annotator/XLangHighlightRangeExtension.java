@@ -6,7 +6,7 @@
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
 
-package io.nop.idea.plugin.lang.highlight;
+package io.nop.idea.plugin.annotator;
 
 import com.intellij.codeInsight.daemon.impl.HighlightRangeExtension;
 import com.intellij.psi.PsiFile;
