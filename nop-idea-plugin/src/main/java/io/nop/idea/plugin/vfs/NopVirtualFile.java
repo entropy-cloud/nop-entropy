@@ -31,20 +31,27 @@ import org.jetbrains.annotations.Nullable;
  * @date 2025-07-12
  */
 public class NopVirtualFile extends PsiElementBase implements PsiNamedElement {
-    private final Project project;
-    /** vfs 绝对路径 */
+    private final PsiElement srcElement;
     private final String path;
-    /** 目标元素获取函数 */
     private final Function<PsiFile, PsiElement> targetResolver;
 
     private PsiElement[] children;
 
-    public NopVirtualFile(Project project, String path) {
-        this(project, path, null);
+    /** @see #NopVirtualFile(PsiElement, String, Function) */
+    public NopVirtualFile(PsiElement srcElement, String path) {
+        this(srcElement, path, null);
     }
 
-    public NopVirtualFile(Project project, String path, Function<PsiFile, PsiElement> targetResolver) {
-        this.project = project;
+    /**
+     * @param srcElement
+     *         与该 vfs 直接相关的源元素
+     * @param path
+     *         该 vfs 的绝对路径
+     * @param targetResolver
+     *         目标元素获取函数
+     */
+    public NopVirtualFile(PsiElement srcElement, String path, Function<PsiFile, PsiElement> targetResolver) {
+        this.srcElement = srcElement;
         this.path = path;
         assert path.startsWith("/");
 
@@ -101,8 +108,13 @@ public class NopVirtualFile extends PsiElementBase implements PsiNamedElement {
     @Override
     public @NotNull PsiElement @NotNull [] getChildren() {
         if (children == null) {
+            PsiFile srcFile = srcElement.getContainingFile();
+            String srcVfsPath = XmlPsiHelper.getNopVfsPath(srcElement);
+
             children = XmlPsiHelper.findPsiFilesByNopVfsPath(this, path)
                                    .stream()
+                                   // Note: 如果是同名的 vfs，则仅对同一文件做引用识别
+                                   .filter(file -> !path.equals(srcVfsPath) || srcFile == file)
                                    .map(file -> targetResolver != null ? targetResolver.apply(file) : file)
                                    .filter(Objects::nonNull)
                                    .toArray(PsiElement[]::new);
@@ -112,7 +124,7 @@ public class NopVirtualFile extends PsiElementBase implements PsiNamedElement {
 
     @Override
     public @NotNull Project getProject() {
-        return project;
+        return srcElement.getProject();
     }
 
     public String getPath() {

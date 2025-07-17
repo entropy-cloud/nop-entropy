@@ -1,6 +1,5 @@
 package io.nop.idea.plugin.vfs;
 
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import io.nop.idea.plugin.lang.reference.XLangReferenceBase;
@@ -29,10 +28,9 @@ public class NopVirtualFileReference extends XLangReferenceBase {
 
     @Override
     public @Nullable PsiElement resolveInner() {
-        Project project = myElement.getProject();
         String absPath = XmlPsiHelper.getNopVfsAbsolutePath(path, myElement);
 
-        NopVirtualFile target = new NopVirtualFile(project, absPath);
+        NopVirtualFile target = new NopVirtualFile(myElement, absPath);
 
         if (target.hasEmptyChildren()) {
             String msg = NopPluginBundle.message("xlang.annotation.reference.vfs-file-not-found", path);

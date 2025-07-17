@@ -10,7 +10,6 @@ package io.nop.idea.plugin.lang.reference;
 
 import java.util.function.Function;
 
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
@@ -48,7 +47,6 @@ public class XLangDefAttrReference extends XLangReferenceBase {
             return null;
         }
 
-        Project project = myElement.getProject();
         // Note: SourceLocation#getPath() 得到的 jar 中的 vfs 路径会添加 classpath:_vfs 前缀
         String path = loc.getPath().replace("classpath:_vfs", "");
 
@@ -66,6 +64,6 @@ public class XLangDefAttrReference extends XLangReferenceBase {
             return target;
         };
 
-        return new NopVirtualFile(project, path, targetResolver);
+        return new NopVirtualFile(myElement, path, targetResolver);
     }
 }

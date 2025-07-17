@@ -10,7 +10,6 @@ package io.nop.idea.plugin.lang.reference;
 
 import java.util.function.Function;
 
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
@@ -36,7 +35,6 @@ public class XLangStdDomainXdefRefReference extends XLangReferenceBase {
 
     @Override
     public @Nullable PsiElement resolveInner() {
-        Project project = myElement.getProject();
         // - /nop/schema/xdef.xdef:
         //   - `<schema xdef:ref="schema-node.xdef" />`
         //   - `<item xdef:ref="ISchema" />`
@@ -55,7 +53,7 @@ public class XLangStdDomainXdefRefReference extends XLangReferenceBase {
 
             path = XmlPsiHelper.getNopVfsAbsolutePath(path, myElement);
 
-            target = new NopVirtualFile(project, path, ref != null ? createTargetResolver(ref) : null);
+            target = new NopVirtualFile(myElement, path, ref != null ? createTargetResolver(ref) : null);
             if (((NopVirtualFile) target).hasEmptyChildren()) {
                 target = null;
             }

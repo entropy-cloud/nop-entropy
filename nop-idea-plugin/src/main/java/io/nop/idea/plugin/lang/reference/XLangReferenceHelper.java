@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
@@ -241,8 +240,6 @@ public class XLangReferenceHelper {
     public static NopVirtualFile createNopVfsForDict(
             PsiElement refElement, String dictName, Object dictOptionValue
     ) {
-        Project project = refElement.getProject();
-
         Function<PsiFile, PsiElement> targetResolver = //
                 (file) -> XmlPsiHelper.findFirstElement(file, (element) -> {
                     if (element instanceof LeafPsiElement value //
@@ -259,7 +256,7 @@ public class XLangReferenceHelper {
 
         String path = "/dict/" + dictName + ".dict.yaml";
 
-        return new NopVirtualFile(project, path, dictOptionValue != null ? targetResolver : null);
+        return new NopVirtualFile(refElement, path, dictOptionValue != null ? targetResolver : null);
     }
 
     public static List<String> getRegisteredStdDomains() {
