@@ -95,7 +95,7 @@ public class ModelBasedResourceRecordIO<T> implements IResourceRecordIO<T> {
             reader = new SimpleTextDataReader(text);
         } else {
             ITextDataReader baseReader = new ReaderTextDataReader(resource.getReader(encoding));
-            reader = new BlockCachedTextDataReader(baseReader, 4096, maxInMemorySize / 4096, Long.MAX_VALUE, 2);
+            reader = new BlockCachedTextDataReader(baseReader, 4096, false, maxInMemorySize / 4096);
         }
         return new ModelBasedTextRecordInput<>(reader, fileMeta);
     }

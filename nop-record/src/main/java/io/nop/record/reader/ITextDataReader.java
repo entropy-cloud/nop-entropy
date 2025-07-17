@@ -7,16 +7,33 @@
  */
 package io.nop.record.reader;
 
+import io.nop.api.core.exceptions.NopException;
+
 import java.io.IOException;
+
+import static io.nop.record.RecordErrors.ARG_EXPECTED;
+import static io.nop.record.RecordErrors.ARG_LENGTH;
+import static io.nop.record.RecordErrors.ARG_POS;
+import static io.nop.record.RecordErrors.ERR_RECORD_NO_ENOUGH_DATA;
 
 public interface ITextDataReader extends IDataReaderBase {
     long available() throws IOException;
 
     void skip(int n) throws IOException;
 
-    String tryRead(int len) throws IOException;
+    String tryReadFully(int len) throws IOException;
 
-    String readFully(int len) throws IOException;
+    default String readFully(int len) throws IOException {
+        String data = tryReadFully(len);
+        if (data.length() != len) {
+            throw new NopException(ERR_RECORD_NO_ENOUGH_DATA)
+                    .param(ARG_POS, pos())
+                    .param(ARG_EXPECTED, len)
+                    .param(ARG_LENGTH, data.length());
+        }
+        return data;
+    }
+
 
     default String readAvailableText() throws IOException {
         long len = available();
@@ -41,7 +58,7 @@ public interface ITextDataReader extends IDataReaderBase {
 
     default String peek(int len) throws IOException {
         long pos = pos();
-        String data = tryRead(len);
+        String data = tryReadFully(len);
         seek(pos);
         return data;
     }
@@ -49,7 +66,7 @@ public interface ITextDataReader extends IDataReaderBase {
     default String peekNext(int offset, int len) throws IOException {
         long pos = pos();
         skip(offset);
-        String data = tryRead(len);
+        String data = tryReadFully(len);
         seek(pos);
         return data;
     }
@@ -63,7 +80,7 @@ public interface ITextDataReader extends IDataReaderBase {
         return new SubTextDataReader(this, maxLength);
     }
 
-    ITextDataReader detach();
+    ITextDataReader detach() throws IOException;
 
     boolean isDetached();
 }

@@ -1,9 +1,15 @@
 package io.nop.record.reader;
 
+import io.nop.api.core.exceptions.NopException;
+
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
+
+import static io.nop.record.RecordErrors.ARG_FIRST_CACHED_POS;
+import static io.nop.record.RecordErrors.ARG_POS;
+import static io.nop.record.RecordErrors.ERR_RECORD_POS_NOT_IN_CACHE;
 
 /**
  * 基于块链表的缓存二进制数据读取器
@@ -13,7 +19,7 @@ import java.util.LinkedList;
 public class BlockCachedBinaryDataReader implements IBinaryDataReader {
 
     // 默认配置常量
-    private static final int DEFAULT_BUFFER_SIZE = 8192;
+    private static final int DEFAULT_BUFFER_SIZE = 4096;
     private static final long DEFAULT_MAX_SKIP_DISTANCE = 1024 * 1024; // 1MB
     private static final int DEFAULT_MAX_CACHE_BLOCKS = 8;
     private static final int DEFAULT_BACKWARD_CACHE_BLOCKS = 2; // 保留的向后缓存块数量
@@ -159,11 +165,11 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
 
         // 向后seek - 检查是否在缓存窗口内
         if (newPos < getFirstCachedPosition()) {
-            throw new IOException("Cannot seek backwards to position " + newPos +
-                    ". Position is outside cache window [" + getFirstCachedPosition() +
-                    ", " + getLastCachedPosition() + "). " +
-                    "Consider increasing maxCacheBlocks to maintain larger cache window.");
+            throw new NopException(ERR_RECORD_POS_NOT_IN_CACHE)
+                    .param(ARG_POS, newPos)
+                    .param(ARG_FIRST_CACHED_POS, getFirstCachedPosition());
         }
+
 
         currentPosition = newPos;
     }
@@ -409,27 +415,7 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
         // 限制缓存大小，移除旧的blocks
         // 改进的缓存管理策略：确保保留足够的向后缓存空间
         while (cachedBlocks.size() > maxCacheBlocks) {
-            DataBlock removedBlock = cachedBlocks.removeFirst();
-
-            // 计算最小应保留的位置，确保向后seek的可用性
-            long minRetainPosition = Math.max(0,
-                    currentPosition - (long) backwardCacheBlocks * defaultBlockSize);
-
-            // 如果移除该块会影响当前位置或必要的向后缓存，则报错
-            if (removedBlock.contains(currentPosition)) {
-                throw new IllegalStateException("Cache window too small. Current position " +
-                        currentPosition + " is in block being removed [" +
-                        removedBlock.getStartPosition() + ", " + removedBlock.getEndPosition() +
-                        "). Consider increasing maxCacheBlocks from " + maxCacheBlocks);
-            }
-
-            if (removedBlock.getEndPosition() > minRetainPosition) {
-                throw new IllegalStateException("Cache window too small. Removing block [" +
-                        removedBlock.getStartPosition() + ", " + removedBlock.getEndPosition() +
-                        ") would break backward seek capability. Current position: " + currentPosition +
-                        ", Min retain position: " + minRetainPosition +
-                        ". Consider increasing maxCacheBlocks from " + maxCacheBlocks);
-            }
+            cachedBlocks.removeFirst();
         }
 
         return true;
@@ -451,14 +437,14 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
     /**
      * 获取第一个缓存block的起始位置
      */
-    private long getFirstCachedPosition() {
+    protected long getFirstCachedPosition() {
         return cachedBlocks.isEmpty() ? maxReadPosition : cachedBlocks.getFirst().getStartPosition();
     }
 
     /**
      * 获取最后一个缓存block的结束位置
      */
-    private long getLastCachedPosition() {
+    protected long getLastCachedPosition() {
         return cachedBlocks.isEmpty() ? maxReadPosition : cachedBlocks.getLast().getEndPosition();
     }
 
@@ -478,6 +464,10 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
      * 从底层reader加载下一个block
      */
     protected DataBlock loadNextBlock() throws IOException {
+        if (underlyingReader.isEof()) {
+            return null;
+        }
+
         byte[] buffer = new byte[defaultBlockSize];
         int bytesRead = underlyingReader.read(buffer, 0, defaultBlockSize);
 
@@ -485,18 +475,15 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
             return null;  // EOF
         }
 
-        // 如果要求严格block大小且读取的字节数不足，检查是否还有更多数据
+        // 严格块大小检查
         if (strictBlockSize && bytesRead < defaultBlockSize) {
             if (underlyingReader.hasRemainingBytes()) {
                 throw new IOException("Expected " + defaultBlockSize + " bytes but read " + bytesRead);
             }
         }
 
-        ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, bytesRead);
-        DataBlock block = new DataBlock(byteBuffer, underlyingPosition, bytesRead);
-        underlyingPosition += bytesRead;
-
-        return block;
+        return new DataBlock(ByteBuffer.wrap(buffer, 0, bytesRead),
+                underlyingPosition, bytesRead);
     }
 
     /**

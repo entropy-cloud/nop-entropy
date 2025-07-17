@@ -36,6 +36,8 @@ public interface RecordErrors {
     String ARG_POS = "pos";
     String ARG_EXPECTED = "expected";
 
+    String ARG_FIRST_CACHED_POS = "firstCachedPos";
+
     String ARG_VALUE = "value";
     String ARG_DICT = "dict";
 
@@ -45,6 +47,9 @@ public interface RecordErrors {
 
     ErrorCode ERR_RECORD_NO_ENOUGH_DATA =
             define("nop.err.record.no-enough-data", "缺少数据，无法读取");
+
+    ErrorCode ERR_RECORD_POS_NOT_IN_CACHE =
+            define("nop.err.record.pos-not-in-cache", "位置{pos}不在缓存中", ARG_POS);
 
     ErrorCode ERR_RECORD_UNKNOWN_FIELD_CODEC =
             define("nop.err.record.unknown-field-codec:{codec}", ARG_FIELD_NAME, ARG_CODEC);

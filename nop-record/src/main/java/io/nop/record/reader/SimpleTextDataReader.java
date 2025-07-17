@@ -59,7 +59,7 @@ public class SimpleTextDataReader implements ITextDataReader {
      * 尝试读取最多 n 个字符，遇到结尾可少于 n 个字符，未读到任何字符时返回空串。
      * 不抛异常。
      */
-    public String tryRead(int n) {
+    public String tryReadFully(int n) {
         if (n < 0) {
             throw new IllegalArgumentException("tryRead length cannot be negative: " + n);
         }

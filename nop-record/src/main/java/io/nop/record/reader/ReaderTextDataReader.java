@@ -113,7 +113,7 @@ public class ReaderTextDataReader implements ITextDataReader {
      * @param n 期望读取字符数
      * @return 最多n个字符，实际可用多少返回多少，不足n不抛异常
      */
-    public String tryRead(int n) throws IOException {
+    public String tryReadFully(int n) throws IOException {
         if (n < 0)
             throw new IllegalArgumentException("tryRead length cannot be negative: " + n);
         if (n == 0)
@@ -146,54 +146,6 @@ public class ReaderTextDataReader implements ITextDataReader {
         } else {
             // EOF 或不可读
             return "";
-        }
-    }
-
-    @Override
-    public String readFully(int len) {
-        if (len < 0) {
-            throw new NopException(ERR_RECORD_NO_ENOUGH_DATA)
-                    .param("reason", "Read length cannot be negative: " + len);
-        }
-        if (len == 0) {
-            return "";
-        }
-
-        checkNotClosed();
-
-        try {
-            char[] buffer = new char[len];
-            int totalRead = 0;
-
-            // 推回字符先填充
-            if (hasPushedBack) {
-                buffer[0] = (char) pushedBackChar;
-                totalRead = 1;
-                clearPushedBackChar();
-            }
-
-            // 继续读取
-            while (totalRead < len) {
-                int readCount = reader.read(buffer, totalRead, len - totalRead);
-                if (readCount == -1) {
-                    if (totalRead == 0) {
-                        throw new NopException(ERR_RECORD_NO_ENOUGH_DATA)
-                                .param("reason", "Reached EOF, no data available");
-                    }
-                    break;
-                }
-                totalRead += readCount;
-            }
-
-            if (totalRead < len) {
-                throw new NopException(ERR_RECORD_NO_ENOUGH_DATA)
-                        .param("reason", "Requested " + len + " characters but only " + totalRead + " available");
-            }
-
-            position += totalRead;
-            return new String(buffer, 0, totalRead);
-        } catch (IOException e) {
-            throw new NopException(ERR_RECORD_NO_ENOUGH_DATA).cause(e);
         }
     }
 
