@@ -63,7 +63,7 @@ public class XLangTextToken extends XmlTokenImpl {
         }
 
         String text = getText();
-        XDefTypeDecl xdefValue = tag.getDefNodeXdefValue();
+        XDefTypeDecl xdefValue = tag.getSchemaDefNodeXdefValue();
         if (xdefValue == null || StringHelper.isBlank(text)) {
             return PsiReference.EMPTY_ARRAY;
         }

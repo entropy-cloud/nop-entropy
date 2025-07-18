@@ -261,11 +261,8 @@ public class XmlPsiHelper {
                || elementType == XmlTokenType.XML_COMMENT_CHARACTERS;
     }
 
-    public static boolean isElementType(PsiElement elm, IElementType type) {
-        if (elm == null) {
-            return false;
-        }
-        ASTNode node = elm.getNode();
+    public static boolean isElementType(PsiElement element, IElementType type) {
+        ASTNode node = element != null ? element.getNode() : null;
         if (node == null) {
             return false;
         }

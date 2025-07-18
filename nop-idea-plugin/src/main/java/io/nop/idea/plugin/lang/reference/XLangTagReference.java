@@ -13,7 +13,6 @@ import java.util.function.Function;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
-import com.intellij.psi.xml.XmlTag;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.idea.plugin.lang.psi.XLangTag;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
@@ -44,7 +43,9 @@ public class XLangTagReference extends XLangReferenceBase {
         }
 
         SourceLocation loc = defNode.getLocation();
-        Function<PsiFile, PsiElement> targetResolver = (file) -> XmlPsiHelper.getPsiElementAt(file, loc, XmlTag.class);
+        Function<PsiFile, PsiElement> targetResolver = (file) -> XmlPsiHelper.getPsiElementAt(file,
+                                                                                              loc,
+                                                                                              XLangTag.class);
 
         return new NopVirtualFile(myElement, path, targetResolver);
     }

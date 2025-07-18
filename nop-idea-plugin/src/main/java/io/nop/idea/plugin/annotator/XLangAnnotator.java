@@ -159,7 +159,7 @@ public class XLangAnnotator implements Annotator {
     }
 
     private void checkTagValue(@NotNull AnnotationHolder holder, @NotNull XLangTag tag) {
-        XDefTypeDecl xdefValue = tag.getDefNodeXdefValue();
+        XDefTypeDecl xdefValue = tag.getSchemaDefNodeXdefValue();
         TextRange textRange = tag.getValue().getTextRange();
         String bodyText = tag.hasChildTag() ? null : tag.getBodyText();
         boolean blankBodyText = StringHelper.isBlank(bodyText);

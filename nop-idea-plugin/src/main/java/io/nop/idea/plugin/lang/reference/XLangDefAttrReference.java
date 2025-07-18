@@ -13,10 +13,9 @@ import java.util.function.Function;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
-import com.intellij.psi.xml.XmlAttribute;
-import com.intellij.psi.xml.XmlTag;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.idea.plugin.lang.psi.XLangAttribute;
+import io.nop.idea.plugin.lang.psi.XLangTag;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFile;
 import io.nop.xlang.xdef.IXDefAttribute;
@@ -49,12 +48,12 @@ public class XLangDefAttrReference extends XLangReferenceBase {
 
         SourceLocation loc = attrDef.getLocation();
         Function<PsiFile, PsiElement> targetResolver = (file) -> {
-            PsiElement target = XmlPsiHelper.getPsiElementAt(file, loc, XmlAttribute.class);
+            PsiElement target = XmlPsiHelper.getPsiElementAt(file, loc, XLangAttribute.class);
 
             if (target == null) {
-                target = XmlPsiHelper.getPsiElementAt(file, loc, XmlTag.class);
+                target = XmlPsiHelper.getPsiElementAt(file, loc, XLangTag.class);
 
-                if (target instanceof XmlTag tag) {
+                if (target instanceof XLangTag tag) {
                     // Note: 在交叉定义时，属性定义中的属性名字与当前属性名字是不相同的
                     target = tag.getAttribute(attrDef.getName());
                 }

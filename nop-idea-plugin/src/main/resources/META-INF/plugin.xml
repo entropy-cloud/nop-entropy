@@ -93,8 +93,8 @@
         <!--<completion.contributor language="XLang"
                                 implementationClass="io.nop.idea.plugin.completion.XLangCompletionContributor"/>-->
         <!-- 鼠标Hover到XLang语法元素上显示相关文档信息 -->
-        <!--<lang.documentationProvider language="XLang" order="first"
-                                    implementationClass="io.nop.idea.plugin.doc.XLangDocumentationProvider"/>-->
+        <lang.documentationProvider language="XLang" order="first"
+                                    implementationClass="io.nop.idea.plugin.doc.XLangDocumentationProvider"/>
 
         <!-- XLang 调试 -->
         <xdebugger.breakpointType implementation="io.nop.idea.plugin.debugger.XLangBreakpointType"/>

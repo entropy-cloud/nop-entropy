@@ -24,12 +24,15 @@ import com.intellij.xml.util.XmlTagUtil;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
+import io.nop.idea.plugin.lang.XLangDocumentation;
 import io.nop.idea.plugin.lang.reference.XLangTagReference;
 import io.nop.idea.plugin.resource.ProjectEnv;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.xlang.xdef.IXDefAttribute;
+import io.nop.xlang.xdef.IXDefComment;
 import io.nop.xlang.xdef.IXDefNode;
+import io.nop.xlang.xdef.IXDefSubComment;
 import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefKeys;
@@ -182,7 +185,7 @@ public class XLangTag extends XmlTagImpl {
      * 获取 {@link #getSchemaDefNode()} 节点的 {@link XDefKeys#VALUE xdef:value}，
      * 即，其子节点（包括文本节点）对应的{@link XDefTypeDecl 类型}
      */
-    public XDefTypeDecl getDefNodeXdefValue() {
+    public XDefTypeDecl getSchemaDefNodeXdefValue() {
         IXDefNode defNode = getSchemaDefNode();
 
         return defNode != null ? defNode.getXdefValue() : null;
@@ -257,9 +260,9 @@ public class XLangTag extends XmlTagImpl {
         return isXdefValueSupportBody();
     }
 
-    /** 当前标签的 {@link #getDefNodeXdefValue() xdef:value} 类型是否支持内嵌节点 */
+    /** 当前标签的 {@link #getSchemaDefNodeXdefValue() xdef:value} 类型是否支持内嵌节点 */
     public boolean isXdefValueSupportBody() {
-        XDefTypeDecl xdefValue = getDefNodeXdefValue();
+        XDefTypeDecl xdefValue = getSchemaDefNodeXdefValue();
 
         return xdefValue != null && xdefValue.isSupportBody(StdDomainRegistry.instance());
     }
@@ -282,6 +285,101 @@ public class XLangTag extends XmlTagImpl {
 
         return def.getXdefCheckNs() == null //
                || !def.getXdefCheckNs().contains(ns);
+    }
+
+    /** 获取当前标签的说明文档 */
+    public XLangDocumentation getTagDocumentation() {
+        String tagNs = getNamespacePrefix();
+        String tagName = getName();
+
+        IXDefNode defNode;
+        // xdef:define 没有实体节点，故而，不显示其文档
+        if (getXDefKeys().DEFINE.equals(tagName)) {
+            defNode = null;
+        }
+        // x 名字空间的节点，显示其在 xdsl 中的文档
+        else if (XDslKeys.DEFAULT.NS.equals(tagNs)) {
+            defNode = getXDslDefNode();
+        }
+        // 在非 xdef.xdef 中的以 xdef 为名字空间的节点（不含 xdef:unknown-tag），显示其定义文档
+        else if (!isInXDefXDef() && XDefKeys.DEFAULT.NS.equals(tagNs) //
+                 && !XDefKeys.DEFAULT.UNKNOWN_TAG.equals(tagName) //
+        ) {
+            defNode = getSchemaDefNode();
+        }
+        // *.xdef 中的自定义节点，显示自己的文档
+        else if (getSelfDefNode() != null) {
+            defNode = getSelfDefNode();
+        }
+        // 其余 dsl 均显示节点的定义文档
+        else {
+            defNode = getSchemaDefNode();
+        }
+
+        if (defNode == null) {
+            return null;
+        }
+
+        XLangDocumentation doc = new XLangDocumentation(defNode);
+        doc.setMainTitle(tagName);
+
+        IXDefComment comment = defNode.getComment();
+        if (comment != null) {
+            doc.setSubTitle(comment.getMainDisplayName());
+            doc.setDesc(comment.getMainDescription());
+        }
+
+        return doc;
+    }
+
+    /** 获取当前标签指定属性的说明文档 */
+    public XLangDocumentation getAttrDocumentation(String attrName) {
+        String attrNs = StringHelper.getNamespace(attrName);
+        if ("xmlns".equals(attrNs)) {
+            return null;
+        }
+
+        String mainTitle = attrName;
+        IXDefNode defNode;
+        if (isInXDefXDef() && XDefKeys.DEFAULT.NS.equals(attrNs)) {
+            defNode = getSelfDefNode();
+        } //
+        else if (XDslKeys.DEFAULT.NS.equals(attrNs) || getXDslKeys().NS.equals(attrNs)) {
+            attrName = changeNamespace(attrName, getXDslKeys().NS, XDslKeys.DEFAULT.NS);
+            defNode = getXDslDefNode();
+        } //
+        else {
+            attrName = changeNamespace(attrName, getXDefKeys().NS, XDefKeys.DEFAULT.NS);
+
+            defNode = getSelfDefNode();
+            // 对于 *.xdef，优先取其自身定义节点上的属性文档
+            if (defNode == null || defNode.getAttribute(attrName) == null) {
+                defNode = getSchemaDefNode();
+            }
+        }
+
+        IXDefAttribute attrDef = getXDefNodeAttr(defNode, attrName);
+        if (attrDef == null) {
+            return null;
+        }
+
+        XLangDocumentation doc = new XLangDocumentation(attrDef);
+        doc.setMainTitle(mainTitle);
+
+        IXDefComment nodeComment = defNode.getComment();
+        if (nodeComment != null) {
+            IXDefSubComment attrComment = nodeComment.getSubComments().get(attrName);
+            if (attrComment == null && attrDef.isUnknownAttr()) {
+                attrComment = nodeComment.getSubComments().get(XDefKeys.DEFAULT.UNKNOWN_ATTR);
+            }
+
+            if (attrComment != null) {
+                doc.setSubTitle(attrComment.getDisplayName());
+                doc.setDesc(attrComment.getDescription());
+            }
+        }
+
+        return doc;
     }
 
     /** 获取 {@link IXDefNode} 上指定属性的 xdef 定义 */
@@ -401,14 +499,14 @@ public class XLangTag extends XmlTagImpl {
         IXDefNode selfDefNode = parentSelfDefNode != null ? parentSelfDefNode.getChild(tagName) : null;
 
         IXDefNode schemaDefNode = null;
-        if (tagNs.equals(XDslKeys.DEFAULT.NS) && !parentTag.isInXDslXDef()) {
+        if (XDslKeys.DEFAULT.NS.equals(tagNs) && !parentTag.isInXDslXDef()) {
             schemaDefNode = xdslDefNode;
             selfDefNode = null;
         } //
         else if (parentSchemaDefNode != null) {
             // 在元元模型中，以 xdef 为名字空间的标签，
             // 需以 meta:unknown-tag 作为其节点定义，即，交叉定义
-            if (parentTag.isInXDefXDef() && tagNs.equals(XDefKeys.DEFAULT.NS)) {
+            if (parentTag.isInXDefXDef() && XDefKeys.DEFAULT.NS.equals(tagNs)) {
                 schemaDefNode = parentSchemaDefNode.getXdefUnknownTag();
             }
             // 其余的，则将标签的 xdef 名字空间固定为名字 xdef

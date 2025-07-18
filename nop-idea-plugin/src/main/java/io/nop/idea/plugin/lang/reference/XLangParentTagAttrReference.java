@@ -11,8 +11,8 @@ package io.nop.idea.plugin.lang.reference;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlElement;
+import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangTag;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import org.jetbrains.annotations.Nullable;
@@ -38,7 +38,7 @@ public class XLangParentTagAttrReference extends XLangReferenceBase {
             return null;
         }
 
-        XmlAttribute target = tag.getAttribute(attrValue);
+        XLangAttribute target = (XLangAttribute) tag.getAttribute(attrValue);
 
         if (target == null) {
             String msg = NopPluginBundle.message("xlang.annotation.reference.parent-tag-attr-not-found", attrValue);
