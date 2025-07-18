@@ -467,6 +467,10 @@ public interface IBinaryDataReader extends IDataReaderBase, DataInput {
         return n;
     }
 
+    default byte[] tryReadFully(int len) throws IOException {
+        return readBytes(len);
+    }
+
     default int tryReadFully(byte[] data, int offset, int len) throws IOException {
         int nRead = 0;
         do {

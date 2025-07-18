@@ -9,6 +9,7 @@ import java.util.LinkedList;
 
 import static io.nop.record.RecordErrors.ARG_FIRST_CACHED_POS;
 import static io.nop.record.RecordErrors.ARG_POS;
+import static io.nop.record.RecordErrors.ERR_RECORD_NO_ENOUGH_DATA;
 import static io.nop.record.RecordErrors.ERR_RECORD_POS_NOT_IN_CACHE;
 
 /**
@@ -71,6 +72,57 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
             }
             return (int) (position - startPosition);
         }
+
+        /**
+         * 从指定位置读取数据到目标数组
+         */
+        public int readBytes(long position, byte[] dest, int offset, int length) {
+            if (!contains(position)) {
+                return -1;
+            }
+
+            int relativeOffset = getRelativeOffset(position);
+            int available = size - relativeOffset;
+            int toRead = Math.min(length, available);
+
+            if (toRead <= 0) {
+                return -1;
+            }
+
+            // 保存原始position
+            int originalPos = buffer.position();
+            buffer.position(relativeOffset);
+
+            try {
+                buffer.get(dest, offset, toRead);
+                return toRead;
+            } finally {
+                // 恢复原始position
+                buffer.position(originalPos);
+            }
+        }
+
+        /**
+         * 从指定位置读取一个字节
+         */
+        public int readByte(long position) {
+            if (!contains(position)) {
+                return -1;
+            }
+
+            int relativeOffset = getRelativeOffset(position);
+
+            // 保存原始position
+            int originalPos = buffer.position();
+            buffer.position(relativeOffset);
+
+            try {
+                return buffer.hasRemaining() ? (buffer.get() & 0xFF) : -1;
+            } finally {
+                // 恢复原始position
+                buffer.position(originalPos);
+            }
+        }
     }
 
     private final IBinaryDataReader underlyingReader;
@@ -92,13 +144,6 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
 
     /**
      * 完整构造函数
-     *
-     * @param underlyingReader    底层数据读取器
-     * @param defaultBlockSize    默认块大小
-     * @param strictBlockSize     是否要求严格的块大小（除了最后一个块）
-     * @param maxCacheBlocks      最大缓存块数量，超过时会释放旧块
-     * @param maxSkipDistance     最大允许的skip距离
-     * @param backwardCacheBlocks 保留的向后缓存块数量
      */
     public BlockCachedBinaryDataReader(IBinaryDataReader underlyingReader,
                                        int defaultBlockSize,
@@ -106,12 +151,25 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
                                        int maxCacheBlocks,
                                        long maxSkipDistance,
                                        int backwardCacheBlocks) {
+        if (underlyingReader == null) {
+            throw new IllegalArgumentException("underlyingReader cannot be null");
+        }
+        if (defaultBlockSize <= 0) {
+            throw new IllegalArgumentException("defaultBlockSize must be positive");
+        }
+        if (maxCacheBlocks <= 0) {
+            throw new IllegalArgumentException("maxCacheBlocks must be positive");
+        }
+        if (backwardCacheBlocks < 0) {
+            throw new IllegalArgumentException("backwardCacheBlocks cannot be negative");
+        }
+
         this.underlyingReader = underlyingReader;
         this.defaultBlockSize = defaultBlockSize;
         this.strictBlockSize = strictBlockSize;
         this.maxCacheBlocks = maxCacheBlocks;
         this.maxSkipDistance = maxSkipDistance;
-        this.backwardCacheBlocks = backwardCacheBlocks;
+        this.backwardCacheBlocks = maxCacheBlocks <= backwardCacheBlocks ? maxCacheBlocks - 1 : backwardCacheBlocks;
     }
 
     /**
@@ -130,6 +188,11 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
      */
     public BlockCachedBinaryDataReader(IBinaryDataReader underlyingReader) {
         this(underlyingReader, DEFAULT_BUFFER_SIZE, false, DEFAULT_MAX_CACHE_BLOCKS,
+                DEFAULT_MAX_SKIP_DISTANCE, DEFAULT_BACKWARD_CACHE_BLOCKS);
+    }
+
+    public BlockCachedBinaryDataReader(IBinaryDataReader underlyingReader, int defaultBlockSize) {
+        this(underlyingReader, defaultBlockSize, false, DEFAULT_MAX_CACHE_BLOCKS,
                 DEFAULT_MAX_SKIP_DISTANCE, DEFAULT_BACKWARD_CACHE_BLOCKS);
     }
 
@@ -170,18 +233,21 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
                     .param(ARG_FIRST_CACHED_POS, getFirstCachedPosition());
         }
 
-
         currentPosition = newPos;
+        alignToByte(); // 重置bit操作状态
     }
 
     @Override
     public void skip(long n) throws IOException {
-        if (n <= 0) return;
+        if (n < 0) {
+            throw new NopException(ERR_RECORD_NO_ENOUGH_DATA);
+        }
+        if (n == 0) return;
 
         // 检查skip距离是否合理
         if (n > maxSkipDistance) {
-            throw new IOException("Skip distance " + n + " exceeds maximum allowed " + maxSkipDistance +
-                    ". This prevents excessive memory usage during large skips.");
+            throw new NopException(ERR_RECORD_NO_ENOUGH_DATA)
+                    .param("reason", "Skip distance " + n + " exceeds maximum allowed " + maxSkipDistance);
         }
 
         long targetPos = currentPosition + n;
@@ -192,6 +258,7 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
         }
 
         currentPosition = targetPos;
+        alignToByte(); // 重置bit操作状态
     }
 
     @Override
@@ -218,22 +285,10 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
             return -1;  // EOF
         }
 
-        int relativeOffset = currentBlock.getRelativeOffset(currentPosition);
-        ByteBuffer buffer = currentBlock.getBuffer();
-
-        // 保存原始position
-        int originalPos = buffer.position();
-        buffer.position(relativeOffset);
-
-        int result = buffer.hasRemaining() ? (buffer.get() & 0xFF) : -1;
-
-        // 恢复原始position
-        buffer.position(originalPos);
-
+        int result = currentBlock.readByte(currentPosition);
         if (result >= 0) {
             currentPosition++;
         }
-
         return result;
     }
 
@@ -249,51 +304,35 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
             return 0;
         }
 
-        // 确保目标范围的数据已被读取
-        long targetPos = currentPosition + len;
-        if (targetPos > maxReadPosition) {
-            ensureDataReadTo(targetPos);
-        }
-
         int totalRead = 0;
         int remaining = len;
 
-        while (remaining > 0 && currentPosition < maxReadPosition) {
+        while (remaining > 0 && !isEof()) {
             // 检查当前位置是否在缓存窗口内
             if (!isPositionInCache(currentPosition)) {
-                throw new IOException("Current position " + currentPosition +
-                        " is outside cache window [" + getFirstCachedPosition() +
-                        ", " + getLastCachedPosition() + ")");
+                // 尝试加载更多数据而不是直接报错
+                if (!tryLoadMoreData()) {
+                    break; // 无法加载更多数据，可能到达EOF
+                }
+                continue;
             }
 
             DataBlock currentBlock = findBlockForPosition(currentPosition);
             if (currentBlock == null) {
-                break;  // EOF
+                break; // 没有找到对应的block，可能到达EOF
             }
 
-            int relativeOffset = currentBlock.getRelativeOffset(currentPosition);
-            ByteBuffer buffer = currentBlock.getBuffer();
+            int bytesRead = currentBlock.readBytes(currentPosition, data, offset + totalRead, remaining);
+            if (bytesRead <= 0) {
+                break;
+            }
 
-            // 计算在当前block中可以读取的字节数
-            int availableInBlock = currentBlock.getSize() - relativeOffset;
-            int toReadFromBlock = Math.min(remaining, availableInBlock);
-
-            // 保存原始position
-            int originalPos = buffer.position();
-            buffer.position(relativeOffset);
-
-            // 读取数据
-            buffer.get(data, offset + totalRead, toReadFromBlock);
-
-            // 恢复原始position
-            buffer.position(originalPos);
-
-            totalRead += toReadFromBlock;
-            remaining -= toReadFromBlock;
-            currentPosition += toReadFromBlock;
+            totalRead += bytesRead;
+            remaining -= bytesRead;
+            currentPosition += bytesRead;
         }
 
-        return totalRead > 0 ? totalRead : -1;
+        return totalRead > 0 ? totalRead : (isEof() && totalRead == 0 ? -1 : totalRead);
     }
 
     @Override
@@ -411,9 +450,9 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
 
         cachedBlocks.addLast(newBlock);
         maxReadPosition = newBlock.getEndPosition();
+        underlyingPosition = maxReadPosition;
 
-        // 限制缓存大小，移除旧的blocks
-        // 改进的缓存管理策略：确保保留足够的向后缓存空间
+        // 限制缓存大小，确保不超过maxCacheBlocks
         while (cachedBlocks.size() > maxCacheBlocks) {
             cachedBlocks.removeFirst();
         }
@@ -482,8 +521,10 @@ public class BlockCachedBinaryDataReader implements IBinaryDataReader {
             }
         }
 
-        return new DataBlock(ByteBuffer.wrap(buffer, 0, bytesRead),
+        DataBlock block = new DataBlock(ByteBuffer.wrap(buffer, 0, bytesRead),
                 underlyingPosition, bytesRead);
+        underlyingPosition += bytesRead;
+        return block;
     }
 
     /**
