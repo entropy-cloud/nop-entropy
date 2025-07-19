@@ -42,28 +42,40 @@ public class TestXLangScriptReferences extends BaseXLangPluginTestCase {
                                 let a = b;
                                 "abc".tr<caret>im();
                                 let a = b;
-                                """, "java.lang.String#trim");
+                                """, //
+                        "java.lang.String#trim" //
+        );
         assertReference("""
                                 let abc = 123;
                                 abc.byte<caret>Value();
                                 let a = b;
-                                """, "java.lang.Integer#byteValue");
+                                """, //
+                        "java.lang.Integer#byteValue" //
+        );
         assertReference("""
                                 let abc = 123;
                                 abc = "abc";
                                 abc.tr<caret>im();
                                 let a = b;
-                                """, "java.lang.String#trim");
+                                """, //
+                        "java.lang.String#trim" //
+        );
 
         assertReference("""
                                 Integer.val<caret>ueOf;
-                                """, "java.lang.Integer#valueOf");
+                                """, //
+                        "java.lang.Integer#valueOf" //
+        );
         assertReference("""
                                 Integer.val<caret>ueOf();
-                                """, "java.lang.Integer#valueOf");
+                                """, //
+                        "java.lang.Integer#valueOf" //
+        );
         assertReference("""
                                 Integer.val<caret>ueOf('123');
-                                """, "java.lang.Integer#valueOf");
+                                """, //
+                        "java.lang.Integer#valueOf" //
+        );
 
         assertReference("""
                                 import io.nop.xlang.xdef.domain.XJsonDomainHandler;
@@ -71,27 +83,35 @@ public class TestXLangScriptReferences extends BaseXLangPluginTestCase {
                                 handler.get<caret>Name();
                                 // 尝试触发无限递归
                                 let name = handler.getName();
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler#getName");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler#getName" //
+        );
         assertReference("""
                                 import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                 const handler = new XJsonDomainHandler();
                                 handler.instance().get<caret>Name();
                                 // 尝试触发无限递归
                                 let name = handler.getName();
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler#getName");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler#getName" //
+        );
         assertReference("""
                                 import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                 const handler = XJsonDomainHandler.INST<caret>ANCE;
                                 // 尝试触发无限递归
                                 let name = handler.getName();
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler#INSTANCE");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler#INSTANCE" //
+        );
         assertReference("""
                                 import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                 let name = XJsonDomainHandler.INSTANCE.get<caret>Name();
                                 // 尝试触发无限递归
                                 const handler = new XJsonDomainHandler();
                                 name = handler.getName();
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler#getName");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler#getName" //
+        );
     }
 
     public void testVarReference() {
@@ -99,174 +119,249 @@ public class TestXLangScriptReferences extends BaseXLangPluginTestCase {
                                 let abc = "abc";
                                 const def = a<caret>bc + "def";
                                 abc = 123;
-                                """, "@4");
+                                """, //
+                        "@4" //
+        );
         assertReference("""
                                 let abc = "abc";
                                 ab<caret>c.trim();
-                                """, "@4");
+                                """, //
+                        "@4" //
+        );
 
         assertReference("""
                                 const def = [1, 2, 3];
                                 d<caret>ef[0] = 2;
-                                """, "@6");
+                                """, //
+                        "@6" //
+        );
 
         assertReference("""
-                                const s = new St<caret>ring("abc");
-                                """, "java.lang.String");
+                                const s = new St<caret>ring("abc" //
+                                );
+                                """, //
+                        "java.lang.String" //
+        );
         assertReference("""
                                 import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                 const handler = new XJsonDo<caret>mainHandler();
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler" //
+        );
         assertReference("""
                                 import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                 const sub = new XJsonDomainHandler.S<caret>ub.Sub();
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub" //
+        );
         assertReference("""
                                 import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                 const sub = new XJsonDomainHandler.Sub.S<caret>ub();
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.Sub");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.Sub" //
+        );
         assertReference("""
                                 const handler = new io.nop.xlang.xd<caret>ef.domain.XJsonDomainHandler();
-                                """, "io.nop.xlang.xdef");
+                                """, //
+                        "io.nop.xlang.xdef" //
+        );
         assertReference("""
                                 const handler = new io.nop.xlang.xdef.domain.XJsonDo<caret>mainHandler();
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler" //
+        );
         assertReference("""
                                 const sub = new io.nop.xlang.xdef.domain.XJsonD<caret>omainHandler.Sub.Sub();
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler" //
+        );
         assertReference("""
                                 const sub = new io.nop.xlang.xdef.domain.XJsonDomainHandler.S<caret>ub.Sub();
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub" //
+        );
         assertReference("""
                                 const sub = new io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.S<caret>ub();
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.Sub");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.Sub" //
+        );
 
         assertReference("""
                                 const handler = new io.nop.xlang.xdef.domain.XJsonDomainHandler();
                                 handler.get<caret>Name();
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler#getName");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler#getName" //
+        );
         assertReference("""
                                 import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                 const sub = new XJsonDomainHandler.Sub.Sub();
                                 sub.get<caret>Name();
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.Sub#getName");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.Sub#getName" //
+        );
         assertReference("""
                                 const sub = new io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.Sub();
                                 sub.get<caret>Name();
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.Sub#getName");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.Sub#getName" //
+        );
 
         assertReference("""
                                 const a1 = 'a';
                                 const b1 = 1;
                                 const obj = {a<caret>1, b1: b1};
-                                """, "@6");
+                                """, //
+                        "@6" //
+        );
         assertReference("""
                                 const a1 = 'a';
                                 const b1 = 1;
                                 const obj = {a1, b1: b<caret>1};
-                                """, "@22");
+                                """, //
+                        "@22" //
+        );
         assertReference("""
                                 const a1 = 'a';
                                 const b1 = 1;
                                 const c1 = 'c';
                                 const obj = {a1, c<caret>1};
-                                """, "@36");
+                                """, //
+                        "@36" //
+        );
     }
 
     public void testFunctionReference() {
         assertReference("""
                                 function fn1(a, b) { return a + b; }
                                 fn<caret>1(1, 2);
-                                """, "@9");
+                                """, //
+                        "@9" //
+        );
         assertReference("""
                                 function fn1(a, b) { return a + b; }
                                 const a = fn<caret>1(1, 2);
-                                """, "@9");
+                                """, //
+                        "@9" //
+        );
         assertReference("""
                                 const fn1 = (a1, b1) => a1 + b1;
                                 fn<caret>1(1, 2);
-                                """, "@6");
+                                """, //
+                        "@6" //
+        );
         assertReference("""
                                 const fn1 = (a1, b1) => a1 + b1;
                                 const a = fn<caret>1(1, 2);
-                                """, "@6");
+                                """, //
+                        "@6" //
+        );
 
         // 对函数参数的引用
         assertReference("""
                                 function fn1(a1, b1) {
                                     return a<caret>1 + b1;
                                 }
-                                """, "@13");
+                                """, //
+                        "@13" //
+        );
         assertReference("""
                                 function fn1(a1, b1) {
                                     return a1 + b<caret>1;
                                 }
-                                """, "@17");
+                                """, //
+                        "@17" //
+        );
         assertReference("""
                                 const fn1 = (a1, b1) => a<caret>1 + b1;
-                                """, "@13");
+                                """, //
+                        "@13" //
+        );
         assertReference("""
                                 const fn1 = (a1, b1) => a1 + b<caret>1;
-                                """, "@17");
+                                """, //
+                        "@17" //
+        );
 
         // 对函数参数类型的引用
         assertReference("""
                                 function fn1(a1: st<caret>ring, b1: number) {
                                     return a1 + b1;
                                 }
-                                """, "java.lang.String");
+                                """, //
+                        "java.lang.String" //
+        );
         assertReference("""
                                 function fn1(a1: string, b1: num<caret>ber) {
                                     return a1 + b1;
                                 }
-                                """, "java.lang.Number");
+                                """, //
+                        "java.lang.Number" //
+        );
 
         assertReference("""
                                 import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                 function fn1(a1: string, b1: XJsonDom<caret>ainHandler) {
                                     return a1 + b1;
                                 }
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler" //
+        );
         assertReference("""
                                 import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                 function fn1(a1: string, b1: XJsonDomainHandler.S<caret>ub.Sub) {
                                     return a1 + b1;
                                 }
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub" //
+        );
         assertReference("""
                                 import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                 function fn1(a1: XJsonDomainHandler.Sub.Sub) {
                                     return a1.get<caret>Name();
                                 }
-                                """, "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.Sub#getName");
+                                """, //
+                        "io.nop.xlang.xdef.domain.XJsonDomainHandler.Sub.Sub#getName" //
+        );
 
         assertReference("""
                                 const fn1 = (a1: st<caret>ring, b1: number) => a1 + b1;
-                                """, "java.lang.String");
+                                """, //
+                        "java.lang.String" //
+        );
         assertReference("""
                                 const fn1 = (a1: string, b1: num<caret>ber) => a1 + b1;
-                                """, "java.lang.Number");
+                                """, //
+                        "java.lang.Number" //
+        );
 
         assertReference("""
                                 const b = s instanceof str<caret>ing;
-                                """, "java.lang.String");
+                                """, //
+                        "java.lang.String" //
+        );
         assertReference("""
                                 const b = s instanceof num<caret>ber;
-                                """, "java.lang.Number");
+                                """, //
+                        "java.lang.Number" //
+        );
 
 //        // TODO 对函数调用的结果类型的引用
 //        assertReference("""
 //                                function fn1(a, b) { return a + b; }
 //                                const a = fn1('a', 'b');
 //                                a.tri<caret>m();
-//                                """, "java.lang.String#trim");
+//                                """, //
+//                        "java.lang.String#trim" //
+//        );
 //        assertReference("""
 //                                function fn1(a, b) { return a + b; }
 //                                const a = fn1('a', 'b');
 //                                a.trim();
 //                                const b = fn1(1, 2);
 //                                b.byte<caret>Value();
-//                                """, "java.lang.Integer#byteValue");
+//                                """, //
+//                        "java.lang.Integer#byteValue" //
+//        );
     }
 
     public void testGenericTypeReference() {
@@ -274,17 +369,23 @@ public class TestXLangScriptReferences extends BaseXLangPluginTestCase {
                                 import java.util.HashMap;
                                 import java.util.List;
                                 const s = new Has<caret>hMap<String, List>();
-                                """, "java.util.HashMap");
+                                """, //
+                        "java.util.HashMap" //
+        );
         assertReference("""
                                 import java.util.HashMap;
                                 import java.util.List;
                                 const s = new HashMap<St<caret>ring, List>();
-                                """, "java.lang.String");
+                                """, //
+                        "java.lang.String" //
+        );
         assertReference("""
                                 import java.util.HashMap;
                                 import java.util.List;
                                 const s = new HashMap<String, Li<caret>st>();
-                                """, "java.util.List");
+                                """, //
+                        "java.util.List" //
+        );
     }
 
     /** 通过在 <code>text</code> 中插入 <code>&lt;caret&gt;</code> 代表光标位置 */

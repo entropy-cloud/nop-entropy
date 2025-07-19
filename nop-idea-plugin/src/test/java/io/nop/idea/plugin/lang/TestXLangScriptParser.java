@@ -16,7 +16,9 @@ public class TestXLangScriptParser extends BaseXLangPluginTestCase {
                               import java.lang.;
                               const abc = ;
                               const abc = () =>;
-                              """, "/test/ast/xlang-script-err-1.ast");
+                              """, //
+                      "/test/ast/xlang-script-err-1.ast" //
+        );
 
         assertASTTree("""
                               import java.lang.String;
@@ -59,7 +61,8 @@ public class TestXLangScriptParser extends BaseXLangPluginTestCase {
                                   a.b(b, 1);
                               }
                               """, //
-                      "/test/ast/xlang-script-1.ast");
+                      "/test/ast/xlang-script-1.ast" //
+        );
     }
 
     protected void assertASTTree(String code, String expectedAstFile) {

@@ -47,55 +47,69 @@ public class TestXLangScriptCompletions extends BaseXLangPluginTestCase {
         assertCompletion("""
                                  let s = "abc";
                                  s.toCharA<caret>
-                                 """, """
+                                 """, //
+                         """
                                  let s = "abc";
                                  s.toCharArray
-                                 """);
+                                 """ //
+        );
 
         assertCompletion("""
                                  const handler = new io.nop.xlang.xdef.domain.XJsonDomai<caret>
-                                 """, """
+                                 """, //
+                         """
                                  const handler = new io.nop.xlang.xdef.domain.XJsonDomainHandler
-                                 """);
+                                 """ //
+        );
         assertCompletion("""
                                  const handler = new io.nop.xlang.xdef.d<caret>
-                                 """, """
+                                 """, //
+                         """
                                  const handler = new io.nop.xlang.xdef.domain
-                                 """);
+                                 """ //
+        );
 
         assertCompletion("""
                                  import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                  const handler = XJsonDomainHandler.INST<caret>
-                                 """, """
+                                 """, //
+                         """
                                  import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                  const handler = XJsonDomainHandler.INSTANCE
-                                 """);
+                                 """ //
+        );
         assertCompletion("""
                                  import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                  const handler = new XJsonDomainHandler();
                                  handler.instan<caret>
-                                 """, """
+                                 """, //
+                         """
                                  import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                  const handler = new XJsonDomainHandler();
                                  handler.instance
-                                 """);
+                                 """ //
+        );
 
         assertCompletion("""
                                  import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                  const handler = new XJsonDomainHandler.Su<caret>
-                                 """, """
+                                 """, //
+                         """
                                  import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                  const handler = new XJsonDomainHandler.Sub
-                                 """);
+                                 """ //
+        );
         assertCompletion("""
                                  import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                  const handler = new XJsonDomainHandler.Sub();
                                  handler.ag<caret>
-                                 """, """
+                                 """, //
+                         """
                                  import io.nop.xlang.xdef.domain.XJsonDomainHandler;
                                  const handler = new XJsonDomainHandler.Sub();
                                  handler.age
-                                 """);
+                                 """ //
+        );
     }
 
     public void testCompletionInXLib() {
@@ -114,7 +128,8 @@ public class TestXLangScriptCompletions extends BaseXLangPluginTestCase {
                                                </DoTest>
                                            </tags>
                                        </lib>
-                                       """, """
+                                       """, //
+                               """
                                        <lib xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"
                                             x:schema="/nop/schema/xlib.xdef">
                                            <tags>
@@ -129,7 +144,8 @@ public class TestXLangScriptCompletions extends BaseXLangPluginTestCase {
                                                </DoTest>
                                            </tags>
                                        </lib>
-                                       """);
+                                       """ //
+        );
         assertCompletionInXLib("""
                                        <lib xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"
                                             x:schema="/nop/schema/xlib.xdef">
@@ -143,7 +159,8 @@ public class TestXLangScriptCompletions extends BaseXLangPluginTestCase {
                                                </DoTest>
                                            </tags>
                                        </lib>
-                                       """, """
+                                       """, //
+                               """
                                        <lib xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"
                                             x:schema="/nop/schema/xlib.xdef">
                                            <tags>
@@ -156,7 +173,8 @@ public class TestXLangScriptCompletions extends BaseXLangPluginTestCase {
                                                </DoTest>
                                            </tags>
                                        </lib>
-                                       """);
+                                       """ //
+        );
     }
 
     /** 需确保仅有唯一一项自动填充项：匹配是模糊匹配，需增加输入长度才能做唯一匹配 */

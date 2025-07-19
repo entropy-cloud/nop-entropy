@@ -34,7 +34,8 @@ public class TestXLangParser extends BaseXLangPluginTestCase {
                                   </mix>
                               </example>
                               """, //
-                      "/test/ast/xlang-1.ast");
+                      "/test/ast/xlang-1.ast" //
+        );
     }
 
     protected void assertASTTree(String code, String expectedAstFile) {
