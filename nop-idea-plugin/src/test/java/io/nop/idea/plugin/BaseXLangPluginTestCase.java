@@ -162,7 +162,7 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         return ResourceHelper.readText(res);
     }
 
-    protected String insertCaretToVfs(String resource, String insertAt, String replacement) {
+    protected String insertCaretIntoVfs(String resource, String insertAt, String replacement) {
         return readVfsResource(resource).replace(insertAt, replacement);
     }
 

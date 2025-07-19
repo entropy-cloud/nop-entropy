@@ -9,20 +9,21 @@ package io.nop.idea.plugin.doc;
 
 import java.util.Objects;
 
+import com.intellij.codeInsight.documentation.DocumentationManagerProtocol;
 import com.intellij.lang.documentation.AbstractDocumentationProvider;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiManager;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.psi.xml.XmlAttribute;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.core.dict.DictProvider;
 import io.nop.idea.plugin.lang.XLangDocumentation;
 import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangTag;
-import io.nop.idea.plugin.utils.MarkdownHelper;
-import io.nop.idea.plugin.utils.XDefPsiHelper;
-import io.nop.idea.plugin.utils.XmlTagInfo;
+import io.nop.idea.plugin.resource.ProjectEnv;
+import io.nop.xlang.xdef.IXDefAttribute;
+import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import jakarta.annotation.Nullable;
 
@@ -50,19 +51,29 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
             return null;
         }
 
+        XLangDocumentation doc = null;
         IElementType elementType = srcElement.getNode().getElementType();
         if (elementType == XML_NAME) {
-            return generateDocForXmlName(srcElement);
+            doc = generateDocForXmlName(srcElement);
         } //
         else if (elementType == XML_ATTRIBUTE_VALUE_TOKEN) {
-            return generateDocForXmlAttributeValue(srcElement);
+            doc = generateDocForXmlAttributeValue(srcElement);
         }
 
-        return null;
+        return doc != null ? doc.genDoc() : null;
+    }
+
+    /**
+     * 为文档链接中的 {@link DocumentationManagerProtocol#PSI_ELEMENT_PROTOCOL}
+     * 协议路径创建对应的 {@link PsiElement}
+     */
+    @Override
+    public PsiElement getDocumentationElementForLink(PsiManager psiManager, String link, PsiElement context) {
+        return XLangDocumentation.createElementForLink(context, link);
     }
 
     /** 为 xml 标签名和属性名生成文档 */
-    private String generateDocForXmlName(PsiElement element) {
+    private XLangDocumentation generateDocForXmlName(PsiElement element) {
         PsiElement parent = element.getParent();
 
         XLangDocumentation doc = null;
@@ -76,25 +87,27 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
             doc = tag != null ? tag.getAttrDocumentation(attrName) : null;
         }
 
-        return doc != null ? doc.toString() : null;
+        return doc;
     }
 
     /** 为 xml 属性值生成文档 */
-    private String generateDocForXmlAttributeValue(PsiElement element) {
-        XmlAttribute attr = PsiTreeUtil.getParentOfType(element, XmlAttribute.class);
+    private XLangDocumentation generateDocForXmlAttributeValue(PsiElement element) {
+        XLangAttribute attr = PsiTreeUtil.getParentOfType(element, XLangAttribute.class);
         if (attr == null) {
             return null;
         }
 
-        String attrName = attr.getName();
-        XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(attr);
-        XDefTypeDecl attrDefType = tagInfo != null ? tagInfo.getDefAttrType(attrName) : null;
-        // TODO 显示类型定义文档
-        if (attrDefType == null || attrDefType.getOptions() == null) {
+        IXDefAttribute attrDef = attr.getDefAttr();
+        XDefTypeDecl attrDefType = attrDef != null ? attrDef.getType() : null;
+        if (attrDefType == null) {
             return null;
         }
 
-        DictBean dictBean = DictProvider.instance().getDict(null, attrDefType.getOptions(), null, null);
+        if (!XDefConstants.STD_DOMAIN_DICT.equals(attrDefType.getStdDomain())) {
+            return null;
+        }
+
+        DictBean dictBean = loadDict(element, attrDefType.getOptions());
         DictOptionBean option = dictBean != null ? dictBean.getOptionByValue(attr.getValue()) : null;
         if (option == null) {
             return null;
@@ -111,14 +124,11 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
         }
         doc.setDesc(option.getDescription());
 
-        return doc.toString();
+        return doc;
     }
 
-    /** 对于多行文本，行首的 <code>&gt; </code> 将被去除后，再按照 markdown 渲染得到 html 代码 */
-    public static String markdown(String text) {
-        text = text.replaceAll("(?m)^> ", "");
-        text = MarkdownHelper.renderHtml(text);
-
-        return text;
+    private DictBean loadDict(PsiElement element, String dictName) {
+        return ProjectEnv.withProject(element.getProject(),
+                                      () -> DictProvider.instance().getDict(null, dictName, null, null));
     }
 }

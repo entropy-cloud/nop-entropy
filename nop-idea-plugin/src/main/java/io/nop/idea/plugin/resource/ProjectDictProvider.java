@@ -65,7 +65,10 @@ public class ProjectDictProvider implements IDictProvider {
             if (resource.exists()) {
                 ResourceComponentManager.instance().traceDepends(resource.getPath());
 
-                return new DictModelParser().parseFromResource(resource);
+                DictModel dictModel = new DictModelParser().parseFromResource(resource);
+                dictModel.getDictBean().setLocation(dictModel.getLocation());
+
+                return dictModel;
             }
         }
         // 从枚举类中得到字典信息
