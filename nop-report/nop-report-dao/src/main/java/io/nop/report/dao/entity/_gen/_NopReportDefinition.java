@@ -24,60 +24,73 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     public static final String PROP_NAME_rptId = "rptId";
     public static final int PROP_ID_rptId = 1;
     
+    /* 报表编号: RPT_NO VARCHAR */
+    public static final String PROP_NAME_rptNo = "rptNo";
+    public static final int PROP_ID_rptNo = 2;
+    
     /* 报表名称: RPT_NAME VARCHAR */
     public static final String PROP_NAME_rptName = "rptName";
-    public static final int PROP_ID_rptName = 2;
+    public static final int PROP_ID_rptName = 3;
     
     /* 描述: DESCRIPTION VARCHAR */
     public static final String PROP_NAME_description = "description";
-    public static final int PROP_ID_description = 3;
+    public static final int PROP_ID_description = 4;
     
     /* 报表文件: RPT_TEXT VARCHAR */
     public static final String PROP_NAME_rptText = "rptText";
-    public static final int PROP_ID_rptText = 6;
+    public static final int PROP_ID_rptText = 5;
     
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 8;
+    public static final int PROP_ID_status = 6;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 9;
+    public static final int PROP_ID_version = 7;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 10;
+    public static final int PROP_ID_createdBy = 8;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 11;
+    public static final int PROP_ID_createTime = 9;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 12;
+    public static final int PROP_ID_updatedBy = 10;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 13;
+    public static final int PROP_ID_updateTime = 11;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 14;
+    public static final int PROP_ID_remark = 12;
     
 
-    private static int _PROP_ID_BOUND = 15;
+    private static int _PROP_ID_BOUND = 13;
 
+    
+    /* relation: 报表访问权限 */
+    public static final String PROP_NAME_reportAuths = "reportAuths";
+    
+    /* relation: 报表引用数据源 */
+    public static final String PROP_NAME_datasetRefs = "datasetRefs";
     
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_rptId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_rptId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[15];
+    private static final String[] PROP_ID_TO_NAME = new String[13];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
           PROP_ID_TO_NAME[PROP_ID_rptId] = PROP_NAME_rptId;
           PROP_NAME_TO_ID.put(PROP_NAME_rptId, PROP_ID_rptId);
+      
+          PROP_ID_TO_NAME[PROP_ID_rptNo] = PROP_NAME_rptNo;
+          PROP_NAME_TO_ID.put(PROP_NAME_rptNo, PROP_ID_rptNo);
       
           PROP_ID_TO_NAME[PROP_ID_rptName] = PROP_NAME_rptName;
           PROP_NAME_TO_ID.put(PROP_NAME_rptName, PROP_ID_rptName);
@@ -114,6 +127,9 @@ public class _NopReportDefinition extends DynamicOrmEntity{
     
     /* 主键: RPT_ID */
     private java.lang.String _rptId;
+    
+    /* 报表编号: RPT_NO */
+    private java.lang.String _rptNo;
     
     /* 报表名称: RPT_NAME */
     private java.lang.String _rptName;
@@ -222,6 +238,9 @@ public class _NopReportDefinition extends DynamicOrmEntity{
             case PROP_ID_rptId:
                return getRptId();
         
+            case PROP_ID_rptNo:
+               return getRptNo();
+        
             case PROP_ID_rptName:
                return getRptName();
         
@@ -270,6 +289,16 @@ public class _NopReportDefinition extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_rptId));
                }
                setRptId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_rptNo:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_rptNo));
+               }
+               setRptNo(typedValue);
                break;
             }
         
@@ -389,6 +418,13 @@ public class _NopReportDefinition extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_rptNo:{
+               onInitProp(propId);
+               this._rptNo = (java.lang.String)value;
+               
+               break;
+            }
+        
             case PROP_ID_rptName:{
                onInitProp(propId);
                this._rptName = (java.lang.String)value;
@@ -481,6 +517,25 @@ public class _NopReportDefinition extends DynamicOrmEntity{
             this._rptId = value;
             internalClearRefs(PROP_ID_rptId);
             orm_id();
+        }
+    }
+    
+    /**
+     * 报表编号: RPT_NO
+     */
+    public final java.lang.String getRptNo(){
+         onPropGet(PROP_ID_rptNo);
+         return _rptNo;
+    }
+
+    /**
+     * 报表编号: RPT_NO
+     */
+    public final void setRptNo(java.lang.String value){
+        if(onPropSet(PROP_ID_rptNo,value)){
+            this._rptNo = value;
+            internalClearRefs(PROP_ID_rptNo);
+            
         }
     }
     
@@ -674,5 +729,25 @@ public class _NopReportDefinition extends DynamicOrmEntity{
         }
     }
     
+    private final OrmEntitySet<io.nop.report.dao.entity.NopReportDefinitionAuth> _reportAuths = new OrmEntitySet<>(this, PROP_NAME_reportAuths,
+        io.nop.report.dao.entity.NopReportDefinitionAuth.PROP_NAME_reportDefinition, null,io.nop.report.dao.entity.NopReportDefinitionAuth.class);
+
+    /**
+     * 报表访问权限。 refPropName: reportDefinition, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.report.dao.entity.NopReportDefinitionAuth> getReportAuths(){
+       return _reportAuths;
+    }
+       
+    private final OrmEntitySet<io.nop.report.dao.entity.NopReportDatasetRef> _datasetRefs = new OrmEntitySet<>(this, PROP_NAME_datasetRefs,
+        io.nop.report.dao.entity.NopReportDatasetRef.PROP_NAME_reportDefinition, null,io.nop.report.dao.entity.NopReportDatasetRef.class);
+
+    /**
+     * 报表引用数据源。 refPropName: reportDefinition, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.report.dao.entity.NopReportDatasetRef> getDatasetRefs(){
+       return _datasetRefs;
+    }
+       
 }
 // resume CPD analysis - CPD-ON

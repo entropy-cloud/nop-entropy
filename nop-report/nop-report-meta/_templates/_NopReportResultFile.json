@@ -3,10 +3,10 @@
   "fileName": "",
   "fileType": "",
   "filePath": "",
-  "dsParams": "",
-  "dsId": "",
+  "fileLength": 0,
   "bizDate": "2000-01-01",
   "rptId": "",
+  "rptParams": "",
   "status": 0,
   "description": "",
   "version": 0,
@@ -14,5 +14,7 @@
   "createTime": "2000-01-01 14:00:00",
   "updatedBy": "",
   "updateTime": "2000-01-01 14:00:00",
-  "remark": ""
+  "remark": "",
+  "reportDefinition": null,
+  "reportDefinition.rptNo": ""
 }

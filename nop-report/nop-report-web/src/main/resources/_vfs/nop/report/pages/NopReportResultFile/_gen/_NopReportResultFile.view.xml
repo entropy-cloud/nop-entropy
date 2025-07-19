@@ -27,17 +27,17 @@
                 <!--文件路径-->
                 <col id="filePath" mandatory="true" sortable="true"/>
 
-                <!--数据集参数-->
-                <col id="dsParams" mandatory="true" sortable="true"/>
-
-                <!--数据集ID-->
-                <col id="dsId" sortable="true"/>
+                <!--文件长度-->
+                <col id="fileLength" mandatory="true" ui:number="true" sortable="true"/>
 
                 <!--业务日期-->
                 <col id="bizDate" sortable="true"/>
 
                 <!--报表ID-->
-                <col id="rptId" sortable="true"/>
+                <col id="rptId" mandatory="true" sortable="true"/>
+
+                <!--报表参数-->
+                <col id="rptParams" mandatory="true" sortable="true"/>
 
                 <!--状态-->
                 <col id="status" mandatory="true" ui:number="true" sortable="true"/>
@@ -68,9 +68,9 @@
         <form id="view" editMode="view" title="查看-报表结果文件" i18n-en:title="View Report Result File">
             <layout>
  fileName[文件名称] fileType[文件类型]
- filePath[文件路径] dsParams[数据集参数]
- dsId[数据集ID] bizDate[业务日期]
- rptId[报表ID] status[状态]
+ filePath[文件路径] fileLength[文件长度]
+ bizDate[业务日期] rptId[报表ID]
+ rptParams[报表参数] status[状态]
  description[描述] createdBy[创建人]
  createTime[创建时间] updatedBy[修改人]
  updateTime[修改时间] 
@@ -81,9 +81,9 @@
         <form id="edit" editMode="edit" title="编辑-报表结果文件" i18n-en:title="Edit Report Result File">
             <layout>
  fileName[文件名称] fileType[文件类型]
- filePath[文件路径] dsParams[数据集参数]
- dsId[数据集ID] bizDate[业务日期]
- rptId[报表ID] status[状态]
+ filePath[文件路径] fileLength[文件长度]
+ bizDate[业务日期] rptId[报表ID]
+ rptParams[报表参数] status[状态]
  description[描述] 
                 remark[备注]
 </layout>

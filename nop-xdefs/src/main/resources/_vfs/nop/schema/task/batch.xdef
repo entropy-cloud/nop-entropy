@@ -71,7 +71,7 @@
 
         <!-- 提供分区自动拆分能力 -->
         <dispatcher xdef:name="BatchLoaderDispatcherModel"
-                    fetchThreadCount="!int=1" loadBatchSize="!int" executor="bean-name" partitionIndexField="prop-path">
+                    fetchThreadCount="!int=0" loadBatchSize="!int=100" executor="bean-name" partitionIndexField="prop-path">
             <!-- 如果没有指定partitionIndexField，可以执行代码动态计算得到partitionIndex -->
             <partitionFn xdef:value="xpl-fn:(item,batchTaskCtx)=>int"/>
         </dispatcher>

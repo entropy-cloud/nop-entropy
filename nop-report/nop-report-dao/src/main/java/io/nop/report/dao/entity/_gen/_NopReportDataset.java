@@ -20,68 +20,76 @@ import io.nop.report.dao.entity.NopReportDataset;
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
 public class _NopReportDataset extends DynamicOrmEntity{
     
-    /* 主键: DS_ID VARCHAR */
-    public static final String PROP_NAME_dsId = "dsId";
-    public static final int PROP_ID_dsId = 1;
+    /* 主键: SID VARCHAR */
+    public static final String PROP_NAME_sid = "sid";
+    public static final int PROP_ID_sid = 1;
     
     /* 数据集名称: DS_NAME VARCHAR */
     public static final String PROP_NAME_dsName = "dsName";
     public static final int PROP_ID_dsName = 2;
     
+    /* 是否单行: IS_SINGLE_ROW BOOLEAN */
+    public static final String PROP_NAME_isSingleRow = "isSingleRow";
+    public static final int PROP_ID_isSingleRow = 3;
+    
     /* 描述: DESCRIPTION VARCHAR */
     public static final String PROP_NAME_description = "description";
-    public static final int PROP_ID_description = 3;
+    public static final int PROP_ID_description = 4;
     
     /* 数据集类型: DS_TYPE VARCHAR */
     public static final String PROP_NAME_dsType = "dsType";
-    public static final int PROP_ID_dsType = 4;
+    public static final int PROP_ID_dsType = 5;
     
-    /* 数据集配置: DS_CONFIG VARCHAR */
-    public static final String PROP_NAME_dsConfig = "dsConfig";
-    public static final int PROP_ID_dsConfig = 5;
+    /* 数据源ID: DATASOURCE_ID VARCHAR */
+    public static final String PROP_NAME_datasourceId = "datasourceId";
+    public static final int PROP_ID_datasourceId = 6;
     
     /* 数据集文本: DS_TEXT VARCHAR */
     public static final String PROP_NAME_dsText = "dsText";
-    public static final int PROP_ID_dsText = 6;
+    public static final int PROP_ID_dsText = 7;
     
     /* 数据集元数据: DS_META VARCHAR */
     public static final String PROP_NAME_dsMeta = "dsMeta";
-    public static final int PROP_ID_dsMeta = 7;
+    public static final int PROP_ID_dsMeta = 8;
     
-    /* 数据集显示配置: DS_VIEW VARCHAR */
-    public static final String PROP_NAME_dsView = "dsView";
-    public static final int PROP_ID_dsView = 8;
+    /* 数据集配置: DS_CONFIG VARCHAR */
+    public static final String PROP_NAME_dsConfig = "dsConfig";
+    public static final int PROP_ID_dsConfig = 9;
+    
+    /* 过滤规则: FILTER_RULE VARCHAR */
+    public static final String PROP_NAME_filterRule = "filterRule";
+    public static final int PROP_ID_filterRule = 10;
     
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
-    public static final int PROP_ID_status = 9;
+    public static final int PROP_ID_status = 11;
     
     /* 数据版本: VERSION INTEGER */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 10;
+    public static final int PROP_ID_version = 12;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 11;
+    public static final int PROP_ID_createdBy = 13;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 12;
+    public static final int PROP_ID_createTime = 14;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 13;
+    public static final int PROP_ID_updatedBy = 15;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 14;
+    public static final int PROP_ID_updateTime = 16;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 15;
+    public static final int PROP_ID_remark = 17;
     
 
-    private static int _PROP_ID_BOUND = 16;
+    private static int _PROP_ID_BOUND = 18;
 
     
     /* component:  */
@@ -91,21 +99,24 @@ public class _NopReportDataset extends DynamicOrmEntity{
     public static final String PROP_NAME_dsMetaComponent = "dsMetaComponent";
     
     /* component:  */
-    public static final String PROP_NAME_dsViewComponent = "dsViewComponent";
+    public static final String PROP_NAME_dsConfigComponent = "dsConfigComponent";
     
 
-    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_dsId);
-    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_dsId};
+    protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
+    protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[16];
+    private static final String[] PROP_ID_TO_NAME = new String[18];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
-          PROP_ID_TO_NAME[PROP_ID_dsId] = PROP_NAME_dsId;
-          PROP_NAME_TO_ID.put(PROP_NAME_dsId, PROP_ID_dsId);
+          PROP_ID_TO_NAME[PROP_ID_sid] = PROP_NAME_sid;
+          PROP_NAME_TO_ID.put(PROP_NAME_sid, PROP_ID_sid);
       
           PROP_ID_TO_NAME[PROP_ID_dsName] = PROP_NAME_dsName;
           PROP_NAME_TO_ID.put(PROP_NAME_dsName, PROP_ID_dsName);
+      
+          PROP_ID_TO_NAME[PROP_ID_isSingleRow] = PROP_NAME_isSingleRow;
+          PROP_NAME_TO_ID.put(PROP_NAME_isSingleRow, PROP_ID_isSingleRow);
       
           PROP_ID_TO_NAME[PROP_ID_description] = PROP_NAME_description;
           PROP_NAME_TO_ID.put(PROP_NAME_description, PROP_ID_description);
@@ -113,8 +124,8 @@ public class _NopReportDataset extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_dsType] = PROP_NAME_dsType;
           PROP_NAME_TO_ID.put(PROP_NAME_dsType, PROP_ID_dsType);
       
-          PROP_ID_TO_NAME[PROP_ID_dsConfig] = PROP_NAME_dsConfig;
-          PROP_NAME_TO_ID.put(PROP_NAME_dsConfig, PROP_ID_dsConfig);
+          PROP_ID_TO_NAME[PROP_ID_datasourceId] = PROP_NAME_datasourceId;
+          PROP_NAME_TO_ID.put(PROP_NAME_datasourceId, PROP_ID_datasourceId);
       
           PROP_ID_TO_NAME[PROP_ID_dsText] = PROP_NAME_dsText;
           PROP_NAME_TO_ID.put(PROP_NAME_dsText, PROP_ID_dsText);
@@ -122,8 +133,11 @@ public class _NopReportDataset extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_dsMeta] = PROP_NAME_dsMeta;
           PROP_NAME_TO_ID.put(PROP_NAME_dsMeta, PROP_ID_dsMeta);
       
-          PROP_ID_TO_NAME[PROP_ID_dsView] = PROP_NAME_dsView;
-          PROP_NAME_TO_ID.put(PROP_NAME_dsView, PROP_ID_dsView);
+          PROP_ID_TO_NAME[PROP_ID_dsConfig] = PROP_NAME_dsConfig;
+          PROP_NAME_TO_ID.put(PROP_NAME_dsConfig, PROP_ID_dsConfig);
+      
+          PROP_ID_TO_NAME[PROP_ID_filterRule] = PROP_NAME_filterRule;
+          PROP_NAME_TO_ID.put(PROP_NAME_filterRule, PROP_ID_filterRule);
       
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
@@ -149,11 +163,14 @@ public class _NopReportDataset extends DynamicOrmEntity{
     }
 
     
-    /* 主键: DS_ID */
-    private java.lang.String _dsId;
+    /* 主键: SID */
+    private java.lang.String _sid;
     
     /* 数据集名称: DS_NAME */
     private java.lang.String _dsName;
+    
+    /* 是否单行: IS_SINGLE_ROW */
+    private java.lang.Boolean _isSingleRow;
     
     /* 描述: DESCRIPTION */
     private java.lang.String _description;
@@ -161,8 +178,8 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /* 数据集类型: DS_TYPE */
     private java.lang.String _dsType;
     
-    /* 数据集配置: DS_CONFIG */
-    private java.lang.String _dsConfig;
+    /* 数据源ID: DATASOURCE_ID */
+    private java.lang.String _datasourceId;
     
     /* 数据集文本: DS_TEXT */
     private java.lang.String _dsText;
@@ -170,8 +187,11 @@ public class _NopReportDataset extends DynamicOrmEntity{
     /* 数据集元数据: DS_META */
     private java.lang.String _dsMeta;
     
-    /* 数据集显示配置: DS_VIEW */
-    private java.lang.String _dsView;
+    /* 数据集配置: DS_CONFIG */
+    private java.lang.String _dsConfig;
+    
+    /* 过滤规则: FILTER_RULE */
+    private java.lang.String _filterRule;
     
     /* 状态: STATUS */
     private java.lang.Integer _status;
@@ -235,14 +255,14 @@ public class _NopReportDataset extends DynamicOrmEntity{
     @Override
     public Object orm_id() {
     
-        return buildSimpleId(PROP_ID_dsId);
+        return buildSimpleId(PROP_ID_sid);
      
     }
 
     @Override
     public boolean orm_isPrimary(int propId) {
         
-            return propId == PROP_ID_dsId;
+            return propId == PROP_ID_sid;
           
     }
 
@@ -268,11 +288,14 @@ public class _NopReportDataset extends DynamicOrmEntity{
     public Object orm_propValue(int propId) {
         switch(propId){
         
-            case PROP_ID_dsId:
-               return getDsId();
+            case PROP_ID_sid:
+               return getSid();
         
             case PROP_ID_dsName:
                return getDsName();
+        
+            case PROP_ID_isSingleRow:
+               return getIsSingleRow();
         
             case PROP_ID_description:
                return getDescription();
@@ -280,8 +303,8 @@ public class _NopReportDataset extends DynamicOrmEntity{
             case PROP_ID_dsType:
                return getDsType();
         
-            case PROP_ID_dsConfig:
-               return getDsConfig();
+            case PROP_ID_datasourceId:
+               return getDatasourceId();
         
             case PROP_ID_dsText:
                return getDsText();
@@ -289,8 +312,11 @@ public class _NopReportDataset extends DynamicOrmEntity{
             case PROP_ID_dsMeta:
                return getDsMeta();
         
-            case PROP_ID_dsView:
-               return getDsView();
+            case PROP_ID_dsConfig:
+               return getDsConfig();
+        
+            case PROP_ID_filterRule:
+               return getFilterRule();
         
             case PROP_ID_status:
                return getStatus();
@@ -324,13 +350,13 @@ public class _NopReportDataset extends DynamicOrmEntity{
     public void orm_propValue(int propId, Object value){
         switch(propId){
         
-            case PROP_ID_dsId:{
+            case PROP_ID_sid:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_dsId));
+                       err-> newTypeConversionError(PROP_NAME_sid));
                }
-               setDsId(typedValue);
+               setSid(typedValue);
                break;
             }
         
@@ -341,6 +367,16 @@ public class _NopReportDataset extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_dsName));
                }
                setDsName(typedValue);
+               break;
+            }
+        
+            case PROP_ID_isSingleRow:{
+               java.lang.Boolean typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toBoolean(value,
+                       err-> newTypeConversionError(PROP_NAME_isSingleRow));
+               }
+               setIsSingleRow(typedValue);
                break;
             }
         
@@ -364,13 +400,13 @@ public class _NopReportDataset extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_dsConfig:{
+            case PROP_ID_datasourceId:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_dsConfig));
+                       err-> newTypeConversionError(PROP_NAME_datasourceId));
                }
-               setDsConfig(typedValue);
+               setDatasourceId(typedValue);
                break;
             }
         
@@ -394,13 +430,23 @@ public class _NopReportDataset extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_dsView:{
+            case PROP_ID_dsConfig:{
                java.lang.String typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_dsView));
+                       err-> newTypeConversionError(PROP_NAME_dsConfig));
                }
-               setDsView(typedValue);
+               setDsConfig(typedValue);
+               break;
+            }
+        
+            case PROP_ID_filterRule:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_filterRule));
+               }
+               setFilterRule(typedValue);
                break;
             }
         
@@ -483,9 +529,9 @@ public class _NopReportDataset extends DynamicOrmEntity{
     public void orm_internalSet(int propId, Object value) {
         switch(propId){
         
-            case PROP_ID_dsId:{
+            case PROP_ID_sid:{
                onInitProp(propId);
-               this._dsId = (java.lang.String)value;
+               this._sid = (java.lang.String)value;
                orm_id(); // 如果是设置主键字段，则触发watcher
                break;
             }
@@ -493,6 +539,13 @@ public class _NopReportDataset extends DynamicOrmEntity{
             case PROP_ID_dsName:{
                onInitProp(propId);
                this._dsName = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_isSingleRow:{
+               onInitProp(propId);
+               this._isSingleRow = (java.lang.Boolean)value;
                
                break;
             }
@@ -511,9 +564,9 @@ public class _NopReportDataset extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_dsConfig:{
+            case PROP_ID_datasourceId:{
                onInitProp(propId);
-               this._dsConfig = (java.lang.String)value;
+               this._datasourceId = (java.lang.String)value;
                
                break;
             }
@@ -532,9 +585,16 @@ public class _NopReportDataset extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_dsView:{
+            case PROP_ID_dsConfig:{
                onInitProp(propId);
-               this._dsView = (java.lang.String)value;
+               this._dsConfig = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_filterRule:{
+               onInitProp(propId);
+               this._filterRule = (java.lang.String)value;
                
                break;
             }
@@ -595,20 +655,20 @@ public class _NopReportDataset extends DynamicOrmEntity{
 
     
     /**
-     * 主键: DS_ID
+     * 主键: SID
      */
-    public final java.lang.String getDsId(){
-         onPropGet(PROP_ID_dsId);
-         return _dsId;
+    public final java.lang.String getSid(){
+         onPropGet(PROP_ID_sid);
+         return _sid;
     }
 
     /**
-     * 主键: DS_ID
+     * 主键: SID
      */
-    public final void setDsId(java.lang.String value){
-        if(onPropSet(PROP_ID_dsId,value)){
-            this._dsId = value;
-            internalClearRefs(PROP_ID_dsId);
+    public final void setSid(java.lang.String value){
+        if(onPropSet(PROP_ID_sid,value)){
+            this._sid = value;
+            internalClearRefs(PROP_ID_sid);
             orm_id();
         }
     }
@@ -628,6 +688,25 @@ public class _NopReportDataset extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_dsName,value)){
             this._dsName = value;
             internalClearRefs(PROP_ID_dsName);
+            
+        }
+    }
+    
+    /**
+     * 是否单行: IS_SINGLE_ROW
+     */
+    public final java.lang.Boolean getIsSingleRow(){
+         onPropGet(PROP_ID_isSingleRow);
+         return _isSingleRow;
+    }
+
+    /**
+     * 是否单行: IS_SINGLE_ROW
+     */
+    public final void setIsSingleRow(java.lang.Boolean value){
+        if(onPropSet(PROP_ID_isSingleRow,value)){
+            this._isSingleRow = value;
+            internalClearRefs(PROP_ID_isSingleRow);
             
         }
     }
@@ -671,20 +750,20 @@ public class _NopReportDataset extends DynamicOrmEntity{
     }
     
     /**
-     * 数据集配置: DS_CONFIG
+     * 数据源ID: DATASOURCE_ID
      */
-    public final java.lang.String getDsConfig(){
-         onPropGet(PROP_ID_dsConfig);
-         return _dsConfig;
+    public final java.lang.String getDatasourceId(){
+         onPropGet(PROP_ID_datasourceId);
+         return _datasourceId;
     }
 
     /**
-     * 数据集配置: DS_CONFIG
+     * 数据源ID: DATASOURCE_ID
      */
-    public final void setDsConfig(java.lang.String value){
-        if(onPropSet(PROP_ID_dsConfig,value)){
-            this._dsConfig = value;
-            internalClearRefs(PROP_ID_dsConfig);
+    public final void setDatasourceId(java.lang.String value){
+        if(onPropSet(PROP_ID_datasourceId,value)){
+            this._datasourceId = value;
+            internalClearRefs(PROP_ID_datasourceId);
             
         }
     }
@@ -728,20 +807,39 @@ public class _NopReportDataset extends DynamicOrmEntity{
     }
     
     /**
-     * 数据集显示配置: DS_VIEW
+     * 数据集配置: DS_CONFIG
      */
-    public final java.lang.String getDsView(){
-         onPropGet(PROP_ID_dsView);
-         return _dsView;
+    public final java.lang.String getDsConfig(){
+         onPropGet(PROP_ID_dsConfig);
+         return _dsConfig;
     }
 
     /**
-     * 数据集显示配置: DS_VIEW
+     * 数据集配置: DS_CONFIG
      */
-    public final void setDsView(java.lang.String value){
-        if(onPropSet(PROP_ID_dsView,value)){
-            this._dsView = value;
-            internalClearRefs(PROP_ID_dsView);
+    public final void setDsConfig(java.lang.String value){
+        if(onPropSet(PROP_ID_dsConfig,value)){
+            this._dsConfig = value;
+            internalClearRefs(PROP_ID_dsConfig);
+            
+        }
+    }
+    
+    /**
+     * 过滤规则: FILTER_RULE
+     */
+    public final java.lang.String getFilterRule(){
+         onPropGet(PROP_ID_filterRule);
+         return _filterRule;
+    }
+
+    /**
+     * 过滤规则: FILTER_RULE
+     */
+    public final void setFilterRule(java.lang.String value){
+        if(onPropSet(PROP_ID_filterRule,value)){
+            this._filterRule = value;
+            internalClearRefs(PROP_ID_filterRule);
             
         }
     }
@@ -913,21 +1011,21 @@ public class _NopReportDataset extends DynamicOrmEntity{
       return _dsMetaComponent;
    }
 
-   private io.nop.orm.component.JsonOrmComponent _dsViewComponent;
+   private io.nop.orm.component.JsonOrmComponent _dsConfigComponent;
 
-   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_dsViewComponent = new HashMap<>();
+   private static Map<String,Integer> COMPONENT_PROP_ID_MAP_dsConfigComponent = new HashMap<>();
    static{
       
-         COMPONENT_PROP_ID_MAP_dsViewComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_dsView);
+         COMPONENT_PROP_ID_MAP_dsConfigComponent.put(io.nop.orm.component.JsonOrmComponent.PROP_NAME__jsonText,PROP_ID_dsConfig);
       
    }
 
-   public final io.nop.orm.component.JsonOrmComponent getDsViewComponent(){
-      if(_dsViewComponent == null){
-          _dsViewComponent = new io.nop.orm.component.JsonOrmComponent();
-          _dsViewComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_dsViewComponent);
+   public final io.nop.orm.component.JsonOrmComponent getDsConfigComponent(){
+      if(_dsConfigComponent == null){
+          _dsConfigComponent = new io.nop.orm.component.JsonOrmComponent();
+          _dsConfigComponent.bindToEntity(this, COMPONENT_PROP_ID_MAP_dsConfigComponent);
       }
-      return _dsViewComponent;
+      return _dsConfigComponent;
    }
 
 }

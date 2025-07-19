@@ -36,21 +36,21 @@ public class _NopReportResultFile extends DynamicOrmEntity{
     public static final String PROP_NAME_filePath = "filePath";
     public static final int PROP_ID_filePath = 4;
     
-    /* 数据集参数: DS_PARAMS VARCHAR */
-    public static final String PROP_NAME_dsParams = "dsParams";
-    public static final int PROP_ID_dsParams = 5;
-    
-    /* 数据集ID: DS_ID VARCHAR */
-    public static final String PROP_NAME_dsId = "dsId";
-    public static final int PROP_ID_dsId = 6;
+    /* 文件长度: FILE_LENGTH BIGINT */
+    public static final String PROP_NAME_fileLength = "fileLength";
+    public static final int PROP_ID_fileLength = 5;
     
     /* 业务日期: BIZ_DATE DATE */
     public static final String PROP_NAME_bizDate = "bizDate";
-    public static final int PROP_ID_bizDate = 7;
+    public static final int PROP_ID_bizDate = 6;
     
     /* 报表ID: RPT_ID VARCHAR */
     public static final String PROP_NAME_rptId = "rptId";
-    public static final int PROP_ID_rptId = 8;
+    public static final int PROP_ID_rptId = 7;
+    
+    /* 报表参数: RPT_PARAMS VARCHAR */
+    public static final String PROP_NAME_rptParams = "rptParams";
+    public static final int PROP_ID_rptParams = 8;
     
     /* 状态: STATUS INTEGER */
     public static final String PROP_NAME_status = "status";
@@ -88,6 +88,9 @@ public class _NopReportResultFile extends DynamicOrmEntity{
     private static int _PROP_ID_BOUND = 17;
 
     
+    /* relation: 报表定义 */
+    public static final String PROP_NAME_reportDefinition = "reportDefinition";
+    
 
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
@@ -108,17 +111,17 @@ public class _NopReportResultFile extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_filePath] = PROP_NAME_filePath;
           PROP_NAME_TO_ID.put(PROP_NAME_filePath, PROP_ID_filePath);
       
-          PROP_ID_TO_NAME[PROP_ID_dsParams] = PROP_NAME_dsParams;
-          PROP_NAME_TO_ID.put(PROP_NAME_dsParams, PROP_ID_dsParams);
-      
-          PROP_ID_TO_NAME[PROP_ID_dsId] = PROP_NAME_dsId;
-          PROP_NAME_TO_ID.put(PROP_NAME_dsId, PROP_ID_dsId);
+          PROP_ID_TO_NAME[PROP_ID_fileLength] = PROP_NAME_fileLength;
+          PROP_NAME_TO_ID.put(PROP_NAME_fileLength, PROP_ID_fileLength);
       
           PROP_ID_TO_NAME[PROP_ID_bizDate] = PROP_NAME_bizDate;
           PROP_NAME_TO_ID.put(PROP_NAME_bizDate, PROP_ID_bizDate);
       
           PROP_ID_TO_NAME[PROP_ID_rptId] = PROP_NAME_rptId;
           PROP_NAME_TO_ID.put(PROP_NAME_rptId, PROP_ID_rptId);
+      
+          PROP_ID_TO_NAME[PROP_ID_rptParams] = PROP_NAME_rptParams;
+          PROP_NAME_TO_ID.put(PROP_NAME_rptParams, PROP_ID_rptParams);
       
           PROP_ID_TO_NAME[PROP_ID_status] = PROP_NAME_status;
           PROP_NAME_TO_ID.put(PROP_NAME_status, PROP_ID_status);
@@ -159,17 +162,17 @@ public class _NopReportResultFile extends DynamicOrmEntity{
     /* 文件路径: FILE_PATH */
     private java.lang.String _filePath;
     
-    /* 数据集参数: DS_PARAMS */
-    private java.lang.String _dsParams;
-    
-    /* 数据集ID: DS_ID */
-    private java.lang.String _dsId;
+    /* 文件长度: FILE_LENGTH */
+    private java.lang.Long _fileLength;
     
     /* 业务日期: BIZ_DATE */
     private java.time.LocalDate _bizDate;
     
     /* 报表ID: RPT_ID */
     private java.lang.String _rptId;
+    
+    /* 报表参数: RPT_PARAMS */
+    private java.lang.String _rptParams;
     
     /* 状态: STATUS */
     private java.lang.Integer _status;
@@ -281,17 +284,17 @@ public class _NopReportResultFile extends DynamicOrmEntity{
             case PROP_ID_filePath:
                return getFilePath();
         
-            case PROP_ID_dsParams:
-               return getDsParams();
-        
-            case PROP_ID_dsId:
-               return getDsId();
+            case PROP_ID_fileLength:
+               return getFileLength();
         
             case PROP_ID_bizDate:
                return getBizDate();
         
             case PROP_ID_rptId:
                return getRptId();
+        
+            case PROP_ID_rptParams:
+               return getRptParams();
         
             case PROP_ID_status:
                return getStatus();
@@ -368,23 +371,13 @@ public class _NopReportResultFile extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_dsParams:{
-               java.lang.String typedValue = null;
+            case PROP_ID_fileLength:{
+               java.lang.Long typedValue = null;
                if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_dsParams));
+                   typedValue = ConvertHelper.toLong(value,
+                       err-> newTypeConversionError(PROP_NAME_fileLength));
                }
-               setDsParams(typedValue);
-               break;
-            }
-        
-            case PROP_ID_dsId:{
-               java.lang.String typedValue = null;
-               if(value != null){
-                   typedValue = ConvertHelper.toString(value,
-                       err-> newTypeConversionError(PROP_NAME_dsId));
-               }
-               setDsId(typedValue);
+               setFileLength(typedValue);
                break;
             }
         
@@ -405,6 +398,16 @@ public class _NopReportResultFile extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_rptId));
                }
                setRptId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_rptParams:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_rptParams));
+               }
+               setRptParams(typedValue);
                break;
             }
         
@@ -525,16 +528,9 @@ public class _NopReportResultFile extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_dsParams:{
+            case PROP_ID_fileLength:{
                onInitProp(propId);
-               this._dsParams = (java.lang.String)value;
-               
-               break;
-            }
-        
-            case PROP_ID_dsId:{
-               onInitProp(propId);
-               this._dsId = (java.lang.String)value;
+               this._fileLength = (java.lang.Long)value;
                
                break;
             }
@@ -549,6 +545,13 @@ public class _NopReportResultFile extends DynamicOrmEntity{
             case PROP_ID_rptId:{
                onInitProp(propId);
                this._rptId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_rptParams:{
+               onInitProp(propId);
+               this._rptParams = (java.lang.String)value;
                
                break;
             }
@@ -692,39 +695,20 @@ public class _NopReportResultFile extends DynamicOrmEntity{
     }
     
     /**
-     * 数据集参数: DS_PARAMS
+     * 文件长度: FILE_LENGTH
      */
-    public final java.lang.String getDsParams(){
-         onPropGet(PROP_ID_dsParams);
-         return _dsParams;
+    public final java.lang.Long getFileLength(){
+         onPropGet(PROP_ID_fileLength);
+         return _fileLength;
     }
 
     /**
-     * 数据集参数: DS_PARAMS
+     * 文件长度: FILE_LENGTH
      */
-    public final void setDsParams(java.lang.String value){
-        if(onPropSet(PROP_ID_dsParams,value)){
-            this._dsParams = value;
-            internalClearRefs(PROP_ID_dsParams);
-            
-        }
-    }
-    
-    /**
-     * 数据集ID: DS_ID
-     */
-    public final java.lang.String getDsId(){
-         onPropGet(PROP_ID_dsId);
-         return _dsId;
-    }
-
-    /**
-     * 数据集ID: DS_ID
-     */
-    public final void setDsId(java.lang.String value){
-        if(onPropSet(PROP_ID_dsId,value)){
-            this._dsId = value;
-            internalClearRefs(PROP_ID_dsId);
+    public final void setFileLength(java.lang.Long value){
+        if(onPropSet(PROP_ID_fileLength,value)){
+            this._fileLength = value;
+            internalClearRefs(PROP_ID_fileLength);
             
         }
     }
@@ -763,6 +747,25 @@ public class _NopReportResultFile extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_rptId,value)){
             this._rptId = value;
             internalClearRefs(PROP_ID_rptId);
+            
+        }
+    }
+    
+    /**
+     * 报表参数: RPT_PARAMS
+     */
+    public final java.lang.String getRptParams(){
+         onPropGet(PROP_ID_rptParams);
+         return _rptParams;
+    }
+
+    /**
+     * 报表参数: RPT_PARAMS
+     */
+    public final void setRptParams(java.lang.String value){
+        if(onPropSet(PROP_ID_rptParams,value)){
+            this._rptParams = value;
+            internalClearRefs(PROP_ID_rptParams);
             
         }
     }
@@ -919,5 +922,28 @@ public class _NopReportResultFile extends DynamicOrmEntity{
         }
     }
     
+    /**
+     * 报表定义
+     */
+    public final io.nop.report.dao.entity.NopReportDefinition getReportDefinition(){
+       return (io.nop.report.dao.entity.NopReportDefinition)internalGetRefEntity(PROP_NAME_reportDefinition);
+    }
+
+    public final void setReportDefinition(io.nop.report.dao.entity.NopReportDefinition refEntity){
+   
+           if(refEntity == null){
+           
+                   this.setRptId(null);
+               
+           }else{
+           internalSetRefEntity(PROP_NAME_reportDefinition, refEntity,()->{
+           
+                           this.setRptId(refEntity.getRptId());
+                       
+           });
+           }
+       
+    }
+       
 }
 // resume CPD analysis - CPD-ON

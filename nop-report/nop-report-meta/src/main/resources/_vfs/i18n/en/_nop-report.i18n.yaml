@@ -7,15 +7,18 @@ entity:
 prop:
   label:
     NopReportDataset:
-      dsId: Dataset ID
+      sid: Dataset ID
       dsName: Dataset Name
+      isSingleRow: Is Single Row
       description: Description
       dsType: Dataset Type
-      dsConfig: Dataset Text
+      datasourceId: Datasource ID
       dsText: Dataset Text
       dsMeta: Dataset Meta
-      dsView: Dataset View
+      dsConfig: Dataset Config
+      filterRule: Filter Rule
       status: Status
+      status_label: null
       version: Version
       createdBy: Created By
       createTime: Create Time
@@ -24,7 +27,7 @@ prop:
       remark: Remark
       dsTextComponent: null
       dsMetaComponent: null
-      dsViewComponent: null
+      dsConfigComponent: null
     NopReportDatasetAuth:
       dsId: Dataset ID
       roleId: Role Id
@@ -37,25 +40,29 @@ prop:
       remark: Remark
     NopReportDefinition:
       rptId: Report ID
+      rptNo: Report No.
       rptName: Report Name
       description: Description
       rptText: Report Text
       status: Status
+      status_label: null
       version: Version
       createdBy: Created By
       createTime: Create Time
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      reportAuths: Report Auths
+      datasetRefs: Dataset Refs
     NopReportResultFile:
       sid: SID
       fileName: File Name
       fileType: File Type
       filePath: File Path
-      dsParams: Dataset Params
-      dsId: Dataset ID
+      fileLength: File Length
       bizDate: Biz Date
       rptId: Report ID
+      rptParams: Report Params
       status: Status
       description: Description
       version: Version
@@ -64,3 +71,5 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      reportDefinition: Report Definition
+      reportDefinition.rptNo: Report Definition

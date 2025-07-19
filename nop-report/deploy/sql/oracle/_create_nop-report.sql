@@ -1,6 +1,7 @@
 
 CREATE TABLE nop_report_definition(
-  RPT_ID VARCHAR2(200) NOT NULL ,
+  RPT_ID VARCHAR2(32) NOT NULL ,
+  RPT_NO VARCHAR2(200) NOT NULL ,
   RPT_NAME VARCHAR2(200) NOT NULL ,
   DESCRIPTION VARCHAR2(1000)  ,
   RPT_TEXT CLOB NOT NULL ,
@@ -15,14 +16,16 @@ CREATE TABLE nop_report_definition(
 );
 
 CREATE TABLE nop_report_dataset(
-  DS_ID VARCHAR2(200) NOT NULL ,
+  SID VARCHAR2(200) NOT NULL ,
   DS_NAME VARCHAR2(200) NOT NULL ,
+  IS_SINGLE_ROW CHAR(1) NOT NULL ,
   DESCRIPTION VARCHAR2(1000)  ,
   DS_TYPE VARCHAR2(100) NOT NULL ,
-  DS_CONFIG VARCHAR2(4000) NOT NULL ,
+  DATASOURCE_ID VARCHAR2(32)  ,
   DS_TEXT CLOB NOT NULL ,
   DS_META CLOB NOT NULL ,
-  DS_VIEW CLOB  ,
+  DS_CONFIG CLOB  ,
+  FILTER_RULE VARCHAR2(4000)  ,
   STATUS INTEGER NOT NULL ,
   VERSION INTEGER NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
@@ -30,31 +33,58 @@ CREATE TABLE nop_report_dataset(
   UPDATED_BY VARCHAR2(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
-  constraint PK_nop_report_dataset primary key (DS_ID)
+  constraint PK_nop_report_dataset primary key (SID)
 );
 
-CREATE TABLE nop_report_dataset_auth(
-  DS_ID VARCHAR2(200) NOT NULL ,
+CREATE TABLE nop_report_datasource(
+  SID VARCHAR2(32) NOT NULL ,
+  NAME VARCHAR2(100) NOT NULL ,
+  DATASOURCE_TYPE VARCHAR2(20) NOT NULL ,
+  DATASOURCE_CONFIG VARCHAR2(4000) NOT NULL ,
+  STATUS INTEGER  ,
+  REMARK VARCHAR2(500)  ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  constraint PK_nop_report_datasource primary key (SID)
+);
+
+CREATE TABLE nop_report_definition_auth(
+  SID VARCHAR2(32) NOT NULL ,
+  RPT_ID VARCHAR2(32) NOT NULL ,
   ROLE_ID VARCHAR2(200) NOT NULL ,
-  PERMISSIONS VARCHAR2(100) NOT NULL ,
   VERSION INTEGER NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
   UPDATED_BY VARCHAR2(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
-  constraint PK_nop_report_dataset_auth primary key (DS_ID)
+  constraint PK_nop_report_definition_auth primary key (SID)
+);
+
+CREATE TABLE nop_report_dataset_ref(
+  RPT_ID VARCHAR2(32) NOT NULL ,
+  DS_ID VARCHAR2(32) NOT NULL ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_report_dataset_ref primary key (RPT_ID,DS_ID)
 );
 
 CREATE TABLE nop_report_result_file(
-  SID VARCHAR2(100) NOT NULL ,
+  SID VARCHAR2(50) NOT NULL ,
   FILE_NAME VARCHAR2(200) NOT NULL ,
   FILE_TYPE VARCHAR2(10) NOT NULL ,
   FILE_PATH VARCHAR2(100) NOT NULL ,
-  DS_PARAMS VARCHAR2(4000) NOT NULL ,
-  DS_ID VARCHAR2(200)  ,
+  FILE_LENGTH NUMBER(20) NOT NULL ,
   BIZ_DATE DATE  ,
-  RPT_ID VARCHAR2(200)  ,
+  RPT_ID VARCHAR2(200) NOT NULL ,
+  RPT_PARAMS VARCHAR2(4000) NOT NULL ,
   STATUS INTEGER NOT NULL ,
   DESCRIPTION VARCHAR2(1000)  ,
   VERSION INTEGER NOT NULL ,
@@ -66,10 +96,40 @@ CREATE TABLE nop_report_result_file(
   constraint PK_nop_report_result_file primary key (SID)
 );
 
+CREATE TABLE nop_report_sub_dataset(
+  SID VARCHAR2(32) NOT NULL ,
+  DS_ID VARCHAR2(32) NOT NULL ,
+  SUB_DS_ID VARCHAR2(32) NOT NULL ,
+  JOIN_FIELDS VARCHAR2(500) NOT NULL ,
+  DS_PARAMS VARCHAR2(500)  ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_report_sub_dataset primary key (SID)
+);
+
+CREATE TABLE nop_report_datasource_auth(
+  SID VARCHAR2(32) NOT NULL ,
+  DATASOURCE_ID VARCHAR2(32) NOT NULL ,
+  ROLE_ID VARCHAR2(200) NOT NULL ,
+  VERSION INTEGER NOT NULL ,
+  CREATED_BY VARCHAR2(50) NOT NULL ,
+  CREATE_TIME TIMESTAMP NOT NULL ,
+  UPDATED_BY VARCHAR2(50) NOT NULL ,
+  UPDATE_TIME TIMESTAMP NOT NULL ,
+  REMARK VARCHAR2(200)  ,
+  constraint PK_nop_report_datasource_auth primary key (SID)
+);
+
 
       COMMENT ON TABLE nop_report_definition IS '报表定义';
                 
       COMMENT ON COLUMN nop_report_definition.RPT_ID IS '主键';
+                    
+      COMMENT ON COLUMN nop_report_definition.RPT_NO IS '报表编号';
                     
       COMMENT ON COLUMN nop_report_definition.RPT_NAME IS '报表名称';
                     
@@ -93,21 +153,25 @@ CREATE TABLE nop_report_result_file(
                     
       COMMENT ON TABLE nop_report_dataset IS '数据集定义';
                 
-      COMMENT ON COLUMN nop_report_dataset.DS_ID IS '主键';
+      COMMENT ON COLUMN nop_report_dataset.SID IS '主键';
                     
       COMMENT ON COLUMN nop_report_dataset.DS_NAME IS '数据集名称';
+                    
+      COMMENT ON COLUMN nop_report_dataset.IS_SINGLE_ROW IS '是否单行';
                     
       COMMENT ON COLUMN nop_report_dataset.DESCRIPTION IS '描述';
                     
       COMMENT ON COLUMN nop_report_dataset.DS_TYPE IS '数据集类型';
                     
-      COMMENT ON COLUMN nop_report_dataset.DS_CONFIG IS '数据集配置';
+      COMMENT ON COLUMN nop_report_dataset.DATASOURCE_ID IS '数据源ID';
                     
       COMMENT ON COLUMN nop_report_dataset.DS_TEXT IS '数据集文本';
                     
       COMMENT ON COLUMN nop_report_dataset.DS_META IS '数据集元数据';
                     
-      COMMENT ON COLUMN nop_report_dataset.DS_VIEW IS '数据集显示配置';
+      COMMENT ON COLUMN nop_report_dataset.DS_CONFIG IS '数据集配置';
+                    
+      COMMENT ON COLUMN nop_report_dataset.FILTER_RULE IS '过滤规则';
                     
       COMMENT ON COLUMN nop_report_dataset.STATUS IS '状态';
                     
@@ -123,25 +187,67 @@ CREATE TABLE nop_report_result_file(
                     
       COMMENT ON COLUMN nop_report_dataset.REMARK IS '备注';
                     
-      COMMENT ON TABLE nop_report_dataset_auth IS '数据集权限';
+      COMMENT ON TABLE nop_report_datasource IS '数据源定义';
                 
-      COMMENT ON COLUMN nop_report_dataset_auth.DS_ID IS '主键';
+      COMMENT ON COLUMN nop_report_datasource.SID IS '主键ID';
                     
-      COMMENT ON COLUMN nop_report_dataset_auth.ROLE_ID IS '角色ID';
+      COMMENT ON COLUMN nop_report_datasource.NAME IS '数据源名称';
                     
-      COMMENT ON COLUMN nop_report_dataset_auth.PERMISSIONS IS '许可权限';
+      COMMENT ON COLUMN nop_report_datasource.DATASOURCE_TYPE IS '数据源类型';
                     
-      COMMENT ON COLUMN nop_report_dataset_auth.VERSION IS '数据版本';
+      COMMENT ON COLUMN nop_report_datasource.DATASOURCE_CONFIG IS '数据源配置';
                     
-      COMMENT ON COLUMN nop_report_dataset_auth.CREATED_BY IS '创建人';
+      COMMENT ON COLUMN nop_report_datasource.STATUS IS '状态';
                     
-      COMMENT ON COLUMN nop_report_dataset_auth.CREATE_TIME IS '创建时间';
+      COMMENT ON COLUMN nop_report_datasource.REMARK IS '备注说明';
                     
-      COMMENT ON COLUMN nop_report_dataset_auth.UPDATED_BY IS '修改人';
+      COMMENT ON COLUMN nop_report_datasource.VERSION IS '数据版本';
                     
-      COMMENT ON COLUMN nop_report_dataset_auth.UPDATE_TIME IS '修改时间';
+      COMMENT ON COLUMN nop_report_datasource.CREATED_BY IS '创建人';
                     
-      COMMENT ON COLUMN nop_report_dataset_auth.REMARK IS '备注';
+      COMMENT ON COLUMN nop_report_datasource.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_report_datasource.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_report_datasource.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON TABLE nop_report_definition_auth IS 'Report访问权限';
+                
+      COMMENT ON COLUMN nop_report_definition_auth.SID IS '主键';
+                    
+      COMMENT ON COLUMN nop_report_definition_auth.RPT_ID IS '报表ID';
+                    
+      COMMENT ON COLUMN nop_report_definition_auth.ROLE_ID IS '角色ID';
+                    
+      COMMENT ON COLUMN nop_report_definition_auth.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_report_definition_auth.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_report_definition_auth.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_report_definition_auth.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_report_definition_auth.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_report_definition_auth.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_report_dataset_ref IS '报表引用数据源';
+                
+      COMMENT ON COLUMN nop_report_dataset_ref.RPT_ID IS '报表主键';
+                    
+      COMMENT ON COLUMN nop_report_dataset_ref.DS_ID IS '数据集ID';
+                    
+      COMMENT ON COLUMN nop_report_dataset_ref.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_report_dataset_ref.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_report_dataset_ref.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_report_dataset_ref.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_report_dataset_ref.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_report_dataset_ref.REMARK IS '备注';
                     
       COMMENT ON TABLE nop_report_result_file IS '报表结果文件';
                 
@@ -153,13 +259,13 @@ CREATE TABLE nop_report_result_file(
                     
       COMMENT ON COLUMN nop_report_result_file.FILE_PATH IS '文件路径';
                     
-      COMMENT ON COLUMN nop_report_result_file.DS_PARAMS IS '数据集参数';
-                    
-      COMMENT ON COLUMN nop_report_result_file.DS_ID IS '数据集ID';
+      COMMENT ON COLUMN nop_report_result_file.FILE_LENGTH IS '文件长度';
                     
       COMMENT ON COLUMN nop_report_result_file.BIZ_DATE IS '业务日期';
                     
       COMMENT ON COLUMN nop_report_result_file.RPT_ID IS '报表ID';
+                    
+      COMMENT ON COLUMN nop_report_result_file.RPT_PARAMS IS '报表参数';
                     
       COMMENT ON COLUMN nop_report_result_file.STATUS IS '状态';
                     
@@ -176,4 +282,48 @@ CREATE TABLE nop_report_result_file(
       COMMENT ON COLUMN nop_report_result_file.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_report_result_file.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_report_sub_dataset IS '子数据源';
+                
+      COMMENT ON COLUMN nop_report_sub_dataset.SID IS '主键';
+                    
+      COMMENT ON COLUMN nop_report_sub_dataset.DS_ID IS '数据集ID';
+                    
+      COMMENT ON COLUMN nop_report_sub_dataset.SUB_DS_ID IS '子数据集ID';
+                    
+      COMMENT ON COLUMN nop_report_sub_dataset.JOIN_FIELDS IS '关联字段';
+                    
+      COMMENT ON COLUMN nop_report_sub_dataset.DS_PARAMS IS '子数据集参数';
+                    
+      COMMENT ON COLUMN nop_report_sub_dataset.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_report_sub_dataset.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_report_sub_dataset.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_report_sub_dataset.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_report_sub_dataset.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_report_sub_dataset.REMARK IS '备注';
+                    
+      COMMENT ON TABLE nop_report_datasource_auth IS '数据源访问权限';
+                
+      COMMENT ON COLUMN nop_report_datasource_auth.SID IS '主键';
+                    
+      COMMENT ON COLUMN nop_report_datasource_auth.DATASOURCE_ID IS '数据源ID';
+                    
+      COMMENT ON COLUMN nop_report_datasource_auth.ROLE_ID IS '角色ID';
+                    
+      COMMENT ON COLUMN nop_report_datasource_auth.VERSION IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_report_datasource_auth.CREATED_BY IS '创建人';
+                    
+      COMMENT ON COLUMN nop_report_datasource_auth.CREATE_TIME IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_report_datasource_auth.UPDATED_BY IS '修改人';
+                    
+      COMMENT ON COLUMN nop_report_datasource_auth.UPDATE_TIME IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_report_datasource_auth.REMARK IS '备注';
                     

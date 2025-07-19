@@ -28,14 +28,14 @@ public abstract class _BatchLoaderDispatcherModel extends io.nop.core.resource.c
      * xml name: fetchThreadCount
      * 
      */
-    private int _fetchThreadCount  = 1;
+    private int _fetchThreadCount  = 0;
     
     /**
      *  
      * xml name: loadBatchSize
      * 
      */
-    private int _loadBatchSize ;
+    private int _loadBatchSize  = 100;
     
     /**
      *  

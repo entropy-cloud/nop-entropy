@@ -21,14 +21,17 @@
                 <!--数据集名称-->
                 <col id="dsName" mandatory="true" sortable="true"/>
 
+                <!--是否单行-->
+                <col id="isSingleRow" mandatory="true" sortable="true"/>
+
                 <!--描述-->
                 <col id="description" sortable="true"/>
 
                 <!--数据集类型-->
                 <col id="dsType" mandatory="true" sortable="true"/>
 
-                <!--数据集配置-->
-                <col id="dsConfig" mandatory="true" sortable="true"/>
+                <!--数据源ID-->
+                <col id="datasourceId" sortable="true"/>
 
                 <!--数据集文本-->
                 <col id="dsText" mandatory="true" sortable="true"/>
@@ -36,8 +39,11 @@
                 <!--数据集元数据-->
                 <col id="dsMeta" mandatory="true" sortable="true"/>
 
-                <!--数据集显示配置-->
-                <col id="dsView" sortable="true"/>
+                <!--数据集配置-->
+                <col id="dsConfig" sortable="true"/>
+
+                <!--过滤规则-->
+                <col id="filterRule" sortable="true"/>
 
                 <!--状态-->
                 <col id="status" mandatory="true" ui:number="true" sortable="true"/>
@@ -64,10 +70,11 @@
     <forms>
         <form id="view" editMode="view" title="查看-数据集定义" i18n-en:title="View Dataset">
             <layout>
- dsName[数据集名称] description[描述]
- dsType[数据集类型] dsConfig[数据集配置]
- dsText[数据集文本] dsMeta[数据集元数据]
- dsView[数据集显示配置] status[状态]
+ dsName[数据集名称] isSingleRow[是否单行]
+ description[描述] dsType[数据集类型]
+ datasourceId[数据源ID] dsText[数据集文本]
+ dsMeta[数据集元数据] dsConfig[数据集配置]
+ filterRule[过滤规则] status[状态]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
  remark[备注] 
@@ -76,15 +83,12 @@
         <form id="add" editMode="add" title="新增-数据集定义" i18n-en:title="Add Dataset" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-数据集定义" i18n-en:title="Edit Dataset">
             <layout>
- dsName[数据集名称]
- description[描述]
- dsType[数据集类型]
- dsConfig[数据集配置]
- dsText[数据集文本]
- dsMeta[数据集元数据]
- dsView[数据集显示配置]
- status[状态]
- remark[备注]
+ dsName[数据集名称] isSingleRow[是否单行]
+ description[描述] dsType[数据集类型]
+ datasourceId[数据源ID] dsText[数据集文本]
+ dsMeta[数据集元数据] dsConfig[数据集配置]
+ filterRule[过滤规则] status[状态]
+ remark[备注] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

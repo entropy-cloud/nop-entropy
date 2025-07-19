@@ -22,7 +22,7 @@
     <props>
         <prop name="sid" displayName="主键" propId="1" i18n-en:displayName="SID" tagSet="seq" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
-            <schema type="java.lang.String" precision="100"/>
+            <schema type="java.lang.String" precision="50"/>
         </prop>
         <prop name="fileName" displayName="文件名称" propId="2" i18n-en:displayName="File Name" tagSet="disp"
               mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
@@ -36,21 +36,21 @@
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="dsParams" displayName="数据集参数" propId="5" i18n-en:displayName="Dataset Params" mandatory="true"
+        <prop name="fileLength" displayName="文件长度" propId="5" i18n-en:displayName="File Length" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="4000"/>
+            <schema type="java.lang.Long"/>
         </prop>
-        <prop name="dsId" displayName="数据集ID" propId="6" i18n-en:displayName="Dataset ID" queryable="true"
-              sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="200"/>
-        </prop>
-        <prop name="bizDate" displayName="业务日期" propId="7" i18n-en:displayName="Biz Date" queryable="true"
+        <prop name="bizDate" displayName="业务日期" propId="6" i18n-en:displayName="Biz Date" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.time.LocalDate"/>
         </prop>
-        <prop name="rptId" displayName="报表ID" propId="8" i18n-en:displayName="Report ID" queryable="true"
-              sortable="true" insertable="true" updatable="true">
+        <prop name="rptId" displayName="报表ID" propId="7" i18n-en:displayName="Report ID" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true" ext:relation="reportDefinition">
             <schema type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="rptParams" displayName="报表参数" propId="8" i18n-en:displayName="Report Params" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4000"/>
         </prop>
         <prop name="status" displayName="状态" propId="9" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
@@ -83,6 +83,15 @@
         <prop name="remark" displayName="备注" propId="16" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
+        </prop>
+        <prop name="reportDefinition" displayName="报表定义" i18n-en:displayName="Report Definition" tagSet="pub"
+              ext:kind="to-one" internal="true" queryable="true" ext:joinLeftProp="rptId" ext:joinRightProp="rptId"
+              ext:joinRightDisplayProp="rptNo" insertable="false" updatable="false" mandatory="true" lazy="true">
+            <schema bizObjName="NopReportDefinition"/>
+        </prop>
+        <prop name="reportDefinition.rptNo" displayName="报表定义" i18n-en:displayName="Report Definition" internal="true"
+              queryable="true" sortable="true" lazy="true">
+            <schema type="String"/>
         </prop>
     </props>
 </meta>

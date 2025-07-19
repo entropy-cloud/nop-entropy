@@ -9,19 +9,22 @@ prop:
     NopReportDataset:
       createTime: 创建时间
       createdBy: 创建人
+      datasourceId: 数据源ID
       description: 描述
       dsConfig: 数据集配置
-      dsId: 主键
+      dsConfigComponent: null
       dsMeta: 数据集元数据
       dsMetaComponent: null
       dsName: 数据集名称
       dsText: 数据集文本
       dsTextComponent: null
       dsType: 数据集类型
-      dsView: 数据集显示配置
-      dsViewComponent: null
+      filterRule: 过滤规则
+      isSingleRow: 是否单行
       remark: 备注
+      sid: 主键
       status: 状态
+      status_label: 状态
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -38,12 +41,16 @@ prop:
     NopReportDefinition:
       createTime: 创建时间
       createdBy: 创建人
+      datasetRefs: 报表引用数据源
       description: 描述
       remark: 备注
+      reportAuths: 报表访问权限
       rptId: 主键
       rptName: 报表名称
+      rptNo: 报表编号
       rptText: 报表文件
       status: 状态
+      status_label: 状态
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -52,13 +59,15 @@ prop:
       createTime: 创建时间
       createdBy: 创建人
       description: 描述
-      dsId: 数据集ID
-      dsParams: 数据集参数
+      fileLength: 文件长度
       fileName: 文件名称
       filePath: 文件路径
       fileType: 文件类型
       remark: 备注
+      reportDefinition: 报表定义
+      reportDefinition.rptNo: 报表定义
       rptId: 报表ID
+      rptParams: 报表参数
       sid: 主键
       status: 状态
       updateTime: 修改时间

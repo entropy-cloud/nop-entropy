@@ -245,7 +245,6 @@ class TestBlockCachedBinaryDataReader2 {
         }
     }
 
-    @Disabled
     @Test
     void testReadBits() throws IOException {
         // Test bit-level reading
@@ -255,7 +254,7 @@ class TestBlockCachedBinaryDataReader2 {
 
         // Read 3 bits (101)
         assertEquals(0b101, cachedReader.readBitsIntBe(3));
-        assertEquals(3, cachedReader.getBitsLeft());
+        assertEquals(5, cachedReader.getBitsLeft());
 
         // Read 5 bits (01010)
         assertEquals(0b01010, cachedReader.readBitsIntBe(5));

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
+      xmlns:xpl="xpl" ext:model="orm" xmlns:c="c" xmlns:graphql="graphql" xmlns:meta-gen="meta-gen" xmlns:biz="biz"
+      displayName="数据源定义" i18n-en:displayName="Report DataSource" xmlns:ui="ui" xmlns:orm="orm">
+
+    <entityName>io.nop.report.dao.entity.NopReportDatasource</entityName>
+
+    <primaryKey>sid</primaryKey>
+
+    <x:gen-extends>
+        <meta-gen:DefaultMetaGenExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:gen-extends>
+
+    <x:post-extends>
+        <meta-gen:DefaultMetaPostExtends xpl:lib="/nop/core/xlib/meta-gen.xlib"/>
+    </x:post-extends>
+
+    <keys/>
+
+    <props>
+        <prop name="sid" displayName="主键ID" propId="1" i18n-en:displayName="SID" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+            <schema type="java.lang.String" precision="32"/>
+        </prop>
+        <prop name="name" displayName="数据源名称" propId="2" i18n-en:displayName="Name" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="100"/>
+        </prop>
+        <prop name="datasourceType" displayName="数据源类型" propId="3" i18n-en:displayName="Type" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="20"/>
+        </prop>
+        <prop name="datasourceConfig" displayName="数据源配置" propId="4" i18n-en:displayName="Config" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="4000"/>
+        </prop>
+        <prop name="status" displayName="状态" propId="5" i18n-en:displayName="Status" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="remark" displayName="备注说明" propId="6" i18n-en:displayName="Remark" queryable="true" sortable="true"
+              insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="500"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="7" i18n-en:displayName="Version" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
+            <schema domain="version" type="java.lang.Integer"/>
+        </prop>
+        <prop name="createdBy" displayName="创建人" propId="8" i18n-en:displayName="Created By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createdBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="createTime" displayName="创建时间" propId="9" i18n-en:displayName="Create Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="createTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="updatedBy" displayName="修改人" propId="10" i18n-en:displayName="Updated By" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updatedBy" type="java.lang.String" precision="50"/>
+        </prop>
+        <prop name="updateTime" displayName="修改时间" propId="11" i18n-en:displayName="Update Time" mandatory="true"
+              queryable="true" sortable="true" insertable="false" updatable="false">
+            <schema domain="updateTime" type="java.sql.Timestamp"/>
+        </prop>
+        <prop name="datasourceAuths" displayName="数据源权限" i18n-en:displayName="DataSource Auths"
+              tagSet="pub,grid,cascade-delete,insertable,updatable" ext:kind="to-many" internal="true"
+              ui:editGrid="sub-grid-edit" ui:viewGrid="sub-grid-view" ext:joinLeftProp="sid"
+              ext:joinRightProp="datasourceId" ext:joinRightDisplayProp="roleId" insertable="true" updatable="true"
+              lazy="true">
+            <schema>
+                <item bizObjName="NopReportDatasourceAuth"/>
+            </schema>
+        </prop>
+    </props>
+</meta>

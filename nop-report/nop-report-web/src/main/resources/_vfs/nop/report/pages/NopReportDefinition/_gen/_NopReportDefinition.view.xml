@@ -18,6 +18,9 @@
         <grid id="list" x:abstract="true">
             <cols>
 
+                <!--报表编号-->
+                <col id="rptNo" mandatory="true" sortable="true"/>
+
                 <!--报表名称-->
                 <col id="rptName" mandatory="true" sortable="true"/>
 
@@ -52,20 +55,18 @@
     <forms>
         <form id="view" editMode="view" title="查看-报表定义" i18n-en:title="View Report Definition">
             <layout>
- rptName[报表名称]
- description[描述]
- rptText[报表文件]
- status[状态]
- createdBy[创建人]
- createTime[创建时间]
- updatedBy[修改人]
- updateTime[修改时间]
- remark[备注]
+ rptNo[报表编号] rptName[报表名称]
+ description[描述] rptText[报表文件]
+ status[状态] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-报表定义" i18n-en:title="Add Report Definition" x:prototype="edit"/>
         <form id="edit" editMode="edit" title="编辑-报表定义" i18n-en:title="Edit Report Definition">
             <layout>
+ rptNo[报表编号]
  rptName[报表名称]
  description[描述]
  rptText[报表文件]

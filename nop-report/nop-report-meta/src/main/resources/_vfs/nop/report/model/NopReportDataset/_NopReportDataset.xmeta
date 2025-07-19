@@ -5,7 +5,7 @@
 
     <entityName>io.nop.report.dao.entity.NopReportDataset</entityName>
 
-    <primaryKey>dsId</primaryKey>
+    <primaryKey>sid</primaryKey>
 
     <displayProp>dsName</displayProp>
 
@@ -20,65 +20,73 @@
     <keys/>
 
     <props>
-        <prop name="dsId" displayName="主键" propId="1" i18n-en:displayName="Dataset ID" mandatory="true" queryable="true"
-              sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
+        <prop name="sid" displayName="主键" propId="1" i18n-en:displayName="Dataset ID" tagSet="seq" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="false" internal="true" ui:show="X">
             <schema type="java.lang.String" precision="200"/>
         </prop>
         <prop name="dsName" displayName="数据集名称" propId="2" i18n-en:displayName="Dataset Name" tagSet="disp"
               mandatory="true" queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="200"/>
         </prop>
-        <prop name="description" displayName="描述" propId="3" i18n-en:displayName="Description" queryable="true"
+        <prop name="isSingleRow" displayName="是否单行" propId="3" i18n-en:displayName="Is Single Row" mandatory="true"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Boolean"/>
+        </prop>
+        <prop name="description" displayName="描述" propId="4" i18n-en:displayName="Description" queryable="true"
               sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="1000"/>
         </prop>
-        <prop name="dsType" displayName="数据集类型" propId="4" i18n-en:displayName="Dataset Type" mandatory="true"
+        <prop name="dsType" displayName="数据集类型" propId="5" i18n-en:displayName="Dataset Type" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true">
             <schema type="java.lang.String" precision="100"/>
         </prop>
-        <prop name="dsConfig" displayName="数据集配置" propId="5" i18n-en:displayName="Dataset Text" mandatory="true"
-              queryable="true" sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" precision="4000"/>
+        <prop name="datasourceId" displayName="数据源ID" propId="6" i18n-en:displayName="Datasource ID" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="32"/>
         </prop>
-        <prop name="dsText" displayName="数据集文本" propId="6" i18n-en:displayName="Dataset Text" mandatory="true"
+        <prop name="dsText" displayName="数据集文本" propId="7" i18n-en:displayName="Dataset Text" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true"
               graphql:jsonComponentProp="dsTextComponent">
             <schema stdDomain="json" domain="json-128K" type="java.lang.String" precision="131072"/>
         </prop>
-        <prop name="dsMeta" displayName="数据集元数据" propId="7" i18n-en:displayName="Dataset Meta" mandatory="true"
+        <prop name="dsMeta" displayName="数据集元数据" propId="8" i18n-en:displayName="Dataset Meta" mandatory="true"
               queryable="true" sortable="true" insertable="true" updatable="true"
               graphql:jsonComponentProp="dsMetaComponent">
             <schema stdDomain="json" domain="json-128K" type="java.lang.String" precision="131072"/>
         </prop>
-        <prop name="dsView" displayName="数据集显示配置" propId="8" i18n-en:displayName="Dataset View" queryable="true"
-              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="dsViewComponent">
+        <prop name="dsConfig" displayName="数据集配置" propId="9" i18n-en:displayName="Dataset Config" queryable="true"
+              sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="dsConfigComponent">
             <schema stdDomain="json" domain="json-128K" type="java.lang.String" precision="131072"/>
         </prop>
-        <prop name="status" displayName="状态" propId="9" i18n-en:displayName="Status" mandatory="true" queryable="true"
+        <prop name="filterRule" displayName="过滤规则" propId="10" i18n-en:displayName="Filter Rule" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.Integer"/>
+            <schema type="java.lang.String" precision="4000"/>
         </prop>
-        <prop name="version" displayName="数据版本" propId="10" i18n-en:displayName="Version" mandatory="true"
+        <prop name="status" displayName="状态" propId="11" i18n-en:displayName="Status" mandatory="true" queryable="true"
+              sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.Integer" dict="core/active-status"/>
+        </prop>
+        <prop name="version" displayName="数据版本" propId="12" i18n-en:displayName="Version" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" internal="true" ui:show="X">
             <schema domain="version" type="java.lang.Integer"/>
         </prop>
-        <prop name="createdBy" displayName="创建人" propId="11" i18n-en:displayName="Created By" mandatory="true"
+        <prop name="createdBy" displayName="创建人" propId="13" i18n-en:displayName="Created By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createdBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="createTime" displayName="创建时间" propId="12" i18n-en:displayName="Create Time" mandatory="true"
+        <prop name="createTime" displayName="创建时间" propId="14" i18n-en:displayName="Create Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="createTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="updatedBy" displayName="修改人" propId="13" i18n-en:displayName="Updated By" mandatory="true"
+        <prop name="updatedBy" displayName="修改人" propId="15" i18n-en:displayName="Updated By" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="updatedBy" type="java.lang.String" precision="50"/>
         </prop>
-        <prop name="updateTime" displayName="修改时间" propId="14" i18n-en:displayName="Update Time" mandatory="true"
+        <prop name="updateTime" displayName="修改时间" propId="16" i18n-en:displayName="Update Time" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false">
             <schema domain="updateTime" type="java.sql.Timestamp"/>
         </prop>
-        <prop name="remark" displayName="备注" propId="15" i18n-en:displayName="Remark" queryable="true" sortable="true"
+        <prop name="remark" displayName="备注" propId="17" i18n-en:displayName="Remark" queryable="true" sortable="true"
               insertable="true" updatable="true" ui:show="S">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
@@ -90,7 +98,7 @@
               updatable="true" mandatory="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>
-        <prop name="dsViewComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
+        <prop name="dsConfigComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>
         </prop>

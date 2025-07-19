@@ -149,6 +149,8 @@ public enum StdSqlType implements ISqlDataType {
     private static final Map<StdDataType, StdSqlType> stdTypeMap = new HashMap<>();
 
     static {
+        stdNameMap.put("INT", INTEGER);
+
         for (StdSqlType type : StdSqlType.values()) {
             stdNameMap.put(type.getName(), type);
 
