@@ -8,7 +8,6 @@
 package io.nop.task.step;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.commons.util.StringHelper;
 import io.nop.task.ITaskStep;
 import io.nop.task.TaskStepReturn;
 import io.nop.xlang.xdsl.action.IActionInputModel;
@@ -17,28 +16,18 @@ import io.nop.xlang.xdsl.action.IActionOutputModel;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletionStage;
 
 public abstract class AbstractTaskStep implements ITaskStep {
     private SourceLocation location;
     private String stepType;
 
     private Set<String> persistVars;
-    private String returnAs;
 
     private boolean concurrent;
 
     private List<? extends IActionInputModel> inputs = Collections.emptyList();
 
     private List<? extends IActionOutputModel> outputs = Collections.emptyList();
-
-    public String getReturnAs() {
-        return returnAs;
-    }
-
-    public void setReturnAs(String returnAs) {
-        this.returnAs = returnAs;
-    }
 
     @Override
     public SourceLocation getLocation() {
@@ -95,16 +84,7 @@ public abstract class AbstractTaskStep implements ITaskStep {
     }
 
     protected TaskStepReturn makeReturn(String nextStepName, Object returnValue) {
-        if (StringHelper.isEmpty(returnAs)) {
-            return TaskStepReturn.of(nextStepName, returnValue);
-        } else {
-            if (returnValue instanceof CompletionStage) {
-                return TaskStepReturn.of(nextStepName, ((CompletionStage) returnValue).thenApply(
-                        v -> Collections.singletonMap(returnAs, v)));
-            } else {
-                return TaskStepReturn.RETURN(nextStepName, Collections.singletonMap(returnAs, returnValue));
-            }
-        }
+        return TaskStepReturn.of(nextStepName, returnValue);
     }
 
     protected TaskStepReturn makeReturn(Object returnValue) {

@@ -14,8 +14,6 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ResolvedPromise;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Map;
@@ -58,6 +56,10 @@ public final class TaskStepReturn {
         if (nextStepName == null && outputs == null)
             return CONTINUE;
         return new TaskStepReturn(nextStepName, outputs);
+    }
+
+    public static TaskStepReturn ASYNC_RETURN(CompletionStage<TaskStepReturn> future) {
+        return new TaskStepReturn(future);
     }
 
     public static TaskStepReturn ASYNC(String nextStepName, CompletionStage<?> future) {
@@ -106,19 +108,19 @@ public final class TaskStepReturn {
             return CONTINUE;
 
         if (returnValue instanceof TaskStepReturn) {
-            return (TaskStepReturn) returnValue;
+            TaskStepReturn returnResult = (TaskStepReturn) returnValue;
+            if (returnResult.getNextStepName() == null && nextStepName != null)
+                return new TaskStepReturn(nextStepName, returnResult.getOutputs());
+            return returnResult;
         }
 
         if (STEP_NAME_SUSPEND.equals(nextStepName))
             return SUSPEND;
 
-        if (returnValue instanceof Map)
-            return new TaskStepReturn(nextStepName, (Map<String, Object>) returnValue);
-
         if (returnValue instanceof CompletionStage)
             return new TaskStepReturn(((CompletionStage<?>) returnValue).thenApply(v -> {
                 TaskStepReturn ret = of(nextStepName, v);
-                Guard.checkArgument(!ret.isAsync());
+                Guard.checkArgument(!ret.isAsync(), "asyncReturn result must not be async");
                 return ret;
             }));
 

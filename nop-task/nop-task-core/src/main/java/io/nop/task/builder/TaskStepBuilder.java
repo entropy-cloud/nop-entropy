@@ -364,7 +364,6 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         ret.setArgNames(stepModel.getInputs().stream().map(TaskInputModel::getName).collect(Collectors.toList()));
         ret.setBeanName(stepModel.getBean());
         ret.setMethodName(stepModel.getMethod());
-        ret.setReturnAs(stepModel.getReturnAs());
         return ret;
     }
 
@@ -373,7 +372,6 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         ret.setArgNames(stepModel.getInputs().stream().map(TaskInputModel::getName).collect(Collectors.toList()));
         IEvalFunction method = stepModel.getResolvedMethod();
         ret.setMethod(method);
-        ret.setReturnAs(stepModel.getReturnAs());
         return ret;
     }
 
@@ -413,6 +411,5 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         step.setInputs(stepModel.getInputs());
         step.setOutputs(stepModel.getOutputs());
         step.setConcurrent(stepModel.isConcurrent());
-        step.setReturnAs(stepModel.getReturnAs());
     }
 }

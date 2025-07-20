@@ -81,6 +81,10 @@ public interface ITaskStepRuntime extends IEvalContext, IEditableTagSetSupport {
         getEvalScope().setLocalValue(name, value);
     }
 
+    default void setOutput(String name, Object value) {
+        getEvalScope().setLocalValue(name, value);
+    }
+
     ITaskStepState getState();
 
     @Nonnull

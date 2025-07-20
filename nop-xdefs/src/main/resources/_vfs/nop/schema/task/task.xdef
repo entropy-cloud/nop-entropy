@@ -131,7 +131,6 @@
                  tagSet="csv-set" name="var-name" sync="!boolean=false" displayName="string"
                  allowStartIfComplete="!boolean=false" internal="!boolean=false" errorName="var-name"
                  runOnContext="!boolean=false" waitSteps="csv-set" waitErrorSteps="csv-set"
-                 returnAs="var-name" ignoreResult="!boolean=false"
                  graphql:operationType="string" recordMetrics="!boolean=false"
                  next="string" nextOnError="string" saveState="boolean" useParentScope="boolean">
     </xdef:define>
@@ -232,14 +231,13 @@
 
             <!--
             执行指定bean上的指定方法
-            @returnAs 指定bean方法的返回值所对应的返回变量名，缺省为RESULT
             -->
-            <invoke name="!var-name" bean="!bean-name" method="!var-name" xdef:ref="TaskStepModel" returnAs="var-name"
+            <invoke name="!var-name" bean="!bean-name" method="!var-name" xdef:ref="TaskStepModel"
                     xdef:name="InvokeTaskStepModel">
             </invoke>
 
             <invoke-static name="!var-name" method="!method-ref" xdef:ref="TaskStepModel"
-                           returnAs="var-name" xdef:name="InvokeStaticTaskStepModel"/>
+                           xdef:name="InvokeStaticTaskStepModel"/>
 
             <!--
             类似于for循环语句，不断执行body

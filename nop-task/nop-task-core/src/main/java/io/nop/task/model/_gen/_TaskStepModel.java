@@ -39,13 +39,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      *  
-     * xml name: ignoreResult
-     * 
-     */
-    private boolean _ignoreResult  = false;
-    
-    /**
-     *  
      * xml name: internal
      * 
      */
@@ -78,13 +71,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
      * 
      */
     private boolean _recordMetrics  = false;
-    
-    /**
-     *  
-     * xml name: returnAs
-     * 
-     */
-    private java.lang.String _returnAs ;
     
     /**
      *  
@@ -194,25 +180,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
     
     /**
      * 
-     * xml name: ignoreResult
-     *  
-     */
-    
-    public boolean isIgnoreResult(){
-      return _ignoreResult;
-    }
-
-    
-    public void setIgnoreResult(boolean value){
-        checkAllowChange();
-        
-        this._ignoreResult = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: internal
      *  
      */
@@ -302,25 +269,6 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         checkAllowChange();
         
         this._recordMetrics = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: returnAs
-     *  
-     */
-    
-    public java.lang.String getReturnAs(){
-      return _returnAs;
-    }
-
-    
-    public void setReturnAs(java.lang.String value){
-        checkAllowChange();
-        
-        this._returnAs = value;
            
     }
 
@@ -476,13 +424,11 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         out.putNotNull("allowStartIfComplete",this.isAllowStartIfComplete());
         out.putNotNull("concurrent",this.isConcurrent());
         out.putNotNull("errorName",this.getErrorName());
-        out.putNotNull("ignoreResult",this.isIgnoreResult());
         out.putNotNull("internal",this.isInternal());
         out.putNotNull("name",this.getName());
         out.putNotNull("next",this.getNext());
         out.putNotNull("nextOnError",this.getNextOnError());
         out.putNotNull("recordMetrics",this.isRecordMetrics());
-        out.putNotNull("returnAs",this.getReturnAs());
         out.putNotNull("runOnContext",this.isRunOnContext());
         out.putNotNull("saveState",this.getSaveState());
         out.putNotNull("sync",this.isSync());
@@ -504,13 +450,11 @@ public abstract class _TaskStepModel extends io.nop.task.model.TaskExecutableMod
         instance.setAllowStartIfComplete(this.isAllowStartIfComplete());
         instance.setConcurrent(this.isConcurrent());
         instance.setErrorName(this.getErrorName());
-        instance.setIgnoreResult(this.isIgnoreResult());
         instance.setInternal(this.isInternal());
         instance.setName(this.getName());
         instance.setNext(this.getNext());
         instance.setNextOnError(this.getNextOnError());
         instance.setRecordMetrics(this.isRecordMetrics());
-        instance.setReturnAs(this.getReturnAs());
         instance.setRunOnContext(this.isRunOnContext());
         instance.setSaveState(this.getSaveState());
         instance.setSync(this.isSync());

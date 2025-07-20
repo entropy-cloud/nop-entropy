@@ -131,11 +131,6 @@ public class TaskStepExecution implements ITaskStepExecution {
     private final String nextStepName;
     private final String nextStepNameOnError;
 
-    /**
-     * 是否忽略本步骤的执行结果。日志步骤、延伸步骤等如果在顺序流中执行，不会修改当前环境中的result变量
-     */
-    private final boolean ignoreResult;
-
     private final boolean recordMetrics;
 
     private final String errorName;
@@ -146,7 +141,7 @@ public class TaskStepExecution implements ITaskStepExecution {
                              List<OutputConfig> outputConfigs, Set<String> outputVars,
                              ITaskStepFlagOperation flagOperation, IEvalPredicate when,
                              ITaskStep step, String nextStepName, String nextStepNameOnError,
-                             boolean ignoreResult, boolean recordMetrics, String errorName,
+                             boolean recordMetrics, String errorName,
                              boolean useParentScope
     ) {
         this.location = location;
@@ -159,7 +154,6 @@ public class TaskStepExecution implements ITaskStepExecution {
         this.outputVars = outputVars;
         this.nextStepName = nextStepName;
         this.nextStepNameOnError = nextStepNameOnError;
-        this.ignoreResult = ignoreResult;
         this.recordMetrics = recordMetrics;
         this.errorName = errorName == null ? TaskConstants.VAR_ERROR : errorName;
         this.useParentScope = useParentScope;
@@ -173,10 +167,6 @@ public class TaskStepExecution implements ITaskStepExecution {
     @Override
     public String getStepName() {
         return stepName;
-    }
-
-    public boolean isIgnoreResult() {
-        return ignoreResult;
     }
 
     @Nonnull
@@ -254,9 +244,7 @@ public class TaskStepExecution implements ITaskStepExecution {
 
                     Guard.checkState(!ret.isAsync());
 
-                    if (!ignoreResult) {
-                        parentScope.setLocalValue(TaskConstants.VAR_RESULT, ret.getOutput(TaskConstants.VAR_RESULT));
-                    }
+                    parentScope.setLocalValue(TaskConstants.VAR_RESULT, ret.getOutput(TaskConstants.VAR_RESULT));
 
                     if (!outputConfigs.isEmpty()) {
                         initOutputs(ret, stepRt, parentScope);

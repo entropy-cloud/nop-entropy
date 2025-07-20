@@ -7,7 +7,6 @@ timeout: 0
 defaultSaveState: false
 graphMode: false
 allowStartIfComplete: false
-ignoreResult: false
 recordMetrics: true
 sync: false
 version: 0
@@ -20,7 +19,6 @@ steps:
       useParentScope: false
       timeout: 0
       allowStartIfComplete: false
-      ignoreResult: false
       recordMetrics: false
       sync: false
       runOnContext: false
@@ -32,7 +30,6 @@ steps:
             useParentScope: false
             timeout: 0
             allowStartIfComplete: false
-            ignoreResult: false
             recordMetrics: false
             sync: false
             runOnContext: false
@@ -45,7 +42,6 @@ steps:
             useParentScope: false
             timeout: 0
             allowStartIfComplete: false
-            ignoreResult: false
             recordMetrics: false
             sync: false
             runOnContext: false

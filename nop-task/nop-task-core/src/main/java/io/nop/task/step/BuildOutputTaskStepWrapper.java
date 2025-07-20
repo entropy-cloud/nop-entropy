@@ -27,6 +27,10 @@ public class BuildOutputTaskStepWrapper extends DelegateTaskStep {
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         return getTaskStep().execute(stepRt).thenApply(res -> {
             stepRt.setValue(TaskConstants.VAR_STEP_RESULT, res.getOutputs());
+            stepRt.setValue(TaskConstants.VAR_RESULT, res.getOutput(TaskConstants.VAR_RESULT));
+
+
+            // 这里output是独立选择并独立计算的，原则上没有先后关系，否则当output没有被选择时可能会跳过计算
             Map<String, Object> result = res.getOutputs() != null ? new LinkedHashMap<>(res.getOutputs())
                     : new LinkedHashMap<>();
             outputExprs.forEach((name, expr) -> {
@@ -41,7 +45,7 @@ public class BuildOutputTaskStepWrapper extends DelegateTaskStep {
                     result.remove(name);
                 }
             });
-            return TaskStepReturn.of(res.getNextStepName(), result);
+            return TaskStepReturn.RETURN(res.getNextStepName(), result);
         });
     }
 }

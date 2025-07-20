@@ -2,13 +2,13 @@
     <steps>
         <xpl name="init">
             <source>
-                return { RESULT: 10, status: 'data'}
+                return 10
             </source>
 
             <output name="RESULT" />
             <output name="RESULT2">
                 <source>
-                    return STEP_RESULT.RESULT + 1;
+                    return RESULT + 1;
                 </source>
             </output>
         </xpl>
