@@ -847,6 +847,13 @@
         ]
       },
       {
+        "name": "parseToolCalls",
+        "parameterTypes": [
+          "io.nop.ai.core.model.LlmModel",
+          "java.util.Map"
+        ]
+      },
+      {
         "name": "setIfNotNull",
         "parameterTypes": [
           "java.util.Map",

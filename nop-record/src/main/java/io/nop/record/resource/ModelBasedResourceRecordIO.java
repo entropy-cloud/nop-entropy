@@ -85,6 +85,7 @@ public class ModelBasedResourceRecordIO<T> implements IResourceRecordIO<T> {
             IBinaryDataReader baseReader = new StreamBinaryDataReader(resource.getInputStream());
             reader = new BlockCachedBinaryDataReader(baseReader, 4096, false, maxInMemorySize / 4096);
         }
+        RecordFileMeta fileMeta = getFileMeta(resource);
         return new ModelBasedBinaryRecordInput<>(reader, fileMeta);
     }
 

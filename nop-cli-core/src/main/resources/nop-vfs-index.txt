@@ -80,6 +80,12 @@
 /nop/ai/prompts/coder/workbook.md
 /nop/ai/prompts/coder/xpl-lang.md
 /nop/ai/prompts/end-tool-call.md
+/nop/ai/prompts/sql/data-summarization.prompt.yaml
+/nop/ai/prompts/sql/followup-questions.prompt.yaml
+/nop/ai/prompts/sql/question-from-sql.prompt.yaml
+/nop/ai/prompts/sql/question-rewriting.prompt.yaml
+/nop/ai/prompts/sql/sql-assistant.prompt.yaml
+/nop/ai/prompts/sql/sql-generation.prompt.yaml
 /nop/ai/prompts/system/gen-for-mode.prompt.yaml
 /nop/ai/prompts/system/programming/cognitive.md
 /nop/ai/prompts/system/programming/meta.md

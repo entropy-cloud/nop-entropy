@@ -33,31 +33,101 @@
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopReportDefinition-main" displayName="报表定义" orderNo="10007"
+                <resource id="NopReportDatasetRef-main" displayName="报表引用数据源" orderNo="10007"
+                          i18n-en:displayName="Dataset Ref" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/report/pages/NopReportDatasetRef/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopReportDatasetRef:query" displayName="查询报表引用数据源" orderNo="10008"
+                                  resourceType="FNPT">
+                            <permissions>NopReportDatasetRef:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopReportDatasetRef:mutation" displayName="修改报表引用数据源" orderNo="10009"
+                                  resourceType="FNPT">
+                            <permissions>NopReportDatasetRef:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopReportDatasource-main" displayName="数据源定义" orderNo="10010"
+                          i18n-en:displayName="Report DataSource" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/report/pages/NopReportDatasource/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopReportDatasource:query" displayName="查询数据源定义" orderNo="10011"
+                                  resourceType="FNPT">
+                            <permissions>NopReportDatasource:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopReportDatasource:mutation" displayName="修改数据源定义" orderNo="10012"
+                                  resourceType="FNPT">
+                            <permissions>NopReportDatasource:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopReportDatasourceAuth-main" displayName="数据源访问权限" orderNo="10013"
+                          i18n-en:displayName="Datasource Auth" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/report/pages/NopReportDatasourceAuth/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopReportDatasourceAuth:query" displayName="查询数据源访问权限" orderNo="10014"
+                                  resourceType="FNPT">
+                            <permissions>NopReportDatasourceAuth:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopReportDatasourceAuth:mutation" displayName="修改数据源访问权限" orderNo="10015"
+                                  resourceType="FNPT">
+                            <permissions>NopReportDatasourceAuth:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopReportDefinition-main" displayName="报表定义" orderNo="10016"
                           i18n-en:displayName="Report Definition" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/report/pages/NopReportDefinition/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopReportDefinition:query" displayName="查询报表定义" orderNo="10008"
+                        <resource id="FNPT:NopReportDefinition:query" displayName="查询报表定义" orderNo="10017"
                                   resourceType="FNPT">
                             <permissions>NopReportDefinition:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopReportDefinition:mutation" displayName="修改报表定义" orderNo="10009"
+                        <resource id="FNPT:NopReportDefinition:mutation" displayName="修改报表定义" orderNo="10018"
                                   resourceType="FNPT">
                             <permissions>NopReportDefinition:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopReportResultFile-main" displayName="报表结果文件" orderNo="10010"
+                <resource id="NopReportDefinitionAuth-main" displayName="Report访问权限" orderNo="10019"
+                          i18n-en:displayName="Report Auth" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/report/pages/NopReportDefinitionAuth/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopReportDefinitionAuth:query" displayName="查询Report访问权限" orderNo="10020"
+                                  resourceType="FNPT">
+                            <permissions>NopReportDefinitionAuth:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopReportDefinitionAuth:mutation" displayName="修改Report访问权限" orderNo="10021"
+                                  resourceType="FNPT">
+                            <permissions>NopReportDefinitionAuth:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopReportResultFile-main" displayName="报表结果文件" orderNo="10022"
                           i18n-en:displayName="Report Result File" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/report/pages/NopReportResultFile/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopReportResultFile:query" displayName="查询报表结果文件" orderNo="10011"
+                        <resource id="FNPT:NopReportResultFile:query" displayName="查询报表结果文件" orderNo="10023"
                                   resourceType="FNPT">
                             <permissions>NopReportResultFile:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopReportResultFile:mutation" displayName="修改报表结果文件" orderNo="10012"
+                        <resource id="FNPT:NopReportResultFile:mutation" displayName="修改报表结果文件" orderNo="10024"
                                   resourceType="FNPT">
                             <permissions>NopReportResultFile:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopReportSubDataset-main" displayName="子数据源" orderNo="10025"
+                          i18n-en:displayName="Sub Dataset" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/report/pages/NopReportSubDataset/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopReportSubDataset:query" displayName="查询子数据源" orderNo="10026"
+                                  resourceType="FNPT">
+                            <permissions>NopReportSubDataset:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopReportSubDataset:mutation" displayName="修改子数据源" orderNo="10027"
+                                  resourceType="FNPT">
+                            <permissions>NopReportSubDataset:mutation</permissions>
                         </resource>
                     </children>
                 </resource>

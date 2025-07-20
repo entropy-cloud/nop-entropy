@@ -2,8 +2,13 @@ entity:
   label:
     NopReportDataset: 数据集定义
     NopReportDatasetAuth: 数据集权限
+    NopReportDatasetRef: 报表引用数据源
+    NopReportDatasource: 数据源定义
+    NopReportDatasourceAuth: 数据源访问权限
     NopReportDefinition: 报表定义
+    NopReportDefinitionAuth: Report访问权限
     NopReportResultFile: 报表结果文件
+    NopReportSubDataset: 子数据源
 prop:
   label:
     NopReportDataset:
@@ -38,6 +43,41 @@ prop:
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
+    NopReportDatasetRef:
+      createTime: 创建时间
+      createdBy: 创建人
+      dsId: 数据集ID
+      remark: 备注
+      reportDefinition: 报表定义
+      reportDefinition.rptNo: 报表定义
+      rptId: 报表主键
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopReportDatasource:
+      createTime: 创建时间
+      createdBy: 创建人
+      datasourceAuths: 数据源权限
+      datasourceConfig: 数据源配置
+      datasourceType: 数据源类型
+      name: 数据源名称
+      remark: 备注说明
+      sid: 主键ID
+      status: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopReportDatasourceAuth:
+      createTime: 创建时间
+      createdBy: 创建人
+      datasourceId: 数据源ID
+      remark: 备注
+      reportDatasource: 数据源定义
+      roleId: 角色ID
+      sid: 主键
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopReportDefinition:
       createTime: 创建时间
       createdBy: 创建人
@@ -51,6 +91,18 @@ prop:
       rptText: 报表文件
       status: 状态
       status_label: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopReportDefinitionAuth:
+      createTime: 创建时间
+      createdBy: 创建人
+      remark: 备注
+      reportDefinition: 报表定义
+      reportDefinition.rptNo: 报表定义
+      roleId: 角色ID
+      rptId: 报表ID
+      sid: 主键
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本
@@ -70,6 +122,22 @@ prop:
       rptParams: 报表参数
       sid: 主键
       status: 状态
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopReportSubDataset:
+      createTime: 创建时间
+      createdBy: 创建人
+      dsId: 数据集ID
+      dsParams: 子数据集参数
+      joinFields: 关联字段
+      remark: 备注
+      reportDataset: 数据集定义
+      reportDataset.dsName: 数据集定义
+      reportSubDataset: 子数据集定义
+      reportSubDataset.dsName: 子数据集定义
+      sid: 主键
+      subDsId: 子数据集ID
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

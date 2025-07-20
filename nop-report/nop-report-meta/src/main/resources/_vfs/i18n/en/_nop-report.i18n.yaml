@@ -2,8 +2,13 @@ entity:
   label:
     NopReportDataset: Dataset
     NopReportDatasetAuth: Dataset Auth
+    NopReportDatasetRef: Dataset Ref
+    NopReportDatasource: Report DataSource
+    NopReportDatasourceAuth: Datasource Auth
     NopReportDefinition: Report Definition
+    NopReportDefinitionAuth: Report Auth
     NopReportResultFile: Report Result File
+    NopReportSubDataset: Sub Dataset
 prop:
   label:
     NopReportDataset:
@@ -38,6 +43,41 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+    NopReportDatasetRef:
+      rptId: Report ID
+      dsId: Dataset ID
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      reportDefinition: Report Definition
+      reportDefinition.rptNo: Report Definition
+    NopReportDatasource:
+      sid: SID
+      name: Name
+      datasourceType: Type
+      datasourceConfig: Config
+      status: Status
+      remark: Remark
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      datasourceAuths: DataSource Auths
+    NopReportDatasourceAuth:
+      sid: SID
+      datasourceId: DataSource ID
+      roleId: Role Id
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      reportDatasource: Report Datasource
     NopReportDefinition:
       rptId: Report ID
       rptNo: Report No.
@@ -54,6 +94,18 @@ prop:
       remark: Remark
       reportAuths: Report Auths
       datasetRefs: Dataset Refs
+    NopReportDefinitionAuth:
+      sid: SID
+      rptId: Report ID
+      roleId: Role Id
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      reportDefinition: Report Definition
+      reportDefinition.rptNo: Report Definition
     NopReportResultFile:
       sid: SID
       fileName: File Name
@@ -73,3 +125,19 @@ prop:
       remark: Remark
       reportDefinition: Report Definition
       reportDefinition.rptNo: Report Definition
+    NopReportSubDataset:
+      sid: SID
+      dsId: Dataset ID
+      subDsId: Sub Dataset ID
+      joinFields: Join Fields
+      dsParams: Dataset Params
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      reportDataset: Report Dataset
+      reportDataset.dsName: Report Dataset
+      reportSubDataset: Sub Report Dataset
+      reportSubDataset.dsName: Sub Report Dataset

@@ -9,7 +9,7 @@
     </x:config>
 
     <steps>
-        <step name="createCustomer" useParentScope="true" returnAs="customer">
+        <step name="createCustomer" useParentScope="true">
             <source>
                 <c:var name="customerNumber" value="${'C' + $String.randomDigits(19)}"/>
                 <dao:SaveEntity entityName="DemoCustomer" data="${{
@@ -21,9 +21,11 @@
                     partitionIndex: customerNumber.$shortHash()
                 }}"/>
             </source>
+
+            <output name="RESULT" exportAs="customer" />
         </step>
 
-        <step name="createAccount" useParentScope="true" returnAs="account">
+        <step name="createAccount" useParentScope="true">
             <source>
                 <dao:SaveEntity entityName="DemoAccount" data="${{
                     customerId: customer.id,
@@ -36,9 +38,11 @@
                     status: 1
                 }}"/>
             </source>
+
+            <output name="RESULT" exportAs="account" />
         </step>
 
-        <step name="createCard" customType="dao:SaveEntity" returnAs="card"
+        <step name="createCard" customType="dao:SaveEntity"
                 dao:entityName="DemoCard" xmlns:dao="/nop/orm/xlib/dao.xlib"
                 dao:data="${{
                     customerId: customer.id,
@@ -52,6 +56,8 @@
                     mainCardId: request.mainCardId,
                     partitionIndex: customer.partitionIndex
                 }}">
+
+            <output name="RESULT" exportAs="card" />
         </step>
     </steps>
 
