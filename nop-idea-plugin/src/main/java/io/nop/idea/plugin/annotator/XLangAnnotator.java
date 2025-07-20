@@ -215,8 +215,8 @@ public class XLangAnnotator implements Annotator {
 
     private void checkAttrValue(@NotNull AnnotationHolder holder, @NotNull XLangAttributeValue attrValue) {
         XLangAttribute attr = attrValue.getParentAttr();
-        IXDefAttribute attrDef = attr != null ? attr.getDefAttr() : null;
-        if (attrDef == null) {
+        IXDefAttribute defAttr = attr != null ? attr.getDefAttr() : null;
+        if (defAttr == null) {
             return;
         }
 
@@ -224,9 +224,9 @@ public class XLangAnnotator implements Annotator {
         String attrValueText = attrValue.getValue();
         TextRange attrValueTextRange = attrValue.getValueTextRange();
 
-        XDefTypeDecl attrType = attrDef.getType();
+        XDefTypeDecl defAttrType = defAttr.getType();
         if (StringHelper.isEmpty(attrValueText)) {
-            if (attrType.isMandatory()) {
+            if (defAttrType.isMandatory()) {
                 errorAnnotation(holder, attrValue.getTextRange(), "xlang.annotation.attr.value-required", attrName);
             }
             return;
@@ -234,7 +234,7 @@ public class XLangAnnotator implements Annotator {
 
         // Note: dict/enum 的有效值检查由 PsiReference 处理
         SourceLocation loc = XmlPsiHelper.getLocation(attrValue);
-        checkStdDomain(holder, attrValueTextRange, attrType.getStdDomain(), loc, attrName, attrValueText);
+        checkStdDomain(holder, attrValueTextRange, defAttrType.getStdDomain(), loc, attrName, attrValueText);
     }
 
     private void checkStdDomain(

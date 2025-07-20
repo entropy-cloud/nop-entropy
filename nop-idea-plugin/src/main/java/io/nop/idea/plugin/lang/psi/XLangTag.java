@@ -358,18 +358,18 @@ public class XLangTag extends XmlTagImpl {
             }
         }
 
-        IXDefAttribute attrDef = getXDefNodeAttr(defNode, attrName);
-        if (attrDef == null) {
+        IXDefAttribute defAttr = getXDefNodeAttr(defNode, attrName);
+        if (defAttr == null) {
             return null;
         }
 
-        XLangDocumentation doc = new XLangDocumentation(attrDef);
+        XLangDocumentation doc = new XLangDocumentation(defAttr);
         doc.setMainTitle(mainTitle);
 
         IXDefComment nodeComment = defNode.getComment();
         if (nodeComment != null) {
             IXDefSubComment attrComment = nodeComment.getSubComments().get(attrName);
-            if (attrComment == null && attrDef.isUnknownAttr()) {
+            if (attrComment == null && defAttr.isUnknownAttr()) {
                 attrComment = nodeComment.getSubComments().get(XDefKeys.DEFAULT.UNKNOWN_ATTR);
             }
 
@@ -442,7 +442,7 @@ public class XLangTag extends XmlTagImpl {
         return null;
     }
 
-    private static String changeNamespace(String name, String fromNs, String toNs) {
+    public static String changeNamespace(String name, String fromNs, String toNs) {
         if (fromNs == null || toNs == null || fromNs.equals(toNs)) {
             return name;
         }

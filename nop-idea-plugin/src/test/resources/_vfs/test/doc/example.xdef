@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<!-- This is root node
+<!-- [Example for Unit test]
+> This is root node
 -->
 <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
          xmlns:c="c" xmlns:xpl="xpl"
@@ -12,7 +13,8 @@
         <c:script xpl:dump="true"/>
     </xdef:post-parse>
 
-    <!-- This is child node
+    <!-- [Child Node]
+    > This is child node
 
     @name This is child name
     @xdef:unknown-attr This a unknown attribute

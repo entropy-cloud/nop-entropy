@@ -60,9 +60,9 @@ public class XLangAttributeValue extends XmlAttributeValueImpl {
             return PsiReference.EMPTY_ARRAY;
         }
 
-        IXDefAttribute attrDef = attr.getDefAttr();
+        IXDefAttribute defAttr = attr.getDefAttr();
         // 对于未定义属性，不做引用识别
-        if (attrDef == null) {
+        if (defAttr == null) {
             return PsiReference.EMPTY_ARRAY;
         }
 
@@ -73,7 +73,7 @@ public class XLangAttributeValue extends XmlAttributeValueImpl {
         }
 
         // 根据属性定义类型，从属性值中查找引用
-        refs = XLangReferenceHelper.getReferencesByDefType(this, attrValue, attrDef.getType());
+        refs = XLangReferenceHelper.getReferencesByDefType(this, attrValue, defAttr.getType());
         if (refs != null) {
             return refs;
         }

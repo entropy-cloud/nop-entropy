@@ -13,7 +13,7 @@ import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceService;
 import com.intellij.psi.impl.source.xml.SchemaPrefixReference;
 import com.intellij.psi.impl.source.xml.XmlAttributeImpl;
-import io.nop.idea.plugin.lang.reference.XLangDefAttrReference;
+import io.nop.idea.plugin.lang.reference.XLangAttributeReference;
 import io.nop.xlang.xdef.IXDefAttribute;
 import org.jetbrains.annotations.NotNull;
 
@@ -51,7 +51,7 @@ public class XLangAttribute extends XmlAttributeImpl {
 
         int nameOffset = (ns.isEmpty() ? -1 : ns.length()) + 1;
         TextRange nameTextRange = TextRange.allOf(name).shiftRight(nameOffset);
-        XLangDefAttrReference ref1 = new XLangDefAttrReference(this, nameTextRange);
+        XLangAttributeReference ref1 = new XLangAttributeReference(this, nameTextRange);
 
         return ref0 != null ? new PsiReference[] { ref0, ref1 } : new PsiReference[] { ref1 };
     }
@@ -67,15 +67,15 @@ public class XLangAttribute extends XmlAttributeImpl {
         String attrName = getName();
         boolean hasXDslNs = !ns.isEmpty() && ns.equals(tag.getXDslKeys().NS);
 
-        IXDefAttribute attrDef;
+        IXDefAttribute defAttr;
         // 取 xdsl.xdef 中声明的属性
         if (hasXDslNs) {
-            attrDef = tag.getXDslDefNodeAttr(attrName);
+            defAttr = tag.getXDslDefNodeAttr(attrName);
         } //
         else {
-            attrDef = tag.getSchemaDefNodeAttr(attrName);
+            defAttr = tag.getSchemaDefNodeAttr(attrName);
         }
 
-        return attrDef;
+        return defAttr;
     }
 }

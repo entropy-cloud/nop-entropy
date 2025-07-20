@@ -97,17 +97,17 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
             return null;
         }
 
-        IXDefAttribute attrDef = attr.getDefAttr();
-        XDefTypeDecl attrDefType = attrDef != null ? attrDef.getType() : null;
-        if (attrDefType == null) {
+        IXDefAttribute defAttr = attr.getDefAttr();
+        XDefTypeDecl defAttrType = defAttr != null ? defAttr.getType() : null;
+        if (defAttrType == null) {
             return null;
         }
 
-        if (!XDefConstants.STD_DOMAIN_DICT.equals(attrDefType.getStdDomain())) {
+        if (!XDefConstants.STD_DOMAIN_DICT.equals(defAttrType.getStdDomain())) {
             return null;
         }
 
-        DictBean dictBean = loadDict(element, attrDefType.getOptions());
+        DictBean dictBean = loadDict(element, defAttrType.getOptions());
         DictOptionBean option = dictBean != null ? dictBean.getOptionByValue(attr.getValue()) : null;
         if (option == null) {
             return null;

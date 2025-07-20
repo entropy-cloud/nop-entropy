@@ -52,8 +52,8 @@ public class XLangDocumentation {
         this(defNode, defNode.getXdefValue());
     }
 
-    public XLangDocumentation(IXDefAttribute attrDef) {
-        this(attrDef, attrDef.getType());
+    public XLangDocumentation(IXDefAttribute defAttr) {
+        this(defAttr, defAttr.getType());
     }
 
     XLangDocumentation(ISourceLocationGetter locGetter, XDefTypeDecl type) {

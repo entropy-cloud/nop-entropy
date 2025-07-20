@@ -167,14 +167,14 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
     }
 
     protected PsiElement getElementAtCaret() {
-        assertCaretExists();
+        doAssertCaretExists();
 
         return myFixture.getFile().findElementAt(myFixture.getCaretOffset());
     }
 
     /** 找到光标位置的 {@link XLangReference} 或者其他类型的唯一引用 */
     protected PsiReference findReferenceAtCaret() {
-        assertCaretExists();
+        doAssertCaretExists();
 
         // 实际有多个引用时，将构造返回 PsiMultiReference，
         // 其会按 PsiMultiReference#COMPARATOR 对引用排序得到优先引用，
@@ -205,12 +205,21 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         return docProvider.generateDoc(element, originalElement);
     }
 
-    private void assertCaretExists() {
+    private void doAssertCaretExists() {
         assertTrue("No '<caret>' found in current text", myFixture.getCaretOffset() > 0);
     }
 
     /** 检查自动补全所选中的第一个补全项是否与预期相符 */
-    protected void assertCompletion(String expectedText) {
+    protected void doAssertCompletion(String expectedText) {
+        doAssertCompletion(null, expectedText);
+    }
+
+    /** 检查选中指定的补全项之后的文本是否与预期相符 */
+    protected void doAssertCompletion(String selectedItem, String expectedText) {
+        // Note:
+        // - 在仅有唯一的补全元素时，将自动完成补全，且不能再获取到补全列表
+        // - 只有在调用 `myFixture.completeBasic()` 后，才能完成补全，获得补全列表
+
         // 获取当前查找元素
         LookupImpl lookup = (LookupImpl) LookupManager.getActiveLookup(myFixture.getEditor());
         assertNotNull("Lookup not active", lookup);
@@ -219,7 +228,18 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         assertFalse("No completion items", items.isEmpty());
 
         // 选择第一个补全项
-        LookupElement item = items.get(0);
+        LookupElement item = null;
+        if (selectedItem == null) {
+            item = items.get(0);
+        } else {
+            for (LookupElement i : items) {
+                if (i.getLookupString().equals(selectedItem)) {
+                    item = i;
+                    break;
+                }
+            }
+            assertNotNull("No completion item matched with '" + selectedItem + "'", item);
+        }
         lookup.setCurrentItem(item);
 
         // 模拟选中补全项
@@ -232,7 +252,7 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
     /**
      * 检查 {@link PsiElement} 的解析树是否与指定的 vfs 文件 <code>expectedAstFile</code> 的内容相同
      */
-    protected void assertASTTree(PsiElement tree, String expectedAstFile) {
+    protected void doAssertASTTree(PsiElement tree, String expectedAstFile) {
         String testTree = DebugUtil.psiToString(tree, true, false);
 
         String expectedTree = readVfsResource(expectedAstFile);

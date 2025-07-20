@@ -17,7 +17,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import com.intellij.lang.ASTNode;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
@@ -31,7 +30,6 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlAttribute;
-import com.intellij.psi.xml.XmlAttributeValue;
 import com.intellij.psi.xml.XmlElementType;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.psi.xml.XmlTokenType;
@@ -59,11 +57,13 @@ public class XmlPsiHelper {
         }
 
         VirtualFile vf = file.getVirtualFile();
-        if (vf == null) {
-            return null;
+        // Note: 在编辑过程中得到的 VirtualFile 可能为 null，需尝试通过
+        // PsiFile#getOriginalFile 获得 VirtualFile
+        if (vf == null && file.getOriginalFile() != file) {
+            vf = file.getOriginalFile().getVirtualFile();
         }
 
-        return ProjectFileHelper.getNopVfsPath(vf);
+        return vf != null ? ProjectFileHelper.getNopVfsPath(vf) : null;
     }
 
     /**
@@ -241,19 +241,6 @@ public class XmlPsiHelper {
         return SourceLocation.fromLine(path, sourceLine, sourceColumn, len);
     }
 
-    public static String getAttrName(XmlAttributeValue value) {
-        if (value == null) {
-            return null;
-        }
-
-        if (!(value.getParent() instanceof XmlAttribute)) {
-            return null;
-        }
-
-        XmlAttribute attr = (XmlAttribute) value.getParent();
-        return attr.getName();
-    }
-
     public static boolean isInComment(PsiElement element) {
         IElementType elementType = element.getNode().getElementType();
         return elementType == XmlTokenType.XML_COMMENT_END
@@ -261,23 +248,24 @@ public class XmlPsiHelper {
                || elementType == XmlTokenType.XML_COMMENT_CHARACTERS;
     }
 
-    public static boolean isElementType(PsiElement element, IElementType type) {
-        ASTNode node = element != null ? element.getNode() : null;
-        if (node == null) {
-            return false;
-        }
-
-        return node.getElementType() == type;
-    }
-
     public static Set<String> getChildTagNames(XmlTag tag) {
-        Set<String> tagNames = new HashSet<>();
+        Set<String> names = new HashSet<>();
+
         for (PsiElement element : tag.getChildren()) {
             if (element instanceof XmlTag) {
-                tagNames.add(((XmlTag) element).getName());
+                names.add(((XmlTag) element).getName());
             }
         }
-        return tagNames;
+        return names;
+    }
+
+    public static Set<String> getTagAttrNames(XmlTag tag) {
+        Set<String> names = new HashSet<>();
+
+        for (XmlAttribute attr : tag.getAttributes()) {
+            names.add(attr.getName());
+        }
+        return names;
     }
 
     /**
@@ -333,27 +321,6 @@ public class XmlPsiHelper {
             return true; // 继续遍历
         });
         return (T) result[0];
-    }
-
-    public static XmlTag getXmlTag(PsiElement element) {
-        if (element == null) {
-            return null;
-        }
-
-        if (element instanceof XmlTag) {
-            return ((XmlTag) element);
-        }
-
-        do {
-            PsiElement parent = element.getParent();
-            if (parent == null) {
-                return null;
-            }
-            if (parent instanceof XmlTag) {
-                return (XmlTag) parent;
-            }
-            element = parent;
-        } while (true);
     }
 
     public static XmlTag getRoot(XmlTag tag) {

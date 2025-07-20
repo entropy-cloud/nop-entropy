@@ -39,7 +39,7 @@ public class TestXLangScriptCompletions extends BaseXLangPluginTestCase {
             assertFalse(items.isEmpty());
 
             String expected = "import " + sample.replaceAll("\\.[^.]+$", ".") + items.get(0) + ";";
-            assertCompletion(expected);
+            doAssertCompletion(expected);
         }
     }
 

@@ -7,28 +7,20 @@
  */
 package io.nop.idea.plugin.utils;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.xml.XmlTag;
-import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.core.resource.impl.InMemoryTextResource;
 import io.nop.xlang.xdef.IXDefNode;
 import io.nop.xlang.xdef.IXDefinition;
-import io.nop.xlang.xdef.XDefKeys;
 import io.nop.xlang.xdef.parse.XDefinitionParser;
 import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xmeta.SchemaLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static io.nop.idea.plugin.utils.XmlPsiHelper.getXmlTag;
 
 public class XDefPsiHelper {
     static final Logger LOG = LoggerFactory.getLogger(XDefPsiHelper.class);
@@ -72,16 +64,6 @@ public class XDefPsiHelper {
         return ns;
     }
 
-    public static String getXDefNamespace(XmlTag tag) {
-        XmlTag rootTag = XmlPsiHelper.getRoot(tag);
-        String ns = XmlPsiHelper.getXmlnsForUrl(rootTag, XDslConstants.XDSL_SCHEMA_XDEF);
-
-        if (ns == null) {
-            ns = XDefKeys.DEFAULT.NS;
-        }
-        return ns;
-    }
-
     /** 从根节点获取 dsl 的元模型的 vfs 路径 */
     public static String getSchemaPath(XmlTag rootTag) {
         PsiFile file = rootTag.getContainingFile();
@@ -120,96 +102,6 @@ public class XDefPsiHelper {
         }
     }
 
-    public static XmlTagInfo getTagInfo(PsiElement element) {
-        XmlTag tag = getXmlTag(element);
-        if (tag == null) {
-            return null;
-        }
-
-        String schemaUrl = getSchemaPath(XmlPsiHelper.getRoot(tag));
-        if (schemaUrl != null) {
-            return getTagInfo(schemaUrl, tag);
-        }
-        return null;
-    }
-
-    public static XmlTagInfo getTagInfo(String schemaUrl, XmlTag tag) {
-        IXDefinition def = loadSchema(schemaUrl);
-        if (def == null) {
-            return null;
-        }
-
-        IXDefNode xdslDefNode = getXDslDef().getRootNode();
-
-        List<XmlTag> tags = getSelfAndParents(tag);
-        tags = CollectionHelper.reverseList(tags);
-
-        XmlTag rootTag = tags.get(0);
-        String xdefNs = XmlPsiHelper.getXmlnsForUrl(rootTag, XDslConstants.XDSL_SCHEMA_XDEF);
-        String xdslNs = XmlPsiHelper.getXmlnsForUrl(rootTag, XDslConstants.XDSL_SCHEMA_XDSL);
-
-        boolean xpl = false;
-        boolean xlibDsl = XDslConstants.XDSL_SCHEMA_XLIB.equals(schemaUrl);
-        XmlTagInfo tagInfo = null;
-        for (int i = 0, n = tags.size(); i < n; i++) {
-            XmlTag xmlTag = tags.get(i);
-
-            if (i == 0) {
-                tagInfo = new XmlTagInfo(xmlTag, null, def, def.getRootNode(), //
-                                         xdslDefNode, xdefNs, xdslNs);
-            } else {
-                XmlTagInfo parentTagInfo = tagInfo;
-                String tagName = normalizeNamespace(xmlTag.getName(), xdefNs, xdslNs);
-
-                xdslDefNode = parentTagInfo.getXDslDefNodeChild(tagName);
-
-                IXDefNode defNode;
-                // Note: 只有不在 xdsl.xdef 中，且以 x 为名字空间的节点，才使用 xdsl 节点定义，
-                // 否则，保持在 XDef 元模型的节点定义
-                if (tagName.startsWith("x:") && "x".equals(xdslNs)) {
-                    defNode = xdslDefNode;
-                }
-                // Xpl 节点始终采用 xpl.xdef 元模型
-                else if (xpl) {
-                    // 通过任意未定义的子节点名称，得到 xpl 的 xdef:unknown-tag 子节点定义
-                    defNode = getXplDef().getRootNode().getChild("any");
-                } else {
-                    defNode = parentTagInfo.getDefNodeChild(tagName);
-                }
-
-                tagInfo = new XmlTagInfo(xmlTag, parentTagInfo, def, defNode, xdslDefNode, xdefNs, xdslNs);
-
-                if (isXplDefNode(defNode)) {
-                    xpl = true;
-                }
-                // xlib.xdef 中的 source 标签设置为 xml 类型，是因为在获取 XplLib 模型的时候会根据 xlib.xdef 来解析，
-                // 但此时这个 source 段无法自动进行编译，必须结合它的 outputMode 和 attrs 配置等才能决定。
-                // 因此，将其子节点同样视为 xpl 节点处理
-                else if (!xpl && xlibDsl && "source".equals(tagName) //
-                         && "xml".equals(getDefNodeType(defNode)) //
-                         && parentTagInfo.getDefNode().isUnknownTag() //
-                         && "tags".equals(parentTagInfo.getParentDefNode().getTagName()) //
-                ) {
-                    xpl = true;
-                }
-            }
-        }
-        return tagInfo;
-    }
-
-    /** 确保 `xmlName` 的 `xdef.xdef`、`xdsl.xdef` 对应的名字空间始终为 `xdef` 和 `x` */
-    public static String normalizeNamespace(String xmlName, String xdefNs, String xdslNs) {
-        // 转换 /nop/schema/xdsl.xdef 的 xdsl 名字空间
-        if (xdslNs != null && !"x".equals(xdslNs) && xmlName.startsWith(xdslNs + ":")) {
-            xmlName = "x:" + xmlName.substring((xdslNs + ":").length());
-        }
-        // 转换 /nop/schema/xdef.xdef 的 meta 名字空间
-        else if (xdefNs != null && !"xdef".equals(xdefNs) && xmlName.startsWith(xdefNs + ":")) {
-            xmlName = "xdef:" + xmlName.substring((xdefNs + ":").length());
-        }
-        return xmlName;
-    }
-
     public static boolean isXplDefNode(IXDefNode defNode) {
         String stdDomain = getDefNodeType(defNode);
 
@@ -221,16 +113,5 @@ public class XDefPsiHelper {
             return null;
         }
         return defNode.getXdefValue().getStdDomain();
-    }
-
-    /** 自底向上查找 <code>tag</code> 所在分支上的节点 */
-    static List<XmlTag> getSelfAndParents(XmlTag tag) {
-        List<XmlTag> ret = new ArrayList<>();
-
-        while (tag != null) {
-            ret.add(tag);
-            tag = tag.getParentTag();
-        }
-        return ret;
     }
 }

@@ -68,6 +68,6 @@ public class TestXLangScriptParser extends BaseXLangPluginTestCase {
     protected void assertASTTree(String code, String expectedAstFile) {
         PsiFile testFile = myFixture.configureByText("sample." + ext, code);
 
-        assertASTTree(testFile, expectedAstFile);
+        doAssertASTTree(testFile, expectedAstFile);
     }
 }
