@@ -8,15 +8,17 @@
 
 package io.nop.idea.plugin.lang.reference;
 
+import com.intellij.codeInsight.lookup.LookupElement;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import io.nop.api.core.beans.DictBean;
-import io.nop.core.dict.DictProvider;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.resource.EnumDictBean;
 import io.nop.idea.plugin.resource.EnumDictOptionBean;
-import io.nop.idea.plugin.resource.ProjectEnv;
+import io.nop.idea.plugin.utils.LookupElementHelper;
+import io.nop.idea.plugin.utils.ProjectFileHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFile;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -33,13 +35,6 @@ public class XLangDictOptionReference extends XLangReferenceBase {
 
     public XLangDictOptionReference(
             PsiElement myElement, TextRange myRangeInElement, //
-            String dictName
-    ) {
-        this(myElement, myRangeInElement, dictName, null);
-    }
-
-    public XLangDictOptionReference(
-            PsiElement myElement, TextRange myRangeInElement, //
             String dictName, Object dictOptionValue
     ) {
         super(myElement, myRangeInElement);
@@ -47,23 +42,25 @@ public class XLangDictOptionReference extends XLangReferenceBase {
         this.dictOptionValue = dictOptionValue;
     }
 
-    public DictBean getDictBean() {
+    public DictBean getDict() {
         if (dictBean == null) {
-            dictBean = ProjectEnv.withProject(myElement.getProject(),
-                                              () -> DictProvider.instance().getDict(null, dictName, null, null));
+            dictBean = ProjectFileHelper.loadDict(myElement, dictName);
         }
         return dictBean;
     }
 
     @Override
     public @Nullable PsiElement resolveInner() {
-        DictBean dictBean = getDictBean();
-        if (dictBean == null) {
+        DictBean dict = getDict();
+        if (dict == null) {
+            String msg = NopPluginBundle.message("xlang.annotation.reference.dict-not-found", dictName);
+            setUnresolvedMessage(msg);
+
             return null;
         }
 
-        if (dictBean instanceof EnumDictBean) {
-            EnumDictOptionBean dictOpt = (EnumDictOptionBean) dictBean.getOptionByValue(dictOptionValue);
+        if (dict instanceof EnumDictBean) {
+            EnumDictOptionBean dictOpt = (EnumDictOptionBean) dict.getOptionByValue(dictOptionValue);
 
             if (dictOpt != null) {
                 return dictOpt.target;
@@ -71,7 +68,7 @@ public class XLangDictOptionReference extends XLangReferenceBase {
 
             String msg = NopPluginBundle.message("xlang.annotation.reference.enum-option-not-defined",
                                                  dictOptionValue,
-                                                 dictBean.getValues());
+                                                 dict.getValues());
             setUnresolvedMessage(msg);
 
             return null;
@@ -81,12 +78,9 @@ public class XLangDictOptionReference extends XLangReferenceBase {
 
             if (target.hasEmptyChildren()) {
                 String path = target.getPath();
-                String msg = dictOptionValue != null
-                             //
-                             ? NopPluginBundle.message("xlang.annotation.reference.dict-option-not-defined",
-                                                       dictOptionValue,
-                                                       path)
-                             : NopPluginBundle.message("xlang.annotation.reference.dict-yaml-not-found", path);
+                String msg = NopPluginBundle.message("xlang.annotation.reference.dict-option-not-defined",
+                                                     dictOptionValue,
+                                                     path);
                 setUnresolvedMessage(msg);
 
                 return null;
@@ -94,4 +88,21 @@ public class XLangDictOptionReference extends XLangReferenceBase {
             return target;
         }
     }
+
+    @Override
+    public Object @NotNull [] getVariants() {
+        DictBean dict = getDict();
+        if (dict == null) {
+            return LookupElement.EMPTY_ARRAY;
+        }
+
+        return dict.getOptions()
+                   .stream()
+                   .filter((opt) -> !opt.isInternal() && !opt.isDeprecated())
+                   .map(LookupElementHelper::lookupDictOpt)
+                   .sorted((a, b) -> XLangReferenceHelper.XLANG_NAME_COMPARATOR.compare(a.getLookupString(),
+                                                                                        b.getLookupString()))
+                   .toArray();
+    }
+
 }

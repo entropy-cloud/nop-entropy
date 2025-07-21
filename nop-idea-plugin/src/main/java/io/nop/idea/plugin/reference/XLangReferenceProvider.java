@@ -18,7 +18,9 @@ import org.jetbrains.annotations.NotNull;
  *
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
  * @date 2025-06-22
+ * @deprecated
  */
+@Deprecated
 public class XLangReferenceProvider extends PsiReferenceProvider {
 
     /**

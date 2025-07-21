@@ -13,6 +13,7 @@ import com.intellij.psi.PsiElement;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.parse.GenericTypeParser;
 import io.nop.idea.plugin.utils.PsiClassHelper;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -42,5 +43,11 @@ public class XLangStdDomainGenericTypeReference extends XLangReferenceBase {
         }
 
         return PsiClassHelper.findClass(myElement, type.getClassName());
+    }
+
+    @Override
+    public Object @NotNull [] getVariants() {
+        // TODO generic-type 类型的属性值补全较复杂，暂不处理
+        return new Object[0];
     }
 }

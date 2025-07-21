@@ -17,11 +17,10 @@ import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.util.PsiTreeUtil;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
-import io.nop.core.dict.DictProvider;
 import io.nop.idea.plugin.lang.XLangDocumentation;
 import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangTag;
-import io.nop.idea.plugin.resource.ProjectEnv;
+import io.nop.idea.plugin.utils.ProjectFileHelper;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
@@ -107,7 +106,7 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
             return null;
         }
 
-        DictBean dictBean = loadDict(element, defAttrType.getOptions());
+        DictBean dictBean = ProjectFileHelper.loadDict(element, defAttrType.getOptions());
         DictOptionBean option = dictBean != null ? dictBean.getOptionByValue(attr.getValue()) : null;
         if (option == null) {
             return null;
@@ -125,10 +124,5 @@ public class XLangDocumentationProvider extends AbstractDocumentationProvider {
         doc.setDesc(option.getDescription());
 
         return doc;
-    }
-
-    private DictBean loadDict(PsiElement element, String dictName) {
-        return ProjectEnv.withProject(element.getProject(),
-                                      () -> DictProvider.instance().getDict(null, dictName, null, null));
     }
 }

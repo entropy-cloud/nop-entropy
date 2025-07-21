@@ -11,6 +11,7 @@ package io.nop.idea.plugin.lang.reference;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +59,23 @@ import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_PREFIX_OPTIONS;
  * @date 2025-07-12
  */
 public class XLangReferenceHelper {
+    public static final Comparator<String> XLANG_NAME_COMPARATOR = (a, b) -> {
+        int aNsIndex = a.indexOf(':');
+        int bNsIndex = b.indexOf(':');
+
+        // 确保无命名空间的属性排在最前面，且 xdef 名字空间排在其他名字空间之前
+        if (aNsIndex <= 0 && bNsIndex <= 0) {
+            return a.compareTo(b);
+        } //
+        else if (aNsIndex > 0 && bNsIndex > 0) {
+            return !a.startsWith("xdef:") && b.startsWith("xdef:")
+                   ? 1
+                   : a.startsWith("xdef:") && !b.startsWith("xdef:") //
+                     ? -1 : a.compareTo(b);
+        }
+
+        return Integer.compare(aNsIndex, bNsIndex);
+    };
 
     /**
      * 根据{@link XDefTypeDecl 定义类型}识别引用
@@ -94,7 +112,9 @@ public class XLangReferenceHelper {
                     };
             case STD_DOMAIN_XDEF_ATTR, STD_DOMAIN_DEF_TYPE -> //
                     getReferencesFromDefType(refElement, refValue, refValue);
-            default -> null;
+            default -> new PsiReference[] {
+                    new XLangStdDomainGeneralReference(refElement, textRange, refDefType)
+            };
         };
     }
 
@@ -147,13 +167,11 @@ public class XLangReferenceHelper {
                 case STD_DOMAIN_ENUM -> {
                     // Note: 忽略 enum:a|b|c|d 形式的数据
                     if (StringHelper.isValidClassName(options)) {
-                        PsiReference[] ref = PsiClassHelper.createJavaClassReferences(refElement, options, offset);
-
-                        Collections.addAll(refs, ref);
+                        refs.add(new XLangStdDomainEnumReference(refElement, textRange, options));
                     }
                 }
                 case STD_DOMAIN_DICT -> {
-                    refs.add(new XLangDictOptionReference(refElement, textRange, options));
+                    refs.add(new XLangStdDomainDictReference(refElement, textRange, options));
                 }
             }
         }

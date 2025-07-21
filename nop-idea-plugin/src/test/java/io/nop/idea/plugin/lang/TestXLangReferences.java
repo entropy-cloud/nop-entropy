@@ -248,7 +248,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
 //                        "" //
 //        );
 
-        // 通过 xpl:lib 导入 xlib
+        // TODO 通过 xpl:lib 导入 xlib
         assertReference("""
                                 <view xmlns:x="/nop/schema/xdsl.xdef"
                                       x:schema="/nop/schema/xui/xview.xdef"
@@ -272,7 +272,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                         "/test/reference/a.xlib#DoFindByMdxQuery" //
         );
 
-        // 通过 c:import 导入 xlib
+        // TODO 通过 c:import 导入 xlib
         assertReference("""
                                 <view xmlns:x="/nop/schema/xdsl.xdef"
                                       x:schema="/nop/schema/xui/xview.xdef"
@@ -713,6 +713,16 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                 """, //
                         null //
         );
+        // - 自引用
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                          x:schema="/nop/schema/xdef.xdef">
+                                     <item xdef:name="Item0" xdef:ref="Item0"/>
+                                     <xdef:define xdef:name="Item1" />
+                                 </example>
+                                """, //
+                        null //
+        );
 
         // 对 x:prototype 属性值的引用
         assertReference(insertCaretIntoVfs("/test/reference/user.view.xml", //
@@ -739,6 +749,25 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                 <lib xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xlib.xdef">
                                     <tags>
                                         <NewGet x:prototype="G<caret>ot"/>
+                                    </tags>
+                                </lib>
+                                """, //
+                        null //
+        );
+        // - 自引用
+        assertReference("""
+                                <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                                    <grids>
+                                        <grid id="pick-list" x:prototype="pick<caret>-list"/>
+                                    </grids>
+                                </view>
+                                """, //
+                        null //
+        );
+        assertReference("""
+                                <lib xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xlib.xdef">
+                                    <tags>
+                                        <NewGet x:prototype="New<caret>Get"/>
                                     </tags>
                                 </lib>
                                 """, //
@@ -891,6 +920,17 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                         "/dict/test/doc/child-type.dict.yaml#leaf" //
         );
 
+        // 属性自引用
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+                                        x:schema="/nop/schema/xdef.xdef"
+                                >
+                                     <prop name="string" value="string=@attr:va<caret>lue"/>
+                                </example>
+                                """, //
+                        null //
+        );
+
         // x:schema 指定的 *.xdef 不存在，使得 DSL 的元模型未定义，导致模型属性未知，其引用将无法识别
         // - *.xdef 不存在
         assertReference("""
@@ -981,6 +1021,15 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                 </example>
                                 """,  //
                         "/dict/test/doc/child-type.dict.yaml#leaf" //
+        );
+        assertReference("""
+                                <example xmlns:x="/nop/schema/xdsl.xdef"
+                                         x:schema="/nop/schema/xdef.xdef"
+                                >
+                                    <child type="enum:io.nop.xlang.xdef.XDefOverr<caret>Ide"/>
+                                </example>
+                                """,  //
+                        null //
         );
         assertReference("""
                                 <example xmlns:x="/nop/schema/xdsl.xdef"

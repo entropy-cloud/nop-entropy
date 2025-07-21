@@ -12,9 +12,16 @@ import java.util.List;
 
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.xml.XmlElement;
+import io.nop.api.core.beans.DictBean;
+import io.nop.api.core.beans.DictOptionBean;
 import io.nop.idea.plugin.messages.NopPluginBundle;
+import io.nop.idea.plugin.utils.LookupElementHelper;
+import io.nop.idea.plugin.utils.ProjectFileHelper;
 import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
+import one.util.streamex.StreamEx;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -24,10 +31,13 @@ import org.jetbrains.annotations.Nullable;
  * @date 2025-07-15
  */
 public class XLangStdDomainReference extends XLangReferenceBase {
+    private final String dictName = "core/std-domain";
     private final String stdDomain;
 
+    private DictBean dictBean;
+
     public XLangStdDomainReference(
-            PsiElement myElement, TextRange myRangeInElement, //
+            XmlElement myElement, TextRange myRangeInElement, //
             String stdDomain
     ) {
         super(myElement, myRangeInElement);
@@ -48,6 +58,52 @@ public class XLangStdDomainReference extends XLangReferenceBase {
             return null;
         }
 
-        return XLangReferenceHelper.createNopVfsForDict(myElement, "core/std-domain", stdDomain);
+        return XLangReferenceHelper.createNopVfsForDict(myElement, dictName, stdDomain);
+    }
+
+    @Override
+    public Object @NotNull [] getVariants() {
+        DictOptionBean[] modifiers = new DictOptionBean[] {
+                new DictOptionBean() {{
+                    setValue("!");
+                    setLabel(NopPluginBundle.message("xlang.completion.domain.modifier.required"));
+                }}, //
+                new DictOptionBean() {{
+                    setValue("~");
+                    setLabel(NopPluginBundle.message("xlang.completion.domain.modifier.internal"));
+                }}, //
+                new DictOptionBean() {{
+                    setValue("#");
+                    setLabel(NopPluginBundle.message("xlang.completion.domain.modifier.allow-cp-expr"));
+                }}, //
+        };
+
+        String text = myElement.getText();
+        return StreamEx.of(modifiers) //
+                       .filter((modifier) -> !text.contains(modifier.getStringValue())) //
+                       .append(XLangReferenceHelper.getRegisteredStdDomains().stream() //
+                                                   .sorted(XLangReferenceHelper.XLANG_NAME_COMPARATOR) //
+                                                   .map((value) -> {
+                                                       DictBean dict = getDict();
+                                                       DictOptionBean opt = dict != null
+                                                                            ? dict.getOptionByValue(value)
+                                                                            : null;
+
+                                                       if (opt == null) {
+                                                           opt = new DictOptionBean();
+                                                           opt.setValue(value);
+                                                       }
+                                                       return opt;
+                                                   }) //
+                       ) //
+                       .map(LookupElementHelper::lookupDictOpt) //
+                       .toArray();
+    }
+
+    private DictBean getDict() {
+        if (dictBean == null) {
+            dictBean = ProjectFileHelper.loadDict(myElement, dictName);
+        }
+        return dictBean;
     }
 }

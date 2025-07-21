@@ -1,10 +1,13 @@
 package io.nop.idea.plugin.vfs;
 
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import io.nop.idea.plugin.lang.reference.XLangReferenceBase;
 import io.nop.idea.plugin.messages.NopPluginBundle;
+import io.nop.idea.plugin.utils.ProjectFileHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -39,5 +42,12 @@ public class NopVirtualFileReference extends XLangReferenceBase {
             return null;
         }
         return target;
+    }
+
+    @Override
+    public Object @NotNull [] getVariants() {
+        Project project = myElement.getProject();
+
+        return ProjectFileHelper.findAllNopVfsPaths(project).stream().sorted().toArray();
     }
 }

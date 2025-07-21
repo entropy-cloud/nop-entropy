@@ -78,6 +78,7 @@ public class XLangAttributeReference extends XLangReferenceBase {
 
     @Override
     public Object @NotNull [] getVariants() {
+        // Note: 在自动补全阶段，DSL 结构很可能是不完整的，只能从 xml 角度做分析
         XLangAttribute attr = (XLangAttribute) myElement;
         XLangTag tag = attr.getParentTag();
         if (tag == null) {
@@ -114,7 +115,7 @@ public class XLangAttributeReference extends XLangReferenceBase {
         }
 
         return result.stream() //
-                     .sorted((a, b) -> XLangTagReference.NAME_COMPARATOR.compare(a.name, b.name)) //
+                     .sorted((a, b) -> XLangReferenceHelper.XLANG_NAME_COMPARATOR.compare(a.name, b.name)) //
                      .map((defAttr) -> {
                          boolean trimNs = !attrNs.isEmpty();
 
@@ -164,7 +165,7 @@ public class XLangAttributeReference extends XLangReferenceBase {
                                    .withTypeText(label)
 //                                   // tail text 与 lookup string 紧挨着
 //                                   .withTailText(label) //
-//                                   // presentable text 将替换 lookup string 作为最终的显示文档
+//                                   // presentable text 将替换 lookup string 作为最终的显示文本
 //                                   .withPresentableText(label) //
                                    .withInsertHandler(new XmlAttributeInsertHandler());
     }

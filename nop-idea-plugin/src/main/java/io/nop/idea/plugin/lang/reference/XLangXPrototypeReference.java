@@ -8,14 +8,20 @@
 
 package io.nop.idea.plugin.lang.reference;
 
+import java.util.Arrays;
+import java.util.Objects;
+
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiNamedElement;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlElement;
+import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangTag;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.xlang.xdef.IXDefNode;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -32,9 +38,13 @@ public class XLangXPrototypeReference extends XLangReferenceBase {
         this.attrValue = attrValue;
     }
 
+    private XLangTag getParentTag() {
+        return PsiTreeUtil.getParentOfType(myElement, XLangTag.class);
+    }
+
     @Override
     public @Nullable PsiElement resolveInner() {
-        XLangTag tag = PsiTreeUtil.getParentOfType(myElement, XLangTag.class);
+        XLangTag tag = getParentTag();
         if (tag == null) {
             return null;
         }
@@ -47,15 +57,7 @@ public class XLangXPrototypeReference extends XLangReferenceBase {
             return null;
         }
 
-        // 仅从父节点中取引用到的子节点
-        // io.nop.xlang.delta.DeltaMerger#mergePrototype
-        IXDefNode defNode = tag.getSchemaDefNode();
-        IXDefNode parentDefNode = parentTag.getSchemaDefNode();
-
-        String keyAttr = parentDefNode.getXdefKeyAttr();
-        if (keyAttr == null) {
-            keyAttr = defNode.getXdefUniqueAttr();
-        }
+        String keyAttr = getKeyAttrName(tag, parentTag);
 
         XLangTag protoTag = (XLangTag) XmlPsiHelper.getChildTagByAttr(parentTag, keyAttr, attrValue);
         if (protoTag == null) {
@@ -69,8 +71,60 @@ public class XLangXPrototypeReference extends XLangReferenceBase {
 
             return null;
         }
+        // 不能引用自身
+        else if (protoTag == tag) {
+            String msg = keyAttr == null
+                         ? NopPluginBundle.message("xlang.annotation.reference.x-prototype-tag-self-referenced",
+                                                   attrValue)
+                         : NopPluginBundle.message("xlang.annotation.reference.x-prototype-attr-self-referenced",
+                                                   keyAttr,
+                                                   attrValue);
+            setUnresolvedMessage(msg);
+
+            return null;
+        }
 
         // 定位到目标属性或标签上
-        return keyAttr != null ? protoTag.getAttribute(keyAttr) : protoTag;
+        return getKeyAttrElement(protoTag, keyAttr);
+    }
+
+    @Override
+    public Object @NotNull [] getVariants() {
+        // Note: 在自动补全阶段，DSL 结构很可能是不完整的，只能从 xml 角度做分析
+        XLangTag tag = getParentTag();
+        XLangTag parentTag = tag != null ? tag.getParentTag() : null;
+        if (parentTag == null) {
+            return new Object[0];
+        }
+
+        String keyAttr = getKeyAttrName(tag, parentTag);
+
+        return Arrays.stream(parentTag.getChildren())
+                     .filter((child) -> child != tag && child instanceof XLangTag)
+                     .map((child) -> (XLangTag) child)
+                     .map((child) -> getKeyAttrElement(child, keyAttr))
+                     .filter(Objects::nonNull)
+                     .map((child) -> child instanceof XLangAttribute attr ? attr.getValue() : child.getName())
+                     .filter(Objects::nonNull)
+                     .sorted(XLangReferenceHelper.XLANG_NAME_COMPARATOR)
+                     .toArray();
+    }
+
+    private String getKeyAttrName(XLangTag tag, XLangTag parentTag) {
+        // 仅从父节点中取引用到的子节点
+        // io.nop.xlang.delta.DeltaMerger#mergePrototype
+        IXDefNode defNode = tag.getSchemaDefNode();
+        IXDefNode parentDefNode = parentTag.getSchemaDefNode();
+
+        String keyAttr = parentDefNode.getXdefKeyAttr();
+
+        if (keyAttr == null) {
+            keyAttr = defNode.getXdefUniqueAttr();
+        }
+        return keyAttr;
+    }
+
+    private PsiNamedElement getKeyAttrElement(XLangTag tag, String keyAttr) {
+        return keyAttr != null ? tag.getAttribute(keyAttr) : tag;
     }
 }

@@ -9,7 +9,6 @@
 package io.nop.idea.plugin.lang.reference;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -38,23 +37,6 @@ import org.jetbrains.annotations.Nullable;
  * @date 2025-07-17
  */
 public class XLangTagReference extends XLangReferenceBase {
-    public static final Comparator<String> NAME_COMPARATOR = (a, b) -> {
-        int aNsIndex = a.indexOf(':');
-        int bNsIndex = b.indexOf(':');
-
-        // 确保无命名空间的属性排在最前面，且 xdef 名字空间排在其他名字空间之前
-        if (aNsIndex <= 0 && bNsIndex <= 0) {
-            return a.compareTo(b);
-        } //
-        else if (aNsIndex > 0 && bNsIndex > 0) {
-            return !a.startsWith("xdef:") && b.startsWith("xdef:")
-                   ? 1
-                   : a.startsWith("xdef:") && !b.startsWith("xdef:") //
-                     ? -1 : a.compareTo(b);
-        }
-
-        return Integer.compare(aNsIndex, bNsIndex);
-    };
 
     public XLangTagReference(XLangTag myElement, TextRange myRangeInElement) {
         super(myElement, myRangeInElement);
@@ -80,6 +62,7 @@ public class XLangTagReference extends XLangReferenceBase {
 
     @Override
     public Object @NotNull [] getVariants() {
+        // Note: 在自动补全阶段，DSL 结构很可能是不完整的，只能从 xml 角度做分析
         XLangTag tag = (XLangTag) myElement;
         XLangTag parentTag = tag.getParentTag();
         if (parentTag == null) {
@@ -109,7 +92,7 @@ public class XLangTagReference extends XLangReferenceBase {
         }
 
         return result.stream()
-                     .sorted((a, b) -> NAME_COMPARATOR.compare(a.getTagName(), b.getTagName()))
+                     .sorted((a, b) -> XLangReferenceHelper.XLANG_NAME_COMPARATOR.compare(a.getTagName(), b.getTagName()))
                      .map((defNode) -> lookupTag(defNode, !tagNs.isEmpty()))
                      .toArray(LookupElement[]::new);
     }
@@ -154,7 +137,7 @@ public class XLangTagReference extends XLangReferenceBase {
                                    .withTypeText(label)
 //                                   // tail text 与 lookup string 紧挨着
 //                                   .withTailText(label) //
-//                                   // presentable text 将替换 lookup string 作为最终的显示文档
+//                                   // presentable text 将替换 lookup string 作为最终的显示文本
 //                                   .withPresentableText(label) //
                                    .withInsertHandler(new XmlTagInsertHandler());
     }

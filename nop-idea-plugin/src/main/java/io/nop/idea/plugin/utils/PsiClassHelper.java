@@ -219,6 +219,12 @@ public class PsiClassHelper {
         Project project = context.getProject();
         GlobalSearchScope scope = PsiClassHelper.getSearchScope(context);
 
+        return findClass(project, className, scope);
+    }
+
+    public static PsiClass findClass(Project project, String className) {
+        GlobalSearchScope scope = GlobalSearchScope.allScope(project);
+
         return JavaPsiFacade.getInstance(project).findClass(className, scope);
     }
 
@@ -227,6 +233,9 @@ public class PsiClassHelper {
     }
 
     public static PsiPackage findPackage(Project project, String pkgName) {
+        if (StringHelper.isEmpty(pkgName)) {
+            return null;
+        }
         return JavaPsiFacade.getInstance(project).findPackage(pkgName);
     }
 
@@ -234,12 +243,20 @@ public class PsiClassHelper {
     public static @NotNull Query<PsiClass> findInheritors(Project project, String className) {
         GlobalSearchScope scope = GlobalSearchScope.allScope(project);
 
-        PsiClass clazz = findClass(project, className, scope);
+        return findInheritors(project, className, scope);
+    }
+
+    /** 查找指定类的继承类 */
+    public static @NotNull Query<PsiClass> findInheritors(Project project, String className, GlobalSearchScope scope) {
+        // 确保可找到基类
+        GlobalSearchScope baseScope = GlobalSearchScope.allScope(project);
+
+        PsiClass clazz = findClass(project, className, baseScope);
         if (clazz == null) {
             return EmptyQuery.getEmptyQuery();
         }
 
-        return ClassInheritorsSearch.search(clazz, true);
+        return ClassInheritorsSearch.search(clazz, scope, true);
     }
 
     /** 获取指定方法返回的常量值 */

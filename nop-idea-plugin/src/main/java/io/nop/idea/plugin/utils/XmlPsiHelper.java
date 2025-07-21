@@ -307,6 +307,25 @@ public class XmlPsiHelper {
         return attrs;
     }
 
+    /** 从子节点上查找公共的属性名 */
+    public static List<String> getCommonAttrNamesFromChildTag(XmlTag tag) {
+        List<String> attrNames = new ArrayList<>();
+
+        for (PsiElement element : tag.getChildren()) {
+            if (!(element instanceof XmlTag child)) {
+                continue;
+            }
+
+            Set<String> names = getTagAttrNames(child);
+            if (attrNames.isEmpty()) {
+                attrNames.addAll(names);
+            } else {
+                attrNames.retainAll(names);
+            }
+        }
+        return attrNames;
+    }
+
     /** 找到第一个符合条件的 {@link PsiElement 元素} */
     public static <T extends PsiElement> T findFirstElement(
             PsiElement element, Predicate<? super @NotNull PsiElement> condition

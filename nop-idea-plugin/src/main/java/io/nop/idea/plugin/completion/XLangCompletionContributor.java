@@ -50,7 +50,10 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Completion相关的文档可以参见{@link CompletionContributor}类的注释
  * 或者 https://www.plugin-dev.com/intellij/custom-language/code-completion/
+ *
+ * @deprecated 通过 {@link com.intellij.psi.PsiReference#getVariants PsiReference#getVariants} 实现补全
  */
+@Deprecated
 public class XLangCompletionContributor extends CompletionContributor implements DumbAware {
 
     public XLangCompletionContributor() {
