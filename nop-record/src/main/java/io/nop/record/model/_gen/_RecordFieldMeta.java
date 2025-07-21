@@ -81,6 +81,13 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      *  
+     * xml name: switchOnExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalFunction _switchOnExpr ;
+    
+    /**
+     *  
      * xml name: switchOnField
      * 动态确定字段类型
      * 如果指定了switchOnField，则输出时根据从record[switchOnField]上获取到case类型，然后再映射到type类型，从根对象的types集合中再获取具体定义
@@ -288,6 +295,25 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
     
     /**
      * 
+     * xml name: switchOnExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalFunction getSwitchOnExpr(){
+      return _switchOnExpr;
+    }
+
+    
+    public void setSwitchOnExpr(io.nop.core.lang.eval.IEvalFunction value){
+        checkAllowChange();
+        
+        this._switchOnExpr = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: switchOnField
      *  动态确定字段类型
      * 如果指定了switchOnField，则输出时根据从record[switchOnField]上获取到case类型，然后再映射到type类型，从根对象的types集合中再获取具体定义
@@ -412,6 +438,7 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         out.putNotNull("repeatCountFieldName",this.getRepeatCountFieldName());
         out.putNotNull("repeatKind",this.getRepeatKind());
         out.putNotNull("repeatUntil",this.getRepeatUntil());
+        out.putNotNull("switchOnExpr",this.getSwitchOnExpr());
         out.putNotNull("switchOnField",this.getSwitchOnField());
         out.putNotNull("switchOnRule",this.getSwitchOnRule());
         out.putNotNull("switchTypeMap",this.getSwitchTypeMap());
@@ -437,6 +464,7 @@ public abstract class _RecordFieldMeta extends io.nop.record.model.RecordSimpleF
         instance.setRepeatCountFieldName(this.getRepeatCountFieldName());
         instance.setRepeatKind(this.getRepeatKind());
         instance.setRepeatUntil(this.getRepeatUntil());
+        instance.setSwitchOnExpr(this.getSwitchOnExpr());
         instance.setSwitchOnField(this.getSwitchOnField());
         instance.setSwitchOnRule(this.getSwitchOnRule());
         instance.setSwitchTypeMap(this.getSwitchTypeMap());

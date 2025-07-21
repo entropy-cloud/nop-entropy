@@ -337,6 +337,10 @@
                             <schema stdDomain="peek-match-rule"/>
                         </field>
 
+                        <field name="switchOnExpr" displayName="子类型选择表达式">
+                            <schema stdDomain="xpl-fn" stdDomainOptions="(in,record,ctx)=>string"/>
+                        </field>
+
                         <field name="switchOnField" displayName="子类型选择">
                             <schema stdDomain="string"/>
                         </field>

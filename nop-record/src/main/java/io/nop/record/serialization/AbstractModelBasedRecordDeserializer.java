@@ -222,9 +222,11 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
     }
 
     protected RecordTypeMeta determineObjectType(Input in, RecordFieldMeta field, Object record, IFieldCodecContext context) throws IOException {
-        if (field.getSwitchOnField() != null || field.getSwitchOnRule() != null) {
+        if (field.getSwitchOnField() != null || field.getSwitchOnRule() != null || field.getSwitchOnExpr() != null) {
             String onValue;
-            if (field.getSwitchOnRule() != null) {
+            if (field.getSwitchOnExpr() != null) {
+                onValue = ConvertHelper.toString(field.getSwitchOnExpr().call3(null, in, record, context, context.getEvalScope()));
+            } else if (field.getSwitchOnRule() != null) {
                 onValue = determineObjectTypeByRule(field.getSwitchOnRule(), in, field, record, context);
             } else {
                 onValue = ConvertHelper.toString(getPropByName(record, field.getSwitchOnField()));
@@ -235,6 +237,10 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
                         .source(field)
                         .param(ARG_FIELD_NAME, field.getName());
 
+            RecordTypeMeta typeMeta = context.getType(onValue);
+            if (typeMeta != null)
+                return typeMeta;
+
             String caseType = field.getTypeByCaseValue(onValue);
             if (caseType == null)
                 throw new NopException(ERR_RECORD_NO_MATCH_FOR_CASE_VALUE)
@@ -242,7 +248,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
                         .param(ARG_FIELD_NAME, field.getName())
                         .param(ARG_CASE_VALUE, onValue);
 
-            RecordTypeMeta typeMeta = context.getType(caseType);
+            typeMeta = context.getType(caseType);
             if (typeMeta == null)
                 throw new NopException(ERR_RECORD_NO_MATCH_FOR_CASE_VALUE)
                         .source(field)

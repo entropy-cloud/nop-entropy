@@ -33,6 +33,8 @@
 
     <switchOnRule xdef:value="peek-match-rule"/>
 
+    <switchOnExpr xdef:value="xpl-fn:(in,record,ctx)=>string"/>
+
     <!-- 根据record[switchOnField]或者switchOnRule获取到类型，key为*表示缺省映射 -->
     <switchTypeMap xdef:value="string-map"/>
 
