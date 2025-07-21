@@ -36,6 +36,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -92,6 +93,16 @@ public class OfficePackage implements Closeable, ISourceLocationGetter {
             this.resourceStore = store;
             collectFiles("", resourceStore.getResource("/"));
         }
+    }
+
+    public List<IOfficePackagePart> getFiles(String prefix) {
+        List<IOfficePackagePart> ret = new ArrayList<>();
+        files.forEach((path, part) -> {
+            if (path.startsWith(prefix)) {
+                ret.add(part);
+            }
+        });
+        return ret;
     }
 
     public OfficePackage copy() {

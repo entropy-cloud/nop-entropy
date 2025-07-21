@@ -471,6 +471,7 @@
         <module>nop-markdown</module>
         <module>nop-java-parser</module>
         <module>nop-converter</module>
+        <module>nop-image</module>
         <!--        <module>nop-commons-java21</module>-->
     </modules>
 </project>

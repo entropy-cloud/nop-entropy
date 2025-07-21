@@ -27,6 +27,10 @@ public interface IOfficePackagePart extends ITemplateOutput {
      */
     String getPath();
 
+    default IResource getResource() {
+        throw new UnsupportedOperationException();
+    }
+
     default IOfficePackagePart loadInMemory() {
         return this;
     }

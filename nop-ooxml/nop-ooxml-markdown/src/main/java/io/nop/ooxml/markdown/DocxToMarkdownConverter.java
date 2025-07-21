@@ -1,5 +1,6 @@
 package io.nop.ooxml.markdown;
 
+import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
@@ -14,9 +15,11 @@ import io.nop.ooxml.docx.model.WordOfficePackage;
 import io.nop.ooxml.docx.parse.WordTableParser;
 import io.nop.ooxml.docx.parse.WordXmlHelper;
 
+import java.io.File;
 import java.util.Stack;
 
 public class DocxToMarkdownConverter {
+    private File imagesDir;
 
     public MarkdownDocument convertFromResource(IResource resource) {
         return convertFromResource(resource, null);
@@ -28,6 +31,9 @@ public class DocxToMarkdownConverter {
         try {
             pkg.loadFromResource(resource);
 
+            if (imagesDir != null)
+                pkg.saveImagesToDir(imagesDir);
+
             XNode doc = pkg.getWordXml();
 
             ImageUrlMapper urlMapper = new RelsImageUrlMapper(pkg.getRels(DocxConstants.PATH_WORD_DOCUMENT), imageBaseUrl);
@@ -35,6 +41,15 @@ public class DocxToMarkdownConverter {
         } finally {
             IoHelper.safeCloseObject(pkg);
         }
+    }
+
+    public DocxToMarkdownConverter imagesDirPath(String path) {
+        return imagesDir(FileHelper.resolveFile(path));
+    }
+
+    public DocxToMarkdownConverter imagesDir(File imagesDir) {
+        this.imagesDir = imagesDir;
+        return this;
     }
 
     public MarkdownDocument convertFromNode(XNode node, ImageUrlMapper urlMapper) {
@@ -105,6 +120,7 @@ public class DocxToMarkdownConverter {
                 }
         }
     }
+
     private void handleListItem(XNode paraNode, ImageUrlMapper urlMapper,
                                 StringBuilder currentText,
                                 ListInfo listInfo, int[] currentListLevel) {

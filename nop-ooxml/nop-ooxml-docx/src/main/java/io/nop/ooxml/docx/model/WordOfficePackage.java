@@ -20,6 +20,9 @@ import io.nop.ooxml.common.model.OfficeRelationship;
 import io.nop.ooxml.common.model.OfficeRelsPart;
 import io.nop.ooxml.docx.DocxConstants;
 
+import java.io.File;
+import java.util.function.Consumer;
+
 import static io.nop.ooxml.common.OfficeErrors.ARG_FILE_EXT;
 import static io.nop.ooxml.common.OfficeErrors.ARG_PATH;
 import static io.nop.ooxml.common.OfficeErrors.ERR_OOXML_UNSUPPORTED_CONTENT_TYPE;
@@ -34,6 +37,18 @@ public class WordOfficePackage extends OfficePackage {
         WordOfficePackage pkg = new WordOfficePackage();
         copyTo(pkg);
         return pkg;
+    }
+
+    public void saveImagesToDir(File dir) {
+        forEachImage(resource -> {
+            resource.saveToFile(new File(dir, resource.getName()));
+        });
+    }
+
+    public void forEachImage(Consumer<IResource> action) {
+        this.getFiles("word/media/image").forEach(part -> {
+            action.accept(part.getResource());
+        });
     }
 
     public CommentsPart getComments() {
