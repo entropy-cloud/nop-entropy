@@ -33,7 +33,7 @@
 
         <description xdef:value="string"/>
 
-        <meta xdef:value="xjson" />
+        <meta xdef:value="xjson"/>
 
         <!-- 可以根据动态设置的flag来决定是否执行本步骤
         @match 满足flag条件才执行本步骤
@@ -182,10 +182,9 @@
 
             <!-- 并行执行所有子步骤 -->
             <parallel name="!var-name" xdef:ref="TaskStepsModel" xdef:name="ParallelTaskStepModel"
-                      aggregateVarName="var-name"
                       joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=true">
                 <!-- 对并行步骤执行结果进行汇总处理 -->
-                <aggregator xdef:value="xpl"/>
+                <aggregator xdef:value="xpl-fn:(aggResults)=>any"/>
             </parallel>
 
             <!--
@@ -215,18 +214,17 @@
             -->
             <fork name="!var-name" varName="!var-name" indexName="var-name" xdef:ref="TaskStepsModel"
                   xdef:name="ForkTaskStepModel"
-                  aggregateVarName="var-name"
                   joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=true">
                 <producer xdef:value="xpl"/>
                 <!-- 对并行步骤执行结果进行汇总处理 -->
-                <aggregator xdef:value="xpl"/>
+                <aggregator xdef:value="xpl-fn:(aggResults)=>any"/>
             </fork>
 
             <fork-n name="!var-name" indexName="var-name" countExpr="!expr" xdef:ref="TaskStepsModel"
-                    xdef:name="ForkNTaskStepModel" aggregateVarName="var-name"
+                    xdef:name="ForkNTaskStepModel"
                     joinType="enum:io.nop.commons.concurrent.AsyncJoinType" autoCancelUnfinished="!boolean=true">
                 <!-- 对并行步骤执行结果进行汇总处理 -->
-                <aggregator xdef:value="xpl"/>
+                <aggregator xdef:value="xpl-fn:(aggResults)=>any"/>
             </fork-n>
 
             <!--
@@ -244,7 +242,7 @@
             -->
             <loop name="!var-name" xdef:ref="TaskStepsModel" xdef:name="LoopTaskStepModel"
                   indexName="var-name" varName="var-name" itemsExpr="!expr" maxCount="!int=0" varType="generic-type">
-                <while xdef:value="xpl-predicate" />
+                <while xdef:value="xpl-predicate"/>
                 <until xdef:value="xpl-predicate"/>
             </loop>
 

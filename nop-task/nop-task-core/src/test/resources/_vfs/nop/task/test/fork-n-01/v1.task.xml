@@ -1,6 +1,6 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
     <steps>
-        <fork-n name="test" indexName="idx" aggregateVarName="results" countExpr="2">
+        <fork-n name="test" indexName="idx" countExpr="2">
             <input name="x">
                 <source>1</source>
             </input>
@@ -16,7 +16,7 @@
             </steps>
 
             <aggregator>
-                const sum = results.sum("RESULT")
+                const sum = aggResults.sum("RESULT")
                 return sum == 3 ? 'OK' : 'FAIL'
             </aggregator>
         </fork-n>

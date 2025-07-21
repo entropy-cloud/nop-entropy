@@ -51,6 +51,10 @@ public class StepResultBean implements Serializable {
         return resultBean;
     }
 
+    public Object getResult() {
+        return getOutput(TaskConstants.VAR_RESULT);
+    }
+
     public String getStepName() {
         return stepName;
     }

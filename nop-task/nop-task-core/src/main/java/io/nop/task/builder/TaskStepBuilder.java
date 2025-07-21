@@ -299,7 +299,6 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         ParallelTaskStep ret = new ParallelTaskStep();
         ret.setSteps(steps);
         ret.setStepJoinType(stepModel.getJoinType());
-        ret.setAggregateVarName(stepModel.getAggregateVarName());
         ret.setAutoCancelUnfinished(stepModel.isAutoCancelUnfinished());
         ret.setAggregator(stepModel.getAggregator());
         return ret;
@@ -334,7 +333,6 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         ret.setIndexName(stepModel.getIndexName());
         ret.setAutoCancelUnfinished(stepModel.isAutoCancelUnfinished());
         ret.setStepJoinType(stepModel.getJoinType());
-        ret.setAggregateVarName(stepModel.getAggregateVarName());
         ret.setAggregator(stepModel.getAggregator());
         ret.setCountExpr(stepModel.getCountExpr());
         ret.setStep(buildForkBody(stepModel));
@@ -348,7 +346,6 @@ public class TaskStepBuilder implements ITaskStepBuilder {
         ret.setStepName(stepModel.getName());
         ret.setAutoCancelUnfinished(stepModel.isAutoCancelUnfinished());
         ret.setStepJoinType(stepModel.getJoinType());
-        ret.setAggregateVarName(stepModel.getAggregateVarName());
         ret.setAggregator(stepModel.getAggregator());
         ret.setProducer(stepModel.getProducer());
         ret.setStep(buildForkBody(stepModel));

@@ -10,7 +10,7 @@ package io.nop.task.step;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.concurrent.AsyncJoinType;
 import io.nop.commons.util.AsyncHelper;
-import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.StepResultBean;
@@ -31,8 +31,7 @@ public class ParallelTaskStep extends AbstractTaskStep {
 
     private AsyncJoinType stepJoinType;
 
-    private String aggregateVarName;
-    private IEvalAction aggregator;
+    private IEvalFunction aggregator;
 
     private boolean autoCancelUnfinished;
 
@@ -44,7 +43,7 @@ public class ParallelTaskStep extends AbstractTaskStep {
         this.autoCancelUnfinished = autoCancelUnfinished;
     }
 
-    public void setAggregator(IEvalAction aggregator) {
+    public void setAggregator(IEvalFunction aggregator) {
         this.aggregator = aggregator;
     }
 
@@ -56,13 +55,6 @@ public class ParallelTaskStep extends AbstractTaskStep {
         this.stepJoinType = stepJoinType;
     }
 
-    public String getAggregateVarName() {
-        return aggregateVarName;
-    }
-
-    public void setAggregateVarName(String aggregateVarName) {
-        this.aggregateVarName = aggregateVarName;
-    }
 
     @Nonnull
     @Override
@@ -96,11 +88,8 @@ public class ParallelTaskStep extends AbstractTaskStep {
                 }
             }
 
-            if (aggregateVarName != null)
-                stepRt.setValue(aggregateVarName, states);
-
             if (aggregator != null) {
-                return aggregator.invoke(stepRt);
+                return aggregator.call1(null, states, stepRt.getEvalScope());
             }
             return states;
         });

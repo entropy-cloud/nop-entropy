@@ -2,7 +2,7 @@ package io.nop.task.step;
 
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.concurrent.AsyncJoinType;
-import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.task.ITaskStep;
 import io.nop.task.ITaskStepRuntime;
@@ -20,8 +20,7 @@ public abstract class AbstractForkTaskStep extends AbstractTaskStep {
     private String stepName;
     private ITaskStep step;
 
-    private String aggregateVarName;
-    private IEvalAction aggregator;
+    private IEvalFunction aggregator;
 
     private boolean autoCancelUnfinished;
 
@@ -51,19 +50,11 @@ public abstract class AbstractForkTaskStep extends AbstractTaskStep {
         this.indexName = indexName;
     }
 
-    public String getAggregateVarName() {
-        return aggregateVarName;
-    }
-
-    public void setAggregateVarName(String aggregateVarName) {
-        this.aggregateVarName = aggregateVarName;
-    }
-
-    public IEvalAction getAggregator() {
+    public IEvalFunction getAggregator() {
         return aggregator;
     }
 
-    public void setAggregator(IEvalAction aggregator) {
+    public void setAggregator(IEvalFunction aggregator) {
         this.aggregator = aggregator;
     }
 
@@ -127,12 +118,10 @@ public abstract class AbstractForkTaskStep extends AbstractTaskStep {
                 }
             }
 
-            if (aggregateVarName != null)
-                stepRt.setValue(aggregateVarName, states);
-
             if (aggregator != null) {
-                return aggregator.invoke(stepRt);
+                return aggregator.call1(null, states, stepRt.getEvalScope());
             }
+
             return states;
         });
 

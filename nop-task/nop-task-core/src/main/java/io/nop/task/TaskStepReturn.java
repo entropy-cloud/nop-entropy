@@ -189,6 +189,10 @@ public final class TaskStepReturn {
         return outputs.get(name);
     }
 
+    public Object getResult() {
+        return getOutput(TaskConstants.VAR_RESULT);
+    }
+
     public Map<String, Object> getOutputs() {
         return outputs;
     }

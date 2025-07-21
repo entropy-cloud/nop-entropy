@@ -18,17 +18,10 @@ public abstract class _ForkNTaskStepModel extends io.nop.task.model.TaskStepsMod
     
     /**
      *  
-     * xml name: aggregateVarName
-     * 
-     */
-    private java.lang.String _aggregateVarName ;
-    
-    /**
-     *  
      * xml name: aggregator
      * 对并行步骤执行结果进行汇总处理
      */
-    private io.nop.core.lang.eval.IEvalAction _aggregator ;
+    private io.nop.core.lang.eval.IEvalFunction _aggregator ;
     
     /**
      *  
@@ -67,35 +60,16 @@ public abstract class _ForkNTaskStepModel extends io.nop.task.model.TaskStepsMod
     
     /**
      * 
-     * xml name: aggregateVarName
-     *  
-     */
-    
-    public java.lang.String getAggregateVarName(){
-      return _aggregateVarName;
-    }
-
-    
-    public void setAggregateVarName(java.lang.String value){
-        checkAllowChange();
-        
-        this._aggregateVarName = value;
-           
-    }
-
-    
-    /**
-     * 
      * xml name: aggregator
      *  对并行步骤执行结果进行汇总处理
      */
     
-    public io.nop.core.lang.eval.IEvalAction getAggregator(){
+    public io.nop.core.lang.eval.IEvalFunction getAggregator(){
       return _aggregator;
     }
 
     
-    public void setAggregator(io.nop.core.lang.eval.IEvalAction value){
+    public void setAggregator(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._aggregator = value;
@@ -213,7 +187,6 @@ public abstract class _ForkNTaskStepModel extends io.nop.task.model.TaskStepsMod
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
-        out.putNotNull("aggregateVarName",this.getAggregateVarName());
         out.putNotNull("aggregator",this.getAggregator());
         out.putNotNull("autoCancelUnfinished",this.isAutoCancelUnfinished());
         out.putNotNull("countExpr",this.getCountExpr());
@@ -231,7 +204,6 @@ public abstract class _ForkNTaskStepModel extends io.nop.task.model.TaskStepsMod
     protected void copyTo(ForkNTaskStepModel instance){
         super.copyTo(instance);
         
-        instance.setAggregateVarName(this.getAggregateVarName());
         instance.setAggregator(this.getAggregator());
         instance.setAutoCancelUnfinished(this.isAutoCancelUnfinished());
         instance.setCountExpr(this.getCountExpr());

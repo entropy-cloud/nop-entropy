@@ -6,7 +6,7 @@
             </output>
         </xpl>
 
-        <parallel name="test" aggregateVarName="results">
+        <parallel name="test" >
             <input name="x"/>
 
             <steps>
@@ -26,7 +26,7 @@
             </steps>
 
             <aggregator>
-                return results.getStepOutput('step1','RESULT') + results.getStepOutput('step2','RESULT')
+                return aggResults.getStepOutput('step1','RESULT') + aggResults.getStepOutput('step2','RESULT')
             </aggregator>
         </parallel>
     </steps>

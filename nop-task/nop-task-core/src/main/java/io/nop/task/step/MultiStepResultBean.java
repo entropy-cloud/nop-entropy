@@ -12,8 +12,11 @@ import io.nop.api.core.annotations.data.DataBean;
 import io.nop.commons.util.MathHelper;
 import io.nop.task.StepResultBean;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @DataBean
 public class MultiStepResultBean {
@@ -26,6 +29,19 @@ public class MultiStepResultBean {
     public void setResults(Map<String, StepResultBean> results) {
         if (results != null)
             this.results.putAll(results);
+    }
+
+    public List<StepResultBean> getResultBeans() {
+        return new ArrayList<>(results.values());
+    }
+
+    public List<StepResultBean> getSuccessResultBeans() {
+        return results.values().stream().filter(StepResultBean::isSuccess).collect(Collectors.toList());
+    }
+
+    public List<Object> getSuccessResultValues() {
+        return results.values().stream().filter(StepResultBean::isSuccess)
+                .map(StepResultBean::getResult).collect(Collectors.toList());
     }
 
     @JsonIgnore
@@ -44,6 +60,11 @@ public class MultiStepResultBean {
     public Object getStepOutput(String stepName, String varName) {
         StepResultBean result = results.get(stepName);
         return result == null ? null : result.getOutput(varName);
+    }
+
+    public Object getStepResultValue(String stepName) {
+        StepResultBean result = getStepResult(stepName);
+        return result == null ? null : result.getResult();
     }
 
     public Number sum(String varName) {
