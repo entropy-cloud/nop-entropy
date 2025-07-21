@@ -1,0 +1,14 @@
+template: |
+  请分析所附截图，并按照以下步骤操作：
+  1. 提取并转录图片中所有可见的文本内容。
+  2. 总结图片中表达的主要业务需求或业务规则，要求信息清晰、简明地组织。
+  3. 尽量使用markdown表格格式来表达图片中的表格或结构化布局。
+  
+  【返回格式】
+   <IMAGE_SUMMARIZATION>response</IMAGE_SUMMARIZATION>
+
+outputs:
+  - name: RESULT
+    parseFromResponse:
+      blockStartMarker: "<IMAGE_SUMMARIZATION>"
+      blockEndMarker: "</IMAGE_SUMMARIZATION>"

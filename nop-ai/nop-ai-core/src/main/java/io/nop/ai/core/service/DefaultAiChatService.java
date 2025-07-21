@@ -8,8 +8,10 @@ import io.nop.ai.core.api.chat.IAiChatSession;
 import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.AiChatUsage;
 import io.nop.ai.core.api.messages.AiMessage;
+import io.nop.ai.core.api.messages.AiUserMessage;
 import io.nop.ai.core.api.messages.MessageStatus;
 import io.nop.ai.core.api.messages.Prompt;
+import io.nop.ai.core.api.messages.AiMessageAttachment;
 import io.nop.ai.core.api.messages.ToolCall;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
@@ -320,7 +322,7 @@ public class DefaultAiChatService implements IAiChatService {
         List<AiMessage> msgs = prompt.getMessages();
         AiMessage lastMessage = prompt.getLastMessage();
         for (AiMessage msg : msgs) {
-            String content = msg.getContent();
+            Object content = getMessageContent(msg);
             if (modelModel != null && lastMessage == msg) {
                 if (Boolean.TRUE.equals(options.getEnableThinking())) {
                     if (modelModel.getEnableThinkingPrompt() != null) {
@@ -334,6 +336,22 @@ public class DefaultAiChatService implements IAiChatService {
             }
             messages.add(Map.of("content", content, "role", getRole(msg)));
         }
+    }
+
+    protected Object getMessageContent(AiMessage message) {
+        if (message instanceof AiUserMessage) {
+            List<AiMessageAttachment> resources = ((AiUserMessage) message).getAttachments();
+            if (resources != null && !resources.isEmpty()) {
+                List<Map<String, Object>> list = new ArrayList<>();
+                if (message.getContent() != null)
+                    list.add(Map.of("type", "text", "text", message.getContent()));
+                for (AiMessageAttachment resource : resources) {
+                    list.add(resource.toContent());
+                }
+                return list;
+            }
+        }
+        return message.getContent();
     }
 
     protected LlmModelModel getModelModel(LlmModel llmModel, String modelName) {
@@ -438,7 +456,7 @@ public class DefaultAiChatService implements IAiChatService {
         chatExchange.makeResponse().setToolCalls(toolCalls);
     }
 
-    protected List<ToolCall> parseToolCalls(LlmModel llmModel, Map<String,Object> result){
+    protected List<ToolCall> parseToolCalls(LlmModel llmModel, Map<String, Object> result) {
         return null;
     }
 

@@ -6,6 +6,8 @@ import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.messages.AiAssistantMessage;
 import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.AiMessage;
+import io.nop.ai.core.api.messages.AiMessageAttachment;
+import io.nop.ai.core.api.messages.AiUserMessage;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.api.messages.ToolCall;
 import io.nop.ai.core.api.messages.ToolResponseMessage;
@@ -64,6 +66,7 @@ public class AiCommand {
 
     private Set<String> useTools;
     private int maxSteps;
+    private List<AiMessageAttachment> attachments;
 
     public AiCommand(IAiChatService chatService, IPromptTemplateManager promptTemplateManager) {
         this.chatService = chatService;
@@ -215,6 +218,15 @@ public class AiCommand {
             this.chatCache = null;
         }
         return this;
+    }
+
+    public AiCommand attachments(List<AiMessageAttachment> attachments) {
+        this.attachments = attachments;
+        return this;
+    }
+
+    public List<AiMessageAttachment> getAttachments() {
+        return attachments;
     }
 
     public AiCommand chatLogger(IAiChatLogger chatLogger) {
@@ -386,8 +398,8 @@ public class AiCommand {
     }
 
     protected CompletionStage<AiChatExchange> executeTools(int stepIndex, List<ToolCall> toolCalls,
-                                                 Prompt prompt, AiChatOptions options,
-                                                 IEvalScope scope, ICancelToken cancelToken) {
+                                                           Prompt prompt, AiChatOptions options,
+                                                           IEvalScope scope, ICancelToken cancelToken) {
         List<CompletionStage<CallToolResult>> toolResults = new ArrayList<>(toolCalls.size());
         for (ToolCall toolCall : toolCalls) {
             ToolSpecification toolSpec = options.getTool(toolCall.getName());
@@ -426,7 +438,9 @@ public class AiCommand {
         } else {
             addSystemPrompt(prompt, scope);
         }
-        prompt.addUserMessage(promptText);
+
+        AiUserMessage message = prompt.addUserMessage(promptText);
+        message.setAttachments(attachments);
         prompt.setName(promptTemplate.getName());
 
         return prompt;

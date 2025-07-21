@@ -83,6 +83,9 @@
                     if(node.hasAttr('ai:useResponseCache'))
                         execNode.setAttr('useResponseCache', node.attrValueLoc('ai:useResponseCache'));
 
+                    if(node.hasAttr('ai:attachments'))
+                        execNode.setAttr('attachments', node.attrValueLoc('ai:attachments'));
+
                     if(node.hasAttr('ai:cancelToken')){
                         execNode.setAttr('cancelToken', node.attrValueLoc('ai:cancelToken'));
                     }else{
@@ -128,6 +131,7 @@
             <attr name="asyncExec" stdDomain="boolean" optional="true"/>
             <attr name="retryTimesPerRequest" stdDomain="int" optional="true"/>
             <attr name="inputs" type="Map" optional="true"/>
+            <attr name="attachments" optional="true"/>
             <attr name="cancelToken" optional="true"/>
 
             <source><![CDATA[
@@ -142,6 +146,7 @@
                 const cmd = AiCommand.create();
                 cmd.workMode(workMode);
                 cmd.chatOptions(chatOptions).useResponseCache(useResponseCache);
+                cmd.attachments(attachments);
 
                 if(promptName != null){
                     $.checkArgument(!promptName.startsWith('/') and !promptName.endsWith('.yaml'),"invalid promptName")

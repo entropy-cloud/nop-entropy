@@ -84,8 +84,10 @@ public class Prompt extends Metadata {
         addMessage(new AiSystemMessage(text));
     }
 
-    public void addUserMessage(String text) {
-        addMessage(new AiUserMessage(text));
+    public AiUserMessage addUserMessage(String text) {
+        AiUserMessage message = new AiUserMessage(text);
+        addMessage(message);
+        return message;
     }
 
     public void addMessages(Collection<AiMessage> messages) {

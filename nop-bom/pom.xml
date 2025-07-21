@@ -136,6 +136,11 @@
                 <version>${nop-entropy.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-image</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>

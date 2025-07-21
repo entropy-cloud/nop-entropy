@@ -49,4 +49,7 @@ public interface AiCoreConstants {
     String CODE_LANG_YAML = "yaml";
 
     String PROMPT_PREFIX_INCLUDE = "include";
+
+    String RESOURCE_TYPE_AUDIO = "audio";
+    String RESOURCE_TYPE_IMAGE = "image";
 }

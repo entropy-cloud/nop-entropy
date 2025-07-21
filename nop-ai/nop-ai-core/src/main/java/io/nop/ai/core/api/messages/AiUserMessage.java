@@ -15,14 +15,17 @@
  */
 package io.nop.ai.core.api.messages;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.ai.core.AiCoreConstants;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.core.resource.IResource;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @DataBean
 public class AiUserMessage extends AbstractTextMessage {
-    private List<String> images;
+    private List<AiMessageAttachment> attachments;
 
     public AiUserMessage() {
     }
@@ -31,12 +34,20 @@ public class AiUserMessage extends AbstractTextMessage {
         setContent(content);
     }
 
-    public List<String> getImages() {
-        return images;
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public List<AiMessageAttachment> getAttachments() {
+        return attachments;
     }
 
-    public void setImages(List<String> images) {
-        this.images = images;
+    public void setAttachments(List<AiMessageAttachment> attachments) {
+        this.attachments = attachments;
+    }
+
+    public AiUserMessage addImage(IResource resource) {
+        if (attachments == null)
+            attachments = new ArrayList<>();
+        attachments.add(AiMessageAttachment.forImage(resource));
+        return this;
     }
 
     @Override
