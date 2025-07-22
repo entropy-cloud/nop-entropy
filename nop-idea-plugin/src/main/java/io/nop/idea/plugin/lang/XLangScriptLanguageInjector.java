@@ -39,8 +39,10 @@ public class XLangScriptLanguageInjector implements LanguageInjector {
         // 针对仅包含文本内容的 Xpl 类型节点（xdef:value=xpl*）
         if (!(host instanceof XLangText) //
             || !(host.getParent() instanceof XLangTag tag) //
-            //|| !tag.isXplDefNode() //
-            || !"c:script".equals(tag.getName()) // TODO 暂时仅针对 c:script 标签做内嵌代码解析
+            || !tag.isXplDefNode() //
+            || (!"c:script".equals(tag.getName()) //
+                && !tag.isXlibSourceNode() // TODO 暂时仅针对 c:script/source 标签做内嵌代码解析
+            ) //
             || tag.hasChildTag() //
         ) {
             return;

@@ -894,10 +894,10 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
         );
 
         // dict/enum 类型的值引用
-        assertReference(insertCaretIntoVfs("/nop/schema/xdsl.xdef", //
-                                           "xdef:default-override=\"append\"", //
-                                           "xdef:default-override=\"app<caret>end\""), //
-                        "io.nop.xlang.xdef.XDefOverride#APPEND" //
+        assertReference(insertCaretIntoVfs("/nop/schema/xlib.xdef", //
+                                           "<tags xdef:body-type=\"map\"", //
+                                           "<tags xdef:body-type=\"m<caret>ap\""), //
+                        "io.nop.xlang.xdef.XDefBodyType#map" //
         );
         assertReference(insertCaretIntoVfs("/nop/schema/xlib.xdef", //
                                            "macro=\"!boolean=false\"", //
