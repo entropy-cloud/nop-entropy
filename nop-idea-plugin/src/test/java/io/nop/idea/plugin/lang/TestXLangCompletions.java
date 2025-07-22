@@ -751,6 +751,43 @@ public class TestXLangCompletions extends BaseXLangPluginTestCase {
                                  """);
     }
 
+    public void testXlibTagCompletion() {
+        // - xpl:lib 导入库的补全
+        assertCompletion("Query", //
+                         """
+                                 <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                                       <x:gen-extends>
+                                           <a:Q<caret> xpl:lib="/test/reference/a.xlib"/>
+                                       </x:gen-extends>
+                                 </view>
+                                 """, //
+                         """
+                                 <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                                       <x:gen-extends>
+                                           <a:Query xpl:lib="/test/reference/a.xlib"/>
+                                       </x:gen-extends>
+                                 </view>
+                                 """);
+        // - c:import 导入库的补全
+        assertCompletion("DoFindByMdxQuery", //
+                         """
+                                 <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                                       <x:gen-extends>
+                                           <c:import as="gen" from="/test/reference/a.xlib"/>
+                                           <gen:Qu<caret>
+                                       </x:gen-extends>
+                                 </view>
+                                 """, //
+                         """
+                                 <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                                       <x:gen-extends>
+                                           <c:import as="gen" from="/test/reference/a.xlib"/>
+                                           <gen:DoFindByMdxQuery></gen:DoFindByMdxQuery>
+                                       </x:gen-extends>
+                                 </view>
+                                 """);
+    }
+
     /** 需确保仅有唯一一项自动填充项：匹配是模糊匹配，需增加输入长度才能做唯一匹配 */
     protected void assertCompletion(String text, String expectedText) {
         configureByXLangText(text);

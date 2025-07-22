@@ -11,6 +11,12 @@
             </source>
         </Get>
 
+        <Query>
+            <source>
+                <thisLib:DoFindByMdxQuery/>
+            </source>
+        </Query>
+
         <DoFindByMdxQuery>
             <attr name="method" type="String"/>
             <attr name="queryBuilder"/>

@@ -17,6 +17,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.idea.plugin.lang.psi.XLangTag;
 import io.nop.idea.plugin.lang.psi.XLangText;
 import io.nop.idea.plugin.lang.script.XLangScriptLanguage;
+import io.nop.xlang.xpl.XplConstants;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -40,7 +41,7 @@ public class XLangScriptLanguageInjector implements LanguageInjector {
         if (!(host instanceof XLangText) //
             || !(host.getParent() instanceof XLangTag tag) //
             || !tag.isXplDefNode() //
-            || (!"c:script".equals(tag.getName()) //
+            || (!XplConstants.TAG_C_SCRIPT.equals(tag.getName()) //
                 && !tag.isXlibSourceNode() // TODO 暂时仅针对 c:script/source 标签做内嵌代码解析
             ) //
             || tag.hasChildTag() //

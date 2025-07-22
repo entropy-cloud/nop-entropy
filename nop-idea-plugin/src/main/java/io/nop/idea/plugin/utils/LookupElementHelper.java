@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.function.Function;
 
 import com.intellij.codeInsight.completion.JavaClassNameCompletionContributor;
+import com.intellij.codeInsight.completion.XmlTagInsertHandler;
 import com.intellij.codeInsight.lookup.LookupElement;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.openapi.util.Iconable;
@@ -28,6 +29,19 @@ import one.util.streamex.StreamEx;
  * @date 2025-07-21
  */
 public class LookupElementHelper {
+
+    public static LookupElement lookupXmlTag(String tagName, String label) {
+        return LookupElementBuilder.create(tagName)
+                                   // icon 靠左布局
+                                   .withIcon(PlatformIcons.XML_TAG_ICON)
+                                   // type text 靠后布局
+                                   .withTypeText(label)
+//                                   // tail text 与 lookup string 紧挨着
+//                                   .withTailText(label) //
+//                                   // presentable text 将替换 lookup string 作为最终的显示文本
+//                                   .withPresentableText(label) //
+                                   .withInsertHandler(new XmlTagInsertHandler());
+    }
 
     public static LookupElement lookupDictOpt(DictOptionBean opt) {
         String optValue = ConvertHelper.toString(opt.getValue(), (String) null);

@@ -11,6 +11,7 @@ import com.intellij.ide.AppLifecycleListener;
 import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.json.JSON;
+import io.nop.commons.util.ClassHelper;
 import io.nop.core.dict.DictProvider;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.resource.VirtualFileSystem;
@@ -26,6 +27,10 @@ public class NopAppListener implements AppLifecycleListener {
 
     @Override
     public void appFrameCreated(@NotNull List<String> commandLineArgs) {
+        // Note: 采用默认的加载器（ClassHelper#getDefaultClassLoader），在项目中会无法加载 IXplTagLib 的实现，原因未知
+        // TODO 在加载 DSL 时，是否会因为执行 x:gen-extends 等脚本而产生安全风险？
+        ClassHelper.registerSafeClassLoader((name) -> getClass().getClassLoader().loadClass(name));
+
         AppConfig.getConfigProvider().updateConfigValue(ApiConfigs.CFG_DEBUG, false);
 
         JSON.registerProvider(JsonTool.instance());

@@ -13,15 +13,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-import com.intellij.codeInsight.completion.XmlTagInsertHandler;
 import com.intellij.codeInsight.lookup.LookupElement;
-import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
-import com.intellij.util.PlatformIcons;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.utils.LookupElementHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFile;
 import io.nop.xlang.xdef.IXDefComment;
@@ -92,7 +90,8 @@ public class XLangTagReference extends XLangReferenceBase {
         }
 
         return result.stream()
-                     .sorted((a, b) -> XLangReferenceHelper.XLANG_NAME_COMPARATOR.compare(a.getTagName(), b.getTagName()))
+                     .sorted((a, b) -> XLangReferenceHelper.XLANG_NAME_COMPARATOR.compare(a.getTagName(),
+                                                                                          b.getTagName()))
                      .map((defNode) -> lookupTag(defNode, !tagNs.isEmpty()))
                      .toArray(LookupElement[]::new);
     }
@@ -130,15 +129,6 @@ public class XLangTagReference extends XLangReferenceBase {
             tagName = tagName.substring(tagName.indexOf(':') + 1);
         }
 
-        return LookupElementBuilder.create(tagName)
-                                   // icon 靠左布局
-                                   .withIcon(PlatformIcons.XML_TAG_ICON)
-                                   // type text 靠后布局
-                                   .withTypeText(label)
-//                                   // tail text 与 lookup string 紧挨着
-//                                   .withTailText(label) //
-//                                   // presentable text 将替换 lookup string 作为最终的显示文本
-//                                   .withPresentableText(label) //
-                                   .withInsertHandler(new XmlTagInsertHandler());
+        return LookupElementHelper.lookupXmlTag(tagName, label);
     }
 }

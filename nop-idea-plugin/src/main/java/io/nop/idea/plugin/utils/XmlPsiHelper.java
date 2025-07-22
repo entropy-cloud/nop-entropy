@@ -8,7 +8,6 @@
 package io.nop.idea.plugin.utils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -30,14 +29,12 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlAttribute;
-import com.intellij.psi.xml.XmlElementType;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.psi.xml.XmlTokenType;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.ResourceHelper;
-import io.nop.xlang.xpl.xlib.XplLibHelper;
 import org.jetbrains.annotations.NotNull;
 
 public class XmlPsiHelper {
@@ -103,89 +100,6 @@ public class XmlPsiHelper {
         String absPath = getNopVfsAbsolutePath(path, element);
 
         return XmlPsiHelper.findPsiFileList(project, absPath);
-    }
-
-    public static List<PsiFile> findXplLib(Project project, XmlTag tag) {
-        String ns = StringHelper.getNamespace(tag.getName());
-        if ("thisLib".equals(ns)) {
-            PsiFile file = tag.getContainingFile();
-            String fileName = file.getName();
-            if (fileName.endsWith(".xlib")) {
-                // 同一个库文件可能存在多个定制文件
-                String path = ProjectFileHelper.getNopVfsPath(file.getVirtualFile());
-                List<PsiFile> list = findPsiFileList(project, path);
-                if (list.isEmpty()) {
-                    list = Collections.singletonList(file);
-                }
-                return list;
-            }
-
-            String path = ProjectFileHelper.getNopVfsPath(file.getVirtualFile());
-            int pos = path.lastIndexOf("/xlib/");
-            if (pos > 0) {
-                // 标签的实现文件，假定格式为/xlib/{libName}/impl_xxx.xpl
-                pos += "/xlib/".length();
-                int pos2 = path.indexOf('/', pos);
-                if (pos2 > 0) {
-                    return findPsiFileList(project, path.substring(0, pos2) + ".xlib");
-                }
-            }
-            return Collections.emptyList();
-        }
-
-        XmlAttribute attr = tag.getAttribute("xpl:lib");
-        if (attr != null) {
-            List<String> paths = StringHelper.split(attr.getValue(), ',');
-            for (String path : paths) {
-                String libNs = XplLibHelper.getNamespaceFromLibPath(path);
-                if (ns.equals(libNs)) {
-                    return findPsiFileList(project, path);
-                }
-            }
-        }
-
-        PsiFile[] files = FilenameIndex.getFilesByName(project, ns + ".xlib", GlobalSearchScope.allScope(project));
-        return files.length == 0 ? Collections.emptyList() : Arrays.asList(files);
-    }
-
-    public static PsiElement[] findXplTag(Project project, XmlTag tag) {
-        List<PsiFile> files = findXplLib(project, tag);
-        if (files.isEmpty()) {
-            return PsiElement.EMPTY_ARRAY;
-        }
-
-        String tagBegin = "<" + tag.getLocalName();
-
-        List<PsiElement> ret = new ArrayList<>();
-        for (PsiFile file : files) {
-            String text = file.getText();
-            int fromPos = 0;
-            do {
-                int pos = text.indexOf(tagBegin, fromPos);
-                if (pos >= 0) {
-                    int end = pos + tagBegin.length();
-                    if (end == text.length()
-                        || text.charAt(end) == ' '
-                        || text.charAt(end) == '/'
-                        || text.charAt(end) == '>') {
-                        PsiElement element = file.findElementAt(pos + 1);
-                        if (element != null && isXmlTag(element)) {
-                            ret.add(element);
-                            break;
-                        }
-                    }
-                    fromPos = end;
-                } else {
-                    break;
-                }
-            } while (true);
-        }
-        return ret.toArray(PsiElement.EMPTY_ARRAY);
-    }
-
-    private static boolean isXmlTag(PsiElement element) {
-        IElementType type = element.getNode().getElementType();
-        return type == XmlElementType.XML_NAME || type == XmlElementType.XML_TAG_NAME || type == XmlElementType.XML_TAG;
     }
 
     /** 获取指定行列的 {@link PsiElement 元素} */

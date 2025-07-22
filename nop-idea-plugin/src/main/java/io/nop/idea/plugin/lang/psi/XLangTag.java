@@ -16,10 +16,13 @@ import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceService;
 import com.intellij.psi.impl.source.xml.TagNameReference;
 import com.intellij.psi.impl.source.xml.XmlTagImpl;
+import com.intellij.psi.xml.XmlAttribute;
+import com.intellij.psi.xml.XmlElement;
 import com.intellij.psi.xml.XmlToken;
 import com.intellij.xml.util.XmlTagUtil;
 import io.nop.api.core.util.SourceLocation;
@@ -27,6 +30,8 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.xml.XNode;
 import io.nop.idea.plugin.lang.XLangDocumentation;
 import io.nop.idea.plugin.lang.reference.XLangTagReference;
+import io.nop.idea.plugin.lang.reference.XLangXlibTagNsReference;
+import io.nop.idea.plugin.lang.reference.XLangXlibTagReference;
 import io.nop.idea.plugin.resource.ProjectEnv;
 import io.nop.idea.plugin.utils.XDefPsiHelper;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
@@ -43,7 +48,9 @@ import io.nop.xlang.xdef.impl.XDefAttribute;
 import io.nop.xlang.xdef.parse.XDefTypeDeclParser;
 import io.nop.xlang.xdsl.XDslConstants;
 import io.nop.xlang.xdsl.XDslKeys;
+import io.nop.xlang.xpl.XplConstants;
 import io.nop.xlang.xpl.xlib.XlibConstants;
+import io.nop.xlang.xpl.xlib.XplLibHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -111,14 +118,24 @@ public class XLangTag extends XmlTagImpl {
     public PsiReference @NotNull [] getReferences(@NotNull PsiReferenceService.Hints hints) {
         List<PsiReference> refs = new ArrayList<>();
 
-        // TODO xlib 函数标签的名字空间引用的是 xlib 的文件名字
+        XlibTagMeta xlibTag = getXlibTagMeta();
+
         // 参考 XmlTagDelegate#getReferencesImpl
         PsiReference[] xmlRefs = super.getReferences(hints);
         // Note: 仅保留对名字空间的引用，以支持对其做高亮、重命名等
         for (PsiReference ref : xmlRefs) {
-            if (!(ref instanceof TagNameReference)) {
+            // Note: xlib 函数标签的名字空间引用的是 xlib 的文件名字
+            if (!(ref instanceof TagNameReference) && xlibTag == null) {
                 refs.add(ref);
             }
+        }
+
+        if (xlibTag != null) {
+            XmlToken startTagName = XmlTagUtil.getStartTagNameElement(this);
+            TextRange textRange = TextRange.allOf(xlibTag.tagNs).shiftRight(startTagName.getStartOffsetInParent());
+
+            PsiReference ref = new XLangXlibTagNsReference(this, textRange, xlibTag.tagNs, xlibTag.ref);
+            refs.add(ref);
         }
 
         // 对起止标签均做引用识别
@@ -136,9 +153,13 @@ public class XLangTag extends XmlTagImpl {
             // Note: 针对起止标签名在当前标签中的文本范围创建引用，而不是针对起止标签名自身创建引用
             TextRange textRange = TextRange.allOf(name.substring(nsIndex + 1))
                                            .shiftRight(token.getStartOffsetInParent() + nsIndex + 1);
-            XLangTagReference ref = new XLangTagReference(this, textRange);
 
-            // TODO 对 xlib 标签单独做引用识别
+            PsiReference ref;
+            if (xlibTag == null) {
+                ref = new XLangTagReference(this, textRange);
+            } else {
+                ref = new XLangXlibTagReference(this, textRange, xlibTag.tagName, xlibTag.xlibPath);
+            }
 
             refs.add(ref);
         }
@@ -173,6 +194,8 @@ public class XLangTag extends XmlTagImpl {
         else {
             attrName = changeNamespace(attrName, getXDefKeys().NS, XDefKeys.DEFAULT.NS);
         }
+
+        // TODO 为 xlib 标签函数的参数构造定义
 
         return getXDefNodeAttr(getSchemaDefNode(), attrName);
     }
@@ -269,6 +292,66 @@ public class XLangTag extends XmlTagImpl {
                || !def.getXdefCheckNs().contains(ns);
     }
 
+    /** 若当前标签对应的是 xlib 的函数节点，则返回该函数节点信息 */
+    protected XlibTagMeta getXlibTagMeta() {
+        String tagNs = getNamespacePrefix();
+        if (StringHelper.isEmpty(tagNs)) {
+            return null;
+        }
+
+        XLangTag parentTag = getParentTag();
+        if (parentTag == null || !parentTag.isXplDefNode()) {
+            return null;
+        }
+
+        String lib;
+        XmlElement ref = null;
+        boolean selfImported = false;
+        if (XplConstants.XPL_THIS_LIB_NS.equals(tagNs)) {
+            // Note: 单元测试内，可能得不到当前标签所在文件的 vfs 路径
+            lib = XmlPsiHelper.getNopVfsPath(this);
+            ref = this;
+
+            // 支持在路径形式为 /xlib/{libName}/impl_xxx.xpl 的 xpl 文件中引用 {libName} 中的标签函数。
+            // 如，在 /nop/web/xlib/web/page_crud.xpl 中可引用 /nop/web/xlib/web.xlib 中的标签函数
+            if (lib != null && !lib.endsWith(XplConstants.POSTFIX_XLIB)) {
+                int pos = lib.lastIndexOf("/xlib/");
+                if (pos > 0) {
+                    pos += "/xlib/".length();
+
+                    int pos2 = lib.indexOf('/', pos);
+                    if (pos2 > 0) {
+                        lib = lib.substring(0, pos2) + XplConstants.POSTFIX_XLIB;
+                    }
+                }
+            }
+        } else {
+            XmlAttribute libAttr = getAttribute(XplConstants.ATTR_XPL_LIB);
+
+            lib = libAttr != null ? libAttr.getValue() : null;
+
+            selfImported = lib != null;
+            if (!selfImported) {
+                XLangTag importTag = XlibTagMeta.findXlibImportTag(this, tagNs);
+
+                if (importTag != null) {
+                    lib = importTag.getAttribute(XplConstants.FROM_NAME).getValue();
+                    ref = importTag;
+                }
+            } else {
+                ref = libAttr;
+            }
+        }
+
+        if (ref != this && (lib == null || !lib.endsWith(XplConstants.POSTFIX_XLIB))) {
+            return null;
+        }
+
+        String tagName = getLocalName();
+
+        return new XlibTagMeta(ref, tagNs, tagName, lib, selfImported);
+    }
+
     /** 获取当前标签的说明文档 */
     public XLangDocumentation getTagDocumentation() {
         String tagNs = getNamespacePrefix();
@@ -297,6 +380,8 @@ public class XLangTag extends XmlTagImpl {
         else {
             defNode = getSchemaDefNode();
         }
+
+        // TODO 为 xlib 标签函数构造文档
 
         if (defNode == null) {
             return null;
@@ -344,6 +429,8 @@ public class XLangTag extends XmlTagImpl {
         if (defAttr == null) {
             return null;
         }
+
+        // TODO 为 xlib 标签函数的参数构造文档
 
         XLangDocumentation doc = new XLangDocumentation(defAttr);
         doc.setMainTitle(mainTitle);
@@ -463,9 +550,10 @@ public class XLangTag extends XmlTagImpl {
             return createSchemaMetaForRootTag(this);
         }
 
-        Project project = getProject();
-        String tagNs = getNamespacePrefix();
         String tagName = getName();
+        String tagNs = getNamespacePrefix();
+
+        Project project = getProject();
         SchemaMeta parentSchemaMeta = parentTag.getSchemaMeta();
 
         return new ChildTagSchemaMeta(project, parentSchemaMeta, tagName, tagNs);
@@ -499,6 +587,71 @@ public class XLangTag extends XmlTagImpl {
         Project project = rootTag.getProject();
 
         return new RootTagSchemaMeta(project, schemaUrl, xdefKeys, xdslKeys, selfDef);
+    }
+
+    protected static class XlibTagMeta {
+        private final XmlElement ref;
+
+        /** xlib 标签函数的名字空间 */
+        public final String tagNs;
+        /** xlib 标签函数的名字：不含名字空间 */
+        public final String tagName;
+
+        /** xlib 的 vfs 路径 */
+        public final String xlibPath;
+        /** 是否在节点上通过 {@link XplConstants#ATTR_XPL_LIB} 属性导入 */
+        private final boolean selfImported;
+
+        XlibTagMeta(@NotNull XmlElement ref, String tagNs, String tagName, String xlibPath, boolean selfImported) {
+            this.ref = ref;
+
+            this.tagNs = tagNs;
+            this.tagName = tagName;
+
+            this.xlibPath = xlibPath;
+            this.selfImported = selfImported;
+        }
+
+        private static String getXlibAlias(String path) {
+            try {
+                return XplLibHelper.getNamespaceFromLibPath(path);
+            } catch (Exception ignore) {
+                return null;
+            }
+        }
+
+        public static XLangTag findXlibImportTag(XLangTag tag, String alias) {
+            XLangTag parentTag = tag != null ? tag.getParentTag() : null;
+            if (parentTag == null || !parentTag.isXplDefNode()) {
+                return null;
+            }
+
+            for (PsiElement child : parentTag.getChildren()) {
+                if (!(child instanceof XLangTag childTag) //
+                    || !XplConstants.TAG_C_IMPORT.equals(childTag.getName()) //
+                ) {
+                    continue;
+                }
+
+                XmlAttribute fromAttr = childTag.getAttribute(XplConstants.FROM_NAME);
+                String from = fromAttr != null ? fromAttr.getValue() : null;
+                if (from == null) {
+                    continue;
+                }
+
+                XmlAttribute asAttr = childTag.getAttribute(XplConstants.AS_NAME);
+                String as = asAttr != null ? asAttr.getValue() : null;
+                if (as == null) {
+                    as = getXlibAlias(from);
+                }
+
+                if (alias.equals(as)) {
+                    return childTag;
+                }
+            }
+
+            return findXlibImportTag(parentTag, alias);
+        }
     }
 
     private static class RootTagSchemaMeta extends SchemaMeta {

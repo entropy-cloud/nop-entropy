@@ -196,9 +196,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
     public void testXplReferences() {
         // xlib 中的 source 标签内的引用
         assertReference("""
-                                <lib xmlns:x="/nop/schema/xdsl.xdef"
-                                     x:schema="/nop/schema/xlib.xdef"
-                                >
+                                <lib xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xlib.xdef">
                                     <tags>
                                         <Call>
                                             <source></so<caret>urce>
@@ -209,9 +207,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                         "/nop/schema/xlib.xdef?source" //
         );
         assertReference("""
-                                <lib xmlns:x="/nop/schema/xdsl.xdef"
-                                     x:schema="/nop/schema/xlib.xdef"
-                                >
+                                <lib xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xlib.xdef">
                                     <tags>
                                         <Call>
                                             <source>
@@ -226,9 +222,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
 
 //        // TODO xpl 节点内引用内置的 xpl 标签函数
 //        assertReference("""
-//                                <view xmlns:x="/nop/schema/xdsl.xdef"
-//                                      x:schema="/nop/schema/xui/xview.xdef"
-//                                >
+//                                <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
 //                                      <x:gen-extends>
 //                                          <c:imp<caret>ort from="/test/reference/a.xlib"/>
 //                                      </x:gen-extends>
@@ -237,9 +231,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
 //                        "" //
 //        );
 //        assertReference("""
-//                                <view xmlns:x="/nop/schema/xdsl.xdef"
-//                                      x:schema="/nop/schema/xui/xview.xdef"
-//                                >
+//                                <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
 //                                      <x:gen-extends>
 //                                          <c:script></c:scr<caret>ipt>
 //                                      </x:gen-extends>
@@ -248,78 +240,117 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
 //                        "" //
 //        );
 
-        // TODO 通过 xpl:lib 导入 xlib
+        // xlib 标签函数引用识别
+        // - 通过 xpl:lib 导入 xlib
         assertReference("""
-                                <view xmlns:x="/nop/schema/xdsl.xdef"
-                                      x:schema="/nop/schema/xui/xview.xdef"
-                                >
+                                <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
                                       <x:gen-extends>
                                           <a:DoFind<caret>ByMdxQuery xpl:lib="/test/reference/a.xlib"/>
                                       </x:gen-extends>
                                 </view>
                                 """, //
-                        "/test/reference/a.xlib#DoFindByMdxQuery" //
+                        "/test/reference/a.xlib?DoFindByMdxQuery" //
         );
+        // - 通过 c:import 导入 xlib
         assertReference("""
-                                <view xmlns:x="/nop/schema/xdsl.xdef"
-                                      x:schema="/nop/schema/xui/xview.xdef"
-                                >
-                                      <x:gen-extends>
-                                          <a:DoFindByMdxQuery met<caret>hod="post" xpl:lib="/test/reference/a.xlib"/>
-                                      </x:gen-extends>
-                                </view>
-                                """, //
-                        "/test/reference/a.xlib#DoFindByMdxQuery" //
-        );
-
-        // TODO 通过 c:import 导入 xlib
-        assertReference("""
-                                <view xmlns:x="/nop/schema/xdsl.xdef"
-                                      x:schema="/nop/schema/xui/xview.xdef"
-                                >
+                                <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
                                       <x:gen-extends>
                                           <c:import from="/test/reference/a.xlib"/>
                                           <a:DoFind<caret>ByMdxQuery/>
                                       </x:gen-extends>
                                 </view>
                                 """, //
-                        "/test/reference/a.xlib#DoFindByMdxQuery" //
+                        "/test/reference/a.xlib?DoFindByMdxQuery" //
         );
         assertReference("""
-                                <view xmlns:x="/nop/schema/xdsl.xdef"
-                                      x:schema="/nop/schema/xui/xview.xdef"
-                                >
-                                      <x:gen-extends>
-                                          <c:import from="/test/reference/a.xlib"/>
-                                          <a:DoFindByMdxQuery met<caret>hod="post"/>
-                                      </x:gen-extends>
-                                </view>
-                                """, //
-                        "/test/reference/a.xlib#DoFindByMdxQuery" //
-        );
-        assertReference("""
-                                <view xmlns:x="/nop/schema/xdsl.xdef"
-                                      x:schema="/nop/schema/xui/xview.xdef"
-                                >
+                                <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
                                       <x:gen-extends>
                                           <c:import as="gen" from="/test/reference/a.xlib"/>
                                           <gen:DoFind<caret>ByMdxQuery/>
                                       </x:gen-extends>
                                 </view>
                                 """, //
-                        "/test/reference/a.xlib#DoFindByMdxQuery" //
+                        "/test/reference/a.xlib?DoFindByMdxQuery" //
+        );
+        // - thisLib 函数的识别
+        assertReference("""
+                                <lib xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xlib.xdef">
+                                    <tags>
+                                        <Call>
+                                            <source>
+                                                <thisLib:_DoSo<caret>mething/>
+                                            </source>
+                                        </Call>
+                                        <_DoSomething/>
+                                    </tags>
+                                </lib>
+                                """, //
+                        "_DoSomething" //
+        );
+        // - 名字空间引用识别
+        assertReference("""
+                                <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                                      <x:gen-extends>
+                                          <a<caret>:DoFindByMdxQuery xpl:lib="/test/reference/a.xlib"/>
+                                      </x:gen-extends>
+                                </view>
+                                """, //
+                        "a:DoFindByMdxQuery#xpl:lib=/test/reference/a.xlib" //
         );
         assertReference("""
-                                <view xmlns:x="/nop/schema/xdsl.xdef"
-                                      x:schema="/nop/schema/xui/xview.xdef"
-                                >
+                                <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                                      <x:gen-extends>
+                                          <c:import from="/test/reference/gen.xlib"/>
+                                          <g<caret>en:DoSomething/>
+                                      </x:gen-extends>
+                                </view>
+                                """, //
+                        "c:import" //
+        );
+        assertReference("""
+                                <lib xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xlib.xdef">
+                                    <tags>
+                                        <Call>
+                                            <source>
+                                                <thi<caret>sLib:_DoSomething/>
+                                            </source>
+                                        </Call>
+                                        <_DoSomething/>
+                                    </tags>
+                                </lib>
+                                """, //
+                        "thisLib:_DoSomething" //
+        );
+
+        // - TODO 标签函数中的参数识别
+        assertReference("""
+                                <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                                      <x:gen-extends>
+                                          <a:DoFindByMdxQuery met<caret>hod="post" xpl:lib="/test/reference/a.xlib"/>
+                                      </x:gen-extends>
+                                </view>
+                                """, //
+                        "/test/reference/a.xlib?method" //
+        );
+        assertReference("""
+                                <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                                      <x:gen-extends>
+                                          <c:import from="/test/reference/a.xlib"/>
+                                          <a:DoFindByMdxQuery met<caret>hod="post"/>
+                                      </x:gen-extends>
+                                </view>
+                                """, //
+                        "/test/reference/a.xlib?method" //
+        );
+        assertReference("""
+                                <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
                                       <x:gen-extends>
                                           <c:import as="gen" from="/test/reference/a.xlib"/>
                                           <gen:DoFindByMdxQuery met<caret>hod="post"/>
                                       </x:gen-extends>
                                 </view>
                                 """, //
-                        "/test/reference/a.xlib#DoFindByMdxQuery" //
+                        "/test/reference/a.xlib?method" //
         );
     }
 
@@ -946,18 +977,6 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                 """, //
                         null //
         );
-
-//        // TODO 对 xpl 属性的文件引用
-//        assertReference("""
-//                                <c:import from="/test/reference/a.x<caret>lib" />
-//                                """,  //
-//                        "/test/reference/a.xlib" //
-//        );
-//        assertReference("""
-//                                <c:include src="/test/<caret>reference/a.xlib" />
-//                                """,  //
-//                        "/test/reference/a.xlib" //
-//        );
     }
 
     public void testAttributeValueDefTypeReferences() {
