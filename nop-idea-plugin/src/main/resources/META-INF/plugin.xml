@@ -122,10 +122,5 @@
         <lang.elementManipulator forClass="io.nop.idea.plugin.lang.script.psi.RuleSpecNode"
                                  implementationClass="io.nop.idea.plugin.lang.script.XLangScriptNodeManipulator"/>
         <renamePsiElementProcessor implementation="io.nop.idea.plugin.lang.script.XLangScriptNodeRenameProcessor"/>
-        <!-- Note: 通过实现 PsiElement#getReferences() 并返回 Java 相关的引用对象，
-        便可实现自动补全，无需单独注册 CompletionContributor
-        -->
-        <!--<completion.contributor language="XLangScript"
-                                implementationClass="io.nop.idea.plugin.lang.script.XLangScriptCompletionContributor"/>-->
     </extensions>
 </idea-plugin>

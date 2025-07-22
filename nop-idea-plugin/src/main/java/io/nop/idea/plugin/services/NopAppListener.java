@@ -29,7 +29,7 @@ public class NopAppListener implements AppLifecycleListener {
     public void appFrameCreated(@NotNull List<String> commandLineArgs) {
         // Note: 采用默认的加载器（ClassHelper#getDefaultClassLoader），在项目中会无法加载 IXplTagLib 的实现，原因未知
         // TODO 在加载 DSL 时，是否会因为执行 x:gen-extends 等脚本而产生安全风险？
-        ClassHelper.registerSafeClassLoader((name) -> getClass().getClassLoader().loadClass(name));
+        ClassHelper.registerSafeClassLoader((name) -> ClassHelper.forName(name, getClass().getClassLoader()));
 
         AppConfig.getConfigProvider().updateConfigValue(ApiConfigs.CFG_DEBUG, false);
 
