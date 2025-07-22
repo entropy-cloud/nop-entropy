@@ -8,15 +8,20 @@
 
 package io.nop.idea.plugin.lang;
 
+import java.util.stream.Collectors;
+
 import com.intellij.codeInsight.documentation.DocumentationManagerProtocol;
-import com.intellij.codeInsight.javadoc.JavaDocHighlightingManagerImpl;
+import com.intellij.ide.highlighter.JavaHighlightingColors;
 import com.intellij.lang.documentation.DocumentationMarkup;
 import com.intellij.lang.documentation.DocumentationSettings;
+import com.intellij.openapi.editor.colors.EditorColorsManager;
+import com.intellij.openapi.editor.colors.TextAttributesKey;
 import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.editor.richcopy.HtmlSyntaxInfoUtil;
 import com.intellij.openapi.util.text.HtmlChunk;
 import com.intellij.psi.PsiElement;
 import io.nop.api.core.util.ISourceLocationGetter;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.utils.MarkdownHelper;
@@ -39,8 +44,11 @@ public class XLangDocumentation {
 
     String mainTitle;
     String subTitle;
+
     String stdDomain;
-    Boolean required;
+    String defaultValue;
+    String[] modifiers;
+
     String desc;
     String path;
 
@@ -60,10 +68,27 @@ public class XLangDocumentation {
         this.path = XmlPsiHelper.getNopVfsPath(locGetter);
 
         if (type != null) {
-            this.required = type.isMandatory();
+            this.modifiers = new String[] {
+                    type.isMandatory()
+                    ? NopPluginBundle.message("xlang.doc.flag.required")
+                    : NopPluginBundle.message("xlang.doc.flag.option"), //
+                    type.isInternal() || type.isDeprecated()
+                    ? NopPluginBundle.message("xlang.doc.flag.internal")
+                    : null, //
+                    type.isAllowCpExpr() ? NopPluginBundle.message("xlang.doc.flag.allow-cp-expr") : null, //
+            };
+
             this.stdDomain = type.getStdDomain();
             if (type.getOptions() != null) {
                 this.stdDomain += ':' + type.getOptions();
+            }
+
+            this.defaultValue = StringHelper.toString(type.getDefaultValue(), null);
+            if (this.defaultValue == null && !CollectionHelper.isEmpty(type.getDefaultAttrNames())) {
+                this.defaultValue = type.getDefaultAttrNames()
+                                        .stream()
+                                        .map((name) -> '@' + name)
+                                        .collect(Collectors.joining("|"));
             }
         }
     }
@@ -81,8 +106,6 @@ public class XLangDocumentation {
     }
 
     public String genDoc() {
-        JavaDocHighlightingManagerImpl highlightingManager = JavaDocHighlightingManagerImpl.getInstance();
-
         StringBuilder sb = new StringBuilder();
         sb.append("<html><head></head><body>");
 
@@ -100,29 +123,38 @@ public class XLangDocumentation {
         {
             sb.append(DocumentationMarkup.DEFINITION_START);
 
-            appendStyledSpan(sb, highlightingManager.getKeywordAttributes(), mainTitle);
+            appendStyledSpan(sb, resolveAttributes(JavaHighlightingColors.KEYWORD), mainTitle);
+            if (StringHelper.isNotBlank(defaultValue)) {
+                appendStyledSpan(sb,
+                                 resolveAttributes(JavaHighlightingColors.LINE_COMMENT),
+                                 " (=" + defaultValue + ')');
+            }
             if (StringHelper.isNotBlank(subTitle)) {
-                sb.append(" - ");
-                appendStyledSpan(sb, highlightingManager.getClassNameAttributes(), subTitle);
+                sb.append(' ');
+                appendStyledSpan(sb, resolveAttributes(JavaHighlightingColors.CLASS_NAME_ATTRIBUTES), subTitle);
             }
 
+            // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
             StringBuilder sb1 = new StringBuilder();
-            if (required != null) {
-                appendStyledSpan(sb1,
-                                 highlightingManager.getInstanceFieldAttributes(),
-                                 required
-                                 ? NopPluginBundle.message("xlang.doc.flag.required")
-                                 : NopPluginBundle.message("xlang.doc.flag.option"));
+            if (modifiers != null) {
+                for (String modifier : modifiers) {
+                    if (modifier != null) {
+                        appendStyledSpan(sb1,
+                                         resolveAttributes(JavaHighlightingColors.INSTANCE_FIELD_ATTRIBUTES),
+                                         modifier);
+                    }
+                }
             }
             if (stdDomain != null) {
                 if (!sb1.isEmpty()) {
                     sb1.append(' ');
                 }
-                appendStyledSpan(sb1, highlightingManager.getLocalVariableAttributes(), stdDomain);
+                appendStyledSpan(sb1, resolveAttributes(JavaHighlightingColors.LOCAL_VARIABLE_ATTRIBUTES), stdDomain);
             }
             if (!sb1.isEmpty()) {
                 sb.append("\n\n").append(sb1);
             }
+            // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
             sb.append(DocumentationMarkup.DEFINITION_END);
         }
@@ -182,6 +214,11 @@ public class XLangDocumentation {
                                             attributes,
                                             StringHelper.escapeXml(value),
                                             DocumentationSettings.getHighlightingSaturation(false));
+    }
+
+    // source from com.intellij.codeInsight.javadoc.JavaDocHighlightingManagerImpl#resolveAttributes
+    private static @NotNull TextAttributes resolveAttributes(@NotNull TextAttributesKey attributesKey) {
+        return EditorColorsManager.getInstance().getGlobalScheme().getAttributes(attributesKey);
     }
     // >>>>>>>>>>>>>>>>>>>>>>>
 }

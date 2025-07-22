@@ -16,10 +16,11 @@
     <!-- [Child Node]
     > This is child node
 
-    @name This is child name
+    @name [Child Name] This is child name
+    @type [Child Type] This is child type
     @xdef:unknown-attr This a unknown attribute
     -->
-    <child name="string" type="dict:test/doc/child-type=node" xdef:unknown-attr="any"/>
+    <child name="#~!string" type="dict:test/doc/child-type=node" xdef:unknown-attr="any"/>
 
     <refs xdef:value="v-path-list"/>
 

@@ -7,7 +7,7 @@
         /nop/schema/xdsl.xdef
     </refs>
 
-    <var value="abc" type="" name="#@adf"/>
+    <var com="abc" value="abc" type="" name="#@adf"/>
 
     <unknown name="abc"/>
 </example>
