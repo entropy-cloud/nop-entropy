@@ -3,7 +3,6 @@ package io.nop.task.step;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.task.ITaskStepExecution;
 import io.nop.task.ITaskStepRuntime;
-import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
@@ -30,13 +29,12 @@ public class SelectorTaskStep extends AbstractTaskStep {
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         int index = stepRt.getBodyStepIndex();
 
+        TaskStepReturn lastResult = TaskStepReturn.CONTINUE;
         do {
             if (index >= steps.size())
-                return TaskStepReturn.RETURN_RESULT(stepRt.getResult());
+                return lastResult;
 
             ITaskStepExecution step = steps.get(index);
-
-            stepRt.setValue(TaskConstants.VAR_RESULT, null);
 
             TaskStepReturn stepResult;
             try {
@@ -50,8 +48,10 @@ public class SelectorTaskStep extends AbstractTaskStep {
                 index++;
                 stepRt.setBodyStepIndex(index);
                 stepRt.saveState();
+                lastResult = TaskStepReturn.CONTINUE;
                 continue;
             }
+            lastResult = stepResult;
 
             if (stepResult.isSuspend())
                 return stepResult;
@@ -92,10 +92,10 @@ public class SelectorTaskStep extends AbstractTaskStep {
                         stepRt.setBodyStepIndex(steps.size());
                         return TaskStepReturn.RETURN(result.getOutputs());
                     } else {
-                        stepRt.setBodyStepIndex(indexParam + 1);
-                        if (result.isResultTruthy())
+                        if (indexParam + 1 >= steps.size() || result.isResultTruthy())
                             return result;
 
+                        stepRt.setBodyStepIndex(indexParam + 1);
                         stepRt.saveState();
                         return execute(stepRt);
                     }

@@ -244,7 +244,7 @@ public class TaskStepExecution implements ITaskStepExecution {
 
                     Guard.checkState(!ret.isAsync());
 
-                    parentScope.setLocalValue(TaskConstants.VAR_RESULT, ret.getOutput(TaskConstants.VAR_RESULT));
+                    parentScope.setLocalValue(TaskConstants.VAR_RESULT, ret.getResult());
 
                     if (!outputConfigs.isEmpty()) {
                         initOutputs(ret, stepRt, parentScope);
