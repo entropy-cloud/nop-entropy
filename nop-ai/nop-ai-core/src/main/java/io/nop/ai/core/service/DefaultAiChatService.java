@@ -5,14 +5,17 @@ import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.ai.core.api.chat.IAiChatLogger;
 import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.chat.IAiChatSession;
+import io.nop.ai.core.api.messages.AiAssistantMessage;
 import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.AiChatUsage;
 import io.nop.ai.core.api.messages.AiMessage;
+import io.nop.ai.core.api.messages.AiMessageAttachment;
+import io.nop.ai.core.api.messages.AiToolResponseMessage;
 import io.nop.ai.core.api.messages.AiUserMessage;
 import io.nop.ai.core.api.messages.MessageStatus;
 import io.nop.ai.core.api.messages.Prompt;
-import io.nop.ai.core.api.messages.AiMessageAttachment;
 import io.nop.ai.core.api.messages.ToolCall;
+import io.nop.ai.core.api.tool.ToolSpecification;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
 import io.nop.ai.core.model.LlmRequestModel;
@@ -31,6 +34,7 @@ import io.nop.commons.concurrent.ratelimit.IRateLimiter;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.http.api.client.HttpRequest;
@@ -43,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -322,20 +327,79 @@ public class DefaultAiChatService implements IAiChatService {
         List<AiMessage> msgs = prompt.getMessages();
         AiMessage lastMessage = prompt.getLastMessage();
         for (AiMessage msg : msgs) {
-            Object content = getMessageContent(msg);
-            if (modelModel != null && lastMessage == msg) {
-                if (Boolean.TRUE.equals(options.getEnableThinking())) {
-                    if (modelModel.getEnableThinkingPrompt() != null) {
-                        content += "\n" + modelModel.getEnableThinkingPrompt();
-                    }
-                } else {
-                    if (modelModel.getDisableThinkingPrompt() != null) {
-                        content += "\n" + modelModel.getDisableThinkingPrompt();
-                    }
+            Map<String, Object> msgMap = toMessage(msg, modelModel, lastMessage == msg, options);
+            messages.add(msgMap);
+        }
+
+        addTools(body, prompt);
+    }
+
+    protected Map<String, Object> toMessage(AiMessage msg, LlmModelModel modelModel, boolean last, AiChatOptions options) {
+        Object content = getMessageContent(msg);
+        if (modelModel != null && last) {
+            if (Boolean.TRUE.equals(options.getEnableThinking())) {
+                if (modelModel.getEnableThinkingPrompt() != null) {
+                    content += "\n" + modelModel.getEnableThinkingPrompt();
+                }
+            } else {
+                if (modelModel.getDisableThinkingPrompt() != null) {
+                    content += "\n" + modelModel.getDisableThinkingPrompt();
                 }
             }
-            messages.add(Map.of("content", content, "role", getRole(msg)));
         }
+
+        Map<String, Object> ret = new LinkedHashMap<>();
+        ret.put("role", getRole(msg));
+        ret.put("content", content);
+
+        if (msg instanceof AiAssistantMessage) {
+            List<ToolCall> toolCalls = ((AiAssistantMessage) msg).getToolCalls();
+            if (toolCalls != null && !toolCalls.isEmpty()) {
+                addToolCalls(ret, toolCalls);
+            }
+        } else if (msg instanceof AiToolResponseMessage) {
+            AiToolResponseMessage resMsg = (AiToolResponseMessage) msg;
+            ret.put("tool_call_id", resMsg.getToolCallId());
+            ret.put("name", resMsg.getName());
+        }
+        return ret;
+    }
+
+    protected void addToolCalls(Map<String, Object> message, List<ToolCall> toolCalls) {
+        List<Map<String, Object>> json = new ArrayList<>();
+        for (ToolCall toolCall : toolCalls) {
+            Map<String, Object> call = new LinkedHashMap<>();
+            Map<String, Object> fnJson = new LinkedHashMap<>();
+            fnJson.put("name", toolCall.getName());
+            fnJson.put("arguments", JsonTool.stringify(toolCall.getArguments()));
+            call.put("function", fnJson);
+
+            call.put("id", toolCall.getId());
+            call.put("type", "function");
+            json.add(call);
+        }
+        message.put("tool_calls", json);
+    }
+
+    protected void addTools(Map<String, Object> body, Prompt prompt) {
+        if (prompt.getTools() == null || prompt.getTools().isEmpty())
+            return;
+
+        List<Map<String, Object>> toolsJson = new ArrayList<>();
+        for (ToolSpecification spec : prompt.getTools()) {
+            Map<String, Object> toolJson = new LinkedHashMap<>();
+            toolJson.put("type", "function");
+            Map<String, Object> funcJson = new LinkedHashMap<>();
+            toolJson.put("function", funcJson);
+
+            funcJson.put("name", spec.getName());
+            funcJson.put("description", spec.getDescription());
+            funcJson.put("parameters", spec.getInputSchema());
+
+            toolsJson.add(toolJson);
+        }
+
+        body.put("tools", toolsJson);
     }
 
     protected Object getMessageContent(AiMessage message) {
@@ -457,7 +521,36 @@ public class DefaultAiChatService implements IAiChatService {
     }
 
     protected List<ToolCall> parseToolCalls(LlmModel llmModel, Map<String, Object> result) {
-        return null;
+        String toolCallsPath = llmModel.getResponse().getToolCallsPath();
+        if (StringHelper.isEmpty(toolCallsPath))
+            return null;
+
+        List<Map<String, Object>> toolCalls = (List<Map<String, Object>>) BeanTool.getComplexProperty(result, toolCallsPath);
+        if (toolCalls == null || toolCalls.isEmpty())
+            return null;
+
+        List<ToolCall> ret = new ArrayList<>();
+        for (Map<String, Object> map : toolCalls) {
+            int index = ConvertHelper.toPrimitiveInt(map.get("index"), 0, NopException::new);
+            String callId = map.get("id").toString();
+
+            String name = (String) BeanTool.getComplexProperty(map, "function.name");
+            Object arguments = BeanTool.getComplexProperty(map, "function.arguments");
+            Map<String, Object> argsMap = null;
+            if (arguments instanceof Map) {
+                argsMap = (Map<String, Object>) arguments;
+            } else if (arguments instanceof String) {
+                argsMap = JsonTool.parseMap(arguments.toString());
+            }
+
+            ToolCall tc = new ToolCall();
+            tc.setIndex(index);
+            tc.setName(name);
+            tc.setArguments(argsMap);
+            tc.setId(callId);
+            ret.add(tc);
+        }
+        return ret;
     }
 
     protected MessageStatus getMessageStatus(Map<String, Object> body, String propPath) {

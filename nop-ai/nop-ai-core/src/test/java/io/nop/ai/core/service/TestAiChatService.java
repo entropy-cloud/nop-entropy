@@ -5,11 +5,20 @@ import io.nop.ai.core.api.chat.IAiChatService;
 import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.AiUserMessage;
 import io.nop.ai.core.api.messages.Prompt;
+import io.nop.ai.core.command.AiCommand;
+import io.nop.api.core.annotations.core.Description;
+import io.nop.api.core.annotations.core.Name;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.resource.IResource;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import static io.nop.ai.core.api.tool.DefaultAiChatToolSet.staticMethodsToolSet;
 
 @Disabled
 public class TestAiChatService extends JunitBaseTestCase {
@@ -44,5 +53,26 @@ public class TestAiChatService extends JunitBaseTestCase {
 
         AiChatExchange exchange = chatService.sendChat(prompt, options, null);
         System.out.println(exchange.toText());
+    }
+
+    @Test
+    public void testChatTool() {
+        AiCommand command = AiCommand.create();
+        command.makeChatOptions().setProvider("azure");
+        command.makeChatOptions().setModel("gpt-4o");
+        command.setEnabledTools(Set.of("loadNopFile"));
+        command.setToolSet(staticMethodsToolSet(MyToolSet.class));
+        command.prompt("读取a.orm.xlsx，作为orm.xml格式读取，它是一个Nop文件");
+        Map<String, Object> vars = new HashMap<>();
+        String result = (String) command.execute(vars, null).getOutput("RESULT");
+        System.out.println("RESULT=" + result);
+    }
+
+    public static class MyToolSet {
+        @Description("Nop文件是一系列特殊格式的DSL文件，N可以用xlsx,xml,json,yaml等格式保存，并且可以在多种格式之间自由转换。所有的Nop文件都通过这个函数加载, 可以指定toFileType来转换为指定类型。")
+        public static String loadNopFile(@Name("fileName") String fileName,
+                                         @Name("toFileType") String toFileType) {
+            return "<root>ABC</root>";
+        }
     }
 }

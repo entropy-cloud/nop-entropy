@@ -1,6 +1,5 @@
 package io.nop.ai.core.api.messages;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.BinaryDataBean;
 import io.nop.commons.util.StringHelper;
@@ -8,7 +7,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 
 import java.util.HashMap;
-import java.util.Map; 
+import java.util.Map;
 
 import static io.nop.ai.core.AiCoreConstants.RESOURCE_TYPE_AUDIO;
 import static io.nop.ai.core.AiCoreConstants.RESOURCE_TYPE_IMAGE;
@@ -17,7 +16,6 @@ import static io.nop.ai.core.AiCoreConstants.RESOURCE_TYPE_IMAGE;
 public class AiMessageAttachment {
     private String resourceType;
     private String resourceUrl;
-    private IResource resource;
 
     public static AiMessageAttachment forImage(IResource resource) {
         AiMessageAttachment ret = new AiMessageAttachment();
@@ -49,30 +47,24 @@ public class AiMessageAttachment {
         this.resourceUrl = resourceUrl;
     }
 
-    @JsonIgnore
-    public IResource getResource() {
-        return resource;
-    }
 
     public void setResource(IResource resource) {
-        this.resource = resource;
+        this.resourceUrl = getEncodedUrl(resource);
     }
 
     public Map<String, Object> toContent() {
         Map<String, Object> ret = new HashMap<>();
         if (RESOURCE_TYPE_IMAGE.equals(getResourceType())) {
             ret.put("type", "image_url");
-            ret.put("image_url", Map.of("url", getEncodedUrl()));
+            ret.put("image_url", Map.of("url", getResourceUrl()));
         } else if (RESOURCE_TYPE_AUDIO.equals(getResourceType())) {
             ret.put("type", "audio_url");
-            ret.put("audio_url", Map.of("url", getEncodedUrl()));
+            ret.put("audio_url", Map.of("url", getResourceUrl()));
         }
         return ret;
     }
 
-    public String getEncodedUrl() {
-        if (resourceUrl != null)
-            return resourceUrl;
+    public static String getEncodedUrl(IResource resource) {
         String base64 = StringHelper.encodeBase64(ResourceHelper.readBytes(resource));
         String fileExt = StringHelper.fileExt(resource.getPath());
         return "data:" + getMimeType(fileExt) + ";base64," + base64;

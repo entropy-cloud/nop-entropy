@@ -93,7 +93,7 @@
                     }
                     execNode.setAttr('xpl:lib', '/nop/ai/xlib/ai.xlib');
                     execNode.setAttr('xpl:return', 'chatResponsePromise');
-                    sourceNode.appendScript(location(), 'return chatResponsePromise.thenApply(res=> res.validate().outputs);');
+                    sourceNode.appendScript(location(), 'return chatResponsePromise.thenApply(res=> taskStepRt.RETURN(res.validate().outputs));');
 
                     return node;
                 ]]></c:script>

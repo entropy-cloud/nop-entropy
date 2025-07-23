@@ -1,6 +1,6 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:task="task"
       xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
-      xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
+      xmlns:file-utils="/nop/task/xlib/file-utils.xlib" defaultUseParentScope="true"
       x:extends="/nop/task/lib/common.task.xml">
 
     <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="50000" temperature="0"
@@ -18,7 +18,7 @@
     <steps>
         <step name="initVar">
             <output name="imageDir">
-                return outputDir.$appendPath(docxPath.$fileNameNoExt()+"/media")
+                <source>return outputDir.$appendPath(docxPath.$fileNameNoExt()+"/media")</source>
             </output>
         </step>
 
@@ -29,12 +29,18 @@
 
                 const resource = ResourceHelper.resolveRelativePathResource(docxPath);
 
-                const markdown = new DocxToMarkdownConverter().imagesDir(imageDir).convertFromResource(resource);
+                const markdown = new DocxToMarkdownConverter().imagesDirPath(imageDir).convertFromResource(resource);
                 return markdown;
             ]]></source>
 
             <output name="RESULT" exportAs="markdown"/>
             <output name="markdownText" value="${RESULT.toText()}"/>
+        </step>
+
+        <step name="saveMarkdown" customType="file-utils:WriteText">
+            <input name="outputDir"/>
+            <input name="fileName" value="${docxPath.$fileNameNoExt() + '.md'}"/>
+            <input name="text" value="${markdownText}"/>
         </step>
 
         <fork name="analyzeImages" varName="imagePos">
@@ -50,29 +56,49 @@
                         import io.nop.markdown.utils.MarkdownHelper;
                         import io.nop.image.utils.ImageCompressHelper;
                         import io.nop.ai.core.api.messages.AiMessageAttachment;
+                        import io.nop.core.resource.ResourceHelper;
 
-                        const url = MarkdownHelper.getImageUrl(markdownText, imagePos);
-                        const imageRes = ResourceHelper.resolveRelativePathResource(imageDir.$appendPath(url.$fullFileName()));
+                        const fileName = MarkdownHelper.getImageUrl(markdownText, imagePos).$fileFullName();
+                        const imageRes = ResourceHelper.resolveRelativePathResource(imageDir.$appendPath(fileName));
                         const imageData = ImageCompressHelper.compressImageWithLimit(imageRes, 1024*100);
-                        return AiMessageAttachment.fromBinaryData(imageData);
+                        return {fileName, binaryData: AiMessageAttachment.fromBinaryData(imageData)};
                     ]]></source>
                     <output name="RESULT" exportAs="imageData"/>
                 </step>
 
-                <step name="aiAnalyze" ai:promptName="coder/analyze-image" ai:attachments="${[imageData]}">
-                    <output name="RESULT"/>
+                <step name="aiAnalyze" customType="ai:TaskStep" ai:useResponseCache="true"
+                      ai:promptName="coder/analyze-image" ai:attachments="${[imageData.binaryData]}">
+                    <throttle maxConcurrency="1" maxWait="100000000"/>
+                    <output name="RESULT" exportAs="imageSummary"/>
+                </step>
+
+                <step name="saveImageSummary" customType="file-utils:WriteText">
+                    <input name="outputDir" value="${imageDir}"/>
+                    <input name="fileName" value="${imageData.fileName.$fileNameNoExt()}-summary.md"/>
+                    <input name="text" value="${imageSummary}"/>
                 </step>
 
                 <step name="prepareResult">
-                    <output name="RESULT"/>
-                    <output name="imagePos" value="${imagePos}"/>
+                    <output name="imageSummary"/>
+                    <output name="imagePos"/>
                 </step>
             </steps>
 
             <aggregator><![CDATA[
+                import io.nop.markdown.utils.MarkdownHelper;
 
+                return MarkdownHelper.addImageSummarization(markdownText,
+                    aggResults.getSuccessOutputs('imagePos'),
+                    aggResults.getSuccessOutputs('imageSummary'));
             ]]></aggregator>
+
+            <output name="RESULT" exportAs="markdownTextWithAiSummary"/>
         </fork>
 
+        <step name="saveMarkdownWithAiSummary" customType="file-utils:WriteText">
+            <input name="outputDir"/>
+            <input name="fileName" value="${docxPath.$fileNameNoExt() + '-with-summary.md'}"/>
+            <input name="text" value="${markdownTextWithAiSummary}"/>
+        </step>
     </steps>
 </task>

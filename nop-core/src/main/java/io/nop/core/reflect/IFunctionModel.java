@@ -112,7 +112,7 @@ public interface IFunctionModel
         return getArgs().stream().map(IFunctionArgument::getName).toArray(String[]::new);
     }
 
-    default boolean hasGenericTypeArg(){
+    default boolean hasGenericTypeArg() {
         return getArgs().stream().anyMatch(IFunctionArgument::hasGenericType);
     }
 

@@ -6,11 +6,15 @@ import io.nop.ai.core.api.messages.AiAssistantMessage;
 import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.ai.core.api.messages.AiChatUsage;
 import io.nop.ai.core.api.messages.AiMessage;
+import io.nop.ai.core.api.messages.AiMessageAttachment;
+import io.nop.ai.core.api.messages.AiUserMessage;
 import io.nop.ai.core.api.messages.Prompt;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.core.type.IGenericType;
+import io.nop.core.type.utils.JavaGenericTypeBuilder;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -41,6 +45,8 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
 
     static final String TITLE_MESSAGE_META = "### Metadata\n";
 
+    static final String TITLE_ATTACHMENTS = "### Attachments\n";
+
     static final String TITLE_CONTENT = "### Content\n";
 
     static final String JSON_BLOCK_BEGIN = "```json\n";
@@ -48,6 +54,8 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
     static final String JSON_BLOCK_END = "\n```";
 
     static final String MARKER_CHAT_END = "=======**==**=======\n";
+
+    static final IGenericType ATTACHMENTS_TYPE = JavaGenericTypeBuilder.buildListType(AiMessageAttachment.class);
 
     public static DefaultAiChatExchangePersister s_instance = new DefaultAiChatExchangePersister();
 
@@ -176,6 +184,16 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
             sb.append(TITLE_MESSAGE_META);
             appendJson(sb, message.getMetadata());
             sb.append("\n");
+        }
+
+        if (message instanceof AiUserMessage) {
+            AiUserMessage userMessage = (AiUserMessage) message;
+            if (userMessage.getAttachments() != null && !userMessage.getAttachments().isEmpty()) {
+                sb.append('\n');
+                sb.append(TITLE_ATTACHMENTS);
+                appendJson(sb, ((AiUserMessage) message).getAttachments());
+                sb.append("\n");
+            }
         }
 
         sb.append("\n");
@@ -320,6 +338,11 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
             String json = consumeJsonBlock(scanner);
             message.setMetadata(JsonTool.parseMap(json));
             scanner.skipBlank();
+        }
+
+        if (scanner.tryMatch(TITLE_ATTACHMENTS)) {
+            String json = consumeJsonBlock(scanner);
+            message.setAttachments(JsonTool.parseBeanFromText(json, ATTACHMENTS_TYPE));
         }
 
         scanner.match(TITLE_CONTENT);

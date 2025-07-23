@@ -1,5 +1,6 @@
 package io.nop.ai.core.api.tool;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.json.JsonSchema;
 
@@ -7,7 +8,6 @@ import io.nop.api.core.json.JsonSchema;
 public class ToolSpecification {
     private String name;
     private String description;
-    private Boolean returnDirect;
     private JsonSchema inputSchema;
     private JsonSchema outputSchema;
 
@@ -19,6 +19,7 @@ public class ToolSpecification {
         this.name = name;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getDescription() {
         return description;
     }
@@ -27,14 +28,7 @@ public class ToolSpecification {
         this.description = description;
     }
 
-    public Boolean getReturnDirect() {
-        return returnDirect;
-    }
-
-    public void setReturnDirect(Boolean returnDirect) {
-        this.returnDirect = returnDirect;
-    }
-
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public JsonSchema getInputSchema() {
         return inputSchema;
     }
@@ -43,6 +37,7 @@ public class ToolSpecification {
         this.inputSchema = inputSchema;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public JsonSchema getOutputSchema() {
         return outputSchema;
     }

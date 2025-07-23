@@ -285,4 +285,17 @@ public class TestAiTask extends JunitBaseTestCase {
         taskRt.setInput("sessionId", "test-mock");
         task.execute(taskRt).syncGetOutputs();
     }
+
+    @Test
+    public void testConvertDocx() {
+        ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-convert-docx.task.xml");
+        ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
+        taskRt.setInput("docxPath", "c:/test/test.docx");
+        taskRt.setInput("outputDir", getTargetFile("convert").getAbsolutePath());
+
+        taskRt.setInput("aiProvider", "azure");
+        taskRt.setInput("aiModel", "gpt-4o");
+        taskRt.setInput("sessionId", "test");
+        task.execute(taskRt).syncGetOutputs();
+    }
 }

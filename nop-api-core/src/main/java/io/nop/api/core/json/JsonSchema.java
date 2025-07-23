@@ -28,6 +28,10 @@ public class JsonSchema extends JsonExtensibleNode {
     private Integer maxLength;
     private String pattern;
 
+    public String toJson() {
+        return JSON.stringify(this);
+    }
+
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getId() {
         return id;

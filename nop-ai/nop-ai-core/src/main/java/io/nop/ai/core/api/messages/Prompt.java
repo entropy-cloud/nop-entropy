@@ -2,6 +2,7 @@ package io.nop.ai.core.api.messages;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.ai.core.api.support.Metadata;
+import io.nop.ai.core.api.tool.ToolSpecification;
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ public class Prompt extends Metadata {
     private String name;
     private Map<String, Object> variables;
     private List<AiMessage> messages = Collections.emptyList();
+    private List<ToolSpecification> tools;
 
     private String requestHash;
 
@@ -99,6 +101,14 @@ public class Prompt extends Metadata {
 
     public void removeMessages(Collection<String> messageIds) {
         messages.removeIf(msg -> messageIds.contains(msg.getMessageId()));
+    }
+
+    public List<ToolSpecification> getTools() {
+        return tools;
+    }
+
+    public void setTools(List<ToolSpecification> tools) {
+        this.tools = tools;
     }
 
     public String getRequestHash() {
