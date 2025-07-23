@@ -1,0 +1,106 @@
+package io.nop.ai.core.api.tool;
+
+import io.nop.api.core.json.JsonSchema;
+import io.nop.api.core.util.FutureHelper;
+import io.nop.core.lang.eval.DisabledEvalScope;
+import io.nop.core.reflect.IFunctionModel;
+
+import java.util.Map;
+import java.util.function.Function;
+
+import static io.nop.core.type.utils.GenericTypeToJsonSchema.buildInputSchema;
+import static io.nop.core.type.utils.GenericTypeToJsonSchema.buildOutputSchema;
+
+public class DefaultAiChatFunctionTool implements IAiChatFunctionTool {
+    private String name;
+    private String description;
+    private JsonSchema inputSchema;
+    private JsonSchema outputSchema;
+    private Boolean returnDirect;
+
+    private ToolSpecification spec;
+
+    private Function<Map<String, Object>, Object> invoker;
+
+    public static DefaultAiChatFunctionTool fromMethod(IFunctionModel func) {
+        DefaultAiChatFunctionTool ret = new DefaultAiChatFunctionTool();
+        ret.setName(func.getName());
+        ret.setDescription(func.getDescription());
+        ret.setInputSchema(buildInputSchema(func));
+        ret.setOutputSchema(buildOutputSchema(func));
+        ret.setInvoker(args -> func.invokeWithNamedArgs(DisabledEvalScope.INSTANCE, args));
+        return ret;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    @Override
+    public JsonSchema getInputSchema() {
+        return inputSchema;
+    }
+
+    public void setInputSchema(JsonSchema inputSchema) {
+        this.inputSchema = inputSchema;
+    }
+
+    @Override
+    public JsonSchema getOutputSchema() {
+        return outputSchema;
+    }
+
+    public void setOutputSchema(JsonSchema outputSchema) {
+        this.outputSchema = outputSchema;
+    }
+
+    public Function<Map<String, Object>, Object> getInvoker() {
+        return invoker;
+    }
+
+    public void setInvoker(Function<Map<String, Object>, Object> invoker) {
+        this.invoker = invoker;
+    }
+
+    @Override
+    public Boolean getReturnDirect() {
+        return returnDirect;
+    }
+
+    public void setReturnDirect(Boolean returnDirect) {
+        this.returnDirect = returnDirect;
+    }
+
+    @Override
+    public Object callTool(Map<String, Object> args) {
+        return FutureHelper.getResult(invoker.apply(args));
+    }
+
+    @Override
+    public ToolSpecification toSpec() {
+        ToolSpecification spec = this.spec;
+        if (spec == null) {
+            spec = new ToolSpecification();
+            spec.setName(name);
+            spec.setDescription(description);
+            spec.setInputSchema(inputSchema);
+            spec.setOutputSchema(outputSchema);
+            this.spec = spec;
+        }
+        return spec;
+    }
+}
