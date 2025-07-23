@@ -22,30 +22,35 @@ import java.util.stream.Collectors;
 public class MultiStepResultBean {
     private Map<String, StepResultBean> results = new LinkedHashMap<>();
 
-    public Map<String, StepResultBean> getResults() {
+    public Map<String, StepResultBean> getStepResultBeanMap() {
         return results;
     }
 
-    public void setResults(Map<String, StepResultBean> results) {
+    public void setStepResultBeanMap(Map<String, StepResultBean> results) {
         if (results != null)
             this.results.putAll(results);
     }
 
-    public List<StepResultBean> getResultBeans() {
+    public List<StepResultBean> getStepResultBeans() {
         return new ArrayList<>(results.values());
     }
 
-    public List<StepResultBean> getSuccessResultBeans() {
+    public List<StepResultBean> getSuccessStepResultBeans() {
         return results.values().stream().filter(StepResultBean::isSuccess).collect(Collectors.toList());
     }
 
-    public List<Object> getSuccessResultValues() {
+    public List<Object> getSuccessStepResultValues() {
         return results.values().stream().filter(StepResultBean::isSuccess)
                 .map(StepResultBean::getResult).collect(Collectors.toList());
     }
 
+    public List<Object> getSuccessOutputs(String varName) {
+        return results.values().stream().filter(StepResultBean::isSuccess)
+                .map(bean -> bean.getOutput(varName)).collect(Collectors.toList());
+    }
+
     @JsonIgnore
-    public StepResultBean getFirstSuccessResult() {
+    public StepResultBean getFirstSuccessResultBean() {
         for (StepResultBean result : results.values()) {
             if (result.isSuccess())
                 return result;
@@ -53,7 +58,7 @@ public class MultiStepResultBean {
         return null;
     }
 
-    public StepResultBean getStepResult(String stepName) {
+    public StepResultBean getStepResultBean(String stepName) {
         return results.get(stepName);
     }
 
@@ -63,7 +68,7 @@ public class MultiStepResultBean {
     }
 
     public Object getStepResultValue(String stepName) {
-        StepResultBean result = getStepResult(stepName);
+        StepResultBean result = getStepResultBean(stepName);
         return result == null ? null : result.getResult();
     }
 

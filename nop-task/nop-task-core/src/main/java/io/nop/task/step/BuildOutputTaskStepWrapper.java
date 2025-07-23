@@ -6,11 +6,15 @@ import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepReturn;
 import jakarta.annotation.Nonnull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class BuildOutputTaskStepWrapper extends DelegateTaskStep {
+    static final Logger LOG = LoggerFactory.getLogger(BuildOutputTaskStepWrapper.class);
+
     private final Map<String, IEvalAction> outputExprs;
 
     public BuildOutputTaskStepWrapper(ITaskStep taskStep, Map<String, IEvalAction> outputExprs) {

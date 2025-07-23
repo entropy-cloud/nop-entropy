@@ -6,21 +6,21 @@
             </input>
 
             <steps>
-                <xpl name="enter1" executor="myExecutor">
+                <step name="enter1" executor="myExecutor">
                     <input name="x"/>
                     <source>
                         return x + 1
                     </source>
-                </xpl>
+                </step>
 
-                <xpl name="enter2" executor="myExecutor">
+                <step name="enter2" executor="myExecutor">
                     <input name="x"/>
                     <source>
                         return x + 2
                     </source>
-                </xpl>
+                </step>
 
-                <xpl name="process">
+                <step name="process">
                     <input name="a">
                         <source>
                             STEP_RESULTS.enter1.outputs.RESULT
@@ -36,9 +36,9 @@
                     <source>
                         return a + b
                     </source>
-                </xpl>
+                </step>
 
-                <xpl name="exit">
+                <step name="exit">
                     <input name="result">
                         <source>
                             STEP_RESULTS.process.outputs.RESULT
@@ -47,7 +47,7 @@
                     <source>
                         return result
                     </source>
-                </xpl>
+                </step>
 
             </steps>
         </graph>
@@ -55,6 +55,8 @@
 
     <output name="RESULT">
         <source>
+            if(RESULT != 5)
+              throw new NopScriptError("error").param("RESULT",RESULT);
             return RESULT == 5 ? 'OK' : 'FAIL'
         </source>
     </output>

@@ -60,18 +60,23 @@ public class ForkTaskStep extends AbstractForkTaskStep {
         List<Object> items = stateBean.getItems();
         List<CompletionStage<TaskStepReturn>> promises = new ArrayList<>(items.size());
 
-        CompletionStage<Void> promise = TaskStepHelper.withCancellable(() -> {
-            for (int i = 0; i < items.size(); i++) {
-                try {
-                    TaskStepReturn result = executeFork(stepRt, items.get(i), i);
-                    promises.add(result.getReturnPromise());
-                } catch (Exception e) {
-                    promises.add(FutureHelper.reject(e));
+        CompletionStage<Void> promise;
+        if (!items.isEmpty()) {
+            promise = TaskStepHelper.withCancellable(() -> {
+                for (int i = 0; i < items.size(); i++) {
+                    try {
+                        TaskStepReturn result = executeFork(stepRt, items.get(i), i);
+                        promises.add(result.getReturnPromise());
+                    } catch (Exception e) {
+                        promises.add(FutureHelper.reject(e));
+                    }
                 }
-            }
 
-            return AsyncHelper.waitAsync(promises, getStepJoinType());
-        }, stepRt, isAutoCancelUnfinished());
+                return AsyncHelper.waitAsync(promises, getStepJoinType());
+            }, stepRt, isAutoCancelUnfinished());
+        } else {
+            promise = FutureHelper.success(null);
+        }
 
 
         return buildAggResult(promise, promises, stepRt);

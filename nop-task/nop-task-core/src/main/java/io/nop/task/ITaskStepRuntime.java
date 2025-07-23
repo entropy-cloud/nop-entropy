@@ -6,9 +6,14 @@ import io.nop.commons.lang.IEditableTagSetSupport;
 import io.nop.core.context.IEvalContext;
 import jakarta.annotation.Nonnull;
 
+import java.util.Map;
 import java.util.Set;
 
 public interface ITaskStepRuntime extends IEvalContext, IEditableTagSetSupport {
+
+    default TaskStepReturn RETURN(Map<String, Object> outputs) {
+        return TaskStepReturn.RETURN(outputs);
+    }
 
     default IContext getContext() {
         return getTaskRuntime().getContext();

@@ -17,6 +17,8 @@ import io.nop.task.TaskConstants;
 import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,6 +35,8 @@ import static io.nop.task.TaskErrors.ARG_STEP_PATH;
 import static io.nop.task.TaskErrors.ERR_TASK_GRAPH_NO_ACTIVE_STEP;
 
 public class GraphTaskStep extends AbstractTaskStep {
+    static final Logger LOG = LoggerFactory.getLogger(GraphTaskStep.class);
+
     private List<GraphStepNode> nodes;
 
     public List<GraphStepNode> getNodes() {
@@ -230,6 +234,7 @@ public class GraphTaskStep extends AbstractTaskStep {
 
                 if (node.isExit()) {
                     // 如果是结束步骤
+                    LOG.info("nop.task.run-graph-end:stepPath={},outputs={}",stepRt.getStepPath(),v.getOutputs());
                     future.complete(v);
                     cancellable.cancel();
                 }

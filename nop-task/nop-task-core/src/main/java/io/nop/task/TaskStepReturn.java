@@ -14,6 +14,8 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ResolvedPromise;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Map;
@@ -27,6 +29,8 @@ import static io.nop.task.TaskConstants.STEP_NAME_EXIT;
 import static io.nop.task.TaskConstants.STEP_NAME_SUSPEND;
 
 public final class TaskStepReturn {
+    static final Logger LOG = LoggerFactory.getLogger(TaskStepReturn.class);
+
     public static final TaskStepReturn CONTINUE = new TaskStepReturn(null, null);
     public static final TaskStepReturn SUSPEND = new TaskStepReturn(STEP_NAME_SUSPEND, null);
 
@@ -80,10 +84,10 @@ public final class TaskStepReturn {
     private TaskStepReturn(String nextStepName, Map<String, Object> outputs, CompletionStage<TaskStepReturn> future) {
         this.nextStepName = nextStepName;
         this.outputs = outputs;
-        this.future = hookFuture(future);
+        this.future = future;
     }
 
-    private CompletionStage<TaskStepReturn> hookFuture(CompletionStage<TaskStepReturn> future) {
+    private static CompletionStage<TaskStepReturn> hookFuture(CompletionStage<TaskStepReturn> future) {
         if (future == null)
             return null;
         return future.thenCompose(ret -> {
@@ -96,7 +100,7 @@ public final class TaskStepReturn {
     }
 
     private TaskStepReturn(CompletionStage<TaskStepReturn> future) {
-        this(null, null, future);
+        this(null, null, hookFuture(future));
     }
 
     private TaskStepReturn(String nextStepName, Map<String, Object> outputs) {
@@ -235,6 +239,12 @@ public final class TaskStepReturn {
         return getReturnPromise().thenApply(ret -> {
             return ret.getOutput(TaskConstants.VAR_RESULT);
         });
+    }
+
+    public TaskStepReturn dropNextStepName() {
+        if (nextStepName == null)
+            return this;
+        return new TaskStepReturn(null, outputs, this.future);
     }
 
     public TaskStepReturn thenCompose(BiFunction<TaskStepReturn, Throwable, TaskStepReturn> fn) {

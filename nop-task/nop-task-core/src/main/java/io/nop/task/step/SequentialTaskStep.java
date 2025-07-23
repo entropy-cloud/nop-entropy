@@ -45,23 +45,29 @@ public class SequentialTaskStep extends AbstractTaskStep {
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         int index = stepRt.getBodyStepIndex();
 
+        TaskStepReturn lastResult = TaskStepReturn.CONTINUE;
         do {
-            if (index >= steps.size())
-                return TaskStepReturn.RETURN_RESULT(stepRt.getResult());
+            if (index >= steps.size()) {
+                if (lastResult == TaskStepReturn.CONTINUE)
+                    return TaskStepReturn.RETURN_RESULT(stepRt.getResult());
+                return lastResult.dropNextStepName();
+            }
 
             ITaskStepExecution step = steps.get(index);
 
             TaskStepReturn stepResult = step.executeWithParentRt(stepRt).syncIfDone();
+            lastResult = stepResult;
+
             if (stepResult.isSuspend())
                 return stepResult;
 
             if (stepResult.isDone()) {
                 if (stepResult.isEnd()) {
                     stepRt.setBodyStepIndex(steps.size());
-                    return TaskStepReturn.RETURN_RESULT_END(stepRt.getResult());
+                    return stepResult;
                 } else if (stepResult.isExit()) {
                     stepRt.setBodyStepIndex(steps.size());
-                    return TaskStepReturn.RETURN_RESULT(stepRt.getResult());
+                    return TaskStepReturn.RETURN(stepResult.getOutputs());
                 }
 
                 index = getNextIndex(index, stepResult, stepRt);
