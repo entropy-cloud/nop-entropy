@@ -39,6 +39,7 @@ import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.XDefTypeDecl;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
+import io.nop.xlang.xpl.utils.XplParseHelper;
 import org.jetbrains.annotations.NotNull;
 
 public class XLangAnnotator implements Annotator {
@@ -247,6 +248,9 @@ public class XLangAnnotator implements Annotator {
         }
 
         propValue = StringHelper.unescapeXml(propValue);
+        if (XplParseHelper.hasExpr(propValue)) {
+            return;
+        }
 
         try {
             domainHandler.validate(loc, propName, propValue, IValidationErrorCollector.THROW_ERROR);
