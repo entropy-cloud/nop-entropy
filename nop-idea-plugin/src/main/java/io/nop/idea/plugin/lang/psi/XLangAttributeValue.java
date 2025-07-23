@@ -21,6 +21,7 @@ import io.nop.idea.plugin.lang.reference.XLangXdefNameReference;
 import io.nop.xlang.xdef.IXDefAttribute;
 import io.nop.xlang.xdef.XDefKeys;
 import io.nop.xlang.xdsl.XDslKeys;
+import io.nop.xlang.xpl.utils.XplParseHelper;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -51,7 +52,7 @@ public class XLangAttributeValue extends XmlAttributeValueImpl {
     @Override
     public PsiReference @NotNull [] getReferences(@NotNull PsiReferenceService.Hints hints) {
         String attrValue = getValue();
-        if (StringHelper.isEmpty(attrValue)) {
+        if (StringHelper.isEmpty(attrValue) || XplParseHelper.hasExpr(attrValue)) {
             return PsiReference.EMPTY_ARRAY;
         }
 
@@ -63,7 +64,8 @@ public class XLangAttributeValue extends XmlAttributeValueImpl {
         IXDefAttribute defAttr = attr.getDefAttr();
         // 对于未定义属性，不做引用识别
         if (defAttr == null) {
-            return PsiReference.EMPTY_ARRAY;
+            //return PsiReference.EMPTY_ARRAY;
+            return XLangReferenceHelper.getReferencesFromText(this, attrValue);
         }
 
         // 根据属性名，从属性值中查找引用

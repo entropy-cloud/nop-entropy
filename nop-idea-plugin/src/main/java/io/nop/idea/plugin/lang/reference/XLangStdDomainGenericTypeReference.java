@@ -11,6 +11,7 @@ package io.nop.idea.plugin.lang.reference;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import io.nop.core.type.IGenericType;
+import io.nop.core.type.impl.PredefinedPrimitiveType;
 import io.nop.core.type.parse.GenericTypeParser;
 import io.nop.idea.plugin.utils.PsiClassHelper;
 import org.jetbrains.annotations.NotNull;
@@ -42,7 +43,10 @@ public class XLangStdDomainGenericTypeReference extends XLangReferenceBase {
             return null;
         }
 
-        return PsiClassHelper.findClass(myElement, type.getClassName());
+        String className = type instanceof PredefinedPrimitiveType p
+                           ? p.getStdDataType().getJavaClass().getName()
+                           : type.getClassName();
+        return PsiClassHelper.findClass(myElement, className);
     }
 
     @Override

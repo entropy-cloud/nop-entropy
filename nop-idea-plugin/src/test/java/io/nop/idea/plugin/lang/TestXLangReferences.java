@@ -969,17 +969,31 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                 """, //
                         null //
         );
-        // - 属性未定义，引用无法识别
+//        // - 属性未定义，引用无法识别：TODO 后续完成对 c:if 等内置函数的识别后，取消对普通 vfs 的文本识别
+//        assertReference("""
+//                                <form xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xform.xdef">
+//                                    <filter def="/test/refere<caret>nce/test-filter.xdef"/>
+//                                </form>
+//                                """, //
+//                        null //
+//        );
+
+        // 含 ${} 表达式的值，将被忽略
         assertReference("""
-                                <form xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xform.xdef">
-                                    <filter def="/test/refere<caret>nce/test-filter.xdef"/>
-                                </form>
+                                <example xmlns:x="/nop/schema/xdsl.xdef" x:schema="/test/doc/example.xdef">
+                                    <child type="${ty<caret>pe}"/>
+                                </example>
                                 """, //
                         null //
         );
     }
 
     public void testAttributeValueDefTypeReferences() {
+        assertReference(insertCaretIntoVfs("/test/reference/a.xlib", //
+                                           "<attr name=\"disabled\" type=\"Boolean\"", //
+                                           "<attr name=\"disabled\" type=\"boo<caret>lean\""), //
+                        "java.lang.Boolean" //
+        );
         assertReference(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
                                            "xdef:default-override=\"enum:io.nop.xlang.xdef.XDefOverride\"", //
                                            "xdef:default-override=\"enum:io.nop.xlang.xdef.XDe<caret>fOverride\""), //
