@@ -96,10 +96,14 @@ public class XmlPsiHelper {
     }
 
     public static List<PsiFile> findPsiFilesByNopVfsPath(PsiElement element, String path) {
+        if (element == null || path == null) {
+            return List.of();
+        }
+
         Project project = element.getProject();
         String absPath = getNopVfsAbsolutePath(path, element);
 
-        return XmlPsiHelper.findPsiFileList(project, absPath);
+        return findPsiFileList(project, absPath);
     }
 
     /** 获取指定行列的 {@link PsiElement 元素} */

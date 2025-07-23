@@ -156,6 +156,21 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
                       assertTrue(doc.contains("/test/doc/example.xdef"));
                   } //
         );
+
+        // xlib 标签函数的文档
+        assertDoc("""
+                          <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                               <x:gen-extends>
+                                   <a:DoFin<caret>dByMdxQuery xpl:lib="/test/reference/a.xlib"/>
+                               </x:gen-extends>
+                          </view>
+                          """, //
+                  (doc) -> {
+                      assertTrue(doc.contains("Find by MDX Query"));
+                      assertTrue(doc.contains("for DoFindByMdxQuery"));
+                      assertTrue(doc.contains("/test/reference/a.xlib"));
+                  } //
+        );
     }
 
     public void testGenerateDocForAttribute() {
@@ -413,6 +428,23 @@ public class TestXLangDocumentationProvider extends BaseXLangPluginTestCase {
                   (doc) -> {
                       assertTrue(doc.contains("引入标签库"));
                       assertTrue(doc.contains("/nop/schema/xpl.xdef"));
+                  } //
+        );
+
+        // xlib 标签函数的参数文档
+        assertDoc("""
+                          <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                               <x:gen-extends>
+                                   <a:DoFindByMdxQuery xpl:lib="/test/reference/a.xlib"
+                                        queryB<caret>uilder=""
+                                   />
+                               </x:gen-extends>
+                          </view>
+                          """, //
+                  (doc) -> {
+                      assertTrue(doc.contains("Query Builder"));
+                      assertTrue(doc.contains("for queryBuilder"));
+                      assertTrue(doc.contains("/test/reference/a.xlib"));
                   } //
         );
     }

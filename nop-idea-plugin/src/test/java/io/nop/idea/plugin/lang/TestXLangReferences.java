@@ -322,7 +322,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                         "thisLib:_DoSomething" //
         );
 
-        // - TODO 标签函数中的参数识别
+        // - 标签函数中的参数识别
         assertReference("""
                                 <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
                                       <x:gen-extends>
@@ -330,7 +330,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                       </x:gen-extends>
                                 </view>
                                 """, //
-                        "/test/reference/a.xlib?method" //
+                        "/test/reference/a.xlib?attr#name=method" //
         );
         assertReference("""
                                 <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
@@ -340,7 +340,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                       </x:gen-extends>
                                 </view>
                                 """, //
-                        "/test/reference/a.xlib?method" //
+                        "/test/reference/a.xlib?attr#name=method" //
         );
         assertReference("""
                                 <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
@@ -350,7 +350,7 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                       </x:gen-extends>
                                 </view>
                                 """, //
-                        "/test/reference/a.xlib?method" //
+                        "/test/reference/a.xlib?attr#name=method" //
         );
     }
 

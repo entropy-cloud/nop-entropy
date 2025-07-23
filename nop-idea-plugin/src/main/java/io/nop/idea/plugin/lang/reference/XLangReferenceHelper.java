@@ -59,11 +59,11 @@ import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_PREFIX_OPTIONS;
  * @date 2025-07-12
  */
 public class XLangReferenceHelper {
+    /** 无命名空间的属性排在最前面，且 xdef 名字空间排在其他名字空间之前 */
     public static final Comparator<String> XLANG_NAME_COMPARATOR = (a, b) -> {
         int aNsIndex = a.indexOf(':');
         int bNsIndex = b.indexOf(':');
 
-        // 确保无命名空间的属性排在最前面，且 xdef 名字空间排在其他名字空间之前
         if (aNsIndex <= 0 && bNsIndex <= 0) {
             return a.compareTo(b);
         } //
@@ -221,7 +221,11 @@ public class XLangReferenceHelper {
 
     /** 对文本做默认的引用识别 */
     public static PsiReference[] getReferencesFromText(XmlElement refElement, String refValue) {
-        if (!refValue.endsWith(".xdef")) {
+        if (!refValue.endsWith(".xdef") //
+            && !refValue.endsWith(".xpl") //
+            && !refValue.endsWith(".xgen") //
+            && !refValue.endsWith(".xrun") //
+        ) {
             return PsiReference.EMPTY_ARRAY;
         }
 

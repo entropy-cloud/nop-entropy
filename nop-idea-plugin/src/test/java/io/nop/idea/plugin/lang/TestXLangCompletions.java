@@ -786,6 +786,27 @@ public class TestXLangCompletions extends BaseXLangPluginTestCase {
                                        </x:gen-extends>
                                  </view>
                                  """);
+
+        // 对标签函数参数的补全
+        assertCompletion("queryBuilder", //
+                         """
+                                 <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                                       <x:gen-extends>
+                                           <a:DoFindByMdxQuery xpl:lib="/test/reference/a.xlib"
+                                                e<caret>
+                                           />
+                                       </x:gen-extends>
+                                 </view>
+                                 """, //
+                         """
+                                 <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                                       <x:gen-extends>
+                                           <a:DoFindByMdxQuery xpl:lib="/test/reference/a.xlib"
+                                                queryBuilder=""
+                                           />
+                                       </x:gen-extends>
+                                 </view>
+                                 """);
     }
 
     /** 需确保仅有唯一一项自动填充项：匹配是模糊匹配，需增加输入长度才能做唯一匹配 */

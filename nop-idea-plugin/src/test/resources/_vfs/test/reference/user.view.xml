@@ -8,7 +8,7 @@
         <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
     </x:gen-extends>
     <x:post-extends>
-        <a:DoFindByMdxQuery xpl:lib="/test/reference/a.xlib"/>
+        <a:DoFindByMdxQuery xpl:lib="/test/reference/a.xlib" disabled="true" queryBuilder=""/>
     </x:post-extends>
 
     <grids>

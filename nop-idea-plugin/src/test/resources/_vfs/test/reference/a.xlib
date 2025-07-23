@@ -13,14 +13,19 @@
 
         <Query>
             <source>
-                <thisLib:DoFindByMdxQuery/>
+                <thisLib:DoFindByMdxQuery queryBuilder="" method="post"/>
             </source>
         </Query>
 
-        <DoFindByMdxQuery>
+        <DoFindByMdxQuery displayName="Find by MDX Query">
+            <attr name="disabled" type="Boolean" stdDomain="boolean"/>
             <attr name="method" type="String"/>
-            <attr name="queryBuilder"/>
+            <attr name="queryBuilder" displayName="Query Builder">
+                <description>This is description for queryBuilder</description>
+            </attr>
             <attr name="rowType" implicit="true"/>
+
+            <description>This is description for DoFindByMdxQuery</description>
 
             <source>
                 <c:script><![CDATA[

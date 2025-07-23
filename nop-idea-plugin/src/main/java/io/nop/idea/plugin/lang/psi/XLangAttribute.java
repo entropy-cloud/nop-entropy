@@ -14,6 +14,8 @@ import com.intellij.psi.PsiReferenceService;
 import com.intellij.psi.impl.source.xml.SchemaPrefixReference;
 import com.intellij.psi.impl.source.xml.XmlAttributeImpl;
 import io.nop.idea.plugin.lang.reference.XLangAttributeReference;
+import io.nop.idea.plugin.lang.reference.XLangXlibTagAttrReference;
+import io.nop.idea.plugin.lang.xlib.XlibXDefAttribute;
 import io.nop.xlang.xdef.IXDefAttribute;
 import org.jetbrains.annotations.NotNull;
 
@@ -51,7 +53,14 @@ public class XLangAttribute extends XmlAttributeImpl {
 
         int nameOffset = (ns.isEmpty() ? -1 : ns.length()) + 1;
         TextRange nameTextRange = TextRange.allOf(name).shiftRight(nameOffset);
-        XLangAttributeReference ref1 = new XLangAttributeReference(this, nameTextRange);
+        PsiReference ref1;
+
+        IXDefAttribute defAttr = getDefAttr();
+        if (defAttr instanceof XlibXDefAttribute xlibDefAttr) {
+            ref1 = new XLangXlibTagAttrReference(this, nameTextRange, xlibDefAttr);
+        } else {
+            ref1 = new XLangAttributeReference(this, nameTextRange, defAttr);
+        }
 
         return ref0 != null ? new PsiReference[] { ref0, ref1 } : new PsiReference[] { ref1 };
     }

@@ -23,6 +23,8 @@ import com.intellij.util.PlatformIcons;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.idea.plugin.lang.psi.XLangAttribute;
 import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.lang.xlib.XlibTagMeta;
+import io.nop.idea.plugin.lang.xlib.XlibXDefAttribute;
 import io.nop.idea.plugin.utils.XmlPsiHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFile;
 import io.nop.xlang.xdef.IXDefAttribute;
@@ -40,15 +42,15 @@ import org.jetbrains.annotations.Nullable;
  * @date 2025-07-10
  */
 public class XLangAttributeReference extends XLangReferenceBase {
+    private final IXDefAttribute defAttr;
 
-    public XLangAttributeReference(XLangAttribute myElement, TextRange myRangeInElement) {
+    public XLangAttributeReference(XLangAttribute myElement, TextRange myRangeInElement, IXDefAttribute defAttr) {
         super(myElement, myRangeInElement);
+        this.defAttr = defAttr;
     }
 
     @Override
     public @Nullable PsiElement resolveInner() {
-        XLangAttribute attr = (XLangAttribute) myElement;
-        IXDefAttribute defAttr = attr.getDefAttr();
         if (defAttr == null) {
             return null;
         }
@@ -113,6 +115,8 @@ public class XLangAttributeReference extends XLangReferenceBase {
         if (!usedXDslNs && xdslDefNode != null) {
             addDefAttr(result, xdslDefNode, attrNs, existAttrNames);
         }
+        // 引入可能的 xlib 标签函数的参数
+        addDefAttr(result, tag.getXlibTagMeta(), existAttrNames);
 
         return result.stream() //
                      .sorted((a, b) -> XLangReferenceHelper.XLANG_NAME_COMPARATOR.compare(a.name, b.name)) //
@@ -149,6 +153,21 @@ public class XLangAttributeReference extends XLangReferenceBase {
             }
 
             list.add(new DefAttrWithLabel(attrName, defAttr, label));
+        }
+    }
+
+    private static void addDefAttr(List<DefAttrWithLabel> list, XlibTagMeta xlibTag, Set<String> excludeNames) {
+        if (xlibTag == null) {
+            return;
+        }
+
+        for (XlibXDefAttribute defAttr : xlibTag.getAttributes().values()) {
+            String attrName = defAttr.getName();
+            if (excludeNames.contains(attrName)) {
+                continue;
+            }
+
+            list.add(new DefAttrWithLabel(attrName, defAttr, defAttr.label));
         }
     }
 
