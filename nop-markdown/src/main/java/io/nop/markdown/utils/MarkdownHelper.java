@@ -1,11 +1,13 @@
 package io.nop.markdown.utils;
 
 import io.nop.api.core.beans.IntRangeBean;
+import io.nop.commons.util.StringHelper;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MarkdownHelper {
 
@@ -90,8 +92,10 @@ public class MarkdownHelper {
                 currentIndex = end;
             }
 
-            // 在end位置插入总结信息
-            sb.append("\n").append(info).append("\n");
+            String url = getImageUrl(text, range);
+            sb.append("\n> AI_SUMMARY_FOR: ").append(url).append("\n");
+            sb.append(StringHelper.split(info.trim(), '\n').stream().map(line -> "> " + line).collect(Collectors.joining("\n")));
+            sb.append("\n\n");
         }
 
         // 复制剩余部分

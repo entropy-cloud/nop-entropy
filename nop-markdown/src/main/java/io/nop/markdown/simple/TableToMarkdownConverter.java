@@ -75,6 +75,10 @@ public class TableToMarkdownConverter {
             md.append("|");
             IRowView row = table.getRow(r);
             row.forEachCell(r, (cell, rowIndex, colIndex) -> {
+                if (cell == null) {
+                    md.append(" |");
+                    return ProcessResult.CONTINUE;
+                }
                 String cellText = cell.getText();
                 md.append(escapeCell(cellText)).append("|");
                 return ProcessResult.CONTINUE;

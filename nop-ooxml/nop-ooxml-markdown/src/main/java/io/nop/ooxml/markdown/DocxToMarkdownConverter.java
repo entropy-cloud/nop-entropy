@@ -36,7 +36,7 @@ public class DocxToMarkdownConverter {
 
             XNode doc = pkg.getWordXml();
 
-            ImageUrlMapper urlMapper = new RelsImageUrlMapper(pkg.getRels(DocxConstants.PATH_WORD_DOCUMENT), imageBaseUrl);
+            ImageUrlMapper urlMapper = new RelsImageUrlMapper(pkg.getRelsForPartPath(DocxConstants.PATH_WORD_DOCUMENT), imageBaseUrl);
             return convertFromNode(doc, urlMapper);
         } finally {
             IoHelper.safeCloseObject(pkg);
