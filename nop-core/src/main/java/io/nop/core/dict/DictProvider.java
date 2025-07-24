@@ -118,11 +118,7 @@ public class DictProvider implements IDictProvider {
         if (dict == null)
             return null;
 
-        // 转换到指定的多语言版本
-        if (!locale.equals(dict.getLocale())) {
-            dict = dict.deepClone();
-            translateToLocale(dict, locale, dictName);
-        }
+        dict = translateToLocale(dict, locale, dictName);
 
         if (CFG_DICT_RETURN_NORMALIZED_LABEL.get()) {
             dict = dict.normalize();
@@ -165,7 +161,12 @@ public class DictProvider implements IDictProvider {
         return "/dict/" + dictName + ".dict.yaml";
     }
 
-    protected void translateToLocale(DictBean dict, String locale, String dictName) {
+    protected DictBean translateToLocale(DictBean dict, String locale, String dictName) {
+        if (locale.equals(dict.getLocale()))
+            return dict;
+
+        // 转换到指定的多语言版本
+        dict = dict.deepClone();
         II18nMessageManager i18n = I18nMessageManager.instance();
         dict.setLocale(locale);
         if (dict.getLabel() != null) {
@@ -179,5 +180,6 @@ public class DictProvider implements IDictProvider {
                 option.setLabel(i18n.getMessage(locale, key, label));
             }
         }
+        return dict;
     }
 }

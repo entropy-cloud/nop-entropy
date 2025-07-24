@@ -73,14 +73,14 @@ public class EnumDictLoader implements IDictLoader {
         return classModel;
     }
 
-    DictBean buildDictFromEnum(String dictName, IClassModel classModel) {
+    protected DictBean buildDictFromEnum(String dictName, IClassModel classModel) {
         DictBean bean = new DictBean();
         bean.setName(dictName);
         bean.setStatic(true);
 
         Locale locale = classModel.getAnnotation(Locale.class);
         if (locale != null)
-            bean.setLocale(bean.getLocale());
+            bean.setLocale(locale.value());
 
         Label label = classModel.getAnnotation(Label.class);
         if (label != null) {
@@ -110,7 +110,7 @@ public class EnumDictLoader implements IDictLoader {
         List<DictOptionBean> options = new ArrayList<>();
 
         Enum[] items = (Enum[]) classModel.getRawClass().getEnumConstants();
-        for (Enum item: items) {
+        for (Enum item : items) {
             IFieldModel field = classModel.getStaticField(item.name());
             if (field.isEnumConstant()) {
                 DictOptionBean option = new DictOptionBean();
