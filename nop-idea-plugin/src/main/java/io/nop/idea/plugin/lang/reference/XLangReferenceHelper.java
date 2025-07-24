@@ -225,6 +225,7 @@ public class XLangReferenceHelper {
             && !refValue.endsWith(".xpl") //
             && !refValue.endsWith(".xgen") //
             && !refValue.endsWith(".xrun") //
+            && !refValue.endsWith(".xlib") //
         ) {
             return PsiReference.EMPTY_ARRAY;
         }

@@ -63,8 +63,9 @@ public class XLangAttributeValue extends XmlAttributeValueImpl {
 
         IXDefAttribute defAttr = attr.getDefAttr();
         // 对于未定义属性，不做引用识别
-        if (defAttr == null) {
+        if (defAttr == null || (defAttr.isUnknownAttr() && defAttr.getType().getStdDomain().equals("any"))) {
             //return PsiReference.EMPTY_ARRAY;
+            // Note: 临时支持对 xpl 内置函数的 vfs 引用识别
             return XLangReferenceHelper.getReferencesFromText(this, attrValue);
         }
 

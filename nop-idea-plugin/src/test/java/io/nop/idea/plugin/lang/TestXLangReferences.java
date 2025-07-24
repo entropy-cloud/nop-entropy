@@ -986,6 +986,26 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
                                 """, //
                         null //
         );
+
+        // 对 xpl 内置函数标签的属性值的识别
+        assertReference("""
+                                <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                                      <x:gen-extends>
+                                          <c:import from="/test/re<caret>ference/a.xlib"/>
+                                      </x:gen-extends>
+                                </view>
+                                """,  //
+                        "/test/reference/a.xlib" //
+        );
+        assertReference("""
+                                <view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef">
+                                      <x:gen-extends>
+                                          <c:include src="/test/re<caret>ference/a.xlib"/>
+                                      </x:gen-extends>
+                                </view>
+                                """,  //
+                        "/test/reference/a.xlib" //
+        );
     }
 
     public void testAttributeValueDefTypeReferences() {
