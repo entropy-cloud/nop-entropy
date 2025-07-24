@@ -41,6 +41,8 @@ public class ThrottleTaskStepWrapper extends DelegateTaskStep {
                     .param(ARG_KEY, key);
         }
         try {
+            TaskStepHelper.checkNotCancelled(stepRt);
+
             return getTaskStep().execute(stepRt).whenComplete((ret, err) -> {
                 semaphore.release(1);
             });

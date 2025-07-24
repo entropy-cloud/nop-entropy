@@ -40,6 +40,7 @@ public class RateLimitTaskStepWrapper extends DelegateTaskStep {
             throw TaskStepHelper.newError(getLocation(), stepRt, ERR_TASK_REQUEST_RATE_EXCEED_LIMIT)
                     .param(ARG_KEY, key);
 
+        TaskStepHelper.checkNotCancelled(stepRt);
         return getTaskStep().execute(stepRt);
     }
 

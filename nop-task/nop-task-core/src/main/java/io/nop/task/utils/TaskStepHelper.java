@@ -18,7 +18,10 @@ import io.nop.task.ITaskStepRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskErrors;
 import io.nop.task.TaskStepReturn;
+import io.nop.task.exceptions.NopTaskCancelledException;
 import io.nop.task.exceptions.NopTaskFailException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -35,6 +38,7 @@ import static io.nop.task.TaskErrors.ERR_TASK_CANCELLED;
 import static io.nop.task.TaskErrors.ERR_TASK_RETRY_TIMES_EXCEED_LIMIT;
 
 public class TaskStepHelper {
+    static final Logger LOG = LoggerFactory.getLogger(TaskStepHelper.class);
 
     public static String buildStepPath(String parentPath, String stepName) {
         if (StringHelper.isEmpty(parentPath))
@@ -57,10 +61,18 @@ public class TaskStepHelper {
                 .param(TaskErrors.ARG_STEP_TYPE, stepRt.getStepType());
     }
 
+    public static void checkNotCancelled(ITaskStepRuntime stepRt) {
+        if (stepRt.isCancelled()) {
+            LOG.warn("nop.task.step.cancelled:taskName={},stepPath={},taskId={},runId={}",
+                    stepRt.getTaskRuntime().getTaskName(), stepRt.getStepPath(), stepRt.getTaskInstanceId(), stepRt.getRunId());
+            throw NopTaskCancelledException.INSTANCE;
+        }
+    }
+
     public static boolean isCancelledException(Throwable e) {
         if (e instanceof CancellationException)
             return true;
-        if (e instanceof NopTaskFailException)
+        if (e instanceof NopTaskFailException || e instanceof NopTaskCancelledException)
             return true;
         if (e instanceof NopException)
             return ((NopException) e).getErrorCode().equals(ERR_TASK_CANCELLED.getErrorCode());
@@ -118,8 +130,7 @@ public class TaskStepHelper {
     public static TaskStepReturn retry(SourceLocation loc, ITaskStepRuntime stepRt,
                                        IRetryPolicy<ITaskStepRuntime> retryPolicy, Callable<TaskStepReturn> action) {
         do {
-            if (stepRt.isCancelled())
-                throw newError(loc, stepRt, ERR_TASK_CANCELLED);
+            checkNotCancelled(stepRt);
 
             ITaskStepState state = stepRt.getState();
             int retryAttempt = getInt(state.getRetryAttempt());

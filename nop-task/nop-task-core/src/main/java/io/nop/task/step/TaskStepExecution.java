@@ -30,7 +30,6 @@ import java.util.Set;
 
 import static io.nop.task.TaskErrors.ARG_INPUT_NAME;
 import static io.nop.task.TaskErrors.ARG_STEP_PATH;
-import static io.nop.task.TaskErrors.ERR_TASK_CANCELLED;
 import static io.nop.task.TaskErrors.ERR_TASK_MANDATORY_INPUT_NOT_ALLOW_EMPTY;
 
 public class TaskStepExecution implements ITaskStepExecution {
@@ -186,9 +185,7 @@ public class TaskStepExecution implements ITaskStepExecution {
                 taskRt.getTaskName(), taskRt.getTaskInstanceId(),
                 stepRt.getStepPath(), stepRt.getRunId(), step.getLocation());
 
-        if (parentRt.isCancelled()) {
-            throw TaskStepHelper.newError(location, stepRt, ERR_TASK_CANCELLED);
-        }
+        TaskStepHelper.checkNotCancelled(parentRt);
 
         if (!stepRt.isRecoverMode()) {
             if (!allowExecute(parentRt)) {

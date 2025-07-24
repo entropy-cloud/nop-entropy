@@ -43,7 +43,7 @@
             <input name="text" value="${markdownText}"/>
         </step>
 
-        <fork name="analyzeImages" varName="imagePos">
+        <fork name="analyzeImages" varName="imagePos" joinType="allComplete">
             <producer><![CDATA[
                 import io.nop.markdown.utils.MarkdownHelper;
 
@@ -60,7 +60,7 @@
 
                         const fileName = MarkdownHelper.getImageUrl(markdownText, imagePos).$fileFullName();
                         const imageRes = ResourceHelper.resolveRelativePathResource(imageDir.$appendPath(fileName));
-                        const imageData = ImageCompressHelper.compressImageWithLimit(imageRes, 1024*100);
+                        const imageData = ImageCompressHelper.compressImageWithLimit(imageRes, 1024*60);
                         return {fileName, binaryData: AiMessageAttachment.fromBinaryData(imageData)};
                     ]]></source>
                     <output name="RESULT" exportAs="imageData"/>

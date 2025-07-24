@@ -1,0 +1,31 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" >
+    <steps>
+        <fork name="test" varName="data" joinType="allComplete">
+            <input name="x">
+                <source>1</source>
+            </input>
+
+            <producer>
+                return [x,x+1]
+            </producer>
+
+            <steps>
+                <xpl name="step1">
+                    <input name="x"/>
+                    <input name="data"/>
+                    <source>
+                        if(data == 2)
+                          throw new NopScriptError("err");
+                        return x + data
+                    </source>
+                </xpl>
+            </steps>
+
+            <aggregator>
+                const sum = aggResults.sum("RESULT")
+                return sum == 2 ? 'OK' : 'FAIL'
+            </aggregator>
+        </fork>
+    </steps>
+
+</task>
