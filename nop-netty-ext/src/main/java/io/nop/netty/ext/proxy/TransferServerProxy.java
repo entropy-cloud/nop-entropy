@@ -78,7 +78,7 @@ public class TransferServerProxy extends LifeCycleSupport {
 
     private void initServerChannel(ChannelPipeline pipeline, ModelBasedTcpServerConfig config) {
         IPacketCodec<Object> codec = config.loadPacketCodec(codecRegistry);
-        pipeline.addLast(HANDLER_CODEC, new PacketCodecHandler<>(codec,
+        pipeline.addLast(HANDLER_CODEC, new PacketCodecHandler(codec,
                 config.getAggMaxMessageSize(), config.getAllowedDecodeErrorCount(), config.getAllowedEncodeErrorCount()));
 
         IStateMachine stateMachine = config.loadStateMachine();

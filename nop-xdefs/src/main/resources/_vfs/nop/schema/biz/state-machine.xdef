@@ -5,7 +5,7 @@
 @initial 初始状态的id
 @stateProp 实体上的状态属性名
 -->
-<state-machine initial="!var-name" stateProp="!string" ignoreUnknownTransition="!boolean=false"
+<state-machine initial="!var-name" stateProp="string" ignoreUnknownTransition="!boolean=false"
                stateValueType="std-data-type"
                xdef:name="StateMachineModel" xdef:bean-package="io.nop.fsm.model" messageTypeProp="string"
                x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"

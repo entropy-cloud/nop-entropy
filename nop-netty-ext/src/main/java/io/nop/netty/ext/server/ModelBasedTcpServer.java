@@ -52,7 +52,7 @@ public class ModelBasedTcpServer extends LifeCycleSupport {
     private void initServerChannel(ChannelPipeline pipeline) {
         IPacketCodec<Object> codec = config.loadPacketCodec(codecRegistry);
         pipeline.addLast(new ConnectionInfoHandler());
-        pipeline.addLast(HANDLER_CODEC, new PacketCodecHandler<>(codec,
+        pipeline.addLast(HANDLER_CODEC, new PacketCodecHandler(codec,
                 config.getAggMaxMessageSize(), config.getAllowedDecodeErrorCount(), config.getAllowedEncodeErrorCount()));
         pipeline.addLast(new MessageCounterHandler());
 

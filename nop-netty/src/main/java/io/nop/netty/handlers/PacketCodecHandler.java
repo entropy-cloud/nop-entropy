@@ -21,10 +21,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-public class PacketCodecHandler<T> extends ByteToMessageCodec<T> {
+public class PacketCodecHandler extends ByteToMessageCodec<Object> {
     static final Logger LOG = LoggerFactory.getLogger(PacketCodecHandler.class);
 
-    private final IPacketCodec<T> codec;
+    private final IPacketCodec<Object> codec;
     private final int maxFrameLength;
     private final int maxDecodeErrorCount;
     private final int maxEncodeErrorCount;
@@ -32,9 +32,9 @@ public class PacketCodecHandler<T> extends ByteToMessageCodec<T> {
     private int decodeErrorCount;
     private int encodeErrorCount;
 
-    public PacketCodecHandler(IPacketCodec<T> codec, int maxFrameLength, int maxDecodeErrorCount, int maxEncodeErrorCount) {
+    public PacketCodecHandler(IPacketCodec<?> codec, int maxFrameLength, int maxDecodeErrorCount, int maxEncodeErrorCount) {
         Guard.notNull(codec, "codec");
-        this.codec = codec;
+        this.codec = (IPacketCodec<Object>) codec;
         this.maxFrameLength = maxFrameLength;
         this.maxEncodeErrorCount = maxEncodeErrorCount;
         this.maxDecodeErrorCount = maxDecodeErrorCount;
@@ -48,7 +48,7 @@ public class PacketCodecHandler<T> extends ByteToMessageCodec<T> {
         } else {
             out.markWriterIndex();
             try {
-                codec.encodeToBuf((T) msg, out);
+                codec.encodeToBuf(msg, out);
                 // 如果成功则重置错误数为0
                 encodeErrorCount = 0;
             } catch (RuntimeException e) {

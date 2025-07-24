@@ -3,22 +3,28 @@
     <types>
         <type name="BaseMessage" abstract="true">
             <fields>
-                <field name="type" type="int" length="1" enum="MessageType"/>
+                <field name="type" type="int" length="1">
+                    <schema dict="MessageType"/>
+                </field>
             </fields>
         </type>
 
         <type name="MessageWithHeaders" abstract="true">
             <fields>
-                <field name="headers">
-                    <fields>
-                        <field name="name" type="String" codec="VLA" mandatory="true">
-                            <schema maxLength="50"/>
-                        </field>
+                <field name="headers" typeRef="Header" repeatKind="fixed">
 
-                        <field name="value" type="String" codec="VLA" mandatory="true">
-                            <schema maxLength="200"/>
-                        </field>
-                    </fields>
+                </field>
+            </fields>
+        </type>
+
+        <type name="Header">
+            <fields>
+                <field name="name" type="String" codec="VLA" mandatory="true">
+                    <schema maxLength="50"/>
+                </field>
+
+                <field name="value" type="String" codec="VLA" mandatory="true">
+                    <schema maxLength="200"/>
                 </field>
             </fields>
         </type>
@@ -42,7 +48,7 @@
             </fields>
         </type>
 
-        <type name="LogonOk" abstract="BaseMessage">
+        <type name="LogonOk" baseType="BaseMessage">
 
         </type>
 
@@ -51,12 +57,12 @@
         </type>
     </types>
 
-    <enums>
-        <enum name="MessageType" valueType="int">
+    <dicts>
+        <dict name="MessageType" label="MessageType" valueType="int">
             <option code="Request" value="1" label="Request"/>
             <option code="Response" value="2" label="Response"/>
             <option code="Logon" value="3" label="Logon"/>
             <option code="LogonOk" value="4" label="LogonOk"/>
-        </enum>
-    </enums>
+        </dict>
+    </dicts>
 </codec>
