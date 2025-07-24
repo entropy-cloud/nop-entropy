@@ -14,6 +14,7 @@ import com.intellij.codeInsight.lookup.LookupElement;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.util.IncorrectOperationException;
 import io.nop.idea.plugin.lang.psi.XLangTag;
 import io.nop.idea.plugin.lang.xlib.XlibTagMeta;
 import io.nop.idea.plugin.messages.NopPluginBundle;
@@ -83,5 +84,13 @@ public class XLangXlibTagReference extends XLangReferenceBase {
                        .map((name) -> LookupElementHelper.lookupXmlTag(name, null)) //
                        .toArray();
         }, LookupElement.EMPTY_ARRAY);
+    }
+
+    /** 对关联的源元素进行更名处理 */
+    @Override
+    public PsiElement handleElementRename(@NotNull String newElementName) throws IncorrectOperationException {
+        XLangTag element = (XLangTag) myElement;
+
+        return element.setName(newElementName);
     }
 }

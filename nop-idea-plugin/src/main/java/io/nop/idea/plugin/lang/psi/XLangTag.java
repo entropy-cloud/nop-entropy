@@ -16,6 +16,7 @@ import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.PsiReferenceService;
 import com.intellij.psi.impl.source.xml.TagNameReference;
@@ -23,6 +24,7 @@ import com.intellij.psi.impl.source.xml.XmlTagImpl;
 import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlElement;
 import com.intellij.psi.xml.XmlToken;
+import com.intellij.util.IncorrectOperationException;
 import com.intellij.xml.util.XmlTagUtil;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
@@ -111,6 +113,25 @@ public class XLangTag extends XmlTagImpl {
         XLangText text = (XLangText) findPsiChildByType(XML_TEXT);
 
         return text != null ? text.getTextChars() : "";
+    }
+
+    @Override
+    public PsiElement setName(@NotNull String name) throws IncorrectOperationException {
+        String tagName = getName();
+        if (getXDefKeys().UNKNOWN_TAG.equals(tagName)) {
+            return this;
+        }
+
+        String newName = name;
+        // 保留名字空间
+        if (name.indexOf(':') <= 0) {
+            String ns = getNamespacePrefix();
+
+            if (!ns.isEmpty()) {
+                newName = ns + ':' + newName;
+            }
+        }
+        return super.setName(newName);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package io.nop.idea.plugin.vfs;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import javax.swing.*;
@@ -136,10 +137,35 @@ public class NopVirtualFile extends PsiElementBase implements PsiNamedElement {
         return getPath();
     }
 
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     @Override
     public PsiElement setName(@NotNull String name) throws IncorrectOperationException {
-        return null;
+        // 对当前元素本身不做更名
+        return this;
     }
+
+    @Override
+    public boolean isWritable() {
+        // 允许将该元素视为可更名元素
+        return true;
+    }
+
+    /**
+     * 将关联的源元素和目标元素加入到待更名队列
+     * <p/>
+     * 重命名处理器将会为待更名元素查找相关的
+     * {@link com.intellij.psi.PsiReference PsiReference}，从而对各个关联元素也做相应的更名处理
+     */
+    public void prepareRenaming(@NotNull String newName, @NotNull Map<PsiElement, String> allRenames) {
+        allRenames.put(srcElement, newName);
+
+        for (PsiElement child : getChildren()) {
+            if (!(child instanceof PsiFile)) {
+                allRenames.put(child, newName);
+            }
+        }
+    }
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     @Override
     public @NotNull Language getLanguage() {
