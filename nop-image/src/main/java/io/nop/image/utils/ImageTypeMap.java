@@ -25,6 +25,25 @@ public class ImageTypeMap {
         registerAll("tiff", "image/tiff", "tiff");
         registerAll("svg", "image/svg+xml", "svg");
         registerAll("ico", "image/x-icon", "ico");
+
+        registerAll("emf", "image/emf", "emf");
+
+        registerAll("pcx", "image/x-pcx", "pcx");     // Paintbrush
+        registerAll("psd", "image/vnd.adobe.photoshop", "psd"); // Photoshop格式
+        registerAll("heic", "image/heic", "heic");   // 高效图像
+        registerAll("heif", "image/heif", "heif");
+        registerAll("jfif", "image/jfif", "jfif");   // JPEG File Interchange Format
+        registerAll("dds", "image/vnd.ms-dds", "dds"); // DirectDraw Surface，游戏开发常见
+        registerAll("exr", "image/aces", "exr");     // OpenEXR，高动态范围图像
+        registerAll("ras", "image/x-cmu-raster", "ras");
+        registerAll("ppm", "image/x-portable-pixmap", "ppm"); // PPM, PGM, PBM 系列
+        registerAll("pgm", "image/x-portable-graymap", "pgm");
+        registerAll("pbm", "image/x-portable-bitmap", "pbm");
+        registerAll("xbm", "image/x-xbitmap", "xbm");
+        registerAll("xpm", "image/x-xpixmap", "xpm");
+        registerAll("svgz", "image/svg+xml", "svgz"); // 压缩SVG
+        registerAll("cur", "image/x-icon", "cur");    // 鼠标指针，和ico类似
+        registerAll("thm", "image/jpeg", "thm");      // Thumbnail
     }
 
     private void registerAll(String ext, String mimeType, String formatName) {

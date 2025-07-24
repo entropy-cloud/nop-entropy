@@ -16,6 +16,7 @@ import io.nop.commons.collections.IKeyedList;
 import io.nop.commons.collections.KeyedList;
 import io.nop.commons.collections.SafeOrderedComparator;
 import io.nop.commons.collections.SetFunctions;
+import io.nop.commons.collections.iterator.ChunkIterator;
 import io.nop.commons.functional.Functionals;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.MathHelper;
@@ -262,6 +263,11 @@ public class Underscore {
     @Deterministic
     public static <T> List<List<T>> chunk(Collection<T> c, int chunkSize) {
         return CollectionHelper.splitChunk(c, chunkSize);
+    }
+
+    @Deterministic
+    public static <T> Iterator<List<T>> chunkIt(Iterator<T> it, int chunkSize) {
+        return new ChunkIterator<>(it, chunkSize);
     }
 
     /**
