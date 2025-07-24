@@ -9,6 +9,7 @@ import io.nop.ai.core.api.messages.AiMessage;
 import io.nop.ai.core.api.messages.AiMessageAttachment;
 import io.nop.ai.core.api.messages.AiUserMessage;
 import io.nop.ai.core.api.messages.Prompt;
+import io.nop.ai.core.api.tool.ToolSpecification;
 import io.nop.api.core.beans.ErrorBean;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.StringHelper;
@@ -49,6 +50,8 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
 
     static final String TITLE_CONTENT = "### Content\n";
 
+    static final String TITLE_TOOLS = "### Tools\n";
+
     static final String JSON_BLOCK_BEGIN = "```json\n";
 
     static final String JSON_BLOCK_END = "\n```";
@@ -56,6 +59,7 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
     static final String MARKER_CHAT_END = "=======**==**=======\n";
 
     static final IGenericType ATTACHMENTS_TYPE = JavaGenericTypeBuilder.buildListType(AiMessageAttachment.class);
+    static final IGenericType TOOLS_TYPE = JavaGenericTypeBuilder.buildListType(ToolSpecification.class);
 
     public static DefaultAiChatExchangePersister s_instance = new DefaultAiChatExchangePersister();
 
@@ -102,6 +106,11 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
         if (prompt.getVariables() != null) {
             sb.append(TITLE_VARIABLES);
             appendJson(sb, prompt.getVariables());
+        }
+
+        if (prompt.getTools() != null && !prompt.getTools().isEmpty()) {
+            sb.append(TITLE_TOOLS);
+            appendJson(sb, prompt.getTools());
         }
 
         List<AiMessage> messages = prompt.getMessages();
@@ -246,7 +255,7 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
         int pos = line.indexOf('[');
         String promptName = line;
         if (pos < 0) {
-            if (promptName.length() > 0)
+            if (!promptName.isEmpty())
                 prompt.setName(line);
         } else {
             promptName = line.substring(0, pos).trim();
@@ -278,6 +287,11 @@ public class DefaultAiChatExchangePersister implements IAiChatExchangePersister 
         if (scanner.tryMatch(TITLE_VARIABLES)) {
             String json = consumeJsonBlock(scanner);
             prompt.setVariables(JsonTool.parseMap(json));
+        }
+
+        if (scanner.tryMatch(TITLE_TOOLS)) {
+            String json = consumeJsonBlock(scanner);
+            prompt.setTools(JsonTool.parseBeanFromText(json, TOOLS_TYPE));
         }
 
         // 解析Messages
