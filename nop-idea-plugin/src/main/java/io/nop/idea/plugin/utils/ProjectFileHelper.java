@@ -2,6 +2,14 @@
 
 package io.nop.idea.plugin.utils;
 
+import java.io.File;
+import java.net.URL;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import com.intellij.openapi.application.PathManager;
 import com.intellij.openapi.application.PluginPathManager;
 import com.intellij.openapi.editor.Document;
@@ -13,20 +21,24 @@ import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
+import com.intellij.psi.search.FilenameIndex;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.xml.XmlElement;
+import com.intellij.util.containers.CollectionFactory;
 import com.intellij.xdebugger.XDebuggerUtil;
 import com.intellij.xdebugger.XSourcePosition;
+import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.debugger.LineLocation;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.dict.DictProvider;
 import io.nop.core.resource.ResourceHelper;
+import io.nop.idea.plugin.resource.ProjectEnv;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
-import java.net.URL;
-
 public class ProjectFileHelper {
+
     /**
      * 与FileHelper.getFileUrl格式保持一致
      */
@@ -50,16 +62,18 @@ public class ProjectFileHelper {
     }
 
     public static LineLocation toLineLocation(XSourcePosition pos) {
-        if (pos == null)
+        if (pos == null) {
             return null;
+        }
         final VirtualFile file = pos.getFile();
         final String fileURL = ProjectFileHelper.getFileUrl(file);
         return new LineLocation(fileURL, pos.getLine() + 1);
     }
 
     public static String getNopVfsPath(VirtualFile file) {
-        if (file == null)
+        if (file == null) {
             return null;
+        }
 
         String protocol = file.getFileSystem().getProtocol();
         String path = file.getPath();
@@ -70,21 +84,75 @@ public class ProjectFileHelper {
             }
         }
         int pos = path.indexOf("/_vfs/");
-        if (pos < 0)
+        if (pos < 0) {
             return null;
+        }
         return path.substring(pos + "/_vfs/".length() - 1);
     }
 
     public static String getNopVfsStdPath(VirtualFile file) {
         String path = getNopVfsPath(file);
-        if (path == null)
+        if (path == null) {
             return null;
+        }
         return ResourceHelper.getStdPath(path);
     }
 
+    /** 查找所有的 *.xdef 资源路径 */
+    public static Collection<String> findAllXdefNopVfsPaths(Project project) {
+        return FilenameIndex.getAllFilesByExt(project, "xdef")
+                            .stream()
+                            .map(ProjectFileHelper::getNopVfsStdPath)
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.toSet());
+    }
+
+    /** 查找所有的 Nop 字典资源路径 */
+    public static Collection<String> findAllDictNopVfsPaths(Project project) {
+        return FilenameIndex.getAllFilesByExt(project, "dict.yaml")
+                            .stream()
+                            .map(ProjectFileHelper::getNopVfsStdPath)
+                            .filter(Objects::nonNull)
+                            .filter((path) -> path.startsWith("/dict/"))
+                            .collect(Collectors.toSet());
+    }
+
+    /** 从 vfs 路径中获取字典名字 */
+    public static String getDictNameFromVfsPath(String path) {
+        String name = StringHelper.removeHead(path, "/dict/");
+        name = StringHelper.removeTail(name, ".dict.yaml");
+
+        return name;
+    }
+
+    /** 查找所有 vfs 资源路径 */
+    public static Collection<String> findAllNopVfsPaths(Project project) {
+        Set<String> names = CollectionFactory.createSmallMemoryFootprintSet();
+        Collections.addAll(names, FilenameIndex.getAllFilenames(project));
+
+        Set<String> vfsPaths = CollectionFactory.createSmallMemoryFootprintSet();
+
+        GlobalSearchScope scope = GlobalSearchScope.allScope(project);
+        FilenameIndex.processFilesByNames(names, true, scope, null, (file) -> {
+            String vfsPath = getNopVfsPath(file);
+            if (vfsPath != null) {
+                vfsPaths.add(vfsPath);
+            }
+            return true;
+        });
+
+        return vfsPaths;
+    }
+
+    public static DictBean loadDict(PsiElement refElement, String dictName) {
+        return ProjectEnv.withProject(refElement.getProject(),
+                                      () -> DictProvider.instance().getDict(null, dictName, null, null));
+    }
+
     public static XSourcePosition buildPos(LineLocation loc) {
-        if (loc == null)
+        if (loc == null) {
             return null;
+        }
         return buildPos(loc.getSourcePath(), loc.getLine());
     }
 
@@ -93,8 +161,9 @@ public class ProjectFileHelper {
             path = StringHelper.decodeURL(path);
         }
         VirtualFile file = ProjectFileHelper.getVirtualFile(path);
-        if (file == null)
+        if (file == null) {
             return null;
+        }
         return XDebuggerUtil.getInstance().createPosition(file, line - 1);
     }
 
@@ -118,8 +187,9 @@ public class ProjectFileHelper {
     public static CharSequence getLine(Document document, int line) {
         int beginOffset = document.getLineStartOffset(line);
         int endOffset = document.getLineEndOffset(line);
-        if (beginOffset < 0 || endOffset < 0 || beginOffset >= endOffset)
+        if (beginOffset < 0 || endOffset < 0 || beginOffset >= endOffset) {
             return null;
+        }
 
         CharSequence str = document.getCharsSequence().subSequence(beginOffset, endOffset);
         return str;
@@ -156,7 +226,8 @@ public class ProjectFileHelper {
     /**
      * 根据外部文件路径查找到对应VirtualFile，并更新IDE内的缓存
      *
-     * @param file 外部文件路径
+     * @param file
+     *         外部文件路径
      * @return file对应的VirtualFile
      */
     public static VirtualFile refreshFile(File file) {
@@ -168,8 +239,9 @@ public class ProjectFileHelper {
     }
 
     public static VirtualFile getVirtualFile(String path) {
-        if (StringHelper.isEmpty(path))
+        if (StringHelper.isEmpty(path)) {
             return null;
+        }
 
         if (path.startsWith("jar:")) {
             if (path.startsWith("jar:file:")) {
@@ -193,7 +265,8 @@ public class ProjectFileHelper {
     /**
      * 得到IDE指定插件的根目录
      *
-     * @param pluginName 插件名称
+     * @param pluginName
+     *         插件名称
      * @return 当前IDE的plugins目录下的指定子目录
      */
     public static File getPluginHome(String pluginName) {

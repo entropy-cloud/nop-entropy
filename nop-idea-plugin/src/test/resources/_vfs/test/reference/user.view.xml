@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<view xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xui/xview.xdef"
+      xmlns:view-gen="view-gen" xmlns:xpl="xpl" xmlns:a="a">
+
+    <objMeta>/test/reference/a.xmeta</objMeta>
+
+    <x:gen-extends>
+        <view-gen:DefaultViewGenExtends xpl:lib="/nop/web/xlib/view-gen.xlib"/>
+    </x:gen-extends>
+    <x:post-extends>
+        <a:DoFindByMdxQuery xpl:lib="/test/reference/a.xlib" disabled="true" queryBuilder=""/>
+    </x:post-extends>
+
+    <grids>
+        <grid id="list" x:abstract="true"/>
+        <grid id="pick-list" x:prototype="list" x:abstract="true"/>
+    </grids>
+</view>

@@ -7,194 +7,122 @@
  */
 package io.nop.idea.plugin.doc;
 
+import java.util.Objects;
+
+import com.intellij.codeInsight.documentation.DocumentationManagerProtocol;
 import com.intellij.lang.documentation.AbstractDocumentationProvider;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiManager;
+import com.intellij.psi.tree.IElementType;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.intellij.psi.xml.XmlAttribute;
-import com.intellij.psi.xml.XmlTag;
-import com.intellij.psi.xml.XmlTokenType;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
-import io.nop.commons.util.StringHelper;
-import io.nop.core.dict.DictModel;
-import io.nop.core.dict.DictModelParser;
-import io.nop.core.dict.DictProvider;
-import io.nop.core.resource.IResource;
-import io.nop.core.resource.VirtualFileSystem;
-import io.nop.core.resource.component.ResourceComponentManager;
-import io.nop.idea.plugin.resource.ProjectEnv;
-import io.nop.idea.plugin.utils.MarkdownHelper;
-import io.nop.idea.plugin.utils.XDefPsiHelper;
-import io.nop.idea.plugin.utils.XmlPsiHelper;
-import io.nop.idea.plugin.utils.XmlTagInfo;
+import io.nop.idea.plugin.lang.XLangDocumentation;
+import io.nop.idea.plugin.lang.psi.XLangAttribute;
+import io.nop.idea.plugin.lang.psi.XLangTag;
+import io.nop.idea.plugin.utils.ProjectFileHelper;
 import io.nop.xlang.xdef.IXDefAttribute;
-import io.nop.xlang.xdef.IXDefComment;
-import io.nop.xlang.xdef.IXDefNode;
+import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
-import org.jetbrains.annotations.NotNull;
-
 import jakarta.annotation.Nullable;
-import java.util.Objects;
+
+import static com.intellij.psi.xml.XmlTokenType.XML_ATTRIBUTE_VALUE_TOKEN;
+import static com.intellij.psi.xml.XmlTokenType.XML_NAME;
 
 public class XLangDocumentationProvider extends AbstractDocumentationProvider {
 
+    /**
+     * 文档生成函数
+     * <p/>
+     * 默认鼠标移动时的文档也由该函数生成 {@link #generateHoverDoc}
+     *
+     * @param srcElement
+     *         当前鼠标下的元素，对于 xml 标签和属性，其为
+     *         {@link com.intellij.psi.xml.XmlTokenType#XML_NAME XML_NAME} 类型，对于属性值，其为
+     *         {@link com.intellij.psi.xml.XmlTokenType#XML_ATTRIBUTE_VALUE_TOKEN XML_ATTRIBUTE_VALUE_TOKEN}
+     *         类型
+     * @param resolvedElement
+     *         根据 <code>srcElement</code> 所识别出的被引用元素
+     */
     @Override
-    public @Nullable
-    String generateDoc(PsiElement element, @Nullable PsiElement originalElement) {
-        return ProjectEnv.withProject(element.getProject(), () -> {
-            return doGenerate(element, originalElement);
-        });
-    }
-
-    String doGenerate(PsiElement element, PsiElement elm) {
-        if (XmlPsiHelper.isElementType(elm, XmlTokenType.XML_NAME)) {
-            PsiElement parent = elm.getParent();
-
-            XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(parent);
-            if (tagInfo == null || tagInfo.getDefNode() == null) {
-                return null;
-            }
-
-            if (parent instanceof XmlTag) {
-                DocInfo doc = new DocInfo(tagInfo.getDefNode());
-
-                IXDefComment comment = tagInfo.getDefNode().getComment();
-                if (comment != null) {
-                    doc.setTitle(comment.getMainDisplayName());
-                    doc.setDesc(comment.getMainDescription());
-                }
-                return doc.toString();
-            } else if (parent instanceof XmlAttribute) {
-                XmlAttribute attr = (XmlAttribute) parent;
-                String attrName = attr.getName();
-                DocInfo doc = new DocInfo(tagInfo.getDefNode().getAttribute(attrName));
-
-                IXDefComment comment = tagInfo.getDefNode().getComment();
-                if (comment != null) {
-                    doc.setTitle(comment.getSubDisplayName(attrName));
-                    doc.setDesc(comment.getSubDescription(attrName));
-                }
-                return doc.toString();
-            }
-        } else if (XmlPsiHelper.isElementType(elm, XmlTokenType.XML_ATTRIBUTE_VALUE_TOKEN)) {
-            XmlAttribute attr = PsiTreeUtil.getParentOfType(elm, XmlAttribute.class);
-            if (attr == null) {
-                return null;
-            }
-
-            XmlTagInfo tagInfo = XDefPsiHelper.getTagInfo(attr);
-            if (tagInfo == null || tagInfo.getDefNode() == null) {
-                return null;
-            }
-
-            XDefTypeDecl defType = tagInfo.getDefNode().getAttrType(attr.getName());
-            if (defType == null || defType.getOptions() == null) {
-                return null;
-            }
-
-            DictBean dictBean = DictProvider.instance().getDict(null, defType.getOptions(), null, null);
-            DictOptionBean option = dictBean != null ? dictBean.getOptionByValue(attr.getValue()) : null;
-            if (option == null) {
-                return null;
-            }
-
-            DocInfo doc = new DocInfo();
-            if (!Objects.equals(option.getLabel(), option.getValue())) {
-                doc.setTitle(option.getLabel());
-            }
-            doc.setDesc(option.getDescription());
-
-            return doc.toString();
+    public @Nullable String generateDoc(PsiElement resolvedElement, @Nullable PsiElement srcElement) {
+        if (srcElement == null) {
+            return null;
         }
 
-        return null;
+        XLangDocumentation doc = null;
+        IElementType elementType = srcElement.getNode().getElementType();
+        if (elementType == XML_NAME) {
+            doc = generateDocForXmlName(srcElement);
+        } //
+        else if (elementType == XML_ATTRIBUTE_VALUE_TOKEN) {
+            doc = generateDocForXmlAttributeValue(srcElement);
+        }
+
+        return doc != null ? doc.genDoc() : null;
     }
 
     /**
-     * Provides documentation when a Simple Language element is hovered with the mouse.
+     * 为文档链接中的 {@link DocumentationManagerProtocol#PSI_ELEMENT_PROTOCOL}
+     * 协议路径创建对应的 {@link PsiElement}
      */
     @Override
-    public @Nullable
-    String generateHoverDoc(@NotNull PsiElement element, @Nullable PsiElement originalElement) {
-        return generateDoc(element, originalElement);
+    public PsiElement getDocumentationElementForLink(PsiManager psiManager, String link, PsiElement context) {
+        return XLangDocumentation.createElementForLink(context, link);
     }
 
-    /**
-     * ctrl + hover时显示的文档信息
-     * <p>
-     * Provides the information in which file the Simple language key/value is defined.
-     */
-    @Override
-    public @Nullable
-    String getQuickNavigateInfo(PsiElement element, PsiElement originalElement) {
-//        if (element instanceof SimpleProperty) {
-//            final String key = ((SimpleProperty) element).getKey();
-//            final String file = SymbolPresentationUtil.getFilePathPresentation(element.getContainingFile());
-//            return "\"" + key + "\" in " + file;
-//        }
-        return null;
+    /** 为 xml 标签名和属性名生成文档 */
+    private XLangDocumentation generateDocForXmlName(PsiElement element) {
+        PsiElement parent = element.getParent();
+
+        XLangDocumentation doc = null;
+        if (parent instanceof XLangTag tag) {
+            doc = tag.getTagDocumentation();
+        } //
+        else if (parent instanceof XLangAttribute attr) {
+            String attrName = attr.getName();
+            XLangTag tag = attr.getParentTag();
+
+            doc = tag != null ? tag.getAttrDocumentation(attrName) : null;
+        }
+
+        return doc;
     }
 
-    /** 对于多行文本，行首的 <code>&gt; </code> 将被去除后，再按照 markdown 渲染得到 html 代码 */
-    public static String markdown(String text) {
-        text = text.replaceAll("(?m)^> ","");
-        text = MarkdownHelper.renderHtml(text);
-
-        return text;
-    }
-
-    static class DocInfo {
-        String title;
-        String stdDomain;
-        String desc;
-
-        DocInfo() {
+    /** 为 xml 属性值生成文档 */
+    private XLangDocumentation generateDocForXmlAttributeValue(PsiElement element) {
+        XLangAttribute attr = PsiTreeUtil.getParentOfType(element, XLangAttribute.class);
+        if (attr == null) {
+            return null;
         }
 
-        DocInfo(IXDefNode defNode) {
-            this(defNode.getXdefValue());
+        IXDefAttribute defAttr = attr.getDefAttr();
+        XDefTypeDecl defAttrType = defAttr != null ? defAttr.getType() : null;
+        if (defAttrType == null) {
+            return null;
         }
 
-        DocInfo(IXDefAttribute attr) {
-            this(attr.getType());
+        if (!XDefConstants.STD_DOMAIN_DICT.equals(defAttrType.getStdDomain())) {
+            return null;
         }
 
-        DocInfo(XDefTypeDecl type) {
-            this.stdDomain = type != null ? type.getStdDomain() : null;
+        DictBean dictBean = ProjectFileHelper.loadDict(element, defAttrType.getOptions());
+        DictOptionBean option = dictBean != null ? dictBean.getOptionByValue(attr.getValue()) : null;
+        if (option == null) {
+            return null;
         }
 
-        public void setTitle(String title) {
-            this.title = title;
+        String value = option.getStringValue();
+        String label = option.getLabel();
+
+        XLangDocumentation doc = new XLangDocumentation(dictBean);
+        doc.setMainTitle(value);
+
+        if (label != null && !Objects.equals(label, value)) {
+            doc.setSubTitle(label.startsWith(value + '-') ? label.substring(value.length() + 1) : label);
         }
+        doc.setDesc(option.getDescription());
 
-        public void setDesc(String desc) {
-            this.desc = desc;
-        }
-
-        @Override
-        public String toString() {
-            StringBuilder sb = new StringBuilder();
-
-            if (!StringHelper.isBlank(this.title)) {
-                sb.append("<p><b>");
-                sb.append(StringHelper.escapeXml(this.title));
-                sb.append("</b></p>");
-            }
-            if (this.stdDomain != null) {
-                sb.append("<p>");
-                sb.append("stdDomain=").append(StringHelper.escapeXml(this.stdDomain));
-                sb.append("</p>");
-            }
-
-            if (!StringHelper.isBlank(this.desc)) {
-                if (!sb.isEmpty()) {
-                    sb.append("<hr/><br/>");
-                }
-
-                sb.append(markdown(this.desc));
-            }
-
-            return !sb.isEmpty() ? sb.toString() : null;
-        }
+        return doc;
     }
 }

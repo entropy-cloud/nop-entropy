@@ -1,0 +1,101 @@
+<lib xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"
+     x:schema="/nop/schema/xlib.xdef"
+>
+    <tags>
+        <NewGet x:prototype="Get"/>
+        <Get>
+            <source>
+                import io.nop.commons.util.StringHelper;
+
+                StringHelper.escapeXml('abc');
+            </source>
+        </Get>
+
+        <Query>
+            <source>
+                <thisLib:DoFindByMdxQuery queryBuilder="" method="post"/>
+            </source>
+        </Query>
+
+        <DoFindByMdxQuery displayName="Find by MDX Query">
+            <attr name="disabled" type="Boolean" stdDomain="boolean"/>
+            <attr name="method" type="String"/>
+            <attr name="queryBuilder" displayName="Query Builder">
+                <description>This is description for queryBuilder</description>
+            </attr>
+            <attr name="rowType" implicit="true"/>
+
+            <description>This is description for DoFindByMdxQuery</description>
+
+            <source>
+                <c:script><![CDATA[
+                    import io.nop.core.model.query.QueryBeanHelper;
+                    import io.nop.idea.plugin.utils.PsiClassHelper;
+
+                    const queryNode = queryBuilder();
+                    const query = QueryBeanHelper.buildQueryBeanFromTreeBean(queryNode);
+                    const ormTemplate = inject('nopOrmTemplate');
+                    const mapper = ormTemplate.getRowMapper(rowType,false);
+                    const scanner = new io.nop.commons.text.tokenizer.TextScanner();
+                    const c = new java.lang.StringBuffer();
+                    const s = "abc".startsWith("a");
+                    const fn = (a: any, b: string) => a + b;
+                    fn(1, 2);
+                    Integer.valueOf;
+                    Integer.valueOf('a');
+                    PsiClassHelper.findClass();
+                    scanner.col;
+
+                    while (true) {
+                        let a = 's' instanceof string;
+                        let b = #{'ab'};
+                        break;
+                    }
+                    try {
+                        for (let i = 0; i < 10; i++) {
+                            const a = new A();
+                            if (typeof a == 'boolean') {
+                                continue;
+                            }
+                        }
+                    } catch(e) {
+                        throw e;
+                    } finally {}
+
+                    // alskdfjlaksdf
+                    /** asdfasdf */
+                    let a = 12.3 + 0x234d + 0b101 + 123L + 'ab'; a.b?.c;
+                    let b = ```
+                    abcd efg
+                    ```;
+                    const ret = thisObj.invoke('doDeleteByQuery', {
+                        query, authObjName, refNamesToCheck,
+                        prepareQuery: (qry, ctx) => {
+                            if (filter) {
+                                query.addFilter(filter(query,svcCtx));
+                            }
+
+                            if (orderBy) {
+                                query.addOrderByNode(orderBy(svcCtx));
+                            }
+
+                            if (prepareQuery != null) {
+                                prepareQuery(query, svcCtx);
+                            }
+                        },
+                        prepareDelete: (entity, ctx) => {
+                           if (prepareDelete) {
+                              prepareDelete(entity, svcCtx);
+                           }
+                        }
+                    }, null, svcCtx);
+
+                    if (method == 'findListByQuery') {
+                        return ormTemplate.findListByQuery(query,mapper);
+                    }
+                    return ormTemplate.findFirstByQuery(query, mapper);
+                ]]></c:script>
+            </source>
+        </DoFindByMdxQuery>
+    </tags>
+</lib>

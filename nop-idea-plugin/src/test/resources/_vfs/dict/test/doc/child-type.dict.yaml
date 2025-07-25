@@ -1,0 +1,5 @@
+options:
+  - value: node
+    label: Normal Node
+  - value: leaf
+    label: Leaf Node

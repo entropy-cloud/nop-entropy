@@ -1,0 +1,3 @@
+<meta xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xmeta.xdef"
+      x:extends="a.xmeta,b.xmeta"
+/>

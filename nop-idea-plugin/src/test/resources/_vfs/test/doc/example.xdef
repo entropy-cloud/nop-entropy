@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- [Example for Unit test]
+> This is root node
+-->
+<example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+         xmlns:c="c" xmlns:xpl="xpl"
+         x:schema="/nop/schema/xdef.xdef" x:dump="true"
+         xdef:bean-package="io.nop.xlang.xdef.domain" xdef:name="XJsonDomainHandler"
+         xdef:check-ns="xui"
+>
+    <xdef:post-parse>
+        <c:script xpl:dump="true"/>
+    </xdef:post-parse>
+
+    <!-- [Child Node]
+    > This is child node
+
+    @name [Child Name] This is child name
+    @type [Child Type] This is child type
+    @xdef:unknown-attr This a unknown attribute
+    -->
+    <child name="string" type="dict:test/doc/child-type=node" xdef:unknown-attr="any"/>
+
+    <refs xdef:value="v-path-list"/>
+
+    <var com="!var-name=@attr:name,type" name="#~!var-name" type="!string"/>
+
+    <tag-no-child/>
+    <tag-allow-child xdef:value="xml"/>
+
+    <!-- Any child node
+
+    @xdef:unknown-attr Any attribute
+    -->
+    <xdef:unknown-tag xdef:unknown-attr="any"/>
+</example>

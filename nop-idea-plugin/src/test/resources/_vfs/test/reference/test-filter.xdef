@@ -1,0 +1,6 @@
+<filter xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+        x:schema="/nop/schema/xdef.xdef"
+        xdef:ref="FilterCondition"
+>
+    <xdef:define xdef:name="FilterCondition"/>
+</filter>

@@ -20,6 +20,4 @@ public class XLangLanguage extends XMLLanguage {
     public XLangFileType getAssociatedFileType() {
         return XLangFileType.INSTANCE;
     }
-
-
 }

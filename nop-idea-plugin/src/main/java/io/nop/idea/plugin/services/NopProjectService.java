@@ -14,10 +14,13 @@ import io.nop.api.core.beans.DictBean;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.core.dict.DictModel;
 import io.nop.core.resource.cache.ResourceLoadingCache;
+import io.nop.core.resource.component.ComponentModelConfig;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.idea.plugin.resource.ProjectDictProvider;
 import io.nop.idea.plugin.resource.ProjectEnv;
+import io.nop.xlang.XLangConstants;
 import io.nop.xlang.initialize.XLangCoreInitializer;
+import io.nop.xlang.xdsl.DslModelParser;
 
 @Service
 public final class NopProjectService implements Disposable {
@@ -46,6 +49,8 @@ public final class NopProjectService implements Disposable {
             XLangCoreInitializer xlang = new XLangCoreInitializer();
             xlang.initialize();
             cleanup.appendOnCancelTask(xlang::destroy);
+
+            registerXlib();
             return null;
         });
     }
@@ -67,5 +72,14 @@ public final class NopProjectService implements Disposable {
     @Override
     public void dispose() {
         cleanup.cancel();
+    }
+
+    private void registerXlib() {
+        ComponentModelConfig config = new ComponentModelConfig();
+        config.modelType(XLangConstants.MODEL_TYPE_XLIB);
+        config.loader(XLangConstants.FILE_TYPE_XLIB,
+                      path -> new DslModelParser(XLangConstants.XDSL_SCHEMA_XLIB).parseFromVirtualPath(path));
+
+        cleanup.append(ResourceComponentManager.instance().registerComponentModelConfig(config));
     }
 }
