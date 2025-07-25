@@ -47,6 +47,7 @@ import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_GENERIC_TYPE;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_GENERIC_TYPE_LIST;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_NAME_OR_V_PATH;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_PACKAGE_NAME;
+import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_STD_DOMAIN;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_V_PATH;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_V_PATH_LIST;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_XDEF_ATTR;
@@ -112,6 +113,10 @@ public class XLangReferenceHelper {
                     };
             case STD_DOMAIN_XDEF_ATTR, STD_DOMAIN_DEF_TYPE -> //
                     getReferencesFromDefType(refElement, refValue, refValue);
+            case STD_DOMAIN_STD_DOMAIN -> //
+                    new PsiReference[] {
+                            new XLangStdDomainReference(refElement, textRange, refValue)
+                    };
             default -> new PsiReference[] {
                     new XLangStdDomainGeneralReference(refElement, textRange, refDefType)
             };
