@@ -1,6 +1,10 @@
 <meta x:extends="super" x:schema="/nop/schema/xmeta.xdef"
       xmlns:x="/nop/schema/xdsl.xdef" xmlns:graphql="graphql" xmlns:filter="filter">
 
+    <orderBy>
+        <field name="opResponse" />
+    </orderBy>
+
     <props>
         <prop name="opResponse">
             <schema stdDomain="csv-list" />
