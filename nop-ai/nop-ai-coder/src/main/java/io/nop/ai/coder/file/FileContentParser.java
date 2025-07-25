@@ -9,8 +9,9 @@ public class FileContentParser {
 
     public static FileContent parseFileContent(XNode node) {
         String path = node.attrText("path");
+        String description = node.attrText("description");
         String content = node.contentText();
-        return new FileContent(path, content);
+        return new FileContent(path, description, content);
     }
 
     public static FileContents parseFileContents(XNode node) {

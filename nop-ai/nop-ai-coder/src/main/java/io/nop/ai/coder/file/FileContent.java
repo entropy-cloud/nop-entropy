@@ -12,11 +12,14 @@ import io.nop.markdown.simple.MarkdownSection;
 @DataBean
 public class FileContent {
     private final String path;
+    private final String description;
     private final String content;
 
     public FileContent(@JsonProperty("path") String path,
+                       @JsonProperty("description") String description,
                        @JsonProperty("content") String content) {
         this.path = Guard.notEmpty(path, "path");
+        this.description = description;
         this.content = content;
     }
 
@@ -31,8 +34,14 @@ public class FileContent {
     public XNode toNode() {
         XNode node = XNode.make("file");
         node.setAttr("path", getPath());
+        if (getDescription() != null)
+            node.setAttr("description", getDescription());
         node.content(new CDataText(getContent()));
         return node;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public MarkdownSection toMarkdown() {
@@ -42,7 +51,13 @@ public class FileContent {
         String lang = CodeLangMap.instance().getLanguageFromExtension(StringHelper.fileExt(path));
         if (lang == null)
             lang = "";
-        section.setText("```" + lang + "\n" + content + "\n```");
+        StringBuilder sb = new StringBuilder();
+        if (getDescription() != null) {
+            sb.append("Description: ").append(getDescription()).append("\n\n");
+        }
+        sb.append("```").append(lang).append("\n").append(content).append("\n```");
+
+        section.setText(sb.toString());
         return section;
     }
 }
