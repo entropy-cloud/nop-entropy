@@ -215,6 +215,12 @@ public class PsiClassHelper {
         return map;
     }
 
+    public static PsiField getField(PsiElement context, String className, String fieldName) {
+        PsiClass clazz = findClass(context, className);
+
+        return clazz.findFieldByName(fieldName, true);
+    }
+
     public static PsiClass findClass(PsiElement context, String className) {
         Project project = context.getProject();
         GlobalSearchScope scope = PsiClassHelper.getSearchScope(context);

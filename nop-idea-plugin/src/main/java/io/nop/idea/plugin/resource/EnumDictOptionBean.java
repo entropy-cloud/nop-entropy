@@ -20,9 +20,13 @@ import io.nop.api.core.beans.DictOptionBean;
  * @date 2025-06-27
  */
 public class EnumDictOptionBean extends DictOptionBean {
-    public final PsiField target;
+    public final String className;
+    public final String filedName;
 
     public EnumDictOptionBean(PsiField target) {
-        this.target = target;
+        // Note: 不直接引用 PSI 元素，以避免在不同线程中加载的 PSI 元素的来源不一致而发生错误
+        // “Element: class com.intellij.psi.impl.source.PsiJavaFileImpl #JAVA  because: different providers”
+        this.className = target.getContainingClass().getQualifiedName();
+        this.filedName = target.getName();
     }
 }
