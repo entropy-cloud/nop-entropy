@@ -115,7 +115,7 @@ public class XLangReferenceHelper {
                     getReferencesFromDefType(refElement, refValue, refValue);
             case STD_DOMAIN_STD_DOMAIN -> //
                     new PsiReference[] {
-                            new XLangStdDomainReference(refElement, textRange, refValue)
+                            new XLangStdDomainReference(refElement, textRange, refValue, false)
                     };
             default -> new PsiReference[] {
                     new XLangStdDomainGeneralReference(refElement, textRange, refDefType)
@@ -162,7 +162,7 @@ public class XLangReferenceHelper {
 
         // 引用数据域的类型定义
         TextRange textRange = new TextRange(0, stdDomain.length()).shiftRight(textRangeOffset + stdDomainIndex);
-        refs.add(new XLangStdDomainReference(refElement, textRange, stdDomain));
+        refs.add(new XLangStdDomainReference(refElement, textRange, stdDomain, true));
 
         if (optionsIndex > 0) {
             int offset = textRangeOffset + optionsIndex;

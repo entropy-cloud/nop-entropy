@@ -33,15 +33,17 @@ import org.jetbrains.annotations.Nullable;
 public class XLangStdDomainReference extends XLangReferenceBase {
     private final String dictName = "core/std-domain";
     private final String stdDomain;
+    private final boolean allowModifiers;
 
     private DictBean dictBean;
 
     public XLangStdDomainReference(
             XmlElement myElement, TextRange myRangeInElement, //
-            String stdDomain
+            String stdDomain, boolean allowModifiers
     ) {
         super(myElement, myRangeInElement);
         this.stdDomain = stdDomain;
+        this.allowModifiers = allowModifiers;
     }
 
     @Override
@@ -63,7 +65,7 @@ public class XLangStdDomainReference extends XLangReferenceBase {
 
     @Override
     public Object @NotNull [] getVariants() {
-        DictOptionBean[] modifiers = new DictOptionBean[] {
+        DictOptionBean[] modifiers = allowModifiers ? new DictOptionBean[] {
                 new DictOptionBean() {{
                     setValue("!");
                     setLabel(NopPluginBundle.message("xlang.completion.domain.modifier.required"));
@@ -76,7 +78,7 @@ public class XLangStdDomainReference extends XLangReferenceBase {
                     setValue("#");
                     setLabel(NopPluginBundle.message("xlang.completion.domain.modifier.allow-cp-expr"));
                 }}, //
-        };
+        } : new DictOptionBean[0];
 
         String text = myElement.getText();
         return StreamEx.of(modifiers) //

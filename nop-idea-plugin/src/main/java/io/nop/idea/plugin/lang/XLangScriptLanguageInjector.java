@@ -49,13 +49,13 @@ public class XLangScriptLanguageInjector implements LanguageInjector {
             return;
         }
 
-        String langType = tag.getAttributeValue("lang");
+        String langType = tag.getAttributeValue(XplConstants.LANG_NAME);
         if (StringHelper.isEmpty(langType)) {
-            langType = "xlang";
+            langType = XplConstants.LANG_XPL;
         }
 
         Language lang = switch (langType) {
-            case "xlang" -> XLangScriptLanguage.INSTANCE;
+            case XplConstants.LANG_XPL -> XLangScriptLanguage.INSTANCE;
             default -> null;
         };
 
