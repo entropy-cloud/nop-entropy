@@ -2804,6 +2804,11 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
+    public static String fileName(String path) {
+        return fileFullName(path);
+    }
+
+    @Deterministic
     public static String filePath(String path) {
         if (path == null)
             return null;
@@ -4635,13 +4640,30 @@ public class StringHelper extends ApiStringHelper {
     // 判断是否是合法的数字编号（如 "2" 或 "3.2.1"）
     @Deterministic
     public static boolean isNumberedPrefix(String s) {
-        List<String> parts = StringHelper.split(s, '.');
-        for (String part : parts) {
-            if (!StringHelper.isAllDigit(part)) { // 每个部分必须是纯数字
+        if (s.isEmpty()) {
+            return false;
+        }
+
+        boolean hasDigit = false;
+
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+
+            if (c == '.') {
+                // 点号前必须有数字，且不能是连续的点号
+                if (!hasDigit || i == s.length() - 1 || s.charAt(i + 1) == '.') {
+                    return false;
+                }
+                hasDigit = false;  // 重置数字标志
+            } else if (isDigit(c)) {
+                hasDigit = true;
+            } else {
+                // 非数字非点号字符
                 return false;
             }
         }
-        return !s.isEmpty();
+
+        return hasDigit;  // 确保最后一部分是数字
     }
 
     @Deterministic
@@ -4682,5 +4704,13 @@ public class StringHelper extends ApiStringHelper {
         }
 
         return end; // 找到且在同一行
+    }
+
+    /**
+     * 比较2.1和3.1.1这种版本好，数字部分按照数字格式比较
+     */
+    @Deterministic
+    public static int compareVersions(String v1, String v2) {
+        return VersionComparer.compareVersions(v1, v2);
     }
 }
