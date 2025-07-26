@@ -3,18 +3,19 @@ package io.nop.markdown.simple;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
-import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.lang.ITagSetSupport;
+import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.markdown.MarkdownConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static io.nop.markdown.MarkdownConstants.SECTION_PREFIX;
 import static io.nop.markdown.MarkdownErrors.ARG_TITLE;
 import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_MISSING_SECTION;
 
@@ -32,13 +34,13 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
     static final Logger LOG = LoggerFactory.getLogger(MarkdownSection.class);
 
     private int level;
+    private String sectionNo;
     private String title;
+    private String linkUrl;
 
     private String text;
 
     private List<MarkdownSection> children;
-
-    private Map<String, String> meta;
 
     private Set<String> tagSet;
 
@@ -50,7 +52,39 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
 
     public MarkdownSection(int level, String title) {
         this.setLevel(level);
-        this.setTitle(title);
+        if (title != null) {
+            this.setTitle(title);
+            int pos = title.indexOf(' ');
+            if (pos > 0) {
+                String sectionNo = title.substring(0, pos).trim();
+                if (StringHelper.isNumberedPrefix(sectionNo)) {
+                    setSectionNo(sectionNo);
+                    setTitle(title.substring(pos).trim());
+                }
+            }
+        }
+    }
+
+    /**
+     * 获取向下几层对象的结构，不包含内容（text和meta等信息）
+     *
+     * @param depth 向下获取的层数，1表示只获取直接子节点
+     * @return 只包含标题和层级信息的简化结构
+     */
+    public MarkdownSection getStructure(int depth) {
+        if (depth <= 0) {
+            return cloneInstance(false); // 返回当前节点的副本，不包含子节点
+        }
+
+        MarkdownSection copy = cloneInstance(false);
+        if (children != null && !children.isEmpty()) {
+            List<MarkdownSection> childCopies = new ArrayList<>(children.size());
+            for (MarkdownSection child : children) {
+                childCopies.add(child.getStructure(depth - 1));
+            }
+            copy.setChildren(childCopies);
+        }
+        return copy;
     }
 
     public MarkdownSection shallowCopy() {
@@ -102,6 +136,13 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
         }
     }
 
+    public String getLinkUrl() {
+        return linkUrl;
+    }
+
+    public void setLinkUrl(String linkUrl) {
+        this.linkUrl = linkUrl;
+    }
 
     @Override
     public Set<String> getTagSet() {
@@ -111,6 +152,7 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
     public void setTagSet(Set<String> tagSet) {
         this.tagSet = tagSet;
     }
+
 
     public MarkdownSection cloneInstance() {
         return cloneInstance(true);
@@ -124,13 +166,13 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
         ret.setLevel(level);
         ret.setTitle(title);
         ret.setText(text);
+        ret.setSectionNo(sectionNo);
+        ret.setLinkUrl(linkUrl);
 
         if (includeChildren && children != null) {
             ret.setChildren(children.stream().map(MarkdownSection::cloneInstance).collect(Collectors.toList()));
         }
-        if (meta != null) {
-            ret.setMeta(new LinkedHashMap<>(meta));
-        }
+
         if (tagSet != null)
             ret.setTagSet(new LinkedHashSet<>(tagSet));
         ret.setTpl(tpl);
@@ -179,52 +221,32 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
     }
 
     public String getFullTitle() {
-        if (meta == null)
-            return title;
-
         StringBuilder sb = new StringBuilder();
-        sb.append(title);
-        sb.append(MarkdownConstants.META_TITLE_PREFIX);
-        boolean first = true;
-        for (Map.Entry<String, String> entry : meta.entrySet()) {
-            if (first) {
-                first = false;
-            } else {
-                sb.append(',');
-            }
-            sb.append(entry.getKey());
-            if (!StringHelper.isEmpty(entry.getValue()) && !entry.getKey().equals(entry.getValue())) {
-                sb.append(':');
-                sb.append(entry.getValue());
-            }
-        }
-        sb.append(MarkdownConstants.META_TITLE_SUFFIX);
+        MarkdownSectionHeader.buildText(sb, getLevel(), getSectionNo(), getTitle(), getLinkUrl());
         return sb.toString();
     }
 
     public String getSectionNo() {
-        if (title == null)
-            return null;
-        int pos = title.indexOf(' ');
-        if (pos < 0)
-            return null;
-        return title.substring(0, pos).trim();
+        return sectionNo;
     }
 
-    public String getRefId() {
-        if (title == null)
-            return null;
+    public String getSectionNoOrTitle() {
+        if (sectionNo != null)
+            return sectionNo;
+        return title;
+    }
 
-        int pos = title.indexOf(':');
-        if (pos < 0)
-            return null;
+    /**
+     * 设置当前节点的章节编号（sectionNo），保持与 getSectionNo() 对称的逻辑：
+     * - 编号位于标题开头，以空格分隔
+     * - 如果传入 null 或空字符串，则移除现有编号
+     *
+     * @param sectionNo 新的章节编号（如 "1.1"）
+     */
+    public void setSectionNo(String sectionNo) {
+        checkAllowChange();
 
-        String refId = title.substring(0, pos).trim();
-        int pos2 = refId.indexOf(' ');
-        if (pos2 > 0) {
-            refId = refId.substring(pos2 + 1, pos).trim();
-        }
-        return refId;
+        this.sectionNo = sectionNo;
     }
 
     public String getParentSectionNo() {
@@ -232,11 +254,7 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
         if (prefix == null)
             return null;
 
-        int end = prefix.length();
-        if (prefix.charAt(end - 1) == '.') {
-            end--;
-        }
-        int pos = prefix.lastIndexOf('.', end);
+        int pos = prefix.lastIndexOf('.');
         if (pos < 0)
             return null;
         return prefix.substring(0, pos + 1);
@@ -459,36 +477,6 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
         }
     }
 
-    public void addMetaValue(String name, String value) {
-        checkAllowChange();
-        if (meta == null)
-            meta = new LinkedHashMap<>();
-        meta.put(name, value);
-    }
-
-    public String getMetaValue(String name) {
-        return meta == null ? null : meta.get(name);
-    }
-
-    public int getMetaInt(String name, int defaultValue) {
-        Object v = getMetaValue(name);
-        return v == null ? defaultValue : ConvertHelper.toInt(v);
-    }
-
-    public double getMetaDouble(String name, double defaultValue) {
-        Object v = getMetaValue(name);
-        return v == null ? defaultValue : ConvertHelper.toDouble(v);
-    }
-
-    public Map<String, String> getMeta() {
-        return meta;
-    }
-
-    public void setMeta(Map<String, String> meta) {
-        checkAllowChange();
-        this.meta = meta;
-    }
-
     public void forEachSection(Consumer<MarkdownSection> action) {
         action.accept(this);
 
@@ -509,13 +497,13 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
         Map<String, MarkdownSection> byTitle = new HashMap<>();
         if (tplSection.hasChild()) {
             for (MarkdownSection child : tplSection.getChildren()) {
-                byTitle.put(child.getTitle(), child);
+                byTitle.put(child.getSectionNoOrTitle(), child);
             }
         }
 
         if (sections != null) {
             for (MarkdownSection section : sections) {
-                MarkdownSection tpl = byTitle.remove(section.getTitle());
+                MarkdownSection tpl = byTitle.remove(section.getSectionNoOrTitle());
                 if (tpl != null) {
                     section.setTpl(tpl);
                 } else {
@@ -523,7 +511,7 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
                     if (tpl != null) {
                         section.setTpl(tpl);
                     } else {
-                        LOG.info("nop.markdown.section-not-in-tpl:{}", section.getTitle());
+                        LOG.info("nop.markdown.section-not-in-tpl:{}", section.getFullTitle());
                     }
                 }
 
@@ -561,16 +549,30 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
         return sb.toString();
     }
 
+    private String buildText(MarkdownTextOptions options) {
+        StringBuilder sb = new StringBuilder();
+        buildText(sb, options);
+        return sb.toString();
+    }
+
     public void buildText(StringBuilder sb, MarkdownTextOptions options) {
         if (options == null)
             options = DEFAULT_OPTIONS;
 
+        buildMainText(sb, options);
+
+        if (children != null) {
+            for (MarkdownSection child : children) {
+                child.buildText(sb, options);
+            }
+        }
+    }
+
+    protected void buildMainText(StringBuilder sb, MarkdownTextOptions options) {
         boolean includeTags = options.isIncludeTags();
 
         if (getLevel() > 0) {
-            sb.append("#".repeat(getLevel())).append(" ");
-            if (title != null)
-                sb.append(getFullTitle());
+            sb.append(getFullTitle());
             sb.append("\n");
         }
 
@@ -584,12 +586,6 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
 
         if (sb.length() > 0)
             sb.append("\n");
-
-        if (children != null) {
-            for (MarkdownSection child : children) {
-                child.buildText(sb, options);
-            }
-        }
     }
 
     public void addChild(MarkdownSection child) {
@@ -643,6 +639,15 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
         this.level = level;
     }
 
+    public String getTitleWithSectionNo() {
+        if (sectionNo == null || title == null) {
+            if (sectionNo == null)
+                return title;
+            return sectionNo;
+        }
+        return sectionNo + ' ' + title;
+    }
+
     public String getTitle() {
         return title;
     }
@@ -687,5 +692,162 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
     public void setTpl(MarkdownSection tpl) {
         checkAllowChange();
         this.tpl = tpl;
+    }
+
+    /**
+     * 删除当前的sectionNo，按照层级结构重新编配sectionNo
+     *
+     * @param prevNumbers 父层级的编号数组，可以为null表示从顶级开始
+     */
+    public void normalizeSectionNo(MutableIntArray prevNumbers) {
+        checkAllowChange();
+
+
+        int currentLevel = level - 1;
+        MutableIntArray numbers = prevNumbers != null ? prevNumbers : MutableIntArray.empty();
+
+        if (title == null || level == 0) {
+            // 递归处理子节点
+            if (children != null) {
+                for (MarkdownSection child : children) {
+                    child.normalizeSectionNo(numbers);
+                }
+            }
+            return; // 根节点不参与编号
+        }
+
+        // 确保 numbers 的长度足够
+        while (numbers.size() <= currentLevel) {
+            numbers.push(0); // 新增层级，初始化为0
+        }
+
+        // 移除多余层级
+        while (numbers.size() > currentLevel + 1) {
+            numbers.pop();
+        }
+
+        // 当前层级的编号+1（确保从1开始）
+        numbers.set(currentLevel, numbers.get(currentLevel) + 1);
+
+        // 生成新的sectionNo（如 "1", "1.1", "2.3.1"）
+        StringBuilder sectionNo = new StringBuilder();
+        for (int i = 0; i <= currentLevel; i++) {
+            if (i > 0) sectionNo.append(".");
+            sectionNo.append(numbers.get(i));
+        }
+        setSectionNo(sectionNo.toString());
+
+        // 递归处理子节点
+        if (children != null) {
+            for (MarkdownSection child : children) {
+                child.normalizeSectionNo(numbers);
+            }
+        }
+    }
+
+    /**
+     * 生成当前节点的 index.md 内容
+     *
+     * @param options 生成选项（保留但不再使用内部字段）
+     */
+    public String toIndexMarkdown(int depth, MarkdownTextOptions options) {
+
+        StringBuilder sb = new StringBuilder();
+        if (options == null) {
+            options = DEFAULT_OPTIONS;
+        }
+
+        if (depth <= 0) {
+            buildText(sb, options);
+            return sb.toString();
+        }
+
+        buildMainText(sb, options);
+
+        // 3. 添加子节点链接（始终生成）
+        if (children != null && !children.isEmpty()) {
+            for (MarkdownSection child : children) {
+                String childLink = getChildLink(child, depth);
+                MarkdownSectionHeader.buildText(sb, child.getLevel(), child.getSectionNo(), child.getTitle(), childLink);
+                sb.append("\n");
+            }
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * 生成子节点的链接路径.
+     *
+     * @param child 子节点
+     * @param depth 剩余递归深度
+     * @return 子节点的相对路径（如 "./section-1.1/index.md" 或 "./section-1.1.md"）
+     */
+    private String getChildLink(MarkdownSection child, int depth) {
+        String sectionNo = child.getSectionNo();
+
+        // 根据 depth 决定是否生成子目录
+        if (depth > 1) {
+            return SECTION_PREFIX + sectionNo + "/index.md";
+        } else {
+            return SECTION_PREFIX + sectionNo + ".md";
+        }
+    }
+
+    /**
+     * 将当前节点及子节点保存为目录结构或文件。
+     *
+     * @param baseDir 基础目录（如 "/docs"）
+     * @param depth   剩余递归深度
+     */
+    public void splitToDir(File baseDir, int depth, MarkdownTextOptions options) {
+        // 2. 生成并保存 index.md
+        String indexContent = this.toIndexMarkdown(depth, null);
+        FileHelper.writeText(new File(baseDir, "index.md"), indexContent, null);
+
+        // 3. 递归保存子节点
+        if (children != null && depth > 0) {
+            for (MarkdownSection child : children) {
+                String childLink = getChildLink(child, depth);
+                if (depth == 1) {
+                    FileHelper.writeText(new File(baseDir, childLink), child.buildText(options), null);
+                } else {
+                    File childDir = new File(baseDir, StringHelper.firstPart(childLink, '/'));
+                    child.splitToDir(childDir, depth - 1, options);
+                }
+            }
+        }
+    }
+
+    public void mergeChild(MarkdownSection section) {
+        String sectionNo = section.getSectionNo();
+        if (sectionNo == null) {
+            addChild(section);
+        } else {
+            MarkdownSection child = findSectionBySectionNo(sectionNo);
+            if (child == null) {
+                addChild(section);
+            } else {
+                child.mergeWith(section);
+            }
+        }
+    }
+
+    private void mergeWith(MarkdownSection section) {
+        if (this.getText() == null) {
+            this.setText(section.getText());
+        } else if (section.getText() != null) {
+            this.setText(this.getText() + "\n" + section.getText());
+        }
+
+        if (section.hasChild()) {
+            if (!hasChild()) {
+                setChildren(section.getChildren());
+            } else {
+                for (MarkdownSection child : section.getChildren()) {
+                    mergeChild(child);
+                }
+            }
+        }
     }
 }

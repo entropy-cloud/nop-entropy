@@ -10,6 +10,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class MarkdownHelper {
+    public static String removeStyle(String text) {
+        if (text.startsWith("___") && text.endsWith("___")) {
+            text = text.substring(3, text.length() - 3);
+        }
+        if (text.startsWith("**") && text.endsWith("**")) {
+            text = text.substring(2, text.length() - 2);
+        }
+
+        if (text.startsWith("*") && text.endsWith("*")) {
+            text = text.substring(1, text.length() - 1);
+        }
+        return text;
+    }
 
 
     // 查找 ]，遇到换行直接返回-1

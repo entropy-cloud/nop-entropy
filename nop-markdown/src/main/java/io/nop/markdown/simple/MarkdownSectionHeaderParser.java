@@ -1,16 +1,13 @@
 package io.nop.markdown.simple;
 
-import io.nop.commons.util.StringHelper;
-import io.nop.markdown.MarkdownConstants;
-
-import java.util.Map;
+import io.nop.markdown.utils.MarkdownHelper;
 
 import static io.nop.commons.util.StringHelper.isNumberedPrefix;
 
-public class MarkdownTitleParser {
-    public static MarkdownDocumentParser INSTANCE = new MarkdownDocumentParser();
+public class MarkdownSectionHeaderParser {
+    public static MarkdownSectionHeaderParser INSTANCE = new MarkdownSectionHeaderParser();
 
-    public MarkdownTitle parseTitle(String line) {
+    public MarkdownSectionHeader parseSectionHeader(String line) {
         line = line.trim();
         if (line.isEmpty()) {
             return null; // 不是标题行
@@ -30,6 +27,15 @@ public class MarkdownTitleParser {
 
         // 3. 提取编号和文本
         String remaining = line.substring(cursor);
+        remaining = MarkdownHelper.removeStyle(remaining);
+
+        String linkUrl = null;
+        if (containsLink(remaining)) {
+            int pos = remaining.indexOf("](");
+            linkUrl = remaining.substring(pos + 2, remaining.length() - 1).trim();
+            remaining = remaining.substring(1, pos).trim();
+        }
+
         String prefix = "";
         String text = remaining;
 
@@ -46,26 +52,21 @@ public class MarkdownTitleParser {
             }
         }
 
-        Map<String, String> meta = null;
-
-        if (text.endsWith(MarkdownConstants.META_TITLE_SUFFIX)) {
-            int pos = text.lastIndexOf(MarkdownConstants.META_TITLE_PREFIX);
-            if (pos > 0) {
-                String suffix = text.substring(pos + 1, text.length() - 1);
-                text = text.substring(0, pos).trim();
-                meta = parseMeta(suffix);
-            }
+        if (linkUrl == null && containsLink(text)) {
+            int pos = text.indexOf("](");
+            linkUrl = text.substring(pos + 2, text.length() - 1).trim();
+            text = text.substring(0, pos).trim();
         }
 
-        MarkdownTitle title = new MarkdownTitle();
+        MarkdownSectionHeader title = new MarkdownSectionHeader();
         title.setLevel(level);
         title.setSectionNo(prefix);
-        title.setText(text.trim());
-        title.setMeta(meta);
+        title.setTitle(text.trim());
+        title.setLinkUrl(linkUrl);
         return title;
     }
 
-    Map<String, String> parseMeta(String suffix) {
-        return StringHelper.parseStringMap(suffix, ':', ',');
+    boolean containsLink(String title) {
+        return title.startsWith("[") && title.contains("](") && title.endsWith(")");
     }
 }

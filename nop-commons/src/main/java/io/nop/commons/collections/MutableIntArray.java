@@ -68,6 +68,17 @@ public class MutableIntArray implements IntArray {
         array.copyTo(items);
     }
 
+    public static MutableIntArray of(int... elements) {
+        if (elements == null || elements.length == 0) {
+            return new MutableIntArray(0);
+        }
+        return new MutableIntArray(elements);
+    }
+
+    public static MutableIntArray empty() {
+        return new MutableIntArray(0);
+    }
+
     public void copyTo(int[] to, int toIndex) {
         System.arraycopy(items, 0, to, toIndex, size);
     }

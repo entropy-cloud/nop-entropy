@@ -8,6 +8,7 @@ import io.nop.excel.model.ExcelTable;
 import io.nop.markdown.simple.MarkdownDocument;
 import io.nop.markdown.simple.MarkdownSection;
 import io.nop.markdown.simple.TableToMarkdownConverter;
+import io.nop.markdown.utils.MarkdownHelper;
 import io.nop.ooxml.common.model.ImageUrlMapper;
 import io.nop.ooxml.common.model.RelsImageUrlMapper;
 import io.nop.ooxml.docx.DocxConstants;
@@ -225,6 +226,7 @@ public class DocxToMarkdownConverter {
             sectionStack.pop();
         }
 
+        title = MarkdownHelper.removeStyle(title);
         MarkdownSection newSection = new MarkdownSection();
         newSection.setLevel(level);
         newSection.setTitle(title);

@@ -15,7 +15,6 @@ import io.nop.core.resource.impl.FileResource;
 import io.nop.markdown.simple.MarkdownCodeBlock;
 import io.nop.markdown.simple.MarkdownCodeBlockParser;
 import io.nop.markdown.simple.MarkdownDocument;
-import io.nop.markdown.simple.MarkdownDocumentExt;
 import io.nop.markdown.utils.MarkdownTool;
 import io.nop.ooxml.markdown.DocxToMarkdownConverter;
 import io.nop.task.ITaskFlowManager;
@@ -56,7 +55,7 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
 
     @Test
     public void parseAllPrompts() {
-        Collection<? extends IResource> resources = VirtualFileSystem.instance().getAllResources("/nop/ai/prompts","prompt.yaml");
+        Collection<? extends IResource> resources = VirtualFileSystem.instance().getAllResources("/nop/ai/prompts", "prompt.yaml");
         for (IResource resource : resources) {
             if (resource.getName().endsWith(".prompt.yaml")) {
                 promptTemplateManager.loadPromptTemplateFromPath(resource.getPath());
@@ -110,12 +109,11 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
     @Disabled
     @Test
     public void testDocumentExt() {
-        IResource resource = new FileResource(new File(getModuleDir(), "demo/refactored-requirements.md"));
+        IResource resource = new FileResource(new File(getModuleDir(), "demo/requirements/index.md"));
         MarkdownDocument doc = MarkdownTool.instance().parseFromResource(resource);
         doc.matchTplFromPath("/nop/ai/schema/coder/requirements.tpl.md", true);
-        MarkdownDocumentExt ext = MarkdownTool.instance().loadDocumentExt(doc);
-        ext.matchTplForSection("/nop/ai/schema/coder/module-requirements.tpl.md", true);
-        ext.mergeToDocument(doc);
+        MarkdownTool.instance().loadChildSections(doc.getRootSection(), 2);
+        //doc.getRootSection().matchTplForSection("/nop/ai/schema/coder/module-requirements.tpl.md", true);
 
         MarkdownDocument ormDoc = doc.selectSectionByTplTag("ORM", false);
         System.out.println(ormDoc.toText());

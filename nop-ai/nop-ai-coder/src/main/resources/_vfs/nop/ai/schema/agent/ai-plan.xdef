@@ -1,0 +1,8 @@
+<plan x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+      title="!string">
+    <steps xdef:body-type="list" xdef:key-attr="name">
+        <step name="!english" title="!string" status="enum:not_started|in_progress|completed|failed|skipped=not_started">
+            <note>string</note>
+        </step>
+    </steps>
+</plan>

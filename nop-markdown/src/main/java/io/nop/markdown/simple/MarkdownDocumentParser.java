@@ -1,8 +1,7 @@
 package io.nop.markdown.simple;
 
 import io.nop.api.core.util.SourceLocation;
-import io.nop.commons.mutable.MutableInt;
-import io.nop.commons.util.StringHelper;
+import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.TagsHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
@@ -21,12 +20,12 @@ public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocum
     }
 
     public MarkdownDocument parseFromText(SourceLocation loc, String text) {
-        text = text.trim();
+        TextScanner sc = TextScanner.fromString(loc, text);
 
         MarkdownDocument model = new MarkdownDocument();
         model.setLocation(loc);
 
-        MarkdownSection section = parseRootSection(text);
+        MarkdownSection section = parseRootSection(sc);
         section.forEachSection(this::normalizeSectionContent);
         model.setRootSection(section);
         return model;
@@ -59,18 +58,21 @@ public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocum
     protected void normalizeTitle(MarkdownSection section) {
         String title = section.getTitle();
         if (title != null) {
-            MarkdownTitle mt = new MarkdownTitleParser().parseTitle(title);
-            section.setTitle(mt.getNormalizedTitle());
-            section.setMeta(mt.getMeta());
+            MarkdownSectionHeader mt = MarkdownSectionHeaderParser.INSTANCE.parseSectionHeader(title);
+            section.setTitle(mt.getTitle());
+            if (mt.getLevel() > 0)
+                section.setLevel(mt.getLevel());
+            section.setLinkUrl(mt.getLinkUrl());
+            section.setSectionNo(mt.getSectionNo());
         }
     }
 
-    public MarkdownSection parseRootSection(String text) {
-        text = text.trim();
-        if (StringHelper.isEmpty(text))
+    public MarkdownSection parseRootSection(TextScanner sc) {
+        sc.skipBlank();
+        if (sc.isEnd())
             return null;
 
-        List<MarkdownSection> sections = parseSections(text);
+        List<MarkdownSection> sections = parseSections(sc);
         sections = MarkdownSection.buildTree(sections);
 
         if (sections.size() == 1) {
@@ -82,70 +84,50 @@ public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocum
         }
     }
 
-    public List<MarkdownSection> parseSections(String text) {
+    public List<MarkdownSection> parseSections(TextScanner sc) {
         List<MarkdownSection> sections = new ArrayList<>();
-        text = text.trim();
+        sc.skipBlank();
 
-        MutableInt index = new MutableInt();
-
-        if (text.startsWith("#")) {
-            MarkdownSection section = parseSection(text, index);
-            sections.add(section);
-        } else if (text.startsWith("\n#")) {
-            index.set(1);
-        }
-
-        do {
-            MarkdownSection section = parseSection(text, index);
+        while (!sc.isEnd()) {
+            MarkdownSection section = parseSection(sc);
             if (section == null)
                 break;
             sections.add(section);
-        } while (true);
+        }
 
         return sections;
     }
 
-    MarkdownSection parseSection(String text, MutableInt index) {
-        int pos = index.get();
-        if (text.length() <= pos)
-            return null;
-
-        int pos2 = text.indexOf("\n#", pos);
-        if (pos2 < 0) {
-            pos2 = text.length();
-            index.set(pos2);
-        } else {
-            index.set(pos2 + 1);
-        }
+    MarkdownSection parseSection(TextScanner sc) {
 
         MarkdownSection section = new MarkdownSection();
+        section.setLocation(sc.location());
+        section.setStartPos(sc.pos);
 
-        int level = countSectionLevel(text, pos);
-        section.setLevel(level);
-
-        if (level > 0) {
-            int pos3 = text.indexOf("\n", pos);
-            if (pos3 < 0)
-                pos3 = text.length();
-
-            String title = text.substring(pos + level, pos3).trim();
+        if (sc.cur == '#' && sc.col == 1) {
+            int level = countSectionLevel(sc);
+            section.setLevel(level);
+            String title = sc.nextLine().trim().toString();
             section.setTitle(title);
-            pos = pos3 + 1;
         }
 
-        if (pos < pos2) {
-            section.setText(text.substring(pos, pos2));
-        }
+
+        String text = sc.nextUntil('\n', '#', true).toString();
+        section.setText(text);
+        section.setEndPos(sc.pos);
+        if (!sc.isEnd())
+            sc.next();
 
         return section;
     }
 
-    int countSectionLevel(String text, int pos) {
+    int countSectionLevel(TextScanner sc) {
         int count = 0;
-        for (int i = pos, n = text.length(); i < n; i++) {
-            char c = text.charAt(i);
+        while (!sc.isEnd()) {
+            int c = sc.cur;
             if (c == '#') {
                 count++;
+                sc.next();
             } else {
                 break;
             }

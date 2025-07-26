@@ -71,7 +71,7 @@ public class TestAiTask extends JunitBaseTestCase {
 
         ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-create-orm-and-menu.task.xml");
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
-        taskRt.setInput("requirementsPath", new File(docsDir, "requirements/refactored-requirements.md").getAbsolutePath());
+        taskRt.setInput("requirementsPath", new File(docsDir, "requirements/index.md").getAbsolutePath());
         taskRt.setInput("outputDir", targetDir.getAbsolutePath());
         taskRt.setInput("basePackageName", "app.demo");
         taskRt.setInput("appName", "app-demo");
@@ -89,7 +89,7 @@ public class TestAiTask extends JunitBaseTestCase {
 
         ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-api-design.task.xml");
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
-        taskRt.setInput("requirementsPath", new File(docsDir, "requirements/refactored-requirements.md").getAbsolutePath());
+        taskRt.setInput("requirementsPath", new File(docsDir, "requirements/index.md").getAbsolutePath());
         taskRt.setInput("modelDir", new File(targetDir, "model").getAbsolutePath());
         taskRt.setInput("outputDir", targetDir.getAbsolutePath());
         taskRt.setInput("basePackageName", "app.demo");
@@ -109,7 +109,7 @@ public class TestAiTask extends JunitBaseTestCase {
 
         ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-service-design.task.xml");
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
-        taskRt.setInput("requirementsPath", new File(docsDir, "requirements/refactored-requirements.md").getAbsolutePath());
+        taskRt.setInput("requirementsPath", new File(docsDir, "requirements/index.md").getAbsolutePath());
         taskRt.setInput("modelDir", new File(targetDir, "model").getAbsolutePath());
         taskRt.setInput("outputDir", targetDir.getAbsolutePath());
         taskRt.setInput("basePackageName", "app.demo");

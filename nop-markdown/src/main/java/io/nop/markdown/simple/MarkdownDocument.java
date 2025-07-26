@@ -8,6 +8,7 @@ import io.nop.markdown.utils.MarkdownTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -30,6 +31,19 @@ public class MarkdownDocument implements IComponentModel {
         if (rootSection != null)
             ret.setRootSection(rootSection.cloneInstance());
         return ret;
+    }
+
+    public MarkdownDocument getStructure(int depth) {
+        MarkdownDocument ret = new MarkdownDocument();
+        ret.setLocation(location);
+        if (rootSection != null) {
+            ret.setRootSection(rootSection.getStructure(depth));
+        }
+        return ret;
+    }
+
+    public MarkdownDocument getStructure() {
+        return getStructure(10);
     }
 
     @Override
@@ -207,5 +221,10 @@ public class MarkdownDocument implements IComponentModel {
                 rootSection.addChild(section);
             }
         }
+    }
+
+    public void splitToDir(File dir, int depth, MarkdownTextOptions options) {
+        if (rootSection != null)
+            rootSection.splitToDir(dir, depth, options);
     }
 }

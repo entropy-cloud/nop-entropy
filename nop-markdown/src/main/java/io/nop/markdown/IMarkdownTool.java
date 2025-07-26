@@ -4,7 +4,7 @@ import io.nop.api.core.util.SourceLocation;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceObjectLoader;
 import io.nop.markdown.simple.MarkdownDocument;
-import io.nop.markdown.simple.MarkdownDocumentExt;
+import io.nop.markdown.simple.MarkdownSection;
 
 public interface IMarkdownTool extends IResourceObjectLoader<MarkdownDocument> {
 
@@ -14,5 +14,8 @@ public interface IMarkdownTool extends IResourceObjectLoader<MarkdownDocument> {
 
     MarkdownDocument parseFromText(SourceLocation loc, String text);
 
-    MarkdownDocumentExt loadDocumentExt(MarkdownDocument doc);
+    /**
+     * 从文件同一目录的section-xxx.md文件中加载扩展信息
+     */
+    void loadChildSections(MarkdownSection parent, int depth);
 }

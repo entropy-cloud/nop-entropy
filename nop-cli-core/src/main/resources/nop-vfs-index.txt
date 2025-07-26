@@ -38,6 +38,7 @@
 /nop/ai/mcp/think_and_plan.json
 /nop/ai/mcp/thinking.md
 /nop/ai/prompts/coder/analyze-code.prompt.yaml
+/nop/ai/prompts/coder/analyze-image.prompt.yaml
 /nop/ai/prompts/coder/api-design.prompt.yaml
 /nop/ai/prompts/coder/api-model.md
 /nop/ai/prompts/coder/check-api-model.prompt.yaml
@@ -93,6 +94,7 @@
 /nop/ai/prompts/system/strategic/cognitive.md
 /nop/ai/prompts/system/strategic/meta.md
 /nop/ai/prompts/system/strategic/system.md
+/nop/ai/schema/agent/ai-plan.xdef
 /nop/ai/schema/coder/api.xdef
 /nop/ai/schema/coder/auth.xdef
 /nop/ai/schema/coder/db-detail-design.tpl.md
@@ -116,6 +118,7 @@
 /nop/ai/tasks/ai-biz-analyzer.task.xml
 /nop/ai/tasks/ai-coder.task-lib.xml
 /nop/ai/tasks/ai-coder.task.xml
+/nop/ai/tasks/ai-convert-docx.task.xml
 /nop/ai/tasks/ai-create-project.task.xml
 /nop/ai/tasks/ai-data-falsification.task.xml
 /nop/ai/tasks/ai-extract-report-tpl.task.xml

@@ -632,6 +632,20 @@
     ],
     "methods": [
       {
+        "name": "addToolCalls",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "addTools",
+        "parameterTypes": [
+          "java.util.Map",
+          "io.nop.ai.core.api.messages.Prompt"
+        ]
+      },
+      {
         "name": "buildHttpRequest",
         "parameterTypes": [
           "java.lang.String",
@@ -717,6 +731,12 @@
         "name": "getLlmName",
         "parameterTypes": [
           "io.nop.ai.core.api.chat.AiChatOptions"
+        ]
+      },
+      {
+        "name": "getMessageContent",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiMessage"
         ]
       },
       {
@@ -867,6 +887,15 @@
           "io.nop.ai.core.model.LlmModel",
           "java.util.Map",
           "io.nop.ai.core.api.messages.Prompt",
+          "io.nop.ai.core.api.chat.AiChatOptions"
+        ]
+      },
+      {
+        "name": "toMessage",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiMessage",
+          "io.nop.ai.core.model.LlmModelModel",
+          "boolean",
           "io.nop.ai.core.api.chat.AiChatOptions"
         ]
       }
