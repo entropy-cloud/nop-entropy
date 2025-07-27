@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.annotations.meta.PropMeta;
+import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICloneable;
 
@@ -26,6 +27,8 @@ public class QueryFieldBean implements ICloneable {
      */
     private String alias;
     private String aggFunc;
+
+    private TreeBean formula;
 
     private boolean internal;
 
@@ -159,4 +162,13 @@ public class QueryFieldBean implements ICloneable {
         this.internal = internal;
     }
 
+    @PropMeta(propId = 6)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public TreeBean getFormula() {
+        return formula;
+    }
+
+    public void setFormula(TreeBean formula) {
+        this.formula = formula;
+    }
 }
