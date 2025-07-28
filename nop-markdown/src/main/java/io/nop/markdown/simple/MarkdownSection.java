@@ -94,6 +94,18 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
         return ret;
     }
 
+    public static void removeEmptySections(List<MarkdownSection> sections) {
+        sections.removeIf(section -> {
+            if (!StringHelper.isBlank(section.getTitle()))
+                return false;
+            if (!StringHelper.isBlank(section.getText()))
+                return false;
+            if (section.getChildCount() > 0)
+                return false;
+            return true;
+        });
+    }
+
     public static List<MarkdownSection> buildTree(List<MarkdownSection> sections) {
         if (sections.size() <= 1)
             return new ArrayList<>(sections);
@@ -534,7 +546,7 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
     }
 
     public String toString() {
-        return "#".repeat(Math.max(0, level)) + ' ' + title;
+        return "#".repeat(Math.max(0, level)) + (title == null ? "" : " " + title);
     }
 
     public boolean hasTag() {
@@ -702,11 +714,10 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
     public void normalizeSectionNo(MutableIntArray prevNumbers) {
         checkAllowChange();
 
-
         int currentLevel = level - 1;
         MutableIntArray numbers = prevNumbers != null ? prevNumbers : MutableIntArray.empty();
 
-        if (title == null || level == 0) {
+        if (level == 0) {
             // 递归处理子节点
             if (children != null) {
                 for (MarkdownSection child : children) {

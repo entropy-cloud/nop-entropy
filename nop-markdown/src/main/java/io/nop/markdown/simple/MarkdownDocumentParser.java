@@ -11,6 +11,8 @@ import io.nop.markdown.MarkdownConstants;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.nop.markdown.simple.MarkdownSection.removeEmptySections;
+
 public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocument> {
 
     @Override
@@ -59,11 +61,13 @@ public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocum
         String title = section.getTitle();
         if (title != null) {
             MarkdownSectionHeader mt = MarkdownSectionHeaderParser.INSTANCE.parseSectionHeader(title);
-            section.setTitle(mt.getTitle());
-            if (mt.getLevel() > 0)
-                section.setLevel(mt.getLevel());
-            section.setLinkUrl(mt.getLinkUrl());
-            section.setSectionNo(mt.getSectionNo());
+            if (mt != null) {
+                section.setTitle(mt.getTitle());
+                if (mt.getLevel() > 0)
+                    section.setLevel(mt.getLevel());
+                section.setLinkUrl(mt.getLinkUrl());
+                section.setSectionNo(mt.getSectionNo());
+            }
         }
     }
 
@@ -73,6 +77,7 @@ public class MarkdownDocumentParser extends AbstractResourceParser<MarkdownDocum
             return null;
 
         List<MarkdownSection> sections = parseSections(sc);
+        removeEmptySections(sections);
         sections = MarkdownSection.buildTree(sections);
 
         if (sections.size() == 1) {

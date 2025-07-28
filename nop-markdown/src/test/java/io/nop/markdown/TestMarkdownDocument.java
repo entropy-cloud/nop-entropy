@@ -2,11 +2,13 @@ package io.nop.markdown;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.core.initialize.CoreInitialization;
+import io.nop.core.resource.impl.FileResource;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.markdown.simple.MarkdownDocument;
 import io.nop.markdown.utils.MarkdownTool;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -43,5 +45,15 @@ public class TestMarkdownDocument extends BaseTestCase {
         MarkdownDocument tpl = MarkdownTool.instance().parseFromVirtualPath("/test/test.md");
         File dir = new File(getTargetDir(), "split");
         tpl.splitToDir(dir, 1, null);
+    }
+
+    @Disabled
+    @Test
+    public void testSplit2() {
+        MarkdownDocument tpl = MarkdownTool.instance().parseFromResource(new FileResource(new File("c:/test/test2.md")));
+        tpl.resetLevel();
+        tpl.normalizeSectionNo();
+        File dir = new File(getTargetDir(), "split2");
+        tpl.splitToDir(dir, 2, null);
     }
 }

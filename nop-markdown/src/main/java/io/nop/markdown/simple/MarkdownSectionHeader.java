@@ -51,7 +51,8 @@ public class MarkdownSectionHeader {
         } else {
             if (sectionNo != null)
                 sb.append(sectionNo).append(' ');
-            sb.append(title);
+            if (title != null)
+                sb.append(title);
         }
     }
 

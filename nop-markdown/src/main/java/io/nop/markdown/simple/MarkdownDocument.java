@@ -25,6 +25,23 @@ public class MarkdownDocument implements IComponentModel {
     private SourceLocation location;
     private MarkdownSection rootSection;
 
+    public void normalizeSectionNo() {
+        if (rootSection != null) {
+            rootSection.normalizeSectionNo(null);
+        }
+    }
+
+    public void resetLevel() {
+        if (rootSection != null) {
+            if (StringHelper.isBlank(rootSection.getTitleWithSectionNo())
+                    && StringHelper.isBlank(rootSection.getText())) {
+                rootSection.resetLevel(0);
+            } else {
+                rootSection.resetLevel(1);
+            }
+        }
+    }
+
     public MarkdownDocument cloneInstance() {
         MarkdownDocument ret = new MarkdownDocument();
         ret.setLocation(location);
