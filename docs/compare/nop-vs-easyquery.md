@@ -190,7 +190,28 @@ from SysBankCard o left join SysBank bank on o.bankId = bank.id
 where o.user.name = '小明'
 ```
 
+Nop QueryBean:
 
+```xml
+
+<query>
+  <sourceName>SysBankCard</sourceName>
+
+  <fields>
+    <field name="code"/>
+    <field name="user.name"/>
+    <field name="name" owner="bank"/>
+  </fields>
+
+  <joins>
+    <leftJion name="bank" sourceName="SysBank" leftJoinFields="bankId" rightJoinFields="id"/>
+  </joins>
+
+  <filter>
+    <eq name="user.name" value="小明"/>
+  </filter>
+</query>
+```
 
 ### 4. 超强筛选
 
@@ -240,6 +261,30 @@ where
     AND COALESCE(t2.notNone, 0) = 0
 ```
 
+Nop QueryBean:
+
+```xml
+
+<query>
+  <sourceName>SysUser</sourceName>
+  <filter>
+    <collection name="bankCards">
+      <filter>
+        <eq name="bank.name" value="工商银行"/>
+      </filter>
+
+      <aggregates>
+        <count name="count0"/>
+      </aggregates>
+
+      <assert>
+        <gt name="count0" value="2"/>
+      </assert>
+    </collection>
+  </filter>
+</query>
+```
+
 ### 5. partition by
 
 筛选用户条件为喜欢工商银行的(第一张开户的银行卡是工商银行的)
@@ -278,4 +323,159 @@ from SysUser o left join (
      where t._row_ = 1
    ) t2 on t2.uid = o.id
 where t2.bank.name = '工商银行‘
+```
+
+Nop QueryBean定义：
+
+```xml
+
+<query>
+  <sourceName>SysBankCard</sourceName>
+  <filter>
+    <collection name="bankCards">
+      <orderBy>
+        <field name="openTime" desc="false"/>
+      </orderBy>
+      <first/>
+      <assert>
+        <eq name="bank.name" value="工商银行"/>
+      </assert>
+    </collection>
+  </filter>
+</query>
+```
+
+### 6. 多表join
+
+* join的on多条件
+
+easy-query查询:
+
+```java
+ List<BlogEntity> blogEntities = easyEntityQuery
+  .queryable(Topic.class)
+  .innerJoin(BlogEntity.class, (t, t1) -> t.id().eq(t1.id()))
+  .where((t, t1) -> {
+    t1.title().isNotNull();
+    t.id().eq("3");
+  })
+  .select((t, t1) -> t1)
+  // .select(BlogEntity.class, (t, t1) -> t1.FETCHER.allFields())
+  .toList();
+```
+
+Nop EQL查询:
+
+```sql
+select t1
+from Topic o join BlogEntity t1
+on o.id = t1.id
+where t1.title is not null
+and o.id = 3
+```
+
+Nop QueryBean查询
+
+```xml
+
+<query>
+  <sourceName>Topic</sourceName>
+  <fields>
+    <field name="name" owner="t1"/>
+  </fields>
+
+  <joins>
+    <innerJoin sourceName="BlogEntity" alias="t1">
+      <conditions>
+        <condition leftField="id" rightField="id"/>
+      </conditions>
+    </innerJoin>
+  </joins>
+
+  <filter>
+    <notNull name="title" owner="t1"/>
+    <eq name="id" value="3" owner="o"/>
+  </filter>
+</query>
+```
+
+### 7. 分组查询
+
+easy-query查询:
+
+```javascript
+easyEntityQuery.queryable(DocUser.class)
+        .subQueryToGroupJoin(o -> o.bankCards())
+        //可作用于非subQueryToGroupJoin普通子查询也可以受用
+        .subQueryConfigure(o -> o.bankCards(), bcq -> bcq.where(x -> {
+            //支持隐式join和普通属性筛选
+            x.bank().name().eq("银行");
+            x.type().like("45678");
+        }))
+        .where(user -> {
+            user.bankCards().where(x -> x.type().eq("123")).
+                    sum(o -> o.code().toNumber(Integer.class))
+                    .eq(123);
+            user.bankCards().where(x -> x.type().eq("123")).
+                    sum(o -> o.code().toNumber(Integer.class))
+                    .eq(456);
+            user.bankCards().where(x -> x.type().eq("456")).
+                    sum(o -> o.code().toNumber(Integer.class))
+                    .eq(789);
+        })
+        .toList();
+```
+
+Nop EQL查询
+
+```sql
+select o
+from DocUser o left join (
+    select t.uid
+       sum(case when t.type = '123' then cast(t.code as INT) else 0 end) as sum_2
+       sum(case when t.type = '456' then cast(t.code as INT) else 0 end) as sum_3
+    from DocBankCard t
+    where t.bank.name = '银行'
+    and t.type like '%45678'
+    group by t.uid
+  ) t3 on t3.uid = t.uid
+where t3.sum_2 = 123
+and t3.sum_2 = 456
+and t3.sum_3 = 789
+```
+
+Nop QueryBean查询
+
+```xml
+
+<query>
+  <sourceName>DocUser</sourceName>
+  <joins>
+    <leftJoin alias="t" relation="bankCards">
+      <filter>
+        <eq name="bank.name" value="银行"/>
+        <like name="type" value="45678"/>
+      </filter>
+
+      <aggregates>
+        <sum name="sum_2" sourceField="code">
+          <filter>
+            <eq name="type" value="123"/>
+          </filter>
+        </sum>
+        <sum name="sum_3" sourceField="code">
+          <filter>
+            <eq name="type" value="456"/>
+          </filter>
+        </sum>
+      </aggregates>
+    </leftJoin>
+  </joins>
+
+  <filter>
+    <eq name="sum_2" value="123" owner="t"/>
+    <eq name="sum_2" value="456" owner="t"/>
+    <eq name="sum_3" value="789" owner="t"/>
+  </filter>
+</query>
 ```

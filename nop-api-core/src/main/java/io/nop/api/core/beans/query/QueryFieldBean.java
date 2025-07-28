@@ -28,7 +28,8 @@ public class QueryFieldBean implements ICloneable {
     private String alias;
     private String aggFunc;
 
-    private TreeBean formula;
+    private TreeBean expression;
+    private String formula;
 
     private boolean internal;
 
@@ -164,11 +165,21 @@ public class QueryFieldBean implements ICloneable {
 
     @PropMeta(propId = 6)
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public TreeBean getFormula() {
+    public TreeBean getExpression() {
+        return expression;
+    }
+
+    public void setExpression(TreeBean expression) {
+        this.expression = expression;
+    }
+
+    @PropMeta(propId = 7)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getFormula() {
         return formula;
     }
 
-    public void setFormula(TreeBean formula) {
+    public void setFormula(String formula) {
         this.formula = formula;
     }
 }

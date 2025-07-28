@@ -283,4 +283,8 @@ public interface ApiConstants extends FilterBeanConstants {
 
     String DELTA_PATH_PREFIX = "/_delta/";
     String TENANT_PATH_PREFIX = "/_tenant/";
+
+    String JOIN_TYPE_LEFT_JOIN = "leftJoin";
+    String JOIN_TYPE_RIGHT_JOIN = "rightJoin";
+    String JOIN_TYPE_INNER_JOIN = "innerJoin";
 }

@@ -15,6 +15,7 @@ import io.nop.api.core.annotations.graphql.GraphQLObject;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.ITreeBean;
 import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICloneable;
 
@@ -25,6 +26,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static io.nop.api.core.ApiConstants.JOIN_TYPE_INNER_JOIN;
+import static io.nop.api.core.ApiConstants.JOIN_TYPE_LEFT_JOIN;
 
 @DataBean
 @GraphQLObject
@@ -40,6 +44,7 @@ public class QueryBean implements Serializable, ICloneable {
     private boolean distinct;
 
     private List<QueryFieldBean> fields;
+    private List<QueryAggregateFieldBean> aggregates;
 
     private String sourceName;
 
@@ -78,6 +83,9 @@ public class QueryBean implements Serializable, ICloneable {
         query.setDistinct(distinct);
         if (fields != null) {
             query.setFields(fields.stream().map(QueryFieldBean::cloneInstance).collect(Collectors.toList()));
+        }
+        if (aggregates != null) {
+            query.setAggregates(aggregates.stream().map(QueryAggregateFieldBean::cloneInstance).collect(Collectors.toList()));
         }
         query.setSourceName(sourceName);
         if (dimFields != null)
@@ -248,7 +256,7 @@ public class QueryBean implements Serializable, ICloneable {
         return this;
     }
 
-    public QueryBean addFilterCondition(String propName, String op, Object value){
+    public QueryBean addFilterCondition(String propName, String op, Object value) {
         return addFilter(FilterBeans.compareOp(op, propName, value));
     }
 
@@ -330,6 +338,7 @@ public class QueryBean implements Serializable, ICloneable {
         this.dimFields = dimFields;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public List<QuerySourceBean> getJoins() {
         return joins;
     }
@@ -347,6 +356,16 @@ public class QueryBean implements Serializable, ICloneable {
         this.leftJoinProps = leftJoinProps;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public List<QueryAggregateFieldBean> getAggregates() {
+        return aggregates;
+    }
+
+    public void setAggregates(List<QueryAggregateFieldBean> aggregates) {
+        this.aggregates = aggregates;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public List<GroupFieldBean> getGroupBy() {
         return groupBy;
     }
@@ -452,6 +471,72 @@ public class QueryBean implements Serializable, ICloneable {
             } else {
                 addOrderField(OrderFieldBean.fromTreeBean(orderBy));
             }
+        }
+        return this;
+    }
+
+    public QuerySourceBean getJoinByAlias(String alias) {
+        if (joins == null)
+            return null;
+        for (QuerySourceBean join : joins) {
+            if (join.getAlias().equals(alias))
+                return join;
+        }
+        return null;
+    }
+
+    public QueryBean leftJoin(String sourceName, String alias, String leftJoinFields, String rightJoinFields) {
+        return addJoin(JOIN_TYPE_LEFT_JOIN, sourceName, alias, leftJoinFields, rightJoinFields);
+    }
+
+    public QueryBean rightJoin(String sourceName, String alias, String leftJoinFields, String rightJoinFields) {
+        return addJoin(JOIN_TYPE_LEFT_JOIN, sourceName, alias, leftJoinFields, rightJoinFields);
+    }
+
+    public QueryBean innerJoin(String sourceName, String alias, String leftJoinFields, String rightJoinFields) {
+        return addJoin(JOIN_TYPE_INNER_JOIN, sourceName, alias, leftJoinFields, rightJoinFields);
+    }
+
+    public QueryBean addJoin(String joinType, String sourceName, String alias, String leftJoinFields, String rightJoinFields) {
+        if (ApiStringHelper.isEmpty(alias))
+            throw new IllegalArgumentException("alias is empty");
+
+        if (ApiStringHelper.isEmpty(sourceName))
+            throw new IllegalArgumentException("sourceName is empty");
+
+        if (leftJoinFields == null || leftJoinFields.isEmpty())
+            throw new IllegalArgumentException("leftJoinFields is empty");
+
+        if (rightJoinFields == null || rightJoinFields.isEmpty())
+            throw new IllegalArgumentException("rightJoinFields is empty");
+
+        if (joins == null)
+            joins = new ArrayList<>();
+
+        List<String> leftProps = ApiStringHelper.split(leftJoinFields, ',');
+        List<String> rightProps = ApiStringHelper.split(rightJoinFields, ',');
+        if (leftProps.size() != rightProps.size())
+            throw new IllegalArgumentException("leftJoinFields and rightJoinFields must have same number of properties");
+
+        QuerySourceBean join = getJoinByAlias(alias);
+        if (join == null) {
+            join = new QuerySourceBean();
+            joins.add(join);
+        }
+        join.setJoinType(joinType);
+        join.setSourceName(sourceName);
+        join.setAlias(alias);
+        if (Objects.equals(dimFields, leftJoinFields)) {
+            join.setDimFields(rightProps);
+        } else {
+            List<QueryJoinConditionBean> joins = new ArrayList<>(leftProps.size());
+            for (int i = 0; i < leftProps.size(); i++) {
+                QueryJoinConditionBean joinBean = new QueryJoinConditionBean();
+                joinBean.setLeftField(leftProps.get(i));
+                joinBean.setRightField(rightProps.get(i));
+                joins.add(joinBean);
+            }
+            join.setConditions(joins);
         }
         return this;
     }

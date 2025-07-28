@@ -26,14 +26,18 @@ public class QuerySourceBean implements ICloneable {
 
     private TreeBean filter;
     private List<String> dimFields;
+    private String joinType;
+    private List<QueryJoinConditionBean> conditions;
 
     @Override
     public QuerySourceBean cloneInstance() {
         QuerySourceBean bean = new QuerySourceBean();
         bean.setSourceName(sourceName);
         bean.setAlias(alias);
+        bean.setJoinType(joinType);
         if (filter != null)
             bean.setFilter(filter.cloneInstance());
+
         if (dimFields != null)
             bean.setDimFields(new ArrayList<>(dimFields));
         return bean;
@@ -74,5 +78,23 @@ public class QuerySourceBean implements ICloneable {
 
     public void setAlias(String alias) {
         this.alias = alias;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getJoinType() {
+        return joinType;
+    }
+
+    public void setJoinType(String joinType) {
+        this.joinType = joinType;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public List<QueryJoinConditionBean> getConditions() {
+        return conditions;
+    }
+
+    public void setConditions(List<QueryJoinConditionBean> conditions) {
+        this.conditions = conditions;
     }
 }
