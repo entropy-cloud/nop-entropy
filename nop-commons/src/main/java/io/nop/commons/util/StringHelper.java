@@ -4748,4 +4748,5 @@ public class StringHelper extends ApiStringHelper {
         return RegexHelper.fromPattern(pattern).replace(source, replaced, multiple);
     }
 
+    
 }
