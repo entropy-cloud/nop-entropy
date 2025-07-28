@@ -1,0 +1,61 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:task="task"
+      xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
+      xmlns:file-utils="/nop/task/xlib/file-utils.xlib" defaultUseParentScope="true"
+      x:extends="/nop/task/lib/common.task.xml">
+
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="8192" maxTokens="50000" temperature="0"
+                    sessionId="${sessionId}"/>
+
+    <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
+
+    <input name="inputDir" type="String" mandatory="true"/>
+    <input name="outputDir" type="String" mandatory="true"/>
+
+    <input name="aiProvider" type="String" mandatory="true"/>
+    <input name="aiModel" type="String" mandatory="true"/>
+    <input name="sessionId" type="String" optional="true"/>
+
+    <steps>
+
+        <fork name="analyzeImages" varName="imageRes" joinType="allComplete">
+            <producer><![CDATA[
+                import io.nop.core.resource.ResourceHelper;
+                import io.nop.core.resource.VirtualFileSystem;
+
+                const dir = ResourceHelper.resolveRelativePathResource(inputDir);
+
+                return VirtualFileSystem.instance().getChildren(dir.stdPath).map(res=> ['png','jpg','jpeg','emf','bmp'].contains(res.name.$fileExt()));
+            ]]></producer>
+
+            <steps>
+                <step name="getImageData">
+                    <source><![CDATA[
+                        import io.nop.markdown.utils.MarkdownHelper;
+                        import io.nop.image.utils.ImageCompressHelper;
+                        import io.nop.ai.core.api.messages.AiMessageAttachment;
+                        import io.nop.core.resource.ResourceHelper;
+
+                        const fileName = imageRes.name;
+                        const imageData = ImageCompressHelper.compressImageWithLimit(imageRes, 1024*60);
+                        return {fileName, binaryData: AiMessageAttachment.fromBinaryData(imageData)};
+                    ]]></source>
+                    <output name="RESULT" exportAs="imageData"/>
+                </step>
+
+                <step name="aiAnalyze" customType="ai:TaskStep" ai:useResponseCache="true"
+                      ai:promptName="coder/analyze-image" ai:attachments="${[imageData.binaryData]}">
+                    <throttle maxConcurrency="1" maxWait="100000000"/>
+                    <output name="RESULT" exportAs="imageSummary"/>
+                </step>
+
+                <step name="saveImageSummary" customType="file-utils:WriteText">
+                    <input name="outputDir" value="${imageDir}"/>
+                    <input name="fileName" value="${imageData.fileName.$fileNameNoExt()}-summary.md"/>
+                    <input name="text" value="${imageSummary}"/>
+                </step>
+
+            </steps>
+
+        </fork>
+    </steps>
+</task>

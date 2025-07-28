@@ -36,7 +36,7 @@ public class ImageCompressHelper {
     }
 
     public static BinaryDataBean compressImageWithLimit(IResource inputFile, int maxSize) throws IOException {
-        return compressImageWithLimit(inputFile, maxSize, null, null);
+        return compressImageWithLimit(inputFile, maxSize, null, null,true);
     }
 
     /**
@@ -52,14 +52,20 @@ public class ImageCompressHelper {
             IResource inputFile,
             int maxSize,
             Integer targetWidth,
-            Integer targetHeight
+            Integer targetHeight,
+            boolean normalizeFormat
     ) throws IOException {
         // 自动识别格式
         String formatName = getFormatName(inputFile);
         String contentType = ImageTypeMap.INSTANCE.getMimeTypeByFormatName(formatName);
 
+        boolean changeFormat = normalizeFormat;
+        if("jpg".equals(formatName) || "png".equals(formatName)){
+            changeFormat = false;
+        }
+
         // 先判断文件本身够不够小
-        if (inputFile.length() <= maxSize) {
+        if (!changeFormat && inputFile.length() <= maxSize) {
             return new BinaryDataBean(contentType, ResourceHelper.readBytes(inputFile));
         }
 
@@ -71,7 +77,7 @@ public class ImageCompressHelper {
 
         // 尝试原尺寸原格式
         byte[] originalBytes = bufferedImageToBytes(image, formatName, 1.0f);
-        if (originalBytes.length <= maxSize) {
+        if (!changeFormat && originalBytes.length <= maxSize) {
             return new BinaryDataBean(contentType, originalBytes);
         }
 
@@ -140,7 +146,7 @@ public class ImageCompressHelper {
         if ("jpg".equalsIgnoreCase(format) || "jpeg".equalsIgnoreCase(format)) {
             Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpg");
             if (!writers.hasNext()) {
-                throw new IllegalStateException("未找到JPG写入器");
+                throw new IllegalStateException("jpg writer not available");
             }
             ImageWriter writer = writers.next();
             ImageWriteParam param = writer.getDefaultWriteParam();

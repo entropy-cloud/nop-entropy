@@ -18,7 +18,7 @@
     <steps>
         <step name="initVar">
             <output name="imageDir">
-                <source>return outputDir.$appendPath(docxPath.$fileNameNoExt()+"/media")</source>
+                <source>return outputDir.$appendPath("/media")</source>
             </output>
         </step>
 

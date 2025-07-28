@@ -34,6 +34,8 @@ public interface HttpApiConstants {
 
     String HEADER_AUTHORIZATION = "authorization";
 
+    String HEADER_API_KEY = "api-key";
+
     String HEADER_HOST = "host";
 
     String HEADER_PROXY_AUTHENTICATE = "proxy-authenticate";

@@ -8,6 +8,6 @@ public class HttpHelper {
     }
 
     public static boolean isSecretHeader(String name) {
-        return HttpApiConstants.HEADER_AUTHORIZATION.equalsIgnoreCase(name);
+        return HttpApiConstants.HEADER_AUTHORIZATION.equalsIgnoreCase(name) || HttpApiConstants.HEADER_API_KEY.equalsIgnoreCase(name);
     }
 }

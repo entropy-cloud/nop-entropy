@@ -42,8 +42,7 @@ public class ImageTypeMap {
         registerAll("xbm", "image/x-xbitmap", "xbm");
         registerAll("xpm", "image/x-xpixmap", "xpm");
         registerAll("svgz", "image/svg+xml", "svgz"); // 压缩SVG
-        registerAll("cur", "image/x-icon", "cur");    // 鼠标指针，和ico类似
-        registerAll("thm", "image/jpeg", "thm");      // Thumbnail
+        registerAll("cur", "image/x-icon", "cur");    // 鼠标指针，和ico类似// Thumbnail
     }
 
     private void registerAll(String ext, String mimeType, String formatName) {
