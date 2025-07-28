@@ -58,4 +58,10 @@ public class JdkRegex implements IRegex {
         }
         return ret.isEmpty() ? null : ret;
     }
+
+    @Override
+    public String replace(String text, String replacement, boolean all) {
+        Matcher m = pattern.matcher(text);
+        return all ? m.replaceAll(replacement) : m.replaceFirst(replacement);
+    }
 }

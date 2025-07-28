@@ -19,4 +19,7 @@ public interface IRegex {
     List<String> exec(String text);
 
     List<String> match(String text);
+
+    // 新增替换方法
+    String replace(String text, String replacement, boolean all);
 }

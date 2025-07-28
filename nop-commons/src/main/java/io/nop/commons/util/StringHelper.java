@@ -21,6 +21,7 @@ import io.nop.commons.crypto.HashHelper;
 import io.nop.commons.text.FormatCheckers;
 import io.nop.commons.text.RawText;
 import io.nop.commons.text.XMLChar;
+import io.nop.commons.text.regex.RegexHelper;
 import io.nop.commons.text.tokenizer.SimpleTextReader;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.random.IRandom;
@@ -4290,6 +4291,20 @@ public class StringHelper extends ApiStringHelper {
     }
 
     @Deterministic
+    public static int countMatches(String str, String sub) {
+        if (str == null || str.isEmpty() || sub == null || sub.isEmpty()) {
+            return 0;
+        }
+        int count = 0;
+        int idx = 0;
+        while ((idx = str.indexOf(sub, idx)) != -1) {
+            count++;
+            idx += sub.length();
+        }
+        return count;
+    }
+
+    @Deterministic
     public static boolean containsUpperCase(String str) {
         return containsAnyChar(str, UPPER_CASE);
     }
@@ -4713,4 +4728,24 @@ public class StringHelper extends ApiStringHelper {
     public static int compareVersions(String v1, String v2) {
         return VersionComparer.compareVersions(v1, v2);
     }
+
+
+    /**
+     * 使用正则表达式替换字符串
+     *
+     * @param source   原始字符串
+     * @param pattern  正则表达式模式
+     * @param replaced 替换内容（可以使用$1,$2等分组引用）
+     * @param multiple 是否替换所有匹配项（true=全部替换，false=只替换第一个）
+     * @return 替换后的字符串
+     * @throws IllegalArgumentException 如果正则表达式无效
+     */
+    public static String replacePattern(String source, String pattern, String replaced, boolean multiple) {
+        if (source == null || pattern == null || replaced == null) {
+            return source;
+        }
+
+        return RegexHelper.fromPattern(pattern).replace(source, replaced, multiple);
+    }
+
 }
