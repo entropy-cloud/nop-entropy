@@ -17,6 +17,7 @@ import io.nop.idea.plugin.resource.EnumDictBean;
 import io.nop.idea.plugin.resource.EnumDictOptionBean;
 import io.nop.idea.plugin.utils.LookupElementHelper;
 import io.nop.idea.plugin.utils.ProjectFileHelper;
+import io.nop.idea.plugin.utils.PsiClassHelper;
 import io.nop.idea.plugin.vfs.NopVirtualFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -63,7 +64,7 @@ public class XLangDictOptionReference extends XLangReferenceBase {
             EnumDictOptionBean dictOpt = (EnumDictOptionBean) dict.getOptionByValue(dictOptionValue);
 
             if (dictOpt != null) {
-                return dictOpt.target;
+                return PsiClassHelper.getField(myElement, dictOpt.className, dictOpt.filedName);
             }
 
             String msg = NopPluginBundle.message("xlang.annotation.reference.enum-option-not-defined",

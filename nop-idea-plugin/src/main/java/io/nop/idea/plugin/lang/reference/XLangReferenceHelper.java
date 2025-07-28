@@ -47,6 +47,7 @@ import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_GENERIC_TYPE;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_GENERIC_TYPE_LIST;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_NAME_OR_V_PATH;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_PACKAGE_NAME;
+import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_STD_DOMAIN;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_V_PATH;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_V_PATH_LIST;
 import static io.nop.xlang.xdef.XDefConstants.STD_DOMAIN_XDEF_ATTR;
@@ -112,6 +113,10 @@ public class XLangReferenceHelper {
                     };
             case STD_DOMAIN_XDEF_ATTR, STD_DOMAIN_DEF_TYPE -> //
                     getReferencesFromDefType(refElement, refValue, refValue);
+            case STD_DOMAIN_STD_DOMAIN -> //
+                    new PsiReference[] {
+                            new XLangStdDomainReference(refElement, textRange, refValue, false)
+                    };
             default -> new PsiReference[] {
                     new XLangStdDomainGeneralReference(refElement, textRange, refDefType)
             };
@@ -157,7 +162,7 @@ public class XLangReferenceHelper {
 
         // 引用数据域的类型定义
         TextRange textRange = new TextRange(0, stdDomain.length()).shiftRight(textRangeOffset + stdDomainIndex);
-        refs.add(new XLangStdDomainReference(refElement, textRange, stdDomain));
+        refs.add(new XLangStdDomainReference(refElement, textRange, stdDomain, true));
 
         if (optionsIndex > 0) {
             int offset = textRangeOffset + optionsIndex;

@@ -4,6 +4,8 @@
     <tags>
         <NewGet x:prototype="Get"/>
         <Get>
+            <attr name="path" stdDomain="v-path"/>
+
             <source>
                 import io.nop.commons.util.StringHelper;
 
@@ -13,6 +15,7 @@
 
         <Query>
             <source>
+                <thisLib:Get path="/test/reference/default.xform"/>
                 <thisLib:DoFindByMdxQuery queryBuilder="" method="post"/>
             </source>
         </Query>

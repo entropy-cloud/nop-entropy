@@ -18,11 +18,12 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import com.intellij.codeInsight.TargetElementUtil;
-import com.intellij.codeInsight.documentation.DocumentationManager;
 import com.intellij.codeInsight.lookup.Lookup;
 import com.intellij.codeInsight.lookup.LookupElement;
 import com.intellij.codeInsight.lookup.LookupManager;
 import com.intellij.codeInsight.lookup.impl.LookupImpl;
+import com.intellij.lang.Language;
+import com.intellij.lang.LanguageDocumentation;
 import com.intellij.lang.documentation.DocumentationProvider;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.fileTypes.FileTypeManager;
@@ -35,6 +36,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.impl.DebugUtil;
 import com.intellij.psi.impl.source.resolve.reference.impl.PsiMultiReference;
+import com.intellij.testFramework.fixtures.CodeInsightTestFixture;
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.FileHelper;
@@ -166,10 +168,20 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         return readVfsResource(resource).replace(insertAt, replacement);
     }
 
-    protected PsiElement getElementAtCaret() {
+    /**
+     * 获取 &lt;caret> 标记下的原始 {@link PsiElement} 元素
+     * <p/>
+     * 与之不同的是，{@link CodeInsightTestFixture#getElementAtCaret() myFixture.getElementAtCaret()}
+     * 得到的是原始元素的引用元素
+     */
+    protected PsiElement getOriginalElementAtCaret() {
         doAssertCaretExists();
 
         return myFixture.getFile().findElementAt(myFixture.getCaretOffset());
+    }
+
+    protected PsiElement getResolvedElementAtCaret() {
+        return myFixture.getElementAtCaret();
     }
 
     /** 找到光标位置的 {@link XLangReference} 或者其他类型的唯一引用 */
@@ -195,14 +207,14 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
     protected String getDocAtCaret() {
         // Note: 通过 ApplicationManager.getApplication().runReadAction(() -> {})
         // 消除异常 "Read access is allowed from inside read-action"
-        PsiElement originalElement = getElementAtCaret();
+        PsiElement originalElement = getOriginalElementAtCaret();
 
-        PsiElement element = DocumentationManager.getInstance(getProject())
-                                                 .findTargetElement(myFixture.getEditor(), myFixture.getFile());
+        PsiElement resolvedElement = getResolvedElementAtCaret();
 
-        DocumentationProvider docProvider = DocumentationManager.getProviderFromElement(originalElement);
+        Language lang = originalElement.getContainingFile().getLanguage();
+        DocumentationProvider docProvider = LanguageDocumentation.INSTANCE.forLanguage(lang);
 
-        return docProvider.generateDoc(element, originalElement);
+        return docProvider.generateDoc(resolvedElement, originalElement);
     }
 
     private void doAssertCaretExists() {

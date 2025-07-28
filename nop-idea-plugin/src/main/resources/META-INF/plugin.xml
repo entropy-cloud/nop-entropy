@@ -82,7 +82,7 @@
                   implementationClass="io.nop.idea.plugin.lang.XLangFileType"
                   fieldName="INSTANCE"
                   extensions="xpl;xgen;xui;xlib;xrun;xwf;xmeta"
-                  patterns="*.xpl;*.xgen;*.xui;*.xlib;*.xrun;*.xwf;*.orm.xml;*.xmeta;*.xpage;*.beans.xml;*.xrule;*.action-auth.xml;*.view.xml;*.sql-lib.xml"/>
+                  patterns="*.xpl;*.xgen;*.xui;*.xlib;*.xrun;*.xwf;*.orm.xml;*.xmeta;*.xpage;*.beans.xml;*.xrule;*.action-auth.xml;*.view.xml;*.sql-lib.xml;*.register-model.xml"/>
         <lang.parserDefinition language="XLang"
                                implementationClass="io.nop.idea.plugin.lang.XLangParserDefinition"/>
         <!-- 根据XDef文件定义，对XLang DSL进行语法校验 -->

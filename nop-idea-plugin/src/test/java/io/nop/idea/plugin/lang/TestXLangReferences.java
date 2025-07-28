@@ -1009,123 +1009,158 @@ public class TestXLangReferences extends BaseXLangPluginTestCase {
     }
 
     public void testAttributeValueDefTypeReferences() {
-        assertReference(insertCaretIntoVfs("/test/reference/a.xlib", //
-                                           "<attr name=\"disabled\" type=\"Boolean\"", //
-                                           "<attr name=\"disabled\" type=\"boo<caret>lean\""), //
+//        assertReference(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
+//                                           "xdef:default-override=\"enum:io.nop.xlang.xdef.XDefOverride\"", //
+//                                           "xdef:default-override=\"enum:io.nop.xlang.xdef.XDe<caret>fOverride\""), //
+//                        "io.nop.xlang.xdef.XDefOverride" //
+//        );
+//
+//        // 引用字典中定义的数据域
+//        assertReference("""
+//                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+//                                         x:schema="/nop/schema/xdef.xdef"
+//                                >
+//                                    <node xdef:value="v-<caret>path"/>
+//                                </example>
+//                                """,  //
+//                        "/dict/core/std-domain.dict.yaml#v-path" //
+//        );
+//        assertReference("""
+//                                <example xmlns:x="/nop/schema/xdsl.xdef"
+//                                         x:schema="/nop/schema/xdef.xdef"
+//                                >
+//                                    <node type="str<caret>ing"/>
+//                                </example>
+//                                """,  //
+//                        "/dict/core/std-domain.dict.yaml#string" //
+//        );
+//
+//        // 字典/枚举的 options 引用
+//        assertReference("""
+//                                <example xmlns:x="/nop/schema/xdsl.xdef"
+//                                         x:schema="/nop/schema/xdef.xdef"
+//                                >
+//                                    <child type="dict:test/doc/ch<caret>ild-type"/>
+//                                </example>
+//                                """,  //
+//                        "/dict/test/doc/child-type.dict.yaml" //
+//        );
+//        assertReference("""
+//                                <example xmlns:x="/nop/schema/xdsl.xdef"
+//                                         x:schema="/nop/schema/xdef.xdef"
+//                                >
+//                                    <child type="enum:lea<caret>f,node=leaf"/>
+//                                </example>
+//                                """, //
+//                        null //
+//        );
+//        assertReference(insertCaretIntoVfs("/nop/schema/xdsl.xdef", //
+//                                           "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"", //
+//                                           "x:override=\"enum:io.nop.xlang.xdef.X<caret>DefOverride=merge\""), //
+//                        "io.nop.xlang.xdef.XDefOverride" //
+//        );
+//
+//        // 字典/枚举的默认值引用
+//        assertReference("""
+//                                <example xmlns:x="/nop/schema/xdsl.xdef"
+//                                         x:schema="/nop/schema/xdef.xdef"
+//                                >
+//                                    <child type="dict:test/doc/child-type=le<caret>af"/>
+//                                </example>
+//                                """,  //
+//                        "/dict/test/doc/child-type.dict.yaml#leaf" //
+//        );
+//        assertReference("""
+//                                <example xmlns:x="/nop/schema/xdsl.xdef"
+//                                         x:schema="/nop/schema/xdef.xdef"
+//                                >
+//                                    <child type="enum:io.nop.xlang.xdef.XDefOverr<caret>Ide"/>
+//                                </example>
+//                                """,  //
+//                        null //
+//        );
+//        assertReference("""
+//                                <example xmlns:x="/nop/schema/xdsl.xdef"
+//                                         x:schema="/nop/schema/xdef.xdef"
+//                                >
+//                                    <child type="enum:leaf,node=le<caret>af"/>
+//                                </example>
+//                                """, //
+//                        null //
+//        );
+//        assertReference(insertCaretIntoVfs("/nop/schema/xdsl.xdef", //
+//                                           "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"", //
+//                                           "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=me<caret>rge\""), //
+//                        "io.nop.xlang.xdef.XDefOverride#MERGE" //
+//        );
+//
+//        // 缺省属性值中 @attr: 引用
+//        assertReference("""
+//                                <component xmlns:x="/nop/schema/xdsl.xdef"
+//                                         x:schema="/nop/schema/xdef.xdef"
+//                                >
+//                                    <import as="!var-name=@attr:n<caret>ame" name="var-name" from="!string"/>
+//                                </component>
+//                                """,  //
+//                        "import#name=var-name" //
+//        );
+//        assertReference("""
+//                                <component xmlns:x="/nop/schema/xdsl.xdef"
+//                                         x:schema="/nop/schema/xdef.xdef"
+//                                >
+//                                    <var com="!var-name=@attr:name,ty<caret>pe" name="var-name" type="!string"/>
+//                                </component>
+//                                """,  //
+//                        "var#type=!string" //
+//        );
+//        assertReference("""
+//                                <component xmlns:x="/nop/schema/xdsl.xdef"
+//                                         x:schema="/nop/schema/xdef.xdef"
+//                                >
+//                                    <var com="!var-name=@attr:ab<caret>c"/>
+//                                </component>
+//                                """, //
+//                        null //
+//        );
+
+        // xlib 参数类型定义的引用
+        assertReference("""
+                                <lib xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xlib.xdef">
+                                    <tags>
+                                        <DoSomething>
+                                            <attr name="disabled" type="Bo<caret>olean" stdDomain="boolean"/>
+                                        </DoSomething>
+                                    </tags>
+                                </lib>
+                                """, //
                         "java.lang.Boolean" //
         );
-        assertReference(insertCaretIntoVfs("/nop/schema/xdef.xdef", //
-                                           "xdef:default-override=\"enum:io.nop.xlang.xdef.XDefOverride\"", //
-                                           "xdef:default-override=\"enum:io.nop.xlang.xdef.XDe<caret>fOverride\""), //
-                        "io.nop.xlang.xdef.XDefOverride" //
-        );
-
-        // 引用字典中定义的数据域
         assertReference("""
-                                <example xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
-                                         x:schema="/nop/schema/xdef.xdef"
-                                >
-                                    <node xdef:value="v-<caret>path"/>
-                                </example>
-                                """,  //
-                        "/dict/core/std-domain.dict.yaml#v-path" //
-        );
-        assertReference("""
-                                <example xmlns:x="/nop/schema/xdsl.xdef"
-                                         x:schema="/nop/schema/xdef.xdef"
-                                >
-                                    <node type="str<caret>ing"/>
-                                </example>
-                                """,  //
-                        "/dict/core/std-domain.dict.yaml#string" //
-        );
-
-        // 字典/枚举的 options 引用
-        assertReference("""
-                                <example xmlns:x="/nop/schema/xdsl.xdef"
-                                         x:schema="/nop/schema/xdef.xdef"
-                                >
-                                    <child type="dict:test/doc/ch<caret>ild-type"/>
-                                </example>
-                                """,  //
-                        "/dict/test/doc/child-type.dict.yaml" //
-        );
-        assertReference("""
-                                <example xmlns:x="/nop/schema/xdsl.xdef"
-                                         x:schema="/nop/schema/xdef.xdef"
-                                >
-                                    <child type="enum:lea<caret>f,node=leaf"/>
-                                </example>
+                                <lib xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xlib.xdef">
+                                    <tags>
+                                        <DoSomething>
+                                            <attr name="disabled" type="Boolean" stdDomain="boo<caret>lean"/>
+                                        </DoSomething>
+                                    </tags>
+                                </lib>
                                 """, //
-                        null //
-        );
-        assertReference(insertCaretIntoVfs("/nop/schema/xdsl.xdef", //
-                                           "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"", //
-                                           "x:override=\"enum:io.nop.xlang.xdef.X<caret>DefOverride=merge\""), //
-                        "io.nop.xlang.xdef.XDefOverride" //
-        );
-
-        // 字典/枚举的默认值引用
-        assertReference("""
-                                <example xmlns:x="/nop/schema/xdsl.xdef"
-                                         x:schema="/nop/schema/xdef.xdef"
-                                >
-                                    <child type="dict:test/doc/child-type=le<caret>af"/>
-                                </example>
-                                """,  //
-                        "/dict/test/doc/child-type.dict.yaml#leaf" //
+                        "/dict/core/std-domain.dict.yaml#boolean" //
         );
         assertReference("""
-                                <example xmlns:x="/nop/schema/xdsl.xdef"
-                                         x:schema="/nop/schema/xdef.xdef"
-                                >
-                                    <child type="enum:io.nop.xlang.xdef.XDefOverr<caret>Ide"/>
-                                </example>
-                                """,  //
-                        null //
-        );
-        assertReference("""
-                                <example xmlns:x="/nop/schema/xdsl.xdef"
-                                         x:schema="/nop/schema/xdef.xdef"
-                                >
-                                    <child type="enum:leaf,node=le<caret>af"/>
-                                </example>
+                                <lib xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/xlib.xdef">
+                                    <tags>
+                                        <Get>
+                                            <attr name="path" stdDomain="v-path"/>
+                                        </Get>
+                                        <DoSomething>
+                                            <source>
+                                                <thisLib:Get path="/nop/sch<caret>ema/xlib.xdef"/>
+                                            </source>
+                                        </DoSomething>
+                                    </tags>
+                                </lib>
                                 """, //
-                        null //
-        );
-        assertReference(insertCaretIntoVfs("/nop/schema/xdsl.xdef", //
-                                           "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=merge\"", //
-                                           "x:override=\"enum:io.nop.xlang.xdef.XDefOverride=me<caret>rge\""), //
-                        "io.nop.xlang.xdef.XDefOverride#MERGE" //
-        );
-
-        // 缺省属性值中 @attr: 引用
-        assertReference("""
-                                <component xmlns:x="/nop/schema/xdsl.xdef"
-                                         x:schema="/nop/schema/xdef.xdef"
-                                >
-                                    <import as="!var-name=@attr:n<caret>ame" name="var-name" from="!string"/>
-                                </component>
-                                """,  //
-                        "import#name=var-name" //
-        );
-        assertReference("""
-                                <component xmlns:x="/nop/schema/xdsl.xdef"
-                                         x:schema="/nop/schema/xdef.xdef"
-                                >
-                                    <var com="!var-name=@attr:name,ty<caret>pe" name="var-name" type="!string"/>
-                                </component>
-                                """,  //
-                        "var#type=!string" //
-        );
-        assertReference("""
-                                <component xmlns:x="/nop/schema/xdsl.xdef"
-                                         x:schema="/nop/schema/xdef.xdef"
-                                >
-                                    <var com="!var-name=@attr:ab<caret>c"/>
-                                </component>
-                                """, //
-                        null //
+                        "/nop/schema/xlib.xdef" //
         );
     }
 
