@@ -6,14 +6,40 @@ import io.nop.core.model.tree.TreeVisitResult;
 import io.nop.core.model.tree.TreeVisitors;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
+import io.nop.core.resource.impl.ResourceChildrenAdapter;
+
+import java.util.function.Predicate;
 
 public class ResourceToPathTreeBuilder implements ITreeVisitor<IResource> {
 
     private PathTreeNode rootNode;
     private PathTreeNode currentNode;
+    private int maxDepth;
+    private int depth;
+
+    private Predicate<IResource> filter;
+
+    public int getMaxDepth() {
+        return maxDepth;
+    }
+
+    public void setMaxDepth(int maxDepth) {
+        this.maxDepth = maxDepth;
+    }
+
+    public Predicate<IResource> getFilter() {
+        return filter;
+    }
+
+    public void setFilter(Predicate<IResource> filter) {
+        this.filter = filter;
+    }
 
     @Override
     public TreeVisitResult beginNode(IResource resource) {
+        if (filter != null && !filter.test(resource))
+            return TreeVisitResult.SKIP_CHILD;
+
         // 创建对应的PathTreeNode
         PathTreeNode node = createPathTreeNode(resource);
 
@@ -27,8 +53,14 @@ public class ResourceToPathTreeBuilder implements ITreeVisitor<IResource> {
             }
         }
 
+        if (maxDepth > 0 && depth >= maxDepth) {
+            return TreeVisitResult.SKIP_CHILD;
+        }
+
         // 更新当前节点引用
         currentNode = node;
+
+        depth++;
 
         return TreeVisitResult.CONTINUE;
     }
@@ -39,6 +71,7 @@ public class ResourceToPathTreeBuilder implements ITreeVisitor<IResource> {
         if (currentNode != null) {
             currentNode = currentNode.getParent();
         }
+        depth--;
         return TreeVisitResult.CONTINUE;
     }
 
@@ -56,9 +89,16 @@ public class ResourceToPathTreeBuilder implements ITreeVisitor<IResource> {
         return rootNode;
     }
 
+    public static PathTreeNode buildFromResource(IResource rootResource, int maxDepth, Predicate<IResource> filter) {
+        return buildFromResource(new ResourceChildrenAdapter(), rootResource, maxDepth, filter);
+    }
+
     // 辅助方法：从IResource构建PathTreeNode
-    public static PathTreeNode buildFromResource(ITreeChildrenAdapter<IResource> loader, IResource rootResource) {
+    public static PathTreeNode buildFromResource(ITreeChildrenAdapter<IResource> loader,
+                                                 IResource rootResource, int maxDepth, Predicate<IResource> filter) {
         ResourceToPathTreeBuilder builder = new ResourceToPathTreeBuilder();
+        builder.setMaxDepth(maxDepth);
+        builder.setFilter(filter);
         TreeVisitors.visitTree(loader, rootResource, builder);
         return builder.getResult();
     }

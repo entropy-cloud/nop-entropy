@@ -3,28 +3,47 @@ package io.nop.ai.coder.file;
 import java.util.List;
 
 public interface IFileOperator {
-    List<FileContent> readFiles(List<String> paths);
+    FileContents readFiles(List<String> paths);
 
-    void writeFiles(List<FileContent> fileContents);
+    void writeFiles(FileContents fileContents, boolean overwrite);
 
     FileContent readFile(String path);
 
     List<String> readLines(String path);
 
-    void writeFile(FileContent fileContent);
+    void writeFile(FileContent fileContent, boolean append);
+
+    default void writeFile(FileContent fileContent) {
+        writeFile(fileContent, false);
+    }
 
     boolean exists(String path);
 
-    List<String> findFiles(String directoryPath, String pattern);
+    List<String> findFilesByAntPath(String directory, String pattern);
 
-    List<String> listDirectory(String directoryPath);
+    List<String> listDirectory(String directory);
+
+    //  查找满足模式要求的第一个文件
+    String findFileByAntPath(String directory, String pattern);
+
+    default String findFileByName(String directory, String fileName) {
+        return findFileByAntPath(directory, "**/" + fileName);
+    }
 
     // 文件管理操作
-    boolean delete(String path);
+    void delete(String path);
 
-    boolean move(String sourcePath, String targetPath);
+    void move(String sourcePath, String targetPath, boolean overwrite);
 
-    boolean copy(String sourcePath, String targetPath);
+    default void move(String sourcePath, String targetPath) {
+        move(sourcePath, targetPath, true);
+    }
+
+    void copy(String sourcePath, String targetPath, boolean overwrite);
+
+    default void copy(String sourcePath, String targetPath) {
+        copy(sourcePath, targetPath, true);
+    }
 
     default void applyDiff(FileDiff diff) {
         new FileDiffApplier(this).apply(diff);

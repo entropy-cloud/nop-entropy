@@ -188,7 +188,7 @@ public class PathTreeNode {
 
     @Override
     public String toString() {
-        return buildTreeString();
+        return "PathTreeNode(name=" + name + ",level=" + level + ")";
     }
 
     public String buildTreeString() {

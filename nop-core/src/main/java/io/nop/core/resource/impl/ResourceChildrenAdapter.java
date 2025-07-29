@@ -10,6 +10,7 @@ package io.nop.core.resource.impl;
 import io.nop.core.model.tree.ITreeChildrenAdapter;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.IResourceLoader;
+import io.nop.core.resource.VirtualFileSystem;
 
 import java.util.Collection;
 
@@ -18,6 +19,10 @@ public class ResourceChildrenAdapter implements ITreeChildrenAdapter<IResource> 
 
     public ResourceChildrenAdapter(IResourceLoader store) {
         this.store = store;
+    }
+
+    public ResourceChildrenAdapter() {
+        this(VirtualFileSystem.instance());
     }
 
     @Override
