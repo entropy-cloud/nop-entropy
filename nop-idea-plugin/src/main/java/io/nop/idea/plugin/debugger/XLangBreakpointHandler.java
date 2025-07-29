@@ -36,18 +36,18 @@ public class XLangBreakpointHandler extends XBreakpointHandler<XLineBreakpoint<X
 
     static final Logger LOG = LoggerFactory.getLogger(XLangBreakpointHandler.class);
 
-    private Map<String, XLineBreakpoint<XLangBreakpointProperties>> breakpoints = new HashMap();
-    private XLangDebugProcess debugProcess;
+    private final Map<String, XLineBreakpoint<XLangBreakpointProperties>> breakpoints = new HashMap<>();
+    private final XLangDebugProcess debugProcess;
     private boolean muted;
 
-    private Map<String, Breakpoint> bpMap = new HashMap<>();
+    private final Map<String, Breakpoint> bpMap = new HashMap<>();
 
     public XLangBreakpointHandler(final XLangDebugProcess debugProcess) {
         super(XLangBreakpointType.class);
         this.debugProcess = debugProcess;
     }
 
-    public void breakpointMuted(boolean muted) {
+    public void breakpointsMuted(boolean muted) {
         this.muted = muted;
         IDebuggerAsync debugger = debugProcess.getDebugger();
         if (debugger != null) {
@@ -55,6 +55,7 @@ public class XLangBreakpointHandler extends XBreakpointHandler<XLineBreakpoint<X
         }
     }
 
+    @Override
     public void registerBreakpoint(@NotNull final XLineBreakpoint<XLangBreakpointProperties> breakpoint) {
         Breakpoint bp = makeBreakpoint(breakpoint);
         if (bp == null)
@@ -62,10 +63,22 @@ public class XLangBreakpointHandler extends XBreakpointHandler<XLineBreakpoint<X
 
         String key = getKey(bp);
         breakpoints.put(key, breakpoint);
-
         bpMap.put(key, bp);
 
         debugProcess.getSession().updateBreakpointPresentation(breakpoint, AllIcons.Debugger.Db_verified_breakpoint, null);
+
+        sendBreakpoints();
+    }
+
+    @Override
+    public void unregisterBreakpoint(@NotNull final XLineBreakpoint<XLangBreakpointProperties> breakpoint, final boolean temporary) {
+        Breakpoint bp = makeBreakpoint(breakpoint);
+        if (bp == null)
+            return;
+
+        String key = getKey(bp);
+        breakpoints.remove(key);
+        bpMap.remove(key);
 
         sendBreakpoints();
     }
@@ -102,34 +115,19 @@ public class XLangBreakpointHandler extends XBreakpointHandler<XLineBreakpoint<X
         return new Breakpoint(fileURL, lineNumber, condition, logExpr);
     }
 
-    public void unregisterBreakpoint(@NotNull final XLineBreakpoint<XLangBreakpointProperties> breakpoint, final boolean temporary) {
-        Breakpoint bp = makeBreakpoint(breakpoint);
-        if (bp == null)
-            return;
-
-        String key = getKey(bp);
-        breakpoints.remove(key);
-
-        bpMap.remove(key);
-        sendBreakpoints();
-
-    }
-
     public void sendBreakpoints() {
         IDebuggerAsync debugger = debugProcess.getDebugger();
         if (debugger != null) {
             List<Breakpoint> bps = new ArrayList<>(bpMap.values());
             debugger.updateBreakpointsAsync(bps, muted)
                     .exceptionally(e -> {
-                        debugProcess.getSession().reportMessage("update breakpoints fail", MessageType.ERROR);
+                        debugProcess.getSession().reportMessage("Update breakpoints fail", MessageType.ERROR);
                         return null;
                     });
         }
     }
 
     public XBreakpoint<XLangBreakpointProperties> findBreakPoint(@NotNull StackTraceElement elm) {
-        if (elm == null)
-            return null;
         String path = elm.getSourcePath();
         int lineNumber = elm.getLine();
         return breakpoints.get(path + ':' + lineNumber);

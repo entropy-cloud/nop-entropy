@@ -16,6 +16,7 @@
 
     <depends>com.intellij.modules.lang</depends>
     <depends>com.intellij.java</depends>
+    <depends>com.intellij.gradle</depends>
     <depends>org.jetbrains.plugins.yaml</depends>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
@@ -105,6 +106,8 @@
         <executor id="xlangDebug"
                   implementation="io.nop.idea.plugin.execution.XLangDebugExecutor"
                   order="first,after run"/>
+        <runConfigurationExtension
+                implementation="io.nop.idea.plugin.debugger.XLangRunConfigurationExtension"/>
 
         <!-- XLang Script 注册与解析 -->
         <languageInjector implementation="io.nop.idea.plugin.lang.XLangScriptLanguageInjector"/>

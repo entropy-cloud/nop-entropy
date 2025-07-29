@@ -21,16 +21,18 @@ import java.util.function.Consumer;
  * 通过socket连接到远程XLang服务器
  */
 public class XLangDebugConnector implements IDestroyable {
-    private SimpleRpcClientFactory<IDebuggerAsync> clientFactory = new SimpleRpcClientFactory<>();
+    private final SimpleRpcClientFactory<IDebuggerAsync> clientFactory = new SimpleRpcClientFactory<>();
 
     public XLangDebugConnector(int debugPort, Consumer<ApiResponse<?>> action, Runnable onChannelOpen) {
         ClientConfig config = new ClientConfig();
         config.setReadTimeout(0);
         config.setPort(debugPort);
-        RetryPolicy policy = new RetryPolicy();
+
+        RetryPolicy<?> policy = new RetryPolicy<>();
         policy.setRetryDelay(200);
         policy.setExponentialDelay(true);
         policy.setMaxRetryDelay(1000);
+
         config.setReconnectPolicy(policy);
 
         clientFactory.setClientConfig(config);

@@ -38,15 +38,19 @@ import com.intellij.psi.impl.DebugUtil;
 import com.intellij.psi.impl.source.resolve.reference.impl.PsiMultiReference;
 import com.intellij.testFramework.fixtures.CodeInsightTestFixture;
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.IoHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.idea.plugin.lang.XLangFileType;
 import io.nop.idea.plugin.lang.reference.XLangReference;
 import io.nop.idea.plugin.services.NopAppListener;
+import io.nop.xlang.debugger.XLangDebugger;
+import io.nop.xlang.debugger.initialize.XLangDebuggerInitializer;
 
 /**
  * @author <a href="mailto:flytreeleft@crazydan.org">flytreeleft</a>
@@ -77,10 +81,10 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
             // Note: *.xdef 等需显式注册，否则，这类文件会被视为二进制文件，
             // 在通过 PsiDocumentManager 获取 Document 时，将返回 null
             FileTypeManager.getInstance().associateExtension(XLangFileType.INSTANCE, "xdef");
-
             FileTypeManager.getInstance().associateExtension(XLangFileType.INSTANCE, XLANG_EXT);
 
             new NopAppListener().appFrameCreated(new ArrayList<>());
+            initXLangDebugger();
 
             // Note: 提前将被引用的 vfs 资源添加到 Project 中
             addAllNopXDefsToProject();
@@ -96,6 +100,41 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         });
 
         super.tearDown();
+    }
+
+    private void initXLangDebugger() {
+        // Note: 在单元测试中，vfs 资源是针对 Project 被复制到单独的 src 目录下的，
+        // 通过 ProjectVirtualFileSystem 得到的 vfs 资源路径与调试断点的文件路径是不一致的，
+        // 因此，需要针对测试资源做路径转换，以匹配断点所在的文件路径
+        XLangDebuggerInitializer debugger = new XLangDebuggerInitializer() {
+            @Override
+            protected XLangDebugger createDebugger() {
+                return new XLangDebugger() {
+                    @Override
+                    protected String toSourcePath(SourceLocation loc) {
+                        String prefix = "/src/_vfs/";
+                        String path = super.toSourcePath(loc);
+
+                        if (path.startsWith(prefix)) {
+                            String vfsFileName = path.substring(prefix.length());
+                            File rootDir = new File(getVfsDir(), "../../../..");
+                            File vfsSrcFile = new File(new File(rootDir, "src/test/resources/_vfs"), vfsFileName);
+
+                            if (vfsSrcFile.isFile()) {
+                                path = vfsSrcFile.toURI().toString();
+                                path = StringHelper.normalizePath(path);
+                            }
+                        }
+                        return path;
+                    }
+                };
+            }
+        };
+
+        if (debugger.isEnabled()) {
+            debugger.initialize();
+            cleanup.appendOnCancelTask(debugger::destroy);
+        }
     }
 
     protected PsiFile configureByXLangText(String text) {
@@ -123,9 +162,13 @@ public abstract class BaseXLangPluginTestCase extends LightJavaCodeInsightFixtur
         }
     }
 
+    protected File getVfsDir() {
+        return new File(getClass().getResource("/_vfs").getFile());
+    }
+
     /** 将 vfs 测试资源全部复制到 Project 中 */
     protected void addAllTestVfsResourcesToProject() {
-        File vfsDir = new File(getClass().getResource("/_vfs").getFile());
+        File vfsDir = getVfsDir();
 
         FileHelper.walk(vfsDir, (file) -> {
             if (file.isFile()) {
