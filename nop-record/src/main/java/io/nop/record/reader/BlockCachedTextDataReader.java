@@ -93,7 +93,7 @@ public class BlockCachedTextDataReader implements ITextDataReader {
             }
 
             int startOffset = getRelativeOffset(fromPosition);
-            int endOffset = Math.min(startOffset + maxLength, size);
+            int endOffset = (int) Math.min((long) startOffset + (long) maxLength, size);
 
             for (int i = startOffset; i < endOffset; i++) {
                 char c = content.charAt(i);
