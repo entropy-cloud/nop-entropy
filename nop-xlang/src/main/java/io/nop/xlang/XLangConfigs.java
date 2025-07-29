@@ -33,7 +33,7 @@ public interface XLangConfigs {
     @Description("XLang调试器端口")
     IConfigReference<Integer> CFG_XLANG_DEBUGGER_PORT = varRef(s_loc,"nop.xlang.debugger.port", Integer.class, 12345);
 
-    @Description("XLang调试器端口")
+    @Description("XLang调试服务传输的最大数据长度")
     IConfigReference<Integer> CFG_XLANG_DEBUGGER_MAX_DATA_LEN = varRef(s_loc,"nop.xlang.debugger.max-data-len", Integer.class,
             1024 * 1024 * 2);
 
