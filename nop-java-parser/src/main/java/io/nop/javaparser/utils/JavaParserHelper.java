@@ -5,11 +5,17 @@ import com.github.javaparser.ParseException;
 import com.github.javaparser.Problem;
 import com.github.javaparser.Token;
 import com.github.javaparser.TokenRange;
+import com.github.javaparser.ast.CompilationUnit;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.javaparser.JavaParseTool;
 
 import java.util.Optional;
 
 public class JavaParserHelper {
+    public static CompilationUnit parseJavaSource(SourceLocation loc, String source) {
+        return JavaParseTool.instance().parseJavaSource(loc, source).getCompilationUnit();
+    }
+
     public static SourceLocation getProblemLocation(SourceLocation baseLoc, Problem problem) {
         Optional<TokenRange> tokenRange = problem.getLocation();
         if (!tokenRange.isPresent()) {

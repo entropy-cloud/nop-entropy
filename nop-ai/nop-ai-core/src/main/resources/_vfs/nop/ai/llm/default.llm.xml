@@ -2,7 +2,7 @@
      apiStyle="openai">
 
     <!--    <baseUrl>http://localhost:11434/</baseUrl>-->
-    <chatUrl>/chat/completions</chatUrl>
+    <chatUrl>/v1/chat/completions</chatUrl>
 
     <request seedPath="options.seed"
              topPPath="top_p"
