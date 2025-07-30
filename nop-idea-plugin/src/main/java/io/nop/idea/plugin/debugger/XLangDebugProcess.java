@@ -9,6 +9,7 @@ package io.nop.idea.plugin.debugger;
 
 import javax.swing.event.HyperlinkListener;
 
+import com.intellij.debugger.DebugEnvironment;
 import com.intellij.debugger.engine.JavaDebugProcess;
 import com.intellij.debugger.impl.DebuggerSession;
 import com.intellij.debugger.impl.PrioritizedTask;
@@ -36,6 +37,7 @@ import io.nop.api.debugger.IDebuggerAsync;
 import io.nop.api.debugger.LineLocation;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.utils.ProjectFileHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -110,11 +112,10 @@ public class XLangDebugProcess extends JavaDebugProcess {
                 indicator.setIndeterminate(true);
 
                 try {
-                    if (!connect()) {
-                        return;
+                    if (connect()) {
+                        startDebugSession();
                     }
-                    startDebugSession();
-                } catch (final Exception e) {
+                } catch (Exception e) {
                     onConnectFail(e.getMessage());
                 }
             }
@@ -129,12 +130,12 @@ public class XLangDebugProcess extends JavaDebugProcess {
 
                 LOG.info("xlang.debugger.connector-connected");
                 return true;
-            } catch (final Exception e) {
+            } catch (Exception e) {
                 try {
                     Thread.sleep(200);
                 } catch (Exception ignored) {
-
                 }
+
                 if (getProcessHandler().isProcessTerminated()) {
                     return false;
                 }
@@ -149,8 +150,9 @@ public class XLangDebugProcess extends JavaDebugProcess {
     private void onConnectFail(final String msg) {
         getProcessHandler().destroyProcess();
         invokeLater(() -> {
-            String text = "XLangDebugger can't connect to DebuggerServer on port "
-                          + connector.getDebugPort();//myDebuggerProxy.getPort();
+            String text = NopPluginBundle.message("xlang.debugger.connect-fail",
+                                                  String.valueOf(connector.getDebugPort()));
+
             Messages.showErrorDialog(msg != null ? text + ":\r\n" + msg : text, "XLang Debugger");
         });
     }

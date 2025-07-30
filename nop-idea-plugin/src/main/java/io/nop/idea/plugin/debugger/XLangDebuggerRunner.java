@@ -23,8 +23,10 @@ import com.intellij.execution.configurations.RunProfileState;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.ui.RunContentDescriptor;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Computable;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.xdebugger.XDebugProcess;
 import com.intellij.xdebugger.XDebugProcessStarter;
 import com.intellij.xdebugger.XDebugSession;
@@ -63,7 +65,13 @@ public class XLangDebuggerRunner extends GenericDebuggerRunner {
     protected RunContentDescriptor createContentDescriptor(
             @NotNull RunProfileState state, @NotNull ExecutionEnvironment environment
     ) throws ExecutionException {
-        if (noXLangDebuggerInProject(environment)) {
+        XLangRunConfigurationExtension extension = //
+                RunConfigurationExtension.EP_NAME.findExtensionOrFail(XLangRunConfigurationExtension.class);
+
+        int xlangDebugPort = extension.getXLangDebugPort();
+        DebugEnvironment debugEnvironment = extension.createDebugEnvironment(state, environment);
+
+        if (notIncludeXLangDebugger(environment.getProject(), debugEnvironment)) {
             // Note: 确保 Messages#showErrorDialog 在事件分发线程 (EDT) 中调用，
             // 避免出现异常 "Access is allowed from Event Dispatch Thread (EDT) only"
             ApplicationManager.getApplication().invokeLater(() -> {
@@ -71,12 +79,6 @@ public class XLangDebuggerRunner extends GenericDebuggerRunner {
             });
             return null;
         }
-
-        XLangRunConfigurationExtension extension = //
-                RunConfigurationExtension.EP_NAME.findExtensionOrFail(XLangRunConfigurationExtension.class);
-
-        int xlangDebugPort = extension.getXLangDebugPort();
-        DebugEnvironment debugEnvironment = extension.createDebugEnvironment(state, environment);
 
         return dispatch(()-> {
             // 实际上同时启动了java调试器和XLang调试器
@@ -100,12 +102,13 @@ public class XLangDebuggerRunner extends GenericDebuggerRunner {
         });
     }
 
-    /** 当前项目是否未依赖 {@link XLangDebugger} */
-    private boolean noXLangDebuggerInProject(@NotNull ExecutionEnvironment environment) {
+    /** 当前调试环境中是否未引入 {@link XLangDebugger} */
+    private boolean notIncludeXLangDebugger(@NotNull Project project, @NotNull DebugEnvironment environment) {
         return ApplicationManager.getApplication().runReadAction((Computable<Boolean>) () -> {
             // Note: 避免出现异常 "Read access is allowed from inside read-action only"
+            GlobalSearchScope scope = environment.getSearchScope();
             try {
-                return PsiClassHelper.findClass(environment.getProject(), XLangDebugger.class.getName()) == null;
+                return PsiClassHelper.findClass(project, XLangDebugger.class.getName(), scope) == null;
             } catch (Exception ignore) {
                 // Note: 可能存在索引还未创建完毕的异常，这里直接忽略即可
                 return false;
