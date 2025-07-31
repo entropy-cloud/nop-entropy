@@ -104,6 +104,15 @@ public class FileHelper {
         }
     }
 
+    public static List<String> readLines(File file, String encoding) {
+        try {
+            return Files.readAllLines(file.toPath(), StringHelper.toCharset(encoding));
+        } catch (Exception e) {
+            LOG.error("nop.file.read-lines-fail:encoding={},file={}", encoding, file);
+            throw NopException.adapt(e);
+        }
+    }
+
     public static void assureParent(File file) {
         File parent = file.getParentFile();
         if (parent != null)
@@ -595,8 +604,8 @@ public class FileHelper {
         });
     }
 
-    public static File resolveFile(String path){
-        if(StringHelper.isEmpty(path))
+    public static File resolveFile(String path) {
+        if (StringHelper.isEmpty(path))
             return currentDir();
         return new File(path);
     }

@@ -1,49 +1,15 @@
 package io.nop.ai.code_analyzer.maven;
 
-import java.util.ArrayList;
-import java.util.Collections;
+import io.nop.commons.util.FileHelper;
+
+import java.io.File;
 import java.util.List;
 import java.util.Stack;
 
 public class MavenDependencyTreeParser {
 
-    public static class MavenDependencyNode {
-        private final MavenDependency dependency;
-        private final List<MavenDependencyNode> children;
-
-        public MavenDependencyNode(MavenDependency dependency) {
-            this.dependency = dependency;
-            this.children = new ArrayList<>();
-        }
-
-        public MavenDependency getDependency() {
-            return dependency;
-        }
-
-        public List<MavenDependencyNode> getChildren() {
-            return Collections.unmodifiableList(children);
-        }
-
-        public void addChild(MavenDependencyNode child) {
-            children.add(child);
-        }
-
-        @Override
-        public String toString() {
-            return toStringWithIndent(0);
-        }
-
-        private String toStringWithIndent(int level) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < level; i++) {
-                sb.append("  ");
-            }
-            sb.append(level > 0 ? "+- " : "").append(dependency.toString());
-            for (MavenDependencyNode child : children) {
-                sb.append("\n").append(child.toStringWithIndent(level + 1));
-            }
-            return sb.toString();
-        }
+    public static MavenDependencyNode parseFromFile(File file) {
+        return parse(FileHelper.readLines(file, null));
     }
 
     /**

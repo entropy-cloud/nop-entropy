@@ -1,6 +1,5 @@
-package io.nop.ai.code_analyzer;
+package io.nop.ai.code_analyzer.maven;
 
-import io.nop.ai.code_analyzer.maven.MavenDependencyTreeParser;
 import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.List;
@@ -13,7 +12,7 @@ class MavenDependencyTreeParserTest {
     void parseSingleDependencyTree() {
         List<String> input = List.of("org.example:parent:jar:1.0.0");
         
-        MavenDependencyTreeParser.MavenDependencyNode root =
+        MavenDependencyNode root =
             MavenDependencyTreeParser.parse(input);
         
         assertEquals("org.example:parent:jar:1.0.0", 
@@ -29,7 +28,7 @@ class MavenDependencyTreeParserTest {
             "\\- org.example:child2:jar:1.0.0:runtime"
         );
         
-        MavenDependencyTreeParser.MavenDependencyNode root = 
+        MavenDependencyNode root =
             MavenDependencyTreeParser.parse(input);
         
         assertEquals(2, root.getChildren().size());
@@ -49,7 +48,7 @@ class MavenDependencyTreeParserTest {
             "\\- org.example:level1b:jar:1.0.0"
         );
         
-        MavenDependencyTreeParser.MavenDependencyNode root = 
+        MavenDependencyNode root =
             MavenDependencyTreeParser.parse(input);
         
         assertEquals(2, root.getChildren().size());

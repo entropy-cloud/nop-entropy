@@ -36,6 +36,10 @@ public class MavenDependency {
         this.classifier = classifier;
     }
 
+    public String getModuleId() {
+        return groupId + ":" + artifactId;
+    }
+
     // Getters (保持原有不变)
     public String getGroupId() {
         return groupId;
