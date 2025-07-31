@@ -1,0 +1,3 @@
+<c:script>
+codeGenerator.renderModel('../model/ast/MermaidAST.xjava','/nop/templates/ast', '/',$scope);
+</c:script>

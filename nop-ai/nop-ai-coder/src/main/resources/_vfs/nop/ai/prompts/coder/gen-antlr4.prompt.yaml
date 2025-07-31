@@ -1,0 +1,28 @@
+template: |
+  【任务目标】
+  你是一位资深程序语言设计专家，熟悉各类语言的antlr语法定义。需要按照以下规则定义解析语法，从而自动解析得到AST。
+  
+  【Antlr映射规则】
+  {{include:antlr4-rules.md}}
+  
+  【特别要求】
+  1. g4文件中的注释使用英文。
+  2. 列表规则名称必须以_结尾，例如columnNames_
+  
+  【AST语法树定义】
+  ```java
+   {{ast}}
+  ```
+  
+  【返回格式】
+  ```xml
+  {{include:/nop/ai/schema/file-contents.xdef}}
+  ```
+
+inputs:
+  - name: ast
+    type: String
+
+outputs:
+  - name: RESULT
+    type: String

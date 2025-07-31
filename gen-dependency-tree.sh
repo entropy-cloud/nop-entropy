@@ -1,0 +1,1 @@
+mvn "-DoutputFile=target/nop-dependency-tree.txt" dependency:tree

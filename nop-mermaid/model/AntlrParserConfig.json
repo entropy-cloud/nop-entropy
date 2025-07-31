@@ -1,0 +1,10 @@
+{
+  "antlrLibDirPath": "antlr",
+  "antlrModelPath": "antlr/Mermaid.g4",
+  "antlrGenCode": true,
+  "astModelPath": "ast/MermaidAST.xjava",
+  "antlrPackage": "io.nop.mermaid.parse.antlr",
+  "mainRule": "mermaidDocument",
+  "packageName": "io.nop.mermaid.parse",
+  "primaryExpectedTokens": []
+}

@@ -1,0 +1,166 @@
+package io.nop.mermaid.ast;
+
+import io.nop.api.core.annotations.meta.PropMeta;
+import java.util.List;
+
+public class MermaidAST {
+    // ======================= 枚举定义 =======================
+    enum MermaidDiagramType {
+        FLOWCHART, SEQUENCE, CLASS, STATE, GANTT, PIE, GIT, ER, JOURNEY
+    }
+
+    enum MermaidDirection {
+        TB, BT, LR, RL
+    }
+
+    enum MermaidNodeShape {
+        ROUND, STADIUM, SUBROUTINE, CYLINDER, CIRCLE,
+        ASYMMETRIC, RHOMBUS, HEXAGON, PARALLELOGRAM, TRAPEZOID, DOUBLE_CIRCLE
+    }
+
+    enum MermaidEdgeType {
+        ARROW, OPEN_ARROW, DOTTED, THICK
+    }
+
+    enum MermaidVisibility {
+        PUBLIC,
+        PRIVATE,
+        PROTECTED,
+        PACKAGE
+    }
+
+    // ======================= 基础节点 =======================
+    abstract class MermaidNode {}
+
+    abstract class MermaidStatement extends MermaidNode {}
+
+    // ======================= 文档根节点 =======================
+    class MermaidDocument extends MermaidNode {
+        @PropMeta(mandatory = true)
+        MermaidDiagramType type; // 图表类型必须指定
+
+        @PropMeta(mandatory = true)
+        List<MermaidStatement> statements; // 必须有内容语句
+    }
+
+    // ======================= 通用节点 =======================
+    class MermaidDirectionStatement extends MermaidStatement {
+        @PropMeta(mandatory = true)
+        MermaidDirection direction; // 方向必须指定
+    }
+
+    class MermaidComment extends MermaidStatement {
+        @PropMeta(mandatory = true)
+        String content; // 注释内容不能为空
+    }
+
+    // ======================= 流程图节点 =======================
+    class MermaidFlowNode extends MermaidStatement {
+        @PropMeta(mandatory = true)
+        String id; // 节点ID必须指定
+
+        String text;    // 文本可为空
+        MermaidNodeShape shape; // 形状有默认值
+    }
+
+    class MermaidFlowEdge extends MermaidStatement {
+        @PropMeta(mandatory = true)
+        String from; // 起始节点必须指定
+
+        @PropMeta(mandatory = true)
+        String to;   // 目标节点必须指定
+
+        String label;     // 标签可为空
+        MermaidEdgeType edgeType; // 线型有默认值
+    }
+
+    class MermaidFlowSubgraph extends MermaidStatement {
+        @PropMeta(mandatory = true)
+        String id; // 子图ID必须指定
+
+        String title; // 标题可为空
+
+        @PropMeta(mandatory = true)
+        List<MermaidStatement> statements; // 子图内容不能为空
+    }
+
+    // ======================= 序列图节点 =======================
+    class MermaidParticipant extends MermaidStatement {
+        @PropMeta(mandatory = true)
+        String name; // 参与者名称必须指定
+
+        String alias; // 别名可为空
+    }
+
+    class MermaidSequenceMessage extends MermaidStatement {
+        @PropMeta(mandatory = true)
+        String from; // 发送方必须指定
+
+        @PropMeta(mandatory = true)
+        String to;   // 接收方必须指定
+
+        String message;    // 消息内容可为空
+        MermaidEdgeType edgeType; // 线型有默认值
+    }
+
+    // ======================= 类图节点 =======================
+    class MermaidClassNode extends MermaidStatement {
+        @PropMeta(mandatory = true)
+        String className; // 类名必须指定
+
+        List<MermaidClassMember> members; // 成员可为空
+    }
+
+    class MermaidClassMember {
+        @PropMeta(mandatory = true)
+        String name; // 成员名称必须指定
+
+        MermaidVisibility visibility; // 可见性有默认值
+        String type;       // 类型可为空
+        Boolean isStatic;  // 静态标记可为空
+    }
+
+    // ======================= 状态图节点 =======================
+    class MermaidStateNode extends MermaidStatement {
+        @PropMeta(mandatory = true)
+        String id; // 状态ID必须指定
+
+        String description; // 描述可为空
+    }
+
+    // ======================= 甘特图节点 =======================
+    class MermaidGanttTask extends MermaidStatement {
+        @PropMeta(mandatory = true)
+        String id;     // 任务ID必须指定
+
+        @PropMeta(mandatory = true)
+        String title; // 任务标题必须指定
+
+        String start;      // 开始时间可为空(自动计算)
+        String duration;   // 持续时间可为空
+    }
+
+    // ======================= 饼图节点 =======================
+    class MermaidPieItem extends MermaidStatement {
+        @PropMeta(mandatory = true)
+        String label; // 标签必须指定
+
+        @PropMeta(mandatory = true)
+        Number value; // 数值必须指定
+    }
+
+    // ======================= 样式定义 =======================
+    class MermaidStyleStatement extends MermaidStatement {
+        @PropMeta(mandatory = true)
+        String target; // 目标元素必须指定
+
+        List<MermaidStyleAttribute> attributes; // 样式属性可为空
+    }
+
+    class MermaidStyleAttribute {
+        @PropMeta(mandatory = true)
+        String name; // 属性名必须指定
+
+        String value; // 值可为空(使用默认值)
+    }
+}

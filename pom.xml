@@ -472,6 +472,7 @@
         <module>nop-java-parser</module>
         <module>nop-converter</module>
         <module>nop-image</module>
+        <module>nop-mermaid</module>
         <!--        <module>nop-commons-java21</module>-->
     </modules>
 </project>

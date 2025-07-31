@@ -57,5 +57,5 @@ inputs:
 
 outputs:
   - name: RESULT
-    xdefPath: /nop/ai/schema/coder/files.xdef
+    xdefPath: /nop/ai/schema/coder/file-contents.xdef
     format: xml

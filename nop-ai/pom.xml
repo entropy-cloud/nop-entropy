@@ -29,5 +29,6 @@
         <module>nop-ai-app</module>
         <module>nop-ai-mcp-server</module>
         <module>nop-ai-code-analyzer</module>
+        <module>nop-ai-deepwiki</module>
     </modules>
 </project>

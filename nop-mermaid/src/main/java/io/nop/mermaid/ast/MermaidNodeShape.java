@@ -1,0 +1,6 @@
+package io.nop.mermaid.ast;
+
+public enum MermaidNodeShape {
+    ROUND, STADIUM, SUBROUTINE, CYLINDER, CIRCLE,
+    ASYMMETRIC, RHOMBUS, HEXAGON, PARALLELOGRAM, TRAPEZOID, DOUBLE_CIRCLE
+}

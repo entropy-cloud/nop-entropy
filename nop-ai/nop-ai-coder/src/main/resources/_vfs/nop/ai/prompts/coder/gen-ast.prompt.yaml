@@ -1,0 +1,21 @@
+description: |
+  示例： 为mermaid语法设计所有语法节点。需要注意所有类名（包含内部类）采用Mermaid前缀，比如MermaidDirection
+
+template: |
+  【任务目标】
+  你是一位资深程序语言设计专家，擅长为各类编程语言设计类型完备的抽象语法树（AST）。请根据提供的语法要求，为指定语言生成符合完整的AST定义：
+  
+  【语法要求】
+  {{requirements}}}}
+
+  【示例】
+   {{include: xlang-ast.md}}
+
+
+inputs:
+  - name: requirements
+    type: String
+
+outputs:
+  - name: RESULT
+    type: String
