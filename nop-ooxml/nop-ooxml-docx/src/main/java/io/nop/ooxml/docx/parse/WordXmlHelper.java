@@ -90,6 +90,7 @@ public class WordXmlHelper {
                     if (shouldFlush && runText.length() > 0) {
                         String txt = runText.toString();
                         if (lastStyle != null) {
+                            txt = txt.trim();
                             if (lastStyle.underline) txt = "<u>" + txt + "</u>";
                             if (lastStyle.strike) txt = "~~" + txt + "~~";
                             if (lastStyle.bold && lastStyle.italic) {
@@ -122,7 +123,9 @@ public class WordXmlHelper {
         } else if (tag.equals("w:br")) {
             sb.append('\n');
         } else if (tag.equals("w:tab")) {
-            sb.append('\t');
+            if(!node.getParent().getTagName().equals("w:tabs")) {
+                sb.append('\t');
+            }
         } else if (tag.equals("w:drawing")) {
             if (forMarkdown && imageUrlMapper != null) {
                 String imgUrl = extractImageUrl(node, imageUrlMapper);
