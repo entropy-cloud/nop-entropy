@@ -111,6 +111,11 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
             field.init(defs);
         }
 
+        if (!getFields().isEmpty()) {
+            getFields().get(0).setFirstField(true);
+            getFields().get(getFields().size() - 1).setLastField(true);
+        }
+
         this.charsetObj = defs.getDefaultCharsetObj();
 
         if (getBeanClass() != null) {

@@ -13,10 +13,27 @@ import io.nop.record.model._gen._RecordFieldMeta;
 import java.util.Map;
 
 public class RecordFieldMeta extends _RecordFieldMeta {
-
+    private boolean firstField;
+    private boolean lastField;
 
     public RecordFieldMeta() {
 
+    }
+
+    public boolean isFirstField() {
+        return firstField;
+    }
+
+    public void setFirstField(boolean firstField) {
+        this.firstField = firstField;
+    }
+
+    public boolean isLastField() {
+        return lastField;
+    }
+
+    public void setLastField(boolean lastField) {
+        this.lastField = lastField;
     }
 
     public void init(RecordDefinitions defs) {
