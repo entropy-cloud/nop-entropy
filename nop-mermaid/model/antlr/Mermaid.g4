@@ -78,7 +78,7 @@ mermaidNodeShape_
     ;
 
 mermaidFlowEdge
-    : from=Identifier_ edgeType=mermaidEdgeType_? (label=StringLiteral_)? to=Identifier
+    : from=Identifier_ edgeType=mermaidEdgeType_? (label=StringLiteral_)? to=Identifier_
     ;
 
 mermaidEdgeType_
@@ -98,7 +98,7 @@ mermaidParticipant
     ;
 
 mermaidSequenceMessage
-    : from=Identifier_ edgeType=mermaidEdgeType_? (message=StringLiteral_)? to=Identifier
+    : from=Identifier_ edgeType=mermaidEdgeType_? (message=StringLiteral_)? to=Identifier_
     ;
 
 // ======================= Class Diagram Statements =======================

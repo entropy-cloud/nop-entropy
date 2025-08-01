@@ -761,8 +761,10 @@ public class MermaidParser extends Parser {
 		public MermaidEdgeType_Context edgeType;
 		public Token label;
 		public Token to;
-		public TerminalNode Identifier_() { return getToken(MermaidParser.Identifier_, 0); }
-		public TerminalNode Identifier() { return getToken(MermaidParser.Identifier, 0); }
+		public List<TerminalNode> Identifier_() { return getTokens(MermaidParser.Identifier_); }
+		public TerminalNode Identifier_(int i) {
+			return getToken(MermaidParser.Identifier_, i);
+		}
 		public MermaidEdgeType_Context mermaidEdgeType_() {
 			return getRuleContext(MermaidEdgeType_Context.class,0);
 		}
@@ -816,7 +818,7 @@ public class MermaidParser extends Parser {
 			}
 
 			setState(98);
-			((MermaidFlowEdgeContext)_localctx).to = match(Identifier);
+			((MermaidFlowEdgeContext)_localctx).to = match(Identifier_);
 			}
 		}
 		catch (RecognitionException re) {
@@ -1026,8 +1028,10 @@ public class MermaidParser extends Parser {
 		public MermaidEdgeType_Context edgeType;
 		public Token message;
 		public Token to;
-		public TerminalNode Identifier_() { return getToken(MermaidParser.Identifier_, 0); }
-		public TerminalNode Identifier() { return getToken(MermaidParser.Identifier, 0); }
+		public List<TerminalNode> Identifier_() { return getTokens(MermaidParser.Identifier_); }
+		public TerminalNode Identifier_(int i) {
+			return getToken(MermaidParser.Identifier_, i);
+		}
 		public MermaidEdgeType_Context mermaidEdgeType_() {
 			return getRuleContext(MermaidEdgeType_Context.class,0);
 		}
@@ -1081,7 +1085,7 @@ public class MermaidParser extends Parser {
 			}
 
 			setState(124);
-			((MermaidSequenceMessageContext)_localctx).to = match(Identifier);
+			((MermaidSequenceMessageContext)_localctx).to = match(Identifier_);
 			}
 		}
 		catch (RecognitionException re) {
@@ -1772,7 +1776,7 @@ public class MermaidParser extends Parser {
 		"\u0000\u0000[]\u00051\u0000\u0000\\^\u0003\u0014\n\u0000]\\\u0001\u0000"+
 		"\u0000\u0000]^\u0001\u0000\u0000\u0000^`\u0001\u0000\u0000\u0000_a\u0005"+
 		"/\u0000\u0000`_\u0001\u0000\u0000\u0000`a\u0001\u0000\u0000\u0000ab\u0001"+
-		"\u0000\u0000\u0000bc\u00055\u0000\u0000c\u0013\u0001\u0000\u0000\u0000"+
+		"\u0000\u0000\u0000bc\u00051\u0000\u0000c\u0013\u0001\u0000\u0000\u0000"+
 		"de\u0007\u0003\u0000\u0000e\u0015\u0001\u0000\u0000\u0000fg\u0005 \u0000"+
 		"\u0000gi\u00051\u0000\u0000hj\u0005/\u0000\u0000ih\u0001\u0000\u0000\u0000"+
 		"ij\u0001\u0000\u0000\u0000jk\u0001\u0000\u0000\u0000kl\u0005(\u0000\u0000"+
@@ -1782,7 +1786,7 @@ public class MermaidParser extends Parser {
 		"\u0000t\u0019\u0001\u0000\u0000\u0000uw\u00051\u0000\u0000vx\u0003\u0014"+
 		"\n\u0000wv\u0001\u0000\u0000\u0000wx\u0001\u0000\u0000\u0000xz\u0001\u0000"+
 		"\u0000\u0000y{\u0005/\u0000\u0000zy\u0001\u0000\u0000\u0000z{\u0001\u0000"+
-		"\u0000\u0000{|\u0001\u0000\u0000\u0000|}\u00055\u0000\u0000}\u001b\u0001"+
+		"\u0000\u0000{|\u0001\u0000\u0000\u0000|}\u00051\u0000\u0000}\u001b\u0001"+
 		"\u0000\u0000\u0000~\u007f\u0005\u0003\u0000\u0000\u007f\u0080\u00051\u0000"+
 		"\u0000\u0080\u0082\u0005(\u0000\u0000\u0081\u0083\u0003\u001e\u000f\u0000"+
 		"\u0082\u0081\u0001\u0000\u0000\u0000\u0082\u0083\u0001\u0000\u0000\u0000"+

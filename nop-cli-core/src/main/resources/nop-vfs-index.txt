@@ -32,6 +32,7 @@
 /nop/ai/llm/deepseek.llm.xml
 /nop/ai/llm/default.llm.xml
 /nop/ai/llm/free.llm.xml
+/nop/ai/llm/lm-studio.llm.xml
 /nop/ai/llm/ollama.llm.xml
 /nop/ai/llm/volcengine.llm.xml
 /nop/ai/mcp/sequential-thinking.json
@@ -39,6 +40,7 @@
 /nop/ai/mcp/thinking.md
 /nop/ai/prompts/coder/analyze-code.prompt.yaml
 /nop/ai/prompts/coder/analyze-image.prompt.yaml
+/nop/ai/prompts/coder/antlr4-rules.md
 /nop/ai/prompts/coder/api-design.prompt.yaml
 /nop/ai/prompts/coder/api-model.md
 /nop/ai/prompts/coder/check-api-model.prompt.yaml
@@ -60,6 +62,8 @@
 /nop/ai/prompts/coder/flow-dsl.md
 /nop/ai/prompts/coder/form-design.prompt.yaml
 /nop/ai/prompts/coder/form-layout.md
+/nop/ai/prompts/coder/gen-antlr4.prompt.yaml
+/nop/ai/prompts/coder/gen-ast.prompt.yaml
 /nop/ai/prompts/coder/gen-test-data-for-record-mapping.prompt.yaml
 /nop/ai/prompts/coder/grid-design.prompt.yaml
 /nop/ai/prompts/coder/menu-design.prompt.yaml
@@ -79,6 +83,7 @@
 /nop/ai/prompts/coder/use-tool.md
 /nop/ai/prompts/coder/validate-site-resource.prompt.yaml
 /nop/ai/prompts/coder/workbook.md
+/nop/ai/prompts/coder/xlang-ast.md
 /nop/ai/prompts/coder/xpl-lang.md
 /nop/ai/prompts/end-tool-call.md
 /nop/ai/prompts/sql/data-summarization.prompt.yaml
@@ -87,6 +92,7 @@
 /nop/ai/prompts/sql/question-rewriting.prompt.yaml
 /nop/ai/prompts/sql/sql-assistant.prompt.yaml
 /nop/ai/prompts/sql/sql-generation.prompt.yaml
+/nop/ai/prompts/summary/class-summary.prompt.yaml
 /nop/ai/prompts/system/gen-for-mode.prompt.yaml
 /nop/ai/prompts/system/programming/cognitive.md
 /nop/ai/prompts/system/programming/meta.md
@@ -99,7 +105,7 @@
 /nop/ai/schema/coder/auth.xdef
 /nop/ai/schema/coder/db-detail-design.tpl.md
 /nop/ai/schema/coder/deprecated/requirements3.tpl.md
-/nop/ai/schema/coder/files.xdef
+/nop/ai/schema/coder/file-contents.xdef
 /nop/ai/schema/coder/flow.xdef
 /nop/ai/schema/coder/form.xdef
 /nop/ai/schema/coder/grid.xdef
@@ -114,6 +120,7 @@
 /nop/ai/schema/coder/test-case-data.tpl.md
 /nop/ai/schema/coder/workbook.xdef
 /nop/ai/schema/coder/xml-dsl.xdef
+/nop/ai/tasks/ai-analyze-images.task.xml
 /nop/ai/tasks/ai-api-design.task.xml
 /nop/ai/tasks/ai-biz-analyzer.task.xml
 /nop/ai/tasks/ai-coder.task-lib.xml

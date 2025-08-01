@@ -16,7 +16,7 @@ template: |
   
   【返回格式】
   ```xml
-  {{include:/nop/ai/schema/file-contents.xdef}}
+  {{include:/nop/ai/schema/coder/file-contents.xdef}}
   ```
 
 inputs:
@@ -25,4 +25,5 @@ inputs:
 
 outputs:
   - name: RESULT
+    xdefPath: /nop/ai/schema/coder/file-contents.xdef
     type: String
