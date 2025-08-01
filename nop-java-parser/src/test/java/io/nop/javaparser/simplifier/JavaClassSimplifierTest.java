@@ -1,112 +1,118 @@
 package io.nop.javaparser.simplifier;
 
+import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
-import io.nop.javaparser.utils.JavaParserHelper;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
+import java.io.StringReader;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JavaClassSimplifierTest {
 
     private String simplify(String code) {
-        CompilationUnit cu = JavaParserHelper.parseJavaSource(null, code);
+        CompilationUnit cu = new JavaParser().parse(new StringReader(code)).getResult().orElseThrow();
         JavaFileSimplifier.simplify(cu);
-        return normalize(cu.toString());
+        return cu.toString();
     }
 
+    // 标准化字符串：移除多余空格和换行
     private String normalize(String s) {
-        return s.replaceAll("\\s+", " ").trim();
+        return s.replaceAll("\\s+", "").trim();
     }
 
     @Test
-    void testPublicMethodsBecomeAbstractStyle() {
-        String input = "public class TestClass {" +
-                "  private String field;" +
-                "  public void publicMethod() {" +
-                "    System.out.println(\"Hello\");" +
-                "  }" +
-                "  private void privateMethod() {}" +
+    void testClassWithPublicMethods() {
+        String input = "public class Sample {" +
+                "  private int count;" +
+                "  public void increment() { count++; }" +
+                "  public int getCount() { return count; }" +
+                "  private void reset() { count = 0; }" +
                 "}";
 
-        String expected = "public class TestClass {" +
-                " public void publicMethod();" +
-                "}";
-
-        String result = simplify(input);
-        assertAll(
-                () -> assertTrue(result.contains("public void publicMethod();")),
-                () -> assertFalse(result.contains("private")),
-                () -> assertFalse(result.contains("System.out.println"))
-        );
-    }
-
-    @Test
-    void testMethodsWithReturnValues() {
-        String input = "public class Calculator {" +
-                "  public int add(int a, int b) {" +
-                "    return a + b;" +
-                "  }" +
-                "  private String helper() {" +
-                "    return \"help\";" +
-                "  }" +
-                "}";
-
-        String expected = "public class Calculator {" +
-                " public int add(int a, int b);" +
+        String expected = "public class Sample { " +
+                "public void increment(); " +
+                "public int getCount(); " +
                 "}";
 
         assertEquals(normalize(expected), normalize(simplify(input)));
     }
 
     @Test
-    void testConstructorsKeepEmptyBlock() {
+    void testClassWithConstructor() {
         String input = "public class Person {" +
                 "  private String name;" +
-                "  public Person() {" +
-                "    this.name = \"Unknown\";" +
-                "  }" +
-                "  public Person(String name) {" +
-                "    this.name = name;" +
-                "  }" +
+                "  public Person() {}" +
+                "  public Person(String name) { this.name = name; }" +
                 "}";
 
-        String expected = "public class Person {" +
-                " public Person() {" +
-                " }" +
-                " public Person(String name) {" +
-                " }" +
-                "}";
-
-        String result = simplify(input);
-        assertAll(
-                () -> assertTrue(result.contains("public Person() {")),
-                () -> assertTrue(result.contains("public Person(String name) {")),
-                () -> assertFalse(result.contains("this.name ="))
-        );
-    }
-
-    @Test
-    void testInterfaceMethodsRemainUnchanged() {
-        String input = "public interface Vehicle {" +
-                "  void start();" +
-                "  default void stop() {" +
-                "    System.out.println(\"Stopping\");" +
-                "  }" +
-                "}";
-
-        String expected = "public interface Vehicle {" +
-                " void start();" +
-                " default void stop();" +
+        String expected = "public class Person { " +
+                "public Person() { } " +
+                "public Person(String name) { } " +
                 "}";
 
         assertEquals(normalize(expected), normalize(simplify(input)));
     }
 
     @Test
-    void testAbstractClassHandling() {
+    void testInterfaceSimplification() {
+        String input = "public interface Calculator {" +
+                "  int add(int a, int b);" +
+                "  default int multiply(int a, int b) {" +
+                "    return a * b;" +
+                "  }" +
+                "}";
+
+        String expected = "public interface Calculator { " +
+                "int add(int a, int b); " +
+                "default int multiply(int a, int b); " +
+                "}";
+
+        assertEquals(normalize(expected), normalize(simplify(input)));
+    }
+
+    @Test
+    void testEnumSimplification() {
+        String input = "public enum Direction {" +
+                "  NORTH(0), EAST(90), SOUTH(180), WEST(270);" +
+                "  private int degrees;" +
+                "  Direction(int degrees) { this.degrees = degrees; }" +
+                "  public int getDegrees() { return degrees; }" +
+                "}";
+
+        String expected = "public enum Direction {\n" +
+                "\n" +
+                "    NORTH(0), EAST(90), SOUTH(180), WEST(270);\n" +
+                "\n" +
+                "    public int getDegrees();\n" +
+                "}\n";
+
+        assertEquals(normalize(expected), normalize(simplify(input)));
+    }
+
+    @Test
+    void testClassWithAnnotations() {
+        String input = "@Service " +
+                "public class UserService {" +
+                "  @Autowired " +
+                "  private UserRepository repository;" +
+                "  @Transactional " +
+                "  public void save(User user) {" +
+                "    repository.save(user);" +
+                "  }" +
+                "}";
+
+        String expected = "@Service " +
+                "public class UserService { " +
+                "@Transactional " +
+                "public void save(User user); " +
+                "}";
+
+        assertEquals(normalize(expected), normalize(simplify(input)));
+    }
+
+    @Test
+    void testAbstractClass() {
         String input = "public abstract class Shape {" +
                 "  private String color;" +
                 "  public abstract double area();" +
@@ -115,17 +121,12 @@ class JavaClassSimplifierTest {
                 "  }" +
                 "}";
 
-        String expected = "public abstract class Shape {" +
-                " public abstract double area();" +
-                " public void setColor(String color);" +
+        String expected = "public abstract class Shape { " +
+                "public abstract double area(); " +
+                "public void setColor(String color); " +
                 "}";
 
-        String result = simplify(input);
-        assertAll(
-                () -> assertTrue(result.contains("public abstract double area();")),
-                () -> assertTrue(result.contains("public void setColor(String color);")),
-                () -> assertFalse(result.contains("private"))
-        );
+        assertEquals(normalize(expected), normalize(simplify(input)));
     }
 
     @Test
@@ -137,8 +138,8 @@ class JavaClassSimplifierTest {
                 "  private static void log(String msg) {}" +
                 "}";
 
-        String expected = "public class MathUtils {" +
-                " public static int max(int a, int b);" +
+        String expected = "public class MathUtils { " +
+                "public static int max(int a, int b); " +
                 "}";
 
         assertEquals(normalize(expected), normalize(simplify(input)));
