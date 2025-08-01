@@ -12,12 +12,23 @@ import io.nop.api.core.util.FutureHelper;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 public interface ISearchEngine {
     String DEFAULT_TOPIC = "default";
 
     SearchResponse search(@Name("request") SearchRequest request);
+
+    SearchableDoc getDoc(String docId);
+
+    List<SearchableDoc> getDocsByTerm(String topic, String term);
+
+    Map<String, List<String>> analyzeDoc(SearchableDoc doc);
+
+    List<String> analyzeQuery(String query);
+
+    void refreshBlocking(String topic);
 
     default void addDoc(@Name("topic") String topic, @Name("doc") SearchableDoc doc) {
         addDocs(topic, Collections.singletonList(doc));

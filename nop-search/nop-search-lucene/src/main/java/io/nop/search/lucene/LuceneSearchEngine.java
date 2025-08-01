@@ -21,20 +21,27 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.charfilter.HTMLStripCharFilterFactory;
 import org.apache.lucene.analysis.core.LowerCaseFilterFactory;
 import org.apache.lucene.analysis.custom.CustomAnalyzer;
 import org.apache.lucene.analysis.standard.StandardTokenizerFactory;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.index.MultiTerms;
+import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.index.Terms;
+import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.queryparser.flexible.core.QueryNodeException;
 import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.apache.lucene.queryparser.flexible.standard.config.PointsConfig;
@@ -61,11 +68,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.file.Path;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -220,6 +230,166 @@ public class LuceneSearchEngine implements ISearchEngine {
     }
 
     @Override
+    public void refreshBlocking(String topic) {
+        try {
+            getSearcherManager(topic).maybeRefreshBlocking();
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    @Override
+    public SearchableDoc getDoc(String docId) {
+        Guard.notEmpty(docId, "docId");
+
+        // 优先查有缓存的topic
+        for (String topic : searcherManagers.keySet()) {
+            SearcherManager manager = getSearcherManager(topic);
+            try {
+                manager.maybeRefresh();
+                IndexSearcher searcher = manager.acquire();
+
+                try {
+                    Query query = new TermQuery(new Term(FIELD_ID, docId));
+                    // 只查第一个
+                    TopFieldDocs docs = searcher.search(query, 1, Sort.RELEVANCE);
+                    if (docs.scoreDocs != null && docs.scoreDocs.length > 0) {
+                        int docNum = docs.scoreDocs[0].doc;
+                        Document luceneDoc = searcher.storedFields().document(docNum);
+                        return convertDocumentToSearchableDoc(luceneDoc);
+                    }
+                } finally {
+                    manager.release(searcher);
+                }
+            } catch (IOException e) {
+                throw NopException.adapt(e);
+            }
+        }
+        // 若所有topic找完没找到
+        return null;
+    }
+
+    @Override
+    public Map<String, List<String>> analyzeDoc(SearchableDoc doc) {
+        Guard.notNull(doc, "doc");
+        Map<String, List<String>> result = new LinkedHashMap<>();
+
+        // 仅针对 buildDocument 里以 TextField（分词型）建立的字段
+        Map<String, String> textFields = new LinkedHashMap<>();
+        textFields.put(FIELD_TITLE, doc.getTitle());
+        textFields.put(FIELD_SUMMARY, doc.getSummary());
+        textFields.put(FIELD_CONTENT, doc.getContent());
+
+        for (Map.Entry<String, String> entry : textFields.entrySet()) {
+            String field = entry.getKey();
+            String value = entry.getValue();
+            if (StringHelper.isEmpty(value))
+                continue;
+            List<String> tokens = analyzeText(analyzer, field, value);
+            result.put(field, tokens);
+        }
+
+        return result;
+    }
+
+    @Override
+    public List<String> analyzeQuery(String query) {
+        return analyzeText(analyzer, FIELD_CONTENT, query);
+    }
+
+    private List<String> analyzeText(Analyzer analyzer, String fieldName, String text) {
+        List<String> tokens = new ArrayList<>();
+        try (TokenStream tokenStream = analyzer.tokenStream(fieldName, new StringReader(text))) {
+            CharTermAttribute attr = tokenStream.addAttribute(CharTermAttribute.class);
+            tokenStream.reset();
+            while (tokenStream.incrementToken()) {
+                tokens.add(attr.toString());
+            }
+            tokenStream.end();
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
+        return tokens;
+    }
+
+    protected SearchableDoc convertDocumentToSearchableDoc(Document doc) {
+        SearchableDoc sd = new SearchableDoc();
+        sd.setId(doc.get(FIELD_ID));
+        sd.setName(doc.get(FIELD_NAME));
+        sd.setTitle(doc.get(FIELD_TITLE));
+        sd.setSummary(doc.get(FIELD_SUMMARY));
+        sd.setContent(doc.get(FIELD_CONTENT));
+        sd.setBizKey(doc.get(FIELD_BIZ_KEY));
+        sd.setPath(doc.get(FIELD_PATH));
+        sd.setPublishTime(processNumericField(doc, FIELD_PUBLISH_TIME));
+        sd.setModifyTime(processNumericField(doc, FIELD_MODIFY_TIME));
+        sd.setFileSize(processNumericField(doc, FIELD_FILE_SIZE));
+
+        // Tags
+        IndexableField[] tagFields = doc.getFields(FIELD_TAG);
+        if (tagFields != null && tagFields.length > 0) {
+            Set<String> tags = new LinkedHashSet<>(tagFields.length);
+            for (IndexableField field : tagFields) {
+                tags.add(field.stringValue());
+            }
+            sd.setTagSet(tags);
+        }
+        return sd;
+    }
+
+    @Override
+    public List<SearchableDoc> getDocsByTerm(String topic, String termText) {
+        List<SearchableDoc> docs = new ArrayList<>();
+        String field = FIELD_CONTENT;
+
+        // 1. 先对 termText 做分词，取所有 tokens
+        List<String> tokens = analyzeTerm(termText);
+
+        if (tokens.isEmpty()) {
+            return docs;
+        }
+
+        // 2. 反查所有包含任一 token 的文档，docId 去重
+        Set<Integer> foundDocIds = new LinkedHashSet<>();
+        SearcherManager manager = getSearcherManager(topic);
+        try {
+            manager.maybeRefresh();
+            IndexSearcher searcher = manager.acquire();
+            try {
+                IndexReader reader = searcher.getIndexReader();
+                for (String token : tokens) {
+                    Terms terms = MultiTerms.getTerms(reader, field);
+                    if (terms == null) continue;
+                    TermsEnum termsEnum = terms.iterator();
+                    if (termsEnum.seekExact(new BytesRef(token))) {
+                        PostingsEnum postings = termsEnum.postings(null, PostingsEnum.NONE);
+                        int docId;
+                        while ((docId = postings.nextDoc()) != PostingsEnum.NO_MORE_DOCS) {
+                            foundDocIds.add(docId);
+                        }
+                    }
+                }
+                for (Integer docId : foundDocIds) {
+                    Document doc = reader.document(docId);
+                    docs.add(convertDocumentToSearchableDoc(doc));
+                }
+            } finally {
+                manager.release(searcher);
+            }
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
+        return docs;
+    }
+
+    /**
+     * 对 termText 进行分词，返回所有 token（小写处理，与分词一致）。
+     */
+    protected List<String> analyzeTerm(String termText) {
+        return analyzeText(analyzer, FIELD_CONTENT, termText);
+    }
+
+    @Override
     public SearchResponse search(SearchRequest request) {
         SearcherManager manager = getSearcherManager(request.getTopic());
 
@@ -258,6 +428,10 @@ public class LuceneSearchEngine implements ISearchEngine {
 
     @Override
     public void addDocs(String topic, List<SearchableDoc> docs) {
+        for (SearchableDoc doc : docs) {
+            LOG.info("nop.search.add-doc:docId={},path={}", doc.getId(), doc.getPath());
+        }
+
         IndexWriter writer = getIndexWriter(topic);
 
         try {
