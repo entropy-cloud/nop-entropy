@@ -157,6 +157,16 @@ public class TestReportEngine extends BaseTestCase {
         assertEquals("[{a=1, b=2, c=null}]", sheetData.toString());
     }
 
+    @Test
+    public void testExpandInplaceCount() {
+        IReportEngine reportEngine = newReportEngine();
+        ExcelWorkbook workbook = reportEngine.getXptModel("/nop/report/demo/test-expand-inplace-count.xpt.xlsx");
+        ITextTemplateOutput htmlRenderer = (ITextTemplateOutput) reportEngine.getRendererForXptModel(workbook, "html");
+        String html = htmlRenderer.generateText(XLang.newEvalScope());
+        FileHelper.writeText(getTargetFile("test-expand-inplace-count.html"), html, null);
+    }
+
+
     private IReportEngine newReportEngine() {
         ReportEngine reportEngine = new ReportEngine();
         Map<String, IReportRendererFactory> renderers = new HashMap<>();

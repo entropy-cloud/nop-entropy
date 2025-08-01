@@ -527,7 +527,9 @@ public class XptModelInitializer {
                             || rcModel.getRowIndex() + rc.getRowSpan() > endIndex // 除非不延展就会被插入的新行撕
                             || xptModel.getRowParent(name) != null
                     ) {
-                        xptModel.addRowExtendCell(rc);
+                        if (!isRowInplaceRange(rcModel, xptModel)) {
+                            xptModel.addRowExtendCell(rc);
+                        }
                     }
                 }
             }
@@ -580,11 +582,34 @@ public class XptModelInitializer {
                             || rcModel.getColIndex() + rc.getColSpan() > endIndex // 除非不延展就会被插入的新行撕
                             || xptModel.getColParent(name) != null
                     ) {
-                        xptModel.addColExtendCell(rc);
+                        if (!isColInplaceRange(rcModel, xptModel))
+                            xptModel.addColExtendCell(rc);
                     }
                 }
             }
         }
+    }
+
+    private boolean isColInplaceRange(XptCellModel rcModel, XptCellModel cellModel) {
+        if (cellModel.getExpandInplaceCount() != null && cellModel.getExpandInplaceCount() > 1) {
+            // expand inplace范围内的单元格应该认为是不展开
+            int endIndex = cellModel.getColExpandOffset() + cellModel.getColIndex() +
+                    cellModel.getColExpandSpan() * cellModel.getExpandInplaceCount();
+            if (rcModel.getColIndex() + rcModel.getColExpandSpan() < endIndex)
+                return true;
+        }
+        return false;
+    }
+
+    private boolean isRowInplaceRange(XptCellModel rcModel, XptCellModel cellModel) {
+        if (cellModel.getExpandInplaceCount() != null && cellModel.getExpandInplaceCount() > 1) {
+            // expand inplace范围内的单元格应该认为是不展开
+            int endIndex = cellModel.getRowExpandOffset() + cellModel.getRowIndex() +
+                    cellModel.getRowExpandSpan() * cellModel.getExpandInplaceCount();
+            if (rcModel.getRowIndex() + rcModel.getRowExpandSpan() < endIndex)
+                return true;
+        }
+        return false;
     }
 
     private boolean isColExtendForSibling(XptCellModel rcModel, XptCellModel cellModel, XptSheetModel sheetModel) {
