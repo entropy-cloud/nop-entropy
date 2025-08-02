@@ -76,24 +76,28 @@
         <projectService serviceImplementation="io.nop.idea.plugin.services.NopProjectService"/>
 
         <!-- XLang 注册与解析 -->
-        <fileTypeDetector implementation="io.nop.idea.plugin.lang.XLangFileTypeDetector" order="first"/>
-        <!-- 2019.2版本之后通过此扩展点注册文件类型 -->
+        <!-- 根据后缀名做直接绑定 -->
         <fileType name="XLang"
                   language="XLang"
                   implementationClass="io.nop.idea.plugin.lang.XLangFileType"
                   fieldName="INSTANCE"
-                  extensions="xpl;xgen;xui;xlib;xrun;xwf;xmeta"
-                  patterns="*.xpl;*.xgen;*.xui;*.xlib;*.xrun;*.xwf;*.orm.xml;*.xmeta;*.xpage;*.beans.xml;*.xrule;*.action-auth.xml;*.view.xml;*.sql-lib.xml;*.register-model.xml"/>
+                  extensions="xdef;xpl;xgen;xui;xlib;xrun;xwf;xmeta;xpage;xrule"/>
+        <!-- 通过分析 xml 结构动态识别其是否为 XLang，避免穷举后缀，也避免遗漏 -->
+        <lang.substitutor language="XML"
+                          implementationClass="io.nop.idea.plugin.lang.XLangLanguageSubstitutor"/>
+        <iconProvider implementation="io.nop.idea.plugin.lang.XLangIconProvider"
+                      order="first"/>
+        <!-- 解析 XLang 得到 PSI 树 -->
         <lang.parserDefinition language="XLang"
                                implementationClass="io.nop.idea.plugin.lang.XLangParserDefinition"/>
-        <!-- 根据XDef文件定义，对XLang DSL进行语法校验 -->
+        <!-- 对 XLang DSL 进行语法校验 -->
         <annotator language="XLang"
                    implementationClass="io.nop.idea.plugin.annotator.XLangAnnotator"/>
         <highlightRangeExtension implementation="io.nop.idea.plugin.annotator.XLangHighlightRangeExtension"/>
-        <!-- 根据xdef定义进行语法提示 -->
+        <!-- 对 XLang 做代码补全 -->
         <!--<completion.contributor language="XLang"
                                 implementationClass="io.nop.idea.plugin.completion.XLangCompletionContributor"/>-->
-        <!-- 鼠标Hover到XLang语法元素上显示相关文档信息 -->
+        <!-- 显示 XLang 节点和属性的文档信息 -->
         <lang.documentationProvider language="XLang" order="first"
                                     implementationClass="io.nop.idea.plugin.doc.XLangDocumentationProvider"/>
         <!--<renamePsiElementProcessor implementation="io.nop.idea.plugin.lang.XLangElementRenameProcessor"/>-->
