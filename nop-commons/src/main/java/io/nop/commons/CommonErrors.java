@@ -75,6 +75,11 @@ public interface CommonErrors {
 
     String ARG_ALLOWED_NAMES = "allowedNames";
 
+    String ARG_SOURCE_PATH = "sourcePath";
+    String ARG_TARGET_PATH = "targetPath";
+    String ARG_OVERWRITE = "overwrite";
+
+
     ErrorCode ERR_IO_UNEXPECTED_EOF = define("nop.err.commons.io.unexpected-eof", "数据流已关闭，无法读取到更多数据");
 
     ErrorCode ERR_IO_NOT_FIND_EXPECTED_BYTE = define("nop.err.commons.io.not-find-expected-byte",
@@ -308,4 +313,26 @@ public interface CommonErrors {
     ErrorCode ERR_COMMONS_UNKNOWN_BINARY_SCALAR_TYPE =
             define("nop.err.commons.unknown-binary-scalar-type",
                     "未知的二进制标量类型:{typeName}, 允许的类型为:{allowedNames}", ARG_TYPE_NAME, ARG_ALLOWED_NAMES);
+
+    // 文件操作错误码
+    ErrorCode ERR_FILE_NOT_FOUND = define("nop.err.file.not-found",
+            "文件不存在: {path}", ARG_PATH);
+
+    ErrorCode ERR_FILE_READ_FAIL = define("nop.err.file.read-fail",
+            "读取文件失败: {path}", ARG_PATH);
+
+    ErrorCode ERR_FILE_WRITE_FAIL = define("nop.err.file.write-fail",
+            "写入文件失败: {path}", ARG_PATH);
+
+    ErrorCode ERR_FILE_DELETE_FAIL = define("nop.err.file.delete-fail",
+            "删除文件失败: {path}", ARG_PATH);
+
+    ErrorCode ERR_FILE_MOVE_FAIL = define("nop.err.file.move-fail",
+            "移动文件失败: 从 {sourcePath} 到 {targetPath}",
+            ARG_SOURCE_PATH, ARG_TARGET_PATH, ARG_OVERWRITE);
+
+    ErrorCode ERR_FILE_COPY_FAIL = define("nop.err.file.copy-fail",
+            "复制文件失败: 从 {sourcePath} 到 {targetPath}",
+            ARG_SOURCE_PATH, ARG_TARGET_PATH, ARG_OVERWRITE);
+
 }

@@ -13,4 +13,5 @@ public interface AiCoderConstants {
     String ATTR_ORM_REF_PROP_DISPLAY_NAME = "orm:ref-prop-display-name";
 
     Set<String> DEFAULT_POSITIONING_KEYS = Set.of("id", "name", "type");
+
 }

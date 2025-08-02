@@ -3,13 +3,31 @@ package io.nop.ai.coder.file;
 import java.util.List;
 
 public interface IFileOperator {
-    FileContents readFiles(List<String> paths);
+    default FileContents readFiles(List<String> paths) {
+        FileContents ret = new FileContents();
+        if (paths == null || paths.isEmpty())
+            return ret;
 
-    void writeFiles(FileContents fileContents, boolean overwrite);
+        for (String path : paths) {
+            ret.addFile(readFile(path));
+        }
+        return ret;
+    }
+
+    default void writeFiles(FileContents fileContents, boolean overwrite) {
+        if (fileContents.getFiles() == null)
+            return;
+
+        for (FileContent fileContent : fileContents.getFiles()) {
+            writeFile(fileContent, overwrite);
+        }
+    }
 
     FileContent readFile(String path);
 
     List<String> readLines(String path);
+
+    List<String> readLines(String path, int fromLine, int toLine);
 
     void writeFile(FileContent fileContent, boolean append);
 
@@ -22,6 +40,13 @@ public interface IFileOperator {
     List<String> findFilesByAntPath(String directory, String pattern);
 
     List<String> listDirectory(String directory);
+
+    default FileContents readFilesByAntPath(String directory, String pattern, int maxFileCount) {
+        List<String> paths = findFilesByAntPath(directory, pattern);
+        if (paths.size() > maxFileCount)
+            paths = paths.subList(0, maxFileCount);
+        return readFiles(paths);
+    }
 
     //  查找满足模式要求的第一个文件
     String findFileByAntPath(String directory, String pattern);

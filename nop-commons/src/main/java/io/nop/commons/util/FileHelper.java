@@ -300,15 +300,18 @@ public class FileHelper {
         return true;
     }
 
-    public static void deleteAll(File file) {
+    public static boolean deleteAll(File file) {
         File[] subs = file.listFiles();
         if (subs != null) {
             for (File sub : subs) {
                 deleteAll(sub);
             }
         }
-        if (!file.delete())
+        if (!file.delete()) {
             LOG.error("nop.file.delete-fail:file={}", file);
+            return false;
+        }
+        return true;
     }
 
     public static boolean deleteIfExists(File file) throws IOException {

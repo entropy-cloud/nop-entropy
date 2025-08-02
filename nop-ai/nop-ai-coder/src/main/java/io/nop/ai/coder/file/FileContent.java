@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.commons.text.CDataText;
 import io.nop.commons.util.StringHelper;
@@ -13,9 +14,14 @@ import io.nop.markdown.simple.MarkdownSection;
 
 import java.util.List;
 
+import static io.nop.ai.coder.AiCoderErrors.ERR_FILE_CONTENT_NO_PATH;
+
 @DataBean
 public class FileContent {
     public static final String FILE_NOT_FOUND = "FILE_NOT_FOUND";
+
+    public static final String TAG_FILE = "file";
+    public static final String TAG_FILES = "files";
 
     private final String path;
     private final String description;
@@ -23,11 +29,24 @@ public class FileContent {
 
     @JsonCreator
     public FileContent(@JsonProperty("path") String path,
-                       @JsonProperty("description") String description,
-                       @JsonProperty("content") String content) {
+                       @JsonProperty("content") String content,
+                       @JsonProperty("description") String description) {
         this.path = Guard.notEmpty(path, "path");
         this.description = description;
         this.content = content;
+    }
+
+    public FileContent(String path, String content) {
+        this(path, content, null);
+    }
+
+    public static FileContent fromNode(XNode node) {
+        String path = node.attrText("path");
+        if (StringHelper.isEmpty(path))
+            throw new NopException(ERR_FILE_CONTENT_NO_PATH);
+        String description = node.attrText("description");
+        String content = node.contentText();
+        return new FileContent(path, content, description);
     }
 
     @JsonIgnore
@@ -44,7 +63,7 @@ public class FileContent {
     }
 
     public XNode toNode() {
-        XNode node = XNode.make("file");
+        XNode node = XNode.make(TAG_FILE);
         node.setAttr("path", getPath());
         if (getDescription() != null)
             node.setAttr("description", getDescription());
