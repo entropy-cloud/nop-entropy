@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.commons.util.CollectionHelper;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +15,7 @@ import java.util.Set;
 public class CodeFileInfo {
 
     public enum AccessModifier {
-        PUBLIC, PRIVATE, PROTECTED, PACKAGE_PRIVATE
+        PRIVATE, PACKAGE_PRIVATE, PROTECTED, PUBLIC
     }
 
     @DataBean
@@ -69,10 +70,51 @@ public class CodeFileInfo {
 
     @DataBean
     public static class CodeClassInfo extends CodeSymbol {
+        private String extendsType;
+        private Set<String> implementsTypes;
         private List<CodeFunctionInfo> functions;
         private List<CodeVariableInfo> variables;
         private String summary;
 
+        public CodeFunctionInfo getFunction(String fnName) {
+            if (functions == null) {
+                return null;
+            }
+            return functions.stream().filter(fn -> Objects.equals(fn.getName(), fnName)).findFirst().orElse(null);
+        }
+
+        public CodeFunctionInfo makeFunction(String fnName) {
+            CodeFunctionInfo fn = getFunction(fnName);
+            if (fn == null) {
+                fn = new CodeFunctionInfo();
+                fn.setName(fnName);
+                if (functions == null) {
+                    functions = new ArrayList<>();
+                }
+                functions.add(fn);
+            }
+            return fn;
+        }
+
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        public String getExtendsType() {
+            return extendsType;
+        }
+
+        public void setExtendsType(String extendsType) {
+            this.extendsType = extendsType;
+        }
+
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        public Set<String> getImplementsTypes() {
+            return implementsTypes;
+        }
+
+        public void setImplementsTypes(Set<String> implementsTypes) {
+            this.implementsTypes = implementsTypes;
+        }
+
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
         public List<CodeFunctionInfo> getFunctions() {
             return functions;
         }
@@ -81,6 +123,7 @@ public class CodeFileInfo {
             this.functions = functions;
         }
 
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
         public List<CodeVariableInfo> getVariables() {
             return variables;
         }
@@ -101,6 +144,8 @@ public class CodeFileInfo {
         public void intern() {
             super.intern();
             summary = internString(summary);
+            extendsType = internString(extendsType);
+            implementsTypes = internStringSet(implementsTypes);
 
             if (functions != null) {
                 functions.forEach(CodeFunctionInfo::intern);
@@ -114,47 +159,16 @@ public class CodeFileInfo {
 
     @DataBean
     public static class CodeFunctionInfo extends CodeSymbol {
-        private String ownerClassName;
-        private List<CodeVariableInfo> params;
-        private String returnType;
-        private boolean varArgs;
         private boolean isStatic;
         private Set<String> usedVars;
         private Set<String> usedFns;
         private String summary;
 
-        public String getOwnerClassName() {
-            return ownerClassName;
-        }
+        public boolean isMoreSpecific(AccessModifier accessModifier) {
+            if (this.getAccessModifier() == null)
+                return true;
 
-        public void setOwnerClassName(String ownerClassName) {
-            this.ownerClassName = ownerClassName;
-        }
-
-        public List<CodeVariableInfo> getParams() {
-            return params;
-        }
-
-        public void setParams(List<CodeVariableInfo> params) {
-            this.params = params;
-        }
-
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public String getReturnType() {
-            return returnType;
-        }
-
-        public void setReturnType(String returnType) {
-            this.returnType = returnType;
-        }
-
-        @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-        public boolean isVarArgs() {
-            return varArgs;
-        }
-
-        public void setVarArgs(boolean varArgs) {
-            this.varArgs = varArgs;
+            return getAccessModifier().ordinal() < accessModifier.ordinal();
         }
 
         public boolean isStatic() {
@@ -208,13 +222,8 @@ public class CodeFileInfo {
 
         public void intern() {
             super.intern();
-            ownerClassName = internString(ownerClassName);
-            returnType = internString(returnType);
             summary = internString(summary);
 
-            if (params != null) {
-                params.forEach(CodeVariableInfo::intern);
-            }
             if (usedVars != null) {
                 usedVars = internStringSet(usedVars);
             }
@@ -334,6 +343,26 @@ public class CodeFileInfo {
     private Map<String, String> metadata;
     private String summary;
     private List<CodeClassInfo> classes;
+
+    public CodeClassInfo getClassInfo(String className) {
+        if (classes == null) {
+            return null;
+        }
+        return classes.stream().filter(cls -> Objects.equals(cls.getName(), className)).findFirst().orElse(null);
+    }
+
+    public CodeFunctionInfo getFunctionInfo(String fnName) {
+        if (classes == null) {
+            return null;
+        }
+        for (CodeClassInfo cls : classes) {
+            CodeFunctionInfo fn = cls.getFunction(fnName);
+            if (fn != null) {
+                return fn;
+            }
+        }
+        return null;
+    }
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getSummary() {

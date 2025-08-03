@@ -12,8 +12,6 @@ import java.io.File;
 public class TestJavaCodeFileInfoParser extends BaseTestCase {
     @Test
     public void testParse() {
-
-
         File file = new File(getSrcDir(), "main/java/io/nop/ai/code_analyzer/code/JavaCodeFileInfoParser.java");
         MavenProject project = new MavenProject(this.getModuleDir());
         project.generateDependencyTree();

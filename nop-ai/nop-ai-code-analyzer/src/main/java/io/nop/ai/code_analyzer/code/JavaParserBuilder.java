@@ -6,32 +6,32 @@ import com.github.javaparser.resolution.TypeSolver;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ClassLoaderTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
-import com.github.javaparser.symbolsolver.resolution.typesolvers.JarTypeSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeSolver;
-import io.nop.ai.code_analyzer.maven.MavenDependency;
-import io.nop.ai.code_analyzer.maven.MavenDependencyNode;
 import io.nop.ai.code_analyzer.maven.MavenModule;
-import io.nop.ai.code_analyzer.maven.MavenRepository;
-import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.util.FileHelper;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 public class JavaParserBuilder {
     private final CombinedTypeSolver solver = new CombinedTypeSolver();
-    private final Map<String, TypeSolver> jarSolvers = new HashMap<>();
+    private final JarResolverCollection jarFiles;
+    private final Set<TypeSolver> jarSolvers = new HashSet<>();
 
-    private MavenRepository mavenRepository = MavenRepository.getDefault();
+    public JavaParserBuilder(JarResolverCollection jarFiles) {
+        this.jarFiles = jarFiles;
+    }
+
+    public JavaParserBuilder() {
+        this(new JarResolverCollection());
+    }
 
     public TypeSolver getTypeSolver() {
         return solver;
     }
 
     public JavaParserBuilder repoDir(File repoDir) {
-        this.mavenRepository = new MavenRepository(repoDir);
+        jarFiles.repoDir(repoDir);
         return this;
     }
 
@@ -58,34 +58,18 @@ public class JavaParserBuilder {
     }
 
     public JavaParserBuilder addJar(File jarFile) {
-        String path = FileHelper.getAbsolutePath(jarFile);
-        if (jarSolvers.containsKey(path))
-            return this;
-
-        try {
-            TypeSolver jarSolver = new JarTypeSolver(jarFile);
-            solver.add(jarSolver);
-            jarSolvers.put(path, jarSolver);
-            return this;
-        } catch (Exception e) {
-            throw NopException.adapt(e);
-        }
+        TypeSolver jarSolver = jarFiles.addJar(jarFile);
+        if (this.jarSolvers.add(jarSolver))
+            this.solver.add(jarSolver);
+        return this;
     }
 
     public JavaParserBuilder addModuleJars(MavenModule module) {
-        return addDependencyNode(module.getModuleNode());
-    }
-
-    public JavaParserBuilder addDependencyNode(MavenDependencyNode depNode) {
-        List<MavenDependency> deps = depNode.getAllDependencies(null, true);
-        for (MavenDependency dep : deps) {
-            File file = mavenRepository.getMavenDependencyFile(dep);
-            if (file.isFile()) {
-                if (file.getName().endsWith(".jar")) {
-                    addJar(file);
-                }
-            }
-        }
+        Set<TypeSolver> solvers = jarFiles.addModuleJars(module);
+        solvers.forEach(solver -> {
+            if (this.jarSolvers.add(solver))
+                this.solver.add(solver);
+        });
         return this;
     }
 }

@@ -9,6 +9,7 @@ package io.nop.commons.util;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
+import io.nop.commons.path.AntPathMatcher;
 import jakarta.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.PosixFilePermission;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -622,12 +624,17 @@ public class FileHelper {
         return new File(baseDir, fileName);
     }
 
-    public static List<String> findFiles(File dir, String pattern, boolean recursive, boolean returnRelativePath) {
-        List<String> result = new ArrayList<>();
+    public static List<File> findFilesByAntPath(File dir, String pattern,
+                                                boolean recursive) {
+        AntPathMatcher matcher = new AntPathMatcher();
+
+        List<File> result = new ArrayList<>();
         if (recursive) {
             walk(dir, file -> {
-                if (file.isFile() && file.getName().matches(pattern)) {
-                    result.add(returnRelativePath ? getRelativePath(dir, file) : file.getAbsolutePath());
+                if (file.isFile()) {
+                    String path = getRelativePath(dir, file);
+                    if (matcher.match(pattern, path))
+                        result.add(file);
                 }
                 return FileVisitResult.CONTINUE;
             });
@@ -635,12 +642,66 @@ public class FileHelper {
             File[] files = dir.listFiles();
             if (files != null) {
                 for (File file : files) {
-                    if (file.isFile() && file.getName().matches(pattern)) {
-                        result.add(returnRelativePath ? getRelativePath(dir, file) : file.getAbsolutePath());
+                    if (file.isFile()) {
+                        String path = getRelativePath(dir, file);
+                        if (matcher.match(pattern, path))
+                            result.add(file);
                     }
                 }
             }
         }
         return result;
+    }
+
+    public static String calculateMD5(File file) {
+        FileInputStream fis = null;
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            fis = new FileInputStream(file);
+
+            byte[] buffer = new byte[8192];
+            int length;
+            while ((length = fis.read(buffer)) != -1) {
+                md.update(buffer, 0, length);
+            }
+            fis.close();
+
+            byte[] digest = md.digest();
+            return StringHelper.bytesToHex(digest);
+
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        } finally {
+            IoHelper.safeCloseObject(fis);
+        }
+    }
+
+    public static int countLines(File file) {
+        try (FileChannel channel = FileChannel.open(file.toPath())) {
+            ByteBuffer buffer = ByteBuffer.allocateDirect(
+                    (int) Math.min(channel.size(), 8192)
+            );
+
+            int count = 0;
+            boolean hasContent = false;
+
+            while (channel.read(buffer) != -1) {
+                buffer.flip();
+                hasContent = true;
+
+                while (buffer.hasRemaining()) {
+                    if (buffer.get() == '\n') {
+                        count++;
+                    }
+                }
+
+                buffer.clear();
+            }
+
+            // 处理不以换行符结尾的最后一行
+            return hasContent && count == 0 ? 1 : count;
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
     }
 }
