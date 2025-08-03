@@ -27,7 +27,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class XLangBreakpointType extends XLineBreakpointType<XLangBreakpointProperties> {
     public XLangBreakpointType() {
-        super("xlang-line", NopPluginBundle.message("line.breakpoints.tab.title"));
+        super("xlang-line", NopPluginBundle.message("xlang.debugger.line.breakpoints.tab.title"));
     }
 
     @Override
