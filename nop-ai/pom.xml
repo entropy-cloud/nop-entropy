@@ -30,5 +30,6 @@
         <module>nop-ai-mcp-server</module>
         <module>nop-ai-code-analyzer</module>
         <module>nop-ai-deepwiki</module>
+        <module>nop-ai-agent</module>
     </modules>
 </project>

@@ -551,6 +551,9 @@ public class FileHelper {
     public static String getRelativePath(File base, File file) {
         String basePath = base.getAbsolutePath();
         String filePath = file.getAbsolutePath();
+        if (basePath.equals(filePath))
+            return ".";
+
         Guard.checkArgument(filePath.startsWith(basePath));
         return StringHelper.normalizePath(filePath.substring(basePath.length() + 1));
     }

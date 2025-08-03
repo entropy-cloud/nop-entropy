@@ -1,5 +1,7 @@
 package io.nop.ai.code_analyzer.maven;
 
+import io.nop.commons.util.FileHelper;
+
 import java.io.File;
 import java.util.Map;
 import java.util.TreeMap;
@@ -7,29 +9,61 @@ import java.util.TreeMap;
 import static io.nop.ai.code_analyzer.CodeAnalyzerConstants.DEPENDENCY_TREE_FILE_PATH;
 
 public class MavenModuleStructure {
-    private final Map<String, MavenDependencyNode> modules = new TreeMap<>();
+    private final Map<String, MavenModule> modules = new TreeMap<>();
+    private MavenModule rootModule;
 
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, MavenDependencyNode> entry : modules.entrySet()) {
-            sb.append(entry.getValue().toSimplifiedTreeString(1)).append("\n\n");
+        for (Map.Entry<String, MavenModule> entry : modules.entrySet()) {
+            sb.append(entry.getValue().getModuleNode().toSimplifiedTreeString(1)).append("\n\n");
         }
         return sb.toString();
     }
 
+    public MavenModule getModuleById(String moduleId) {
+        return modules.get(moduleId);
+    }
+
+    public MavenModule getModuleByPath(String modulePath) {
+        for (Map.Entry<String, MavenModule> entry : modules.entrySet()) {
+            if (entry.getValue().getModulePath().equals(modulePath)) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    public int getModuleCount() {
+        return modules.size();
+    }
+
+    public MavenModule getRootModule() {
+        return rootModule;
+    }
+
     public void load(File dir) {
+        load(dir, dir);
+    }
+
+    public void load(File dir, File baseDir) {
         File pomFile = new File(dir, "pom.xml");
         if (pomFile.exists()) {
             MavenDependencyNode node = loadDependencyNode(dir);
             if (node != null) {
-                modules.put(node.getModuleId(), node);
+                MavenModule module = new MavenModule();
+                module.setModuleNode(node);
+                module.setModulePath(FileHelper.getRelativePath(baseDir, dir));
+                modules.put(node.getModuleId(), module);
+                if (this.rootModule == null) {
+                    this.rootModule = module;
+                }
             }
 
             File[] subFiles = dir.listFiles();
             if (subFiles != null) {
                 for (File subFile : subFiles) {
                     if (subFile.isDirectory()) {
-                        load(subFile);
+                        load(subFile, baseDir);
                     }
                 }
             }
@@ -78,9 +112,9 @@ public class MavenModuleStructure {
      * 简化所有模块的依赖关系
      */
     public void simplifyDependencies() {
-        for (Map.Entry<String, MavenDependencyNode> entry : modules.entrySet()) {
-            MavenDependencyNode simplified = simplifyDependenciesForModule(entry.getValue());
-            modules.put(entry.getKey(), simplified);
+        for (Map.Entry<String, MavenModule> entry : modules.entrySet()) {
+            MavenDependencyNode simplified = simplifyDependenciesForModule(entry.getValue().getModuleNode());
+            entry.getValue().setModuleNode(simplified);
         }
     }
 }

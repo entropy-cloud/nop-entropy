@@ -11,18 +11,26 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.env.PlatformEnv;
+import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static io.nop.shell.ShellErrors.*;
+import static io.nop.shell.ShellErrors.ARG_COMMAND;
+import static io.nop.shell.ShellErrors.ARG_TIMEOUT;
+import static io.nop.shell.ShellErrors.ERR_SHELL_EXEC_COMMAND_FAIL;
+import static io.nop.shell.ShellErrors.ERR_SHELL_EXEC_COMMAND_TIMEOUT;
 
 /**
  * refactor Shell.java from hadoop-commons project
@@ -36,13 +44,31 @@ public class ShellRunner implements IShellRunner {
 
     static final Logger LOG = LoggerFactory.getLogger(ShellRunner.class);
 
-    public static String runCommand(String command) {
-        ShellCommand cmd = new ShellCommand(command).redirectErrorStream(true);
+    public static ShellResult runCommand(String command) {
+        return runCommand(command, FileHelper.currentDir());
+    }
+
+    public static ShellResult runCommand(String command, File workDir) {
+        ShellCommand cmd = ShellCommand.create(command);
+
+        cmd.redirectErrorStream(true);
+        cmd.workDir(workDir.getAbsolutePath());
+
         ShellRunner runner = new ShellRunner();
         DefaultShellOutputCollector collector = new DefaultShellOutputCollector();
-        runner.run(cmd, collector);
-        return collector.getOutput();
+        int exitCode = runner.run(cmd, collector);
+        if (exitCode != 0) {
+            LOG.error("nop.shell.run-command-fail:exitCode={},error={},output={}", exitCode,
+                    collector.getError(), collector.getOutput());
+        }
+
+        ShellResult result = new ShellResult();
+        result.setReturnCode(exitCode);
+        result.setError(collector.getError());
+        result.setOutput(collector.getOutput());
+        return result;
     }
+
 
     public int run(final ShellCommand command, IShellOutputCollector collector) {
         if (collector == null)
@@ -78,11 +104,11 @@ public class ShellRunner implements IShellRunner {
                             diff = 0;
                         boolean b = process.waitFor(diff, TimeUnit.NANOSECONDS);
                         if (b)
-                            return process.exitValue();
+                            return onExit(process.exitValue());
 
                         stopped.set(true);
                     } else {
-                        return process.waitFor();
+                        return onExit(process.waitFor());
                     }
                 }
             } finally {
@@ -101,6 +127,11 @@ public class ShellRunner implements IShellRunner {
 
         throw new NopException(ERR_SHELL_EXEC_COMMAND_TIMEOUT).param(ARG_TIMEOUT, command.getTimeout())
                 .param(ARG_COMMAND, command.getCommandString());
+    }
+
+    protected int onExit(int exitCode) {
+        LOG.info("nop.shell.exit:exitCode={}", exitCode);
+        return exitCode;
     }
 
     Future<?> collectError(ShellCommand command, Process process, AtomicBoolean stopped,

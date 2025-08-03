@@ -9,6 +9,7 @@ package io.nop.shell;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
+import io.nop.commons.env.PlatformEnv;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.shell.utils.ShellCommands;
@@ -63,7 +64,94 @@ public class ShellCommand {
         if (command.startsWith(TASK_PREFIX)) {
             return ShellCommands.task(command.substring(TASK_PREFIX.length()));
         }
-        return new ShellCommand(command);
+
+        ShellCommand cmd = new ShellCommand();
+        if (PlatformEnv.isWindows()) {
+            cmd.addCmd("cmd");
+            cmd.addCmd("/c");
+        } else {
+            cmd.addCmd("sh");
+        }
+        String[] args = splitCommandLine(command);
+        for (String arg : args) {
+            cmd.addCmd(arg);
+        }
+        return cmd;
+    }
+
+
+    /**
+     * 将命令行字符串拆分为参数数组，支持带引号的参数和转义字符
+     *
+     * @param commandLine 完整的命令行字符串
+     * @return 拆分后的参数数组
+     */
+    public static String[] splitCommandLine(String commandLine) {
+        if (commandLine == null || commandLine.trim().isEmpty()) {
+            return new String[0];
+        }
+
+        List<String> args = new ArrayList<>();
+        StringBuilder currentArg = new StringBuilder();
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+        boolean escaped = false;
+
+        for (int i = 0; i < commandLine.length(); i++) {
+            char c = commandLine.charAt(i);
+
+            if (escaped) {
+                // 处理转义字符
+                currentArg.append(c);
+                escaped = false;
+                continue;
+            }
+
+            switch (c) {
+                case '\\':
+                    // 遇到转义字符，标记下一个字符需要转义
+                    escaped = true;
+                    break;
+                case '\'':
+                    if (!inDoubleQuote) {
+                        inSingleQuote = !inSingleQuote;
+                    } else {
+                        currentArg.append(c);
+                    }
+                    break;
+                case '"':
+                    if (!inSingleQuote) {
+                        inDoubleQuote = !inDoubleQuote;
+                    } else {
+                        currentArg.append(c);
+                    }
+                    break;
+                case ' ':
+                case '\t':
+                    // 空格分隔参数，除非在引号内
+                    if (inSingleQuote || inDoubleQuote) {
+                        currentArg.append(c);
+                    } else if (currentArg.length() > 0) {
+                        args.add(currentArg.toString());
+                        currentArg.setLength(0);
+                    }
+                    break;
+                default:
+                    currentArg.append(c);
+            }
+        }
+
+        // 添加最后一个参数
+        if (currentArg.length() > 0) {
+            args.add(currentArg.toString());
+        }
+
+        // 检查引号是否匹配
+        if (inSingleQuote || inDoubleQuote) {
+            throw new IllegalArgumentException("Unclosed quote in command line: " + commandLine);
+        }
+
+        return args.toArray(new String[0]);
     }
 
     public String toString() {

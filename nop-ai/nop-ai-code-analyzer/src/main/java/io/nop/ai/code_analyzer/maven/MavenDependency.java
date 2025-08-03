@@ -36,6 +36,35 @@ public class MavenDependency {
         this.classifier = classifier;
     }
 
+    /**
+     * 获取此依赖在本地Maven仓库中的完整文件路径
+     */
+    public String toArtifactPath() {
+        StringBuilder path = new StringBuilder();
+
+        // 1. 构建基础路径 (groupId/artifactId/version/)
+        path.append(groupId.replace('.', '/'))
+                .append('/')
+                .append(artifactId)
+                .append('/')
+                .append(version)
+                .append('/')
+                .append(artifactId)
+                .append('-')
+                .append(version);
+
+        // 2. 处理分类器(classifier)
+        if (classifier != null && !classifier.isEmpty()) {
+            path.append('-').append(classifier);
+        }
+
+        // 3. 添加文件扩展名
+        path.append('.')
+                .append("jar".equals(type) ? "jar" : type);
+
+        return path.toString();
+    }
+
     public String getModuleId() {
         return groupId + ":" + artifactId;
     }

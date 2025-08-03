@@ -2,7 +2,9 @@ package io.nop.ai.code_analyzer.maven;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MavenDependencyNode {
     private final MavenDependency dependency;
@@ -27,6 +29,33 @@ public class MavenDependencyNode {
 
     public void addChild(MavenDependencyNode child) {
         children.add(child);
+    }
+
+    /**
+     * 递归获取所有依赖（包含当前节点）
+     *
+     * @return 不重复的依赖列表（按依赖关系顺序）
+     */
+    public List<MavenDependency> getAllDependencies(List<String> scopes, boolean includeSelf) {
+        Map<String, MavenDependency> uniqueDeps = new LinkedHashMap<>();
+        collectDependencies(uniqueDeps, scopes, includeSelf);
+        return new ArrayList<>(uniqueDeps.values());
+    }
+
+    private void collectDependencies(Map<String, MavenDependency> uniqueDeps, List<String> scopes, boolean includeSelf) {
+        // 添加当前节点依赖（如果作用域匹配）
+        if (scopes != null && !scopes.contains(this.dependency.getScope())) {
+            return;
+        }
+
+        if (includeSelf) {
+            if (uniqueDeps.putIfAbsent(dependency.getModuleId(), dependency) != null)
+                return;
+        }
+
+        for (MavenDependencyNode child : children) {
+            child.collectDependencies(uniqueDeps, scopes, true);
+        }
     }
 
     @Override

@@ -93,7 +93,7 @@ public class OsUserHelper {
      * @return user list
      */
     private static List<String> getUserListFromMac() throws IOException {
-        String result = runCommand("dscl . list /users");
+        String result = runCommand("dscl . list /users").getOutput();
         if (!StringHelper.isEmpty(result)) {
             return Arrays.asList(result.split("\n"));
         }
@@ -107,7 +107,7 @@ public class OsUserHelper {
      * @return user list
      */
     private static List<String> getUserListFromWindows() throws IOException {
-        String result = runCommand("net user");
+        String result = runCommand("net user").getOutput();
         String[] lines = result.split("\n");
 
         int startPos = 0;
@@ -244,7 +244,7 @@ public class OsUserHelper {
     public static String getGroup() throws IOException {
         if (PlatformEnv.isWindows()) {
             String currentProcUserName = System.getProperty("user.name");
-            String result = runCommand(String.format("net user \"%s\"", currentProcUserName));
+            String result = runCommand(String.format("net user \"%s\"", currentProcUserName)).getError();
             String line = result.split("\n")[22];
             String group = PATTERN.split(line)[1];
             if (group.charAt(0) == '*') {
@@ -253,7 +253,7 @@ public class OsUserHelper {
                 return group;
             }
         } else {
-            String result = runCommand("groups");
+            String result = runCommand("groups").getOutput();
             if (!StringHelper.isEmpty(result)) {
                 String[] groupInfo = result.split(" ");
                 return groupInfo[0];
