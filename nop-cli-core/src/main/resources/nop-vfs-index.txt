@@ -106,7 +106,6 @@
 /nop/ai/schema/coder/db-detail-design.tpl.md
 /nop/ai/schema/coder/deprecated/requirements3.tpl.md
 /nop/ai/schema/coder/file-contents.xdef
-/nop/ai/schema/coder/files.xdef
 /nop/ai/schema/coder/flow.xdef
 /nop/ai/schema/coder/form.xdef
 /nop/ai/schema/coder/grid.xdef

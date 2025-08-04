@@ -17,7 +17,9 @@ import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.github.javaparser.resolution.UnsolvedSymbolException;
 import com.github.javaparser.resolution.declarations.ResolvedFieldDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
+import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedValueDeclaration;
+import com.github.javaparser.resolution.types.ResolvedType;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.IoHelper;
@@ -175,6 +177,8 @@ public class JavaCodeFileInfoParser {
             List<CodeFileInfo.CodeFunctionInfo> methods = new ArrayList<>();
             for (MethodDeclaration method : classDecl.getMethods()) {
                 CodeFileInfo.CodeFunctionInfo methodInfo = parseMethod(method, classInfo);
+                if (classInfo.getAccessModifier() == CodeFileInfo.AccessModifier.PRIVATE)
+                    methodInfo.setAccessModifier(CodeFileInfo.AccessModifier.PRIVATE);
                 methods.add(methodInfo);
             }
             classInfo.setFunctions(methods);
@@ -251,11 +255,37 @@ public class JavaCodeFileInfoParser {
             try {
                 ResolvedMethodDeclaration resolved = call.resolve();
                 String methodName = resolved.getName();
-                String declaringClassName = resolved.declaringType().getQualifiedName();
-                if (!ignoredTypes.test(declaringClassName))
+
+                // 获取调用者的实际类型
+                String declaringClassName = getMostSpecificDeclaringType(call, resolved);
+
+                if (!ignoredTypes.test(declaringClassName)) {
                     methodInfo.addUsedFn(declaringClassName + "::" + methodName + "(" + resolved.getNumberOfParams() + ")");
+                }
             } catch (Exception e) {
                 LOG.debug("nop.ai.code-analyzer.resolve-method-call-fail:{}", call, e);
+            }
+        }
+
+        private String getMostSpecificDeclaringType(MethodCallExpr call, ResolvedMethodDeclaration resolvedMethod) {
+            try {
+                // 首先尝试获取调用表达式的范围（如果有的话）
+                if (call.getScope().isPresent()) {
+                    ResolvedType scopeType = call.getScope().get().calculateResolvedType();
+                    // 检查这个类型是否实现了该方法（可能是派生类或接口实现）
+                    if (scopeType.isReferenceType()) {
+                        ResolvedReferenceTypeDeclaration typeDecl = scopeType.asReferenceType().getTypeDeclaration().orElse(null);
+                        if (typeDecl != null) {
+                            return typeDecl.getQualifiedName();
+                        }
+                    }
+                }
+
+                // 如果没有特定范围或范围类型没有重写方法，则返回方法原始定义的类
+                return resolvedMethod.declaringType().getQualifiedName();
+            } catch (Exception e) {
+                LOG.debug("nop.ai.code-analyzer.resolve-caller-type-fail:{}", call, e);
+                return resolvedMethod.declaringType().getQualifiedName();
             }
         }
 
@@ -270,7 +300,7 @@ public class JavaCodeFileInfoParser {
                     addField(methodInfo, resolved.asField());
                 }
             } catch (UnsolvedSymbolException | UnsupportedOperationException e) {
-
+                // 忽略解析失败的情况
             }
         }
 

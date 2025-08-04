@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
+import static io.nop.xlang.XLangErrors.ARG_NODE;
 import static io.nop.xlang.XLangErrors.ARG_PROP_NAME;
 import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
 import static io.nop.xlang.XLangErrors.ARG_TAG_NAME;
@@ -73,7 +74,7 @@ public class XplStdDomainHandlers {
         }
 
         protected NopException newBodyError(XNode node) {
-            return new NopException(ERR_XDEF_ILLEGAL_BODY_VALUE_FOR_STD_DOMAIN).source(node)
+            return new NopException(ERR_XDEF_ILLEGAL_BODY_VALUE_FOR_STD_DOMAIN).source(node).param(ARG_NODE, node)
                     .param(ARG_TAG_NAME, node.getTagName()).param(ARG_STD_DOMAIN, getName());
         }
 

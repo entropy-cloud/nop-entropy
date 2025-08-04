@@ -1,10 +1,13 @@
 package io.nop.ai.code_analyzer.code;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.StringHelper;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -169,6 +172,11 @@ public class CodeFileInfo {
                 return true;
 
             return getAccessModifier().ordinal() < accessModifier.ordinal();
+        }
+
+        @JsonIgnore
+        public String getOwnerClassName() {
+            return StringHelper.firstPart(getName(), ':');
         }
 
         public boolean isStatic() {
@@ -343,6 +351,74 @@ public class CodeFileInfo {
     private Map<String, String> metadata;
     private String summary;
     private List<CodeClassInfo> classes;
+
+    public void trimPrivate() {
+        if (classes != null) {
+            for (CodeClassInfo cls : classes) {
+                if (cls.getFunctions() != null) {
+                    cls.getFunctions().forEach(fn -> {
+                        if (fn.getAccessModifier() != AccessModifier.PRIVATE) {
+                            trimPrivateForFunction(fn);
+                        }
+                    });
+                }
+            }
+
+            for (CodeClassInfo cls : classes) {
+                if (cls.getFunctions() != null) {
+                    cls.getFunctions().removeIf(fn -> fn.getAccessModifier() == AccessModifier.PRIVATE);
+                }
+            }
+
+            classes.removeIf(cls -> cls.getAccessModifier() == AccessModifier.PRIVATE);
+        }
+    }
+
+    private void trimPrivateForFunction(CodeFunctionInfo fn) {
+        if (fn.getUsedFns() == null || fn.getUsedFns().isEmpty()) {
+            return;
+        }
+
+        // 创建一个新的集合来存储处理后的函数调用
+        Set<String> processedUsedFns = new LinkedHashSet<>();
+
+        collectUsedFns(fn, processedUsedFns, new HashSet<>());
+
+        // 更新函数的usedFns集合
+        fn.setUsedFns(processedUsedFns);
+    }
+
+    private void collectUsedFns(CodeFunctionInfo fn, Set<String> processedUsedFns,
+                                Set<CodeFunctionInfo> checking) {
+        if (fn.getUsedFns() == null || fn.getUsedFns().isEmpty()) {
+            return;
+        }
+
+        if (!checking.add(fn)) {
+            return;
+        }
+
+        for (String usedFnName : fn.getUsedFns()) {
+            CodeFunctionInfo usedFn = getFunctionInfo(usedFnName);
+            if (usedFn == null) {
+                // 外部函数，直接添加
+                processedUsedFns.add(usedFnName);
+                continue;
+            }
+
+            if (usedFn.getAccessModifier() == AccessModifier.PRIVATE) {
+                collectUsedFns(usedFn, processedUsedFns, checking);
+            } else {
+                // 直接添加非私有函数
+                processedUsedFns.add(usedFnName);
+            }
+        }
+    }
+
+    private boolean isPrivateClass(String className) {
+        CodeClassInfo cls = getClassInfo(className);
+        return cls != null && cls.getAccessModifier() == AccessModifier.PRIVATE;
+    }
 
     public CodeClassInfo getClassInfo(String className) {
         if (classes == null) {

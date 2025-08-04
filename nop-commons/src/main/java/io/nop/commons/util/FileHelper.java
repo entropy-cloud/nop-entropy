@@ -42,6 +42,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static io.nop.commons.CommonErrors.ARG_DEST;
 import static io.nop.commons.CommonErrors.ARG_PATH;
@@ -622,6 +623,11 @@ public class FileHelper {
         if (baseDir == null)
             return new File(fileName);
         return new File(baseDir, fileName);
+    }
+
+    public static List<String> findFiles(File dir, String pattern, boolean recursive, boolean returnRelativePath) {
+        return findFilesByAntPath(dir, pattern, recursive).stream()
+                .map(file -> returnRelativePath ? getRelativePath(dir, file) : getAbsolutePath(file)).collect(Collectors.toList());
     }
 
     public static List<File> findFilesByAntPath(File dir, String pattern,

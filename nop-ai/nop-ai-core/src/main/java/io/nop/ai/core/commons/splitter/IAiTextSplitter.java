@@ -1,5 +1,6 @@
 package io.nop.ai.core.commons.splitter;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.util.List;
@@ -9,20 +10,22 @@ public interface IAiTextSplitter {
     class SplitChunk {
         private final String type;
         private final String content;
-        private final String anchorId;
+        private final String chunkId;
 
-        public SplitChunk(String type, String content, String anchorId) {
+        public SplitChunk(@JsonProperty("type") String type,
+                          @JsonProperty("content") String content,
+                          @JsonProperty("chunkId") String chunkId) {
             this.type = type;
             this.content = content;
-            this.anchorId = anchorId;
+            this.chunkId = chunkId;
         }
 
         public SplitChunk(String type, String content) {
             this(type, content, null);
         }
 
-        public String getAnchorId() {
-            return anchorId;
+        public String getChunkId() {
+            return chunkId;
         }
 
         public String getType() {

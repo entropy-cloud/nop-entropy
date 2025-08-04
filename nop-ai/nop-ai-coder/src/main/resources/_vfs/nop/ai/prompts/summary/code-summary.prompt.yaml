@@ -1,0 +1,33 @@
+template: |
+  【任务目标】
+  分析代码，返回外部可调用的核心的公开函数，并自动生成摘要。
+  
+  【返回格式】
+  
+  ```json
+  [
+    {
+      className: "string",
+      summary: "string",
+      functions: [
+        {
+          name: "string",
+          summary: "string"
+        }
+      ]
+    }
+  ]
+  ```
+  
+  【待分析代码】
+  ```
+  {{code}}
+  ```
+
+inputs:
+  - name: code
+    mandatory: true
+
+outputs:
+  - name: RESULT
+    format: json
