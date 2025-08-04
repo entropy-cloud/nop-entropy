@@ -39,7 +39,7 @@ public class XmlResponseParser {
 
 
         TextScanner sc = TextScanner.fromString(null, response);
-        int pos = response.indexOf("\n```");
+        int pos = response.startsWith("```") ? 0 : response.indexOf("\n```");
         if (pos >= 0) {
             int pos2 = response.indexOf('<', pos);
             if (pos2 > 0) {

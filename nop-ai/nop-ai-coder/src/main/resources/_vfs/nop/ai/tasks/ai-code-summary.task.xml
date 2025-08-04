@@ -1,0 +1,83 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:ai="/nop/ai/xlib/ai.xlib" x:dump="true" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib"
+      defaultUseParentScope="true" xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
+      x:extends="/nop/task/lib/common.task.xml">
+
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="50000" maxTokens="50000" temperature="0"
+                    sessionId="${sessionId}"/>
+
+    <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
+
+    <input name="inputDir"/>
+    <input name="outputDir"/>
+
+    <input name="aiProvider" type="String" mandatory="true"/>
+    <input name="aiModel" type="String" mandatory="true"/>
+    <input name="sessionId" type="String" optional="true"/>
+
+    <steps>
+
+        <fork name="genSummary" varName="filePath" joinType="allComplete">
+
+            <producer>
+                import io.nop.commons.util.FileHelper;
+                const dir = FileHelper.resolveFile(inputDir);
+
+                return FileHelper.findFilePaths(dir,"**/src/main/java/**/*.java", true, true)
+                .filter(path=> !path.contains('/_') and !path.contains('/.') and !path.startsWith('.') and !path.endsWith("Constants.java") and !path.endsWith('Errors.java'));
+            </producer>
+
+            <steps>
+                <step name="readText" customType="file-utils:ReadText">
+                    <input name="inputDir"/>
+                    <input name="fileName" value="${filePath}"/>
+                    <output name="RESULT" exportAs="fileText"/>
+                </step>
+
+                <step name="splitText">
+                    <source>
+                        import io.nop.ai.core.commons.splitter.SimpleTextSplitter;
+
+                        const splitter = new SimpleTextSplitter();
+                        splitter.setOverlapSize(1000);
+
+                        return splitter.split(fileText, 40*1024);
+                    </source>
+
+                    <output name="RESULT" exportAs="fileTextChunks"/>
+                </step>
+
+                <fork name="genSummaryForChunks" varName="fileTextChunk">
+                    <producer>
+                        return fileTextChunks;
+                    </producer>
+
+                    <steps>
+                        <step name="genSummaryForChunk" customType="ai:TaskStep"
+                              ai:promptName="summary/code-summary" ai:useResponseCache="true">
+                            <throttle maxConcurrency="2" maxWait="100000000"/>
+                            <input name="code" value="${fileTextChunk}"/>
+                            <output name="RESULT" exportAs="chunkSummary"/>
+                        </step>
+                    </steps>
+
+                    <aggregator><![CDATA[
+                        import io.nop.core.lang.json.delta.JsonMerger;
+
+                        const results = aggResults.getSuccessStepResultValues();
+                        return JsonMerger.mergeItems(results);
+                    ]]></aggregator>
+
+                    <output name="RESULT" exportAs="mergedSummary"/>
+                </fork>
+
+                <step name="saveSummary" customType="file-utils:WriteText">
+                    <input name="outputDir"/>
+                    <input name="fileName" value="${filePath.$replaceFileExt('.summary.json')}"/>
+                    <input name="text" value="${$JSON.serialize(mergedSummary,true)}"/>
+                </step>
+            </steps>
+        </fork>
+
+    </steps>
+</task>

@@ -625,7 +625,7 @@ public class FileHelper {
         return new File(baseDir, fileName);
     }
 
-    public static List<String> findFiles(File dir, String pattern, boolean recursive, boolean returnRelativePath) {
+    public static List<String> findFilePaths(File dir, String pattern, boolean recursive, boolean returnRelativePath) {
         return findFilesByAntPath(dir, pattern, recursive).stream()
                 .map(file -> returnRelativePath ? getRelativePath(dir, file) : getAbsolutePath(file)).collect(Collectors.toList());
     }

@@ -283,7 +283,8 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
                         value = doc.toText(true);
                     }
                 } else if (output.getType() == PredefinedGenericTypes.STRING_TYPE) {
-                    value = JsonTool.serialize(value, true);
+                    if (value != null && !(value instanceof String))
+                        value = JsonTool.serialize(value, true);
                 } else {
                     value = BeanTool.castBeanToType(value, output.getType());
                 }

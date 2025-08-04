@@ -1,18 +1,20 @@
 template: |
   【任务目标】
   分析代码，返回外部可调用的核心的公开函数，并自动生成摘要。
+  - name为类名或者方法名。
+  - 如果函数名意义已经非常明确，则可以忽略生成summary
   
   【返回格式】
   
   ```json
   [
     {
-      className: "string",
-      summary: "string",
-      functions: [
+      "name": "string",
+      "summary": "string",
+      "functions": [
         {
-          name: "string",
-          summary: "string"
+          "name": "string",
+          "summary": "string"
         }
       ]
     }

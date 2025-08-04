@@ -145,7 +145,7 @@ public class JsonMerger {
             ret.put(name.substring(1), value);
         } else {
             Object oldValue = ret.get(name);
-            ret.put(name, ValueWithLocation.of(value.getLocation(),merge(oldValue, v)));
+            ret.put(name, ValueWithLocation.of(value.getLocation(), merge(oldValue, v)));
         }
     }
 
@@ -159,6 +159,18 @@ public class JsonMerger {
             Object oldValue = ret.get(name);
             ret.put(name, merge(oldValue, value));
         }
+    }
+
+    public static Object mergeItems(List<Object> items) {
+        if (items == null || items.isEmpty())
+            return null;
+
+        JsonMerger merger = JsonMerger.instance();
+        Object item = items.get(0);
+        for (int i = 1; i < items.size(); i++) {
+            item = merger.merge(item, items.get(i));
+        }
+        return item;
     }
 
     /**

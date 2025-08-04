@@ -14,6 +14,7 @@ import io.nop.commons.util.CollectionHelper;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiPredicate;
@@ -129,5 +130,35 @@ public class JsonTransformHelper {
         } else {
             return fn.apply(value);
         }
+    }
+
+    public static Object trim(Object value, boolean trimKey, boolean trimValue) {
+        if (value instanceof Map) {
+            Map<String, Object> ret = new LinkedHashMap<>();
+            ((Map<String, Object>) value).forEach((key, v) -> {
+                if (trimKey)
+                    key = key.trim();
+                Object v2 = trim(v, trimKey, trimValue);
+                ret.put(key, v2);
+            });
+            return ret;
+        } else if (value instanceof Collection) {
+            List<Object> ret = new ArrayList<>();
+            ((Collection<Object>) value).forEach(v -> {
+                Object v2 = trim(v, trimKey, trimValue);
+                ret.add(v2);
+            });
+            return ret;
+        } else {
+            if (trimValue)
+                value = trimValue(value);
+            return value;
+        }
+    }
+
+    static Object trimValue(Object value) {
+        if (value instanceof String)
+            return value.toString().trim();
+        return value;
     }
 }

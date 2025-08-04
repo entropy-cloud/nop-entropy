@@ -1,7 +1,7 @@
 <llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
      x:extends="default.llm.xml">
 
-    <baseUrl>http://127.0.0.1:1234/</baseUrl>
-
+    <baseUrl>http://localhost:1234</baseUrl>
+    <chatUrl>/v1/chat/completions</chatUrl>
 
 </llm>

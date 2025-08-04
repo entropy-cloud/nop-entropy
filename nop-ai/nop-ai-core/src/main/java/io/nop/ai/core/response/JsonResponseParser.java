@@ -5,8 +5,6 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.parse.JsonParser;
 import io.nop.core.lang.json.utils.JsonTransformHelper;
 
-import java.util.Map;
-
 public class JsonResponseParser {
     private static JsonResponseParser s_instance = new JsonResponseParser();
 
@@ -21,25 +19,34 @@ public class JsonResponseParser {
     protected JsonResponseParser() {
     }
 
-    public Map<String, Object> parseResponse(String response) {
+    public Object parseResponse(String response) {
         if (StringHelper.isEmpty(response))
             return null;
 
-        TextScanner sc = TextScanner.fromString(null, response);
-        sc.skipUntil('{', true);
+        TextScanner sc = null;
+        int pos = response.startsWith("```") ? 0 : response.indexOf("\n```");
+        if (pos >= 0) {
+            int pos2 = response.indexOf('\n');
+            int lastPos = response.lastIndexOf("\n```");
+            if (lastPos > pos && pos2 > pos) {
+                response = response.substring(pos2 + 1, lastPos);
+                sc = TextScanner.fromString(null, response);
+            }
+        }
+
+        if (sc == null) {
+            sc = TextScanner.fromString(null, response);
+            sc.skipUntil(s -> s.cur == '{' || s.cur == '[', true, "{");
+        }
         if (sc.isEnd())
             return null;
 
         JsonParser parser = new JsonParser();
-        parser.checkEndAfterParse(true).strictMode(false);
+        parser.looseSyntax(true).checkEndAfterParse(false).strictMode(false);
 
-        Map<String, Object> map = (Map<String, Object>) parser.parseJsonDoc(sc);
+        Object map = parser.parseJsonDoc(sc);
 
-        JsonTransformHelper.transformMap(map, value -> {
-            if (value instanceof String)
-                return ((String) value).trim();
-            return value;
-        }, null);
+        map = JsonTransformHelper.trim(map, true, true);
         return map;
     }
 }

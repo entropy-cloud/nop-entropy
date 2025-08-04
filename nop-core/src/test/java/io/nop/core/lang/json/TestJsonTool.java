@@ -141,6 +141,18 @@ public class TestJsonTool {
         assertEquals(0, bean.getValue());
     }
 
+    @Test
+    public void testParseArray(){
+        String str = "[\n" +
+                "  {\n" +
+                "    \"name\": \"BaseAgent\",\n" +
+                "    \"summary\": \"基础代理类，用于提供AI代理的基本结构和功能。\",\n" +
+                "    \"functions\": []\n" +
+                "  }\n" +
+                "]";
+        JsonTool.parse(str);
+    }
+
     @DataBean
     public static class MyBean {
         private String name;

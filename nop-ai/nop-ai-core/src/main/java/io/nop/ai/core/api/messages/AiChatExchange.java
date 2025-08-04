@@ -489,7 +489,7 @@ public class AiChatExchange {
         return MarkdownResponseParser.instance().parseResponse(content);
     }
 
-    public Map<String, Object> parseJsonContent() {
+    public Object parseJsonContent() {
         String content = getContent();
         if (StringHelper.isEmpty(content))
             return null;

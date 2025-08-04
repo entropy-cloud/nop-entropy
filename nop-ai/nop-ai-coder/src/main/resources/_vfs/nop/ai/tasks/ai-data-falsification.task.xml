@@ -20,7 +20,7 @@
 
     <steps>
         <!-- 步骤1: 查找所有目标文件 -->
-        <step name="findFiles" customType="file-utils:FindFiles">
+        <step name="findFiles" customType="file-utils:FindFilePaths">
             <input name="pattern" value="*.md"/>
             <input name="baseDir" value="${inputDir}"/>
             <input name="returnRelativePath" value="${true}"/>

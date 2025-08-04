@@ -37,6 +37,8 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
     private int maxDepth = CFG_JSON_MAX_NESTED_LEVEL.get();
     private int _depth;
 
+    // AI返回的XML可能有错误，这里进行一定的容错
+    private boolean looseSyntax;
     private boolean strictMode = false;
     private boolean keepComment = false;
     private boolean intern = false;
@@ -63,6 +65,11 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
                 this.handler(new BuildJObjectJsonHandler());
             }
         }
+        return this;
+    }
+
+    public JsonParser looseSyntax(boolean looseSyntax) {
+        this.looseSyntax = looseSyntax;
         return this;
     }
 
@@ -277,7 +284,7 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
             throw sc.newError(ERR_JSON_STRICT_MODEL_KEY_NOT_DOUBLE_QUOTED);
 
         if (sc.cur == '\'' || sc.cur == '\"') {
-            String str = sc.nextJavaString();
+            String str = nextString(sc);
             skipBlankAndComment(sc);
             return tryIntern(str);
         }
@@ -285,6 +292,12 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
         String str = tryIntern(sc.nextJavaVar());
         skipBlankAndComment(sc);
         return str;
+    }
+
+    String nextString(TextScanner sc) {
+        if (looseSyntax)
+            return sc.nextLooseJsonString();
+        return sc.nextJsonString();
     }
 
     String tryIntern(String str) {

@@ -2,6 +2,7 @@ package io.nop.ai.core.commons.splitter;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.commons.util.StringHelper;
 
 import java.util.List;
 
@@ -22,6 +23,10 @@ public interface IAiTextSplitter {
 
         public SplitChunk(String type, String content) {
             this(type, content, null);
+        }
+
+        public String toString() {
+            return StringHelper.toString(content, "");
         }
 
         public String getChunkId() {
