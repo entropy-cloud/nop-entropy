@@ -18,6 +18,7 @@ import io.nop.commons.collections.SafeOrderedComparator;
 import io.nop.commons.collections.SetFunctions;
 import io.nop.commons.collections.iterator.ChunkIterator;
 import io.nop.commons.functional.Functionals;
+import io.nop.commons.functional.ITriFunction;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
@@ -810,5 +811,35 @@ public class Underscore {
                 }
             }
         }
+    }
+
+    @Deterministic
+    public static <S, R, T> List<T> hashJoin(Collection<S> c1, Collection<R> c2,
+                                             String leftProp, String rightProp,
+                                             ITriFunction<Object, S, R, T> processor) {
+        if (c1 == null)
+            c1 = Collections.emptyList();
+        if (c2 == null)
+            c2 = Collections.emptyList();
+
+        List<T> ret = new ArrayList<>();
+
+        Map<Object, R> m2 = new LinkedHashMap<>();
+        for (R item2 : c2) {
+            Object key = getFieldValue(item2, rightProp);
+            m2.put(key, item2);
+        }
+
+        for (S item1 : c1) {
+            Object key = getFieldValue(item1, leftProp);
+            R item2 = m2.remove(key);
+            ret.add(processor.apply(key, item1, item2));
+        }
+
+        m2.forEach((key, value) -> {
+            ret.add(processor.apply(key, null, value));
+        });
+
+        return ret;
     }
 }
