@@ -3,8 +3,8 @@
       defaultUseParentScope="true" xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
       x:extends="/nop/task/lib/common.task.xml">
 
-    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="50000" maxTokens="50000" temperature="0"
-                    sessionId="${sessionId}"/>
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="30000" maxTokens="8000" temperature="0"
+                    sessionId="${sessionId}" enableThinking="false"/>
 
     <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 
@@ -19,15 +19,24 @@
 
         <fork name="genSummary" varName="filePath" joinType="allComplete">
 
-            <producer>
+            <producer><![CDATA[
                 import io.nop.commons.util.FileHelper;
                 const dir = FileHelper.resolveFile(inputDir);
 
                 return FileHelper.findFilePaths(dir,"**/src/main/java/**/*.java", true, true)
-                .filter(path=> !path.contains('/_') and !path.contains('/.') and !path.startsWith('.') and !path.endsWith("Constants.java") and !path.endsWith('Errors.java'));
-            </producer>
+                        .filter(path=> !path.contains('/_') and !path.contains('/.') and !path.startsWith('.') and
+                            !path.endsWith("Constants.java") and !path.endsWith('Errors.java'));
+            ]]></producer>
 
             <steps>
+                <exit name="checkNotExists">
+                    <when><![CDATA[
+                       import io.nop.commons.util.FileHelper;
+                       const file = FileHelper.resolveFile(outputDir.$appendPath(filePath.$replaceFileExt('.summary.json')));
+                       return file.exists();
+                    ]]></when>
+                </exit>
+
                 <step name="readText" customType="file-utils:ReadText">
                     <input name="inputDir"/>
                     <input name="fileName" value="${filePath}"/>
@@ -55,7 +64,7 @@
                     <steps>
                         <step name="genSummaryForChunk" customType="ai:TaskStep"
                               ai:promptName="summary/code-summary" ai:useResponseCache="true">
-                            <throttle maxConcurrency="2" maxWait="100000000"/>
+                            <throttle maxConcurrency="1" maxWait="100000000"/>
                             <input name="code" value="${fileTextChunk}"/>
                             <output name="RESULT" exportAs="chunkSummary"/>
                         </step>

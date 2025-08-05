@@ -621,7 +621,7 @@ public class FileHelper {
 
     public static File resolveRelativeFile(File baseDir, String fileName) {
         if (baseDir == null)
-            return new File(fileName);
+            return resolveFile(fileName);
         return new File(baseDir, fileName);
     }
 

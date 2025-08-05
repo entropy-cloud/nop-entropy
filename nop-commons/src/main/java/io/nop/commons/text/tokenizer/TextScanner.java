@@ -1139,8 +1139,7 @@ public class TextScanner {
             if (c == quote) {
                 int p = peek();
                 // ""name"这种情况
-                if (StringHelper.isAsciiLetter(p)) {
-                    next();
+                if (p != ',' && p != ':' && p != '}' && p != ' ' && p != '\t' && p != '\r' && p != '\n') {
                     continue;
                 }
 

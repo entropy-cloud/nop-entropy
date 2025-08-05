@@ -459,7 +459,7 @@ public class DefaultAiChatService implements IAiChatService {
         }
 
         if (maxTokens != null) {
-            if (model != null && model.getMaxTokensLimit() < maxTokens)
+            if (model != null && model.getMaxTokensLimit() != null && model.getMaxTokensLimit() < maxTokens)
                 maxTokens = model.getMaxTokensLimit();
             setIfNotNull(body, requestModel.getMaxTokensPath(), maxTokens);
         }

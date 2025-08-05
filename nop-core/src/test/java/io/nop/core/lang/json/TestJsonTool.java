@@ -16,6 +16,7 @@ import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.json.JSON;
 import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.json.parse.JsonParser;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.type.PredefinedGenericTypes;
@@ -142,7 +143,7 @@ public class TestJsonTool {
     }
 
     @Test
-    public void testParseArray(){
+    public void testParseArray() {
         String str = "[\n" +
                 "  {\n" +
                 "    \"name\": \"BaseAgent\",\n" +
@@ -151,6 +152,19 @@ public class TestJsonTool {
                 "  }\n" +
                 "]";
         JsonTool.parse(str);
+    }
+
+
+    @Test
+    public void testLooseJson() {
+        String str = "{\n" +
+                "        \"\"name\"\": \"\"parseResponse\"\",\n" +
+                "        \"\"summary\"\": \"\"解析传入的字符串响应，提取其中的 JSON 内容并返回解析后的对象。\"\"\n" +
+                "      }";
+
+        Map<String, Object> json = (Map<String, Object>) new JsonParser().looseSyntax(true).parseFromText(null, str);
+        System.out.println(json);
+        assertTrue(json.get("name") != null);
     }
 
     @DataBean

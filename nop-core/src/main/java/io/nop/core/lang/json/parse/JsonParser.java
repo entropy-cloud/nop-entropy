@@ -250,6 +250,9 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
             key = key(sc);
             handler.key(key);
             sc.match(':');
+            if (looseSyntax)
+                sc.tryMatch(':');
+            sc.tryMatch(':');
             skipComment(sc);
             object(sc);
         }
@@ -307,7 +310,7 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
     String string(TextScanner sc) {
         if (strictMode && sc.cur != '\"')
             throw sc.newError(ERR_JSON_STRICT_MODEL_STRING_NOT_DOUBLE_QUOTED);
-        String str = sc.nextJsonString();
+        String str = nextString(sc);
         skipBlankAndComment(sc);
         return str;
     }

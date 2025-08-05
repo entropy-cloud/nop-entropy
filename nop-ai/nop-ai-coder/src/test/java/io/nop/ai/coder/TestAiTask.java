@@ -324,6 +324,10 @@ public class TestAiTask extends JunitBaseTestCase {
 
         taskRt.setInput("aiProvider", "lm-studio");
         taskRt.setInput("aiModel", "qwen/qwen3-8b");
+
+        //taskRt.setInput("aiProvider", "ollama");
+        //taskRt.setInput("aiModel", "qwen3:4b");
+
         taskRt.setInput("sessionId", "test");
         task.execute(taskRt).syncGetOutputs();
     }
