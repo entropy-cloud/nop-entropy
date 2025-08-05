@@ -5,6 +5,7 @@
 [![](https://img.shields.io/github/stars/entropy-cloud/nop-entropy)](https://github.com/entropy-cloud/nop-entropy/stargazers)
 [![](https://gitee.com/canonical-entropy/nop-entropy/badge/star.svg?theme=white)](https://gitee.com/canonical-entropy/nop-entropy/stargazers)
 ![star](https://gitcode.com/canonical-entropy/nop-entropy/star/badge.svg)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/entropy-cloud/nop-entropy)
 
 ## 介绍
 
