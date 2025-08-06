@@ -9,12 +9,12 @@ template: |
   ```json
   [
     {
-      "name": "string",
-      "summary": "string",
+      "name": "english",
+      "summary": "chinese",
       "functions": [
         {
-          "name": "string",
-          "summary": "string"
+          "name": "english",
+          "summary": "chinese"
         }
       ]
     }

@@ -72,6 +72,9 @@
                 <!--暂停日历-->
                 <col id="pauseCalendars" sortable="true"/>
 
+                <!--分区索引-->
+                <col id="partitionIndex" mandatory="true" ui:number="true" sortable="true"/>
+
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
 
@@ -103,9 +106,9 @@
  minScheduleTime[最近调度时间] maxScheduleTime[最大调度时间]
  misfireThreshold[超时阈值] maxFailedCount[最大允许失败次数]
  isUseDefaultCalendar[使用系统内置日历] pauseCalendars[暂停日历]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ partitionIndex[分区索引] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-作业定义" i18n-en:title="Add Job Definition" x:prototype="edit"/>
@@ -120,7 +123,7 @@
  minScheduleTime[最近调度时间] maxScheduleTime[最大调度时间]
  misfireThreshold[超时阈值] maxFailedCount[最大允许失败次数]
  isUseDefaultCalendar[使用系统内置日历] pauseCalendars[暂停日历]
- remark[备注] 
+ partitionIndex[分区索引] remark[备注]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

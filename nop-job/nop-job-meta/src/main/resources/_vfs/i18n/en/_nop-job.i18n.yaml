@@ -24,6 +24,7 @@ prop:
       maxFailedCount: Max Failed Count
       isUseDefaultCalendar: Is Use Default Calendar
       pauseCalendars: Pause Calendars
+      partitionIndex: Partition Index
       version: Version
       createdBy: Created By
       createTime: Create Time
@@ -51,6 +52,7 @@ prop:
       errCode: Error Code
       errMsg: Error Message
       lastJobInstanceId: Last Job Instance ID
+      partitionIndex: Partition Index
       version: Version
       createdBy: Created By
       createTime: Create Time

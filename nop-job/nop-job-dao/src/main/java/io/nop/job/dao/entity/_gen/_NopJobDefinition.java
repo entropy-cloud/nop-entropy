@@ -92,32 +92,36 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     public static final String PROP_NAME_pauseCalendars = "pauseCalendars";
     public static final int PROP_ID_pauseCalendars = 18;
     
+    /* 分区索引: PARTITION_INDEX SMALLINT */
+    public static final String PROP_NAME_partitionIndex = "partitionIndex";
+    public static final int PROP_ID_partitionIndex = 19;
+    
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 19;
+    public static final int PROP_ID_version = 20;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 20;
+    public static final int PROP_ID_createdBy = 21;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 21;
+    public static final int PROP_ID_createTime = 22;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 22;
+    public static final int PROP_ID_updatedBy = 23;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 23;
+    public static final int PROP_ID_updateTime = 24;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 24;
+    public static final int PROP_ID_remark = 25;
     
 
-    private static int _PROP_ID_BOUND = 25;
+    private static int _PROP_ID_BOUND = 26;
 
     
     /* component:  */
@@ -127,7 +131,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[25];
+    private static final String[] PROP_ID_TO_NAME = new String[26];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -184,6 +188,9 @@ public class _NopJobDefinition extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_pauseCalendars] = PROP_NAME_pauseCalendars;
           PROP_NAME_TO_ID.put(PROP_NAME_pauseCalendars, PROP_ID_pauseCalendars);
+      
+          PROP_ID_TO_NAME[PROP_ID_partitionIndex] = PROP_NAME_partitionIndex;
+          PROP_NAME_TO_ID.put(PROP_NAME_partitionIndex, PROP_ID_partitionIndex);
       
           PROP_ID_TO_NAME[PROP_ID_version] = PROP_NAME_version;
           PROP_NAME_TO_ID.put(PROP_NAME_version, PROP_ID_version);
@@ -259,6 +266,9 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     
     /* 暂停日历: PAUSE_CALENDARS */
     private java.lang.String _pauseCalendars;
+    
+    /* 分区索引: PARTITION_INDEX */
+    private java.lang.Short _partitionIndex;
     
     /* 数据版本: VERSION */
     private java.lang.Long _version;
@@ -405,6 +415,9 @@ public class _NopJobDefinition extends DynamicOrmEntity{
         
             case PROP_ID_pauseCalendars:
                return getPauseCalendars();
+        
+            case PROP_ID_partitionIndex:
+               return getPartitionIndex();
         
             case PROP_ID_version:
                return getVersion();
@@ -615,6 +628,16 @@ public class _NopJobDefinition extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_partitionIndex:{
+               java.lang.Short typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toShort(value,
+                       err-> newTypeConversionError(PROP_NAME_partitionIndex));
+               }
+               setPartitionIndex(typedValue);
+               break;
+            }
+        
             case PROP_ID_version:{
                java.lang.Long typedValue = null;
                if(value != null){
@@ -806,6 +829,13 @@ public class _NopJobDefinition extends DynamicOrmEntity{
             case PROP_ID_pauseCalendars:{
                onInitProp(propId);
                this._pauseCalendars = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_partitionIndex:{
+               onInitProp(propId);
+               this._partitionIndex = (java.lang.Short)value;
                
                break;
             }
@@ -1196,6 +1226,25 @@ public class _NopJobDefinition extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_pauseCalendars,value)){
             this._pauseCalendars = value;
             internalClearRefs(PROP_ID_pauseCalendars);
+            
+        }
+    }
+    
+    /**
+     * 分区索引: PARTITION_INDEX
+     */
+    public final java.lang.Short getPartitionIndex(){
+         onPropGet(PROP_ID_partitionIndex);
+         return _partitionIndex;
+    }
+
+    /**
+     * 分区索引: PARTITION_INDEX
+     */
+    public final void setPartitionIndex(java.lang.Short value){
+        if(onPropSet(PROP_ID_partitionIndex,value)){
+            this._partitionIndex = value;
+            internalClearRefs(PROP_ID_partitionIndex);
             
         }
     }

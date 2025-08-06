@@ -69,6 +69,9 @@
                 <!--上次任务实例ID-->
                 <col id="lastJobInstanceId" sortable="true"/>
 
+                <!--分区索引-->
+                <col id="partitionIndex" mandatory="true" ui:number="true" sortable="true"/>
+
                 <!--创建人-->
                 <col id="createdBy" mandatory="true" sortable="true"/>
 
@@ -99,9 +102,10 @@
  onceTask[是否只执行一次] manualFire[是否手工触发]
  firedBy[触发执行的用户] execFailCount[失败次数]
  errCode[错误码] errMsg[错误消息]
- lastJobInstanceId[上次任务实例ID] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] remark[备注]
+ lastJobInstanceId[上次任务实例ID] partitionIndex[分区索引]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-任务实例" i18n-en:title="Add Job Instance" x:prototype="edit"/>
@@ -115,7 +119,8 @@
  onceTask[是否只执行一次] manualFire[是否手工触发]
  firedBy[触发执行的用户] execFailCount[失败次数]
  errCode[错误码] errMsg[错误消息]
- lastJobInstanceId[上次任务实例ID] remark[备注]
+ lastJobInstanceId[上次任务实例ID] partitionIndex[分区索引]
+ remark[备注] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

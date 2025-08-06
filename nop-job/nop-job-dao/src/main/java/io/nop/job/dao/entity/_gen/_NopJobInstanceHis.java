@@ -10,15 +10,15 @@ import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
 
-import io.nop.job.dao.entity.NopJobInstance;
+import io.nop.job.dao.entity.NopJobInstanceHis;
 
 // tell cpd to start ignoring code - CPD-OFF
 /**
- *  任务实例: nop_job_instance
+ *  任务实例历史: nop_job_instance_his
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable","java:S3008","java:S1602","java:S1128","java:S1161",
         "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S115","java:S101","java:S3776"})
-public class _NopJobInstance extends DynamicOrmEntity{
+public class _NopJobInstanceHis extends DynamicOrmEntity{
     
     /* 任务实例ID: JOB_INSTANCE_ID VARCHAR */
     public static final String PROP_NAME_jobInstanceId = "jobInstanceId";
@@ -295,20 +295,20 @@ public class _NopJobInstance extends DynamicOrmEntity{
     private java.lang.String _remark;
     
 
-    public _NopJobInstance(){
+    public _NopJobInstanceHis(){
         // for debug
     }
 
-    protected NopJobInstance newInstance(){
-        NopJobInstance entity = new NopJobInstance();
+    protected NopJobInstanceHis newInstance(){
+        NopJobInstanceHis entity = new NopJobInstanceHis();
         entity.orm_attach(orm_enhancer());
         entity.orm_entityModel(orm_entityModel());
         return entity;
     }
 
     @Override
-    public NopJobInstance cloneInstance() {
-        NopJobInstance entity = newInstance();
+    public NopJobInstanceHis cloneInstance() {
+        NopJobInstanceHis entity = newInstance();
         orm_forEachInitedProp((value, propId) -> {
             entity.orm_propValue(propId,value);
         });
@@ -321,7 +321,7 @@ public class _NopJobInstance extends DynamicOrmEntity{
       IEntityModel entityModel = orm_entityModel();
       if(entityModel != null)
           return entityModel.getName();
-      return "io.nop.job.dao.entity.NopJobInstance";
+      return "io.nop.job.dao.entity.NopJobInstanceHis";
     }
 
     @Override

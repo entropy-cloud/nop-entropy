@@ -18,6 +18,7 @@
   "maxFailedCount": 0,
   "isUseDefaultCalendar": 0,
   "pauseCalendars": "",
+  "partitionIndex": 0,
   "version": 0,
   "createdBy": "",
   "createTime": "2000-01-01 14:00:00",

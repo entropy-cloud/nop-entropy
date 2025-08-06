@@ -22,6 +22,7 @@ prop:
       maxScheduleTime: 最大调度时间
       minScheduleTime: 最近调度时间
       misfireThreshold: 超时阈值
+      partitionIndex: 分区索引
       pauseCalendars: 暂停日历
       remark: 备注
       repeatInterval: 定时执行间隔
@@ -54,6 +55,7 @@ prop:
       lastJobInstanceId: 上次任务实例ID
       manualFire: 是否手工触发
       onceTask: 是否只执行一次
+      partitionIndex: 分区索引
       remark: 备注
       scheduledExecTime: 调度执行时间
       status: 任务状态
