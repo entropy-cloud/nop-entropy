@@ -77,9 +77,13 @@ public class XLangLanguageSubstitutor extends LanguageSubstitutor {
     /** 根据 xml 内容做精确判断 */
     private boolean isXLangFile(Reader reader) {
         // Note: 仅分析根节点
-        XNode node = new XRootNodeParser().parseFromReader(null, new FastBufferedReader(reader));
+        XNode node = parseRootNode(reader);
         XDslKeys keys = XDslKeys.of(node);
 
         return node.hasAttr(keys.SCHEMA);
+    }
+
+    public static XNode parseRootNode(Reader reader) {
+        return new XRootNodeParser().parseFromReader(null, new FastBufferedReader(reader));
     }
 }

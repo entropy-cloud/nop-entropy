@@ -25,12 +25,12 @@ import static com.intellij.openapi.util.IconLoader.getIcon;
  */
 public class NopIcons {
     /** 文件类型图标: 16x16 */
-    public static final Icon XLangFileType = getIcon("/icons/type.svg", NopIcons.class);
+    public static final Icon XLangFileType = getIcon("/icons/xlang.svg", NopIcons.class);
 
     /** 底部工具栏的图标: 13x13 */
-    public static final Icon Tool_XLangDebug = getIcon("/actions/xlangDebug-small.svg", NopIcons.class);
+    public static final Icon Tool_XLangDebug = getIcon("/icons/xlangDebug-small.svg", NopIcons.class);
     /** 顶部调试启动按钮图标: 16x16 */
-    public static final Icon Action_XLangDebug = getIcon("/actions/xlangDebug.svg", NopIcons.class);
+    public static final Icon Action_XLangDebug = getIcon("/icons/xlangDebug.svg", NopIcons.class);
 
     private NopIcons() {
     }

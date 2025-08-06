@@ -59,6 +59,10 @@ public class LookupElementHelper {
                 ;
     }
 
+    public static LookupElement lookupString(String s) {
+        return LookupElementBuilder.create(s).withIcon(PlatformIcons.ENUM_ICON);
+    }
+
     public static StreamEx<LookupElement> lookupPsiPackagesStream(StreamEx<PsiPackage> stream) {
         return lookupPsiPackagesStream(stream,
                                        (p) -> LookupElementBuilder.create(p)

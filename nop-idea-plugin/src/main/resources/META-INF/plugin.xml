@@ -5,8 +5,10 @@
     <vendor email="canonical_entropy@163.com" url="https://gitee.com/canonical-entropy/nop-entropy">Canonical</vendor>
 
     <description><![CDATA[
-      1. 根据xdef元模型定义来校验dsl文件格式
-      2. 为XPL模板语言提供调试功能
+        <ul>
+            <li>根据 xdef 元模型定义来校验 dsl 文件格式；</li>
+            <li>为 Xpl 模板语言提供调试功能；</li>
+        </ul>
     ]]></description>
 
     <change-notes><![CDATA[
@@ -24,6 +26,8 @@
     <!-- uncomment to enable plugin in all products
     <depends>com.intellij.modules.lang</depends>
     -->
+
+    <resource-bundle>messages.NopPluginBundle</resource-bundle>
 
     <actions>
         <!--    <group id="entropy.ProjectFileActionGroup" text="Tasks For File"-->
@@ -44,6 +48,11 @@
 
         <!--      <add-to-group group-id="MainMenu" anchor="after" relative-to-action="ToolsMenu" />-->
         <!--    </group>-->
+        <!-- Note: 国际化按 action.<action-id>.text/description 形式从 <resource-bundle/> 中取值 -->
+        <action id="NopEntropy.NewXLang" class="io.nop.idea.plugin.template.CreateXLangFileFromTemplateAction"
+                icon="io.nop.idea.plugin.icons.NopIcons.XLangFileType">
+            <add-to-group group-id="NewGroup"/>
+        </action>
     </actions>
 
     <!--    <extensions defaultExtensionNs="com.intellij">-->
@@ -75,13 +84,24 @@
 
         <projectService serviceImplementation="io.nop.idea.plugin.services.NopProjectService"/>
 
+        <!-- 新建文件模板 -->
+        <internalFileTemplate name="New_XLang_XDef"/>
+        <internalFileTemplate name="New_XLang_XDSL"/>
+        <createFromTemplateHandler implementation="io.nop.idea.plugin.template.CreateXLangFileFromTemplateHandler"/>
+        <!--  -->
+        <defaultLiveTemplates file="liveTemplates/XLang_File"/>
+        <liveTemplateContext contextId="XLang_File"
+                             implementation="io.nop.idea.plugin.template.XLangFileLiveTemplateContextType"/>
+        <liveTemplateMacro implementation="io.nop.idea.plugin.template.XLangRootTagNameMacro"/>
+        <liveTemplateMacro implementation="io.nop.idea.plugin.template.XLangSchemaPathMacro"/>
+
         <!-- XLang 注册与解析 -->
         <!-- 根据后缀名做直接绑定 -->
         <fileType name="XLang"
                   language="XLang"
                   implementationClass="io.nop.idea.plugin.lang.XLangFileType"
                   fieldName="INSTANCE"
-                  extensions="xdef;xpl;xgen;xui;xlib;xrun;xwf;xmeta;xpage;xrule"/>
+                  extensions="xdef;xdsl;xpl;xgen;xui;xlib;xrun;xwf;xmeta;xpage;xrule"/>
         <!-- 通过分析 xml 结构动态识别其是否为 XLang，避免穷举后缀，也避免遗漏 -->
         <lang.substitutor language="XML"
                           implementationClass="io.nop.idea.plugin.lang.XLangLanguageSubstitutor"/>
