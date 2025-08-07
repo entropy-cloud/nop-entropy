@@ -1,9 +1,20 @@
 entity:
   label:
+    NopJobAssignment: 任务分配
     NopJobDefinition: 作业定义
     NopJobInstance: 任务实例
+    NopJobInstanceHis: 任务实例历史
 prop:
   label:
+    NopJobAssignment:
+      assignment: 任务分配
+      createTime: 创建时间
+      createdBy: 创建人
+      remark: 备注
+      serverId: 服务实例ID
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
     NopJobDefinition:
       createTime: 创建时间
       createdBy: 创建人
@@ -33,6 +44,7 @@ prop:
       updatedBy: 修改人
       version: 数据版本
     NopJobInstance:
+      consecutiveFailCount: 连续失败次数
       createTime: 创建时间
       createdBy: 创建人
       errCode: 错误码
@@ -40,7 +52,6 @@ prop:
       execBeginTime: 本次执行开始时间
       execCount: 执行次数
       execEndTime: 本次执行完成时间
-      execFailCount: 失败次数
       firedBy: 触发执行的用户
       jobDefId: 任务定义ID
       jobDefinition: 作业计划
@@ -60,6 +71,39 @@ prop:
       scheduledExecTime: 调度执行时间
       status: 任务状态
       status_label: 任务状态
+      totalFailCount: 总失败次数
+      updateTime: 修改时间
+      updatedBy: 修改人
+      version: 数据版本
+    NopJobInstanceHis:
+      consecutiveFailCount: 连续失败次数
+      createTime: 创建时间
+      createdBy: 创建人
+      errCode: 错误码
+      errMsg: 错误消息
+      execBeginTime: 本次执行开始时间
+      execCount: 执行次数
+      execEndTime: 本次执行完成时间
+      firedBy: 触发执行的用户
+      jobDefId: 任务定义ID
+      jobDefinition: 作业计划
+      jobDefinition.displayName: 作业计划
+      jobGroup: 任务组
+      jobInstanceId: 任务实例ID
+      jobInvoker: 任务执行函数
+      jobName: 任务名
+      jobParams: 任务参数
+      jobParamsComponent: null
+      lastJobInstance: 上次执行实例
+      lastJobInstanceId: 上次任务实例ID
+      manualFire: 是否手工触发
+      onceTask: 是否只执行一次
+      partitionIndex: 分区索引
+      remark: 备注
+      scheduledExecTime: 调度执行时间
+      status: 任务状态
+      status_label: 任务状态
+      totalFailCount: 总失败次数
       updateTime: 修改时间
       updatedBy: 修改人
       version: 数据版本

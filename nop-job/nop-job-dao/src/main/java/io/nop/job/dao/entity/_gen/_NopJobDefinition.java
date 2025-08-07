@@ -84,44 +84,48 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     public static final String PROP_NAME_maxFailedCount = "maxFailedCount";
     public static final int PROP_ID_maxFailedCount = 16;
     
+    /* 最大允许连续失败次数: MAX_CONSEC_FAILED_COUNT INTEGER */
+    public static final String PROP_NAME_maxConsecFailedCount = "maxConsecFailedCount";
+    public static final int PROP_ID_maxConsecFailedCount = 17;
+    
     /* 使用系统内置日历: IS_USE_DEFAULT_CALENDAR TINYINT */
     public static final String PROP_NAME_isUseDefaultCalendar = "isUseDefaultCalendar";
-    public static final int PROP_ID_isUseDefaultCalendar = 17;
+    public static final int PROP_ID_isUseDefaultCalendar = 18;
     
     /* 暂停日历: PAUSE_CALENDARS VARCHAR */
     public static final String PROP_NAME_pauseCalendars = "pauseCalendars";
-    public static final int PROP_ID_pauseCalendars = 18;
+    public static final int PROP_ID_pauseCalendars = 19;
     
     /* 分区索引: PARTITION_INDEX SMALLINT */
     public static final String PROP_NAME_partitionIndex = "partitionIndex";
-    public static final int PROP_ID_partitionIndex = 19;
+    public static final int PROP_ID_partitionIndex = 20;
     
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 20;
+    public static final int PROP_ID_version = 21;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 21;
+    public static final int PROP_ID_createdBy = 22;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 22;
+    public static final int PROP_ID_createTime = 23;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 23;
+    public static final int PROP_ID_updatedBy = 24;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 24;
+    public static final int PROP_ID_updateTime = 25;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 25;
+    public static final int PROP_ID_remark = 26;
     
 
-    private static int _PROP_ID_BOUND = 26;
+    private static int _PROP_ID_BOUND = 27;
 
     
     /* component:  */
@@ -131,7 +135,7 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_sid);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_sid};
 
-    private static final String[] PROP_ID_TO_NAME = new String[26];
+    private static final String[] PROP_ID_TO_NAME = new String[27];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -182,6 +186,9 @@ public class _NopJobDefinition extends DynamicOrmEntity{
       
           PROP_ID_TO_NAME[PROP_ID_maxFailedCount] = PROP_NAME_maxFailedCount;
           PROP_NAME_TO_ID.put(PROP_NAME_maxFailedCount, PROP_ID_maxFailedCount);
+      
+          PROP_ID_TO_NAME[PROP_ID_maxConsecFailedCount] = PROP_NAME_maxConsecFailedCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_maxConsecFailedCount, PROP_ID_maxConsecFailedCount);
       
           PROP_ID_TO_NAME[PROP_ID_isUseDefaultCalendar] = PROP_NAME_isUseDefaultCalendar;
           PROP_NAME_TO_ID.put(PROP_NAME_isUseDefaultCalendar, PROP_ID_isUseDefaultCalendar);
@@ -260,6 +267,9 @@ public class _NopJobDefinition extends DynamicOrmEntity{
     
     /* 最大允许失败次数: MAX_FAILED_COUNT */
     private java.lang.Integer _maxFailedCount;
+    
+    /* 最大允许连续失败次数: MAX_CONSEC_FAILED_COUNT */
+    private java.lang.Integer _maxConsecFailedCount;
     
     /* 使用系统内置日历: IS_USE_DEFAULT_CALENDAR */
     private java.lang.Byte _isUseDefaultCalendar;
@@ -409,6 +419,9 @@ public class _NopJobDefinition extends DynamicOrmEntity{
         
             case PROP_ID_maxFailedCount:
                return getMaxFailedCount();
+        
+            case PROP_ID_maxConsecFailedCount:
+               return getMaxConsecFailedCount();
         
             case PROP_ID_isUseDefaultCalendar:
                return getIsUseDefaultCalendar();
@@ -605,6 +618,16 @@ public class _NopJobDefinition extends DynamicOrmEntity{
                        err-> newTypeConversionError(PROP_NAME_maxFailedCount));
                }
                setMaxFailedCount(typedValue);
+               break;
+            }
+        
+            case PROP_ID_maxConsecFailedCount:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_maxConsecFailedCount));
+               }
+               setMaxConsecFailedCount(typedValue);
                break;
             }
         
@@ -815,6 +838,13 @@ public class _NopJobDefinition extends DynamicOrmEntity{
             case PROP_ID_maxFailedCount:{
                onInitProp(propId);
                this._maxFailedCount = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_maxConsecFailedCount:{
+               onInitProp(propId);
+               this._maxConsecFailedCount = (java.lang.Integer)value;
                
                break;
             }
@@ -1188,6 +1218,25 @@ public class _NopJobDefinition extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_maxFailedCount,value)){
             this._maxFailedCount = value;
             internalClearRefs(PROP_ID_maxFailedCount);
+            
+        }
+    }
+    
+    /**
+     * 最大允许连续失败次数: MAX_CONSEC_FAILED_COUNT
+     */
+    public final java.lang.Integer getMaxConsecFailedCount(){
+         onPropGet(PROP_ID_maxConsecFailedCount);
+         return _maxConsecFailedCount;
+    }
+
+    /**
+     * 最大允许连续失败次数: MAX_CONSEC_FAILED_COUNT
+     */
+    public final void setMaxConsecFailedCount(java.lang.Integer value){
+        if(onPropSet(PROP_ID_maxConsecFailedCount,value)){
+            this._maxConsecFailedCount = value;
+            internalClearRefs(PROP_ID_maxConsecFailedCount);
             
         }
     }

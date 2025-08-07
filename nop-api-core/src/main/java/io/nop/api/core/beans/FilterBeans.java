@@ -143,6 +143,20 @@ public class FilterBeans {
         return addExclude(filter, excludeMin, excludeMax);
     }
 
+    public static TreeBean inRanges(String name, IntRangeSet ranges) {
+        if (ranges == null || ranges.isEmpty())
+            return alwaysFalse();
+        if (ranges.size() == 1) {
+            IntRangeBean range = ranges.getRange(0);
+            return between(name, range.getStart(), range.getLast());
+        }
+        List<TreeBean> filters = new ArrayList<>();
+        for (IntRangeBean range : ranges.getRanges()) {
+            filters.add(between(name, range.getStart(), range.getLast()));
+        }
+        return FilterBeans.or(filters);
+    }
+
     public static TreeBean length(String name, int value) {
         return compareOp(FILTER_OP_LENGTH, name, value);
     }

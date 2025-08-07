@@ -16,6 +16,7 @@ CREATE TABLE nop_job_definition(
   MAX_SCHEDULE_TIME TIMESTAMP  ,
   MISFIRE_THRESHOLD INT4  ,
   MAX_FAILED_COUNT INT4  ,
+  MAX_CONSEC_FAILED_COUNT INT4  ,
   IS_USE_DEFAULT_CALENDAR INT4 default 0   ,
   PAUSE_CALENDARS VARCHAR(4000)  ,
   PARTITION_INDEX INT4 NOT NULL ,
@@ -55,7 +56,8 @@ CREATE TABLE nop_job_instance_his(
   ONCE_TASK BOOLEAN  ,
   MANUAL_FIRE BOOLEAN  ,
   FIRED_BY VARCHAR(50)  ,
-  EXEC_FAIL_COUNT INT4  ,
+  CONSECUTIVE_FAIL_COUNT INT4  ,
+  TOTAL_FAIL_COUNT INT4  ,
   ERR_CODE VARCHAR(200)  ,
   ERR_MSG VARCHAR(500)  ,
   LAST_JOB_INSTANCE_ID VARCHAR(32)  ,
@@ -84,7 +86,8 @@ CREATE TABLE nop_job_instance(
   ONCE_TASK BOOLEAN  ,
   MANUAL_FIRE BOOLEAN  ,
   FIRED_BY VARCHAR(50)  ,
-  EXEC_FAIL_COUNT INT4  ,
+  CONSECUTIVE_FAIL_COUNT INT4  ,
+  TOTAL_FAIL_COUNT INT4  ,
   ERR_CODE VARCHAR(200)  ,
   ERR_MSG VARCHAR(500)  ,
   LAST_JOB_INSTANCE_ID VARCHAR(32)  ,
@@ -132,6 +135,8 @@ CREATE TABLE nop_job_instance(
       COMMENT ON COLUMN nop_job_definition.MISFIRE_THRESHOLD IS '超时阈值';
                     
       COMMENT ON COLUMN nop_job_definition.MAX_FAILED_COUNT IS '最大允许失败次数';
+                    
+      COMMENT ON COLUMN nop_job_definition.MAX_CONSEC_FAILED_COUNT IS '最大允许连续失败次数';
                     
       COMMENT ON COLUMN nop_job_definition.IS_USE_DEFAULT_CALENDAR IS '使用系统内置日历';
                     
@@ -199,7 +204,9 @@ CREATE TABLE nop_job_instance(
                     
       COMMENT ON COLUMN nop_job_instance_his.FIRED_BY IS '触发执行的用户';
                     
-      COMMENT ON COLUMN nop_job_instance_his.EXEC_FAIL_COUNT IS '失败次数';
+      COMMENT ON COLUMN nop_job_instance_his.CONSECUTIVE_FAIL_COUNT IS '连续失败次数';
+                    
+      COMMENT ON COLUMN nop_job_instance_his.TOTAL_FAIL_COUNT IS '总失败次数';
                     
       COMMENT ON COLUMN nop_job_instance_his.ERR_CODE IS '错误码';
                     
@@ -251,7 +258,9 @@ CREATE TABLE nop_job_instance(
                     
       COMMENT ON COLUMN nop_job_instance.FIRED_BY IS '触发执行的用户';
                     
-      COMMENT ON COLUMN nop_job_instance.EXEC_FAIL_COUNT IS '失败次数';
+      COMMENT ON COLUMN nop_job_instance.CONSECUTIVE_FAIL_COUNT IS '连续失败次数';
+                    
+      COMMENT ON COLUMN nop_job_instance.TOTAL_FAIL_COUNT IS '总失败次数';
                     
       COMMENT ON COLUMN nop_job_instance.ERR_CODE IS '错误码';
                     

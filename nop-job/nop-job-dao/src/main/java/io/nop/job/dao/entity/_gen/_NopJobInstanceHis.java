@@ -76,52 +76,56 @@ public class _NopJobInstanceHis extends DynamicOrmEntity{
     public static final String PROP_NAME_firedBy = "firedBy";
     public static final int PROP_ID_firedBy = 14;
     
-    /* 失败次数: EXEC_FAIL_COUNT INTEGER */
-    public static final String PROP_NAME_execFailCount = "execFailCount";
-    public static final int PROP_ID_execFailCount = 15;
+    /* 连续失败次数: CONSECUTIVE_FAIL_COUNT INTEGER */
+    public static final String PROP_NAME_consecutiveFailCount = "consecutiveFailCount";
+    public static final int PROP_ID_consecutiveFailCount = 15;
+    
+    /* 总失败次数: TOTAL_FAIL_COUNT INTEGER */
+    public static final String PROP_NAME_totalFailCount = "totalFailCount";
+    public static final int PROP_ID_totalFailCount = 16;
     
     /* 错误码: ERR_CODE VARCHAR */
     public static final String PROP_NAME_errCode = "errCode";
-    public static final int PROP_ID_errCode = 16;
+    public static final int PROP_ID_errCode = 17;
     
     /* 错误消息: ERR_MSG VARCHAR */
     public static final String PROP_NAME_errMsg = "errMsg";
-    public static final int PROP_ID_errMsg = 17;
+    public static final int PROP_ID_errMsg = 18;
     
     /* 上次任务实例ID: LAST_JOB_INSTANCE_ID VARCHAR */
     public static final String PROP_NAME_lastJobInstanceId = "lastJobInstanceId";
-    public static final int PROP_ID_lastJobInstanceId = 18;
+    public static final int PROP_ID_lastJobInstanceId = 19;
     
     /* 分区索引: PARTITION_INDEX SMALLINT */
     public static final String PROP_NAME_partitionIndex = "partitionIndex";
-    public static final int PROP_ID_partitionIndex = 19;
+    public static final int PROP_ID_partitionIndex = 20;
     
     /* 数据版本: VERSION BIGINT */
     public static final String PROP_NAME_version = "version";
-    public static final int PROP_ID_version = 20;
+    public static final int PROP_ID_version = 21;
     
     /* 创建人: CREATED_BY VARCHAR */
     public static final String PROP_NAME_createdBy = "createdBy";
-    public static final int PROP_ID_createdBy = 21;
+    public static final int PROP_ID_createdBy = 22;
     
     /* 创建时间: CREATE_TIME TIMESTAMP */
     public static final String PROP_NAME_createTime = "createTime";
-    public static final int PROP_ID_createTime = 22;
+    public static final int PROP_ID_createTime = 23;
     
     /* 修改人: UPDATED_BY VARCHAR */
     public static final String PROP_NAME_updatedBy = "updatedBy";
-    public static final int PROP_ID_updatedBy = 23;
+    public static final int PROP_ID_updatedBy = 24;
     
     /* 修改时间: UPDATE_TIME TIMESTAMP */
     public static final String PROP_NAME_updateTime = "updateTime";
-    public static final int PROP_ID_updateTime = 24;
+    public static final int PROP_ID_updateTime = 25;
     
     /* 备注: REMARK VARCHAR */
     public static final String PROP_NAME_remark = "remark";
-    public static final int PROP_ID_remark = 25;
+    public static final int PROP_ID_remark = 26;
     
 
-    private static int _PROP_ID_BOUND = 26;
+    private static int _PROP_ID_BOUND = 27;
 
     
     /* relation: 作业计划 */
@@ -137,7 +141,7 @@ public class _NopJobInstanceHis extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobInstanceId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobInstanceId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[26];
+    private static final String[] PROP_ID_TO_NAME = new String[27];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -183,8 +187,11 @@ public class _NopJobInstanceHis extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_firedBy] = PROP_NAME_firedBy;
           PROP_NAME_TO_ID.put(PROP_NAME_firedBy, PROP_ID_firedBy);
       
-          PROP_ID_TO_NAME[PROP_ID_execFailCount] = PROP_NAME_execFailCount;
-          PROP_NAME_TO_ID.put(PROP_NAME_execFailCount, PROP_ID_execFailCount);
+          PROP_ID_TO_NAME[PROP_ID_consecutiveFailCount] = PROP_NAME_consecutiveFailCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_consecutiveFailCount, PROP_ID_consecutiveFailCount);
+      
+          PROP_ID_TO_NAME[PROP_ID_totalFailCount] = PROP_NAME_totalFailCount;
+          PROP_NAME_TO_ID.put(PROP_NAME_totalFailCount, PROP_ID_totalFailCount);
       
           PROP_ID_TO_NAME[PROP_ID_errCode] = PROP_NAME_errCode;
           PROP_NAME_TO_ID.put(PROP_NAME_errCode, PROP_ID_errCode);
@@ -261,8 +268,11 @@ public class _NopJobInstanceHis extends DynamicOrmEntity{
     /* 触发执行的用户: FIRED_BY */
     private java.lang.String _firedBy;
     
-    /* 失败次数: EXEC_FAIL_COUNT */
-    private java.lang.Integer _execFailCount;
+    /* 连续失败次数: CONSECUTIVE_FAIL_COUNT */
+    private java.lang.Integer _consecutiveFailCount;
+    
+    /* 总失败次数: TOTAL_FAIL_COUNT */
+    private java.lang.Integer _totalFailCount;
     
     /* 错误码: ERR_CODE */
     private java.lang.String _errCode;
@@ -410,8 +420,11 @@ public class _NopJobInstanceHis extends DynamicOrmEntity{
             case PROP_ID_firedBy:
                return getFiredBy();
         
-            case PROP_ID_execFailCount:
-               return getExecFailCount();
+            case PROP_ID_consecutiveFailCount:
+               return getConsecutiveFailCount();
+        
+            case PROP_ID_totalFailCount:
+               return getTotalFailCount();
         
             case PROP_ID_errCode:
                return getErrCode();
@@ -594,13 +607,23 @@ public class _NopJobInstanceHis extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_execFailCount:{
+            case PROP_ID_consecutiveFailCount:{
                java.lang.Integer typedValue = null;
                if(value != null){
                    typedValue = ConvertHelper.toInteger(value,
-                       err-> newTypeConversionError(PROP_NAME_execFailCount));
+                       err-> newTypeConversionError(PROP_NAME_consecutiveFailCount));
                }
-               setExecFailCount(typedValue);
+               setConsecutiveFailCount(typedValue);
+               break;
+            }
+        
+            case PROP_ID_totalFailCount:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_totalFailCount));
+               }
+               setTotalFailCount(typedValue);
                break;
             }
         
@@ -811,9 +834,16 @@ public class _NopJobInstanceHis extends DynamicOrmEntity{
                break;
             }
         
-            case PROP_ID_execFailCount:{
+            case PROP_ID_consecutiveFailCount:{
                onInitProp(propId);
-               this._execFailCount = (java.lang.Integer)value;
+               this._consecutiveFailCount = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_totalFailCount:{
+               onInitProp(propId);
+               this._totalFailCount = (java.lang.Integer)value;
                
                break;
             }
@@ -1161,20 +1191,39 @@ public class _NopJobInstanceHis extends DynamicOrmEntity{
     }
     
     /**
-     * 失败次数: EXEC_FAIL_COUNT
+     * 连续失败次数: CONSECUTIVE_FAIL_COUNT
      */
-    public final java.lang.Integer getExecFailCount(){
-         onPropGet(PROP_ID_execFailCount);
-         return _execFailCount;
+    public final java.lang.Integer getConsecutiveFailCount(){
+         onPropGet(PROP_ID_consecutiveFailCount);
+         return _consecutiveFailCount;
     }
 
     /**
-     * 失败次数: EXEC_FAIL_COUNT
+     * 连续失败次数: CONSECUTIVE_FAIL_COUNT
      */
-    public final void setExecFailCount(java.lang.Integer value){
-        if(onPropSet(PROP_ID_execFailCount,value)){
-            this._execFailCount = value;
-            internalClearRefs(PROP_ID_execFailCount);
+    public final void setConsecutiveFailCount(java.lang.Integer value){
+        if(onPropSet(PROP_ID_consecutiveFailCount,value)){
+            this._consecutiveFailCount = value;
+            internalClearRefs(PROP_ID_consecutiveFailCount);
+            
+        }
+    }
+    
+    /**
+     * 总失败次数: TOTAL_FAIL_COUNT
+     */
+    public final java.lang.Integer getTotalFailCount(){
+         onPropGet(PROP_ID_totalFailCount);
+         return _totalFailCount;
+    }
+
+    /**
+     * 总失败次数: TOTAL_FAIL_COUNT
+     */
+    public final void setTotalFailCount(java.lang.Integer value){
+        if(onPropSet(PROP_ID_totalFailCount,value)){
+            this._totalFailCount = value;
+            internalClearRefs(PROP_ID_totalFailCount);
             
         }
     }

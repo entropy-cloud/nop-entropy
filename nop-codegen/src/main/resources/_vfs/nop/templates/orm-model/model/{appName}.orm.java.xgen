@@ -1,0 +1,15 @@
+<c:unit xpl:outputMode="text">
+<c:for var="entity" items="${codeGenModel.entities}">
+class ${entity.name.$simpleClassName()}{
+<c:for var="col" items="${entity.columns}">
+  ${col.javaClassName.$simpleClassName()} ${col.name}; //${col.displayName}
+</c:for>
+<c:for var="rel" items="${entity.toOneRelations}">
+  ${rel.refEntityName.$simpleClassName()} ${rel.name}; //${rel.displayName}
+</c:for>
+<c:for var="rel" items="${entity.toManyRelations}">
+  Set&lt;${rel.refEntityName.$simpleClassName()}> ${rel.name}; //${rel.displayName}
+</c:for>
+}
+</c:for>
+</c:unit>

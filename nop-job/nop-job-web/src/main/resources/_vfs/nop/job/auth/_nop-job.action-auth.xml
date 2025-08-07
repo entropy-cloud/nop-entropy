@@ -5,31 +5,59 @@
         <resource id="test-orm-nop-job" displayName="测试nop-job" icon="ion:grid-outline" resourceType="TOPM"
                   orderNo="10000" routePath="/test-orm-nop-job" component="layouts/default/index">
             <children>
-                <resource id="NopJobDefinition-main" displayName="作业定义" orderNo="10001"
+                <resource id="NopJobAssignment-main" displayName="任务分配" orderNo="10001"
+                          i18n-en:displayName="Job Assignment" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/job/pages/NopJobAssignment/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopJobAssignment:query" displayName="查询任务分配" orderNo="10002"
+                                  resourceType="FNPT">
+                            <permissions>NopJobAssignment:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopJobAssignment:mutation" displayName="修改任务分配" orderNo="10003"
+                                  resourceType="FNPT">
+                            <permissions>NopJobAssignment:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopJobDefinition-main" displayName="作业定义" orderNo="10004"
                           i18n-en:displayName="Job Definition" icon="ant-design:appstore-twotone" component="AMIS"
                           resourceType="SUBM" url="/nop/job/pages/NopJobDefinition/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopJobDefinition:query" displayName="查询作业定义" orderNo="10002"
+                        <resource id="FNPT:NopJobDefinition:query" displayName="查询作业定义" orderNo="10005"
                                   resourceType="FNPT">
                             <permissions>NopJobDefinition:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopJobDefinition:mutation" displayName="修改作业定义" orderNo="10003"
+                        <resource id="FNPT:NopJobDefinition:mutation" displayName="修改作业定义" orderNo="10006"
                                   resourceType="FNPT">
                             <permissions>NopJobDefinition:mutation</permissions>
                         </resource>
                     </children>
                 </resource>
-                <resource id="NopJobInstance-main" displayName="任务实例" orderNo="10004" i18n-en:displayName="Job Instance"
+                <resource id="NopJobInstance-main" displayName="任务实例" orderNo="10007" i18n-en:displayName="Job Instance"
                           icon="ant-design:appstore-twotone" component="AMIS" resourceType="SUBM"
                           url="/nop/job/pages/NopJobInstance/main.page.yaml">
                     <children>
-                        <resource id="FNPT:NopJobInstance:query" displayName="查询任务实例" orderNo="10005"
+                        <resource id="FNPT:NopJobInstance:query" displayName="查询任务实例" orderNo="10008"
                                   resourceType="FNPT">
                             <permissions>NopJobInstance:query</permissions>
                         </resource>
-                        <resource id="FNPT:NopJobInstance:mutation" displayName="修改任务实例" orderNo="10006"
+                        <resource id="FNPT:NopJobInstance:mutation" displayName="修改任务实例" orderNo="10009"
                                   resourceType="FNPT">
                             <permissions>NopJobInstance:mutation</permissions>
+                        </resource>
+                    </children>
+                </resource>
+                <resource id="NopJobInstanceHis-main" displayName="任务实例历史" orderNo="10010"
+                          i18n-en:displayName="Job Instance History" icon="ant-design:appstore-twotone" component="AMIS"
+                          resourceType="SUBM" url="/nop/job/pages/NopJobInstanceHis/main.page.yaml">
+                    <children>
+                        <resource id="FNPT:NopJobInstanceHis:query" displayName="查询任务实例历史" orderNo="10011"
+                                  resourceType="FNPT">
+                            <permissions>NopJobInstanceHis:query</permissions>
+                        </resource>
+                        <resource id="FNPT:NopJobInstanceHis:mutation" displayName="修改任务实例历史" orderNo="10012"
+                                  resourceType="FNPT">
+                            <permissions>NopJobInstanceHis:mutation</permissions>
                         </resource>
                     </children>
                 </resource>

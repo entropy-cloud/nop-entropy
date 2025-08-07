@@ -24,7 +24,7 @@ public class IntRangeSet implements IJsonString {
     private final boolean sorted;
 
     public IntRangeSet(List<IntRangeBean> ranges, boolean sorted) {
-        this.ranges = Guard.notEmpty(ranges, "ranges");
+        this.ranges = Guard.notNull(ranges, "ranges");
         this.sorted = ranges.size() == 1 || sorted;
     }
 
@@ -34,6 +34,14 @@ public class IntRangeSet implements IJsonString {
 
     public static IntRangeSet rangeSet(List<IntRangeBean> ranges) {
         return rangeSet(ranges, false);
+    }
+
+    public boolean isEmpty() {
+        return ranges.isEmpty();
+    }
+
+    public IntRangeBean getRange(int i) {
+        return ranges.get(i);
     }
 
     public List<IntRangeBean> getRanges() {
@@ -196,7 +204,7 @@ public class IntRangeSet implements IJsonString {
                 IntRangeBean left = consumer.apply(range);
                 if (left != null) {
                     range = left;
-                }else{
+                } else {
                     break;
                 }
             } while (true);

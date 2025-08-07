@@ -1,9 +1,20 @@
 entity:
   label:
+    NopJobAssignment: Job Assignment
     NopJobDefinition: Job Definition
     NopJobInstance: Job Instance
+    NopJobInstanceHis: Job Instance History
 prop:
   label:
+    NopJobAssignment:
+      serverId: Server Id
+      assignment: Assignment
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
     NopJobDefinition:
       sid: SID
       displayName: Display Name
@@ -48,7 +59,40 @@ prop:
       onceTask: Once Task
       manualFire: Manual Fire
       firedBy: Fired By
-      execFailCount: Exec Fail Count
+      consecutiveFailCount: Consecutive Fail Count
+      totalFailCount: Total Fail Count
+      errCode: Error Code
+      errMsg: Error Message
+      lastJobInstanceId: Last Job Instance ID
+      partitionIndex: Partition Index
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      jobDefinition: Job Definition
+      jobDefinition.displayName: Job Definition
+      lastJobInstance: Last Job Instance
+      jobParamsComponent: null
+    NopJobInstanceHis:
+      jobInstanceId: Job Instance Id
+      jobDefId: Job Definition Id
+      jobName: Job Name
+      jobGroup: Job Group
+      jobParams: Job Params
+      jobInvoker: Job Invoker
+      status: Status
+      status_label: null
+      scheduledExecTime: Scheduled Exec Time
+      execCount: Exec Count
+      execBeginTime: Exec Begin Time
+      execEndTime: Exec End Time
+      onceTask: Once Task
+      manualFire: Manual Fire
+      firedBy: Fired By
+      consecutiveFailCount: Consecutive Fail Count
+      totalFailCount: Total Fail Count
       errCode: Error Code
       errMsg: Error Message
       lastJobInstanceId: Last Job Instance ID
