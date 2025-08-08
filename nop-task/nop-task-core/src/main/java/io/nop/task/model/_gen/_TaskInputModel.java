@@ -18,6 +18,13 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: defaultValue
+     * 
+     */
+    private java.lang.Object _defaultValue ;
+    
+    /**
+     *  
      * xml name: description
      * 
      */
@@ -107,6 +114,25 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
      * 
      */
     private io.nop.core.lang.eval.IEvalAction _value ;
+    
+    /**
+     * 
+     * xml name: defaultValue
+     *  
+     */
+    
+    public java.lang.Object getDefaultValue(){
+      return _defaultValue;
+    }
+
+    
+    public void setDefaultValue(java.lang.Object value){
+        checkAllowChange();
+        
+        this._defaultValue = value;
+           
+    }
+
     
     /**
      * 
@@ -373,6 +399,7 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("defaultValue",this.getDefaultValue());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayName",this.getDisplayName());
         out.putNotNull("dump",this.isDump());
@@ -397,6 +424,7 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     protected void copyTo(TaskInputModel instance){
         super.copyTo(instance);
         
+        instance.setDefaultValue(this.getDefaultValue());
         instance.setDescription(this.getDescription());
         instance.setDisplayName(this.getDisplayName());
         instance.setDump(this.isDump());

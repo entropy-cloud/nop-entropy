@@ -121,6 +121,9 @@ public class TaskImpl implements ITask {
         for (IActionInputModel input : inputs) {
             String name = input.getName();
             Object value = taskRt.getInput(name);
+            if (value == null)
+                value = input.getDefaultValue();
+
             if (value == null) {
                 // value为null可能是没有设置input，这里强制设置一下，确保scope中的input变量一定存在
                 taskRt.setInput(name, null);

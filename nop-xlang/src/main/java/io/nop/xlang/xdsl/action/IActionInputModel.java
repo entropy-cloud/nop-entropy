@@ -14,6 +14,10 @@ public interface IActionInputModel extends IPropGetMissingHook {
 
     String getDescription();
 
+    default Object getDefaultValue(){
+        return null;
+    }
+
     default IGenericType getType() {
         ISchema schema = getSchema();
         return schema == null ? null : schema.getType();

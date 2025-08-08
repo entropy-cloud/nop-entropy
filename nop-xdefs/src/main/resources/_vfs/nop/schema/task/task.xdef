@@ -46,7 +46,7 @@
         <!--
         @persist [是否持久化保存] 标记为persist的变量会自动保存，支持中断后恢复执行
         -->
-        <input name="!var-name" displayName="string" xdef:name="TaskInputModel"
+        <input name="!var-name" displayName="string" xdef:name="TaskInputModel" defaultValue="any"
                type="generic-type" mandatory="!boolean=false" role="string" value="t-expr" optional="!boolean=false"
                xdef:unique-attr="name" persist="!boolean=true" fromTaskScope="!boolean=false" dump="!boolean=false">
             <description xdef:value="string"/>
