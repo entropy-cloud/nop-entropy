@@ -1,13 +1,13 @@
 <llm x:schema="/nop/schema/ai/llm.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-     x:extends="default.llm.xml" apiKeyHeader="api-key">
+     x:extends="default.llm.xml" apiKeyHeader="api-key" rateLimit="0.1">
 
     <baseUrl>https://{azure.host.name}/openai/deployments/{model}</baseUrl>
-    <chatUrl>/chat/completions?api-version=2024-03-01-preview</chatUrl>
+    <chatUrl>/chat/completions?api-version=2025-04-01-preview</chatUrl>
     <generateUrl>/api/generate</generateUrl>
     <embedUrl>/api/embed</embedUrl>
 
-
     <models>
         <model name="gpt-4o" maxTokensLimit="16384"/>
+        <model name="gpt-4" maxTokensLimit="4096" />
     </models>
 </llm>

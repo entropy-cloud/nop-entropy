@@ -71,7 +71,7 @@ public class DaoJobSchedulerStore implements IJobScheduleStore {
     @Override
     public ICancellable fetchPersistJobs(Consumer<JobDetail> processor) {
         Cancellable cancellable = new Cancellable();
-        Future<?> future = getExecutor().scheduleWithFixedDelay(()-> doScanJobs(processor), 0,
+        Future<?> future = getExecutor().scheduleWithFixedDelay(() -> doScanJobs(processor), 0,
                 scanIntervalSeconds, TimeUnit.MILLISECONDS);
         cancellable.appendOnCancelTask(() -> future.cancel(false));
         return cancellable;
@@ -93,6 +93,10 @@ public class DaoJobSchedulerStore implements IJobScheduleStore {
 
         List<NopJobInstance> jobs = jobDao().findAllByQuery(query);
         jobDao.batchLoadProps(jobs, Arrays.asList(NopJobInstance.PROP_NAME_jobDefinition));
+        for (NopJobInstance job : jobs) {
+            processor.accept(JobDaoHelper.toJobDetail(job));
+        }
+        
     }
 
     protected void addPartitionFilter(QueryBean query) {

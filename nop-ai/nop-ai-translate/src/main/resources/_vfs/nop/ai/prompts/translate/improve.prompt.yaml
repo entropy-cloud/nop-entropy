@@ -1,21 +1,49 @@
 template: |
-  <![CDATA[Your task is to carefully read, then edit, a translation from ${fromLang} to ${toLang}.
+  Your task is to carefully read, then edit, a translation from ${fromLang} to ${toLang}.
 
   The source text, the initial translation are delimited by XML tags <SOURCE_TEXT></SOURCE_TEXT>, <TRANSLATION></TRANSLATION> as follows:
 
   <SOURCE_TEXT>
-  ${content}
+  {{source}}
   </SOURCE_TEXT>
 
   <TRANSLATION>
-  ${translatedText}
+  {{translation}}
   </TRANSLATION>
   
-  评估原翻译的质量，输出时采用如下格式：
-  <SCORE>1-10的分数</SCORE>
-  <IMPROVED_TRANSLATION>改进后的翻译</IMPROVED_TRANSLATION>
-  ]]>
+  <EXPERT_SUGGESTIONS>
+  {{suggestions}}
+  </EXPERT_SUGGESTIONS>
+  
+  【Glossary】
+  {{include:nop-glossary.md}}  
+  
+  【Return Format】
+  <IMPROVED_TRANSLATION>string</IMPROVED_TRANSLATION>
 
-processChatResponse: |
-  chatResponse.parseNumberBlock("score", "<SCORE>", "</SCORE>");
-  chatResponse.parseContentBlock("<IMPROVED_TRANSLATION>\n", "\n</IMPROVED_TRANSLATION>",true);
+inputs:
+  - name: fromLang
+    mandatory: true
+
+  - name: toLang
+    mandatory: true
+
+  - name: source
+    type: String
+    mandatory: true
+
+  - name: translation
+    type: String
+    mandatory: true
+
+  - name: suggestions
+    type: String
+    mandatory: true
+
+outputs:
+  - name: RESULT
+    parseFromResponse:
+      blockStartMarker: "<IMPROVED_TRANSLATION>"
+      blockEndMarker: "</IMPROVED_TRANSLATION>"
+      includeStartMarker: false
+      includeEndMarker: false

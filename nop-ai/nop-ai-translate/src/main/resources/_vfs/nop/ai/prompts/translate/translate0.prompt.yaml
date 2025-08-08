@@ -1,6 +1,35 @@
-template: |
-  This is an {source_lang} to {target_lang} translation, please provide the {target_lang} translation for this text. 
-  Do not provide any explanations or text apart from the translation.
-  {source_lang}: {source_text}
+template: >
+  你是计算机领域的翻译专家，将以下{{fromLang}}技术文档的片段翻译为清晰、准确且专业的{{toLang}}。
+  
+  【要求】
+   1. 严格保持原有的markdown格式（如标题、列表、代码块、链接等）
+   2. 所有图片路径保持不变
+   3. 只输出译文，不需要额外的说明或解释
+  
+  【术语表】
+  {{include:nop-glossary.md}}
+  
+  【待翻译的内容】
+   {{source}}
+  
+  【返回格式】
+   <TRANSLATE_RESULT>translated-text</TRANSLATE_RESULT>
+    
+inputs:
+  - name: fromLang
+    type: String
+    mandatory: true
+  - name: toLang
+    type: String
+    mandatory: true
+  - name: source
+    type: String
+    mandatory: true
 
-  {target_lang}:
+outputs:
+  - name: RESULT
+    parseFromResponse:
+      blockStartMarker: "<TRANSLATE_RESULT>"
+      blockEndMarker: "</TRANSLATE_RESULT>"
+      includeStartMarker: false
+      includeEndMarker: false

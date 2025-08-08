@@ -1,0 +1,62 @@
+template: |
+  Your task is to carefully read a source text and a translation from {{fromLang}} to {{toLang}}, and then give constructive criticisms and helpful suggestions to improve the translation. 
+
+  The source text and initial translation, delimited by XML tags <SOURCE_TEXT></SOURCE_TEXT> and <TRANSLATION></TRANSLATION>, are as follows:
+  
+  <SOURCE_TEXT>
+  {{source}}
+  </SOURCE_TEXT>
+
+  <TRANSLATION>
+  {{translation}}
+  </TRANSLATION>
+
+  When writing suggestions, pay attention to whether there are ways to improve the translation's 
+  (i) accuracy (by correcting errors of addition, mistranslation, omission, or untranslated text),
+  (ii) fluency (by applying {target_lang} grammar, spelling and punctuation rules, and ensuring there are no unnecessary repetitions),
+  (iii) style (by ensuring the translations reflect the style of the source text and take into account any cultural context),
+  (iv) terminology (by ensuring terminology use is consistent and reflects the source text domain; and by only ensuring you use equivalent idioms {target_lang}).
+
+  Write a list of specific, helpful and constructive suggestions for improving the translation.
+  Each suggestion should address one specific part of the translation.
+  Output only the suggestions and nothing else.
+
+  【Glossary】
+  {{include:nop-glossary.md}}
+  
+  【Return Format】
+  <SCORE>integer-from-1-to-10</SCORE>
+  <SUGGESTIONS>string</SUGGESTIONS>
+
+inputs:
+  - name: fromLang
+    mandatory: true
+
+  - name: toLang
+    mandatory: true
+
+  - name: source
+    type: String
+    mandatory: true
+
+  - name: translation
+    type: String
+    mandatory: true
+
+outputs:
+  - name: score
+    type: Integer
+    mandatory: true
+    parseFromResponse:
+      blockStartMarker: "<SCORE>"
+      blockEndMarker: "</SCORE>"
+      includeStartMarker: false
+      includeEndMarker: false
+
+  - name: RESULT
+    type: String
+    parseFromResponse:
+      blockStartMarker: "<SUGGESTIONS>"
+      blockEndMarker: "</SUGGESTIONS>"
+      includeStartMarker: false
+      includeEndMarker: false

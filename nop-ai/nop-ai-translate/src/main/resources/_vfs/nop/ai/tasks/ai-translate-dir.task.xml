@@ -1,0 +1,135 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:task="task"
+      xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib" x:dump="true"
+      xmlns:file-utils="/nop/task/xlib/file-utils.xlib" defaultUseParentScope="true"
+      x:extends="/nop/task/lib/common.task.xml">
+
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="16000" maxTokens="16000"
+                    temperature="0.6"
+                    sessionId="${sessionId}" enableThinking="false"/>
+
+    <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
+
+    <input name="inputDir" type="String" mandatory="true"/>
+    <input name="outputDir" type="String" mandatory="true"/>
+    <input name="fromLang" type="String" mandatory="true"/>
+    <input name="toLang" type="String" mandatory="true"/>
+
+    <input name="chunkSize" type="Integer" optional="true" defaultValue="16000"/>
+
+    <input name="aiProvider" type="String" mandatory="true"/>
+    <input name="aiModel" type="String" mandatory="true"/>
+    <input name="sessionId" type="String" optional="true"/>
+
+    <steps>
+
+        <step name="resolveDir">
+            <output name="dir">
+                <source>
+                    import io.nop.core.resource.ResourceHelper;
+                    return ResourceHelper.resolveRelativePathResource(inputDir);
+                </source>
+            </output>
+        </step>
+
+        <fork name="translateFiles" varName="resource" joinType="allComplete">
+            <producer><![CDATA[
+                import io.nop.core.resource.VirtualFileSystem;
+
+                return VirtualFileSystem.instance().depthVisitor(dir.stdPath)
+                    .filter(res => res.name.endsWith(".md"));
+            ]]></producer>
+
+            <steps>
+
+                <step name="getRelativePath">
+                    <output name="relativePath" value="${resource.path.substring(dir.path.length())}"/>
+                </step>
+
+                <exit name="skipExisting">
+                    <when>
+                        import io.nop.core.resource.ResourceHelper;
+
+                        const outDirResource = ResourceHelper.resolveRelativePathResource(outputDir);
+                        return ResourceHelper.resolveChildResource(outDirResource,relativePath).exists();
+                    </when>
+                </exit>
+
+                <fork name="translateFile" varName="chunk" indexName="chunkIndex">
+                    <throttle maxConcurrency="1" maxWait="100000000"/>
+
+                    <producer><![CDATA[
+                        import io.nop.ai.core.commons.splitter.MarkdownTextSplitter;
+
+                        const text = resource.readText();
+                        const splitter = new MarkdownTextSplitter();
+                        return splitter.split(text, chunkSize);
+                    ]]></producer>
+
+                    <steps>
+                        <sequential name="subTask">
+                            <throttle maxConcurrency="1" maxWait="100000000"/>
+                            <steps>
+                                <step name="translateChunk" customType="ai:TaskStep"
+                                      ai:promptName="translate/translate0" ai:useResponseCache="true">
+                                    <input name="fromLang"/>
+                                    <input name="toLang"/>
+                                    <input name="source" value="${chunk.content}"/>
+                                    <output name="RESULT" exportAs="translatedText"/>
+                                </step>
+
+                                <step name="saveChunkTranslation" customType="file-utils:WriteText">
+                                    <input name="outputDir"/>
+                                    <input name="fileName"
+                                           value="${relativePath.$removeFileExt()}-chunk-${chunkIndex}.md"/>
+                                    <input name="text" value="${translatedText}"/>
+                                </step>
+
+                                <step name="reflection" customType="ai:TaskStep"
+                                      ai:promptName="translate/reflection" ai:useResponseCache="true">
+                                    <input name="fromLang"/>
+                                    <input name="toLang"/>
+                                    <input name="source" value="${chunk.content}"/>
+                                    <input name="translation" value="${translatedText}"/>
+
+                                    <output name="score"/>
+                                    <output name="RESULT" exportAs="suggestions"/>
+                                </step>
+
+                                <exit name="checkScore">
+                                    <when>score >= 8</when>
+                                    <source>translatedText</source>
+                                </exit>
+
+                                <step name="improve" customType="ai:TaskStep" ai:promptName="translate/improve"
+                                      ai:useResponseCache="true">
+                                    <input name="fromLang"/>
+                                    <input name="toLang"/>
+                                    <input name="source" value="${chunk.content}"/>
+                                    <input name="translation" value="${translatedText}"/>
+                                    <input name="suggestions"/>
+
+                                    <output name="RESULT"/>
+                                </step>
+                            </steps>
+                        </sequential>
+                    </steps>
+
+                    <aggregator>
+                        const results = aggResults.getSuccessOutputs('RESULT');
+                        return results.join("\n\n");
+                    </aggregator>
+
+                    <output name="RESULT" exportAs="finalResult"/>
+                </fork>
+
+                <step name="saveTranslatedText" customType="file-utils:WriteText">
+                    <input name="outputDir"/>
+                    <input name="fileName" value="${relativePath}"/>
+                    <input name="text" value="${finalResult}"/>
+                </step>
+
+            </steps>
+
+        </fork>
+    </steps>
+</task>
