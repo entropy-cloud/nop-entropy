@@ -30,6 +30,14 @@ public interface IRateLimiter {
         return tryAcquire(1);
     }
 
+    default void acquire(){
+        tryAcquire(1, Long.MAX_VALUE);
+    }
+
+    default void acquire(int permits){
+        tryAcquire(permits, Long.MAX_VALUE);
+    }
+
     double getPermitsPerSecond();
 
     long getAcquireSuccessCount();

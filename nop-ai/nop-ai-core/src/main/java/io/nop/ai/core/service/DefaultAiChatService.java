@@ -157,7 +157,7 @@ public class DefaultAiChatService implements IAiChatService {
         IRateLimiter rateLimiter = getRateLimiter(llmName);
 
         if (rateLimiter != null)
-            rateLimiter.tryAcquire();
+            rateLimiter.acquire();
         return doSendChat(llmName, llmModel, prompt, options, cancelToken);
     }
 
@@ -246,6 +246,10 @@ public class DefaultAiChatService implements IAiChatService {
                 if (!StringHelper.isEmpty(apiVersion))
                     return apiVersion;
             }
+
+            String value = AppConfig.var(varName, "");
+            if (!StringHelper.isEmpty(value))
+                return value;
             return "{" + varName + "}";
         });
     }
