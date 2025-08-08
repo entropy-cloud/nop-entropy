@@ -7,10 +7,12 @@
  */
 package io.nop.commons.collections.iterator;
 
+import io.nop.commons.collections.IterableIterator;
+
 import java.util.Iterator;
 import java.util.function.Function;
 
-public class TransformIterator<T, R> implements Iterator<R> {
+public class TransformIterator<T, R> implements IterableIterator<R> {
     private final Iterator<T> it;
     private final Function<T, R> fn;
 

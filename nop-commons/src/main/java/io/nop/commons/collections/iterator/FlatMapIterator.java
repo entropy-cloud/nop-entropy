@@ -7,11 +7,13 @@
  */
 package io.nop.commons.collections.iterator;
 
+import io.nop.commons.collections.IterableIterator;
+
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.function.Function;
 
-public class FlatMapIterator<S, R> implements Iterator<R> {
+public class FlatMapIterator<S, R> implements IterableIterator<R> {
     private final Iterator<S> parentIt;
     private final Function<? super S, ? extends Iterable<R>> fn;
     private Iterator<R> it = Collections.<R>emptySet().iterator();

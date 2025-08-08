@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * 通过路径名可以定位资源文件，支持遍历文件树。
@@ -78,6 +79,22 @@ public interface IResourceLoader extends IResourceLocator {
 
     default List<IResource> findAll(String pattern) {
         return findAll("/", pattern);
+    }
+
+    default IterableIterator<IResource> depthIterator(String path, boolean includeRoot, Predicate<IResource> filter) {
+        return TreeVisitors.depthFirstIterator(new ResourceChildrenAdapter(this), getResource(path), includeRoot, filter);
+    }
+
+    default IterableIterator<IResource> depthVisitor(String path) {
+        return depthIterator(path, true, null);
+    }
+
+    default IterableIterator<IResource> widthIterator(String path, boolean includeRoot, Predicate<IResource> filter) {
+        return TreeVisitors.widthFirstIterator(new ResourceChildrenAdapter(this), getResource(path), includeRoot, filter);
+    }
+
+    default IterableIterator<IResource> widthIterator(String path) {
+        return widthIterator(path, true, null);
     }
 
     /**

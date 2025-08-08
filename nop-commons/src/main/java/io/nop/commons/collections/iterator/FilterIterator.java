@@ -8,12 +8,14 @@
 package io.nop.commons.collections.iterator;
 
 import io.nop.api.core.util.Guard;
+import io.nop.commons.collections.IterableIterator;
 import io.nop.commons.util.IoHelper;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
-public class FilterIterator<E> implements IPeekingIterator<E>, AutoCloseable {
+public class FilterIterator<E> implements IPeekingIterator<E>, AutoCloseable, IterableIterator<E> {
     private static final Object NULL = new Object();
 
     private final Iterator<? extends E> iterator;
@@ -34,11 +36,13 @@ public class FilterIterator<E> implements IPeekingIterator<E>, AutoCloseable {
     @SuppressWarnings("unchecked")
     @Override
     public E next() {
-        if (next != null)
-            return next == NULL ? null : (E) next;
+        if (next == null)
+            throw new NoSuchElementException();
+
+        E ret = next == NULL ? null : (E) next;
 
         next = advance();
-        return next == NULL ? null : (E) next;
+        return ret;
     }
 
     private Object advance() {
@@ -50,7 +54,7 @@ public class FilterIterator<E> implements IPeekingIterator<E>, AutoCloseable {
                 }
             } while (iterator.hasNext());
         }
-        return NULL;
+        return null;
     }
 
     @Override
