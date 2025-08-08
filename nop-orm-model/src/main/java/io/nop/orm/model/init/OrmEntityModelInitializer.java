@@ -46,7 +46,9 @@ import java.util.Map;
 import static io.nop.orm.model.OrmModelErrors.ARG_COL_CODE;
 import static io.nop.orm.model.OrmModelErrors.ARG_COL_NAME;
 import static io.nop.orm.model.OrmModelErrors.ARG_ENTITY_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_OLD_PROP;
 import static io.nop.orm.model.OrmModelErrors.ARG_OTHER_PROP_NAME;
+import static io.nop.orm.model.OrmModelErrors.ARG_PROP;
 import static io.nop.orm.model.OrmModelErrors.ARG_PROP_ID;
 import static io.nop.orm.model.OrmModelErrors.ARG_PROP_NAME;
 import static io.nop.orm.model.OrmModelErrors.ARG_REF_NAME;
@@ -355,7 +357,9 @@ public class OrmEntityModelInitializer {
         IEntityPropModel old = props.put(prop.getName(), prop);
         if (old != null) {
             throw new NopException(ERR_ORM_MODEL_DUPLICATE_PROP).source(prop)
-                    .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_PROP_NAME, prop.getName());
+                    .param(ARG_ENTITY_NAME, entityModel.getName())
+                    .param(ARG_PROP_NAME, prop.getName()).param(ARG_PROP, prop)
+                    .param(ARG_OLD_PROP, old);
         }
     }
 

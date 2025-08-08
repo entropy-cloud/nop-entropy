@@ -17,6 +17,9 @@ public interface OrmModelErrors {
     String ARG_PROP_NAME = "propName";
     String ARG_TAG = "tag";
 
+    String ARG_PROP = "prop";
+    String ARG_OLD_PROP = "oldProp";
+
     String ARG_ALLOWED_NAMES = "allowedNames";
 
     String ARG_DOMAIN_DATA_TYPE = "domainDataType";
