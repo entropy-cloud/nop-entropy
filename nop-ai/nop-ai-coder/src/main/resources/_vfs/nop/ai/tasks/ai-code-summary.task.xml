@@ -48,37 +48,73 @@
                         import io.nop.ai.core.commons.splitter.SimpleTextSplitter;
 
                         const splitter = new SimpleTextSplitter();
-                        splitter.setOverlapSize(1000);
 
-                        return splitter.split(fileText, 40*1024);
+                        return splitter.split(null, fileText, {maxContentSize: 40*1024, overlapSize: 1000});
                     </source>
 
                     <output name="RESULT" exportAs="fileTextChunks"/>
                 </step>
 
-                <fork name="genSummaryForChunks" varName="fileTextChunk">
-                    <producer>
-                        return fileTextChunks;
-                    </producer>
-
+                <selector name="tryGenSummary">
                     <steps>
-                        <step name="genSummaryForChunk" customType="ai:TaskStep"
-                              ai:promptName="summary/code-summary" ai:useResponseCache="true">
-                            <throttle maxConcurrency="1" maxWait="100000000"/>
-                            <input name="code" value="${fileTextChunk}"/>
-                            <output name="RESULT" exportAs="chunkSummary"/>
-                        </step>
+                        <fork name="genSummaryForTextChunks" varName="fileTextChunk">
+                            <producer>
+                                return fileTextChunks;
+                            </producer>
+
+                            <steps>
+                                <step name="genSummaryForTextChunk" customType="ai:TaskStep"
+                                      ai:promptName="summary/code-summary" ai:useResponseCache="true">
+                                    <throttle maxConcurrency="1" maxWait="100000000"/>
+                                    <input name="code"
+                                           value="${'//File:' + filePath.$fileFullName()+'\n\n'+fileTextChunk}"/>
+                                    <output name="RESULT"/>
+                                </step>
+                            </steps>
+
+                            <aggregator><![CDATA[
+                                import io.nop.core.lang.json.delta.JsonMerger;
+
+                                const results = aggResults.getSuccessStepResultValues();
+                                return JsonMerger.mergeItems(results);
+                            ]]></aggregator>
+
+                            <output name="RESULT"/>
+                        </fork>
+
+                        <fork name="genSummaryForCodeChunks" varName="fileCodeChunk">
+                            <producer>
+                                import io.nop.ai.code_analyzer.code.JavaFileSplitter;
+
+                                const splitter = new JavaFileSplitter();
+
+                                return splitter.split(null, fileText, {maxContentSize: 40*1024, overlapSize: 1000,maxElementsPerChunk:20});
+                            </producer>
+
+                            <steps>
+                                <step name="genSummaryForCodeChunk" customType="ai:TaskStep"
+                                      ai:promptName="summary/code-summary" ai:useResponseCache="true">
+                                    <throttle maxConcurrency="1" maxWait="100000000"/>
+                                    <input name="code"
+                                           value="${fileCodeChunk}"/>
+                                    <output name="RESULT"/>
+                                </step>
+                            </steps>
+
+                            <aggregator><![CDATA[
+                                import io.nop.core.lang.json.delta.JsonMerger;
+
+                                const results = aggResults.getSuccessStepResultValues();
+                                return JsonMerger.mergeItems(results);
+                            ]]></aggregator>
+
+                            <output name="RESULT"/>
+                        </fork>
                     </steps>
 
-                    <aggregator><![CDATA[
-                        import io.nop.core.lang.json.delta.JsonMerger;
-
-                        const results = aggResults.getSuccessStepResultValues();
-                        return JsonMerger.mergeItems(results);
-                    ]]></aggregator>
-
                     <output name="RESULT" exportAs="mergedSummary"/>
-                </fork>
+                </selector>
+
 
                 <step name="saveSummary" customType="file-utils:WriteText">
                     <input name="outputDir"/>

@@ -238,29 +238,32 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
 
         incParseDepth(sc);
 
-        String key = key(sc);
-        handler.key(key);
-        sc.match(':');
-        skipComment(sc);
-
-        object(sc);
+        keyValue(sc);
         while (matchComma(sc)) {
             if (!strictMode && sc.cur == '}')
                 break;
-            key = key(sc);
-            handler.key(key);
-            sc.match(':');
-            if (looseSyntax)
-                sc.tryMatch(':');
-            sc.tryMatch(':');
-            skipComment(sc);
-            object(sc);
+            keyValue(sc);
         }
         sc.match('}');
         skipComment(sc);
 
         decParseDepth();
         handler.endObject();
+    }
+
+    void keyValue(TextScanner sc) {
+        String key = key(sc);
+        handler.key(key);
+        if (looseSyntax && sc.tryMatch(',')) {
+            handler.value(sc.location(), key);
+        } else {
+            sc.match(':');
+            if (looseSyntax)
+                sc.tryMatch(':');
+            skipComment(sc);
+
+            object(sc);
+        }
     }
 
     boolean matchComma(TextScanner sc) {

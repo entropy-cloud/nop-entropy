@@ -62,7 +62,7 @@
 
                         const text = resource.readText();
                         const splitter = new MarkdownTextSplitter();
-                        return splitter.split(text, chunkSize);
+                        return splitter.split(null, text, {maxChunkSize:chunkSize});
                     ]]></producer>
 
                     <steps>

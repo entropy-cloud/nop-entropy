@@ -39,13 +39,18 @@ public class SelectorTaskStep extends AbstractTaskStep {
             TaskStepReturn stepResult;
             try {
                 stepResult = step.executeWithParentRt(stepRt).syncIfDone();
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 if (TaskStepHelper.isCancelledException(e))
                     throw e;
+
+                if (index >= steps.size() - 1)
+                    throw e;
+
 
                 LOG.debug("nop.task.selector-ignore-exception:stepPath={},runId={},subStep={},loc={}",
                         stepRt.getStepPath(), stepRt.getRunId(), step.getStepName(), step.getLocation(), e);
                 index++;
+
                 stepRt.setBodyStepIndex(index);
                 stepRt.saveState();
                 lastResult = TaskStepReturn.CONTINUE;
@@ -78,6 +83,10 @@ public class SelectorTaskStep extends AbstractTaskStep {
                     if (err != null) {
                         if (TaskStepHelper.isCancelledException(err))
                             throw NopException.adapt(err);
+
+                        if (indexParam >= steps.size() - 1)
+                            throw NopException.adapt(err);
+
                         LOG.debug("nop.task.selector-ignore-exception:stepPath={},runId={},subStep={},loc={}",
                                 stepRt.getStepPath(), stepRt.getRunId(), step.getStepName(), step.getLocation(), err);
 

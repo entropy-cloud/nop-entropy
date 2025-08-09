@@ -10,7 +10,7 @@ import java.util.List;
 public class MarkdownTextSplitter extends SimpleTextSplitter {
 
     @Override
-    protected int collectOneChunk(List<String> parts, int index, int maxContentSize,
+    protected int collectOneChunk(List<String> parts, int index, int maxContentSize, int overlapSize,
                                   List<SplitChunk> chunks) {
         StringBuilder sb = new StringBuilder();
         for (int i = index, n = parts.size(); i < n; i++) {

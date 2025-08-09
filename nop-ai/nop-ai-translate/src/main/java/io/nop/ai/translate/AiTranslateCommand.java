@@ -276,7 +276,7 @@ public class AiTranslateCommand extends AiCommand {
 
     public CompletionStage<AggregateText> translateLongTextAsync(String text, ICancelToken cancelToken, Semaphore limit) {
         if (textSplitter != null && text.length() > maxChunkSize) {
-            List<IAiTextSplitter.SplitChunk> chunks = textSplitter.split(text, maxChunkSize);
+            List<IAiTextSplitter.SplitChunk> chunks = textSplitter.split(null, text, IAiTextSplitter.SplitOptions.create(maxChunkSize));
 
             List<CompletionStage<AiChatExchange>> promises = new ArrayList<>(chunks.size());
             for (IAiTextSplitter.SplitChunk chunk : chunks) {

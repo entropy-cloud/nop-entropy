@@ -2,6 +2,7 @@ package io.nop.ai.core.commons.splitter;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 
 import java.util.List;
@@ -42,5 +43,66 @@ public interface IAiTextSplitter {
         }
     }
 
-    List<SplitChunk> split(String text, int maxContentSize);
+    @DataBean
+    class SplitOptions {
+        private int maxContentSize;
+        private int overlapSize;
+        private int maxElementsPerChunk;
+        private boolean ignoreParseError;
+
+        public static SplitOptions create(int maxContentSize) {
+            SplitOptions options = new SplitOptions();
+            options.setMaxContentSize(maxContentSize);
+            return options;
+        }
+
+        public SplitOptions overlapSize(int overlapSize) {
+            this.overlapSize = overlapSize;
+            return this;
+        }
+
+        public int getOverlapSize() {
+            return overlapSize;
+        }
+
+        public void setOverlapSize(int overlapSize) {
+            this.overlapSize = overlapSize;
+        }
+
+        public SplitOptions maxSubParts(int maxSubParts) {
+            this.maxElementsPerChunk = maxSubParts;
+            return this;
+        }
+
+        public SplitOptions ignoreParseError(boolean b) {
+            this.ignoreParseError = b;
+            return this;
+        }
+
+        public int getMaxContentSize() {
+            return maxContentSize;
+        }
+
+        public void setMaxContentSize(int maxContentSize) {
+            this.maxContentSize = maxContentSize;
+        }
+
+        public int getMaxElementsPerChunk() {
+            return maxElementsPerChunk;
+        }
+
+        public void setMaxElementsPerChunk(int maxElementsPerChunk) {
+            this.maxElementsPerChunk = maxElementsPerChunk;
+        }
+
+        public boolean isIgnoreParseError() {
+            return ignoreParseError;
+        }
+
+        public void setIgnoreParseError(boolean ignoreParseError) {
+            this.ignoreParseError = ignoreParseError;
+        }
+    }
+
+    List<SplitChunk> split(SourceLocation loc, String text, SplitOptions options);
 }

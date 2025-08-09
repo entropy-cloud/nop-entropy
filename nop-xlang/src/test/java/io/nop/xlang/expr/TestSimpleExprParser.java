@@ -175,6 +175,12 @@ public class TestSimpleExprParser {
         cancellable.cancel();
     }
 
+    @Test
+    public void testConcat(){
+        String str = "'//File:' + filePath.$fileFullName()+'\\n\\n'+fileTextChunk";
+        XLang.newCompileTool().allowUnregisteredScopeVar(true).compileSimpleExpr(null, str);
+    }
+
 
     String test(int value) {
         return String.valueOf(value + 1);

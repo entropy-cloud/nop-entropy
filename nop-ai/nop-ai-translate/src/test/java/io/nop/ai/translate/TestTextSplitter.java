@@ -24,7 +24,7 @@ public class TestTextSplitter extends JunitBaseTestCase {
         text = StringHelper.replace(text, "\r\n", "\n");
 
         IAiTextSplitter splitter = new MarkdownTextSplitter();
-        List<IAiTextSplitter.SplitChunk> chunks = splitter.split(text, 2048);
+        List<IAiTextSplitter.SplitChunk> chunks = splitter.split(null, text, IAiTextSplitter.SplitOptions.create(2048));
         System.out.println(JsonTool.serialize(chunks, true));
 
         StringBuilder sb = new StringBuilder();

@@ -1,5 +1,6 @@
 package io.nop.ai.core.commons.splitter;
 
+import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 
@@ -7,18 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SimpleTextSplitter implements IAiTextSplitter {
-    private int overlapSize = 0;
-
-    public int getOverlapSize() {
-        return overlapSize;
-    }
-
-    public void setOverlapSize(int overlapSize) {
-        this.overlapSize = overlapSize;
-    }
 
     @Override
-    public List<SplitChunk> split(String text, int maxContentSize) {
+    public List<SplitChunk> split(SourceLocation loc, String text, SplitOptions options) {
+        int maxContentSize = options.getMaxContentSize();
+
         if (text.length() <= maxContentSize)
             return List.of(new SplitChunk(null, text));
 
@@ -28,7 +22,7 @@ public class SimpleTextSplitter implements IAiTextSplitter {
 
         int index = 0;
         do {
-            index = collectOneChunk(parts, index, maxContentSize, ret);
+            index = collectOneChunk(parts, index, maxContentSize, options.getOverlapSize(), ret);
         } while (index > 0);
         return ret;
     }
@@ -59,7 +53,7 @@ public class SimpleTextSplitter implements IAiTextSplitter {
         return result;
     }
 
-    protected String buildChunkText(List<String> lines, int index, String text) {
+    protected String buildChunkText(List<String> lines, int index, String text, int overlapSize) {
         if (index > 0 && overlapSize > 0) {
             int n = 0;
             List<String> prevLines = new ArrayList<>();
@@ -78,7 +72,7 @@ public class SimpleTextSplitter implements IAiTextSplitter {
         return text;
     }
 
-    protected int collectOneChunk(List<String> parts, int index, int maxContentSize,
+    protected int collectOneChunk(List<String> parts, int index, int maxContentSize, int overlapSize,
                                   List<SplitChunk> chunks) {
         StringBuilder sb = new StringBuilder();
         for (int i = index, n = parts.size(); i < n; i++) {
@@ -86,13 +80,13 @@ public class SimpleTextSplitter implements IAiTextSplitter {
             if (sb.length() + line.length() <= maxContentSize) {
                 sb.append(line).append('\n');
             } else {
-                chunks.add(new SplitChunk("text", buildChunkText(parts, index, sb.toString()), "chunk-" + chunks.size() + 1));
+                chunks.add(new SplitChunk("text", buildChunkText(parts, index, sb.toString(), overlapSize), "chunk-" + chunks.size() + 1));
                 sb.setLength(0);
                 return i;
             }
         }
         if (sb.length() > 0) {
-            chunks.add(new SplitChunk("text", buildChunkText(parts, index, sb.toString()), "chunk-" + chunks.size() + 1));
+            chunks.add(new SplitChunk("text", buildChunkText(parts, index, sb.toString(), overlapSize), "chunk-" + chunks.size() + 1));
         }
         return -1;
     }
