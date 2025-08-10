@@ -254,7 +254,7 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
     void keyValue(TextScanner sc) {
         String key = key(sc);
         handler.key(key);
-        if (looseSyntax && sc.tryMatch(',')) {
+        if (looseSyntax && sc.cur == ',') {
             handler.value(sc.location(), key);
         } else {
             sc.match(':');

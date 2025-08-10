@@ -63,11 +63,11 @@ public class JavaParserHelper {
         return baseLoc.offset(line - 1, col);
     }
 
-    static int getBeginLine(JavaToken token) {
+    public static int getBeginLine(JavaToken token) {
         return token.getRange().map(range -> range.begin.line).orElse(0);
     }
 
-    static int getBeginCol(JavaToken token) {
+    public static int getBeginCol(JavaToken token) {
         return token.getRange().map(range -> range.begin.column).orElse(0);
     }
 }

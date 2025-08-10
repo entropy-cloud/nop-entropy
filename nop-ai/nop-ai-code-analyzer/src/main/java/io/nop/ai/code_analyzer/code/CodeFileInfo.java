@@ -26,7 +26,7 @@ public class CodeFileInfo {
         private String name;
         private int line;
         private Map<String, String> metadata;
-        private AccessModifier accessModifier;
+
 
         // Getters and setters
         public String getName() {
@@ -54,14 +54,6 @@ public class CodeFileInfo {
             this.metadata = metadata;
         }
 
-        @JsonInclude(JsonInclude.Include.NON_EMPTY)
-        public AccessModifier getAccessModifier() {
-            return accessModifier;
-        }
-
-        public void setAccessModifier(AccessModifier accessModifier) {
-            this.accessModifier = accessModifier;
-        }
 
         public void intern() {
             name = internString(name);
@@ -73,6 +65,7 @@ public class CodeFileInfo {
 
     @DataBean
     public static class CodeClassInfo extends CodeSymbol {
+        private AccessModifier accessModifier;
         private String extendsType;
         private Set<String> implementsTypes;
         private List<CodeFunctionInfo> functions;
@@ -83,7 +76,13 @@ public class CodeFileInfo {
             if (functions == null) {
                 return null;
             }
-            return functions.stream().filter(fn -> Objects.equals(fn.getName(), fnName)).findFirst().orElse(null);
+            return functions.stream().filter(fn ->
+                    Objects.equals(fn.getName(), fnName) || Objects.equals(fn.getSimpleName(), fnName)).findFirst().orElse(null);
+        }
+
+        @JsonIgnore
+        public String getSimpleClassName() {
+            return StringHelper.simpleClassName(getName());
         }
 
         public CodeFunctionInfo makeFunction(String fnName) {
@@ -97,6 +96,15 @@ public class CodeFileInfo {
                 functions.add(fn);
             }
             return fn;
+        }
+
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        public AccessModifier getAccessModifier() {
+            return accessModifier;
+        }
+
+        public void setAccessModifier(AccessModifier accessModifier) {
+            this.accessModifier = accessModifier;
         }
 
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -162,16 +170,22 @@ public class CodeFileInfo {
 
     @DataBean
     public static class CodeFunctionInfo extends CodeSymbol {
-        private boolean isStatic;
+        private String signature;
         private Set<String> usedVars;
         private Set<String> usedFns;
         private String summary;
 
-        public boolean isMoreSpecific(AccessModifier accessModifier) {
-            if (this.getAccessModifier() == null)
-                return true;
 
-            return getAccessModifier().ordinal() < accessModifier.ordinal();
+        @JsonIgnore
+        public String getSimpleName() {
+            String name = getName();
+            int pos = name.indexOf("::");
+            if (pos > 0) {
+                int pos2 = name.indexOf('(', pos);
+                if (pos2 > 0)
+                    return name.substring(pos + 2, pos2);
+            }
+            return name;
         }
 
         @JsonIgnore
@@ -179,12 +193,13 @@ public class CodeFileInfo {
             return StringHelper.firstPart(getName(), ':');
         }
 
-        public boolean isStatic() {
-            return isStatic;
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        public String getSignature() {
+            return signature;
         }
 
-        public void setStatic(boolean aStatic) {
-            isStatic = aStatic;
+        public void setSignature(String signature) {
+            this.signature = signature;
         }
 
         @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -352,27 +367,27 @@ public class CodeFileInfo {
     private String summary;
     private List<CodeClassInfo> classes;
 
-    public void trimPrivate() {
-        if (classes != null) {
-            for (CodeClassInfo cls : classes) {
-                if (cls.getFunctions() != null) {
-                    cls.getFunctions().forEach(fn -> {
-                        if (fn.getAccessModifier() != AccessModifier.PRIVATE) {
-                            trimPrivateForFunction(fn);
-                        }
-                    });
-                }
-            }
-
-            for (CodeClassInfo cls : classes) {
-                if (cls.getFunctions() != null) {
-                    cls.getFunctions().removeIf(fn -> fn.getAccessModifier() == AccessModifier.PRIVATE);
-                }
-            }
-
-            classes.removeIf(cls -> cls.getAccessModifier() == AccessModifier.PRIVATE);
-        }
-    }
+//    public void trimPrivate() {
+//        if (classes != null) {
+//            for (CodeClassInfo cls : classes) {
+//                if (cls.getFunctions() != null) {
+//                    cls.getFunctions().forEach(fn -> {
+//                        if (fn.getAccessModifier() != AccessModifier.PRIVATE) {
+//                            trimPrivateForFunction(fn);
+//                        }
+//                    });
+//                }
+//            }
+//
+//            for (CodeClassInfo cls : classes) {
+//                if (cls.getFunctions() != null) {
+//                    cls.getFunctions().removeIf(fn -> fn.getAccessModifier() == AccessModifier.PRIVATE);
+//                }
+//            }
+//
+//            classes.removeIf(cls -> cls.getAccessModifier() == AccessModifier.PRIVATE);
+//        }
+//    }
 
     private void trimPrivateForFunction(CodeFunctionInfo fn) {
         if (fn.getUsedFns() == null || fn.getUsedFns().isEmpty()) {
@@ -406,12 +421,7 @@ public class CodeFileInfo {
                 continue;
             }
 
-            if (usedFn.getAccessModifier() == AccessModifier.PRIVATE) {
-                collectUsedFns(usedFn, processedUsedFns, checking);
-            } else {
-                // 直接添加非私有函数
-                processedUsedFns.add(usedFnName);
-            }
+            processedUsedFns.add(usedFnName);
         }
     }
 
@@ -424,7 +434,8 @@ public class CodeFileInfo {
         if (classes == null) {
             return null;
         }
-        return classes.stream().filter(cls -> Objects.equals(cls.getName(), className)).findFirst().orElse(null);
+        return classes.stream().filter(cls -> Objects.equals(cls.getName(), className)
+                || Objects.equals(cls.getSimpleClassName(), className)).findFirst().orElse(null);
     }
 
     public CodeFunctionInfo getFunctionInfo(String fnName) {

@@ -40,7 +40,7 @@ public class TestXNodeParser extends BaseTestCase {
         // 3. Test normal XML still works in loose mode
         XNode normalNode = XNodeParser.instance().looseMode(true)
                 .parseFromText(null, "<a><b>1</b></a>");
-        assertEquals("<a><b>1</b></a>", normalNode.outerXml(false,false));
+        assertEquals("<a><b>1</b></a>", normalNode.outerXml(false, false));
 
         // 4. Test that standard XML entities still work in loose mode
         XNode stdEntityNode = XNodeParser.instance().looseMode(true)

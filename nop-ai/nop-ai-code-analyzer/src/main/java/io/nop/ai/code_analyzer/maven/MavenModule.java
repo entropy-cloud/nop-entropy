@@ -16,6 +16,10 @@ public class MavenModule {
         return moduleNode.getModuleId();
     }
 
+    public String getArtifactId() {
+        return moduleNode.getArtifactId();
+    }
+
     public String getModulePath() {
         return modulePath;
     }

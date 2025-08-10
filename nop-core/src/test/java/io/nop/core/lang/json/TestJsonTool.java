@@ -17,6 +17,8 @@ import io.nop.api.core.json.JSON;
 import io.nop.commons.util.DateHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.parse.JsonParser;
+import io.nop.core.lang.xml.XNode;
+import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.type.PredefinedGenericTypes;
@@ -166,6 +168,19 @@ public class TestJsonTool {
         System.out.println(json);
         assertTrue(json.get("name") != null);
     }
+
+
+    @Test
+    public void testLooseSyntax2() {
+        String text = "      {\n" +
+                "        \"None\",\n" +
+                "        \"summary\": \"xxx\"\n" +
+                "      }";
+        Map<String, Object> json = (Map<String, Object>) new JsonParser().looseSyntax(true).parseFromText(null, text);
+        System.out.println(json);
+        assertTrue(json.get("summary") != null);
+    }
+
 
     @DataBean
     public static class MyBean {

@@ -19,6 +19,10 @@ public class MavenDependencyNode {
         return dependency.getModuleId();
     }
 
+    public String getArtifactId(){
+        return dependency.getArtifactId();
+    }
+
     public MavenDependency getDependency() {
         return dependency;
     }

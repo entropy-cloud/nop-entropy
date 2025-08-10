@@ -168,6 +168,10 @@ Excel模型对于每个表可以增加一个【是否视图】字段的配置，
 假设数据库列名为 `S_USER_NAME`，它对应的Java Get方法为 `String#getSUserName()`，按照JavaBean规范，除去`get`前缀后，如果连续两个字母都是大写字母，则对应Java属性名也保持首字母大写，
 因此Java属性名为`SUserName`，而不是`sUserName`。
 
+### ref-grid配置
+在子表对应的view.xml中可以配置sub-grid-edit和sub-grid-view这两个grid来控制子表字段。
+在主表的xmeta文件中，可以为子表对应的prop配置`ui:editGrid`和`ui:viewGrid`来定制使用的子表grid，它们的缺省值是sub-grid-edit和sub-grid-view。
+
 ### 关联集合的排序条件
 通过【排序条件】配置可以指定关联集合的排序条件，它对应于`refSet.sort`配置。例如配置nop-rule.orm.xlsx中NopAuth【排序条件】为 orderNo asc
 

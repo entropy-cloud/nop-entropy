@@ -5,6 +5,7 @@ import io.nop.commons.util.FileHelper;
 import java.io.File;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 
 import static io.nop.ai.code_analyzer.CodeAnalyzerConstants.DEPENDENCY_TREE_FILE_PATH;
 
@@ -18,6 +19,10 @@ public class MavenModuleStructure {
             sb.append(entry.getValue().getModuleNode().toSimplifiedTreeString(1)).append("\n\n");
         }
         return sb.toString();
+    }
+
+    public void forEachModule(Consumer<MavenModule> consumer) {
+        modules.values().forEach(consumer);
     }
 
     public MavenModule getModuleById(String moduleId) {

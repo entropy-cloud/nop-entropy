@@ -8,6 +8,7 @@ import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.FieldAccessExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
@@ -177,8 +178,6 @@ public class JavaCodeFileInfoParser {
             List<CodeFileInfo.CodeFunctionInfo> methods = new ArrayList<>();
             for (MethodDeclaration method : classDecl.getMethods()) {
                 CodeFileInfo.CodeFunctionInfo methodInfo = parseMethod(method, classInfo);
-                if (classInfo.getAccessModifier() == CodeFileInfo.AccessModifier.PRIVATE)
-                    methodInfo.setAccessModifier(CodeFileInfo.AccessModifier.PRIVATE);
                 methods.add(methodInfo);
             }
             classInfo.setFunctions(methods);
@@ -202,11 +201,8 @@ public class JavaCodeFileInfoParser {
             CodeFileInfo.AccessModifier specifier = getAccessModifier(method.getAccessSpecifier());
 
             CodeFileInfo.CodeFunctionInfo methodInfo = classInfo.makeFunction(fnName);
-            if (methodInfo.isMoreSpecific(specifier)) {
-                methodInfo.setLine(method.getBegin().map(p -> p.line).orElse(-1));
-                methodInfo.setAccessModifier(specifier);
-                methodInfo.setStatic(method.isStatic());
-            }
+            methodInfo.setLine(method.getBegin().map(p -> p.line).orElse(-1));
+            methodInfo.setSignature(buildSignature(method));
 
             // Parse method body for used variables and functions
             if (method.getBody().isPresent()) {
@@ -237,6 +233,52 @@ public class JavaCodeFileInfoParser {
                     return CodeFileInfo.AccessModifier.PACKAGE_PRIVATE;
             }
         }
+    }
+
+
+    /**
+     * 构建方法的完整签名
+     *
+     * @param method 方法声明
+     * @return 完整的方法签名，例如："public static void main(String[] args)"
+     */
+    public static String buildSignature(MethodDeclaration method) {
+        StringBuilder signature = new StringBuilder();
+
+        // 1. 添加访问修饰符
+        AccessSpecifier specifier = method.getAccessSpecifier();
+        if (specifier != AccessSpecifier.NONE)
+            signature.append(specifier.asString()).append(" ");
+
+        // 2. 添加static修饰符
+        if (method.isStatic()) {
+            signature.append("static ");
+        }
+
+        // 3. 添加返回类型
+        signature.append(method.getType().asString()).append(" ");
+
+        // 4. 添加方法名
+        signature.append(method.getNameAsString());
+
+        // 5. 添加参数列表
+        signature.append("(");
+        signature.append(method.getParameters().stream()
+                .map(JavaCodeFileInfoParser::parameterToString)
+                .collect(Collectors.joining(", ")));
+        signature.append(")");
+
+        return signature.toString();
+    }
+
+    /**
+     * 将参数转换为字符串表示
+     *
+     * @param param 方法参数
+     * @return 参数的字符串表示，例如："String[] args"
+     */
+    static String parameterToString(Parameter param) {
+        return param.getType().asString() + " " + param.getNameAsString();
     }
 
     private class MethodBodyVisitor extends VoidVisitorAdapter<CodeFileInfo.CodeFunctionInfo> {
