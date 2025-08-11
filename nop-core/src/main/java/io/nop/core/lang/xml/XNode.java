@@ -150,6 +150,14 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
         return node;
     }
 
+    public static XNode parse(String text) {
+        return parse(null, text);
+    }
+
+    public static XNode parse(SourceLocation loc, String text) {
+        return XNodeParser.instance().parseFromText(loc, text);
+    }
+
     public IXNodeExtension getExtension(String name) {
         if (extensions == null)
             return null;
@@ -1575,6 +1583,32 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
 
         attachChild(child);
         children.set(index, child);
+    }
+
+    public XNode cloneParent(int upLevel) {
+        if (upLevel < 0)
+            return null;
+
+        XNode parent = this.parent;
+        if (parent == null)
+            return null;
+        XNode ret = parent.cloneWithoutChildren();
+        XNode cloneParent = parent.cloneParent(upLevel - 1);
+        if (cloneParent != null) {
+            cloneParent.appendChild(ret);
+        }
+        return ret;
+    }
+
+    public XNode cloneWithoutChildren() {
+        XNode node = makeNode();
+        if (!this.attributes.isEmpty()) {
+            node.attributes = new LinkedHashMap<>(this.attributes);
+        }
+        node.content = this.content;
+        node.comment = this.comment;
+        node.sourceLocation = this.sourceLocation;
+        return node;
     }
 
     /**
