@@ -151,7 +151,7 @@ public class I18nMessageManager implements II18nMessageManager {
         return value;
     }
 
-    Map<String, String> getLocaleMessages(String locale) {
+    public Map<String, String> getLocaleMessages(String locale) {
         String defaultLocale = getDefaultLocale();
         if (locale == null)
             locale = defaultLocale;

@@ -1,0 +1,19 @@
+template: |
+  【任务目标】
+   i18n映射负责将文本key映射为指定语言的字符串。你的任务是将以下输入内容专业准确地翻译为 {{toLang}}。
+  
+  【输入】
+   ```
+   {{content}}
+   ```
+
+inputs:
+  - name: toLang
+    mandatory: true
+
+  - name: content
+    mandatory: true
+
+outputs:
+  - name: RESULT
+    format: code
