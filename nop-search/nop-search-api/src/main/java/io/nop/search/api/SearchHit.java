@@ -7,6 +7,7 @@
  */
 package io.nop.search.api;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.util.Set;
@@ -21,6 +22,8 @@ public class SearchHit {
     private String title;
 
     private String content;
+
+    private String highlightedText;
 
     private String summary;
 
@@ -44,6 +47,15 @@ public class SearchHit {
         this.id = id;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
     public long getFileSize() {
         return fileSize;
     }
@@ -52,6 +64,7 @@ public class SearchHit {
         this.fileSize = fileSize;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getBizKey() {
         return bizKey;
     }
@@ -60,6 +73,7 @@ public class SearchHit {
         this.bizKey = bizKey;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public Set<String> getTags() {
         return tags;
     }
@@ -68,6 +82,7 @@ public class SearchHit {
         this.tags = tags;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getSummary() {
         return summary;
     }
@@ -84,6 +99,7 @@ public class SearchHit {
         this.score = score;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getName() {
         return name;
     }
@@ -100,12 +116,13 @@ public class SearchHit {
         this.title = title;
     }
 
-    public String getContent() {
-        return content;
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    public String getHighlightedText() {
+        return highlightedText;
     }
 
-    public void setContent(String content) {
-        this.content = content;
+    public void setHighlightedText(String highlightedText) {
+        this.highlightedText = highlightedText;
     }
 
     public long getPublishTime() {

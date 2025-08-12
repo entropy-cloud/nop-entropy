@@ -17,6 +17,34 @@ public class LuceneConfig {
 
     private int ramBufferSizeMB = 10;
 
+    private int defaultMaxDocCharsToAnalyze = 200 * 1024;
+    private int defaultMaxNumFragments = 5;
+    private int defaultMaxFragmentSize = 300;
+
+    public int getDefaultMaxFragmentSize() {
+        return defaultMaxFragmentSize;
+    }
+
+    public void setDefaultMaxFragmentSize(int defaultMaxFragmentSize) {
+        this.defaultMaxFragmentSize = defaultMaxFragmentSize;
+    }
+
+    public int getDefaultMaxDocCharsToAnalyze() {
+        return defaultMaxDocCharsToAnalyze;
+    }
+
+    public void setDefaultMaxDocCharsToAnalyze(int defaultMaxDocCharsToAnalyze) {
+        this.defaultMaxDocCharsToAnalyze = defaultMaxDocCharsToAnalyze;
+    }
+
+    public int getDefaultMaxNumFragments() {
+        return defaultMaxNumFragments;
+    }
+
+    public void setDefaultMaxNumFragments(int defaultMaxNumFragments) {
+        this.defaultMaxNumFragments = defaultMaxNumFragments;
+    }
+
     public int getRamBufferSizeMB() {
         return ramBufferSizeMB;
     }

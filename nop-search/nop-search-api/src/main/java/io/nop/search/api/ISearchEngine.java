@@ -36,7 +36,7 @@ public interface ISearchEngine {
 
     void addDocs(@Name("topic") String topic, @Name("docs") List<SearchableDoc> docs);
 
-    void removeDocs(@Name("topic") String topic, @Name("names") List<String> names);
+    void removeDocs(@Name("topic") String topic, @Name("docIds") List<String> dodIds);
 
     void removeTopic(@Name("topic") String topic);
 

@@ -7,6 +7,7 @@
  */
 package io.nop.search.api;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.beans.ExtensibleBean;
 
@@ -38,6 +39,7 @@ public class SearchableDoc extends ExtensibleBean {
         this.id = id;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public Set<String> getTagSet() {
         return tagSet;
     }
@@ -46,6 +48,7 @@ public class SearchableDoc extends ExtensibleBean {
         this.tagSet = tagSet;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getName() {
         return name;
     }
@@ -54,6 +57,7 @@ public class SearchableDoc extends ExtensibleBean {
         this.name = name;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getTitle() {
         return title;
     }
@@ -62,6 +66,7 @@ public class SearchableDoc extends ExtensibleBean {
         this.title = title;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getSummary() {
         return summary;
     }
@@ -70,6 +75,7 @@ public class SearchableDoc extends ExtensibleBean {
         this.summary = summary;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getContent() {
         return content;
     }
@@ -110,6 +116,7 @@ public class SearchableDoc extends ExtensibleBean {
         this.path = path;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public String getBizKey() {
         return bizKey;
     }

@@ -110,7 +110,7 @@ public class TestLuceneSearchEngine extends JunitBaseTestCase {
         System.out.println(JsonTool.serialize(doc, true));
 
         Map<String, List<String>> tokens = searchEngine.analyzeDoc(doc);
-        System.out.println(JsonTool.serialize(tokens, true));
+        System.out.println("tokens="+JsonTool.serialize(tokens, true));
 
         List<String> queryTokens = searchEngine.analyzeQuery("ResourceComponentManager");
         System.out.println(queryTokens);

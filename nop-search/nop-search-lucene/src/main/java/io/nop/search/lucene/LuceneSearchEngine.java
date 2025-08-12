@@ -25,6 +25,7 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.charfilter.HTMLStripCharFilterFactory;
 import org.apache.lucene.analysis.core.LowerCaseFilterFactory;
 import org.apache.lucene.analysis.custom.CustomAnalyzer;
+import org.apache.lucene.analysis.pattern.PatternReplaceCharFilterFactory;
 import org.apache.lucene.analysis.standard.StandardTokenizerFactory;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
@@ -56,7 +57,6 @@ import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopFieldDocs;
 import org.apache.lucene.search.highlight.DefaultEncoder;
-import org.apache.lucene.search.highlight.Formatter;
 import org.apache.lucene.search.highlight.Highlighter;
 import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
 import org.apache.lucene.search.highlight.QueryScorer;
@@ -75,7 +75,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -178,6 +177,10 @@ public class LuceneSearchEngine implements ISearchEngine {
         return CustomAnalyzer.builder()
                 .withTokenizer(StandardTokenizerFactory.class)
                 .addCharFilter(HTMLStripCharFilterFactory.class)
+                // 添加模式替换过滤器，将代码中的分隔符替换为空格
+                .addCharFilter(PatternReplaceCharFilterFactory.class,
+                        "pattern", "[.\\[\\]/(){},:;]",  // 匹配 . [ ] / ( ) { } , : ;
+                        "replacement", " ")              // 替换为空格
                 .addTokenFilter(LowerCaseFilterFactory.class)
                 .build();
     }
@@ -403,10 +406,7 @@ public class LuceneSearchEngine implements ISearchEngine {
 
                 TopFieldDocs topDocs = searcher.search(query, request.getLimit(), Sort.RELEVANCE);
 
-                Formatter formatter = new SimpleHTMLFormatter(
-                        config.getHighlightPreTag(),
-                        config.getHighlightPostTag());
-                Highlighter highlighter = new Highlighter(formatter, new DefaultEncoder(), new QueryScorer(query));
+                Highlighter highlighter = newHighligher(query, request);
 
                 List<SearchHit> hits = processHits(searcher, topDocs, highlighter);
 
@@ -423,6 +423,15 @@ public class LuceneSearchEngine implements ISearchEngine {
         } catch (IOException | InvalidTokenOffsetsException e) {
             throw NopException.adapt(e);
         }
+    }
+
+    protected Highlighter newHighligher(Query query, SearchRequest request) {
+        SimpleHTMLFormatter formatter = new SimpleHTMLFormatter(
+                config.getHighlightPreTag(),
+                config.getHighlightPostTag());
+        Highlighter highlighter = new Highlighter(formatter, new DefaultEncoder(), new QueryScorer(query));
+        highlighter.setMaxDocCharsToAnalyze(config.getDefaultMaxDocCharsToAnalyze());
+        return highlighter;
     }
 
 
@@ -533,7 +542,7 @@ public class LuceneSearchEngine implements ISearchEngine {
 
             hit.setId(doc.get(FIELD_ID));
             hit.setTitle(processTextField(doc, FIELD_TITLE, highlighter));
-            hit.setContent(processTextField(doc, FIELD_CONTENT, highlighter));
+            hit.setHighlightedText(processTextField(doc, FIELD_CONTENT, highlighter));
             hit.setSummary(processTextField(doc, FIELD_SUMMARY, highlighter));
 
             hit.setName(doc.get(FIELD_NAME));
@@ -566,9 +575,19 @@ public class LuceneSearchEngine implements ISearchEngine {
 
         if (highlighter == null) return value;
 
+        int maxFrags = config.getDefaultMaxNumFragments();
+
         try {
-            String highlighted = highlighter.getBestFragment(analyzer, fieldName, value);
-            return highlighted != null ? highlighted : value;
+            String[] frags = highlighter.getBestFragments(analyzer, fieldName, value, maxFrags);
+            if (frags == null || frags.length == 0) return value;
+            if (frags.length == 1) return frags[0];
+
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < frags.length; i++) {
+                if (i > 0) sb.append("\n\n");
+                sb.append(frags[i]);
+            }
+            return sb.toString();
         } catch (Exception e) {
             LOG.warn("nop.search.highlight-failed:field={}", fieldName, e);
             return value;
