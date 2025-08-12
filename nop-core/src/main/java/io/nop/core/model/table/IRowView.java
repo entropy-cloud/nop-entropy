@@ -11,8 +11,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.nop.api.core.util.ProcessResult;
 import io.nop.core.model.table.impl.TableImpls;
 import io.nop.core.reflect.hook.IExtensibleObject;
-
 import jakarta.annotation.Nonnull;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -191,6 +191,10 @@ public interface IRowView extends IExtensibleObject {
 
     default <T> List<T> getCellValues(Function<ICellView, T> fn) {
         return TableImpls.getRowCellValues(this, fn);
+    }
+
+    default List<String> getCellTexts() {
+        return getCellValues(cell -> cell == null ? null : cell.getText());
     }
 
     default List<Object> getCellValues() {

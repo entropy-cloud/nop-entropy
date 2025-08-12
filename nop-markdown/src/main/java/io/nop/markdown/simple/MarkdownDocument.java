@@ -240,6 +240,14 @@ public class MarkdownDocument implements IComponentModel {
         }
     }
 
+    public void mergeWith(MarkdownDocument doc) {
+        if (rootSection == null) {
+            rootSection = doc.getRootSection();
+        } else if (doc.getRootSection() != null) {
+            rootSection.mergeWith(doc.getRootSection());
+        }
+    }
+
     public void splitToDir(File dir, int depth, MarkdownTextOptions options) {
         if (rootSection != null)
             rootSection.splitToDir(dir, depth, options);

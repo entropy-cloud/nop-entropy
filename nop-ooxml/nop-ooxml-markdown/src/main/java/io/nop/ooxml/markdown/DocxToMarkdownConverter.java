@@ -7,7 +7,7 @@ import io.nop.core.resource.IResource;
 import io.nop.excel.model.ExcelTable;
 import io.nop.markdown.simple.MarkdownDocument;
 import io.nop.markdown.simple.MarkdownSection;
-import io.nop.markdown.simple.TableToMarkdownConverter;
+import io.nop.markdown.table.TableToMarkdownConverter;
 import io.nop.markdown.utils.MarkdownHelper;
 import io.nop.ooxml.common.model.ImageUrlMapper;
 import io.nop.ooxml.common.model.RelsImageUrlMapper;

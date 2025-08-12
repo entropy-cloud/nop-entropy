@@ -35,13 +35,12 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static io.nop.core.CoreErrors.ARG_READ_COUNT;
-import static io.nop.core.CoreErrors.ARG_RESOURCE;
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
 import static io.nop.core.CoreErrors.ERR_RESOURCE_READ_CSV_ROW_FAIL;
 
 public class CsvRecordInput<T> implements IRecordInput<T> {
     static final Logger LOG = LoggerFactory.getLogger(CsvRecordInput.class);
-    private final IResource resource;
+    private final String resourcePath;
     private List<String> headers;
     private List<String> headerLabels;
     private final IGenericType beanType;
@@ -57,7 +56,7 @@ public class CsvRecordInput<T> implements IRecordInput<T> {
 
     public CsvRecordInput(IResource resource, String encoding, CSVFormat format, IGenericType beanType,
                           boolean trimValue, boolean supportZip) {
-        this.resource = resource;
+        this.resourcePath = resource.getPath();
         this.beanType = beanType;
         this.trimValue = trimValue;
         this.reader = ResourceHelper.toReader(resource, encoding, supportZip);
@@ -65,6 +64,20 @@ public class CsvRecordInput<T> implements IRecordInput<T> {
             CSVParser csvReader = CSVParser.parse(reader, format.withHeader());
             this.it = csvReader.iterator();
             fileHeaders = csvReader.getHeaderNames();
+        } catch (Exception e) {
+            throw NopException.adapt(e);
+        }
+        this.normalizedHeaders = fileHeaders;
+    }
+
+    public CsvRecordInput(String resourcePath, Reader reader, CSVFormat format, IGenericType beanType, boolean trimValue) {
+        this.resourcePath = resourcePath;
+        this.beanType = beanType;
+        this.trimValue = trimValue;
+        try {
+            CSVParser parser = CSVParser.parse(reader, format.withHeader());
+            this.it = parser.iterator();
+            fileHeaders = parser.getHeaderNames();
         } catch (Exception e) {
             throw NopException.adapt(e);
         }
@@ -107,6 +120,10 @@ public class CsvRecordInput<T> implements IRecordInput<T> {
         }
     }
 
+    public List<String> getHeaders() {
+        return headers;
+    }
+
     public void setHeaders(List<String> headers) {
         this.headers = headers;
     }
@@ -144,13 +161,17 @@ public class CsvRecordInput<T> implements IRecordInput<T> {
     public T next() {
         try {
             readCount++;
+            if (beanType == PredefinedGenericTypes.ARRAY_STRING_TYPE) {
+                return (T) getValues(it.next());
+            }
+
             Map<String, Object> map = buildMap(it.next());
             if (beanType == null || beanType == PredefinedGenericTypes.MAP_STRING_ANY_TYPE)
                 return (T) map;
             return (T) BeanTool.instance().buildBean(map, beanType, null);
         } catch (Exception e) {
-            throw new NopException(ERR_RESOURCE_READ_CSV_ROW_FAIL, e).param(ARG_RESOURCE, resource)
-                    .param(ARG_RESOURCE_PATH, resource.getPath()).param(ARG_READ_COUNT, readCount);
+            throw new NopException(ERR_RESOURCE_READ_CSV_ROW_FAIL, e)
+                    .param(ARG_RESOURCE_PATH, resourcePath).param(ARG_READ_COUNT, readCount);
         }
     }
 
@@ -172,5 +193,19 @@ public class CsvRecordInput<T> implements IRecordInput<T> {
             BeanTool.setComplexProperty(bean, header, value);
         }
         return bean;
+    }
+
+    String[] getValues(CSVRecord record) {
+        String[] ret = new String[record.size()];
+        for (int i = 0, n = record.size(); i < n; i++) {
+            String value = record.get(i);
+            if (trimValue) {
+                value = StringHelper.strip(value);
+            } else if (StringHelper.isEmpty(value)) {
+                value = null;
+            }
+            ret[i] = value;
+        }
+        return ret;
     }
 }

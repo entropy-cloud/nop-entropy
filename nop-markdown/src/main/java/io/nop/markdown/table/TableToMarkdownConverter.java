@@ -1,4 +1,4 @@
-package io.nop.markdown.simple;
+package io.nop.markdown.table;
 
 
 import io.nop.api.core.util.ProcessResult;

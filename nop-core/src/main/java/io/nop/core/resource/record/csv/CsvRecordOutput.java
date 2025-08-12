@@ -43,6 +43,13 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
         }
     }
 
+    public CsvRecordOutput(Writer out, CSVFormat format) {
+        try {
+            this.writer = new CSVPrinter(out, format);
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
+    }
 
     public long getWriteCount() {
         return writeCount;
@@ -103,13 +110,21 @@ public class CsvRecordOutput<T> implements IRecordOutput<T> {
             return;
         }
 
-        Object[] row = new String[headers.size()];
-        int index = 0;
-        for (String header : headers) {
-            Object value = BeanTool.getComplexProperty(record, header);
-            row[index++] = toString(value);
+        if (record instanceof Object[]) {
+            writer.printRecord((Object[]) record);
+        } else if (record instanceof Collection) {
+            Collection<?> c = (Collection<?>) record;
+            Object[] row = c.toArray();
+            writer.printRecord(row);
+        } else {
+            Object[] row = new String[headers.size()];
+            int index = 0;
+            for (String header : headers) {
+                Object value = BeanTool.getComplexProperty(record, header);
+                row[index++] = toString(value);
+            }
+            writer.printRecord(row);
         }
-        writer.printRecord(row);
         writeCount++;
     }
 

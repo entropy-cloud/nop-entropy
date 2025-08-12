@@ -2,7 +2,7 @@ package io.nop.converter.impl;
 
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.IExcelSheet;
-import io.nop.markdown.simple.TableToMarkdownConverter;
+import io.nop.markdown.table.TableToMarkdownConverter;
 
 import java.util.List;
 

@@ -65,6 +65,25 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
         }
     }
 
+    public static int compareWithSectionNo(MarkdownSection sectionA, MarkdownSection sectionB) {
+        String sectionNoA = sectionA.getSectionNo();
+        String sectionNoB = sectionB.getSectionNo();
+
+        if (StringHelper.isEmpty(sectionNoA) && StringHelper.isEmpty(sectionNoB)) {
+            return 0;
+        } else {
+            if (StringHelper.isEmpty(sectionNoA))
+                return -1;
+            if (StringHelper.isEmpty(sectionNoB))
+                return 1;
+            return StringHelper.compareVersions(sectionNoA, sectionNoB);
+        }
+    }
+
+    public void mergeWith(MarkdownSection section) {
+        MarkdownSectionMerger.instance().merge(this, section);
+    }
+
     /**
      * 获取向下几层对象的结构，不包含内容（text和meta等信息）
      *
@@ -794,8 +813,10 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
      * @param depth 剩余递归深度
      * @return 子节点的相对路径（如 "./section-1.1/index.md" 或 "./section-1.1.md"）
      */
-    private String getChildLink(MarkdownSection child, int depth) {
+    protected String getChildLink(MarkdownSection child, int depth) {
         String sectionNo = child.getSectionNo();
+        if (StringHelper.isEmpty(sectionNo))
+            sectionNo = child.getTitle();
 
         // 根据 depth 决定是否生成子目录
         if (depth > 1) {
@@ -840,24 +861,6 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
                 addChild(section);
             } else {
                 child.mergeWith(section);
-            }
-        }
-    }
-
-    private void mergeWith(MarkdownSection section) {
-        if (this.getText() == null) {
-            this.setText(section.getText());
-        } else if (section.getText() != null) {
-            this.setText(this.getText() + "\n" + section.getText());
-        }
-
-        if (section.hasChild()) {
-            if (!hasChild()) {
-                setChildren(section.getChildren());
-            } else {
-                for (MarkdownSection child : section.getChildren()) {
-                    mergeChild(child);
-                }
             }
         }
     }
