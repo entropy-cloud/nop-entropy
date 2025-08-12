@@ -19,44 +19,49 @@ public interface _NopJobCoreConstants {
     int JOB_INSTANCE_STATUS_WAITING = 20;
                     
     /**
+     * 作业实例状态: 已调度 
+     */
+    int JOB_INSTANCE_STATUS_SCHEDULED = 30;
+                    
+    /**
      * 作业实例状态: 执行中 
      */
-    int JOB_INSTANCE_STATUS_RUNNING = 30;
+    int JOB_INSTANCE_STATUS_RUNNING = 40;
                     
     /**
      * 作业实例状态: 执行成功 
      */
-    int JOB_INSTANCE_STATUS_EXEC_SUCCESS = 40;
+    int JOB_INSTANCE_STATUS_EXEC_SUCCESS = 50;
                     
     /**
      * 作业实例状态: 执行失败 
      */
-    int JOB_INSTANCE_STATUS_EXEC_FAILED = 50;
+    int JOB_INSTANCE_STATUS_EXEC_FAILED = 60;
                     
     /**
      * 作业实例状态: 执行取消 
      */
-    int JOB_INSTANCE_STATUS_EXEC_CANCELLED = 60;
+    int JOB_INSTANCE_STATUS_EXEC_CANCELLED = 70;
                     
     /**
      * 作业实例状态: 执行超时 
      */
-    int JOB_INSTANCE_STATUS_EXEC_TIMEOUT = 70;
+    int JOB_INSTANCE_STATUS_EXEC_TIMEOUT = 80;
                     
     /**
      * 作业实例状态: 任务结束 
      */
-    int JOB_INSTANCE_STATUS_JOB_FINISHED = 80;
+    int JOB_INSTANCE_STATUS_JOB_FINISHED = 90;
                     
     /**
      * 作业实例状态: 任务失败 
      */
-    int JOB_INSTANCE_STATUS_JOB_FAILED = 90;
+    int JOB_INSTANCE_STATUS_JOB_FAILED = 100;
                     
     /**
      * 作业实例状态: 任务中止 
      */
-    int JOB_INSTANCE_STATUS_JOB_KILLED = 100;
+    int JOB_INSTANCE_STATUS_JOB_KILLED = 110;
                     
     /**
      * 作业定义状态: 未发布 

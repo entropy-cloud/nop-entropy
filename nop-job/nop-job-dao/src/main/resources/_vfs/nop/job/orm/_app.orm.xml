@@ -19,14 +19,15 @@
             <option code="CREATED" label="已创建" value="0"/>
             <option code="SUSPENDED" label="已暂停" value="10"/>
             <option code="WAITING" description="等待调度" label="等待中" value="20"/>
-            <option code="RUNNING" label="执行中" value="30"/>
-            <option code="EXEC_SUCCESS" label="执行成功" value="40"/>
-            <option code="EXEC_FAILED" label="执行失败" value="50"/>
-            <option code="EXEC_CANCELLED" label="执行取消" value="60"/>
-            <option code="EXEC_TIMEOUT" label="执行超时" value="70"/>
-            <option code="JOB_FINISHED" label="任务结束" value="80"/>
-            <option code="JOB_FAILED" label="任务失败" value="90"/>
-            <option code="JOB_KILLED" label="任务中止" value="100"/>
+            <option code="SCHEDULED" label="已调度" value="30"/>
+            <option code="RUNNING" label="执行中" value="40"/>
+            <option code="EXEC_SUCCESS" label="执行成功" value="50"/>
+            <option code="EXEC_FAILED" label="执行失败" value="60"/>
+            <option code="EXEC_CANCELLED" label="执行取消" value="70"/>
+            <option code="EXEC_TIMEOUT" label="执行超时" value="80"/>
+            <option code="JOB_FINISHED" label="任务结束" value="90"/>
+            <option code="JOB_FAILED" label="任务失败" value="100"/>
+            <option code="JOB_KILLED" label="任务中止" value="110"/>
         </dict>
         <dict label="作业定义状态" name="job/job-def-status" valueType="int" i18n-en:label="Job Definition Status">
             <option code="UNPUBLISHED" label="未发布" value="0"/>

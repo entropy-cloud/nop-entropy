@@ -95,8 +95,8 @@ public class DaoJobSchedulerStore implements IJobScheduleStore {
         jobDao.batchLoadProps(jobs, Arrays.asList(NopJobInstance.PROP_NAME_jobDefinition));
         for (NopJobInstance job : jobs) {
             processor.accept(JobDaoHelper.toJobDetail(job));
+            job.setStatus(NopJobCoreConstants.JOB_INSTANCE_STATUS_SCHEDULED);
         }
-        
     }
 
     protected void addPartitionFilter(QueryBean query) {
