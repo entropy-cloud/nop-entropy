@@ -33,6 +33,7 @@ prop:
       maxScheduleTime: Max Schedule Time
       misfireThreshold: Misfire Threshold
       maxFailedCount: Max Failed Count
+      maxConsecFailedCount: Max Consecutive Failed Count
       isUseDefaultCalendar: Is Use Default Calendar
       pauseCalendars: Pause Calendars
       partitionIndex: Partition Index

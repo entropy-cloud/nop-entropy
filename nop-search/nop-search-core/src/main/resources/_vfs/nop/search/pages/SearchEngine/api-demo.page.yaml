@@ -15,6 +15,19 @@
             "api": "post:/r/SearchEngine__indexDir",
             "panelClassName": "mb-4 form-panel",
             "headerClassName": "form-header-primary",
+            "onEvent": {
+              "submitSucc": {
+                "actions": [
+                  {
+                    "actionType": "reload",
+                    "componentId": "api-result-panel",
+                    "data": {
+                      "apiData": "${event.data.result}"
+                    }
+                  }
+                ]
+              }
+            },
             "body": [
               {
                 "type": "group",
@@ -42,7 +55,7 @@
                 "type": "input-text",
                 "name": "pattern",
                 "label": "文件过滤模式",
-                "placeholder": "例如：.*\\.txt$ 或 /path/to/specific/file\\.pdf$",
+                "placeholder": "例如：.*\\.md$ 或 /path/to/specific/file\\.java$",
                 "description": "匹配完整路径的正则表达式模式"
               }
             ],
@@ -62,9 +75,28 @@
           "body": {
             "type": "form",
             "title": "高级搜索",
-            "api": "post:/r/SearchEngine__searchAsync",
+            "api": {
+              "method": "post",
+              "url": "/r/SearchEngine__search",
+              "responseData": {
+                 "__result": "$$"
+              }
+            },
             "panelClassName": "mb-4 form-panel",
             "headerClassName": "form-header-primary",
+            "onEvent": {
+              "submitSucc": {
+                "actions": [
+                  {
+                    "actionType": "reload",
+                    "componentName": "api-result-panel",
+                    "data": {
+                      "apiData": "${event.data.result}"
+                    }
+                  }
+                ]
+              }
+            },
             "body": [
               {
                 "type": "grid",
@@ -93,9 +125,6 @@
                 ]
               },
               {
-                "type": "divider"
-              },
-              {
                 "type": "input-tag",
                 "name": "request.tags",
                 "label": "标签列表",
@@ -108,9 +137,6 @@
                 "onText": "满足所有标签 (AND)",
                 "offText": "满足任一标签 (OR)",
                 "value": false
-              },
-              {
-                "type": "divider"
               },
               {
                 "type": "input-number",
@@ -131,9 +157,6 @@
                 "precision": 2
               },
               {
-                "type": "divider"
-              },
-              {
                 "type": "json-editor",
                 "name": "request.filter",
                 "label": "高级过滤器 (TreeBean)",
@@ -145,7 +168,7 @@
                   ],
                   "mode": "tree"
                 },
-                "value": {}
+                "value": ""
               }
             ],
             "actions": [
@@ -166,6 +189,19 @@
             "api": "get:/r/SearchEngine__getDoc",
             "panelClassName": "mb-4 form-panel",
             "headerClassName": "form-header-info",
+            "onEvent": {
+              "submitSucc": {
+                "actions": [
+                  {
+                    "actionType": "reload",
+                    "componentId": "api-result-panel",
+                    "data": {
+                      "apiData": "${event.data.result}"
+                    }
+                  }
+                ]
+              }
+            },
             "body": [
               {
                 "type": "input-text",
@@ -199,6 +235,19 @@
             "api": "post:/r/SearchEngine__addDoc",
             "panelClassName": "mb-4 form-panel",
             "headerClassName": "form-header-success",
+            "onEvent": {
+              "submitSucc": {
+                "actions": [
+                  {
+                    "actionType": "reload",
+                    "componentId": "api-result-panel",
+                    "data": {
+                      "apiData": "${event.data.result}"
+                    }
+                  }
+                ]
+              }
+            },
             "body": [
               {
                 "type": "input-text",
@@ -250,6 +299,19 @@
             "api": "post:/r/SearchEngine__removeDocs",
             "panelClassName": "mb-4 form-panel",
             "headerClassName": "form-header-danger",
+            "onEvent": {
+              "submitSucc": {
+                "actions": [
+                  {
+                    "actionType": "reload",
+                    "componentId": "api-result-panel",
+                    "data": {
+                      "apiData": "${event.data.result}"
+                    }
+                  }
+                ]
+              }
+            },
             "body": [
               {
                 "type": "alert",
@@ -290,10 +352,12 @@
       ]
     },
     {
-      "type": "divider"
+      "type": "divider",
+      "className": "divider-primary"
     },
     {
-      "type": "panel",
+      "type": "service",
+      "id": "api-result-panel",
       "title": "API响应结果",
       "headerClassName": "panel-header-light",
       "body": {
@@ -307,10 +371,19 @@
           "padding": "15px",
           "borderRadius": "4px"
         }
+      },
+      "data": {
+        "apiData": { }
       }
     }
   ],
   "css": {
+    ".divider-primary": {
+      "height": "1px",
+      "background": "linear-gradient(90deg, rgba(16,35,158,0) 0%, rgba(16,35,158,0.3) 50%, rgba(16,35,158,0) 100%)",
+      "border": "none",
+      "margin": "20px 0"
+    },
     ".panel-header-light": {
       "background": "#f5f5f5",
       "color": "#333",

@@ -8,6 +8,7 @@ import io.nop.api.core.annotations.core.Optional;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResourceLocator;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.search.api.ISearchEngine;
 import io.nop.search.api.SearchRequest;
 import io.nop.search.api.SearchResponse;
@@ -77,6 +78,8 @@ public class SearchEngineBizModel {
 
     protected File getLocalFile(String path) {
         if (resourceLocator == null) {
+            if (path.startsWith("file:"))
+                return VirtualFileSystem.instance().getResource(path).toFile();
             return FileHelper.resolveFile(path);
         } else {
             File file = resourceLocator.getResource(path).toFile();

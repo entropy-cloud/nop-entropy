@@ -28,6 +28,7 @@ prop:
       jobName: 任务名
       jobParams: 任务参数
       jobParamsComponent: null
+      maxConsecFailedCount: 最大允许连续失败次数
       maxExecutionCount: 最多执行次数
       maxFailedCount: 最大允许失败次数
       maxScheduleTime: 最大调度时间

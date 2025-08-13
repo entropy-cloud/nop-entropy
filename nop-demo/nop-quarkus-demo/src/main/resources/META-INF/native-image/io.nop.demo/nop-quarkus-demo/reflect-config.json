@@ -10433,6 +10433,204 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.search.api.SearchHit"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.search.api.SearchRequest"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.search.api.SearchResponse"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.search.api.SearchableDoc"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "checkAllowAccess",
+        "parameterTypes": [
+          "java.lang.String",
+          "java.lang.String",
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "getFilter",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getLocalFile",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.search.core.biz.SearchEngineBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.search.lucene.LuceneConfig"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "addNumericField",
+        "parameterTypes": [
+          "org.apache.lucene.document.Document",
+          "java.lang.String",
+          "long"
+        ]
+      },
+      {
+        "name": "addTagFilters",
+        "parameterTypes": [
+          "io.nop.search.api.SearchRequest",
+          "org.apache.lucene.search.BooleanQuery$Builder"
+        ]
+      },
+      {
+        "name": "addTextField",
+        "parameterTypes": [
+          "org.apache.lucene.document.Document",
+          "java.lang.String",
+          "java.lang.String",
+          "boolean"
+        ]
+      },
+      {
+        "name": "analyzeTerm",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "buildAnalyzer",
+        "parameterTypes": []
+      },
+      {
+        "name": "buildDocument",
+        "parameterTypes": [
+          "io.nop.search.api.SearchableDoc"
+        ]
+      },
+      {
+        "name": "buildQuery",
+        "parameterTypes": [
+          "io.nop.search.api.SearchRequest"
+        ]
+      },
+      {
+        "name": "convertDocumentToSearchableDoc",
+        "parameterTypes": [
+          "org.apache.lucene.document.Document"
+        ]
+      },
+      {
+        "name": "getDirectory",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getIndexWriter",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getSearcherManager",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "newHighligher",
+        "parameterTypes": [
+          "org.apache.lucene.search.Query",
+          "io.nop.search.api.SearchRequest"
+        ]
+      },
+      {
+        "name": "processHits",
+        "parameterTypes": [
+          "org.apache.lucene.search.IndexSearcher",
+          "org.apache.lucene.search.TopFieldDocs",
+          "org.apache.lucene.search.highlight.Highlighter"
+        ]
+      },
+      {
+        "name": "processNumericField",
+        "parameterTypes": [
+          "org.apache.lucene.document.Document",
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "processTextField",
+        "parameterTypes": [
+          "org.apache.lucene.document.Document",
+          "java.lang.String",
+          "org.apache.lucene.search.highlight.Highlighter"
+        ]
+      },
+      {
+        "name": "rollback",
+        "parameterTypes": [
+          "org.apache.lucene.index.IndexWriter"
+        ]
+      }
+    ],
+    "name": "io.nop.search.lucene.LuceneSearchEngine"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "generateFromProp",

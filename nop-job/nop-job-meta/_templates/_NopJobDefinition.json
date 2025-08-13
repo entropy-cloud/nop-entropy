@@ -16,6 +16,7 @@
   "maxScheduleTime": "2000-01-01 14:00:00",
   "misfireThreshold": 0,
   "maxFailedCount": 0,
+  "maxConsecFailedCount": 0,
   "isUseDefaultCalendar": 0,
   "pauseCalendars": "",
   "partitionIndex": 0,

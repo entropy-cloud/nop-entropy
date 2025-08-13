@@ -538,7 +538,8 @@ public class LuceneSearchEngine implements ISearchEngine {
         for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
             Document doc = searcher.storedFields().document(scoreDoc.doc);
             SearchHit hit = new SearchHit();
-            hit.setScore(scoreDoc.score);
+            if(!Float.isNaN(scoreDoc.score))
+                hit.setScore(scoreDoc.score);
 
             hit.setId(doc.get(FIELD_ID));
             hit.setTitle(processTextField(doc, FIELD_TITLE, highlighter));

@@ -462,6 +462,8 @@
 /nop/autoconfig/nop-report-ext.beans
 /nop/autoconfig/nop-report.beans
 /nop/autoconfig/nop-rule-core.beans
+/nop/autoconfig/nop-search-core.beans
+/nop/autoconfig/nop-search.beans
 /nop/autoconfig/nop-task-core.beans
 /nop/autoconfig/nop-web.beans
 /nop/biz/beans/biz-defaults.beans.xml
@@ -1050,7 +1052,9 @@
 /nop/schema/xui/style-component.xdef
 /nop/schema/xui/xuc.xdef
 /nop/schema/xui/xview.xdef
-/nop/search/pages/SearchEngine/api-demo.page.json5
+/nop/search/beans/search-core.beans.xml
+/nop/search/beans/search-defaults.beans.xml
+/nop/search/pages/SearchEngine/api-demo.page.yaml
 /nop/sys/_module
 /nop/sys/auth/_nop-sys.action-auth.xml
 /nop/sys/auth/nop-sys.action-auth.xml

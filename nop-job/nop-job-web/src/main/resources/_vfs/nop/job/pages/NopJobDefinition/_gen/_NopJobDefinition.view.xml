@@ -66,6 +66,9 @@
                 <!--最大允许失败次数-->
                 <col id="maxFailedCount" ui:number="true" sortable="true"/>
 
+                <!--最大允许连续失败次数-->
+                <col id="maxConsecFailedCount" ui:number="true" sortable="true"/>
+
                 <!--使用系统内置日历-->
                 <col id="isUseDefaultCalendar" sortable="true"/>
 
@@ -105,10 +108,11 @@
  isFixedDelay[是否固定延时] maxExecutionCount[最多执行次数]
  minScheduleTime[最近调度时间] maxScheduleTime[最大调度时间]
  misfireThreshold[超时阈值] maxFailedCount[最大允许失败次数]
- isUseDefaultCalendar[使用系统内置日历] pauseCalendars[暂停日历]
- partitionIndex[分区索引] createdBy[创建人]
- createTime[创建时间] updatedBy[修改人]
- updateTime[修改时间] remark[备注]
+ maxConsecFailedCount[最大允许连续失败次数] isUseDefaultCalendar[使用系统内置日历]
+ pauseCalendars[暂停日历] partitionIndex[分区索引]
+ createdBy[创建人] createTime[创建时间]
+ updatedBy[修改人] updateTime[修改时间]
+ remark[备注] 
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-作业定义" i18n-en:title="Add Job Definition" x:prototype="edit"/>
@@ -122,8 +126,9 @@
  isFixedDelay[是否固定延时] maxExecutionCount[最多执行次数]
  minScheduleTime[最近调度时间] maxScheduleTime[最大调度时间]
  misfireThreshold[超时阈值] maxFailedCount[最大允许失败次数]
- isUseDefaultCalendar[使用系统内置日历] pauseCalendars[暂停日历]
- partitionIndex[分区索引] remark[备注]
+ maxConsecFailedCount[最大允许连续失败次数] isUseDefaultCalendar[使用系统内置日历]
+ pauseCalendars[暂停日历] partitionIndex[分区索引]
+ remark[备注] 
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
