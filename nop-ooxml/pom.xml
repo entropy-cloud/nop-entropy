@@ -16,6 +16,7 @@
         <module>nop-ooxml-docx</module>
         <module>nop-ooxml-xlsx</module>
         <module>nop-ooxml-markdown</module>
+        <module>nop-ooxml-pptx</module>
     </modules>
 
 

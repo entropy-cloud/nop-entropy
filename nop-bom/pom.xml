@@ -649,6 +649,12 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-ooxml-pptx</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-ooxml-markdown</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
@@ -1178,6 +1184,12 @@
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-search-lucene</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-search-core</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 

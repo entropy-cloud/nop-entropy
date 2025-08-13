@@ -108,14 +108,14 @@ public class SearchEngineBizModel {
         return searchEngine.getDoc(docId);
     }
 
-    @BizQuery
+    @BizMutation
     public void addDoc(@Name("topic") String topic, @Name("doc") SearchableDoc doc) {
         checkAllowAccess(ACTION_ADD_DOC, topic, null);
 
         searchEngine.addDoc(topic, doc);
     }
 
-    @BizQuery
+    @BizMutation
     public void addDocs(@Name("topic") String topic, @Name("docs") List<SearchableDoc> docs) {
         checkAllowAccess(ACTION_ADD_DOC, topic, null);
 
