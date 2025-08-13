@@ -6,7 +6,30 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.ai.core.initialize.AiCoreInitializer"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
+      {
+        "name": "readExchange",
+        "parameterTypes": [
+          "io.nop.commons.text.tokenizer.TextScanner"
+        ]
+      },
+      {
+        "name": "writeExchange",
+        "parameterTypes": [
+          "java.lang.StringBuilder",
+          "io.nop.ai.core.api.messages.AiChatExchange"
+        ]
+      },
       {
         "name": "writeRequest",
         "parameterTypes": [
@@ -78,6 +101,20 @@
       }
     ],
     "methods": [
+      {
+        "name": "addToolCalls",
+        "parameterTypes": [
+          "java.util.Map",
+          "java.util.List"
+        ]
+      },
+      {
+        "name": "addTools",
+        "parameterTypes": [
+          "java.util.Map",
+          "io.nop.ai.core.api.messages.Prompt"
+        ]
+      },
       {
         "name": "buildHttpRequest",
         "parameterTypes": [
@@ -156,6 +193,12 @@
         "name": "getLlmName",
         "parameterTypes": [
           "io.nop.ai.core.api.chat.AiChatOptions"
+        ]
+      },
+      {
+        "name": "getMessageContent",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiMessage"
         ]
       },
       {
@@ -251,6 +294,13 @@
         ]
       },
       {
+        "name": "parseToolCalls",
+        "parameterTypes": [
+          "io.nop.ai.core.model.LlmModel",
+          "java.util.Map"
+        ]
+      },
+      {
         "name": "setIfNotNull",
         "parameterTypes": [
           "java.util.Map",
@@ -264,6 +314,15 @@
           "io.nop.ai.core.model.LlmModel",
           "java.util.Map",
           "io.nop.ai.core.api.messages.Prompt",
+          "io.nop.ai.core.api.chat.AiChatOptions"
+        ]
+      },
+      {
+        "name": "toMessage",
+        "parameterTypes": [
+          "io.nop.ai.core.api.messages.AiMessage",
+          "io.nop.ai.core.model.LlmModelModel",
+          "boolean",
           "io.nop.ai.core.api.chat.AiChatOptions"
         ]
       }
@@ -607,6 +666,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.api.core.beans.query.QueryAggregateFieldBean"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.api.core.beans.query.QueryBean"
   },
   {
@@ -618,6 +687,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.api.core.beans.query.QueryFieldBean"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.beans.query.QueryJoinConditionBean"
   },
   {
     "allDeclaredConstructors": true,
@@ -9665,6 +9744,36 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.report.dao.entity.NopReportDatasetRef"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.report.dao.entity.NopReportDatasource"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.report.dao.entity.NopReportDatasourceAuth"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.report.dao.entity.NopReportDefinition"
   },
   {
@@ -9675,7 +9784,27 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.report.dao.entity.NopReportDefinitionAuth"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.report.dao.entity.NopReportResultFile"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.report.dao.entity.NopReportSubDataset"
   },
   {
     "allDeclaredConstructors": true,
@@ -9720,6 +9849,51 @@
         "parameterTypes": []
       }
     ],
+    "name": "io.nop.report.dao.entity._gen._NopReportDatasetRef"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.report.dao.entity._gen._NopReportDatasource"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.report.dao.entity._gen._NopReportDatasourceAuth"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.report.dao.entity._gen._NopReportDefinition"
   },
   {
@@ -9735,7 +9909,37 @@
         "parameterTypes": []
       }
     ],
+    "name": "io.nop.report.dao.entity._gen._NopReportDefinitionAuth"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
     "name": "io.nop.report.dao.entity._gen._NopReportResultFile"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newInstance",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.report.dao.entity._gen._NopReportSubDataset"
   },
   {
     "allDeclaredConstructors": true,
@@ -9800,6 +10004,46 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.report.service.entity.NopReportDatasetRefBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.report.service.entity.NopReportDatasourceAuthBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.report.service.entity.NopReportDatasourceBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.report.service.entity.NopReportDefinitionAuthBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.report.service.entity.NopReportDefinitionBizModel"
   },
   {
@@ -9811,6 +10055,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.report.service.entity.NopReportResultFileBizModel"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.report.service.entity.NopReportSubDatasetBizModel"
   },
   {
     "allDeclaredConstructors": true,

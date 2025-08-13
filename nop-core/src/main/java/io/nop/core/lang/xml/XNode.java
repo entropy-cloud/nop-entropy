@@ -155,7 +155,7 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
     }
 
     public static XNode parse(SourceLocation loc, String text) {
-        return XNodeParser.instance().parseFromText(loc, text);
+        return XNodeParser.instance().keepComment(true).parseFromText(loc, text);
     }
 
     public IXNodeExtension getExtension(String name) {

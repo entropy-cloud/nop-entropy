@@ -1,0 +1,367 @@
+{
+  "type": "page",
+  "title": "搜索引擎服务测试平台",
+  "subTitle": "基于 Nop Search Engine API",
+  "body": [
+    {
+      "type": "tabs",
+      "tabs": [
+        {
+          "title": "目录索引",
+          "icon": "fa fa-folder-open",
+          "body": {
+            "type": "form",
+            "title": "从目录建立索引",
+            "api": "post:/r/SearchEngine__indexDir",
+            "panelClassName": "mb-4 form-panel",
+            "headerClassName": "form-header-primary",
+            "body": [
+              {
+                "type": "group",
+                "body": [
+                  {
+                    "type": "input-text",
+                    "name": "topic",
+                    "label": "索引Topic",
+                    "placeholder": "例如：my_documents",
+                    "required": true,
+                    "value": "test_topic",
+                    "description": "将文件索引到指定Topic下"
+                  },
+                  {
+                    "type": "input-text",
+                    "name": "path",
+                    "label": "目录路径",
+                    "placeholder": "/path/to/your/documents",
+                    "required": true,
+                    "description": "服务器上的绝对路径"
+                  }
+                ]
+              },
+              {
+                "type": "input-text",
+                "name": "pattern",
+                "label": "文件过滤模式",
+                "placeholder": "例如：.*\\.txt$ 或 /path/to/specific/file\\.pdf$",
+                "description": "匹配完整路径的正则表达式模式"
+              }
+            ],
+            "actions": [
+              {
+                "type": "submit",
+                "label": "建立索引",
+                "level": "primary",
+                "className": "ml-2"
+              }
+            ]
+          }
+        },
+        {
+          "title": "高级搜索",
+          "icon": "fa fa-search-plus",
+          "body": {
+            "type": "form",
+            "title": "高级搜索",
+            "api": "post:/r/SearchEngine__searchAsync",
+            "panelClassName": "mb-4 form-panel",
+            "headerClassName": "form-header-primary",
+            "body": [
+              {
+                "type": "grid",
+                "columns": [
+                  {
+                    "body": [
+                      {
+                        "type": "input-text",
+                        "name": "request.topic",
+                        "label": "索引Topic",
+                        "required": true,
+                        "value": "test_topic"
+                      }
+                    ]
+                  },
+                  {
+                    "body": [
+                      {
+                        "type": "input-text",
+                        "name": "request.query",
+                        "label": "查询关键词",
+                        "required": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "divider"
+              },
+              {
+                "type": "input-tag",
+                "name": "request.tags",
+                "label": "标签列表",
+                "placeholder": "添加标签，如：技术,Java"
+              },
+              {
+                "type": "switch",
+                "name": "request.matchAllTags",
+                "label": "匹配模式",
+                "onText": "满足所有标签 (AND)",
+                "offText": "满足任一标签 (OR)",
+                "value": false
+              },
+              {
+                "type": "divider"
+              },
+              {
+                "type": "input-number",
+                "name": "request.limit",
+                "label": "返回结果数量",
+                "value": 10,
+                "min": 1,
+                "max": 100
+              },
+              {
+                "type": "input-number",
+                "name": "request.similarityThreshold",
+                "label": "相似度阈值",
+                "value": 0,
+                "min": 0,
+                "max": 1,
+                "step": 0.05,
+                "precision": 2
+              },
+              {
+                "type": "divider"
+              },
+              {
+                "type": "json-editor",
+                "name": "request.filter",
+                "label": "高级过滤器 (TreeBean)",
+                "language": "json",
+                "options": {
+                  "modes": [
+                    "tree",
+                    "code"
+                  ],
+                  "mode": "tree"
+                },
+                "value": {}
+              }
+            ],
+            "actions": [
+              {
+                "type": "submit",
+                "label": "执行搜索",
+                "level": "primary"
+              }
+            ]
+          }
+        },
+        {
+          "title": "获取文档",
+          "icon": "fa fa-file-download",
+          "body": {
+            "type": "form",
+            "title": "获取文档",
+            "api": "get:/r/SearchEngine__getDoc",
+            "panelClassName": "mb-4 form-panel",
+            "headerClassName": "form-header-info",
+            "body": [
+              {
+                "type": "input-text",
+                "name": "topic",
+                "label": "索引Topic",
+                "required": true,
+                "value": "test_topic"
+              },
+              {
+                "type": "input-text",
+                "name": "docId",
+                "label": "文档ID",
+                "required": true
+              }
+            ],
+            "actions": [
+              {
+                "type": "submit",
+                "label": "获取文档",
+                "level": "primary"
+              }
+            ]
+          }
+        },
+        {
+          "title": "添加文档",
+          "icon": "fa fa-file-upload",
+          "body": {
+            "type": "form",
+            "title": "添加文档",
+            "api": "post:/r/SearchEngine__addDoc",
+            "panelClassName": "mb-4 form-panel",
+            "headerClassName": "form-header-success",
+            "body": [
+              {
+                "type": "input-text",
+                "name": "topic",
+                "label": "索引Topic",
+                "required": true,
+                "value": "test_topic"
+              },
+              {
+                "type": "json-editor",
+                "name": "doc",
+                "label": "文档内容",
+                "language": "json",
+                "options": {
+                  "modes": [
+                    "tree",
+                    "code"
+                  ],
+                  "mode": "tree"
+                },
+                "value": {
+                  "id": "test_doc_001",
+                  "title": "测试文档",
+                  "content": "文档内容...",
+                  "tagSet": [
+                    "测试"
+                  ],
+                  "publishTime": 1710000000000
+                },
+                "required": true,
+                "size": "lg"
+              }
+            ],
+            "actions": [
+              {
+                "type": "submit",
+                "label": "添加文档",
+                "level": "primary"
+              }
+            ]
+          }
+        },
+        {
+          "title": "删除文档",
+          "icon": "fa fa-trash-alt",
+          "body": {
+            "type": "form",
+            "title": "删除文档",
+            "api": "post:/r/SearchEngine__removeDocs",
+            "panelClassName": "mb-4 form-panel",
+            "headerClassName": "form-header-danger",
+            "body": [
+              {
+                "type": "alert",
+                "level": "warning",
+                "body": "警告：删除操作不可逆！",
+                "showCloseButton": true,
+                "className": "mb-2"
+              },
+              {
+                "type": "input-text",
+                "name": "topic",
+                "label": "索引Topic",
+                "required": true,
+                "value": "test_topic"
+              },
+              {
+                "type": "textarea",
+                "name": "docIds",
+                "label": "文档ID列表",
+                "required": true,
+                "placeholder": "每行一个ID",
+                "rows": 3
+              }
+            ],
+            "actions": [
+              {
+                "type": "submit",
+                "label": "删除文档",
+                "level": "danger",
+                "confirmText": "确定删除这些文档吗？"
+              }
+            ],
+            "data": {
+              "docIdsArray": "${docIds.split('\\n')}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "panel",
+      "title": "API响应结果",
+      "headerClassName": "panel-header-light",
+      "body": {
+        "type": "tpl",
+        "tpl": "${apiData | json:4}",
+        "wrapperComponent": "pre",
+        "style": {
+          "maxHeight": "500px",
+          "overflow": "auto",
+          "backgroundColor": "#f8f9fa",
+          "padding": "15px",
+          "borderRadius": "4px"
+        }
+      }
+    }
+  ],
+  "css": {
+    ".panel-header-light": {
+      "background": "#f5f5f5",
+      "color": "#333",
+      "borderBottom": "1px solid #ddd",
+      "padding": "12px 16px",
+      "fontWeight": "500"
+    },
+    ".form-header-primary": {
+      "background": "linear-gradient(90deg, #f0f5ff 0%, #d6e4ff 100%)",
+      "color": "#10239e",
+      "borderBottom": "1px solid #adc6ff",
+      "padding": "12px 16px",
+      "fontWeight": "500"
+    },
+    ".form-header-info": {
+      "background": "linear-gradient(90deg, #e6f7ff 0%, #bae7ff 100%)",
+      "color": "#0050b3",
+      "borderBottom": "1px solid #91d5ff",
+      "padding": "12px 16px",
+      "fontWeight": "500"
+    },
+    ".form-header-success": {
+      "background": "linear-gradient(90deg, #f6ffed 0%, #d9f7be 100%)",
+      "color": "#237804",
+      "borderBottom": "1px solid #b7eb8f",
+      "padding": "12px 16px",
+      "fontWeight": "500"
+    },
+    ".form-header-danger": {
+      "background": "linear-gradient(90deg, #fff2f0 0%, #ffccc7 100%)",
+      "color": "#a8071a",
+      "borderBottom": "1px solid #ffa39e",
+      "padding": "12px 16px",
+      "fontWeight": "500"
+    },
+    ".form-panel": {
+      "border": "1px solid #eee",
+      "borderRadius": "4px",
+      "boxShadow": "0 1px 3px rgba(0,0,0,0.1)"
+    },
+    ".mb-2": {
+      "marginBottom": "1rem"
+    },
+    ".mb-3": {
+      "marginBottom": "1.5rem"
+    },
+    ".mb-4": {
+      "marginBottom": "2rem"
+    },
+    ".ml-2": {
+      "marginLeft": "0.5rem"
+    }
+  }
+}

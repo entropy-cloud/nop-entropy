@@ -1,5 +1,6 @@
 package io.nop.core.lang.xml.split;
 
+import io.nop.api.core.util.Guard;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
@@ -49,20 +50,30 @@ public class XNodeSplitter {
         private Set<XNode> splittableParents;
 
         public List<XNode> split(XNode node, int maxSize, String splitPath) {
+            Guard.notNull(node, "node");
+            Guard.positiveInt(maxSize, "maxSize");
+
             this.resultNodes = new ArrayList<>();
             this.handler = new CollectXNodeHandler();
             this.accumulateSize = 0;
-            this.splittableParents = CollectionHelper.newIdentityHashSet();
+            this.splittableParents = null;
 
             parseSplitPath(node, splitPath);
 
             processNode(node, maxSize);
+            XNode root = handler.root();
+            if (root != null && !resultNodes.contains(root)) {
+                resultNodes.add(root);
+            }
             return resultNodes;
         }
 
         void parseSplitPath(XNode node, String splitPath) {
             if (splitPath == null || splitPath.isEmpty())
                 return;
+
+            if (this.splittableParents == null)
+                this.splittableParents = CollectionHelper.newIdentityHashSet();
 
             List<String> paths = StringHelper.split(splitPath, '|');
             for (String path : paths) {
@@ -91,16 +102,12 @@ public class XNodeSplitter {
                 return;
             }
             this.handler.beginNode(node.getLocation(), node.getTagName(), node.attrValueLocs());
+            accumulateSize += calcNodeSize(node);
             if (node.hasChild()) {
                 if (isSplittableParent(node)) {
                     for (XNode child : node.getChildren()) {
-                        int childSize = calcNodeSize(child);
-                        if (!splittableParents.isEmpty()) {
-                            childSize += calcDescendantsSize(child);
-                        }
-                        if (accumulateSize + childSize > maxSize) {
+                        if (accumulateSize > maxSize) {
                             flushSplit(child);
-                            accumulateSize = 0;
                         }
                         processNode(child, maxSize);
                     }
@@ -117,7 +124,7 @@ public class XNodeSplitter {
         }
 
         private boolean isSplittableParent(XNode node) {
-            return splittableParents.isEmpty() || splittableParents.contains(node);
+            return splittableParents == null || splittableParents.contains(node);
         }
 
         /**
@@ -138,10 +145,12 @@ public class XNodeSplitter {
 
             resultNodes.add(handler.root());
             handler.reset();
+            accumulateSize = 0;
 
             for (int i = 0, n = parents.size(); i < n; i++) {
                 XNode p = parents.get(n - i - 1);
                 handler.beginNode(p.getLocation(), p.getTagName(), p.attrValueLocs());
+                accumulateSize += calcNodeSize(p);
             }
         }
     }
@@ -152,6 +161,10 @@ public class XNodeSplitter {
         size += calcAttrsSize(node.attrValueLocs());
         size += calcContentSize(node.content());
         return size;
+    }
+
+    static int calcFullNodeSize(XNode node) {
+        return calcNodeSize(node) + calcDescendantsSize(node);
     }
 
     static int calcCommentSize(String comment) {
