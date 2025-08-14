@@ -79,6 +79,7 @@
 /nop/ai/prompts/coder/service-method-task.prompt.yaml
 /nop/ai/prompts/coder/task-flow.md
 /nop/ai/prompts/coder/task-import.md
+/nop/ai/prompts/coder/translate-i18n.prompt.yaml
 /nop/ai/prompts/coder/unit-test.prompt.yaml
 /nop/ai/prompts/coder/use-tool.md
 /nop/ai/prompts/coder/validate-site-resource.prompt.yaml
@@ -92,7 +93,7 @@
 /nop/ai/prompts/sql/question-rewriting.prompt.yaml
 /nop/ai/prompts/sql/sql-assistant.prompt.yaml
 /nop/ai/prompts/sql/sql-generation.prompt.yaml
-/nop/ai/prompts/summary/class-summary.prompt.yaml
+/nop/ai/prompts/summary/code-summary.prompt.yaml
 /nop/ai/prompts/system/gen-for-mode.prompt.yaml
 /nop/ai/prompts/system/programming/cognitive.md
 /nop/ai/prompts/system/programming/meta.md
@@ -123,6 +124,7 @@
 /nop/ai/tasks/ai-analyze-images.task.xml
 /nop/ai/tasks/ai-api-design.task.xml
 /nop/ai/tasks/ai-biz-analyzer.task.xml
+/nop/ai/tasks/ai-code-summary.task.xml
 /nop/ai/tasks/ai-coder.task-lib.xml
 /nop/ai/tasks/ai-coder.task.xml
 /nop/ai/tasks/ai-convert-docx.task.xml
@@ -154,6 +156,7 @@
 /nop/autoconfig/nop-record.beans
 /nop/autoconfig/nop-report-pdf.beans
 /nop/autoconfig/nop-report.beans
+/nop/autoconfig/nop-shell.beans
 /nop/autoconfig/nop-task-core.beans
 /nop/autoconfig/nop-web.beans
 /nop/batch/_module
@@ -379,6 +382,8 @@
 /nop/schema/xui/style-component.xdef
 /nop/schema/xui/xuc.xdef
 /nop/schema/xui/xview.xdef
+/nop/shell/beans/shell-defaults.beans.xml
+/nop/shell/xlib/shell.xlib
 /nop/task/beans/task-defaults.beans.xml
 /nop/task/lib/batch-common.task.xml
 /nop/task/lib/common.task.xml
@@ -453,6 +458,8 @@
 /nop/templates/orm-entity/{!entityModel.notGenCode}{entityModel.classPackagePath}/_gen/_{entityModel.simpleClassName}.java.xgen
 /nop/templates/orm-entity/{!entityModel.notGenCode}{entityModel.classPackagePath}/_gen/{entityModel.compositePk}{entityModel.simpleClassName}PkBuilder.java.xgen
 /nop/templates/orm-entity/{!entityModel.notGenCode}{entityModel.classPackagePath}/{entityModel.simpleClassName}.java.xgen
+/nop/templates/orm-model/@init.xrun
+/nop/templates/orm-model/model/{appName}.orm.java.xgen
 /nop/templates/orm-web/@init.xrun
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/auth/_{moduleName}.action-auth.xml.xgen
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/auth/{moduleName}.action-auth.xml.xgen

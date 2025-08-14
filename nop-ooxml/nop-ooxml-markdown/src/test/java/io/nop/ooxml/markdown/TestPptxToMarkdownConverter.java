@@ -2,11 +2,13 @@ package io.nop.ooxml.markdown;
 
 import io.nop.core.resource.impl.FileResource;
 import io.nop.markdown.simple.MarkdownDocument;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 
 public class TestPptxToMarkdownConverter {
+    @Disabled
     @Test
     public void testConvert() {
         File file = new File("c:/test/test.pptx");

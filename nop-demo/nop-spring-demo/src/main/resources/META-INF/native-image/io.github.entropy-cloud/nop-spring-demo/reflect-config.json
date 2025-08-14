@@ -33798,6 +33798,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.http.api.server.DefaultClientIpFetcher"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.http.api.support.DefaultHttpClientFactory"
   },
   {

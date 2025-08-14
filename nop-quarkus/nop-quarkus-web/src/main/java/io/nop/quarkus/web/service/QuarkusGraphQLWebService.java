@@ -8,6 +8,7 @@
 package io.nop.quarkus.web.service;
 
 import io.nop.api.core.ApiConstants;
+import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.web.GraphQLWebService;
@@ -17,7 +18,6 @@ import io.nop.quarkus.web.utils.QuarkusExecutorHelper;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -41,13 +41,6 @@ import static io.nop.quarkus.web.utils.QuarkusExecutorHelper.withRoutingContext;
 @IfBuildProperty(name = "nop.quarkus.graphql-web-service.enabled", stringValue = "true", enableIfMissing = true) // 条件注解
 public class QuarkusGraphQLWebService extends GraphQLWebService {
     // static final Logger LOG = LoggerFactory.getLogger(QuarkusGraphQLWebService.class);
-
-    private IClientIpFetcher clientIpFetcher;
-
-    @Inject
-    public void setClientIpFetcher(IClientIpFetcher clientIpFetcher) {
-        this.clientIpFetcher = clientIpFetcher;
-    }
 
     @POST
     @Path("/px/{serviceName}/{serviceMethod}")
@@ -127,6 +120,7 @@ public class QuarkusGraphQLWebService extends GraphQLWebService {
             return Collections.emptyMap();
 
         Map<String, Object> headers = sc.getRequestHeaders();
+        IClientIpFetcher clientIpFetcher = BeanContainer.getBeanByType(IClientIpFetcher.class);
         String clientAddr = clientIpFetcher.getClientRealAddr(sc);
         ApiHeaders.setHeader(headers, ApiConstants.HEADER_CLIENT_ADDR, clientAddr);
         return headers;

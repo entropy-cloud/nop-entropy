@@ -17752,6 +17752,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.http.api.server.DefaultClientIpFetcher"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.http.api.support.DefaultHttpClientFactory"
   },
   {
@@ -27119,6 +27129,23 @@
       }
     ],
     "name": "io.nop.rpc.model.proto.ProtoFileParser"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "onExit",
+        "parameterTypes": [
+          "int"
+        ]
+      }
+    ],
+    "name": "io.nop.shell.ShellRunner"
   },
   {
     "allDeclaredConstructors": true,

@@ -720,6 +720,8 @@
 /nop/templates/orm-entity/{!entityModel.notGenCode}{entityModel.classPackagePath}/_gen/_{entityModel.simpleClassName}.java.xgen
 /nop/templates/orm-entity/{!entityModel.notGenCode}{entityModel.classPackagePath}/_gen/{entityModel.compositePk}{entityModel.simpleClassName}PkBuilder.java.xgen
 /nop/templates/orm-entity/{!entityModel.notGenCode}{entityModel.classPackagePath}/{entityModel.simpleClassName}.java.xgen
+/nop/templates/orm-model/@init.xrun
+/nop/templates/orm-model/model/{appName}.orm.java.xgen
 /nop/templates/orm-web/@init.xrun
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/auth/_{moduleName}.action-auth.xml.xgen
 /nop/templates/orm-web/src/main/resources/_vfs/{moduleId}/auth/{moduleName}.action-auth.xml.xgen
