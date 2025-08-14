@@ -7,13 +7,19 @@
  */
 package io.nop.spring.web.service;
 
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.WebContentBean;
+import io.nop.api.core.util.ApiHeaders;
 import io.nop.core.resource.IResource;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.web.GraphQLWebService;
+import io.nop.http.api.server.IClientIpFetcher;
+import io.nop.http.api.server.IHttpServerContext;
 import io.nop.spring.core.resource.SpringResource;
+import io.nop.spring.web.filter.ServletHttpServerContext;
+import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +55,13 @@ import static io.nop.graphql.core.GraphQLConstants.SYS_PARAM_SELECTION;
 public class SpringGraphQLWebService extends GraphQLWebService {
     static final Logger LOG = LoggerFactory.getLogger(SpringGraphQLWebService.class);
 
+    private IClientIpFetcher clientIpFetcher;
+
+    @Inject
+    public void setClientIpFetcher(IClientIpFetcher clientIpFetcher) {
+        this.clientIpFetcher = clientIpFetcher;
+    }
+
     @Override
     protected Map<String, String> getParams() {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
@@ -70,7 +83,11 @@ public class SpringGraphQLWebService extends GraphQLWebService {
         if (attrs == null)
             throw new IllegalStateException("null request context");
         HttpServletRequest request = attrs.getRequest();
-        return SpringMvcHelper.getHeaders(request);
+        Map<String, Object> headers = SpringMvcHelper.getHeaders(request);
+        IHttpServerContext serverCtx = new ServletHttpServerContext(attrs.getRequest(), attrs.getResponse());
+        String clientAddr = clientIpFetcher.getClientRealAddr(serverCtx);
+        ApiHeaders.setHeader(headers, ApiConstants.HEADER_CLIENT_ADDR, clientAddr);
+        return headers;
     }
 
     @PostMapping(path = "/graphql", produces = MediaType.APPLICATION_JSON_VALUE)

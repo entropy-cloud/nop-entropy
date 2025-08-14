@@ -43,6 +43,10 @@ public interface IServiceContext extends IExecutionContext, ISecurityContext {
 
     Map<String, Object> getRequestHeaders();
 
+    default String getRequestClientIp() {
+        return ApiHeaders.getClientIpFromHeaders(getRequestHeaders());
+    }
+
     void setRequestHeaders(Map<String, Object> requestHeaders);
 
     default Object getRequestHeader(String name) {
@@ -146,7 +150,11 @@ public interface IServiceContext extends IExecutionContext, ISecurityContext {
     default <T> CompletionStage<T> invokeWithBindingCtx(Supplier<CompletionStage<T>> task) {
         IContext context = getContext();
         IServiceContext oldCtx = (IServiceContext) context.getAttribute(ApiConstants.ATTR_SERVICE_CONTEXT);
+        if (oldCtx == this)
+            return task.get();
+
         try {
+            bindToContext(context);
             return task.get().whenComplete((ret, err) -> {
                 restoreCtx(context, oldCtx);
             });

@@ -44,6 +44,16 @@ public class ServletHttpServerContext implements IHttpServerContext {
     }
 
     @Override
+    public String getRemoteAddr() {
+        return request.getRemoteAddr();
+    }
+
+    @Override
+    public int getRemotePort() {
+        return request.getRemotePort();
+    }
+
+    @Override
     public String getHost() {
         return request.getRemoteHost();
     }

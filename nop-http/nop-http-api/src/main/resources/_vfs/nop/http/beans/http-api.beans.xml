@@ -3,6 +3,7 @@
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:ioc="ioc">
 
+    <bean id="nopClientIpFetcher" class="io.nop.http.api.server.DefaultClientIpFetcher" ioc:default="true"/>
 
     <bean id="nopHttpClient" ioc:default="true" ioc:type="io.nop.http.api.client.IHttpClient"
           class="io.nop.http.api.support.DefaultHttpClientFactory">

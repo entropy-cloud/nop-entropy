@@ -31,6 +31,10 @@ public interface IHttpServerContext {
 
     String getHost();
 
+    String getRemoteAddr();
+
+    int getRemotePort();
+
     /**
      * 不包含queryString的后端服务路径
      */

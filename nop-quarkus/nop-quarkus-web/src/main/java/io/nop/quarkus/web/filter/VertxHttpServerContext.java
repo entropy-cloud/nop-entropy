@@ -56,6 +56,16 @@ public class VertxHttpServerContext implements IHttpServerContext {
     }
 
     @Override
+    public String getRemoteAddr() {
+        return routingContext.request().remoteAddress().hostAddress();
+    }
+
+    @Override
+    public int getRemotePort() {
+        return routingContext.request().remoteAddress().port();
+    }
+
+    @Override
     public String getRequestUrl() {
         String uri = routingContext.request().absoluteURI();
         return uri;
