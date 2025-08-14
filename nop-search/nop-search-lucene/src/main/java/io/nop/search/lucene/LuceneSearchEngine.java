@@ -10,6 +10,7 @@ package io.nop.search.lucene;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.Guard;
+import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.search.api.ISearchEngine;
@@ -67,6 +68,7 @@ import org.apache.lucene.util.BytesRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Path;
@@ -103,7 +105,7 @@ public class LuceneSearchEngine implements ISearchEngine {
     private final Map<String, IndexWriter> indexWriters = new ConcurrentHashMap<>();
     private final Map<String, SearcherManager> searcherManagers = new ConcurrentHashMap<>();
     private LuceneConfig config;
-    private Path rootPath;
+    private File rootPath;
 
     @Inject
     public void setConfig(LuceneConfig config) {
@@ -116,11 +118,8 @@ public class LuceneSearchEngine implements ISearchEngine {
             config = new LuceneConfig();
         }
 
-        this.rootPath = Path.of(config.getIndexDir());
+        this.rootPath = FileHelper.resolveFile(config.getIndexDir());
         try {
-            if (!java.nio.file.Files.exists(rootPath)) {
-                java.nio.file.Files.createDirectories(rootPath);
-            }
             this.analyzer = buildAnalyzer();
         } catch (Exception e) {
             throw new NopException(ERR_LUCENE_OPEN_INDEX_FAIL, e)
@@ -195,7 +194,8 @@ public class LuceneSearchEngine implements ISearchEngine {
         String finalTopic = topic;
         return indexDirs.computeIfAbsent(topic, key -> {
             try {
-                Path topicPath = rootPath.resolve(key);
+                rootPath.mkdirs();
+                Path topicPath = rootPath.toPath().resolve(key);
                 return FSDirectory.open(topicPath);
             } catch (IOException e) {
                 throw new NopException(ERR_LUCENE_OPEN_INDEX_FAIL, e)
