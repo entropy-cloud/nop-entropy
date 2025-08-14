@@ -23,6 +23,11 @@ public class DefaultClientIpFetcher implements IClientIpFetcher {
         return context.getRemoteAddr();
     }
 
+    @Override
+    public String getClientRealAddr(IHttpServerContext context) {
+        return getClientRealIp(context) + ':' + context.getRemotePort();
+    }
+
     private String getClientIpFromHeader(IHttpServerContext context, String headerName) {
         String headerValue = context.getRequestStringHeader(headerName);
         if (headerValue == null || headerValue.isEmpty()) {
