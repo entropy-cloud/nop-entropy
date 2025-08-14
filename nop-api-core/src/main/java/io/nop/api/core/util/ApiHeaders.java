@@ -247,7 +247,17 @@ public class ApiHeaders {
             return null;
         int pos = addr.indexOf(':');
         if (pos < 0)
+            return addr;
+        return addr.substring(0, pos);
+    }
+
+    public static String getClientIpFromHeaders(Map<String, Object> headers) {
+        String addr = getStringHeader(headers, ApiConstants.HEADER_CLIENT_ADDR);
+        if (addr == null)
             return null;
+        int pos = addr.indexOf(':');
+        if (pos < 0)
+            return addr;
         return addr.substring(0, pos);
     }
 
@@ -291,19 +301,19 @@ public class ApiHeaders {
         message.setHeader(ApiConstants.HEADER_TXN_BRANCH_NO, branchNo);
     }
 
-    public static String getTccCancel(ApiMessage message){
+    public static String getTccCancel(ApiMessage message) {
         return getStringHeader(message.getHeaders(), ApiConstants.HEADER_TCC_CANCEL);
     }
 
-    public static void setTccCancel(ApiMessage message, String value){
+    public static void setTccCancel(ApiMessage message, String value) {
         message.setHeader(ApiConstants.HEADER_TCC_CANCEL, value);
     }
 
-    public static String getTccConfirm(ApiMessage message){
+    public static String getTccConfirm(ApiMessage message) {
         return getStringHeader(message.getHeaders(), ApiConstants.HEADER_TCC_CONFIRM);
     }
 
-    public static void setTccConfirm(ApiMessage message, String value){
+    public static void setTccConfirm(ApiMessage message, String value) {
         message.setHeader(ApiConstants.HEADER_TCC_CONFIRM, value);
     }
 
