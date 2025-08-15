@@ -13,14 +13,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * 标记一个方法为扩展点，表示它有可能被重载扩展
+ */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface ExtensionMethod {
-    /**
-     * 对应参数的名称
-     *
-     * @return
-     */
-    String value() default "";
+public @interface ExtensionPoint {
 }
