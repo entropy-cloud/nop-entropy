@@ -90,5 +90,16 @@ public class ImportSheetModel extends _ImportSheetModel implements INeedInit, IF
                 throw new NopException(ERR_IMPORT_LIST_SHEET_MODEL_MUST_HAS_FIELD_ATTR).source(this)
                         .param(ARG_SHEET_NAME, getName());
         }
+
+
+        if (getFields() != null) {
+            for (ImportFieldModel field : getFields()) {
+                field.setFieldContainer(this);
+            }
+        }
+
+        if (getUnknownField() != null) {
+            getUnknownField().setFieldContainer(this);
+        }
     }
 }

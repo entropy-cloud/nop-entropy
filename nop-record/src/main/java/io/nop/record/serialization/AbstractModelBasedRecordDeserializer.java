@@ -204,7 +204,7 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
         }
 
         if (field.getSchema() != null) {
-            SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), field.getLocation(), field.getName(),
+            SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), field.getLocation(), field.getRecordObjectName(), field.getName(),
                     value, context.getEvalScope(), IValidationErrorCollector.THROW_ERROR);
         }
     }

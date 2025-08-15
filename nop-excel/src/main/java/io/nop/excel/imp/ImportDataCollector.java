@@ -45,6 +45,7 @@ import static io.nop.core.CoreErrors.ARG_CELL_POS;
 import static io.nop.core.CoreErrors.ARG_VALUE;
 import static io.nop.excel.ExcelErrors.ARG_ALLOWED_NAMES;
 import static io.nop.excel.ExcelErrors.ARG_ALLOWED_VALUES;
+import static io.nop.excel.ExcelErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.excel.ExcelErrors.ARG_DISPLAY_NAME;
 import static io.nop.excel.ExcelErrors.ARG_ERROR_DESC;
 import static io.nop.excel.ExcelErrors.ARG_FIELD_LABEL;
@@ -61,6 +62,7 @@ public class ImportDataCollector implements ITableDataEventListener {
     private List<Object> entityParents;
     private String sheetName;
     private List<IListAdapter> listAdapters;
+    private ImportSheetModel sheetModel;
 
     private final IEvalScope scope;
     private final ICache<Object, Object> cache;
@@ -90,6 +92,7 @@ public class ImportDataCollector implements ITableDataEventListener {
         this.listAdapters = new ArrayList<>();
 
         this.entityParents.add(rootObj);
+        this.sheetModel = sheetModel;
 
         scope.setLocalValue(null, ExcelConstants.VAR_RECORD_PARENTS, entityParents);
         scope.setLocalValue(null, ExcelConstants.VAR_SHEET_NAME, sheetName);
@@ -256,7 +259,7 @@ public class ImportDataCollector implements ITableDataEventListener {
                     value = option.getValue();
                 }
             } else {
-                SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), null, field.getName(), value, scope,
+                SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), null, getBizObjName(field),  field.getName(), value, scope,
                         error -> {
                             throw new NopException(ERR_IMPORT_FIELD_VALUE_VALIDATE_FAIL).param(ARG_SHEET_NAME, sheetName)
                                     .param(ARG_FIELD_NAME, field.getName()).param(ARG_DISPLAY_NAME, field.getFieldLabel())
@@ -290,6 +293,14 @@ public class ImportDataCollector implements ITableDataEventListener {
                 field.getNormalizeFieldsExpr().invoke(scope);
             }
         }
+    }
+
+    protected String getBizObjName(ImportFieldModel field){
+        String bizObjName = field.getContainerObjName();
+        if (StringHelper.isEmpty(bizObjName)) {
+            bizObjName = sheetModel == null ? null : sheetModel.getBizObjName();
+        }
+        return bizObjName;
     }
 
     private boolean shouldIgnore(ImportFieldModel field, Object value) {

@@ -19,6 +19,7 @@ import io.nop.xlang.xdef.IStdDomainHandler;
 import io.nop.xlang.xdef.domain.StdDomainRegistry;
 
 import static io.nop.api.core.ApiErrors.ARG_TARGET_TYPE;
+import static io.nop.xlang.XLangErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.xlang.XLangErrors.ARG_EXCLUDE_MIN;
 import static io.nop.xlang.XLangErrors.ARG_MAX_LENGTH;
 import static io.nop.xlang.XLangErrors.ARG_MIN_VALUE;
@@ -37,7 +38,8 @@ import static io.nop.xlang.XLangErrors.ERR_XDEF_UNKNOWN_STD_DOMAIN;
 public class SimpleSchemaValidator {
     public static final SimpleSchemaValidator INSTANCE = new SimpleSchemaValidator();
 
-    public void validate(ISchema schema, SourceLocation loc, String propName, Object value,
+    public void validate(ISchema schema, SourceLocation loc, String bizObjName,
+                         String propName, Object value,
                          IEvalScope scope,
                          IValidationErrorCollector collector) {
         if (value == null)
@@ -53,7 +55,8 @@ public class SimpleSchemaValidator {
             schema.getStdDataType().convert(value, err -> {
                 collector.buildError(ERR_SCHEMA_PROP_CONVERT_TO_TYPE_FAIL)
                         .param(ARG_TARGET_TYPE, schema.getStdDataType().getSimpleClassName())
-                        .param(ARG_VALUE, value).param(ARG_PROP_NAME, propName)
+                        .param(ARG_VALUE, value)
+                        .paramIfNotNull(ARG_BIZ_OBJ_NAME, bizObjName).param(ARG_PROP_NAME, propName)
                         .addToCollector(collector);
                 return null;
             });
@@ -63,14 +66,14 @@ public class SimpleSchemaValidator {
             if (!schema.matchPattern(value.toString())) {
                 collector.buildError(ERR_SCHEMA_PROP_NOT_MATCH_PATTERN)
                         .param(ARG_PATTERN, schema.getPattern())
-                        .param(ARG_PROP_NAME, propName)
+                        .paramIfNotNull(ARG_BIZ_OBJ_NAME, bizObjName).param(ARG_PROP_NAME, propName)
                         .param(ARG_VALUE, value)
                         .addToCollector(collector);
             }
         }
 
-        checkRange(schema, loc, propName, value, collector);
-        checkLength(schema, loc, propName, value, collector);
+        checkRange(schema, loc, propName, bizObjName, value, collector);
+        checkLength(schema, loc, propName, bizObjName, value, collector);
 
         if (schema.getValidator() != null) {
             try {
@@ -81,14 +84,15 @@ public class SimpleSchemaValidator {
         }
     }
 
-    void checkRange(ISchema schema, SourceLocation loc,
+    void checkRange(ISchema schema, SourceLocation loc, String bizObjName,
                     String propName, Object value, IValidationErrorCollector collector) {
         if (schema.getMax() != null || schema.getMin() != null) {
             Number v = ConvertHelper.toNumber(value, err -> {
                 collector.buildError(ERR_SCHEMA_PROP_CONVERT_TO_TYPE_FAIL)
                         .loc(loc)
                         .param(ARG_TARGET_TYPE, schema.getStdDataType().getSimpleClassName())
-                        .param(ARG_VALUE, value).param(ARG_PROP_NAME, propName)
+                        .param(ARG_VALUE, value)
+                        .param(ARG_BIZ_OBJ_NAME, bizObjName).param(ARG_PROP_NAME, propName)
                         .addToCollector(collector);
                 return null;
             });
@@ -98,7 +102,8 @@ public class SimpleSchemaValidator {
                 boolean less = Boolean.TRUE.equals(schema.getExcludeMin()) ? cmp <= 0 : cmp < 0;
                 if (less) {
                     collector.buildError(ERR_SCHEMA_PROP_VALUE_TOO_SMALL)
-                            .loc(loc).param(ARG_PROP_NAME, propName)
+                            .loc(loc)
+                            .paramIfNotNull(ARG_BIZ_OBJ_NAME, bizObjName).param(ARG_PROP_NAME, propName)
                             .param(ARG_MIN_VALUE, schema.getMin())
                             .param(ARG_VALUE, value)
                             .param(ARG_EXCLUDE_MIN, Boolean.TRUE.equals(schema.getExcludeMin()))
@@ -111,7 +116,7 @@ public class SimpleSchemaValidator {
                 boolean greater = Boolean.TRUE.equals(schema.getExcludeMax()) ? cmp >= 0 : cmp > 0;
                 if (greater) {
                     collector.buildError(ERR_SCHEMA_PROP_VALUE_TOO_LARGE)
-                            .loc(loc).param(ARG_PROP_NAME, propName)
+                            .loc(loc).paramIfNotNull(ARG_BIZ_OBJ_NAME, bizObjName).param(ARG_PROP_NAME, propName)
                             .param(ARG_MIN_VALUE, schema.getMin())
                             .param(ARG_VALUE, value)
                             .param(ARG_EXCLUDE_MIN, Boolean.TRUE.equals(schema.getExcludeMin()))
@@ -121,12 +126,13 @@ public class SimpleSchemaValidator {
         }
     }
 
-    void checkLength(ISchema schema, SourceLocation loc, String propName, Object value, IValidationErrorCollector collector) {
+    void checkLength(ISchema schema, SourceLocation loc, String bizObjName,
+                     String propName, Object value, IValidationErrorCollector collector) {
         if (schema.getUtf8Length() != null) {
             String str = value.toString();
             if (StringHelper.utf8Length(str) > schema.getUtf8Length()) {
                 collector.buildError(ERR_SCHEMA_PROP_LENGTH_GREATER_THAN_MAX_LENGTH)
-                        .loc(loc).param(ARG_PROP_NAME, propName)
+                        .loc(loc).paramIfNotNull(ARG_BIZ_OBJ_NAME, bizObjName).param(ARG_PROP_NAME, propName)
                         .param(ARG_MAX_LENGTH, schema.getUtf8Length())
                         .param(ARG_VALUE, value)
                         .addToCollector(collector);
@@ -135,7 +141,7 @@ public class SimpleSchemaValidator {
             String str = value.toString();
             if (str.length() > schema.getMaxLength()) {
                 collector.buildError(ERR_SCHEMA_PROP_LENGTH_GREATER_THAN_MAX_LENGTH)
-                        .loc(loc).param(ARG_PROP_NAME, propName)
+                        .loc(loc).paramIfNotNull(ARG_BIZ_OBJ_NAME, bizObjName).param(ARG_PROP_NAME, propName)
                         .param(ARG_MAX_LENGTH, schema.getMaxLength())
                         .param(ARG_VALUE, value)
                         .addToCollector(collector);
@@ -144,7 +150,7 @@ public class SimpleSchemaValidator {
             String str = value.toString();
             if (str.length() > schema.getPrecision()) {
                 collector.buildError(ERR_SCHEMA_PROP_LENGTH_GREATER_THAN_MAX_LENGTH)
-                        .loc(loc).param(ARG_PROP_NAME, propName)
+                        .loc(loc).paramIfNotNull(ARG_BIZ_OBJ_NAME, bizObjName).param(ARG_PROP_NAME, propName)
                         .param(ARG_MAX_LENGTH, schema.getPrecision())
                         .param(ARG_VALUE, value)
                         .addToCollector(collector);
@@ -155,7 +161,7 @@ public class SimpleSchemaValidator {
             String str = value.toString();
             if (str.length() < schema.getMinLength()) {
                 collector.buildError(ERR_SCHEMA_PROP_LENGTH_LESS_THAN_MIN_LENGTH)
-                        .loc(loc).param(ARG_PROP_NAME, propName)
+                        .loc(loc).paramIfNotNull(ARG_BIZ_OBJ_NAME, bizObjName).param(ARG_PROP_NAME, propName)
                         .param(ARG_MAX_LENGTH, schema.getMaxLength())
                         .param(ARG_VALUE, value)
                         .addToCollector(collector);

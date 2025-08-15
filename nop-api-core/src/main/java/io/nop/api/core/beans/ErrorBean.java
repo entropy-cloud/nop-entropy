@@ -161,7 +161,7 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
         return params != null && params.size() > 0;
     }
 
-    public boolean hasParam(String name){
+    public boolean hasParam(String name) {
         return params != null && params.containsKey(name);
     }
 
@@ -193,6 +193,12 @@ public class ErrorBean implements Serializable, Comparable<ErrorBean>, ICloneabl
         if (this.params == null)
             this.params = new LinkedHashMap<>();
         this.params.put(name, value);
+        return this;
+    }
+
+    public ErrorBean paramIfNotNull(String name, Object value) {
+        if (value != null)
+            return param(name, value);
         return this;
     }
 

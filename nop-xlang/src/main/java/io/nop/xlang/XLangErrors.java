@@ -99,10 +99,13 @@ public interface XLangErrors {
 
     String ARG_ID = "id";
 
+    String ARG_BIZ_OBJ_NAME = "bizObjName";
     String ARG_PROP_NAME = "propName";
     String ARG_CLASS_NAME = "className";
     String ARG_METHOD_NAME = "methodName";
     String ARG_ARG_COUNT = "argCount";
+
+    String ARG_VALUE_CLASS = "valueClass";
 
     String ARG_INJECT_PARAM = "injectParam";
 
@@ -1006,6 +1009,19 @@ public interface XLangErrors {
 
     ErrorCode ERR_OBJ_SCHEMA_NO_PROP =
             define("nop.err.schema.obj-schema-no-prop", "对象没有定义名称为[{propName}]的属性", ARG_PROP_NAME);
+
+    ErrorCode ERR_SCHEMA_MANDATORY_PROP_IS_EMPTY =
+            define("nop.err.schema.mandatory-prop-is-empty", "属性[{propName}]不能为空", ARG_PROP_NAME);
+
+    ErrorCode ERR_SCHEMA_PROP_VALUE_NOT_IN_DICT =
+            define("nop.err.schema.prop-value-not-in-dict", "属性[{propName}]的值[{value}]不在字典[{dictName}]定义中",
+                    ARG_PROP_NAME, ARG_VALUE, ARG_DICT_NAME);
+
+    ErrorCode ERR_SCHEMA_PROP_VALUE_NOT_COLLECTION =
+            define("nop.err.schema.prop-value-not-collection","属性[{propName}]的值不是集合类型", ARG_PROP_NAME);
+
+    ErrorCode ERR_SCHEMA_PROP_VALUE_NOT_MAP =
+            define("nop.err.schema.prop-value-not-map","属性[{propName}]的值不是Map类型", ARG_PROP_NAME);
 
     ErrorCode ERR_SCHEMA_PROP_NOT_MATCH_PATTERN =
             define("nop.err.schema.prop-not-match-pattern", "属性[{propName}]的值不满足格式要求",

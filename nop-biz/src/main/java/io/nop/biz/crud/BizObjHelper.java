@@ -11,13 +11,12 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObject;
+import io.nop.core.context.IEvalContext;
 import io.nop.core.context.IServiceContext;
-import io.nop.core.lang.eval.IEvalAction;
-import io.nop.core.lang.eval.IEvalScope;
-import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IEntityDao;
 import io.nop.xlang.xmeta.IObjPropMeta;
+import io.nop.xlang.xmeta.utils.ObjMetaPropHelper;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,18 +25,8 @@ import java.util.Map;
 import static io.nop.biz.BizConstants.METHOD_FIND_FIRST;
 
 public class BizObjHelper {
-    public static Object getProp(Object entity, IObjPropMeta propMeta, IServiceContext context) {
-        if (propMeta.getGetter() != null) {
-            IEvalAction getter = propMeta.getGetter();
-            IEvalScope scope = context.getEvalScope().newChildScope();
-            scope.setLocalValue(null, BizConstants.VAR_ENTITY, entity);
-            return getter.invoke(scope);
-        }
-
-        String mapTo = propMeta.getMapToProp();
-        if (mapTo != null)
-            return BeanTool.instance().getProperty(entity, mapTo);
-        return BeanTool.instance().getProperty(entity, propMeta.getName());
+    public static Object getProp(Object entity, IObjPropMeta propMeta, IEvalContext context) {
+        return ObjMetaPropHelper.getPropValue(entity, propMeta, context);
     }
 
     public static Object loadByProp(IBizObject bizObj, String propName, Object propValue, IServiceContext context) {

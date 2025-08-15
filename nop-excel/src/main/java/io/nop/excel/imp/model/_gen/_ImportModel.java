@@ -32,6 +32,13 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
+     * xml name: bizObjName
+     * 
+     */
+    private java.lang.String _bizObjName ;
+    
+    /**
+     *  
      * xml name: defaultStripText
      * 
      */
@@ -127,6 +134,25 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
         checkAllowChange();
         
         this._beforeParse = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: bizObjName
+     *  
+     */
+    
+    public java.lang.String getBizObjName(){
+      return _bizObjName;
+    }
+
+    
+    public void setBizObjName(java.lang.String value){
+        checkAllowChange();
+        
+        this._bizObjName = value;
            
     }
 
@@ -347,6 +373,7 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
         
         out.putNotNull("afterParse",this.getAfterParse());
         out.putNotNull("beforeParse",this.getBeforeParse());
+        out.putNotNull("bizObjName",this.getBizObjName());
         out.putNotNull("defaultStripText",this.isDefaultStripText());
         out.putNotNull("dump",this.isDump());
         out.putNotNull("ignoreUnknownSheet",this.isIgnoreUnknownSheet());
@@ -369,6 +396,7 @@ public abstract class _ImportModel extends io.nop.core.resource.component.Abstra
         
         instance.setAfterParse(this.getAfterParse());
         instance.setBeforeParse(this.getBeforeParse());
+        instance.setBizObjName(this.getBizObjName());
         instance.setDefaultStripText(this.isDefaultStripText());
         instance.setDump(this.isDump());
         instance.setIgnoreUnknownSheet(this.isIgnoreUnknownSheet());

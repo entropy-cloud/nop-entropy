@@ -14,6 +14,7 @@ import io.nop.commons.lang.ITagSetSupport;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.XNodeValuePosition;
 import io.nop.core.reflect.hook.IExtensibleObject;
@@ -269,9 +270,9 @@ public interface IObjPropMeta
 
     IEvalAction getTransformOut();
 
-    IEvalAction getGetter();
+    IEvalFunction getGetter();
 
-    IEvalAction getSetter();
+    IEvalFunction getSetter();
 
     default boolean isVirtualListNode() {
         return getXmlName() != null && getXmlName().equals(getChildXmlName());

@@ -304,11 +304,19 @@ public class ObjMetaBasedValidator {
         return value;
     }
 
+    protected String getBizObjName(IObjPropMeta propMeta){
+        String bizObjName = propMeta.getBizObjName();
+        if(bizObjName == null)
+            bizObjName = this.bizObjName;
+        return bizObjName;
+    }
+
     protected void validateValue(ISchema schema, String subPropName, Object value, IObjPropMeta propMeta,
                                  IObjSchema objSchema, IEvalScope scope) {
         if (schema != null) {
             if (schema.isSimpleSchema()) {
-                SimpleSchemaValidator.INSTANCE.validate(schema, null, subPropName, value, scope,
+                SimpleSchemaValidator.INSTANCE.validate(schema, null, bizObjName,
+                        subPropName, value, scope,
                         errorCollector);
             }
 

@@ -276,7 +276,8 @@ public abstract class AbstractModelBasedRecordSerializer<Output extends IDataWri
         }
 
         if (field.getSchema() != null) {
-            SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), field.getLocation(), field.getName(), value, context.getEvalScope(),
+            SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), field.getLocation(),
+                    field.getRecordObjectName(), field.getName(), value, context.getEvalScope(),
                     IValidationErrorCollector.THROW_ERROR);
         }
     }

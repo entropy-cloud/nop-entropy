@@ -121,7 +121,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
      * 根据当前实体生成动态属性。getter和setter都是后台实体对象层的功能，类似Java对象上的get/set。
      * 上下文中可以通过entity变量访问当前实体对象。
      */
-    private io.nop.core.lang.eval.IEvalAction _getter ;
+    private io.nop.core.lang.eval.IEvalFunction _getter ;
     
     /**
      *  
@@ -207,7 +207,7 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
      * 对外部传入的值进行处理，可能会设置entity对象的属性。
      * 上下文中可以通过entity变量访问当前实体，通过value变量访问设置的属性值
      */
-    private io.nop.core.lang.eval.IEvalAction _setter ;
+    private io.nop.core.lang.eval.IEvalFunction _setter ;
     
     /**
      *  
@@ -598,12 +598,12 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
      * 上下文中可以通过entity变量访问当前实体对象。
      */
     
-    public io.nop.core.lang.eval.IEvalAction getGetter(){
+    public io.nop.core.lang.eval.IEvalFunction getGetter(){
       return _getter;
     }
 
     
-    public void setGetter(io.nop.core.lang.eval.IEvalAction value){
+    public void setGetter(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._getter = value;
@@ -828,12 +828,12 @@ public abstract class _ObjPropMetaImpl extends io.nop.core.resource.component.Ab
      * 上下文中可以通过entity变量访问当前实体，通过value变量访问设置的属性值
      */
     
-    public io.nop.core.lang.eval.IEvalAction getSetter(){
+    public io.nop.core.lang.eval.IEvalFunction getSetter(){
       return _setter;
     }
 
     
-    public void setSetter(io.nop.core.lang.eval.IEvalAction value){
+    public void setSetter(io.nop.core.lang.eval.IEvalFunction value){
         checkAllowChange();
         
         this._setter = value;

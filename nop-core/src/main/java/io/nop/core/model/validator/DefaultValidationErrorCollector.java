@@ -37,6 +37,14 @@ public class DefaultValidationErrorCollector implements IValidationErrorCollecto
         throw new NopValidateException().errors(errors);
     }
 
+    public List<ErrorBean> getErrors() {
+        return errors;
+    }
+
+    public boolean hasError() {
+        return !errors.isEmpty();
+    }
+
     @Override
     public void addError(ErrorBean error) {
         if (error.getSeverity() >= fatalSeverity)

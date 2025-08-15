@@ -13,7 +13,7 @@ import io.nop.biz.BizConstants;
 import io.nop.biz.api.IBizObjectManager;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.StringHelper;
-import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.bean.BeanTool;
@@ -205,13 +205,9 @@ public class OrmEntityCopier {
             if (propMeta.isVirtual())
                 return;
 
-            IEvalAction setter = propMeta.getSetter();
+            IEvalFunction setter = propMeta.getSetter();
             if (setter != null) {
-                scope = scope.newChildScope();
-                scope.setLocalValue(null, OrmConstants.VAR_ENTITY, target);
-                scope.setLocalValue(null, OrmConstants.VAR_VALUE, fromValue);
-                scope.setLocalValue(null, OrmConstants.VAR_PROP_META, propMeta);
-                setter.invoke(scope);
+                setter.call3(null, target, fromValue, propMeta,scope);
                 return;
             }
 

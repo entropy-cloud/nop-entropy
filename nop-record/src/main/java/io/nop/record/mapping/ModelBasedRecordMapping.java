@@ -28,6 +28,7 @@ import static io.nop.record.RecordErrors.ARG_VALUE;
 import static io.nop.record.RecordErrors.ERR_RECORD_FIELD_IS_MANDATORY;
 import static io.nop.record.RecordErrors.ERR_RECORD_FIELD_NOT_COLLECTION_TYPE;
 import static io.nop.record.RecordErrors.ERR_RECORD_FIELD_VALUE_NOT_IN_DICT;
+import static io.nop.xlang.XLangErrors.ARG_BIZ_OBJ_NAME;
 
 public class ModelBasedRecordMapping implements IRecordMapping {
     static final Logger LOG = LoggerFactory.getLogger(ModelBasedRecordMapping.class);
@@ -53,14 +54,14 @@ public class ModelBasedRecordMapping implements IRecordMapping {
             mapping.getBeforeMapping().call3(null, source, target, ctx, ctx.getEvalScope());
 
         for (RecordFieldMappingConfig field : mapping.getFieldMappings()) {
-            mapField(field, source, target, ctx);
+            mapField(mapping.getName(), field, source, target, ctx);
         }
 
         if (mapping.getAfterMapping() != null)
             mapping.getAfterMapping().call3(null, source, target, ctx, ctx.getEvalScope());
     }
 
-    protected void mapField(RecordFieldMappingConfig field, Object source, Object target, RecordMappingContext ctx) {
+    protected void mapField(String mappingName, RecordFieldMappingConfig field, Object source, Object target, RecordMappingContext ctx) {
         if (field.getWhen() != null) {
             boolean b = ConvertHelper.toTruthy(field.getWhen().call3(null, source, target, ctx, ctx.getEvalScope()));
             if (!b) {
@@ -74,14 +75,14 @@ public class ModelBasedRecordMapping implements IRecordMapping {
             field.getBeforeFieldMapping().call3(null, source, target, ctx, ctx.getEvalScope());
         }
 
-        mapField0(field, source, target, ctx);
+        mapField0(mappingName, field, source, target, ctx);
 
         if (field.getAfterFieldMapping() != null) {
             field.getAfterFieldMapping().call3(null, source, target, ctx, ctx.getEvalScope());
         }
     }
 
-    protected void mapField0(RecordFieldMappingConfig field, Object source, Object target, RecordMappingContext ctx) {
+    protected void mapField0(String mappingName, RecordFieldMappingConfig field, Object source, Object target, RecordMappingContext ctx) {
         if (field.getMapping() != null) {
             mapObjectField(field, source, target, ctx);
         } else {
@@ -92,14 +93,15 @@ public class ModelBasedRecordMapping implements IRecordMapping {
                 // 映射Map或者List
                 if (value == null) {
                     if (field.isMandatory())
-                        throw new NopException(ERR_RECORD_FIELD_IS_MANDATORY)
-                                .param(ARG_FIELD_NAME, field.getTo()).source(field);
+                        throw new NopException(ERR_RECORD_FIELD_IS_MANDATORY).source(field)
+                                .param(ARG_FIELD_NAME, field.getTo()).param(ARG_BIZ_OBJ_NAME, mappingName);
                 } else if (value instanceof Map) {
                     mapMapField(field, (Map<String, Object>) value, source, target, ctx);
                 } else if (value instanceof Collection) {
                     mapCollectionField(field, (Collection<?>) value, source, target, ctx);
                 } else {
                     throw new NopException(ERR_RECORD_FIELD_NOT_COLLECTION_TYPE)
+                            .param(ARG_BIZ_OBJ_NAME, mappingName)
                             .param(ARG_FIELD_NAME, field.getTo()).source(field)
                             .param(ARG_VALUE, value);
                 }
@@ -116,13 +118,13 @@ public class ModelBasedRecordMapping implements IRecordMapping {
                     ISchema schema = field.getSchema();
                     // 验证值满足schema要求
                     if (schema != null && !ctx.isSkipValidation()) {
-                        validateValue(schema, field, value, ctx);
+                        validateValue(schema, mappingName, field, value, ctx);
                     }
                 }
 
                 if (StringHelper.isEmptyObject(value) && field.isMandatory())
-                    throw new NopException(ERR_RECORD_FIELD_IS_MANDATORY)
-                            .param(ARG_FIELD_NAME, field.getTo()).source(field);
+                    throw new NopException(ERR_RECORD_FIELD_IS_MANDATORY).source(field)
+                            .param(ARG_FIELD_NAME, field.getTo()).param(ARG_BIZ_OBJ_NAME, mappingName);
 
                 BeanTool.setComplexProperty(target, field.getTo(), value);
             }
@@ -216,14 +218,19 @@ public class ModelBasedRecordMapping implements IRecordMapping {
         }
     }
 
-    protected void validateValue(ISchema schema, RecordFieldMappingConfig field, Object value, RecordMappingContext ctx) {
+    protected void validateValue(ISchema schema, String mappingName, RecordFieldMappingConfig field, Object value, RecordMappingContext ctx) {
         IGenericType type = field.getType();
         if (type == null)
             type = schema.getType();
 
+        String fieldName = field.getTo();
+        if (fieldName == null)
+            fieldName = field.getFrom();
+
         if (type != null) {
             if (type.getStdDataType().isSimpleType()) {
-                SimpleSchemaValidator.INSTANCE.validate(schema, field.getLocation(), field.getTo(), value,
+                SimpleSchemaValidator.INSTANCE.validate(schema, field.getLocation(),
+                        mappingName, fieldName, value,
                         ctx.getEvalScope(), IValidationErrorCollector.THROW_ERROR);
             }
         }
@@ -240,7 +247,8 @@ public class ModelBasedRecordMapping implements IRecordMapping {
 
                 throw new NopException(ERR_RECORD_FIELD_VALUE_NOT_IN_DICT).source(field)
                         .param(ARG_DICT, dict)
-                        .param(ARG_FIELD_NAME, field.getTo()).param(ARG_VALUE, value);
+                        .param(ARG_BIZ_OBJ_NAME, mappingName)
+                        .param(ARG_FIELD_NAME, fieldName).param(ARG_VALUE, value);
             }
         }
     }

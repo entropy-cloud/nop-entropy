@@ -22,9 +22,25 @@ import static io.nop.excel.imp.util.ImportDataHelper.normalizeFieldLabel;
 
 public class ImportFieldModel extends _ImportFieldModel implements INeedInit, IFieldContainer {
     private Map<String, ImportFieldModel> fieldNameMap;
+    private IFieldContainer fieldContainer;
 
     public ImportFieldModel() {
 
+    }
+
+    public IFieldContainer getFieldContainer() {
+        return fieldContainer;
+    }
+
+    public void setFieldContainer(IFieldContainer fieldContainer) {
+        this.fieldContainer = fieldContainer;
+    }
+
+    public String getContainerObjName() {
+        IFieldContainer container = this.fieldContainer;
+        if (container == null)
+            return null;
+        return container.getBizObjName();
     }
 
     public void initStripText(boolean defaultStripText) {
@@ -75,6 +91,16 @@ public class ImportFieldModel extends _ImportFieldModel implements INeedInit, IF
     @Override
     public void init() {
         this.fieldNameMap = toNameMap(getFields(), getUnknownField());
+
+        if (getFields() != null) {
+            for (ImportFieldModel field : getFields()) {
+                field.setFieldContainer(this);
+            }
+        }
+
+        if (getUnknownField() != null) {
+            getUnknownField().setFieldContainer(this);
+        }
     }
 
     public static Map<String, ImportFieldModel> toNameMap(List<ImportFieldModel> fields,

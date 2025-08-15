@@ -94,6 +94,7 @@ public class GraphQLArgumentValidator {
                 value = castValue(argDef, value, subSelection);
 
                 SimpleSchemaValidator.INSTANCE.validate(argDef.getSchema(), argDef.getLocation(),
+                        null,
                         argDef.getName(), value, context.getEvalScope(),
                         DefaultValidationErrorCollector.THROW_ERROR);
             }

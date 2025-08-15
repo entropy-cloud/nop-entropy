@@ -15,6 +15,8 @@ public interface ExcelErrors {
     String ARG_SHEET_NAME = "sheetName";
     String ARG_ALLOWED_NAMES = "allowedNames";
     String ARG_CELL_POS = "cellPos";
+
+    String ARG_BIZ_OBJ_NAME = "bizObjName";
     String ARG_FIELD_NAME = "fieldName";
     String ARG_DISPLAY_NAME = "displayName";
     String ARG_NAME_PATTERN = "namePattern";

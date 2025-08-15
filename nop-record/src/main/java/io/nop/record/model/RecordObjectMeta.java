@@ -108,6 +108,7 @@ public class RecordObjectMeta extends _RecordObjectMeta implements IRecordFields
         }
 
         for (RecordFieldMeta field : getFields()) {
+            field.setObjectMeta(this);
             field.init(defs);
         }
 

@@ -21,10 +21,13 @@ public class RecordFieldMappingConfig extends _RecordFieldMappingConfig {
     private RecordMappingConfig resolvedItemMapping;
     private IClassModel itemClassModel;
     private IClassModel classModel;
+    private String objName;
 
     public RecordFieldMappingConfig() {
 
     }
+
+
 
     public RecordMappingConfig getResolvedMapping() {
         return resolvedMapping;

@@ -84,7 +84,7 @@ public class RecordTemplateManager {
         if (field.getType() != null)
             value = field.getType().getStdDataType().convert(value, err -> new NopException(err).param(ARG_FIELD_NAME, field.getName()));
         if (field.getSchema() != null)
-            SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), null, field.getName(),
+            SimpleSchemaValidator.INSTANCE.validate(field.getSchema(), null, field.getTemplateName(), field.getName(),
                     value, scope, IValidationErrorCollector.THROW_ERROR);
         return value;
     }

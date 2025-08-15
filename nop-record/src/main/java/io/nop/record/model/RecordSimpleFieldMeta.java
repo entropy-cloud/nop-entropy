@@ -15,10 +15,25 @@ public class RecordSimpleFieldMeta extends _RecordSimpleFieldMeta implements IFi
     private IFieldTextCodec resolvedTextCodec;
     private IFieldBinaryCodec resolvedBinaryCodec;
 
+    private RecordObjectMeta objectMeta;
+
     private Charset charsetObj;
 
     public RecordSimpleFieldMeta() {
 
+    }
+
+
+    public String getRecordObjectName() {
+        return objectMeta == null ? null : objectMeta.getName();
+    }
+
+    public RecordObjectMeta getObjectMeta() {
+        return objectMeta;
+    }
+
+    public void setObjectMeta(RecordObjectMeta objectMeta) {
+        this.objectMeta = objectMeta;
     }
 
 

@@ -21,6 +21,8 @@ public interface IFieldContainer {
         return false;
     }
 
+    String getBizObjName();
+
     String getFieldName();
 
     default String getPropOrName() {

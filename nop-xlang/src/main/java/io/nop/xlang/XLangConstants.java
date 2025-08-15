@@ -80,4 +80,5 @@ public interface XLangConstants extends ExprConstants,
     String SLOT_DEFAULT = "default";
     String SLOT_VAR_PREFIX = "slot_";
 
+    String VAR_VALIDATION_CTX = "validationCtx";
 }

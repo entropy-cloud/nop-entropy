@@ -32,6 +32,13 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: bizObjName
+     * 
+     */
+    private java.lang.String _bizObjName ;
+    
+    /**
+     *  
      * xml name: description
      * 
      */
@@ -218,6 +225,25 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._beforeParse = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: bizObjName
+     *  
+     */
+    
+    public java.lang.String getBizObjName(){
+      return _bizObjName;
+    }
+
+    
+    public void setBizObjName(java.lang.String value){
+        checkAllowChange();
+        
+        this._bizObjName = value;
            
     }
 
@@ -687,6 +713,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         
         out.putNotNull("afterParse",this.getAfterParse());
         out.putNotNull("beforeParse",this.getBeforeParse());
+        out.putNotNull("bizObjName",this.getBizObjName());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("displayMode",this.getDisplayMode());
         out.putNotNull("field",this.getField());
@@ -722,6 +749,7 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
         
         instance.setAfterParse(this.getAfterParse());
         instance.setBeforeParse(this.getBeforeParse());
+        instance.setBizObjName(this.getBizObjName());
         instance.setDescription(this.getDescription());
         instance.setDisplayMode(this.getDisplayMode());
         instance.setField(this.getField());

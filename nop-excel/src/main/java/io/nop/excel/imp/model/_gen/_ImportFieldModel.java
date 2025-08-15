@@ -24,6 +24,13 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
     private java.util.Set<java.lang.String> _alias ;
     
     /**
+     *  
+     * xml name: bizObjName
+     * 
+     */
+    private java.lang.String _bizObjName ;
+    
+    /**
      *  是否计算字段
      * xml name: computed
      * 计算字段不需要从文件读取，而是通过valueExpr计算
@@ -215,6 +222,25 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         checkAllowChange();
         
         this._alias = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: bizObjName
+     *  
+     */
+    
+    public java.lang.String getBizObjName(){
+      return _bizObjName;
+    }
+
+    
+    public void setBizObjName(java.lang.String value){
+        checkAllowChange();
+        
+        this._bizObjName = value;
            
     }
 
@@ -744,6 +770,7 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         super.outputJson(out);
         
         out.putNotNull("alias",this.getAlias());
+        out.putNotNull("bizObjName",this.getBizObjName());
         out.putNotNull("computed",this.isComputed());
         out.putNotNull("displayMode",this.getDisplayMode());
         out.putNotNull("displayName",this.getDisplayName());
@@ -781,6 +808,7 @@ public abstract class _ImportFieldModel extends io.nop.core.resource.component.A
         super.copyTo(instance);
         
         instance.setAlias(this.getAlias());
+        instance.setBizObjName(this.getBizObjName());
         instance.setComputed(this.isComputed());
         instance.setDisplayMode(this.getDisplayMode());
         instance.setDisplayName(this.getDisplayName());

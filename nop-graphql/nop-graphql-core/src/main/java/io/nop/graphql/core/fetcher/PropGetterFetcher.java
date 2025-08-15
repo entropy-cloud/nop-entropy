@@ -7,28 +7,24 @@
  */
 package io.nop.graphql.core.fetcher;
 
-import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.graphql.core.GraphQLConstants;
 import io.nop.graphql.core.IDataFetcher;
 import io.nop.graphql.core.IDataFetchingEnvironment;
-
-import java.util.Map;
+import io.nop.xlang.xmeta.IObjPropMeta;
 
 public class PropGetterFetcher implements IDataFetcher {
-    private final IEvalAction getter;
+    private final IEvalFunction getter;
+    private final IObjPropMeta propMeta;
 
-    public PropGetterFetcher(IEvalAction getter) {
+    public PropGetterFetcher(IEvalFunction getter, IObjPropMeta propMeta) {
         this.getter = getter;
+        this.propMeta = propMeta;
     }
 
     @Override
     public Object get(IDataFetchingEnvironment env) {
-        IEvalScope scope = env.getEvalScope().newChildScope();
-        scope.setLocalValue(null, GraphQLConstants.VAR_ENTITY, env.getSource());
-        Map<String, Object> args = (Map<String, Object>) env.getArgs();
-        if (args != null)
-            scope.setLocalValues(args);
-        return getter.invoke(scope);
+        IEvalScope scope = env.getEvalScope();
+        return getter.call3(null, env.getSource(), env.getArgs(), propMeta, scope);
     }
 }

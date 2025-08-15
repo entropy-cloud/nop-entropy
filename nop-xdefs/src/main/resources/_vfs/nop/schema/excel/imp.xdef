@@ -9,7 +9,7 @@
      xdef:bean-package="io.nop.excel.imp.model" ignoreUnknownSheet="!boolean=false"
      templatePath="v-path" resultType="generic-type" dump="!boolean=false" xdef:check-ns="imp,xpt"
      x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
-     xmlns:imp="imp" xmlns:xpt="xpt"
+     xmlns:imp="imp" xmlns:xpt="xpt" bizObjName="string"
 >
 
     <beforeParse xdef:value="xpl"/>
@@ -32,7 +32,7 @@
         @list sheet中的数据是否为列表数据
         @noSeqCol 当list=true时，是否第一列不是序号列。如果不是序号列，则header之后一直到非空行都是数据行。
         -->
-        <sheet name="!string" namePattern="regex" sheetNameProp="string"
+        <sheet name="!string" namePattern="regex" sheetNameProp="string" bizObjName="string"
                xdef:name="ImportSheetModel" resultType="generic-type" ignore="!boolean=false"
                multiple="!boolean=false" list="!boolean=false" mandatory="!boolean=false" displayMode="string"
                field="string" sheetVarName="string" keyProp="string" multipleAsMap="!boolean=false"
@@ -78,7 +78,7 @@
                        xpt:rowExtendForSibling="boolean" xpt:colExtendForSibling="boolean"
                        xpt:labelColSize="int" xpt:valueColSize="int" xpt:singleColLayout="boolean"
                        imp:treeChildrenProp="string" imp:treeChildKeyProp="string" imp:treeLevelProp="string"
-                       headerRowCount="!int=0" noSeqCol="!boolean=false"
+                       headerRowCount="!int=0" noSeqCol="!boolean=false" bizObjName="string"
                 >
                     <when xdef:value="xpl-predicate"/>
 

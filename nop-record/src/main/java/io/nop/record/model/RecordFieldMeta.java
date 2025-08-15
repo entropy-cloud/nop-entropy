@@ -16,6 +16,8 @@ public class RecordFieldMeta extends _RecordFieldMeta {
     private boolean firstField;
     private boolean lastField;
 
+
+
     public RecordFieldMeta() {
 
     }
