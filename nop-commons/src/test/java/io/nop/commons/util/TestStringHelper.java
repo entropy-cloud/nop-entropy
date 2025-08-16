@@ -538,4 +538,10 @@ public class TestStringHelper {
         System.out.println(str);
         assertEquals("DEBUG a", str);
     }
+
+    @Test
+    public void testUnescapeMarkdown(){
+        String text = "\\|";
+        assertEquals("|", StringHelper.unescapeMarkdown(text));
+    }
 }

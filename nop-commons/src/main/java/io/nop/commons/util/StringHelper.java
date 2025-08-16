@@ -166,29 +166,77 @@ public class StringHelper extends ApiStringHelper {
         return escape(str, XML_ATTR_ESCAPE_CHARS, XML_ATTR_ESCAPE_STRS);
     }
 
+    @Deterministic
+    public static String escapeMarkdown(String s) {
+        if (s == null || s.isEmpty()) return s;
 
-    public static final char[] MARKDOWN_ESCAPE_CHARS = new char[]{
-            '\\', // 注意反斜杠优先
-            '*',
-            '_',
-            '~',
-            '`'
-    };
-
-    public static final String[] MARKDOWN_ESCAPE_STRS = new String[]{
-            "\\\\",
-            "\\*",
-            "\\_",
-            "\\~",
-            "\\`"
-    };
+        StringBuilder sb = null;                       // 懒创建，避免无转义时也分配
+        final byte[] TBL = ESCAPE_TABLE;               // 本地变量，便于 JIT 优化
+        for (int i = 0, len = s.length(); i < len; i++) {
+            char c = s.charAt(i);
+            if (c < TBL.length && TBL[c] != 0) {
+                if (sb == null) {
+                    sb = new StringBuilder(len + (len >> 1)); // 预分配 1.5 倍
+                    sb.append(s, 0, i);
+                }
+                sb.append('\\').append(c);
+            } else if (sb != null) {
+                sb.append(c);
+            }
+        }
+        return sb == null ? s : sb.toString();
+    }
 
     /**
-     * 对Markdown特殊字符进行转义
+     * 反转义：去掉 Markdown 转义反斜杠。
+     * 连续两个反斜杠会变成单个反斜杠，其余仅当后一个字符是保留字符时才去掉反斜杠。
      */
     @Deterministic
-    public static String escapeMarkdown(String str) {
-        return escape(str, MARKDOWN_ESCAPE_CHARS, MARKDOWN_ESCAPE_STRS);
+    public static String unescapeMarkdown(String s) {
+        if (s == null || s.isEmpty()) return s;
+
+        StringBuilder sb = null;
+        final byte[] TBL = UNESCAPE_TABLE;
+        for (int i = 0, len = s.length(); i < len; i++) {
+            char c = s.charAt(i);
+            if (c == '\\' && i + 1 < len) {
+                char next = s.charAt(i + 1);
+                if (next < TBL.length && TBL[next] != 0) {
+                    if (sb == null) {
+                        sb = new StringBuilder(len);
+                        sb.append(s, 0, i);
+                    }
+                    sb.append(next);
+                    i++;                       // 跳过下一字符
+                    continue;
+                }
+                // 反斜杠后不是保留字符，则保留反斜杠本身
+            }
+            if (sb != null) sb.append(c);
+        }
+        return sb == null ? s : sb.toString();
+    }
+
+    /* ---------- 内部实现 ---------- */
+
+    /**
+     * 哪些字符需要转义：1==需要
+     */
+    private static final byte[] ESCAPE_TABLE = buildTable(
+            "\\`*_{}[]()#+-.!|~<>/:@$%^&");
+
+    /**
+     * 哪些字符可以作为反转义目标：1==可反转义（与 ESCAPE_TABLE 相同）
+     */
+    private static final byte[] UNESCAPE_TABLE = ESCAPE_TABLE;
+
+    private static byte[] buildTable(String chars) {
+        byte[] t = new byte[128];
+        for (int i = 0; i < chars.length(); i++) {
+            char c = chars.charAt(i);
+            if (c < 128) t[c] = 1;
+        }
+        return t;
     }
 
     public static int escapeCharTo(char c, char[] fromChars, String[] toStrs, Appendable buf) throws IOException {
@@ -4748,5 +4796,5 @@ public class StringHelper extends ApiStringHelper {
         return RegexHelper.fromPattern(pattern).replace(source, replaced, multiple);
     }
 
-    
+
 }
