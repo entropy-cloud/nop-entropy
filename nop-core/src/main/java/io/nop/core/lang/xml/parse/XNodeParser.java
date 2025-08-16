@@ -463,7 +463,7 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
      * @return
      */
     String nextXString(char endChar) {
-        MutableString buf = sc.useBuf();
+        MutableString buf = sc.getReusableBuffer();
         SourceLocation startPos = sc.location();
         do {
             if (sc.isEnd()) {
@@ -493,7 +493,7 @@ public class XNodeParser extends AbstractCharReaderResourceParser<XNode> impleme
 
     void parseText() {
         SourceLocation loc = sc.location();
-        MutableString buf = sc.useBuf();
+        MutableString buf = sc.getReusableBuffer();
         do {
             if (sc.isEnd()) {
                 if (forFragments)

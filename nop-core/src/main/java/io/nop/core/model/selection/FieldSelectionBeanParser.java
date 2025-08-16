@@ -165,7 +165,7 @@ public class FieldSelectionBeanParser {
             sc.skipBlank();
             return str;
         }
-        if (sc.maybeNumber()) {
+        if (sc.isNumberStart()) {
             Number num = sc.nextNumber();
             sc.skipBlank();
             return num;

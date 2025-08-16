@@ -121,7 +121,7 @@ public class MarkdownNormalizer {
             TextScanner sc = TextScanner.fromString(null, literal);
             Node prev = text;
             do {
-                MutableString buf = sc.useBuf();
+                MutableString buf = sc.getReusableBuffer();
                 if (sc.nextUntilUnescaped('$', sc::appendToBuf)) {
                     sc.next();
                     if (!buf.isEmpty()) {
@@ -130,7 +130,7 @@ public class MarkdownNormalizer {
                         prev = newNode;
                     }
 
-                    buf = sc.useBuf();
+                    buf = sc.getReusableBuffer();
                     if (sc.nextUntilUnescaped('$', sc::appendToBuf)) {
                         MathNode newNode = new MathNode(buf.toString());
                         prev.insertAfter(newNode);

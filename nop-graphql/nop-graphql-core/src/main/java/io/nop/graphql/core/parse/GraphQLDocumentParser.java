@@ -112,7 +112,7 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
         if (sc.startsWith("\"\"\"")) {
             SourceLocation loc = sc.location();
             sc.next(3);
-            MutableString buf = sc.useBuf();
+            MutableString buf = sc.getReusableBuffer();
             while (!sc.isEnd()) {
                 if (sc.cur == '\\') {
                     sc.next();
@@ -525,7 +525,7 @@ public class GraphQLDocumentParser extends AbstractCharReaderResourceParser<Grap
             sc.skipBlank();
             return GraphQLLiteral.valueOf(loc, str);
         }
-        if (sc.maybeNumber()) {
+        if (sc.isNumberStart()) {
             Number num = sc.nextNumber();
             sc.skipBlank();
             return GraphQLLiteral.valueOf(loc, num);

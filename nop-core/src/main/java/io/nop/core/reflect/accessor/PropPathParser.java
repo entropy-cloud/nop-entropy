@@ -60,7 +60,7 @@ public class PropPathParser {
         Object index;
         sc.consume('[');
         sc.skipBlankInLine();
-        if (sc.maybeNumber()) {
+        if (sc.isNumberStart()) {
             index = sc.nextInt();
             sc.skipBlankInLine();
         } else {

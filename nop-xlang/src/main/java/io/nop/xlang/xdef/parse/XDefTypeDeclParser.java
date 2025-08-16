@@ -13,18 +13,13 @@ import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.type.StdDataType;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
-import io.nop.xlang.xdef.IStdDomainHandler;
-import io.nop.xlang.xdef.IStdDomainOptions;
 import io.nop.xlang.xdef.XDefConstants;
 import io.nop.xlang.xdef.XDefTypeDecl;
-import io.nop.xlang.xdef.domain.StdDomainRegistry;
 
 import java.util.List;
-import java.util.function.Function;
 
 import static io.nop.xlang.XLangErrors.ARG_DEF_TYPE;
 import static io.nop.xlang.XLangErrors.ARG_STD_DOMAIN;
-import static io.nop.xlang.XLangErrors.ERR_XDEF_UNKNOWN_STD_DOMAIN;
 import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_PREFIX_CP_EXPR;
 import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_PREFIX_DEPRECATED;
 import static io.nop.xlang.xdef.XDefConstants.XDEF_TYPE_PREFIX_INTERNAL;

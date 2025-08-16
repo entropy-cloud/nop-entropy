@@ -9,7 +9,6 @@ package io.nop.core.model.query;
 
 import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.util.SourceLocation;
-import io.nop.commons.io.stream.CharSequenceReader;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.StringHelper;
 

@@ -169,7 +169,7 @@ public class JsonParser extends AbstractCharReaderResourceParser<Object> impleme
             case 'f':
                 return falseExpr(sc);
             default:
-                if (sc.maybeNumber()) {
+                if (sc.isNumberStart()) {
                     return number(sc);
                 } else {
                     throw sc.newError(ERR_JSON_UNEXPECTED_CHAR);

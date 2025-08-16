@@ -106,6 +106,28 @@ entity.prop_set('extField',3);
 * `codeGenerator`: `XCodeGenerator`类型，`precompile`目录下的代码生成模板中可用
 * `__dsl_root`：`XNode`类型，在`x:gen-extends`和`x:post-extends`这样的元编程处理段中可用
 
+## 隐式传递scope
+
+
+在XLang表达式中，也提供了隐式传递IEvalScope的机制。
+
+```
+    @EvalMethod
+    public static ExcelImage QRCODE(IEvalScope scope) {
+        IXptRuntime xptRt = IXptRuntime.fromScope(scope);
+        ExpandedCell cell = xptRt.getCell();
+
+        QrcodeOptions options = new QrcodeOptions();
+        cell.getModel().readExtProps("qr:", true, options);
+        ...
+        return image;
+    }
+```
+
+如果函数上标记了`@EvalMethod`注解，则第一个参数必须是IEvalScope。在表达式中调用的时候会自动传入表达式的运行时scope。通过scope可以获取到上下文中的其他变量。
+
+比如ReportFunctions中的上述静态函数，在XScript中调用时只需要`QRCODE()`，scope参数会自动传递，不需要明确传递。
+
 
 ## JS兼容性
 

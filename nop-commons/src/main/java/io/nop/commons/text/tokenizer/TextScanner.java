@@ -382,7 +382,7 @@ public class TextScanner {
         }
     }
 
-    public void move() {
+    public void moveToNextToken() {
         next();
         skipBlank();
     }
@@ -549,7 +549,7 @@ public class TextScanner {
     }
 
     // java语法的unescape
-    private char unescape() {
+    private char unescapeJavaChar() {
         int c = cur;
         switch (c) {
             case '\'':
@@ -654,14 +654,14 @@ public class TextScanner {
      *
      * @return
      */
-    public boolean maybeNumber() {
+    public boolean isNumberStart() {
         int c = cur;
         if (c == '.' || c == '-' || StringHelper.isDigit(c))
             return true;
         return false;
     }
 
-    public MutableString useBuf() {
+    public MutableString getReusableBuffer() {
         localBuf.clear();
         return localBuf;
     }
@@ -670,7 +670,7 @@ public class TextScanner {
      * 读取a.b.c这种java属性路径
      */
     public String nextJavaPropPath() {
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
 
         if (!StringHelper.isJavaIdentifierStart(cur)) {
             consumeToBuf(buf);
@@ -696,7 +696,7 @@ public class TextScanner {
     }
 
     public String nextConfigVar() {
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
 
         if (!StringHelper.isJavaIdentifierStart(cur)) {
             throw newError(ERR_SCAN_INVALID_PROP_PATH).param(ARG_VALUE, buf.toString());
@@ -722,7 +722,7 @@ public class TextScanner {
     }
 
     public String nextGraphQLVar() {
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
 
         if (!isGraphQLNameStart(cur)) {
             throw newError(ERR_SCAN_INVALID_VAR).param(ARG_VALUE, buf.toString());
@@ -740,7 +740,7 @@ public class TextScanner {
      * 读取一个java变量名
      */
     public String nextJavaVar() {
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
 
         if (!StringHelper.isJavaIdentifierStart(cur)) {
             throw newError(ERR_SCAN_INVALID_VAR).param(ARG_VALUE, buf.toString());
@@ -763,7 +763,7 @@ public class TextScanner {
     }
 
     public String nextWord() {
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
 
         if (!isWordStart(cur)) {
             throw newError(ERR_SCAN_INVALID_VAR).param(ARG_VALUE, buf.toString());
@@ -778,7 +778,7 @@ public class TextScanner {
     }
 
     public String nextWordPath() {
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
 
         if (!isWordStart(cur)) {
             throw newError(ERR_SCAN_INVALID_VAR).param(ARG_VALUE, buf.toString());
@@ -796,7 +796,7 @@ public class TextScanner {
      * 读取一个java变量名
      */
     public String nextXmlNamespace() {
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
 
         if (!StringHelper.isXmlNameStart(cur)) {
             throw newError(ERR_SCAN_INVALID_XML_NAME).param(ARG_VALUE, String.valueOf((char) cur));
@@ -822,7 +822,7 @@ public class TextScanner {
     }
 
     public String nextHtmlAttrName() {
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
         // 允许vue扩展
         if (cur == ':' || cur == '@' || cur == '#') {
             consumeToBuf(buf);
@@ -835,7 +835,7 @@ public class TextScanner {
      * 读取一个xml标签名或者属性名。与XML规范相比，禁止了::和..这种连续的分隔符
      */
     public String nextXmlName() {
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
 
         _nextXmlName(buf);
         return buf.toString();
@@ -875,7 +875,7 @@ public class TextScanner {
             next();
         }
 
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
         if (neg)
             buf.append('-');
 
@@ -1008,7 +1008,7 @@ public class TextScanner {
     public String nextDoubleEscapeString() {
         char quote = (char) this.cur;
         next();
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
         nextDoubleEscapeString(quote, this::appendToBuf);
         next();
         return buf.toString();
@@ -1049,7 +1049,7 @@ public class TextScanner {
 
     public String nextJavaString() {
         char quote = (char) this.cur;
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
 
         SourceLocation loc = location();
         do {
@@ -1064,7 +1064,7 @@ public class TextScanner {
 
             if (c == '\\') {
                 next();
-                buf.append(unescape());
+                buf.append(unescapeJavaChar());
                 continue;
             }
             if (c == quote) {
@@ -1079,7 +1079,7 @@ public class TextScanner {
 
     public String nextJsonString() {
         char quote = (char) this.cur;
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
 
         SourceLocation loc = location();
         do {
@@ -1097,7 +1097,7 @@ public class TextScanner {
                 if (cur == '/') {
                     buf.append('/');
                 } else {
-                    buf.append(unescape());
+                    buf.append(unescapeJavaChar());
                 }
                 continue;
             }
@@ -1113,7 +1113,7 @@ public class TextScanner {
 
     public String nextLooseJsonString() {
         char quote = (char) this.cur;
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
 
         SourceLocation loc = location();
         do {
@@ -1131,7 +1131,7 @@ public class TextScanner {
                 if (cur == '/') {
                     buf.append('/');
                 } else {
-                    buf.append(unescape());
+                    buf.append(unescapeJavaChar());
                 }
                 continue;
             }
@@ -1167,7 +1167,7 @@ public class TextScanner {
 
 
     public MutableString nextUntil(Predicate<TextScanner> predicate, boolean allowEnd, String expected) {
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
         SourceLocation loc = location();
         boolean b = nextUntil(predicate, this::appendToBuf);
         if (!b && !allowEnd)
@@ -1256,12 +1256,12 @@ public class TextScanner {
     }
 
     public MutableString nextUntilEnd() {
-        MutableString buf = useBuf();
+        MutableString buf = getReusableBuffer();
         nextUntilEnd(this::appendToBuf);
         return buf;
     }
 
-    public MutableString nextLine() {
+    public String nextLine() {
         MutableString str = nextUntil(sc -> sc.cur == '\n' || sc.cur == '\r', true, "\n");
         if (cur == '\n') {
             next();
@@ -1273,7 +1273,7 @@ public class TextScanner {
                 next();
             }
         }
-        return str;
+        return str.toString();
     }
 
     public void skipSlashComment(IntConsumer consumer) {
@@ -1308,7 +1308,7 @@ public class TextScanner {
 
     public String skipJavaComment(boolean keepComment) {
         if (keepComment) {
-            MutableString buf = useBuf();
+            MutableString buf = getReusableBuffer();
             skipJavaComment(this::appendToBuf);
             return buf.trim().toString();
         } else {
@@ -1346,12 +1346,12 @@ public class TextScanner {
         }
     }
 
-    public void checkDigit(int ch) {
+    public void checkIsDigit(int ch) {
         if (ch < '0' || ch > '9')
             throw newError(ERR_SCAN_NOT_DIGIT).param(ARG_CUR, ch);
     }
 
-    public void checkHex(int ch) {
+    public void checkIsHex(int ch) {
         if (ch >= '0' && ch <= '9')
             return;
 
@@ -1365,7 +1365,7 @@ public class TextScanner {
 
     public char nextDigit() {
         int ch = cur;
-        checkDigit(ch);
+        checkIsDigit(ch);
         next();
         return (char) ch;
     }
@@ -1376,7 +1376,7 @@ public class TextScanner {
             ch = ch - 'a' + 'A';
         }
 
-        checkHex(ch);
+        checkIsHex(ch);
 
         next();
 

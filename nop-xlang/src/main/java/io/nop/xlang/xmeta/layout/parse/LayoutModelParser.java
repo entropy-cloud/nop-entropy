@@ -140,7 +140,7 @@ public class LayoutModelParser {
         String id = null;
         String label = null;
         if (StringHelper.isJavaIdentifierStart(sc.cur)) {
-            MutableString buf = sc.useBuf();
+            MutableString buf = sc.getReusableBuffer();
             sc.nextUntil(s-> s.cur == '[' || s.cur == '=' || s.cur == '(', sc::appendToBuf);
             id = buf.trim().toString();
             sc.skipBlankInLine();

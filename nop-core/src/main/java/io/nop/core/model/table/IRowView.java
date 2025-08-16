@@ -43,6 +43,10 @@ public interface IRowView extends IExtensibleObject {
      */
     int getColCount();
 
+    default int getCellCount() {
+        return getColCount();
+    }
+
     /**
      * 是否没有任何单元格。对应于getCells().isEmpty()
      */
