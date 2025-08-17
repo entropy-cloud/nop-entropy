@@ -1,0 +1,29 @@
+template: |
+  【任务目标】
+  我将分批次发送一个长文档的内容，请按照以下步骤协助生成摘要：
+
+  1. 为每个片段生成简明要点（3-5个关键点）
+  2. 保留以下内容：
+     - 核心概念/功能
+     - 关键术语/代码片段
+     - 重要结论或发现
+     - 特殊结构或模式
+  3. 标记需要后续补充的不完整上下文（如果文件不完整）
+  
+
+  【文档片段】
+  {{content}}
+  
+  【返回格式】
+   <CHUNK_SUMMARY>string</CHUNK_SUMMARY>
+
+inputs:
+  - name: content
+    mandatory: true
+
+outputs:
+  - name: RESULT
+    mandatory: true
+    parseFromResponse:
+      blockStartMarker: "<CHUNK_SUMMARY>"
+      blockEndMarker: '</CHUNK_SUMMARY>'

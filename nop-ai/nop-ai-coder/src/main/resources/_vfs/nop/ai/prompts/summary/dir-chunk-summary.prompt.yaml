@@ -1,0 +1,22 @@
+template: |
+  【任务目标】
+  我将分批次发送一个目录下所有文件的摘要内容，请按照以下步骤协助生成一个针对该目录的汇总摘要：
+  
+  【文件摘要】
+  ```
+  {{content}}
+  ```
+  
+  【返回格式】
+   <CHUNK_SUMMARY>markdown-text</CHUNK_SUMMARY>
+
+inputs:
+  - name: content
+    mandatory: true
+
+outputs:
+  - name: RESULT
+    mandatory: true
+    parseFromResponse:
+      blockStartMarker: "<CHUNK_SUMMARY>"
+      blockEndMarker: '</CHUNK_SUMMARY>'

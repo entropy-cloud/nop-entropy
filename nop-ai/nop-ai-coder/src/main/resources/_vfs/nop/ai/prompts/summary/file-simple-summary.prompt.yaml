@@ -1,0 +1,27 @@
+template: |
+  你是一名专业的信息浓缩专家，请对以下文件内容进行压缩。规则如下：
+  1. 保留原始立场、核心论点、关键数据与结论，不新增、不删减含义。
+  2. 精简冗余背景、细节、修饰语，只保留必要因果、转折、对比关系。
+  3. 全文控制在500字以内，用中文输出；禁止出现“本文”“该文”等指代词。
+  4. 采用“一句背景—三句要点—一句结论”的格式：  
+     - 第一句交代主题与背景；  
+     - 第二至四句依次列出最重要论点、关键数据、主要案例；  
+     - 第五句给出最终结论或行动建议。  
+  5. 若原文含多个并列要点，用分号分隔，确保阅读流畅。
+
+  【文件内容】
+  {{content}}
+  
+  【返回格式】
+   <FINAL_SUMMARY>string</FINAL_SUMMARY>
+
+inputs:
+  - name: content
+    mandatory: true
+
+outputs:
+  - name: RESULT
+    mandatory: true
+    parseFromResponse:
+      blockStartMarker: "<FINAL_SUMMARY>"
+      blockEndMarker: '</FINAL_SUMMARY>'

@@ -1,0 +1,103 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:ai="/nop/ai/xlib/ai.xlib" x:dump="true"
+      defaultUseParentScope="true"
+      x:extends="/nop/task/lib/common.task.xml">
+
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="30000" maxTokens="8000" temperature="1"
+                    sessionId="${sessionId}" enableThinking="false"/>
+
+
+    <input name="inputDir"/>
+    <input name="outputDir"/>
+
+    <input name="aiProvider" type="String" mandatory="true"/>
+    <input name="aiModel" type="String" mandatory="true"/>
+    <input name="sessionId" type="String" optional="true"/>
+
+    <steps>
+        <step name="initVars">
+            <output name="resolvedInputDir">
+                <source>
+                    import io.nop.commons.util.FileHelper;
+                    const dir = FileHelper.resolveFile(inputDir);
+                    return FileHelper.getAbsoluteFile(dir);
+                </source>
+            </output>
+        </step>
+
+        <loop name="visitDir" varName="dir">
+            <producer><![CDATA[
+                import io.nop.core.utils.FileIterators;
+                return FileIterators.depthFirstIterator(resolvedInputDir, false, file=>{
+                    if(file.getName().startsWith("."))
+                      return false;
+                    return file.isDirectory();
+                });
+            ]]></producer>
+
+            <steps>
+                <step name="getDirPath">
+                    <output name="dirPath">
+                        <source>
+                            import io.nop.commons.util.FileHelper;
+                            const dirPath = FileHelper.getRelativePath(resolvedInputDir, dir);
+                            return dirPath;
+                        </source>
+                    </output>
+                </step>
+
+                <fork name="genDirSummary" varName="filePathList">
+                    <producer><![CDATA[
+                       import io.nop.core.utils.FileIterators;
+                       import io.nop.commons.util.FileHelper;
+
+                       return FileIterators.batchTextFilesByCharLimit(dir,40*1024,
+                            file=>{
+                               if(file.isDirectory())
+                                 return true;
+                               return file.getName().endsWith(".summary.md");
+                            }).map(file=>{
+                               return FileHelper.getRelativePath(resolvedInputDir, file);
+                            });
+                    ]]></producer>
+
+                    <steps>
+                        <exit name="checkNotExists">
+                            <when><![CDATA[
+                               import io.nop.commons.util.FileHelper;
+                               const file = FileHelper.resolveFile(outputDir.$appendPath(dirPath + '.dir-summary.md')));
+                               return file.exists();
+                            ]]></when>
+                        </exit>
+
+                        <step name="readFileContents" customType="ai:ReadFileContents">
+                            <input name="inputDir"/>
+                            <input name="filePaths" value="${filePathList}"/>
+                            <output name="RESULT" exportAs="fileContents"/>
+                        </step>
+
+                        <step name="genChunkSummary" customType="ai:TaskStep"
+                              ai:promptName="summary/dir-chunk-summary" ai:useResponseCache="true">
+                            <throttle maxConcurrency="1" maxWait="100000000"/>
+                            <input name="content" value="${fileContents.serializeToString()}"/>
+                            <output name="RESULT"/>
+                        </step>
+                    </steps>
+
+                    <aggregator>
+                        return aggResults.getSuccessStepResultValues().join("\n\n");
+                    </aggregator>
+
+                    <output name="RESULT" exportAs="dirSummary"/>
+                </fork>
+
+
+                <step name="saveSummary" customType="file-utils:WriteText">
+                    <input name="outputDir"/>
+                    <input name="fileName" value="${dirPath + '.dir-summary.md')}"/>
+                    <input name="text" value="${dirSummary}"/>
+                </step>
+            </steps>
+        </loop>
+    </steps>
+</task>

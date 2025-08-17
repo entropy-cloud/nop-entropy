@@ -1,0 +1,121 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:ai="/nop/ai/xlib/ai.xlib" x:dump="true" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib"
+      defaultUseParentScope="true" xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
+      x:extends="/nop/task/lib/common.task.xml">
+
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="30000" maxTokens="8000" temperature="1"
+                    sessionId="${sessionId}" enableThinking="false"/>
+
+    <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
+
+    <input name="inputDir"/>
+    <input name="outputDir"/>
+
+    <input name="aiProvider" type="String" mandatory="true"/>
+    <input name="aiModel" type="String" mandatory="true"/>
+    <input name="sessionId" type="String" optional="true"/>
+
+    <steps>
+        <fork name="genSummary" varName="filePath" joinType="allComplete">
+            <producer><![CDATA[
+                import io.nop.commons.util.FileHelper;
+                const dir = FileHelper.resolveFile(inputDir);
+
+                return FileHelper.findFilePaths(dir,"**/*.md", true, true)
+                        .filter(path=> !path.contains('/_') and !path.contains('/.') and !path.startsWith('.'));
+            ]]></producer>
+
+            <steps>
+                <exit name="checkNotExists">
+                    <when><![CDATA[
+                       import io.nop.commons.util.FileHelper;
+                       const file = FileHelper.resolveFile(outputDir.$appendPath(filePath.$replaceFileExt('.summary.md')));
+                       return file.exists();
+                    ]]></when>
+                </exit>
+
+                <step name="readText" customType="file-utils:ReadText">
+                    <input name="inputDir"/>
+                    <input name="fileName" value="${filePath}"/>
+                    <output name="RESULT" exportAs="fileText"/>
+                </step>
+
+                <step name="checkNeedSplit">
+                    <source><![CDATA[
+                        import io.nop.ai.core.commons.splitter.SimpleTextSplitter;
+
+                        const splitter = new SimpleTextSplitter();
+                        const chunks = splitter.split(null, fileText, {maxContentSize: 40*1024, overlapSize: 500});
+
+                        return {
+                            needSplit: chunks.size() > 1,
+                            chunks: chunks
+                        };
+                    ]]></source>
+
+                    <output name="RESULT" exportAs="splitInfo"/>
+                </step>
+
+                <if name="genFileSummary">
+                    <condition>
+                        return !splitInfo.needSplit;
+                    </condition>
+
+                    <then>
+                        <steps>
+                            <!-- 文件不需要分块时直接生成摘要 -->
+                            <step name="genSingleChunkSummary" customType="ai:TaskStep"
+                                  ai:promptName="summary/file-summary" ai:useResponseCache="true">
+                                <throttle maxConcurrency="1" maxWait="100000000"/>
+                                <input name="content" value="${splitInfo.chunks[0].content}"/>
+                                <output name="RESULT"/>
+                            </step>
+                        </steps>
+                    </then>
+
+                    <else>
+                        <steps>
+                            <!-- 文件需要分块时，先为每个块生成摘要 -->
+                            <fork name="genChunkSummaries" varName="chunk" indexName="chunkIndex">
+                                <producer>
+                                    return splitInfo.chunks;
+                                </producer>
+
+                                <steps>
+                                    <step name="genChunkSummary" customType="ai:TaskStep"
+                                          ai:promptName="summary/file-chunk-summary" ai:useResponseCache="true">
+                                        <throttle maxConcurrency="1" maxWait="100000000"/>
+                                        <input name="content" value="${chunk.content}"/>
+                                        <output name="RESULT"/>
+                                    </step>
+                                </steps>
+
+                                <aggregator>
+                                    return aggResults.getSuccessStepResultValues().join("\n\n======\n\n");
+                                </aggregator>
+
+                                <output name="RESULT" exportAs="chunkSummaries"/>
+                            </fork>
+
+                            <!-- 然后合并所有块的摘要生成最终摘要 -->
+                            <step name="genFinalSummary" customType="ai:TaskStep"
+                                  ai:promptName="summary/file-final-summary" ai:useResponseCache="true">
+                                <throttle maxConcurrency="1" maxWait="100000000"/>
+                                <input name="content" value="${chunkSummaries}"/>
+                                <output name="RESULT"/>
+                            </step>
+                        </steps>
+                    </else>
+
+                    <output name="RESULT" exportAs="fileSummary"/>
+                </if>
+
+                <step name="saveSummary" customType="file-utils:WriteText">
+                    <input name="outputDir"/>
+                    <input name="fileName" value="${filePath.$replaceFileExt('.summary.md')}"/>
+                    <input name="text" value="${fileSummary}"/>
+                </step>
+            </steps>
+        </fork>
+    </steps>
+</task>

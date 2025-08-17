@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.ITextSerializable;
 import io.nop.commons.collections.MutableIntArray;
 import io.nop.commons.lang.ITagSetSupport;
 import io.nop.commons.util.FileHelper;
@@ -30,7 +31,7 @@ import static io.nop.markdown.MarkdownErrors.ARG_TITLE;
 import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_MISSING_SECTION;
 
 @DataBean
-public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
+public class MarkdownSection extends MarkdownNode implements ITagSetSupport, ITextSerializable {
     static final Logger LOG = LoggerFactory.getLogger(MarkdownSection.class);
 
     private int level;
@@ -78,6 +79,11 @@ public class MarkdownSection extends MarkdownNode implements ITagSetSupport {
                 return 1;
             return StringHelper.compareVersions(sectionNoA, sectionNoB);
         }
+    }
+
+    @Override
+    public String serializeToString() {
+        return toText();
     }
 
     public void mergeWith(MarkdownSection section) {

@@ -1,0 +1,58 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:ai="/nop/ai/xlib/ai.xlib" x:dump="true"
+      defaultUseParentScope="true"
+      x:extends="/nop/task/lib/common.task.xml">
+
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="30000" maxTokens="8000"
+                    sessionId="${sessionId}" enableThinking="false"/>
+
+    <input name="inputDir"/>
+    <input name="outputDir"/>
+
+    <input name="aiProvider" type="String" mandatory="true"/>
+    <input name="aiModel" type="String" mandatory="true"/>
+    <input name="sessionId" type="String" optional="true"/>
+
+    <steps>
+        <fork name="genSimpleSummary" varName="filePath" joinType="allComplete">
+            <producer><![CDATA[
+                import io.nop.commons.util.FileHelper;
+                const dir = FileHelper.resolveFile(inputDir);
+
+                return FileHelper.findFilePaths(dir,"**/*.summary.md", true, true)
+                        .filter(path=> !path.contains('/_') and !path.contains('/.') and !path.startsWith('.'));
+            ]]></producer>
+
+            <steps>
+                <exit name="checkNotExists">
+                    <when><![CDATA[
+                       import io.nop.commons.util.FileHelper;
+                       const file = FileHelper.resolveFile(outputDir.$appendPath(filePath.$replaceFileExt('.simple-summary.md')));
+                       return file.exists();
+                    ]]></when>
+                </exit>
+
+                <step name="readText" customType="file-utils:ReadText">
+                    <input name="inputDir"/>
+                    <input name="fileName" value="${filePath}"/>
+                    <output name="RESULT" exportAs="fileText"/>
+                </step>
+
+                <!-- 文件不需要分块时直接生成摘要 -->
+                <step name="genSimpleSummary" customType="ai:TaskStep"
+                      ai:promptName="summary/file-simple-summary" ai:useResponseCache="true">
+                    <throttle maxConcurrency="1" maxWait="100000000"/>
+                    <input name="content" value="${fileText}"/>
+                    <output name="RESULT"/>
+                </step>
+
+                <step name="saveSummary" customType="file-utils:WriteText">
+                    <input name="outputDir"/>
+                    <input name="fileName" value="${filePath.$replaceFileExt('.simple-summary.md')}"/>
+                    <input name="text" value="${fileSummary}"/>
+                </step>
+
+            </steps>
+        </fork>
+    </steps>
+</task>

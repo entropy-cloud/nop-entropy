@@ -2,6 +2,7 @@ package io.nop.markdown.simple;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.IComponentModel;
+import io.nop.api.core.util.ITextSerializable;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.markdown.utils.MarkdownTool;
@@ -19,11 +20,16 @@ import java.util.function.Predicate;
 import static io.nop.markdown.MarkdownErrors.ARG_TITLE;
 import static io.nop.markdown.MarkdownErrors.ERR_MARKDOWN_MISSING_SECTION;
 
-public class MarkdownDocument implements IComponentModel {
+public class MarkdownDocument implements IComponentModel, ITextSerializable {
     static final Logger LOG = LoggerFactory.getLogger(MarkdownDocument.class);
 
     private SourceLocation location;
     private MarkdownSection rootSection;
+
+    @Override
+    public String serializeToString() {
+        return toText();
+    }
 
     public void normalizeSectionNo() {
         if (rootSection != null) {

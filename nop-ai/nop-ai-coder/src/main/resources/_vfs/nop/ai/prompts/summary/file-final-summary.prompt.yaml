@@ -1,0 +1,25 @@
+template: |
+  【任务目标】
+  以下是一个长文档的分段摘要，请整合之前所有部分的摘要，生成一个连贯、全面的最终摘要。确保：
+  
+  1. 保持文档/代码的核心结构和逻辑流程
+  2. 突出最重要的功能和关键点
+  3. 删除冗余信息，保持简洁
+  4. 对技术文档，保留关键术语和概念
+  
+  【待整合摘要】
+  {{content}}
+
+  【返回格式】
+   <FINAL_SUMMARY>string</FINAL_SUMMARY>
+
+inputs:
+  - name: content
+    mandatory: true
+
+outputs:
+  - name: RESULT
+    mandatory: true
+    parseFromResponse:
+      blockStartMarker: "<FINAL_SUMMARY>"
+      blockEndMarker: '</FINAL_SUMMARY>'

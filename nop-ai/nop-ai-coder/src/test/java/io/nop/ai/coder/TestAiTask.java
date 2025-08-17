@@ -331,4 +331,45 @@ public class TestAiTask extends JunitBaseTestCase {
         taskRt.setInput("sessionId", "test");
         task.execute(taskRt).syncGetOutputs();
     }
+
+    @Test
+    public void testFileSummary() {
+        ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-file-summary.task.xml");
+        ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
+        File sourceDir = new File(getModuleDir(), "../../");
+        File targetDir = new File("c:/test/summary");
+
+        taskRt.setInput("inputDir", sourceDir.getAbsolutePath());
+        taskRt.setInput("outputDir", targetDir.getAbsolutePath());
+
+        taskRt.setInput("aiProvider", "lm-studio");
+        taskRt.setInput("aiModel", "qwen/qwen3-8b");
+
+        //taskRt.setInput("aiProvider", "ollama");
+        //taskRt.setInput("aiModel", "qwen3:4b");
+
+        taskRt.setInput("sessionId", "test");
+        task.execute(taskRt).syncGetOutputs();
+    }
+
+    @Test
+    public void testFileSimpleSummary() {
+        ITask task = taskFlowManager.loadTaskFromPath("/nop/ai/tasks/ai-file-summary.task.xml");
+        ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, null);
+        //File sourceDir = new File(getModuleDir(), "../../");
+        File sourceDir = new File("c:/test/summary");
+        File targetDir = new File("c:/test/simple-summary");
+
+        taskRt.setInput("inputDir", sourceDir.getAbsolutePath());
+        taskRt.setInput("outputDir", targetDir.getAbsolutePath());
+
+        taskRt.setInput("aiProvider", "lm-studio");
+        taskRt.setInput("aiModel", "qwen/qwen3-8b");
+
+        //taskRt.setInput("aiProvider", "ollama");
+        //taskRt.setInput("aiModel", "qwen3:4b");
+
+        taskRt.setInput("sessionId", "test");
+        task.execute(taskRt).syncGetOutputs();
+    }
 }
