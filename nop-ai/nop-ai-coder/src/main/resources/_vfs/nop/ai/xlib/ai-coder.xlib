@@ -161,10 +161,10 @@
 
             <source>
                 import io.nop.core.resource.ResourceHelper;
-                import  io.nop.xlang.xdsl.DslModelHelper;
+                import io.nop.xlang.xdsl.DslModelHelper;
 
                 const resource = ResourceHelper.resolveResourceInDir(inputDir, fileName);
-                return  DslModelHelper.loadDslModel(resource.path);
+                return DslModelHelper.loadDslModel(resource.path);
             </source>
         </LoadDslModel>
 
@@ -252,5 +252,22 @@
                 codeGen.execute("/", args || {}, $scope);
             ]]></source>
         </RunCodeGen>
+
+        <ReadFileContents>
+            <attr name="filePaths" mandatory="true"/>
+            <attr name="inputDir" mandatory="true"/>
+
+            <source>
+                <c:script><![CDATA[
+                import io.nop.core.resource.ResourceHelper;
+                import io.nop.commons.util.FileHelper;
+                import io.nop.ai.coder.file.LocalFileOperator;
+
+                const dir = FileHelper.resolveFile(inputDir.toString());
+                const fileOperator = new LocalFileOperator(dir);
+                return fileOperator.readFileContents(filePaths);
+            ]]></c:script>
+            </source>
+        </ReadFileContents>
     </tags>
 </lib>

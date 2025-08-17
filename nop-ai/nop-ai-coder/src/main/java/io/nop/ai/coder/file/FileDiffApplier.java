@@ -36,7 +36,7 @@ public class FileDiffApplier {
                 .flatMap(section -> section.getChangedLines().stream())
                 .collect(Collectors.joining("\n"));
 
-        fileOperator.writeFile(new FileContent(newPath, null, content));
+        fileOperator.writeFileContent(new FileContent(newPath, null, content));
     }
 
     private void applyDeleteFile(FileDiff fileDiff) {
@@ -57,7 +57,7 @@ public class FileDiffApplier {
 
         applyDiffSection(lines, fileDiff.getDiffs(), positions);
 
-        fileOperator.writeFile(new FileContent(path, null, String.join("\n", lines)));
+        fileOperator.writeFileContent(new FileContent(path, null, String.join("\n", lines)));
     }
 
 

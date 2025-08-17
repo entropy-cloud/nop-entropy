@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
+import io.nop.api.core.util.ITextSerializable;
 import io.nop.commons.text.CDataText;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.utils.CodeLangMap;
@@ -17,7 +18,7 @@ import java.util.List;
 import static io.nop.ai.coder.AiCoderErrors.ERR_FILE_CONTENT_NO_PATH;
 
 @DataBean
-public class FileContent {
+public class FileContent implements ITextSerializable {
     public static final String FILE_NOT_FOUND = "FILE_NOT_FOUND";
 
     public static final String TAG_FILE = "file";
@@ -52,6 +53,11 @@ public class FileContent {
     @JsonIgnore
     public boolean isFileNotFound() {
         return FILE_NOT_FOUND.equals(getDescription());
+    }
+
+    @Override
+    public String serializeToString() {
+        return toNode().serializeToString();
     }
 
     public String getContent() {

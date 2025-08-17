@@ -11,6 +11,7 @@ import io.nop.commons.collections.IterableIterator;
 import io.nop.core.model.tree.impl.DepthFirstIterator;
 import io.nop.core.model.tree.impl.WidthFirstIterator;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -23,6 +24,16 @@ public class TreeVisitors {
     public static <T extends ITreeChildrenStructure> ITreeChildrenAdapter<T> childrenStructureAdapter() {
         return (ITreeChildrenAdapter<T>) DEFAULT_CHILDREN_ADAPTER;
     }
+
+    public static ITreeChildrenAdapter<File> FILE_CHILDREN_ADAPTER = new ITreeChildrenAdapter<File>() {
+        @Override
+        public Collection<? extends File> getChildren(File node) {
+            File[] files = node.listFiles();
+            if (files == null)
+                return null;
+            return List.of(files);
+        }
+    };
 
     /**
      * 递归遍历树形结构，根节点也被访问。

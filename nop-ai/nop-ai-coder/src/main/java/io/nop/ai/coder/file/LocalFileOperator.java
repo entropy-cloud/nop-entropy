@@ -26,7 +26,7 @@ public class LocalFileOperator implements IFileOperator {
     private final IPathMatcher pathMatcher = new AntPathMatcher();
 
     public LocalFileOperator(File baseDir) {
-        this.baseDir = baseDir.getAbsoluteFile();
+        this.baseDir = FileHelper.getAbsoluteFile(baseDir);
     }
 
     public LocalFileOperator(String baseDirPath) {
@@ -38,7 +38,7 @@ public class LocalFileOperator implements IFileOperator {
     }
 
     @Override
-    public FileContent readFile(String path) {
+    public FileContent readFileContent(String path) {
         File file = resolveFile(path);
         if (!file.exists()) {
             throw new NopException(ERR_FILE_NOT_FOUND)
@@ -80,7 +80,7 @@ public class LocalFileOperator implements IFileOperator {
     }
 
     @Override
-    public void writeFile(FileContent fileContent, boolean append) {
+    public void writeFileContent(FileContent fileContent, boolean append) {
         File file = resolveFile(fileContent.getPath());
         try {
             FileHelper.writeText(file, fileContent.getContent(), "UTF-8", append);

@@ -20,6 +20,7 @@ import io.nop.api.core.util.ICloneable;
 import io.nop.api.core.util.IFreezable;
 import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.ISourceLocationSetter;
+import io.nop.api.core.util.ITextSerializable;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.functional.IEqualsChecker;
 import io.nop.commons.lang.ITagSetSupport;
@@ -104,7 +105,7 @@ import static io.nop.core.CoreErrors.ERR_XNODE_IS_READONLY;
  */
 @GraphQLMap
 public class XNode implements Serializable, ISourceLocationGetter, ISourceLocationSetter, ITreeBean, ITreeStructure,
-        ICloneable, IJsonSerializable, IFreezable, ITagSetSupport {
+        ICloneable, IJsonSerializable, IFreezable, ITagSetSupport, ITextSerializable {
     private static final long serialVersionUID = -8460236455991070110L;
 
     static final Logger LOG = LoggerFactory.getLogger(XNode.class);
@@ -189,6 +190,11 @@ public class XNode implements Serializable, ISourceLocationGetter, ISourceLocati
                 extension.syncFromNode(this);
             }
         }
+    }
+
+    @Override
+    public String serializeToString() {
+        return xml();
     }
 
     public Set<String> getAllNamespaces() {

@@ -99,7 +99,7 @@ public class CliFileCommand implements Callable<Integer> {
             throw new IllegalArgumentException("--pattern is required for read operation");
         }
 
-        FileContents contents = fileOperator.readFilesByAntPath(searchDir, pattern, maxFiles);
+        FileContents contents = fileOperator.readFileContentsByAntPath(searchDir, pattern, maxFiles);
         String xml = contents.toNode().xml();
 
         if (!outputPath.isEmpty()) {
@@ -132,13 +132,13 @@ public class CliFileCommand implements Callable<Integer> {
             if (contents.getFiles().isEmpty()) {
                 throw new IllegalArgumentException("No file content provided");
             }
-            fileOperator.writeFiles(contents, overwrite);
+            fileOperator.writeFileContents(contents, overwrite);
             System.out.println("Files written successfully");
         } else {
             File outputFile = new File(outputPath);
             if (outputFile.isDirectory()) {
                 // 如果输出目标是目录，写入多个文件
-                fileOperator.writeFiles(contents, overwrite);
+                fileOperator.writeFileContents(contents, overwrite);
                 System.out.println("Files written to directory: " + outputPath);
             } else {
                 // 如果输出目标是文件，只写入第一个文件内容

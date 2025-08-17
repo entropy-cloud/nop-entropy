@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import static io.nop.autotest.core.data.OrmModelHelper.getColNames;
+
 public class AutoTestCaseDataSaver {
     static final Logger LOG = LoggerFactory.getLogger(AutoTestCaseDataSaver.class);
 
@@ -92,14 +94,6 @@ public class AutoTestCaseDataSaver {
         if(file.delete()){
             LOG.debug("nop.autotest.remove-input-file:{}",file);
         }
-    }
-
-    private List<String> getColNames(IEntityModel entityModel) {
-        List<String> ret = new ArrayList<>(entityModel.getColumns().size());
-        for (IColumnModel col : entityModel.getColumns()) {
-            ret.add(col.getCode());
-        }
-        return ret;
     }
 
     private void saveOutputTable(IEntityModel entityModel, List<EntityRow> rows, TagVarCollector varCollector) {

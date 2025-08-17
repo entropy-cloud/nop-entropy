@@ -1,6 +1,7 @@
 package io.nop.ai.coder.file;
 
 import io.nop.api.core.annotations.data.DataBean;
+import io.nop.api.core.util.ITextSerializable;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.markdown.simple.MarkdownSection;
@@ -9,21 +10,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 @DataBean
-public class FileContents {
+public class FileContents implements ITextSerializable {
     private List<FileContent> files;
 
     public static FileContents empty() {
         return new FileContents();
     }
 
-    public static FileContents fromText(String text){
+    public static FileContents fromText(String text) {
         XNode node = XNodeParser.instance().parseFromText(null, text);
         return fromNode(node);
     }
 
     public static FileContents fromNode(XNode node) {
         FileContents contents = new FileContents();
-        if(node.getTagName().equals(FileContent.TAG_FILE)){
+        if (node.getTagName().equals(FileContent.TAG_FILE)) {
             contents.addFile(FileContent.fromNode(node));
             return contents;
         }
@@ -31,6 +32,11 @@ public class FileContents {
             contents.addFile(FileContent.fromNode(child));
         }
         return contents;
+    }
+
+    @Override
+    public String serializeToString() {
+        return toNode().serializeToString();
     }
 
     public List<FileContent> getFiles() {
