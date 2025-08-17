@@ -1,0 +1,101 @@
+{
+  "caseName": "TC-DICT-001",
+  "priority": "P0",
+  "input": {
+    "request": {
+      "sid": "dict001",
+      "dictName": "gender",
+      "displayName": "性别",
+      "delFlag": 0,
+      "version": 1,
+      "createdBy": "admin",
+      "remark": "性别字典",
+      "dictOptions": [
+        {
+          "sid": "opt001",
+          "label": "男",
+          "value": "male",
+          "codeValue": "1",
+          "groupName": "common",
+          "isInternal": 0,
+          "isDeprecated": 0,
+          "delFlag": 0,
+          "version": 1
+        },
+        {
+          "sid": "opt002",
+          "label": "女",
+          "value": "female",
+          "codeValue": "2",
+          "groupName": "common",
+          "isInternal": 0,
+          "isDeprecated": 0,
+          "delFlag": 0,
+          "version": 1
+        }
+      ]
+    },
+    "entities": {
+      "NopSysDict": [],
+      "NopSysDictOption": []
+    }
+  },
+  "output": {
+    "response": {
+      "status": 0,
+      "code": null,
+      "data": {
+        "sid": "dict001"
+      }
+    },
+    "entities": {
+      "NopSysDict": [
+        {
+          "_chgType": "A",
+          "sid": "dict001",
+          "dictName": "gender",
+          "displayName": "性别",
+          "delFlag": 0,
+          "version": 1,
+          "createdBy": "admin",
+          "createTime": "@notnull",
+          "updatedBy": "admin",
+          "updateTime": "@notnull",
+          "remark": "性别字典"
+        }
+      ],
+      "NopSysDictOption": [
+        {
+          "_chgType": "A",
+          "sid": "opt001",
+          "dictId": "dict001",
+          "label": "男",
+          "value": "male",
+          "codeValue": "1",
+          "groupName": "common",
+          "isInternal": 0,
+          "isDeprecated": 0,
+          "delFlag": 0,
+          "version": 1,
+          "createdBy": "admin",
+          "createTime": "@notnull"
+        },
+        {
+          "_chgType": "A",
+          "sid": "opt002",
+          "dictId": "dict001",
+          "label": "女",
+          "value": "female",
+          "codeValue": "2",
+          "groupName": "common",
+          "isInternal": 0,
+          "isDeprecated": 0,
+          "delFlag": 0,
+          "version": 1,
+          "createdBy": "admin",
+          "createTime": "@notnull"
+        }
+      ]
+    }
+  }
+}
