@@ -4,4 +4,6 @@
 codeGenerator.withTargetDir("../").renderModel('../../model/nop-sys.orm.xlsx','/nop/templates/orm', '/',$scope);
 codeGenerator.withTargetDir("../nop-sys-dao/src/main/java").renderModel('../../nop-sys-dao/src/main/resources/_vfs/nop/sys/orm/app.orm.xml',
     '/nop/templates/orm-entity','/',$scope);
+codeGenerator.withTargetDir("../").renderModel('../../nop-sys-dao/src/main/resources/_vfs/nop/sys/orm/app.orm.xml',
+   '/nop/templates/orm-model','/', $scope);
 ]]></c:script>
