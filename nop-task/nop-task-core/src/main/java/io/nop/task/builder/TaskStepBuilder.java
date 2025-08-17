@@ -159,6 +159,8 @@ public class TaskStepBuilder implements ITaskStepBuilder {
                 break;
             case TaskConstants.STEP_TYPE_CASE:
             case TaskConstants.STEP_TYPE_OTHERWISE:
+            case TaskConstants.STEP_TYPE_THEN:
+            case TaskConstants.STEP_TYPE_ELSE:
                 step = buildSequentialStep((TaskStepsModel) stepModel);
                 break;
             case TaskConstants.STEP_TYPE_TASK:

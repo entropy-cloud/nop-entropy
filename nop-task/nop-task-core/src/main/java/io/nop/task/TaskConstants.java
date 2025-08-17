@@ -136,6 +136,10 @@ public interface TaskConstants {
 
     String STEP_TYPE_OTHERWISE = "otherwise";
 
+    String STEP_TYPE_THEN = "then";
+
+    String STEP_TYPE_ELSE = "else";
+
     String STEP_TYPE_TASK = "task";
 
     String STEP_TYPE_INVOKE_STATIC = "invoke-static";

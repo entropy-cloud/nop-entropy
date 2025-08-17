@@ -1,9 +1,10 @@
 package io.nop.task.builder;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.task.model.ChooseTaskStepModel;
 import io.nop.task.model.IGraphTaskStepModel;
+import io.nop.task.model.IfTaskStepModel;
 import io.nop.task.model.TaskFlowModel;
-import io.nop.task.model.TaskInputModel;
 import io.nop.task.model.TaskStepModel;
 import io.nop.task.model.TaskStepsModel;
 
@@ -37,12 +38,6 @@ public class TaskFlowAnalyzer {
     void forceUseParentScope(TaskStepModel stepModel) {
         if (stepModel.getUseParentScope() == null)
             stepModel.setUseParentScope(true);
-
-        if (stepModel instanceof TaskStepsModel) {
-            for (TaskStepModel subStep : ((TaskStepsModel) stepModel).getSteps()) {
-                forceUseParentScope(subStep);
-            }
-        }
     }
 
     private void checkStepRef(TaskStepModel stepModel) {
@@ -99,6 +94,24 @@ public class TaskFlowAnalyzer {
             steps.getSteps().forEach(subStep -> {
                 forEachStep(subStep, action);
             });
+        } else if (stepModel instanceof IfTaskStepModel) {
+            IfTaskStepModel ifModel = (IfTaskStepModel) stepModel;
+            if (ifModel.getThen() != null) {
+                action.accept(ifModel.getThen());
+            }
+            if (ifModel.getElse() != null) {
+                action.accept(ifModel.getElse());
+            }
+        } else if (stepModel instanceof ChooseTaskStepModel) {
+            ChooseTaskStepModel chooseModel = (ChooseTaskStepModel) stepModel;
+            if (chooseModel.getCases() != null) {
+                chooseModel.getCases().forEach(subStep -> {
+                    forEachStep(subStep, action);
+                });
+            }
+            if (chooseModel.getOtherwise() != null) {
+                forEachStep(chooseModel.getOtherwise(), action);
+            }
         }
     }
 }
