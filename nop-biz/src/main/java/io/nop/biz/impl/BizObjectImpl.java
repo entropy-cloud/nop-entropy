@@ -196,7 +196,7 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
 
         List<GraphQLFieldDefinition> ret = new ArrayList<>();
         for (GraphQLFieldDefinition op : operations.values()) {
-            if (op.getOperationType() == opType) {
+            if (opType == null || op.getOperationType() == opType) {
                 ret.add(op);
             }
         }
