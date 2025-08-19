@@ -130,6 +130,8 @@ public class SimpleSheetContentsHandler implements SheetContentsHandler {
     }
 
     ExcelStyle getStyle(ExcelWorkbook wk, ExcelCell ec) {
+        if(ec == null)
+            return null;
         String styleId = ec.getStyleId();
         if (styleId == null)
             return null;
