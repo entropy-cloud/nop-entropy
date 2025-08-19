@@ -63,17 +63,23 @@ public final class BatchingIterator<T> implements IterableIterator<List<T>> {
             switch (decision) {
                 case ACCEPT_AND_FINISH:
                     currentBatch.add(element);
-                    return new ArrayList<>(currentBatch);  // 拷贝一份，防止外部修改
+                    return cloneAndClear(currentBatch);  // 拷贝一份，防止外部修改
                 case ACCEPT_AND_CONTINUE:
                     currentBatch.add(element);
                     break;
                 case REJECT_AND_FINISH:
                     // 把元素推回源迭代器（使用 PeekingIterator 技巧）
                     source.pushback(element);
-                    return new ArrayList<>(currentBatch);
+                    return cloneAndClear(currentBatch);
             }
         }
-        return new ArrayList<>(currentBatch);  // 源已耗尽，返回剩余
+        return cloneAndClear(currentBatch);  // 源已耗尽，返回剩余
+    }
+
+    List<T> cloneAndClear(List<T> list) {
+        List<T> ret = new ArrayList<>(list);
+        list.clear();
+        return ret;
     }
 
     /* ---------------- 策略接口 ---------------- */

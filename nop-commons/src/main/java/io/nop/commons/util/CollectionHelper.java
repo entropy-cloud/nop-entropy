@@ -425,6 +425,16 @@ public class CollectionHelper {
         return ret;
     }
 
+    public static <T> Set<T> iteratorToSet(Iterator<T> it) {
+        Set<T> ret = new LinkedHashSet<>();
+        if (it == null)
+            return ret;
+        while (it.hasNext()) {
+            ret.add(it.next());
+        }
+        return ret;
+    }
+
     @SuppressWarnings("unchecked")
     public static <T> Set<T> toSet(Collection<? extends T> c) {
         if (c == null)

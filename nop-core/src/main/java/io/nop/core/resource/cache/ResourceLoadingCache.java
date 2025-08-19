@@ -98,7 +98,7 @@ public class ResourceLoadingCache<V> implements IResourceLoadingCache<V> {
     public void refreshConfig() {
         cache.getConfig().setMaximumSize(cacheMaxSize.get());
         Duration timeout = cacheTimeout.get();
-        if (timeout != null)
+        if (timeout != null && !timeout.isNegative())
             cache.getConfig().setExpireAfterWrite(timeout);
         cache.refreshConfig();
     }
@@ -107,7 +107,7 @@ public class ResourceLoadingCache<V> implements IResourceLoadingCache<V> {
         CacheConfig config = new CacheConfig().useMetrics();
         config.setMaximumSize(cacheMaxSize.get());
         Duration timeout = cacheTimeout.get();
-        if (timeout != null)
+        if (timeout != null && !timeout.isNegative())
             config.setExpireAfterWrite(timeout);
         return LocalCache.newCache(getName(), config, this::newCacheEntry);
     }

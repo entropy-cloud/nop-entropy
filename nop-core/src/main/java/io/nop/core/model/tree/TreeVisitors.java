@@ -9,6 +9,7 @@ package io.nop.core.model.tree;
 
 import io.nop.commons.collections.IterableIterator;
 import io.nop.core.model.tree.impl.DepthFirstIterator;
+import io.nop.core.model.tree.impl.PostOrderDepthFirstIterator;
 import io.nop.core.model.tree.impl.WidthFirstIterator;
 
 import java.io.File;
@@ -228,5 +229,22 @@ public class TreeVisitors {
     public static <T extends ITreeChildrenStructure> IterableIterator<T> widthFirstIterator(T root,
                                                                                             boolean includeRoot) {
         return widthFirstIterator(childrenStructureAdapter(), root, includeRoot, null);
+    }
+
+    public static <T> IterableIterator<T> postOrderDepthFirstIterator(ITreeChildrenAdapter<T> adapter, T root,
+                                                                      boolean includeRoot, Predicate<? super T> filter,
+                                                                      boolean filterEntireSubtree) {
+        return new PostOrderDepthFirstIterator<>(adapter, root, includeRoot, filter, filterEntireSubtree);
+    }
+
+    public static <T extends ITreeChildrenStructure> IterableIterator<T> postOrderDepthFirstIterator(T root, boolean includeRoot,
+                                                                                                     Predicate<? super T> filter,
+                                                                                                     boolean filterEntireSubtree) {
+        return postOrderDepthFirstIterator(childrenStructureAdapter(), root, includeRoot, filter, filterEntireSubtree);
+    }
+
+    public static <T extends ITreeChildrenStructure> IterableIterator<T> postOrderDepthFirstIterator(T root, boolean includeRoot,
+                                                                                                     Predicate<? super T> filter) {
+        return postOrderDepthFirstIterator(root, includeRoot, filter, true);
     }
 }

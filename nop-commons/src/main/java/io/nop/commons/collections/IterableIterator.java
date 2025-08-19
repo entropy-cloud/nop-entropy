@@ -14,6 +14,7 @@ import io.nop.commons.util.CollectionHelper;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -37,5 +38,9 @@ public interface IterableIterator<T> extends Iterator<T>, Iterable<T> {
 
     default List<T> toList() {
         return CollectionHelper.iteratorToList(iterator());
+    }
+
+    default Set<T> toSet(){
+        return CollectionHelper.iteratorToSet(iterator());
     }
 }

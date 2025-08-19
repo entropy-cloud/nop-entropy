@@ -17,26 +17,41 @@ public class FileIterators {
         return TreeVisitors.depthFirstIterator(FILE_CHILDREN_ADAPTER, baseDir, includeRoot, filter);
     }
 
+    public static IterableIterator<File> postOrderDepthFirstIterator(File baseDir, boolean includeRoot,
+                                                                     Predicate<File> filter) {
+        return TreeVisitors.postOrderDepthFirstIterator(FILE_CHILDREN_ADAPTER, baseDir, includeRoot, filter, true);
+    }
+
     /**
      * 以用户给定策略，把目录下的文件聚合成若干批次
      */
     public static IterableIterator<List<File>> batchFiles(
             File baseDir,
-            Predicate<File> filter,
-            BatchingIterator.BatchStrategy<File> strategy) {
+            BatchingIterator.BatchStrategy<File> strategy,
+            Predicate<File> filter) {
 
-        IterableIterator<File> it = depthFirstIterator(baseDir, false, filter);
+        IterableIterator<File> it = depthFirstIterator(baseDir, false, filter).filter(File::isFile);
         return new BatchingIterator<>(it, strategy);
     }
 
     /**
      * 把目录下文本文件按照“总字符数 ≤ maxChars”聚合成批次
      */
-    public static IterableIterator<List<File>> batchTextFilesByCharLimit(
-            File baseDir,
-            Predicate<File> filter,
-            long maxChars) {
+    public static IterableIterator<List<File>> batchTextFilesByCharLimitForDir(
+            File baseDir, long maxChars,
+            Predicate<File> filter) {
 
+        BatchingIterator.BatchStrategy<File> strategy = batchStrategyByCharLimit(maxChars);
+
+        return batchFiles(baseDir, strategy, filter);
+    }
+
+    public static IterableIterator<List<File>> batchTextFilesByCharLimit(Iterable<File> files, long maxChars) {
+        return new BatchingIterator<>(files.iterator(), batchStrategyByCharLimit(maxChars));
+    }
+
+
+    public static BatchingIterator.BatchStrategy<File> batchStrategyByCharLimit(long maxChars) {
         BatchingIterator.BatchStrategy<File> strategy =
                 new BatchingIterator.BatchStrategy<>() {
 
@@ -66,7 +81,6 @@ public class FileIterators {
                         return Decision.REJECT_AND_FINISH;
                     }
                 };
-
-        return batchFiles(baseDir, filter, strategy);
+        return strategy;
     }
 }

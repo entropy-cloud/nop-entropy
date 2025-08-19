@@ -616,8 +616,15 @@ public class FileHelper {
     public static File resolveFile(String path) {
         if (StringHelper.isEmpty(path))
             return currentDir();
+        if (path.startsWith("file:")) {
+            path = path.substring("file:".length());
+            if (path.startsWith("///"))
+                path = path.substring(2);
+            return getAbsoluteFile(new File(path));
+        }
         return new File(path);
     }
+
 
     public static File resolveRelativeFile(File baseDir, String fileName) {
         if (baseDir == null)
