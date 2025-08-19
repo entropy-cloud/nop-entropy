@@ -15,8 +15,10 @@ import io.nop.core.reflect.IFieldModel;
 import io.nop.core.reflect.IPropertyGetter;
 import io.nop.core.reflect.IPropertySetter;
 import io.nop.core.reflect.ReflectionManager;
+import io.nop.core.reflect.accessor.ArrayLengthGetter;
 import io.nop.core.reflect.bean.IBeanModel;
 import io.nop.core.reflect.bean.IBeanPropertyModel;
+import io.nop.xlang.XLangConstants;
 
 import java.lang.annotation.Annotation;
 
@@ -89,6 +91,11 @@ public abstract class AbstractPropertyExecutable extends AbstractExecutable {
     protected IPropertyGetter getGetter(Class<?> clazz, Object bean) {
         if (bean instanceof Annotation)
             clazz = ((Annotation) bean).annotationType();
+
+        if (clazz.isArray()) {
+            if (XLangConstants.PROP_NAME_LENGTH.equals(propName))
+                return ArrayLengthGetter.INSTANCE;
+        }
 
         IBeanModel beanModel = ReflectionManager.instance().getBeanModelForClass(clazz);
         if (clazz == Class.class)

@@ -52,4 +52,7 @@ public interface AiCoreConstants {
 
     String RESOURCE_TYPE_AUDIO = "audio";
     String RESOURCE_TYPE_IMAGE = "image";
+
+
+    String HEADER_CHAT_SESSION_ID = "nop-chat-session-Id";
 }

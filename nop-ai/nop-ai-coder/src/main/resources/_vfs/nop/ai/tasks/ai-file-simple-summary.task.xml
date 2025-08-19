@@ -1,10 +1,12 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-      xmlns:ai="/nop/ai/xlib/ai.xlib" x:dump="true"
-      defaultUseParentScope="true"
-      x:extends="/nop/task/lib/common.task.xml">
+      xmlns:ai="/nop/ai/xlib/ai.xlib" x:dump="true" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib"
+      defaultUseParentScope="true"  xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
+      x:extends="/nop/task/lib/common.task.xml" xmlns:task="task">
 
     <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="30000" maxTokens="8000"
                     sessionId="${sessionId}" enableThinking="false"/>
+
+    <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 
     <input name="inputDir"/>
     <input name="outputDir"/>
@@ -20,14 +22,15 @@
                 const dir = FileHelper.resolveFile(inputDir);
 
                 return FileHelper.findFilePaths(dir,"**/*.summary.md", true, true)
-                        .filter(path=> !path.contains('/_') and !path.contains('/.') and !path.startsWith('.'));
+                        .filter(path=> !path.contains('/_') and !path.contains('/.') and !path.startsWith('.')
+                            and !path.contains('docs-en/') and !path.contains('/target/') and !path.contains('/src/test/'));
             ]]></producer>
 
             <steps>
                 <exit name="checkNotExists">
                     <when><![CDATA[
                        import io.nop.commons.util.FileHelper;
-                       const file = FileHelper.resolveFile(outputDir.$appendPath(filePath.$replaceFileExt('.simple-summary.md')));
+                       const file = FileHelper.resolveFile(outputDir.$appendPath(filePath.$replaceFileType('.simple-summary.md')));
                        return file.exists();
                     ]]></when>
                 </exit>
@@ -43,12 +46,12 @@
                       ai:promptName="summary/file-simple-summary" ai:useResponseCache="true">
                     <throttle maxConcurrency="1" maxWait="100000000"/>
                     <input name="content" value="${fileText}"/>
-                    <output name="RESULT"/>
+                    <output name="RESULT" exportAs="fileSummary"/>
                 </step>
 
                 <step name="saveSummary" customType="file-utils:WriteText">
                     <input name="outputDir"/>
-                    <input name="fileName" value="${filePath.$replaceFileExt('.simple-summary.md')}"/>
+                    <input name="fileName" value="${filePath.$replaceFileType('.simple-summary.md')}"/>
                     <input name="text" value="${fileSummary}"/>
                 </step>
 

@@ -21,8 +21,10 @@
                 import io.nop.commons.util.FileHelper;
                 const dir = FileHelper.resolveFile(inputDir);
 
-                return FileHelper.findFilePaths(dir,"**/*.md", true, true)
-                        .filter(path=> !path.contains('/_') and !path.contains('/.') and !path.startsWith('.'));
+                const paths = FileHelper.findFilePaths(dir,"**/*.md", true, true)
+                        .filter(path=> !path.contains('/_') and !path.contains('/.') and !path.startsWith('.')
+                            and !path.contains('docs-en/') and !path.contains("/src/test/") and !path.contains('/target/'));
+                return paths;
             ]]></producer>
 
             <steps>

@@ -1,5 +1,6 @@
 package io.nop.ai.core.api.tool;
 
+import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.json.JsonSchema;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.lang.eval.DisabledEvalScope;
@@ -24,12 +25,30 @@ public class DefaultAiChatFunctionTool implements IAiChatFunctionTool {
 
     public static DefaultAiChatFunctionTool fromMethod(IFunctionModel func) {
         DefaultAiChatFunctionTool ret = new DefaultAiChatFunctionTool();
-        ret.setName(func.getName());
+        String toolName = getServiceName(func) + "__" + func.getName();
+        ret.setName(toolName);
         ret.setDescription(func.getDescription());
         ret.setInputSchema(buildInputSchema(func));
         ret.setOutputSchema(buildOutputSchema(func));
         ret.setInvoker(args -> func.invokeWithNamedArgs(DisabledEvalScope.INSTANCE, args));
+
+        String serviceName = getServiceName(func);
+        ToolSpecification spec = ToolSpecificationLoader.loadSpecification(toolName);
+        if (spec != null) {
+            ret.setName(spec.getName());
+            ret.setDescription(spec.getDescription());
+            ret.setInputSchema(spec.getInputSchema());
+            ret.setOutputSchema(spec.getOutputSchema());
+        }
         return ret;
+    }
+
+    static String getServiceName(IFunctionModel fn) {
+        Class<?> clazz = fn.getDeclaringClass();
+        BizModel bizModel = clazz.getAnnotation(BizModel.class);
+        if (bizModel != null)
+            return bizModel.value();
+        return clazz.getSimpleName();
     }
 
     @Override

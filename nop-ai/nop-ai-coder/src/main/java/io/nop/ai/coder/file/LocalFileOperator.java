@@ -11,8 +11,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static io.nop.commons.CommonErrors.ARG_FILE;
 import static io.nop.commons.CommonErrors.ARG_PATH;
 import static io.nop.commons.CommonErrors.ARG_SOURCE_PATH;
+import static io.nop.commons.CommonErrors.ARG_SRC_FILE;
+import static io.nop.commons.CommonErrors.ARG_TARGET_FILE;
 import static io.nop.commons.CommonErrors.ARG_TARGET_PATH;
 import static io.nop.commons.CommonErrors.ERR_FILE_COPY_FAIL;
 import static io.nop.commons.CommonErrors.ERR_FILE_DELETE_FAIL;
@@ -42,14 +45,16 @@ public class LocalFileOperator implements IFileOperator {
         File file = resolveFile(path);
         if (!file.exists()) {
             throw new NopException(ERR_FILE_NOT_FOUND)
-                    .param(ARG_PATH, path);
+                    .param(ARG_PATH, path)
+                    .param(ARG_FILE, file);
         }
         try {
             String content = FileHelper.readText(file, "UTF-8");
             return new FileContent(path, content);
         } catch (Exception e) {
             throw new NopException(ERR_FILE_READ_FAIL, e)
-                    .param(ARG_PATH, path);
+                    .param(ARG_PATH, path)
+                    .param(ARG_FILE, file);
         }
     }
 
@@ -58,13 +63,15 @@ public class LocalFileOperator implements IFileOperator {
         File file = resolveFile(path);
         if (!file.exists()) {
             throw new NopException(ERR_FILE_NOT_FOUND)
-                    .param(ARG_PATH, path);
+                    .param(ARG_PATH, path)
+                    .param(ARG_FILE, file);
         }
         try {
             return FileHelper.readLines(file, "UTF-8");
         } catch (Exception e) {
             throw new NopException(ERR_FILE_READ_FAIL, e)
-                    .param(ARG_PATH, path);
+                    .param(ARG_PATH, path)
+                    .param(ARG_FILE, file);
         }
     }
 
@@ -86,7 +93,8 @@ public class LocalFileOperator implements IFileOperator {
             FileHelper.writeText(file, fileContent.getContent(), "UTF-8", append);
         } catch (Exception e) {
             throw new NopException(ERR_FILE_WRITE_FAIL, e)
-                    .param(ARG_PATH, fileContent.getPath());
+                    .param(ARG_PATH, fileContent.getPath())
+                    .param(ARG_FILE, file);
         }
     }
 
@@ -100,7 +108,8 @@ public class LocalFileOperator implements IFileOperator {
         File dir = resolveFile(directory);
         if (!dir.exists()) {
             throw new NopException(ERR_FILE_NOT_FOUND)
-                    .param(ARG_PATH, directory);
+                    .param(ARG_PATH, directory)
+                    .param(ARG_FILE, dir);
         }
 
         List<String> result = new ArrayList<>();
@@ -123,7 +132,8 @@ public class LocalFileOperator implements IFileOperator {
         File dir = resolveFile(directory);
         if (!dir.exists()) {
             throw new NopException(ERR_FILE_NOT_FOUND)
-                    .param(ARG_PATH, directory);
+                    .param(ARG_PATH, directory)
+                    .param(ARG_FILE, dir);
         }
 
         List<String> result = new ArrayList<>();
@@ -141,7 +151,8 @@ public class LocalFileOperator implements IFileOperator {
         File dir = resolveFile(directory);
         if (!dir.exists()) {
             throw new NopException(ERR_FILE_NOT_FOUND)
-                    .param(ARG_PATH, directory);
+                    .param(ARG_PATH, directory)
+                    .param(ARG_FILE, dir);
         }
 
         final String[] found = {null};
@@ -164,7 +175,8 @@ public class LocalFileOperator implements IFileOperator {
         File file = resolveFile(path);
         if (!file.exists()) {
             throw new NopException(ERR_FILE_NOT_FOUND)
-                    .param(ARG_PATH, path);
+                    .param(ARG_PATH, path)
+                    .param(ARG_FILE, file);
         }
 
         boolean b;
@@ -175,7 +187,8 @@ public class LocalFileOperator implements IFileOperator {
         }
         if (!b)
             throw new NopException(ERR_FILE_DELETE_FAIL)
-                    .param(ARG_PATH, path);
+                    .param(ARG_PATH, path)
+                    .param(ARG_FILE, file);
     }
 
     @Override
@@ -185,7 +198,8 @@ public class LocalFileOperator implements IFileOperator {
 
         if (!src.exists()) {
             throw new NopException(ERR_FILE_NOT_FOUND)
-                    .param(ARG_PATH, sourcePath);
+                    .param(ARG_PATH, sourcePath)
+                    .param(ARG_FILE, src);
         }
 
         if (dest.exists()) {
@@ -198,7 +212,9 @@ public class LocalFileOperator implements IFileOperator {
         if (!b) {
             throw new NopException(ERR_FILE_MOVE_FAIL)
                     .param(ARG_SOURCE_PATH, sourcePath)
-                    .param(ARG_TARGET_PATH, targetPath);
+                    .param(ARG_TARGET_PATH, targetPath)
+                    .param(ARG_SRC_FILE, src)
+                    .param(ARG_TARGET_FILE, dest);
         }
     }
 
@@ -209,7 +225,8 @@ public class LocalFileOperator implements IFileOperator {
 
         if (!src.exists()) {
             throw new NopException(ERR_FILE_NOT_FOUND)
-                    .param(ARG_PATH, sourcePath);
+                    .param(ARG_PATH, sourcePath)
+                    .param(ARG_FILE, src);
         }
 
         if (dest.exists()) {
@@ -223,7 +240,9 @@ public class LocalFileOperator implements IFileOperator {
         } catch (Exception e) {
             throw new NopException(ERR_FILE_COPY_FAIL, e)
                     .param(ARG_SOURCE_PATH, sourcePath)
-                    .param(ARG_TARGET_PATH, targetPath);
+                    .param(ARG_TARGET_PATH, targetPath)
+                    .param(ARG_SRC_FILE, src)
+                    .param(ARG_TARGET_FILE, dest);
         }
     }
 

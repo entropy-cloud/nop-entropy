@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.nop.task.TaskErrors.ARG_NEXT_STEP;
+import static io.nop.task.TaskErrors.ARG_STEP_NAME;
 import static io.nop.task.TaskErrors.ERR_TASK_UNKNOWN_NEXT_STEP;
 
 /**
@@ -76,12 +77,12 @@ public class SequentialTaskStep extends AbstractTaskStep {
             } else {
                 int indexParam = index;
                 return stepResult.thenApply(result -> {
-                    if (stepResult.isEnd()) {
+                    if (result.isEnd()) {
                         stepRt.setBodyStepIndex(steps.size());
-                        return stepResult;
-                    } else if (stepResult.isExit()) {
+                        return result;
+                    } else if (result.isExit()) {
                         stepRt.setBodyStepIndex(steps.size());
-                        return TaskStepReturn.RETURN(stepResult.getOutputs());
+                        return TaskStepReturn.RETURN(result.getOutputs());
                     } else {
                         stepRt.setBodyStepIndex(getNextIndex(indexParam, result, stepRt));
                         stepRt.saveState();

@@ -1,11 +1,12 @@
 <task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
-      xmlns:ai="/nop/ai/xlib/ai.xlib" x:dump="true"
-      defaultUseParentScope="true"
-      x:extends="/nop/task/lib/common.task.xml">
+      xmlns:ai="/nop/ai/xlib/ai.xlib" x:dump="true" xmlns:ai-coder="/nop/ai/xlib/ai-coder.xlib"
+      defaultUseParentScope="true"  xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
+      x:extends="/nop/task/lib/common.task.xml" xmlns:task="task">
 
     <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="30000" maxTokens="8000" temperature="1"
                     sessionId="${sessionId}" enableThinking="false"/>
 
+    <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
 
     <input name="inputDir"/>
     <input name="outputDir"/>
@@ -25,15 +26,19 @@
             </output>
         </step>
 
-        <loop name="visitDir" varName="dir">
-            <producer><![CDATA[
+        <loop name="visitDir" varName="dir" itemsExpr="fileIt">
+            <input name="fileIt">
+                <source><![CDATA[
                 import io.nop.core.utils.FileIterators;
-                return FileIterators.depthFirstIterator(resolvedInputDir, false, file=>{
+                return FileIterators.postOrderDepthFirstIterator(resolvedInputDir, false, file=>{
                     if(file.getName().startsWith("."))
                       return false;
-                    return file.isDirectory();
+                    if(file.getName().equals("docs-en"))
+                      return false;
+                    return file.isDirectory() and file.list().length > 0;
                 });
-            ]]></producer>
+                ]]></source>
+            </input>
 
             <steps>
                 <step name="getDirPath">
@@ -51,26 +56,38 @@
                        import io.nop.core.utils.FileIterators;
                        import io.nop.commons.util.FileHelper;
 
-                       return FileIterators.batchTextFilesByCharLimit(dir,40*1024,
-                            file=>{
-                               if(file.isDirectory())
-                                 return true;
-                               return file.getName().endsWith(".summary.md");
-                            }).map(file=>{
-                               return FileHelper.getRelativePath(resolvedInputDir, file);
-                            });
+                       const files = dir.listFiles().map(file=>{
+                          if(!file.isFile())
+                             return null;
+
+                          if(file.getName().endsWith(".summary.md") || file.getName().endsWith(".dir-summary.md")){
+                             return file;
+                          }
+                          return null;
+                       }).filter(file=> file != null);
+
+                       const filePaths = FileIterators.batchTextFilesByCharLimit(files,40*1024).map(fileList=>{
+                          return fileList.map(file=> FileHelper.getRelativePath(resolvedInputDir, file));
+                       });
+                       return filePaths;
                     ]]></producer>
 
                     <steps>
+                        <step name="logFilePaths">
+                            <source>
+                                logInfo("dirPath={},filePaths={}", dirPath,filePathList);
+                            </source>
+                        </step>
+
                         <exit name="checkNotExists">
                             <when><![CDATA[
                                import io.nop.commons.util.FileHelper;
-                               const file = FileHelper.resolveFile(outputDir.$appendPath(dirPath + '.dir-summary.md')));
+                               const file = FileHelper.resolveFile(outputDir.$appendPath(dirPath + '.dir-summary.md'));
                                return file.exists();
                             ]]></when>
                         </exit>
 
-                        <step name="readFileContents" customType="ai:ReadFileContents">
+                        <step name="readFileContents" customType="ai-coder:ReadFileContents">
                             <input name="inputDir"/>
                             <input name="filePaths" value="${filePathList}"/>
                             <output name="RESULT" exportAs="fileContents"/>
@@ -93,8 +110,8 @@
 
 
                 <step name="saveSummary" customType="file-utils:WriteText">
-                    <input name="outputDir"/>
-                    <input name="fileName" value="${dirPath + '.dir-summary.md')}"/>
+                    <input name="outputDir" value="${inputDir}"/>
+                    <input name="fileName" value="${dirPath + '.dir-summary.md'}"/>
                     <input name="text" value="${dirSummary}"/>
                 </step>
             </steps>

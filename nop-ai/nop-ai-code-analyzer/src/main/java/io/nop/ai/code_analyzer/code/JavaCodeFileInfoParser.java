@@ -6,6 +6,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
@@ -113,6 +114,22 @@ public class JavaCodeFileInfoParser {
         }
 
         @Override
+        public void visit(EnumDeclaration enumDecl, List<CodeFileInfo.CodeClassInfo> classes) {
+            CodeFileInfo.CodeClassInfo classInfo = new CodeFileInfo.CodeClassInfo();
+            String className = getFullClassName(enumDecl);
+            classInfo.setName(className);
+            classInfo.setLine(enumDecl.getBegin().map(p -> p.line).orElse(-1));
+            classInfo.setAccessModifier(getAccessModifier(enumDecl.getAccessSpecifier()));
+
+            // ✅ 设置 signature
+            classInfo.setSignature(buildEnumSignature(enumDecl));
+
+            classes.add(classInfo);
+
+            // 可选：处理 enum 常量、方法等
+        }
+
+        @Override
         public void visit(ClassOrInterfaceDeclaration classDecl, List<CodeFileInfo.CodeClassInfo> classes) {
             String originalOuterClassName = currentOuterClassName;
 
@@ -122,6 +139,7 @@ public class JavaCodeFileInfoParser {
             classInfo.setName(className);
             classInfo.setLine(classDecl.getBegin().map(p -> p.line).orElse(-1));
             classInfo.setAccessModifier(getAccessModifier(classDecl.getAccessSpecifier()));
+            classInfo.setSignature(buildClassSignature(classDecl));
 
             // 解析继承关系 (extends)
             classDecl.getExtendedTypes().stream()
@@ -202,7 +220,7 @@ public class JavaCodeFileInfoParser {
 
             CodeFileInfo.CodeFunctionInfo methodInfo = classInfo.makeFunction(fnName);
             methodInfo.setLine(method.getBegin().map(p -> p.line).orElse(-1));
-            methodInfo.setSignature(buildSignature(method));
+            methodInfo.setSignature(buildMethodSignature(method));
 
             // Parse method body for used variables and functions
             if (method.getBody().isPresent()) {
@@ -214,6 +232,14 @@ public class JavaCodeFileInfoParser {
         }
 
         private String getFullClassName(ClassOrInterfaceDeclaration classDecl) {
+            String className = classDecl.getNameAsString();
+            if (currentOuterClassName.isEmpty()) {
+                return currentPackage + className;
+            }
+            return currentOuterClassName + "." + className;
+        }
+
+        private String getFullClassName(EnumDeclaration classDecl) {
             String className = classDecl.getNameAsString();
             if (currentOuterClassName.isEmpty()) {
                 return currentPackage + className;
@@ -235,6 +261,66 @@ public class JavaCodeFileInfoParser {
         }
     }
 
+    public static String buildClassSignature(ClassOrInterfaceDeclaration classDecl) {
+        StringBuilder sb = new StringBuilder();
+
+        // 访问修饰符
+        AccessSpecifier access = classDecl.getAccessSpecifier();
+        if (access != AccessSpecifier.NONE) {
+            sb.append(access.asString()).append(" ");
+        }
+
+        // 类型（class 或 interface）
+        if (classDecl.isInterface()) {
+            sb.append("interface ");
+        }else if(classDecl.isEnumDeclaration()){
+            sb.append("enum ");
+        } else {
+            sb.append("class ");
+        }
+
+        // 类名
+        sb.append(classDecl.getNameAsString());
+
+        // 继承
+        if (!classDecl.getExtendedTypes().isEmpty()) {
+            sb.append(" extends ");
+            sb.append(classDecl.getExtendedTypes().stream()
+                    .map(ClassOrInterfaceType::getNameAsString)
+                    .collect(Collectors.joining(", ")));
+        }
+
+        // 实现接口
+        if (!classDecl.getImplementedTypes().isEmpty()) {
+            sb.append(" implements ");
+            sb.append(classDecl.getImplementedTypes().stream()
+                    .map(ClassOrInterfaceType::getNameAsString)
+                    .collect(Collectors.joining(", ")));
+        }
+
+        return sb.toString();
+    }
+
+    public static String buildEnumSignature(EnumDeclaration enumDecl) {
+        StringBuilder sb = new StringBuilder();
+
+        AccessSpecifier access = enumDecl.getAccessSpecifier();
+        if (access != AccessSpecifier.NONE) {
+            sb.append(access.asString()).append(" ");
+        }
+
+        sb.append("enum ").append(enumDecl.getNameAsString());
+
+        // enum 可以实现接口
+        if (!enumDecl.getImplementedTypes().isEmpty()) {
+            sb.append(" implements ");
+            sb.append(enumDecl.getImplementedTypes().stream()
+                    .map(ClassOrInterfaceType::getNameAsString)
+                    .collect(Collectors.joining(", ")));
+        }
+
+        return sb.toString();
+    }
 
     /**
      * 构建方法的完整签名
@@ -242,7 +328,7 @@ public class JavaCodeFileInfoParser {
      * @param method 方法声明
      * @return 完整的方法签名，例如："public static void main(String[] args)"
      */
-    public static String buildSignature(MethodDeclaration method) {
+    public static String buildMethodSignature(MethodDeclaration method) {
         StringBuilder signature = new StringBuilder();
 
         // 1. 添加访问修饰符

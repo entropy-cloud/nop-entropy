@@ -80,8 +80,8 @@ public interface TaskErrors {
                     ARG_STEP_PATH, ARG_OUTPUT);
 
     ErrorCode ERR_TASK_UNKNOWN_NEXT_STEP =
-            define("nop.err.task.unknown-next-step", "步骤[{stepName}]不支持跳转到子步骤[{nextStep}]",
-                    ARG_STEP_NAME, ARG_NEXT_STEP);
+            define("nop.err.task.unknown-next-step", "步骤[{stepPath}]不支持跳转到子步骤[{nextStep}]",
+                    ARG_STEP_PATH, ARG_NEXT_STEP);
 
     ErrorCode ERR_TASK_UNKNOWN_WAIT_STEP =
             define("nop.err.task.unknown-wait-step", "步骤[{stepName}]等待的步骤[{waitStep}]没有定义",

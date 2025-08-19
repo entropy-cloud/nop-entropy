@@ -65,12 +65,22 @@ public class CodeFileInfo {
 
     @DataBean
     public static class CodeClassInfo extends CodeSymbol {
+        private String signature;
         private AccessModifier accessModifier;
         private String extendsType;
         private Set<String> implementsTypes;
         private List<CodeFunctionInfo> functions;
         private List<CodeVariableInfo> variables;
         private String summary;
+
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        public String getSignature() {
+            return signature;
+        }
+
+        public void setSignature(String signature) {
+            this.signature = signature;
+        }
 
         public CodeFunctionInfo getFunction(String fnName) {
             if (functions == null) {

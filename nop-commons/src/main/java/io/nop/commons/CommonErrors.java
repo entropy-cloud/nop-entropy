@@ -63,6 +63,7 @@ public interface CommonErrors {
     String ARG_URL = "url";
 
     String ARG_PATH = "path";
+    String ARG_FILE = "file";
 
     String ARG_CACHE_NAME = "cacheName";
 
@@ -78,6 +79,9 @@ public interface CommonErrors {
     String ARG_SOURCE_PATH = "sourcePath";
     String ARG_TARGET_PATH = "targetPath";
     String ARG_OVERWRITE = "overwrite";
+
+    String ARG_SRC_FILE = "srcFile";
+    String ARG_TARGET_FILE = "targetFile";
 
 
     ErrorCode ERR_IO_UNEXPECTED_EOF = define("nop.err.commons.io.unexpected-eof", "数据流已关闭，无法读取到更多数据");

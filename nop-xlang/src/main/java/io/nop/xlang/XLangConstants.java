@@ -81,4 +81,6 @@ public interface XLangConstants extends ExprConstants,
     String SLOT_VAR_PREFIX = "slot_";
 
     String VAR_VALIDATION_CTX = "validationCtx";
+
+    String PROP_NAME_LENGTH = "length";
 }

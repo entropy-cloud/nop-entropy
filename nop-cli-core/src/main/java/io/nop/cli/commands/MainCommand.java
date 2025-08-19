@@ -28,6 +28,7 @@ import picocli.CommandLine;
                 CliConvertCommand.class,
                 CliRepackageCommand.class,
                 CliSplitCommand.class,
+                CliFileCommand.class
         })
 public class MainCommand {
 }
