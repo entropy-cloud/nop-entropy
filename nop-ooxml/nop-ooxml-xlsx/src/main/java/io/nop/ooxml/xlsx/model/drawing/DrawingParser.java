@@ -57,15 +57,15 @@ public class DrawingParser {
     public ExcelImage parseAnchor(XNode anchorNode) {
         XNode clientData = anchorNode.childByTag("xdr:clientData");
         XNode pic = anchorNode.childByTag("xdr:pic");
-        XNode picPr = pic.childByTag("xdr:nvPicPr");
+        XNode picPr = pic != null ? pic.childByTag("xdr:nvPicPr") : null;
         XNode cNvPr = picPr != null ? picPr.childByTag("xdr:cNvPr") : null;
         XNode cNvPicPr = picPr != null ? picPr.childByTag("xdr:cNvPicPr") : null;
         XNode picLocks = cNvPicPr != null ? cNvPicPr.childByTag("a:picLocks") : null;
 
-        XNode blipFill = pic.childByTag("xdr:blipFill");
+        XNode blipFill = pic != null ? pic.childByTag("xdr:blipFill") :null;
         XNode blip = blipFill != null ? blipFill.childByTag("a:blip") : null;
 
-        XNode spPr = pic.childByTag("xdr:spPr");
+        XNode spPr = pic != null ? pic.childByTag("xdr:spPr") : null;
         XNode xfrm = spPr != null ? spPr.childByTag("a:xfrm") : null;
 
         ExcelImage image = new ExcelImage();
