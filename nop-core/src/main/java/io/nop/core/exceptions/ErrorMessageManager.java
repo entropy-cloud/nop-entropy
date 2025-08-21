@@ -412,6 +412,9 @@ public class ErrorMessageManager implements IErrorMessageManager {
     }
 
     protected void mapError(String locale, ErrorCodeMapping mapping, ErrorBean error) {
+        if(mapping.getStatus() != null)
+            error.setStatus(mapping.getStatus());
+
         if (!StringHelper.isEmpty(mapping.getMessageKey())) {
             String desc = this.getErrorDescription(locale, mapping.getMessageKey(), error.getParams());
             if (desc != null) {
