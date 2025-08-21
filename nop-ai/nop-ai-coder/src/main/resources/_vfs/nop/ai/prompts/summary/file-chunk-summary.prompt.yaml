@@ -10,12 +10,12 @@ template: |
      - 特殊结构或模式
   3. 标记需要后续补充的不完整上下文（如果文件不完整）
   
-
+  【返回格式】
+   <CHUNK_SUMMARY>string</CHUNK_SUMMARY>
+  
   【文档片段】
   {{content}}
   
-  【返回格式】
-   <CHUNK_SUMMARY>string</CHUNK_SUMMARY>
 
 inputs:
   - name: content

@@ -18,6 +18,7 @@ import jakarta.annotation.Nonnull;
 
 import java.util.List;
 
+import static io.nop.task.TaskStepReturn.RETURN;
 import static io.nop.task.TaskStepReturn.RETURN_RESULT;
 import static io.nop.task.TaskStepReturn.RETURN_RESULT_END;
 
@@ -158,7 +159,7 @@ public class LoopTaskStep extends AbstractTaskStep {
                 if (stepResult.isEnd())
                     return stepResult;
                 if (stepResult.isExit())
-                    return RETURN_RESULT(stepRt.getResult());
+                    return RETURN(stepResult.getOutputs());
             } else {
                 LoopStateBean stateParam = stateBean;
                 return stepResult.thenApply(ret -> {
@@ -173,10 +174,10 @@ public class LoopTaskStep extends AbstractTaskStep {
                         return RETURN_RESULT_END(stepRt.getResult());
 
                     if (ret.isExit())
-                        return RETURN_RESULT(stepRt.getResult());
+                        return RETURN(ret.getOutputs());
 
-                    if (shouldContinue(stateParam, stepRt))
-                        return RETURN_RESULT_END(stepRt.getResult());
+                    if (!shouldContinue(stateParam, stepRt))
+                        return RETURN_RESULT(stepRt.getResult());
 
                     return execute(stepRt);
                 });

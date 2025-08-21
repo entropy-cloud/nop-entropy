@@ -6,12 +6,13 @@ template: |
   2. 突出最重要的功能和关键点
   3. 删除冗余信息，保持简洁
   4. 对技术文档，保留关键术语和概念
+
+  【返回格式】
+   <FINAL_SUMMARY>string</FINAL_SUMMARY>
   
   【待整合摘要】
   {{content}}
 
-  【返回格式】
-   <FINAL_SUMMARY>string</FINAL_SUMMARY>
 
 inputs:
   - name: content

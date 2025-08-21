@@ -3,7 +3,7 @@
       defaultUseParentScope="true"  xmlns:file-utils="/nop/task/xlib/file-utils.xlib"
       x:extends="/nop/task/lib/common.task.xml" xmlns:task="task">
 
-    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="30000" maxTokens="8000" temperature="1"
+    <ai:chatOptions provider="${aiProvider}" model="${aiModel}" contextLength="30000" maxTokens="8000"
                     sessionId="${sessionId}" enableThinking="false"/>
 
     <task:namespace ai-coder:enabled="true" file-utils:enabled="true"/>
@@ -66,7 +66,7 @@
                           return null;
                        }).filter(file=> file != null);
 
-                       const filePaths = FileIterators.batchTextFilesByCharLimit(files,40*1024).map(fileList=>{
+                       const filePaths = FileIterators.batchTextFilesByCharLimit(files,30*1024).map(fileList=>{
                           return fileList.map(file=> FileHelper.getRelativePath(resolvedInputDir, file));
                        });
                        return filePaths;

@@ -8,12 +8,13 @@ template: |
      - 关键术语/代码片段
      - 重要结论或发现
      - 特殊结构或模式
-
-  【文档内容】
-  {{content}}
+  
   
   【返回格式】
    <FILE_SUMMARY>string</FILE_SUMMARY>
+  
+  【文档内容】
+  {{content}}
 
 inputs:
   - name: content

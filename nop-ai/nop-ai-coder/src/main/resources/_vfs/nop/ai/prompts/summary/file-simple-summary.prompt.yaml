@@ -9,11 +9,12 @@ template: |
      - 第五句给出最终结论或行动建议。  
   5. 若原文含多个并列要点，用分号分隔，确保阅读流畅。
 
+  【返回格式】
+   <FINAL_SUMMARY>string</FINAL_SUMMARY>
+  
   【文件内容】
   {{content}}
   
-  【返回格式】
-   <FINAL_SUMMARY>string</FINAL_SUMMARY>
 
 inputs:
   - name: content
