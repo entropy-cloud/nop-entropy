@@ -94,6 +94,12 @@
 /nop/ai/prompts/sql/sql-assistant.prompt.yaml
 /nop/ai/prompts/sql/sql-generation.prompt.yaml
 /nop/ai/prompts/summary/code-summary.prompt.yaml
+/nop/ai/prompts/summary/dir-chunk-summary.prompt.yaml
+/nop/ai/prompts/summary/dir-final-summary.prompt.yaml
+/nop/ai/prompts/summary/file-chunk-summary.prompt.yaml
+/nop/ai/prompts/summary/file-final-summary.prompt.yaml
+/nop/ai/prompts/summary/file-simple-summary.prompt.yaml
+/nop/ai/prompts/summary/file-summary.prompt.yaml
 /nop/ai/prompts/system/gen-for-mode.prompt.yaml
 /nop/ai/prompts/system/programming/cognitive.md
 /nop/ai/prompts/system/programming/meta.md
@@ -131,6 +137,9 @@
 /nop/ai/tasks/ai-create-project.task.xml
 /nop/ai/tasks/ai-data-falsification.task.xml
 /nop/ai/tasks/ai-extract-report-tpl.task.xml
+/nop/ai/tasks/ai-file-dir-summary.task.xml
+/nop/ai/tasks/ai-file-simple-summary.task.xml
+/nop/ai/tasks/ai-file-summary.task.xml
 /nop/ai/tasks/ai-gen-test-for-record-mapping.task.xml
 /nop/ai/tasks/ai-menu-design.task.xml
 /nop/ai/tasks/ai-orm-design.task.xml

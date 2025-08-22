@@ -7,9 +7,13 @@
 ![star](https://gitcode.com/canonical-entropy/nop-entropy/star/badge.svg)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/entropy-cloud/nop-entropy)
 
+![](docs/theory/xlang-review/xlang-theory.svg)
+
 ## 介绍
 
 [可逆计算：下一代软件构造理论](https://zhuanlan.zhihu.com/p/64004026)
+
+[让演化可编程：XLang 与可逆计算的结构化范式](https://zhuanlan.zhihu.com/p/1942216215067100536)
 
 **Nop is nOt Programming(非编程)**
 
@@ -101,6 +105,8 @@ Engine）、任务调度引擎(Job Scheduler)、批处理引擎（Batch Processi
 [写给程序员的可逆计算理论辨析](docs/theory/reversible-computation-for-programmers.md)
 
 [写给程序员的可逆计算理论辨析补遗](docs/theory/reversible-computation-for-programmers2.md)
+
+[让演化可编程：XLang 与可逆计算的结构化范式](https://zhuanlan.zhihu.com/p/1942216215067100536), **这一篇是AI整理的介绍文章，推荐阅读**
 
 ## 快速开始
 
@@ -291,12 +297,12 @@ switch(贵公司很有钱吗()){
 > 网友：
 > 我们是30人的小公司，一个大半年的项目试着用了效果还可以，效果质量各方面都有提升，后面准备深度使用。
 > 现在回过头来看最大的2个感受：
->
+> 
 > 1. 下层基础决定上层建筑，一定程度上拉高了开发人员的技术水平下限
 > 2. 往年维护的各种解决方案的基础框架，通过这种思想是能够形成统一，让沉淀有深度不仅仅是广度
 
 > 而且现在发现之前都用错了 有一些个性的代码直接在clone分支重写了 目前看都完全可以不动Nop底层代码达到个性化的需求。如果开源项目都这样去规划 就没有那么多冗余的衍生版本了
->
+> 
 > canonical:
 > 一个小众的框架，你们在不熟悉的情况下直接用于开发产品上线，当时是怎么想的？
 

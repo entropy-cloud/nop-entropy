@@ -444,6 +444,10 @@ public class ExcelTemplateToXptModelTransformer {
                 cellModel.setExportFormattedValue(exportFormattedValue);
             }
 
+            Boolean exportFormula = ConvertHelper.toBoolean(fieldModel.prop_get(XptConstants.EXT_PROP_XPT_EXPORT_FORMULA));
+            if (exportFormula != null)
+                cellModel.setExportFormula(exportFormula);
+
             Boolean rowExtendForSibling = ConvertHelper.toBoolean(fieldModel.prop_get(XptConstants.EXT_PROP_XPT_ROW_EXTEND_FOR_SIBLING));
             if (rowExtendForSibling != null) {
                 cellModel.setRowExtendForSibling(rowExtendForSibling);
