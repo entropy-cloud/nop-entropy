@@ -15,6 +15,7 @@ import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.MapCache;
 import io.nop.commons.text.tokenizer.TextScanner;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IEvalScope;
@@ -24,13 +25,19 @@ import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.report.core.XptConstants;
 import io.nop.report.core.dataset.DynamicReportDataSet;
+import io.nop.report.core.expr.ExcelFormulaParser;
 import io.nop.report.core.expr.ReportExpressionParser;
+import io.nop.report.core.expr.ReportFormulaGenerator;
+import io.nop.report.core.functions.ReportFunctionProvider;
 import io.nop.report.core.model.ExpandedCell;
 import io.nop.report.core.model.ExpandedCellSet;
 import io.nop.report.core.model.ExpandedRow;
 import io.nop.report.core.model.ExpandedSheet;
 import io.nop.report.core.model.ExpandedTable;
+import io.nop.xlang.api.EvalCodeWithAst;
 import io.nop.xlang.api.XLang;
+import io.nop.xlang.api.XLangCompileTool;
+import io.nop.xlang.ast.Expression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +71,7 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
     private ICache<Object, Object> cache;
 
     private final Map<String, IExecutableExpression> cellExprCache = new HashMap<>();
+    private final Map<String, EvalCodeWithAst> formulaCompileCache = new HashMap<>();
 
     public XptRuntime(IEvalScope scope) {
         this.scope = scope.newChildScope();
@@ -336,4 +344,34 @@ public class XptRuntime implements IXptRuntime, IVariableScope {
             sheetLoopCleanups.clear();
         }
     }
+
+    @Override
+    public Object evalExcelFormula(String formula) {
+        if (StringHelper.isBlank(formula))
+            return null;
+        return getCompiledExcelFormula(formula).invoke(this);
+    }
+
+
+    @Override
+    public String expandExcelFormula(String formula) {
+        if (StringHelper.isBlank(formula))
+            return null;
+        Expression expr = getCompiledExcelFormula(formula).getAst();
+        return new ReportFormulaGenerator(this.getEvalScope()).toExprString(expr);
+    }
+
+    protected EvalCodeWithAst compileExcelFormula(String formula) {
+        Expression expr = new ExcelFormulaParser().parseExpr(null, formula);
+        XLangCompileTool cp = XLang.newCompileTool();
+        cp.getScope().setFunctionProvider(ReportFunctionProvider.INSTANCE);
+        // 语义分析过程中可能会改expr
+        EvalCodeWithAst ret = new EvalCodeWithAst(cp.buildExecutable(expr.deepClone()), formula, expr);
+        return ret;
+    }
+
+    protected EvalCodeWithAst getCompiledExcelFormula(String formula) {
+        return formulaCompileCache.computeIfAbsent(formula, this::compileExcelFormula);
+    }
+
 }

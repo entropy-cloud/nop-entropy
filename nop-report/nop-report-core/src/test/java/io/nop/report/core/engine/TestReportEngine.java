@@ -166,6 +166,15 @@ public class TestReportEngine extends BaseTestCase {
         FileHelper.writeText(getTargetFile("test-expand-inplace-count.html"), html, null);
     }
 
+    @Test
+    public void testExpandExcelFormula() {
+        IReportEngine reportEngine = newReportEngine();
+        ExcelWorkbook workbook = reportEngine.getXptModel("/nop/report/demo/test-expand-excel-formula.xpt.xlsx");
+
+        ITemplateOutput output = reportEngine.getRendererForXptModel(workbook, "xlsx");
+        output.generateToFile(getTargetFile("result-expand-formula.xlsx"), XLang.newEvalScope());
+    }
+
 
     private IReportEngine newReportEngine() {
         ReportEngine reportEngine = new ReportEngine();

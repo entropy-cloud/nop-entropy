@@ -132,4 +132,11 @@ public interface IXptRuntime extends IEvalContext {
     void runWorkbookCleanup();
 
     void runSheetLoopCleanup();
+
+    Object evalExcelFormula(String formula);
+
+    /**
+     * 解析Excel公式，将其中的单元格定义展开，生成展开后的Excel公式
+     */
+    String expandExcelFormula(String formula);
 }

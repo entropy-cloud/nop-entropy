@@ -258,6 +258,10 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
     }
 
     private void exportFormula(ExpandedCell cell, IEvalScope scope, IXptRuntime xptRt) {
+        // 已经设置了表达式，则直接返回
+        if (!StringHelper.isEmpty(cell.getFormula()))
+            return;
+
         XptCellModel cellModel = cell.getModel();
         if (cellModel != null && Boolean.TRUE.equals(cellModel.getExportFormula())) {
             if (cellModel.getValueExpr() instanceof EvalCodeWithAst) {
