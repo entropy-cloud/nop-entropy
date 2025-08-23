@@ -66,3 +66,59 @@ ApiResponse的结构类似SmartAdmin中ResponseDTO。response = headers + status
 异常码对应的异常消息可以通过i18n文件进行定制。例如在 `/i18n/zh-CN/error.i18n.yaml`文件中为每个错误码指定对应的错误消息，它会替代错误码定义时所使用的缺省消息。
 I18nMessageManager会自动读取`_vfs/i18n/`目录下所有的不以下划线为前缀的`i18n.yaml`文件。Nop平台并没有约定一定要在`error.i18n.yaml`中定制错误消息，这里的名称是自定义的。
 
+## 错误码映射
+
+### 1. 概述
+
+NopPlatform允许通过错误码映射机制，将系统内部的错误码（例如 `nop.err.auth.login-check-fail`）转换为对外API的错误响应格式。这使得您可以统一API的错误码规范、自定义HTTP状态码和返回消息，而无需修改底层业务代码。
+
+### 2. 配置文件
+
+错误码映射规则在 `app.errors.yaml` 文件中进行配置。
+
+*   **模块配置**: 每个模块可以有自己的配置文件，路径为 `/{moduleId}/conf/app.errors.yaml`。
+*   **全局配置**: 主应用可以提供一个全局配置文件，路径为 `/main/conf/app.errors.yaml`。
+*   **加载顺序与优先级**: 系统会先加载所有模块的配置，然后加载全局配置。如果存在相同的错误码映射，**全局配置会覆盖模块配置**。
+
+### 3. 配置项说明
+
+YAML文件的**键**是内部错误的**字符串ID** (例如 `nop.err.auth.invalid-login-request`)。**值**是一个包含映射规则的对象，常用属性如下：
+
+*   `mapToCode`: **(核心)** 将内部错误码映射为新的、对外的错误码字符串。
+*   `httpStatus`: **(常用)** 为此错误指定返回的HTTP状态码，例如 `401` (未授权)、`404` (未找到)。
+*   `messageKey`: 覆盖默认的国际化(i18n)消息键，以返回不同的错误描述。
+*   `includeCause`: 是否在错误描述中包含根本原因(cause)的异常信息。**生产环境建议关闭 (`false`)**，以防泄露内部实现细节。
+*  `status`: 业务状态码，缺省为-1
+*   其他属性如 `returnParams`, `bizFatal`, `mapToParams` 等可用于更精细的控制。
+
+### 4. 配置示例
+
+根据 `NopAuthErrors` 接口中的错误码定义，以下是一个 `app.errors.yaml` 的配置示例。
+
+**文件路径**: `/main/conf/app.errors.yaml`
+
+```yaml
+# 键(key)是错误码的字符串ID，而不是Java常量名
+
+# 登录失败：用户名或密码不匹配
+nop.err.auth.login-check-fail:
+  # 映射为对外的错误码 AUTH_FAILURE
+  mapToCode: "AUTH_FAILURE"
+  # 返回 401 Unauthorized HTTP状态码
+  httpStatus: 401
+  # 使用自定义的i18n消息
+  messageKey: "err.api.login-failed"
+
+# 登录用户不存在
+nop.err.auth.login-with-unknown-user:
+  # 映射为对外的错误码 USER_NOT_FOUND
+  mapToCode: "USER_NOT_FOUND"
+  # 返回 400 Bad Request，因为这是一个客户端输入错误
+  httpStatus: 400
+  status: -401
+```
+
+**效果**:
+当系统内部抛出 `NopAuthErrors.ERR_AUTH_LOGIN_CHECK_FAIL` 异常时，通过此映射，最终对外的API响应：
+*   HTTP状态码将是 `401`。
+*   响应体中的 `code` 字段值为 `AUTH_FAILURE`。
