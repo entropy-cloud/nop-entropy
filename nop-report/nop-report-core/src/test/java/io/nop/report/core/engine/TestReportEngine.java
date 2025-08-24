@@ -21,6 +21,7 @@ import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.ooxml.xlsx.util.ExcelHelper;
 import io.nop.ooxml.xlsx.util.ExcelSheetData;
 import io.nop.report.core.XptConstants;
+import io.nop.report.core.build.XptModelLoader;
 import io.nop.report.core.engine.renderer.HtmlReportRendererFactory;
 import io.nop.report.core.engine.renderer.XlsxReportRendererFactory;
 import io.nop.xlang.api.XLang;
@@ -175,6 +176,12 @@ public class TestReportEngine extends BaseTestCase {
         output.generateToFile(getTargetFile("result-expand-formula.xlsx"), XLang.newEvalScope());
     }
 
+    @Test
+    public void testTransformToXml() {
+        IResource resource = getResource("/nop/report/demo/test-expand-inplace-count.xpt.xlsx");
+        XNode node = XptModelLoader.instance().loadModelNodeFromResource(resource);
+        node.dump();
+    }
 
     private IReportEngine newReportEngine() {
         ReportEngine reportEngine = new ReportEngine();

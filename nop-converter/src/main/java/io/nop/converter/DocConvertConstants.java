@@ -21,4 +21,8 @@ public interface DocConvertConstants {
     String FILE_TYPE_JAR = "jar";
 
     String FILE_TYPE_WORKBOOK_XML = "workbook.xml";
+
+    String FILE_TYPE_XPT_XML = "xpt.xml";
+
+    String FILE_TYPE_XPT_XLSX = "xpt.xlsx";
 }

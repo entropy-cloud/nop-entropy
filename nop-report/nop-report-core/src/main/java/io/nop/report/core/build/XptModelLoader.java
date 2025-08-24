@@ -9,13 +9,16 @@ package io.nop.report.core.build;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.excel.ExcelConstants;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.ooxml.xlsx.parse.ExcelWorkbookParser;
 import io.nop.report.core.XptConstants;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XLangCompileTool;
+import io.nop.xlang.xdsl.DslModelHelper;
 import io.nop.xlang.xdsl.DslModelParser;
 
 import static io.nop.report.core.XptConstants.ALLOWED_XPT_FILE_TYPES;
@@ -56,5 +59,10 @@ public class XptModelLoader {
         XLangCompileTool cp = XLang.newCompileTool().allowUnregisteredScopeVar(true);
         new XptModelInitializer(cp).initialize(workbook);
         return workbook;
+    }
+
+    public XNode loadModelNodeFromResource(IResource resource) {
+        ExcelWorkbook wk = loadModelFromResource(resource);
+        return DslModelHelper.dslModelToXNode(ExcelConstants.XDSL_SCHEMA_WORKBOOK, wk);
     }
 }

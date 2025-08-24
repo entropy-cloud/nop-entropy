@@ -32,6 +32,13 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
     
     /**
      *  
+     * xml name: id
+     * 
+     */
+    private java.lang.String _id ;
+    
+    /**
+     *  
      * xml name: linkUrl
      * 
      */
@@ -134,6 +141,25 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
         checkAllowChange();
         
         this._formula = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: id
+     *  
+     */
+    
+    public java.lang.String getId(){
+      return _id;
+    }
+
+    
+    public void setId(java.lang.String value){
+        checkAllowChange();
+        
+        this._id = value;
            
     }
 
@@ -349,6 +375,7 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
         
         out.putNotNull("comment",this.getComment());
         out.putNotNull("formula",this.getFormula());
+        out.putNotNull("id",this.getId());
         out.putNotNull("linkUrl",this.getLinkUrl());
         out.putNotNull("mergeAcross",this.getMergeAcross());
         out.putNotNull("mergeDown",this.getMergeDown());
@@ -372,6 +399,7 @@ public abstract class _ExcelCell extends io.nop.core.model.table.impl.AbstractCe
         
         instance.setComment(this.getComment());
         instance.setFormula(this.getFormula());
+        instance.setId(this.getId());
         instance.setLinkUrl(this.getLinkUrl());
         instance.setMergeAcross(this.getMergeAcross());
         instance.setMergeDown(this.getMergeDown());

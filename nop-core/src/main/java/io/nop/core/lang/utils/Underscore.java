@@ -833,11 +833,15 @@ public class Underscore {
         for (S item1 : c1) {
             Object key = getFieldValue(item1, leftProp);
             R item2 = m2.remove(key);
-            ret.add(processor.apply(key, item1, item2));
+            T result = processor.apply(key, item1, item2);
+            if (result != null)
+                ret.add(result);
         }
 
         m2.forEach((key, value) -> {
-            ret.add(processor.apply(key, null, value));
+            T result = processor.apply(key, null, value);
+            if (result != null)
+                ret.add(result);
         });
 
         return ret;

@@ -46,6 +46,13 @@ public abstract class _ExcelRow extends io.nop.core.model.table.impl.AbstractRow
     
     /**
      *  
+     * xml name: id
+     * 
+     */
+    private java.lang.String _id ;
+    
+    /**
+     *  
      * xml name: model
      * 
      */
@@ -143,6 +150,25 @@ public abstract class _ExcelRow extends io.nop.core.model.table.impl.AbstractRow
     
     /**
      * 
+     * xml name: id
+     *  
+     */
+    
+    public java.lang.String getId(){
+      return _id;
+    }
+
+    
+    public void setId(java.lang.String value){
+        checkAllowChange();
+        
+        this._id = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: model
      *  
      */
@@ -221,6 +247,7 @@ public abstract class _ExcelRow extends io.nop.core.model.table.impl.AbstractRow
         out.putNotNull("cells",this.getCells());
         out.putNotNull("height",this.getHeight());
         out.putNotNull("hidden",this.isHidden());
+        out.putNotNull("id",this.getId());
         out.putNotNull("model",this.getModel());
         out.putNotNull("name",this.getName());
         out.putNotNull("styleId",this.getStyleId());
@@ -239,6 +266,7 @@ public abstract class _ExcelRow extends io.nop.core.model.table.impl.AbstractRow
         instance.setCells(this.getCells());
         instance.setHeight(this.getHeight());
         instance.setHidden(this.isHidden());
+        instance.setId(this.getId());
         instance.setModel(this.getModel());
         instance.setName(this.getName());
         instance.setStyleId(this.getStyleId());

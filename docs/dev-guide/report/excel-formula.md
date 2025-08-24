@@ -24,3 +24,11 @@ NopReport特殊识别一种特殊格式的IF语句，IF(testExpr, rangeExpr)，�
 基本等价于如下调用  `xptRpt.cells("C2:D2").filter(e=> e.rp.ev.name == '%')`
 
 > e.rp.ev.name 表示获取cell的rowParent的expandedValue的name属性。 expandedValue是展开单元格中expandExpr返回的展开值
+
+
+## 3. 动态字段导出Excel公式
+
+如果不能在报表模板中直接指定Excel公式，而是根据某种配置动态生成Excel公式，并且希望导出的Excel数据文件中保留Excel公式，则可以使用如下方法
+
+* 在valueExpr中使用xptRt.evalExcelFormula(formula) 动态执行Excel公式返回值
+* 在processExpr中执行cell.setFormula(xptRt.expandExcelFormula(formula))。 expandExcelFormula的作用是将Excel公式中的Range表达式替换为展开后的单元格Range范围
