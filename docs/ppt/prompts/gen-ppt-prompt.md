@@ -21,7 +21,9 @@ You are a professional front-end developer and designer. Please generate an HTML
 - Incorporate appropriate animations and transition effects  
 - Ensure responsive design for various devices  
 - Use `<img>` tags with inline styles for dimension control. Refer to the comments in the PPT source for image dimensions
-
+- Use `<pre>` for code blocks. Escape special chars like `<` → `&lt;`, `&` → `&amp;`.
+- Keep all PPT text exactly. Adjust layout for long sentences.
+- Keep list items as separate lines. Do not merge.
 
 【Example Presentation】
 
@@ -544,7 +546,7 @@ You are a professional front-end developer and designer. Please generate an HTML
             });
             
             // Export to PDF - All slides
-            document.getElementById('export-pdf').addEventListener('click', function() {
+            exportPdfBtn.addEventListener('click', function() {
                 //create pdf container
                 const pdfContainer = document.createElement('div');
                 pdfContainer.className = 'pdf-page';

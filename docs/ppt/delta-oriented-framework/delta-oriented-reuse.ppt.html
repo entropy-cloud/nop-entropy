@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delta-Oriented Framework Presentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        body {
+            background: #f5f7fa;
+            color: #2d3748;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+        
+        .presentation-container {
+            width: 90%;
+            max-width: 1200px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+            height: 85vh;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .slides {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            scroll-snap-type: y mandatory;
+        }
+        
+        .slide {
+            min-height: calc(100% - 40px);
+            padding: 30px;
+            scroll-snap-align: start;
+            display: none;
+            animation: fadeIn 0.6s ease;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .title-slide {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #4c6ef5;
+            color: white;
+            border-radius: 16px;
+            padding: 40px;
+            height: 100%;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 24px;
+            color: #2d3748;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.5px;
+        }
+        
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 28px;
+            color: #4a5568;
+            font-weight: 600;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e2e8f0;
+            line-height: 1.3;
+        }
+        
+        h3 {
+            font-size: 1.5rem;
+            margin: 20px 0 16px;
+            color: #4c6ef5;
+            font-weight: 600;
+        }
+        
+        .title-slide h1 {
+            font-size: 3.2rem;
+            color: white;
+            margin-bottom: 16px;
+        }
+        
+        .title-slide p {
+            font-size: 1.8rem;
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 400;
+        }
+        
+        ul {
+            list-style-type: none;
+            margin: 24px 0;
+        }
+        
+        .icon-bullet {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 18px;
+            padding: 14px;
+            border-radius: 10px;
+            background: #f8fafc;
+            transition: all 0.3s ease;
+            white-space: normal;
+            word-spacing: normal;
+        }
+        
+        .icon-bullet:hover {
+            background: #f1f5f9;
+            transform: translateX(5px);
+        }
+        
+        .icon-bullet i {
+            color: #4c6ef5;
+            font-size: 1.3rem;
+            margin-top: 4px;
+            flex-shrink: 0;
+        }
+        
+        .controls {
+            position: sticky;
+            bottom: 0;
+            background: white;
+            padding: 15px 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+            justify-content: flex-end;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .btn {
+            padding: 10px 16px;
+            background: #4c6ef5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(76, 110, 245, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 110, 245, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .fullscreen-btn {
+            background: #7950f2;
+        }
+        
+        .export-btn {
+            background: #2fb344;
+            box-shadow: 0 2px 8px rgba(47, 179, 68, 0.3);
+        }
+        
+        .export-btn:hover {
+            box-shadow: 0 4px 12px rgba(47, 179, 68, 0.4);
+        }
+        
+        .progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: #4c6ef5;
+            width: 0%;
+            transition: width 0.3s ease;
+            z-index: 101;
+        }
+        
+        .slide-number {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 1rem;
+            color: #4c6ef5;
+            font-weight: 600;
+            background: #f8fafc;
+            padding: 6px 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            z-index: 101;
+        }
+        
+        .code-block {
+            background: #f8fafc;
+            color: #2d3748;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'Monaco', monospace;
+            border: 1px solid #e2e8f0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-spacing: normal;
+        }
+        
+        .img-placeholder {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+        }
+        
+        .two-column {
+            display: flex;
+            gap: 30px;
+            margin: 24px 0;
+        }
+        
+        .col {
+            flex: 1;
+            background: #f8fafc;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .formula {
+            text-align: center;
+            font-size: 1.5rem;
+            font-family: 'Georgia', serif;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+            font-weight: 500;
+        }
+        
+        .highlight {
+            background: #f0fff4;
+            padding: 24px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 5px solid #48bb78;
+        }
+        
+        .key-point {
+            color: #4c6ef5;
+            font-weight: 700;
+        }
+        
+        .nested-list {
+            margin-left: 40px;
+            margin-top: 10px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* PDF export specific style */
+        @media print {
+            body, html {
+                width: 100%;
+                height: auto;
+                margin: 0;
+                padding: 0;
+                background: white !important;
+            }
+            
+            .presentation-container {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                box-shadow: none !important;
+                background: white !important;
+                border: none !important;
+                border-radius: 0 !important;
+            }
+            
+            .slides {
+                height: auto !important;
+                padding: 0 !important;
+                overflow: visible !important;
+            }
+            
+            .slide {
+                display: block !important;
+                break-inside: avoid;
+                page-break-inside: avoid;
+                height: auto !important;
+                min-height: auto !important;
+                margin: 0 0 20mm 0 !important;
+                padding: 15mm !important;
+                border: 1px solid #ddd !important;
+                border-radius: 5px !important;
+                box-shadow: none !important;
+                position: relative;
+            }
+            
+            .btn, .controls, .progress-bar, .slide-number {
+                display: none !important;
+            }
+            
+            .title-slide {
+                page-break-after: always;
+                break-after: page;
+            }
+        }
+
+        .pdf-page {
+            width: 100%;
+            height: auto;
+            background: white;
+            color: black;
+            box-shadow: none;
+        }
+
+        .pdf-slide {
+            width: 100%;
+            margin-bottom: 20px;
+            break-inside: avoid;
+            page-break-inside: avoid;
+            border: 1px solid #eeeeee;
+            border-radius: 8px;
+            padding: 30px;
+            background: white;
+            box-shadow: none;
+            position: relative;
+            display: block;
+            height: auto;
+        }
+        
+        @media (max-width: 900px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            h2 {
+                font-size: 1.8rem;
+            }
+            
+            .title-slide h1 {
+                font-size: 2.4rem;
+            }
+            
+            .two-column {
+                flex-direction: column;
+            }
+            
+            .slide {
+                padding: 25px 20px;
+            }
+            
+            .slides {
+                padding: 15px;
+            }
+            
+            .controls {
+                padding: 10px 15px;
+            }
+            
+            .btn {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <div class="slides">
+            <!-- Slide 1 -->
+            <div class="slide active">
+                <div class="title-slide">
+                    <h1>Extensibility based on the Delta‑Oriented Framework</h1>
+                    <p>September 2025</p>
+                </div>
+            </div>
+            
+            <!-- Slide 2 -->
+            <div class="slide">
+                <h2>The Customization Trap</h2>
+                <div class="icon-bullet">
+                    <i class="fas fa-copy"></i>
+                    <div><span class="key-point">Copy & Modify:</span> The seemingly easy start.
+                        <div class="nested-list">- Duplicate the core product for each custom need.</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-code-branch"></i>
+                    <div><span class="key-point">Diverging Paths:</span> The inevitable conflict.
+                        <div class="nested-list">- Core evolves; custom versions stagnate.</div>
+                        <div class="nested-list">- Updates and innovation sharing become complex.</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div><span class="key-point">Technical Debt:</span> The end result.
+                        <div class="nested-list">- Core misses field innovations.</div>
+                        <div class="nested-list">- Custom versions become unmaintainable legacy.</div>
+                        <div class="nested-list">- Merging creates massive code conflicts.</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 3 -->
+            <div class="slide">
+                <h2>Software Product Lines: From Ad Hoc to Systematic Reuse</h2>
+                <div class="img-placeholder">
+                    <img src="reuse-history.png" style="width:400px;height:auto" alt="Reuse History Diagram">
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-stethoscope"></i>
+                    <div><span class="key-point">Diagnosis:</span> "The Customization Trap"
+                        <div class="nested-list">- Root cause: Unmanaged variation causing architectural erosion.</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-lightbulb"></i>
+                    <div><span class="key-point">The Insight:</span> Reuse the Entire System
+                        <div class="nested-list">- Engineer the whole product family, not just parts.</div>
+                        <div class="nested-list">- Core principle: Strategic management of commonality and variability.</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-sitemap"></i>
+                    <div><span class="key-point">The Two-Lifecycle Model</span>
+                        <div class="nested-list">- Domain Engineering: Build reusable core assets (for reuse).</div>
+                        <div class="nested-list">- Application Engineering: Assemble products from assets (with reuse).</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 4 -->
+            <div class="slide">
+                <h2>The Promise vs. The Reality</h2>
+                <div class="icon-bullet">
+                    <i class="fas fa-handshake"></i>
+                    <div><span class="key-point">The Promise (CMU SEI):</span>
+                        <div class="nested-list">- &gt;10× productivity</div>
+                        <div class="nested-list">- &gt;60% cost reduction</div>
+                        <div class="nested-list">- &gt;98% faster time-to-market</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-chart-line"></i>
+                    <div><span class="key-point">The Reality:</span>
+                        <div class="nested-list">- One Core Challenge – Effective Variability Management.</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 5 -->
+            <div class="slide">
+                <h2>The Core Challenge: Traditional Variability Techniques</h2>
+                <div class="img-placeholder">
+                    <img src="variability.png" style="width:400px;height:auto" alt="Variability Diagram">
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-plug"></i>
+                    <div><span class="key-point">Goal:</span> Plug functionality into a stable core.</div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-exchange-alt"></i>
+                    <div><span class="key-point">Adaptation:</span> Modify behavior (e.g., Class Inheritance).</div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-sync"></i>
+                    <div><span class="key-point">Replacement:</span> Swap components (e.g., Plugins).</div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-plus-circle"></i>
+                    <div><span class="key-point">Extension:</span> Add new features (e.g., Add-ons).</div>
+                </div>
+            </div>
+            
+            <!-- Slide 6 -->
+            <div class="slide">
+                <h2>The Dilemmas of Component-Based Reuse</h2>
+                <div class="icon-bullet">
+                    <i class="fas fa-expand-arrows-alt"></i>
+                    <div><span class="key-point">1. The Granularity Paradox</span>
+                        <div class="nested-list">- Reusable components contain only commonality.</div>
+                        <div class="nested-list">- Dilemma: They are inherently smaller than any product, conflicting with the goal of a large, reusable core.</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-crystal-ball"></i>
+                    <div><span class="key-point">2. The Prediction Paradox</span>
+                        <div class="nested-list">- Requires a stable core with predefined extension points.</div>
+                        <div class="nested-list">- Dilemma:</div>
+                        <div class="nested-list" style="margin-left: 60px;">- Too few points: Architecture is rigid.</div>
+                        <div class="nested-list" style="margin-left: 60px;">- Too many points: Architecture is destroyed.</div>
+                        <div class="nested-list">- These are fundamental limits of the additive approach.</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 7 -->
+            <div class="slide">
+                <h2>Inspiration from Physics: A New Duality for Software</h2>
+                <div class="icon-bullet">
+                    <i class="fas fa-atom"></i>
+                    <div><span class="key-point">Particle View (Current):</span> Reductionism.
+                        <div class="nested-list">- Decompose systems into atoms (objects, components).</div>
+                        <div class="nested-list">- Assemble parts to build wholes.</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-wave-square"></i>
+                    <div><span class="key-point">Wave View (New):</span> Superposition.
+                        <div class="nested-list">- Think of features as waves to be overlaid and combined.</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-question-circle"></i>
+                    <div><span class="key-point">The Question:</span> Can we build software via non-invasive superposition, not assembly?</div>
+                </div>
+            </div>
+            
+            <!-- Slide 8 -->
+            <div class="slide">
+                <h2>An Algebraic View of Software Evolution</h2>
+                <div class="icon-bullet">
+                    <i class="fas fa-project-diagram"></i>
+                    <div><span class="key-point">Object-Oriented:</span> Implicit Delta (A &gt; B)
+                        <div class="nested-list">- Reuse constrained by hierarchy.</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-plus-square"></i>
+                    <div><span class="key-point">Component-Oriented:</span> Explicit Addition (A = B + C)
+                        <div class="nested-list">- Delta C becomes a reusable component.</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-retweet"></i>
+                    <div><span class="key-point">Reversible Computation:</span> Algebraic Manipulation (B = A + (-C))
+                        <div class="nested-list">- The Leap: Introduce a formal inverse element.</div>
+                        <div class="nested-list">- Unlocks: Reuse by transforming anything related, not just identical.</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 9 -->
+            <div class="slide">
+                <h2>Reversible Computation: A Next-Gen Construction Theory</h2>
+                <div class="formula">
+                    Y = F(X) + Δ
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-universal-access"></i>
+                    <div><span class="key-point">Universal Form:</span> Y = F(X) + Δ
+                        <div class="nested-list">- Computation as a baseline transformed by a precise delta.</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-compress-arrows-alt"></i>
+                    <div><span class="key-point">New Locus of Computation:</span> The Transformation (Δ) is primary.</div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-route"></i>
+                    <div><span class="key-point">Technical Route:</span> App = Delta x-extends Generator&lt;DSL&gt;
+                        <div class="nested-list">- Generator&lt;DSL&gt;: Core domain knowledge.</div>
+                        <div class="nested-list">- Delta: Features as independent transformations.</div>
+                        <div class="nested-list">- x-extends: Superposition operator.</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 10 -->
+            <div class="slide">
+                <h2>From Theory to Practice: Docker as Reversible Computation</h2>
+                <div class="formula">
+                    App = DockerBuild&lt;Dockerfile&gt; overlay-fs BaseImage
+                </div>
+                <div class="icon-bullet">
+                    <i class="fab fa-docker"></i>
+                    <div><span class="key-point">Docker's Formula:</span>
+                        <div class="nested-list">App = DockerBuild&lt;Dockerfile&gt; overlay-fs BaseImage</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <div><span class="key-point">The Mapping:</span>
+                        <div class="nested-list">- DockerBuild&lt;Dockerfile&gt; -&gt; Generator&lt;DSL&gt;</div>
+                        <div class="nested-list">- overlay-fs -&gt; x-extends</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-check-circle"></i>
+                    <div><span class="key-point">Why It Works:</span> This pattern is a mathematical necessity for managing change.
+                        <div class="nested-list">Y = (F0+F1)(X0+X1) = F0(X0) + Δ</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 11 -->
+            <div class="slide">
+                <h2>Delta Customization (1): File-Level Overrides</h2>
+                <div class="icon-bullet">
+                    <i class="fas fa-layer-group"></i>
+                    <div><span class="key-point">Foundation:</span> A Virtual File System (VFS) with delta layers.</div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-file-medical-alt"></i>
+                    <div><span class="key-point">Mechanism:</span> Files in a delta layer (/_delta/customer-a/...) override base files.</div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-toggle-on"></i>
+                    <div><span class="key-point">Activation:</span> Switch behavior globally with a parameter (e.g., deltaId=customer-a).</div>
+                </div>
+                
+                <h3 style="margin-top: 30px;">Example Directory Structure:</h3>
+                <pre class="code-block">/_delta/customer-a/beans/job.xml       // Customization for Customer A
+/_delta/customer-b/config/auth.json    // Customization for Customer B
+/beans/job.xml                         // Base product file
+/config/auth.json                      // Base product file</pre>
+            </div>
+            
+            <!-- Slide 12 -->
+            <div class="slide">
+                <h2>Delta Customization (2): Intra-File Surgical Customization</h2>
+                
+                <h3>Base Definition (/beans/core.xml)</h3>
+                <pre class="code-block">&lt;beans&gt;
+    &lt;bean id="securityManager" class="com.mycorp.StandardSecurityManager"/&gt;
+    &lt;bean id="dataService" class="com.mycorp.DefaultDataService"/&gt;
+&lt;/beans&gt;</pre>
+                
+                <h3>Customer-A Delta (/_delta/customer-a/beans/core.xml)</h3>
+                <pre class="code-block">&lt;beans x:extends="super"&gt;
+    &lt;!-- 1. Modify Class --&gt;
+    &lt;bean id="securityManager" class="com.customer.AdvancedSecurityManager"/&gt;
+
+    &lt;!-- 2. Remove Bean --&gt;
+    &lt;bean id="dataService" x:override="remove"/&gt;
+
+    &lt;!-- 3. Add Conditionally --&gt;
+    &lt;bean id="auditLogger" class="com.customer.AuditLogger"
+          feature:on="auditing.enabled"/&gt;
+&lt;/beans&gt;</pre>
+            </div>
+            
+            <!-- Slide 13 -->
+            <div class="slide">
+                <h2>Delta Oriented Framework: The Core Principle</h2>
+                <h3>Unified, DSL-Agnostic Customization</h3>
+                
+                <div class="icon-bullet">
+                    <i class="fas fa-compress-alt"></i>
+                    <div><span class="key-point">1. Philosophy:</span> One mechanism to customize any DSL.</div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-cogs"></i>
+                    <div><span class="key-point">2. Mechanism:</span> "Loader as Generator"
+                        <div class="nested-list">- Swap native loader for DeltaFileSystem loader.</div>
+                        <div class="nested-list">- Non-intrusively finds, merges, and generates the final model.</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-bolt"></i>
+                    <div><span class="key-point">3. Impact:</span>
+                        <div class="nested-list">- Full-stack customization (Data to UI).</div>
+                        <div class="nested-list">- Zero changes to base product code.</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 14 -->
+            <div class="slide">
+                <h2>From Model to Code: Delta-Driven Generation</h2>
+                
+                <div class="icon-bullet">
+                    <i class="fas fa-code"></i>
+                    <div><span class="key-point">1. Full-Stack Generation:</span>
+                        <div class="nested-list">- From models (ORM, etc.) to code (DAO, Microservices, UI, SQL, i18n).</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-project-diagram"></i>
+                    <div><span class="key-point">2. Delta-Based Pattern:</span>
+                        <div class="nested-list">- `_Account.java` (Base): Machine-generated, safe to overwrite.</div>
+                        <div class="nested-list">- Account.java (Extension): Manually extended, generator-safe.</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-sync-alt"></i>
+                    <div><span class="key-point">3. Advantage:</span> Parallel Evolution
+                        <div class="nested-list">- Continuously regenerate model &amp; code without losing custom logic.</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 15 -->
+            <div class="slide">
+                <h2>Nop Architecture: A Cohesive Blueprint</h2>
+                <div class="img-placeholder">
+                    <img src="nop-arch.png" style="width:400px;height:300px" alt="Nop Architecture Diagram">
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-layer-group"></i>
+                    <div><span class="key-point">Foundation:</span> Universal Delta capabilities &amp; code generation.</div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-cogs"></i>
+                    <div><span class="key-point">Development:</span> Reusable core engines for complex business logic.</div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-balance-scale"></i>
+                    <div><span class="key-point">Synergy:</span> Delta Customization balances platform stability with agile customization.</div>
+                </div>
+            </div>
+            
+            <!-- Slide 16 -->
+            <div class="slide">
+                <h2>Synergy with AI: The Future of Development</h2>
+                
+                <div class="icon-bullet">
+                    <i class="fas fa-robot"></i>
+                    <div><span class="key-point">AI as a Co-pilot for DSLs:</span>
+                        <div class="nested-list">- Well-defined DSLs provide perfect structure for AI to generate and understand code.</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-file-alt"></i>
+                    <div><span class="key-point">Current Application:</span> AI for Documentation
+                        <div class="nested-list">- Automatically generate technical docs from models, pages, and configurations.</div>
+                        <div class="nested-list">- (This presentation and its graphics were AI-generated.)</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-road"></i>
+                    <div><span class="key-point">Future Vision:</span> AI for Feature Development
+                        <div class="nested-list">- On the Roadmap: Translating natural language requirements into precise DSL deltas.</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Slide 17 -->
+            <div class="slide">
+                <h2>Summary: Extensibility Through Reversible Computation</h2>
+                
+                <div class="icon-bullet">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div><span class="key-point">The Problem:</span> Traditional component-based reuse hits fundamental limits (Granularity &amp; Prediction Paradoxes).</div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-lightbulb"></i>
+                    <div><span class="key-point">The Insight:</span> Draw inspiration from physics and mathematics - treat features as superposable transformations.</div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-puzzle-piece"></i>
+                    <div><span class="key-point">The Solution:</span> The Delta-Oriented Framework, enabled by Reversible Computation theory.</div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-brain"></i>
+                    <div><span class="key-point">Key Understanding:</span> Reversible Computation expands the solution space significantly</div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-check-double"></i>
+                    <div><span class="key-point">The Result:</span>
+                        <div class="nested-list">- Systematic, non-invasive customization for various DSLs</div>
+                        <div class="nested-list">- Maintains a stable yet adaptable core architecture</div>
+                        <div class="nested-list">- Helps escape "The Customization Trap"</div>
+                    </div>
+                </div>
+                <div class="icon-bullet">
+                    <i class="fas fa-microchip"></i>
+                    <div><span class="key-point">The Future:</span> Combines AI capabilities with precise engineering through DSLs and Deltas</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="progress-bar"></div>
+        <div class="slide-number">Slide 1 of 17</div>
+        
+        <div class="controls">
+            <button class="btn prev-btn"><i class="fas fa-arrow-left"></i> Prev</button>
+            <button class="btn next-btn">Next <i class="fas fa-arrow-right"></i></button>
+            <button class="btn fullscreen-btn"><i class="fas fa-expand"></i> Full</button>
+            <button class="btn export-btn" id="export-pdf"><i class="fas fa-file-pdf"></i> PDF</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const slides = document.querySelectorAll('.slide');
+            const prevBtn = document.querySelector('.prev-btn');
+            const nextBtn = document.querySelector('.next-btn');
+            const fullscreenBtn = document.querySelector('.fullscreen-btn');
+            const exportPdfBtn = document.getElementById('export-pdf');
+            const slideNumber = document.querySelector('.slide-number');
+            const progressBar = document.querySelector('.progress-bar');
+            const container = document.querySelector('.presentation-container');
+            
+            let currentSlide = 0;
+            
+            // Initialize
+            updateSlideNumber();
+            updateProgressBar();
+            
+            // Next button
+            nextBtn.addEventListener('click', function() {
+                if (currentSlide < slides.length - 1) {
+                    slides[currentSlide].classList.remove('active');
+                    currentSlide++;
+                    slides[currentSlide].classList.add('active');
+                    updateSlideNumber();
+                    updateProgressBar();
+                }
+            });
+            
+            // Previous button
+            prevBtn.addEventListener('click', function() {
+                if (currentSlide > 0) {
+                    slides[currentSlide].classList.remove('active');
+                    currentSlide--;
+                    slides[currentSlide].classList.add('active');
+                    updateSlideNumber();
+                    updateProgressBar();
+                }
+            });
+            
+            // Fullscreen button
+            fullscreenBtn.addEventListener('click', function() {
+                if (!document.fullscreenElement) {
+                    if (container.requestFullscreen) {
+                        container.requestFullscreen();
+                    } else if (container.webkitRequestFullscreen) {
+                        container.webkitRequestFullscreen();
+                    } else if (container.msRequestFullscreen) {
+                        container.msRequestFullscreen();
+                    }
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                }
+            });
+            
+            
+            // Export to PDF - All slides
+            exportPdfBtn.addEventListener('click', function() {
+                // Create pdf container
+                const pdfContainer = document.createElement('div');
+                pdfContainer.className = 'pdf-page';
+                
+                // Clone all slides
+                const slides = document.querySelectorAll('.slide');
+                slides.forEach((slide, index) => {
+                    const clone = slide.cloneNode(true);
+                    clone.className = 'pdf-slide';
+                    clone.style.display = 'block';
+                    clone.style.opacity = '1';
+                    clone.style.transform = 'none';
+                    clone.style.visibility = 'visible';
+                    
+                    // Remove styles that may affect PDF rendering
+                    clone.style.boxShadow = 'none';
+                    clone.style.background = 'white';
+                    clone.style.color = 'black';
+                    
+                    // Ensure proper text spacing
+                    const allTextElements = clone.querySelectorAll('*');
+                    allTextElements.forEach(el => {
+                        el.style.wordSpacing = 'normal';
+                        el.style.letterSpacing = 'normal';
+                        el.style.whiteSpace = 'normal';
+                    });
+                    
+                    pdfContainer.appendChild(clone);
+                });
+                
+                // Add to document
+                document.body.appendChild(pdfContainer);
+                
+                // Set PDF options
+                const opt = {
+                    margin: 10,
+                    filename: 'delta-oriented-framework.pdf',
+                    image: { 
+                        type: 'jpeg', 
+                        quality: 0.98 
+                    },
+                    html2canvas: { 
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        logging: true,
+                        backgroundColor: '#FFFFFF',
+                        letterRendering: true,
+                    },
+                    jsPDF: { 
+                        unit: 'mm', 
+                        format: 'a4', 
+                        orientation: 'portrait' 
+                    },
+                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                };
+                
+                // Generate PDF
+                console.log('PDF container created with', pdfContainer.children.length, 'slides');
+                
+                html2pdf().set(opt).from(pdfContainer).save().then(() => {
+                    // Remove temporary container
+                    document.body.removeChild(pdfContainer);
+                    console.log('PDF generated successfully');
+                }).catch(error => {
+                    console.error('PDF generation error:', error);
+                    document.body.removeChild(pdfContainer);
+                });
+			});	
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+                    nextBtn.click();
+                } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                    prevBtn.click();
+                } else if (e.key === 'f') {
+                    fullscreenBtn.click();
+                } else if (e.key === 'Home') {
+                    goToSlide(0);
+                } else if (e.key === 'End') {
+                    goToSlide(slides.length - 1);
+                }
+            });
+            
+            // Update slide number
+            function updateSlideNumber() {
+                slideNumber.textContent = `Slide ${currentSlide + 1} of ${slides.length}`;
+            }
+            
+            // Update progress bar
+            function updateProgressBar() {
+                const progress = ((currentSlide + 1) / slides.length) * 100;
+                progressBar.style.width = `${progress}%`;
+            }
+            
+            // Go to specific slide
+            function goToSlide(n) {
+                slides[currentSlide].classList.remove('active');
+                currentSlide = n;
+                slides[currentSlide].classList.add('active');
+                updateSlideNumber();
+                updateProgressBar();
+            }
+            
+            // Swipe support for touch devices
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            document.querySelector('.slides').addEventListener('touchstart', function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+            });
+            
+            document.querySelector('.slides').addEventListener('touchend', function(e) {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            });
+            
+            function handleSwipe() {
+                const minSwipeDistance = 50;
+                
+                if (touchEndX < touchStartX && touchStartX - touchEndX > minSwipeDistance) {
+                    nextBtn.click();
+                } 
+                
+                if (touchEndX > touchStartX && touchEndX - touchStartX > minSwipeDistance) {
+                    prevBtn.click();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
