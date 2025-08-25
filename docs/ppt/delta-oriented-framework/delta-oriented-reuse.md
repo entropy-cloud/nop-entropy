@@ -6,35 +6,56 @@ September 2025
 # Slide 2
 The Customization Trap
 
-- 1. Copy & Modify: The seemingly easy start.
-     - Duplicate the core product for each custom need.
-- 2. Diverging Paths: The inevitable conflict.
-     - Core evolves; custom versions stagnate.
-     - Updates and innovation sharing become complex.
-- 3. Technical Debt: The end result.
-     - Core misses field innovations.
-     - Custom versions become unmaintainable legacy.
-     - Merging creates massive code conflicts.
+```mermaid
+flowchart TD
+    A[Product v1.0] --> B[Fork for Customer A]
+    B --> C[Heavy Customization<br>Tightly Coupled Code]
+    A --> D[Product v2.0<br>New Features + Fixes]
+    
+    C -.->|Merge: Complex, Costly|D
+    D -.->|Upgrade: High Effort|C
+    
+    C --> E[**Branch Stuck at v1.0**<br>Maintained at High Cost]
+```
+
+The Vicious Cycle:
+- Copy & Modify: The deceptively easy start
+- Diverging Paths: Custom & core code evolve separately
+- Technical Debt: Stagnation, conflicts, and high-cost maintenance
+
 
 # Slide 3
 Software Product Lines: From Ad Hoc to Systematic Reuse
 
-![](reuse-history.png) <!-- width:400px;height:auto; -->
+```mermaid
+flowchart TD
+    subgraph Domain [Domain Engineering]
+        A[Build Core Assets]
+        A --> P[Product Line v2.0.1]
+    end
 
-- 1. Diagnosis: "The Customization Trap"
-     - Root cause: Unmanaged variation causing architectural erosion.
-- 2. The Insight: Reuse the Entire System
-     - Engineer the whole product family, not just parts.
-     - Core principle: Strategic management of commonality and variability.
-- 3. The Two-Lifecycle Model
-     - Domain Engineering: Build reusable core assets (for reuse).
-     - Application Engineering: Assemble products from assets (with reuse).
+    subgraph App [Application Engineering]
+        S[Select Variants]
+        E[Add Custom Features]
+    end
+    
+    P --> S
+    S --> E
+    
+    E --> D1[Customer A<br>v2.0.1 + Custom]
+    E --> D2[Customer B<br>v2.0.1 + Custom]
+```
 
+Key Process:
+- Build Core: Develop reusable product line components
+- Select: Choose from pre-built variants  
+- Extend: Add customer-specific features
+- Deploy: Deliver customized products
 
 # Slide 4
 The Promise vs. The Reality
 
-- The Promise (CMU SEI): 
+- The Promise (CMU SEI 2008): 
   
   - > 10× productivity
   - > 60% cost reduction
@@ -45,15 +66,42 @@ The Promise vs. The Reality
 
 
 # Slide 5
-The Core Challenge: Traditional Variability Techniques
+The Prescribed Approach: Adapt, Replace, Extend
 
-![](variability.png) <!-- width:400px;height:auto; -->
+```mermaid
+flowchart TD
+    subgraph VP[Variation Point]
+        Core[Core Assets]
+    end
 
-- Goal: Plug functionality into a stable core.
-- Adaptation: Modify behavior (e.g., Class Inheritance).
-- Replacement: Swap components (e.g., Plugins).
-- Extension: Add new features (e.g., Add-ons).
+    Core --> A[Adaptation]
+    Core --> R[Replacement]
+    Core --> E[Extension]
 
+    subgraph A_Mechanisms[ ]
+        direction LR
+        A1[Change Degree/Parameter<br>e.g., Log Level]
+        A2[Modify Internal Behavior<br>e.g., Algorithm Strategy]
+    end
+    A --> A_Mechanisms
+
+    subgraph R_Mechanisms[ ]
+        direction LR
+        R1[Mutually Exclusive Choice<br>Choose One]
+        R2[Implement Same Interface<br>e.g., Payment Gateway]
+    end
+    R --> R_Mechanisms
+
+    subgraph E_Mechanisms[ ]
+        direction LR
+        E1[Stackable Features<br>Zero to Many]
+        E2[Provide New Capabilities<br>e.g., Plugin]
+    end
+    E --> E_Mechanisms
+```
+
+Do not modify core assets.
+Derive variants by ACTIVATE · SELECT · PROVIDE pre-defined variations.
 
 # Slide 6
 The Dilemmas of Component-Based Reuse
@@ -97,7 +145,7 @@ Reversible Computation: A Next-Gen Construction Theory
 
 **`App = Delta x-extends Generator<DSL>`**
 
-- New Locus of Computation： **The Transformation (Δ) is primary.**
+- New Locus of Computation： **Transformation is primary.**
 - Generator<DSL>: Core domain knowledge.  
 - Delta: Features as independent transformations.
 - x-extends: Superposition operator.
@@ -165,23 +213,23 @@ Customer-A Delta (/_delta/customer-a/beans/core.xml)
 Delta Oriented Framework: The Core Principle
 Unified, DSL-Agnostic Customization
 
-- 1. Philosophy: One mechanism to customize any DSL.
-- 2. Mechanism: "Loader as Generator"
+- Philosophy: One mechanism to customize any DSL.
+- Mechanism: "Loader as Generator"
      - Swap native loader for DeltaFileSystem loader.
      - Non-intrusively finds, merges, and generates the final model.
-- 3. Impact:
+- Impact:
      - Full-stack customization (Data to UI).
      - Zero changes to base product code.
 
 # Slide 14
 From Model to Code: Delta-Driven Generation
 
-- 1. Full-Stack Generation:
+- Full-Stack Generation:
      - From models (ORM, etc.) to code (DAO, Microservices, UI, SQL, i18n).
-- 2. Delta-Based Pattern:
+- Delta-Based Pattern:
      - `_Account.java` (Base): Machine-generated, safe to overwrite.
      - Account.java (Extension): Manually extended, generator-safe.
-- 3. Advantage: Parallel Evolution
+- Advantage: Parallel Evolution
      - Continuously regenerate model & code without losing custom logic.
 
 # Slide 15
