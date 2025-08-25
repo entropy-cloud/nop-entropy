@@ -317,7 +317,7 @@ public class XLangReferenceHelper {
         sc.skipBlank();
         while (!sc.isEnd()) {
             int offset = sc.pos;
-            MutableString buf = sc.useBuf();
+            MutableString buf = sc.getReusableBuffer();
             sc.nextUntil(s -> s.cur == ',' || StringHelper.isSpace(sc.cur), sc::appendToBuf);
 
             String value = buf.toString();
