@@ -4796,5 +4796,14 @@ public class StringHelper extends ApiStringHelper {
         return RegexHelper.fromPattern(pattern).replace(source, replaced, multiple);
     }
 
-
+    @Deterministic
+    public static String safeSubstring(String str, int startIndex, int endIndex) {
+        if (str == null)
+            return null;
+        if (str.isEmpty())
+            return "";
+        if (str.length() <= startIndex)
+            return "";
+        return str.substring(startIndex, Math.min(endIndex, str.length()));
+    }
 }

@@ -11,6 +11,7 @@ import io.nop.api.core.convert.ConvertHelper;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -91,5 +92,11 @@ public class TestDateHelper {
         assertEquals(DateHelper.parseDate("2024-01-02"), DateHelper.safeParseDate("2024/01/02", patterns));
         assertEquals(DateHelper.parseDate("2024-01-02"), DateHelper.safeParseDate("240102", patterns));
         assertNull(DateHelper.safeParseDate("2024_01_02", patterns));
+    }
+
+    @Test
+    public void testInstant() {
+        String str = Instant.now().toString();
+        System.out.println(str);
     }
 }
