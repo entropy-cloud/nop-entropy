@@ -53,7 +53,7 @@ Key Process:
 - Deploy: Deliver customized products
 
 # Slide 4
-The Promise vs. The Reality
+Promise vs.  Reality
 
 - The Promise (CMU SEI 2008): 
   
@@ -108,8 +108,8 @@ The Dilemmas of Component-Based Reuse
 
 1. The Granularity Paradox
    
-   - Reusable components contain only commonality.
-   - Dilemma: They are inherently smaller than any product, conflicting with the goal of a large, reusable core.
+   - Component reuse is achieved by factoring out the common core.
+   - Dilemma: This core, by definition, is smaller than any individual product, conflicting with the goal of a large, reusable core.
 
 2. The Prediction Paradox
    
@@ -117,7 +117,8 @@ The Dilemmas of Component-Based Reuse
    - Dilemma:
      - Too few points: Architecture is rigid.
      - Too many points: Architecture is destroyed.
-   - These are fundamental limits of the additive approach.
+
+These are fundamental limits of the additive approach.
 
 # Slide 7
 Inspiration from Physics: A New Duality for Software
@@ -127,7 +128,8 @@ Inspiration from Physics: A New Duality for Software
   - Assemble parts to build wholes.
 - Wave View (New): Superposition.
   - Think of features as waves to be overlaid and combined.
-- The Question: Can we build software via non-invasive superposition, not assembly?
+
+The Question: Can we build software via non-invasive superposition, not assembly?
 
 # Slide 8
 An Algebraic View of Software Evolution
@@ -145,11 +147,11 @@ Reversible Computation: A Next-Gen Construction Theory
 
 **`App = Delta x-extends Generator<DSL>`**
 
-- New Locus of Computation： **Transformation is primary.**
-- Generator<DSL>: Core domain knowledge.  
-- Delta: Features as independent transformations.
-- x-extends: Superposition operator.
+- Generator<DSL>: unfolds a dense kernel of truth into an executable base
+- Delta: A reversible and stand-alone unit of change, designed to be both composable and non-invasive.
+- x-extends: deterministic merge of deltas in a well-defined order.
 
+(Ultimately, the Base itself is just the first Delta applied to a void.)
 
 # Slide 10
 From Theory to Practice: Docker as Reversible Computation
@@ -159,12 +161,25 @@ From Theory to Practice: Docker as Reversible Computation
 - The Mapping:
   - DockerBuild<Dockerfile> -> Generator<DSL>
   - overlay-fs -> x-extends
-- Why It Works: This pattern is a mathematical necessity for managing change.
-   ` Y = (F0+F1)(X0+X1) = F0(X0) + Δ`
-
 
 # Slide 11
-Delta Customization (1): File-Level Overrides
+The Inevitability of Deltas: A Universal Pattern
+
+1. Computation: 
+Result = Function(Data)
+
+2. Decompostion of Change: 
+New_Function = Base_Function ⊕ Δ_Function
+New_Data = Base_Data  ⊕ Δ_Data
+
+3. The Resulting "Delta Form": 
+New_Result = BaseFunction(BaseData)  ⊕ Δ_Total 
+(analogous to a Taylor Expansion)
+
+The Paradigm Shift: treats change itself as a first-class citizen.
+
+# Slide 12
+Delta Customization (1): File-Level Overlay
 
 - Foundation: A Virtual File System (VFS) with delta layers.
 - Mechanism: Files in a delta layer (/_delta/customer-a/...) override base files.
@@ -180,8 +195,8 @@ Example Directory Structure:
 
 ```
 
-# Slide 12
-Delta Customization (2): Intra-File Surgical Customization
+# Slide 13
+Delta Customization (2): Intra-File Surgical Scalpel
 
 Base Definition (/beans/core.xml)
 
@@ -209,7 +224,9 @@ Customer-A Delta (/_delta/customer-a/beans/core.xml)
 </beans>
 ```
 
-# Slide 13
+Precisely modify tree-structured files (XML, JSON, YAML) without touching the original.
+
+# Slide 14
 Delta Oriented Framework: The Core Principle
 Unified, DSL-Agnostic Customization
 
@@ -221,38 +238,38 @@ Unified, DSL-Agnostic Customization
      - Full-stack customization (Data to UI).
      - Zero changes to base product code.
 
-# Slide 14
+# Slide 15
 From Model to Code: Delta-Driven Generation
 
-- Full-Stack Generation:
-     - From models (ORM, etc.) to code (DAO, Microservices, UI, SQL, i18n).
-- Delta-Based Pattern:
-     - `_Account.java` (Base): Machine-generated, safe to overwrite.
-     - Account.java (Extension): Manually extended, generator-safe.
-- Advantage: Parallel Evolution
-     - Continuously regenerate model & code without losing custom logic.
+- Unified Source:
+     -  effective model = base ⊕ deltas → generate DAO/services, API/SQL, UI/i18n
+- Generation Gap Pattern:
+   - `_Account.java` (Generated Base): Always safe to overwrite.
+   - `Account.java` (Manual Extension): Never touched by generator.
+- Core Advantage: Fearless Regeneration. 
+   - Evolve base. Regenerate constantly. Extensions remain untouched.
 
-# Slide 15
-Nop Architecture: A Cohesive Blueprint
 
-![](nop-arch.png) <!-- width:400px;height:300px; -->
+# Slide 16
+Delta Oriented Architecture: A Cohesive Blueprint
+
+![](delta-oriented-arch.png) <!-- width:400px;height:300px; -->
 
 - Foundation: Universal Delta capabilities & code generation.
 - Development: Reusable core engines for complex business logic.
 - Synergy: Delta Customization balances platform stability with agile customization.
 
-# Slide 16
-Synergy with AI: The Future of Development
-
-- AI as a Co-pilot for DSLs:
-  - Well-defined DSLs provide perfect structure for AI to generate and understand code.
-- AI for Documentation
-  - generate docs from models, pages, and configurations.
-  - (This presentation and its graphics were AI-generated.)
-- AI Generated Tests
-  - Automated creation of test cases and data.
-
 # Slide 17
+Reversible Computation × AI: Cohesive Models, Cleaner Signals, Better Co‑pilots
+
+- Single cohesive truth: effective model = base ⊕ deltas (complete, schema‑typed, noise‑free)
+- Reversible deltas: safe explore/undo → faster, risk‑free AI iteration
+- Deterministic composition: reproducible grounding with full provenance
+- Output discipline: AI emits deltas (not core edits), schema/contract‑validated
+
+(This presentation and its graphics were AI-generated.)
+
+# Slide 18
 Summary: Extensibility Through Reversible Computation
 
 - The Problem: Traditional component-based reuse hits fundamental limits (Granularity & Prediction Paradoxes).
@@ -260,6 +277,6 @@ Summary: Extensibility Through Reversible Computation
 - The Solution: The Delta-Oriented Framework, enabled by Reversible Computation theory.
 - Key Understanding: Reversible Computation expands the solution space significantly
 - The Result:
-  - Systematic, non-invasive customization for various DSLs
-  - Maintains a stable yet adaptable core architecture
-  - Helps escape "The Customization Trap"
+    - From “Extension Points Everywhere” to “Overlays Above Everything”
+    - From “1 core + N forks” to “1 base + N deltas”
+	- Effective System = Base ⊕ ΔIndustry ⊕ ΔRegion ⊕ ΔCustomer
