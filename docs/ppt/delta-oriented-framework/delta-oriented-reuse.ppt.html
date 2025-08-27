@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Extensibility based on the Delta‑Oriented Framework</title>
+    <title>Extensibility based on the Delta-Oriented Framework</title>
     <!-- External Libraries: Font Awesome, html2pdf.js & Mermaid.js -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
     <style>
         /* --- 1. Global Styles & Variables --- */
         :root {
@@ -74,7 +74,7 @@
             transform: translateY(10px);
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start;
             overflow-y: auto;
             background-color: var(--color-bg-slide);
         }
@@ -97,6 +97,10 @@
         ul { list-style: none; padding-left: 0; }
         li p { margin-bottom: 0.25rem; }
 
+.font-bold {
+  font-weight: bold;
+}
+
         /* --- 4. UI Components --- */
         #progress-bar { position: absolute; top: 0; left: 0; height: 4px; background-color: var(--color-primary); width: 0%; transition: width 0.4s ease; z-index: 10; }
         .controls { position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px; z-index: 10; }
@@ -111,6 +115,10 @@
 
         /* --- 5. Content Modules --- */
         .title-slide { text-align: center; align-items: center; }
+		.slide.title-slide {
+    justify-content: center;
+    align-items: center;
+	}
         .title-slide h1 { font-size: 3.5rem; color: var(--color-text-dark); }
         .title-slide .subtitle { font-size: 1.5rem; color: var(--color-text-light); font-weight: 400; }
         .icon-list { list-style: none; padding: 0; margin: 1.5rem 0; }
@@ -123,6 +131,16 @@
         .sub-items { margin-top: 0.5rem; margin-left: 1rem; }
         .sub-item { font-size: calc(var(--font-size-base) - 0.1rem); color: var(--color-text-light); margin-bottom: 0.25rem; position: relative; padding-left: 1rem; }
         .sub-item::before { content: "•"; color: var(--color-secondary); position: absolute; left: 0; }
+		.sub-items-split {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.sub-items-split .sub-item {
+  flex: 1 1 0;   
+}
+
         .two-column { display: flex; gap: 40px; align-items: flex-start; width: 100%; }
         .column { flex: 1; }
         .column-narrow { flex: 0.7; }
@@ -174,10 +192,12 @@
             overflow-x: auto;
         }
         
-        .mermaid svg {
-            max-width: 100%;
-            height: auto;
-        }
+.mermaid svg{
+    width:100%;
+    height:auto;
+    max-width:100%;
+    overflow:visible;   /* 保留描边，但限制范围 */
+}
 
         /* --- 6. Responsive & Print Styles --- */
         @media (max-width: 768px) {
@@ -202,6 +222,34 @@
         .pdf-page-container { width: 100%; height: auto; background: white; color: black; box-shadow: none; }
         .pdf-slide { position: relative !important; opacity: 1 !important; visibility: visible !important; transform: none !important; height: auto !important; width: 100%; background: white; border: 1px solid #eeeeee; padding: 40px 50px; box-shadow: none; margin-bottom: 0; overflow: hidden; page-break-after: always; break-inside: avoid; aspect-ratio: 16 / 9; }
 		.pdf-slide:last-of-type { page-break-after: avoid; }
+		
+.pdf-slide .mermaid {
+    max-width: 100% !important;
+    overflow: hidden !important;
+}
+
+.pdf-slide .mermaid svg {
+    max-width: 100% !important;
+    max-height: 300px !important; /* 限制最大高度 */
+    width: auto !important;
+    height: auto !important;
+    transform: none !important; /* 移除之前的transform */
+}
+
+/* 打印样式 */
+@media print {
+    .mermaid {
+        max-width: 100% !important;
+        page-break-inside: avoid;
+    }
+    
+    .mermaid svg {
+        max-width: 100% !important;
+        max-height: 250px !important;
+        width: auto !important;
+        height: auto !important;
+    }
+}
     </style>
 </head>
 <body>
@@ -217,6 +265,8 @@
             <section class="slide active title-slide">
                 <h1>Extensibility based on the Delta‑Oriented Framework</h1>
                 <p class="subtitle">September 2025</p>
+				
+				<svg id="mermaid-1756310082535" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="max-width: 497.0875244140625px;" viewBox="0 0 469.0875244140625 408.3999938964844" role="graphics-document document" aria-roledescription="flowchart-v2"><style>#mermaid-1756310082535{font-family:var(--font-main);font-size:16px;fill:#333;}#mermaid-1756310082535 .error-icon{fill:#552222;}#mermaid-1756310082535 .error-text{fill:#552222;stroke:#552222;}#mermaid-1756310082535 .edge-thickness-normal{stroke-width:2px;}#mermaid-1756310082535 .edge-thickness-thick{stroke-width:3.5px;}#mermaid-1756310082535 .edge-pattern-solid{stroke-dasharray:0;}#mermaid-1756310082535 .edge-pattern-dashed{stroke-dasharray:3;}#mermaid-1756310082535 .edge-pattern-dotted{stroke-dasharray:2;}#mermaid-1756310082535 .marker{fill:#333333;stroke:#333333;}#mermaid-1756310082535 .marker.cross{stroke:#333333;}#mermaid-1756310082535 svg{font-family:var(--font-main);font-size:16px;}#mermaid-1756310082535 .label{font-family:var(--font-main);color:#333;}#mermaid-1756310082535 .cluster-label text{fill:#333;}#mermaid-1756310082535 .cluster-label span,#mermaid-1756310082535 p{color:#333;}#mermaid-1756310082535 .label text,#mermaid-1756310082535 span,#mermaid-1756310082535 p{fill:#333;color:#333;}#mermaid-1756310082535 .node rect,#mermaid-1756310082535 .node circle,#mermaid-1756310082535 .node ellipse,#mermaid-1756310082535 .node polygon,#mermaid-1756310082535 .node path{fill:#ECECFF;stroke:#9370DB;stroke-width:1px;}#mermaid-1756310082535 .flowchart-label text{text-anchor:middle;}#mermaid-1756310082535 .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#mermaid-1756310082535 .node .label{text-align:center;}#mermaid-1756310082535 .node.clickable{cursor:pointer;}#mermaid-1756310082535 .arrowheadPath{fill:#333333;}#mermaid-1756310082535 .edgePath .path{stroke:#333333;stroke-width:2.0px;}#mermaid-1756310082535 .flowchart-link{stroke:#333333;fill:none;}#mermaid-1756310082535 .edgeLabel{background-color:#e8e8e8;text-align:center;}#mermaid-1756310082535 .edgeLabel rect{opacity:0.5;background-color:#e8e8e8;fill:#e8e8e8;}#mermaid-1756310082535 .labelBkg{background-color:rgba(232, 232, 232, 0.5);}#mermaid-1756310082535 .cluster rect{fill:#ffffde;stroke:#aaaa33;stroke-width:1px;}#mermaid-1756310082535 .cluster text{fill:#333;}#mermaid-1756310082535 .cluster span,#mermaid-1756310082535 p{color:#333;}#mermaid-1756310082535 div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:var(--font-main);font-size:12px;background:hsl(80, 100%, 96.2745098039%);border:1px solid #aaaa33;border-radius:2px;pointer-events:none;z-index:100;}#mermaid-1756310082535 .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#333;}#mermaid-1756310082535 :root{--mermaid-font-family:var(--font-main);}</style><g><marker id="mermaid-1756310082535_flowchart-pointEnd" class="marker flowchart" viewBox="0 0 10 10" refX="6" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1756310082535_flowchart-pointStart" class="marker flowchart" viewBox="0 0 10 10" refX="4.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 0 5 L 10 10 L 10 0 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1756310082535_flowchart-circleEnd" class="marker flowchart" viewBox="0 0 10 10" refX="11" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></circle></marker><marker id="mermaid-1756310082535_flowchart-circleStart" class="marker flowchart" viewBox="0 0 10 10" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"></circle></marker><marker id="mermaid-1756310082535_flowchart-crossEnd" class="marker cross flowchart" viewBox="0 0 11 11" refX="12" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"></path></marker><marker id="mermaid-1756310082535_flowchart-crossStart" class="marker cross flowchart" viewBox="0 0 11 11" refX="-1" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"></path></marker><g class="root"><g class="clusters"></g><g class="edgePaths"><path d="M111.575,38.402L126.629,43.202C141.683,48.001,171.792,57.601,186.846,65.684C201.9,73.767,201.9,80.333,201.9,83.617L201.9,86.9" id="L-A-B-0" class=" edge-thickness-normal edge-pattern-solid flowchart-link LS-A LE-B" style="fill:none;" marker-end="url(#mermaid-1756310082535_flowchart-pointEnd)"></path><path d="M201.9,134.4L201.9,138.567C201.9,142.733,201.9,151.067,201.9,158.517C201.9,165.967,201.9,172.533,201.9,175.817L201.9,179.1" id="L-B-C-0" class=" edge-thickness-normal edge-pattern-solid flowchart-link LS-B LE-C" style="fill:none;" marker-end="url(#mermaid-1756310082535_flowchart-pointEnd)"></path><path d="M21.923,42.2L14.936,46.367C7.949,50.533,-6.026,58.867,-13.013,70.717C-20,82.567,-20,97.933,-20,113.3C-20,128.667,-20,144.033,-20,161.667C-20,179.3,-20,199.2,-20,221.367C-20,243.533,-20,267.967,-10.681,286.141C-1.362,304.315,17.275,316.23,26.594,322.188L35.913,328.145" id="L-A-D-0" class=" edge-thickness-normal edge-pattern-solid flowchart-link LS-A LE-D" style="fill:none;" marker-end="url(#mermaid-1756310082535_flowchart-pointEnd)"></path><path d="M147.332,253.8L137.215,260.233C127.098,266.667,106.865,279.533,97.356,291.522C87.848,303.51,89.064,314.621,89.672,320.176L90.28,325.731" id="L-C-D-0" class=" edge-thickness-normal edge-pattern-dotted flowchart-link LS-C LE-D" style="fill:none;stroke-width:2px;stroke-dasharray:3;" marker-end="url(#mermaid-1756310082535_flowchart-pointEnd)"></path><path d="M177.279,331L192.597,324.567C207.915,318.133,238.551,305.267,248.561,293.051C258.571,280.835,247.954,269.27,242.646,263.487L237.338,257.704" id="L-D-C-0" class=" edge-thickness-normal edge-pattern-dotted flowchart-link LS-D LE-C" style="fill:none;stroke-width:2px;stroke-dasharray:3;" marker-end="url(#mermaid-1756310082535_flowchart-pointEnd)"></path><path d="M279.164,253.8L293.489,260.233C307.814,266.667,336.463,279.533,350.788,291.517C365.113,303.5,365.113,314.6,365.113,320.15L365.113,325.7" id="L-C-E-0" class=" edge-thickness-normal edge-pattern-solid flowchart-link LS-C LE-E" style="fill:none;" marker-end="url(#mermaid-1756310082535_flowchart-pointEnd)"></path></g><g class="edgeLabels"><g class="edgeLabel"><g class="label" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel" transform="translate(86.6312484741211, 292.40000343322754)"><g class="label" transform="translate(-86.6312484741211, -13.600000381469727)"><foreignObject width="173.2624969482422" height="27.200000762939453"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="edgeLabel">Merge: Complex, Costly</span></div></foreignObject></g></g><g class="edgeLabel" transform="translate(269.1875, 292.40000343322754)"><g class="label" transform="translate(-75.92500305175781, -13.600000381469727)"><foreignObject width="151.85000610351562" height="27.200000762939453"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="edgeLabel">Upgrade: High Effort</span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="edgeLabel"></span></div></foreignObject></g></g></g><g class="nodes"><g class="node default default flowchart-label" id="flowchart-A-0" data-node="true" data-id="A" transform="translate(57.306251525878906, 21.100000381469727)"><rect class="basic label-container" style="" rx="0" ry="0" x="-54.26874923706055" y="-21.100000381469727" width="108.5374984741211" height="42.20000076293945"></rect><g class="label" style="" transform="translate(-46.76874923706055, -13.600000381469727)"><rect></rect><foreignObject width="93.5374984741211" height="27.200000762939453"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="nodeLabel">Product v1.0</span></div></foreignObject></g></g><g class="node default default flowchart-label" id="flowchart-B-1" data-node="true" data-id="B" transform="translate(201.9000015258789, 113.30000114440918)"><rect class="basic label-container" style="" rx="0" ry="0" x="-80.875" y="-21.100000381469727" width="161.75" height="42.20000076293945"></rect><g class="label" style="" transform="translate(-73.375, -13.600000381469727)"><rect></rect><foreignObject width="146.75" height="27.200000762939453"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="nodeLabel">Fork for Customer A</span></div></foreignObject></g></g><g class="node default default flowchart-label" id="flowchart-C-3" data-node="true" data-id="C" transform="translate(201.9000015258789, 219.10000228881836)"><rect class="basic label-container" style="" rx="0" ry="0" x="-87.6812515258789" y="-34.70000076293945" width="175.3625030517578" height="69.4000015258789"></rect><g class="label" style="" transform="translate(-80.1812515258789, -27.200000762939453)"><rect></rect><foreignObject width="160.3625030517578" height="54.400001525878906"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="nodeLabel">Heavy Customization<br>Tightly Coupled Code</span></div></foreignObject></g></g><g class="node default default flowchart-label" id="flowchart-D-5" data-node="true" data-id="D" transform="translate(94.65625, 365.7000045776367)"><rect class="basic label-container" style="" rx="0" ry="0" x="-84.5250015258789" y="-34.70000076293945" width="169.0500030517578" height="69.4000015258789"></rect><g class="label" style="" transform="translate(-77.0250015258789, -27.200000762939453)"><rect></rect><foreignObject width="154.0500030517578" height="54.400001525878906"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="nodeLabel">Product v2.0<br>New Features + Fixes</span></div></foreignObject></g></g><g class="node default default flowchart-label" id="flowchart-E-11" data-node="true" data-id="E" transform="translate(365.1125030517578, 365.7000045776367)"><rect class="basic label-container" style="" rx="0" ry="0" x="-95.9749984741211" y="-34.70000076293945" width="191.9499969482422" height="69.4000015258789"></rect><g class="label" style="" transform="translate(-88.4749984741211, -27.200000762939453)"><rect></rect><foreignObject width="176.9499969482422" height="54.400001525878906"><div xmlns="http://www.w3.org/1999/xhtml" style="display: inline-block; white-space: nowrap;"><span class="nodeLabel">Branch Stuck at v1.0<br>Maintained at High Cost</span></div></foreignObject></g></g></g></g></g></svg>
             </section>
 
             <!-- Slide 2: The Customization Trap -->
@@ -233,7 +283,7 @@ flowchart TD
     C -.->|Merge: Complex, Costly|D
     D -.->|Upgrade: High Effort|C
     
-    C --> E[**Branch Stuck at v1.0**<br>Maintained at High Cost]
+    C --> E[Branch Stuck at v1.0<br>Maintained at High Cost]
             </div>
         </div>
         <div class="column">
@@ -356,31 +406,30 @@ flowchart TD
     </div>
 </section>
 
-            <!-- Slide 5: The Prescribed Approach -->
 <!-- Slide 5: The Prescribed Approach -->
 <section class="slide">
     <h2>The Prescribed Approach: Adapt, Replace, Extend</h2>
 
             <h3><i class="fa-solid fa-sliders-h"></i> Adaptation</h3>
-            <div class="sub-items">
-                <div class="sub-item">Change Degree/Parameter (e.g., Log Level)</div>
-                <div class="sub-item">Modify Internal Behavior (e.g., Algorithm Strategy)</div>
+            <div class="sub-items sub-items-split">
+                <span class="sub-item">Change Degree/Parameter (e.g., Log Level)</span>
+                <span class="sub-item">Modify Internal Behavior (e.g., Algorithm Strategy)</span>
             </div>
             
             <h3><i class="fa-solid fa-exchange-alt"></i> Replacement</h3>
-            <div class="sub-items">
-                <div class="sub-item">Mutually Exclusive Choice (Choose One)</div>
-                <div class="sub-item">Implement Same Interface (e.g., Payment Gateway)</div>
+            <div class="sub-items sub-items-split">
+                <span class="sub-item">Mutually Exclusive Choice (Choose One)</span>
+                <span class="sub-item">Implement Same Interface (e.g., Payment Gateway)</span>
             </div>
             
             <h3><i class="fa-solid fa-plus"></i> Extension</h3>
-            <div class="sub-items">
-                <div class="sub-item">Stackable Features (Zero to Many)</div>
-                <div class="sub-item">Provide New Capabilities (e.g., Plugin)</div>
+            <div class="sub-items sub-items-split">
+                <span class="sub-item">Stackable Features (Zero to Many)</span>
+                <span class="sub-item">Provide New Capabilities (e.g., Plugin)</span>
             </div>
             
             <div class="highlight-box" style="padding-bottom:0;margin-bottom:0">
-                <p>Avoid direct edits to core assets during product derivation. Derive variants by <strong>ACTIVATE · SELECT · PROVIDE</strong> pre-defined variations.</p>
+                <p>Avoid direct edits to core assets during product derivation. <br>Derive variants by <strong>ACTIVATE · SELECT · PROVIDE</strong> pre-defined variations.</p>
             </div>
 </section>
 
@@ -395,7 +444,7 @@ flowchart TD
                     </div>
                     <div class="column">
                         <h4>2. The Prediction Paradox</h4>
-                        <p>Requires a stable core with predefined extension points.<br/>&nbsp;<br/></p>
+                        <p style="min-height:calc(2 * var(--line-height-base) * var(--font-size-base));">Requires a stable core with predefined extension points.</p>
                         <div class="quote"><p><strong>Dilemma:</strong> <br>Too few points: Architecture is rigid. <br> Too many points: Architecture is destroyed.</p></div>
                     </div>
                 </div>
@@ -441,28 +490,6 @@ flowchart TD
                 </div>
             </section>
 			
-			            <!-- Slide 7: Inspiration from Physics -->
-            <section class="slide">
-                <h2>Inspiration from Physics: A New Duality for Software</h2>
-                <div class="two-column">
-                    <div class="column">
-                        <h3><i class="fa-solid fa-atom" style="color: var(--color-primary);"></i> Particle View (Current): Reductionism.</h3>
-                        <ul class="bullet-list">
-                            <li>Decompose systems into atoms (objects, components).</li>
-                            <li>Assemble parts to build wholes.</li>
-                        </ul>
-                    </div>
-                    <div class="column">
-                        <h3><i class="fa-solid fa-wave-square" style="color: var(--color-secondary);"></i> Wave View (New): Superposition.</h3>
-                        <ul class="bullet-list">
-                            <li>Think of features as waves to be overlaid and combined.</li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="quote" style="margin-top: 2rem;">
-                    <p><strong>The Question:</strong> Can we build software via non-invasive superposition, not assembly?</p>
-                </div>
-            </section>
 
             <!-- Slide 8: An Algebraic View -->
             <section class="slide">
@@ -499,7 +526,7 @@ flowchart TD
             <section class="slide">
                 <h2>Reversible Computation: A Next-Gen Construction Theory</h2>
                 <div class="formula">
-                    <i class="fa-solid fa-code"></i> App = Delta x-extends Generator&lt;DSL&gt;
+                     App = Delta x-extends Generator&lt;DSL&gt;
                 </div>
                 <ul class="icon-list">
                     <li class="icon-bullet">
@@ -509,13 +536,13 @@ flowchart TD
                         </div>
                     </li>
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-delta"></i>
+                        <i class="fa-solid fa-layer-group"></i>
                         <div>
                             <p><strong>Delta:</strong> A reversible and stand-alone unit of change, designed to be both composable and non-invasive.</p>
                         </div>
                     </li>
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-link"></i>
+                        <i class="fa-solid fa-code-fork"></i>
                         <div>
                             <p><strong>x-extends:</strong> deterministic merge of deltas in a well-defined order.</p>
                         </div>
@@ -530,7 +557,7 @@ flowchart TD
             <section class="slide">
                 <h2>From Theory to Practice: Docker as Reversible Computation</h2>
                 <div class="formula">
-                    <i class="fa-brands fa-docker"></i> App = DockerBuild&lt;Dockerfile&gt; overlay-fs BaseImage
+                    App = DockerBuild&lt;Dockerfile&gt; overlay-fs BaseImage
                 </div>
                 <h3><i class="fa-solid fa-map"></i> The Mapping:</h3>
                 <ul class="icon-list">
@@ -550,41 +577,24 @@ flowchart TD
             </section>
 
             <!-- Slide 11: The Inevitability of Deltas -->
-            <section class="slide">
+ <section class="slide">
                 <h2>The Inevitability of Deltas: A Universal Pattern</h2>
-                <ul class="icon-list">
+                <ul class="icon-list" style="margin:0">
                     <li class="icon-bullet">
                         <i class="fa-solid fa-calculator"></i>
-                        <div>
-                            <p><strong>1. Computation:</strong></p>
-                            <div class="code-block">
-<code>Result = Function(Data)</code>
-                            </div>
-                        </div>
+                        <div><p>Computation</p><span class="details">Result = Function(Data)</span></div>
                     </li>
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-puzzle-piece"></i>
-                        <div>
-                            <p><strong>2. Decomposition of Change:</strong></p>
-                            <div class="code-block">
-<code>New_Function = Base_Function ⊕ Δ_Function
-New_Data = Base_Data ⊕ Δ_Data</code>
-                            </div>
-                        </div>
+                        <i class="fa-solid fa-code-compare"></i>
+                        <div><p>Decompostion of Change</p><span class="details">New_Function = Base_Function ⊕ Δ_Function</span>&nbsp;,&nbsp;<span class="details">New_Data = Base_Data  ⊕ Δ_Data</span></div>
                     </li>
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-waveform"></i>
-                        <div>
-                            <p><strong>3. The Resulting "Delta Form":</strong></p>
-                            <div class="code-block">
-<code>New_Result = BaseFunction(BaseData) ⊕ Δ_Total 
-(analogous to a Taylor Expansion)</code>
-                            </div>
-                        </div>
+                        <i class="fa-solid fa-square-root-variable"></i>
+                        <div><p>The Resulting "Delta Form"</p><span class="details">New_Result = BaseFunction(BaseData)  ⊕ Δ_Total</span>&nbsp;&nbsp;<span class="details">(analogous to a Taylor Expansion)</span></div>
                     </li>
                 </ul>
                 <div class="highlight-box">
-                    <p><strong>The Paradigm Shift:</strong> treats change itself as a first-class citizen.</p>
+                    <p>The Paradigm Shift: treats change itself as a first-class citizen.</p>
                 </div>
             </section>
 
@@ -593,15 +603,15 @@ New_Data = Base_Data ⊕ Δ_Data</code>
                 <h2>Delta Customization (1): File-Level Overlay</h2>
                 <div class="two-column">
                     <div class="column">
-                        <ul class="icon-list">
+                        <ul class="icon-list" style="margin:0">
                             <li class="icon-bullet">
-                                <i class="fa-solid fa-database"></i>
+                                <i class="fa-solid fa-folder-tree"></i>
                                 <div>
                                     <p><strong>Foundation:</strong> A Virtual File System (VFS) with delta layers.</p>
                                 </div>
                             </li>
                             <li class="icon-bullet">
-                                <i class="fa-solid fa-layer-group"></i>
+                                <i class="fa-solid fa-exchange-alt"></i>
                                 <div>
                                     <p><strong>Mechanism:</strong> Files in a delta layer (/_delta/customer-a/...) override base files.</p>
                                 </div>
@@ -616,8 +626,8 @@ New_Data = Base_Data ⊕ Δ_Data</code>
                     </div>
                     <div class="column">
                         <h3>Example Directory Structure:</h3>
-                        <pre class="code-block"><code>/_delta/customer-a/beans/job.xml       <span class="code-comment">// Customization for Customer A</span>
-/_delta/customer-b/config/auth.json    <span class="code-comment">// Customization for Customer B</span>
+                         <pre class="code-block"><code>/<span class="code-keyword">_delta</span>/customer-a/beans/job.xml       <span class="code-comment">// Customization for Customer A</span>
+/<span class="code-keyword">_delta</span>/customer-b/config/auth.json    <span class="code-comment">// Customization for Customer B</span>
 /beans/job.xml                         <span class="code-comment">// Base product file</span>
 /config/auth.json                      <span class="code-comment">// Base product file</span></code></pre>
                     </div>
@@ -671,9 +681,9 @@ New_Data = Base_Data ⊕ Δ_Data</code>
                         </div>
                     </li>
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-cogs"></i>
+                        <i class="fa-solid fa-screwdriver-wrench"></i>
                         <div>
-                            <p><strong>Mechanism:</strong> "Loader as Generator"</p>
+                            <p><strong>Mechanism:</strong> Loader as Generator </p>
                             <div class="sub-items">
                                 <div class="sub-item">Swap native loader for DeltaFileSystem loader.</div>
                                 <div class="sub-item">Non-intrusively finds, merges, and generates the final model.</div>
@@ -681,13 +691,12 @@ New_Data = Base_Data ⊕ Δ_Data</code>
                         </div>
                     </li>
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-impact"></i>
+                        <i class="fa-solid fa-rocket"></i>
                         <div>
-                            <p><strong>Impact:</strong></p>
+                            <p><strong>Impact:</strong>Seamless full‑stack customization</p>
                             <div class="sub-items">
                                 <div class="sub-item">One mental model across the stack (data → engine → UI)</div>
                                 <div class="sub-item">Zero changes to base engines and code</div>
-                                <div class="sub-item">Seamless full‑stack customization via smart loaders</div>
                             </div>
                         </div>
                     </li>
@@ -699,7 +708,7 @@ New_Data = Base_Data ⊕ Δ_Data</code>
                 <h2>From Model to Code: Delta-Driven Generation</h2>
                 <ul class="icon-list">
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-unite"></i>
+                        <i class="fa-solid fa-code-branch"></i>
                         <div>
                             <p><strong>Unified Source:</strong></p>
                             <span class="details">effective model = base ⊕ deltas → generate DAO/services, API/SQL, UI/i18n</span>
@@ -731,24 +740,15 @@ New_Data = Base_Data ⊕ Δ_Data</code>
                 <div class="two-column">
                     <div class="column">
                         <svg width="1000" height="680" viewBox="0 0 1000 680" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" style="width:100%;height:auto">
-  <!-- 
-    Design Rationale for V3.0 (Animation):
-    1. Narrative Sequencing: Animation is timed to tell a story: first build the stable base layers, then introduce the Delta pillar as a non-invasive force, and finally show its impact via animated arrows.
-    2. Animation Techniques:
-       - Layers use a staggered fade-in (`opacity`) to show a build-up process.
-       - The Delta Pillar uses a slide-in (`transform`) with an ease-out curve for a modern feel.
-       - Arrows use the `stroke-dashoffset` technique to create a "drawing" effect, making the connection feel active.
-    3. Self-Contained: All animations are implemented using SVG SMIL for maximum portability without external CSS or JS.
-  -->
   <defs>
-    <!-- Gradients (same as before) -->
+    <!-- Gradients -->
     <linearGradient id="grad-business-v2" x1="0%" y1="0%" x2="100%" y2="0%"> <stop offset="0%" style="stop-color:#38BDF8;stop-opacity:1" /> <stop offset="100%" style="stop-color:#60A5FA;stop-opacity:1" /> </linearGradient>
     <linearGradient id="grad-engine-v2" x1="0%" y1="0%" x2="100%" y2="0%"> <stop offset="0%" style="stop-color:#2563EB;stop-opacity:1" /> <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" /> </linearGradient>
     <linearGradient id="grad-foundation-v2" x1="0%" y1="0%" x2="100%" y2="0%"> <stop offset="0%" style="stop-color:#1E40AF;stop-opacity:1" /> <stop offset="100%" style="stop-color:#1D4ED8;stop-opacity:1" /> </linearGradient>
     <linearGradient id="grad-delta-pillar" x1="0%" y1="0%" x2="0%" y2="100%"> <stop offset="0%" style="stop-color:#A855F7;stop-opacity:1" /> <stop offset="100%" style="stop-color:#D946EF;stop-opacity:1" /> </linearGradient>
     <linearGradient id="grad-flow" x1="0.5" y1="0" x2="0.5" y2="1"> <stop offset="0%" stop-color="white" stop-opacity="0.6"/> <stop offset="100%" stop-color="white" stop-opacity="0.1"/> </linearGradient>
     
-    <!-- Filters (same as before) -->
+    <!-- Filters -->
     <filter id="soft-shadow" x="-50%" y="-50%" width="200%" height="200%"> <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#1E40AF" flood-opacity="0.1"/> </filter>
     <filter id="delta-glow" x="-100%" y="-100%" width="300%" height="300%"> <feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#D946EF" flood-opacity="0.75"/> </filter>
     
@@ -762,23 +762,19 @@ New_Data = Base_Data ⊕ Δ_Data</code>
   <rect width="100%" height="100%" fill="#F8FAFC"/>
 
   <!-- Main Title -->
-  <g id="title-section" opacity="0">
-    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0s" fill="freeze" />
+  <g id="title-section" opacity="1">
     <text x="500" y="45" font-size="24" font-weight="700" text-anchor="middle" fill="#1E3A8A">Delta-Oriented Architecture</text>
     <text x="500" y="70" font-size="14" font-weight="400" text-anchor="middle" fill="#64748B">A Layered Blueprint for Extensibility</text>
   </g>
 
-  <!-- Flow Channels (Appear with layers) -->
-  <g id="flow-channels" opacity="0">
-      <animate attributeName="opacity" from="0" to="1" dur="1s" begin="1.0s" fill="freeze" />
+  <!-- Flow Channels -->
+  <g id="flow-channels" opacity="1">
       <path d="M 440 250 L 560 250 L 560 420 L 440 420 Z" fill="url(#grad-flow)" />
       <path d="M 440 90 L 560 90 L 560 260 L 440 260 Z" fill="url(#grad-flow)" />
   </g>
 
   <!-- Layer 3: Business Application Layer -->
-  <g id="layer-3" filter="url(#soft-shadow)" opacity="0">
-    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.5s" fill="freeze" />
-    <!-- content from original svg -->
+  <g id="layer-3" filter="url(#soft-shadow)" opacity="1">
     <rect x="120" y="100" width="680" height="140" rx="12" fill="url(#grad-business-v2)"/>
     <rect x="120" y="100" width="680" height="40" rx="12" ry="12" fill="black" fill-opacity="0.1" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
     <text x="140" y="125" font-size="16" font-weight="600" fill="white">Business Application Layer</text>
@@ -788,9 +784,7 @@ New_Data = Base_Data ⊕ Δ_Data</code>
   </g>
 
   <!-- Layer 2: Core Engine Layer -->
-  <g id="layer-2" filter="url(#soft-shadow)" opacity="0">
-    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.0s" fill="freeze" />
-    <!-- content from original svg -->
+  <g id="layer-2" filter="url(#soft-shadow)" opacity="1">
     <rect x="120" y="260" width="680" height="140" rx="12" fill="url(#grad-engine-v2)"/>
     <rect x="120" y="260" width="680" height="40" rx="12" ry="12" fill="black" fill-opacity="0.1" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
     <text x="140" y="285" font-size="16" font-weight="600" fill="white">Core Engine Layer</text>
@@ -801,9 +795,7 @@ New_Data = Base_Data ⊕ Δ_Data</code>
   </g>
 
   <!-- Layer 1: Foundation Layer -->
-  <g id="layer-1" filter="url(#soft-shadow)" opacity="0">
-    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0.5s" fill="freeze" />
-    <!-- content from original svg -->
+  <g id="layer-1" filter="url(#soft-shadow)" opacity="1">
     <rect x="120" y="420" width="680" height="180" rx="12" fill="url(#grad-foundation-v2)"/>
     <rect x="120" y="420" width="680" height="40" rx="12" ry="12" fill="black" fill-opacity="0.1" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
     <text x="140" y="445" font-size="16" font-weight="600" fill="white">Foundation Layer</text>
@@ -814,9 +806,7 @@ New_Data = Base_Data ⊕ Δ_Data</code>
   </g>
   
   <!-- Delta Customization Pillar -->
-  <g id="delta-pillar" transform="translate(200 0)" opacity="0">
-    <animateTransform attributeName="transform" type="translate" from="200 0" to="0 0" dur="0.8s" begin="1.8s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.1 0.8 0.2 1"/>
-    <animate attributeName="opacity" from="0" to="1" dur="0.8s" begin="1.8s" fill="freeze" />
+  <g id="delta-pillar" transform="translate(0 0)" opacity="1">
     <g filter="url(#soft-shadow)">
       <rect x="820" y="100" width="60" height="500" rx="12" fill="url(#grad-delta-pillar)"/>
       <text x="850" y="350" font-size="18" font-weight="700" fill="white" text-anchor="middle" transform="rotate(-90, 850, 350)">
@@ -826,32 +816,22 @@ New_Data = Base_Data ⊕ Δ_Data</code>
   </g>
   
   <!-- Connecting arrows from pillar to layers -->
-  <g id="delta-arrows" opacity="0">
-    <animate attributeName="opacity" from="0" to="1" dur="0.1s" begin="2.8s" fill="freeze" />
+  <g id="delta-arrows" opacity="1">
     <g filter="url(#delta-glow)">
       <!-- Arrow 1 to Business Layer -->
-      <path d="M 820 170 C 810 170, 810 170, 800 170" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="25">
-        <animate attributeName="stroke-dashoffset" from="25" to="0" dur="0.4s" begin="2.8s" fill="freeze" />
-      </path>
+      <path d="M 820 170 C 810 170, 810 170, 800 170" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="0"/>
       <!-- Arrow 2 to Engine Layer -->
-      <path d="M 820 330 C 810 330, 810 330, 800 330" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="25">
-         <animate attributeName="stroke-dashoffset" from="25" to="0" dur="0.4s" begin="3.2s" fill="freeze" />
-      </path>
+      <path d="M 820 330 C 810 330, 810 330, 800 330" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="0"/>
       <!-- Arrow 3 to Foundation Layer -->
-      <path d="M 820 510 C 810 510, 810 510, 800 510" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="25">
-        <animate attributeName="stroke-dashoffset" from="25" to="0" dur="0.4s" begin="3.6s" fill="freeze" />
-      </path>
+      <path d="M 820 510 C 810 510, 810 510, 800 510" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="0"/>
     </g>
   </g>
-
-  <!-- Version info -->
-  <text x="950" y="665" font-size="10" fill="#94A3B8" text-anchor="end">v3.0 Animated Blueprint</text>
 </svg>
                     </div>
                     <div class="column">
-                        <ul class="icon-list">
+                        <ul class="icon-list" style="margin:0">
                             <li class="icon-bullet">
-                                <i class="fa-solid fa-foundation"></i>
+                                <i class="fa-solid fa-building-columns"></i>
                                 <div>
                                     <p><strong>Foundation:</strong> Universal Delta capabilities & code generation.</p>
                                 </div>
@@ -902,28 +882,24 @@ New_Data = Base_Data ⊕ Δ_Data</code>
                         </div>
                     </li>
                 </ul>
-                <div class="highlight-box">
-                    <p><em>(This presentation and its graphics were AI-generated.)</em></p>
-                </div>
-            </section>
+                <p><em>(This presentation and its graphics were AI-generated.)</em></p>
+              </section>
 
 <!-- Slide 18: Summary -->
 <section class="slide">
     <h2>Summary: Extensibility Through Reversible Computation</h2>
     
-    <ul style="list-style: none; padding: 0; margin: 2rem 0;">
+    <ul style="list-style: none; padding: 0; margin: 0rem 0;">
         <li style="margin-bottom: 1.2rem; font-size: 1.2rem; line-height: 1.5;">
             <span style="color: #3b82f6;">●</span> <strong style="color: #3b82f6;">The Problem:</strong> Traditional component-based reuse hits fundamental limits (Granularity & Prediction Paradoxes).
         </li>
         <li style="margin-bottom: 1.2rem; font-size: 1.2rem; line-height: 1.5;">
-            <span style="color: #3b82f6;">●</span> <strong style="color: #3b82f6;">The Insight:</strong> Draw inspiration from physics and mathematics - treat features as superposable transformations.
+            <span style="color: #3b82f6;">●</span> <strong style="color: #3b82f6;">The Insight:</strong> treat features as superposable transformations.
         </li>
         <li style="margin-bottom: 1.2rem; font-size: 1.2rem; line-height: 1.5;">
             <span style="color: #3b82f6;">●</span> <strong style="color: #3b82f6;">The Solution:</strong> The Delta-Oriented Framework, enabled by Reversible Computation theory.
         </li>
-        <li style="margin-bottom: 1.2rem; font-size: 1.2rem; line-height: 1.5;">
-            <span style="color: #3b82f6;">●</span> <strong style="color: #3b82f6;">Key Understanding:</strong> Reversible Computation expands the solution space significantly
-        </li>
+
     </ul>
     
     <div class="highlight-box">
@@ -950,28 +926,18 @@ New_Data = Base_Data ⊕ Δ_Data</code>
     </div>
 
     <script>
-    // Mermaid initialization
-    mermaid.initialize({
-        startOnLoad: true,
-        theme: 'base',
-        themeVariables: {
-            primaryColor: '#3b82f6',
-            primaryTextColor: '#1f2937',
-            primaryBorderColor: '#2563eb',
-            lineColor: '#4b5563',
-            secondaryColor: '#f8fafc',
-            tertiaryColor: '#e5e7eb',
-            background: '#ffffff',
-            mainBkg: '#f8fafc',
-            secondBkg: '#ffffff',
-            tertiaryBkg: '#f4f6f9'
-        },
-        flowchart: {
-            useMaxWidth: true,
-            htmlLabels: true,
-            curve: 'basis'
-        }
-    });
+   // Initialize Mermaid
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            fontFamily: 'var(--font-main)',
+			 // 添加图表配置
+			flowchart: {
+				useMaxWidth: true,
+				htmlLabels: true
+			}
+        });
 
     document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('presentation-container');
@@ -1011,6 +977,11 @@ New_Data = Base_Data ⊕ Δ_Data</code>
             }
             // 渲染当前幻灯片中的Mermaid图表
             setTimeout(renderMermaidDiagrams, 100);
+			
+			const slideEl = allSlides[index];
+		  slideEl.querySelectorAll('.restart-anim').forEach(anim => {
+			try { anim.beginElement(); } catch (_) {}
+		  });
         }
         function updateControls() {
             slideCounter.textContent = `${currentSlide + 1} / ${totalSlides}`;
@@ -1074,7 +1045,7 @@ New_Data = Base_Data ⊕ Δ_Data</code>
                     margin: 0,
                     filename: 'delta-oriented-framework-presentation.pdf',
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true, allowTaint:true, letterRendering: true },
+                    html2canvas: { scale: 2, useCORS: true, allowTaint:true, letterRendering: true},
                     jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
                     pagebreak: { mode: ['css'] }
 				};
