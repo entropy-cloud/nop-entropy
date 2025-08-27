@@ -57,9 +57,9 @@ Promise vs.  Reality
 
 - The Promise (CMU SEI 2008): 
   
-  - > 10× productivity
-  - > 60% cost reduction
-  - > 98% faster time-to-market
+  - up to 10× productivity
+  - up to 60% cost reduction
+  - up to 90% faster time-to-market
 
 - The Reality: 
   One Core Challenge – Effective Variability Management.
@@ -100,7 +100,7 @@ flowchart TD
     E --> E_Mechanisms
 ```
 
-Do not modify core assets.
+Avoid direct edits to core assets during product derivation.
 Derive variants by ACTIVATE · SELECT · PROVIDE pre-defined variations.
 
 # Slide 6
@@ -165,16 +165,16 @@ From Theory to Practice: Docker as Reversible Computation
 # Slide 11
 The Inevitability of Deltas: A Universal Pattern
 
-1. Computation: 
-Result = Function(Data)
+- Computation: 
+  Result = Function(Data)
 
-2. Decompostion of Change: 
-New_Function = Base_Function ⊕ Δ_Function
-New_Data = Base_Data  ⊕ Δ_Data
+- Decompostion of Change: 
+  New_Function = Base_Function ⊕ Δ_Function
+  New_Data = Base_Data  ⊕ Δ_Data
 
-3. The Resulting "Delta Form": 
-New_Result = BaseFunction(BaseData)  ⊕ Δ_Total 
-(analogous to a Taylor Expansion)
+- The Resulting "Delta Form": 
+  New_Result = BaseFunction(BaseData)  ⊕ Δ_Total 
+  (analogous to a Taylor Expansion)
 
 The Paradigm Shift: treats change itself as a first-class citizen.
 
@@ -232,11 +232,12 @@ Unified, DSL-Agnostic Customization
 
 - Philosophy: One mechanism to customize any DSL.
 - Mechanism: "Loader as Generator"
-     - Swap native loader for DeltaFileSystem loader.
-     - Non-intrusively finds, merges, and generates the final model.
+    - Swap native loader for DeltaFileSystem loader.
+    - Non-intrusively finds, merges, and generates the final model.
 - Impact:
-     - Full-stack customization (Data to UI).
-     - Zero changes to base product code.
+	- One mental model across the stack (data → engine → UI)
+    - Zero changes to base engines and code
+    - Seamless full‑stack customization via smart loaders
 
 # Slide 15
 From Model to Code: Delta-Driven Generation
@@ -253,7 +254,7 @@ From Model to Code: Delta-Driven Generation
 # Slide 16
 Delta Oriented Architecture: A Cohesive Blueprint
 
-![](delta-oriented-arch.png) <!-- width:400px;height:300px; -->
+![](delta-oriented-arch.svg) <!-- width:400px;height:auto; -->
 
 - Foundation: Universal Delta capabilities & code generation.
 - Development: Reusable core engines for complex business logic.

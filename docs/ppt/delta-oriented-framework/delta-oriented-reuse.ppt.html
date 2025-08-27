@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Extensibility based on the Delta‑Oriented Framework</title>
-    <!-- External Libraries: Font Awesome & html2pdf.js -->
+    <!-- External Libraries: Font Awesome, html2pdf.js & Mermaid.js -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
     <style>
         /* --- 1. Global Styles & Variables --- */
         :root {
@@ -24,7 +25,7 @@
             --font-code: 'Fira Code', monospace;
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
             --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            --font-size-base: 1.25rem; /* Set base font size for projection */
+            --font-size-base: 1.25rem;
             --line-height-base: 1.7;
             --controls-area-height: 40px;
         }
@@ -55,7 +56,7 @@
             flex-direction: column;
             overflow: hidden;
             position: relative;
-            padding-bottom: var(--controls-area-height);
+			padding-bottom: var(--controls-area-height);
         }
 
         .slides-viewport { flex-grow: 1; position: relative; overflow: hidden; }
@@ -75,7 +76,7 @@
             flex-direction: column;
             justify-content: center;
             overflow-y: auto;
-            background-color: var(--color-bg-slide); /* Ensure background for slides */
+            background-color: var(--color-bg-slide);
         }
 
         .slide.active {
@@ -130,24 +131,24 @@
         .code-block > code { font-size: inherit; background: transparent; padding: 0; border-radius: 0; }
         .code-block.is-centered { display: flex; justify-content: center; align-items: center; }
         
-        .code-comment {
-            color: #64748b; /* Darker, more legible gray */
-            font-style: normal; /* Removing italics improves readability from a distance */
+		.code-comment {
+            color: #64748b;
+            font-style: normal;
         }
 
         .code-keyword {
-            color: #be185d; /* Strong, high-contrast pink/magenta */
+            color: #be185d;
             font-weight: 600;
         }
 
         .code-string {
-            color: #057a55; /* Dark, rich green */
+            color: #057a55;
         }
 
         .code-attr {
-            color: #9333ea; /* Deeper, more vibrant purple */
+            color: #9333ea;
         }
-        
+		
         .img-placeholder { width: 100%; min-height: 250px; background-color: var(--color-code-bg); border: 2px dashed var(--color-border); border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--color-text-light); margin: 1.5rem 0; }
         .img-placeholder i { font-size: 3rem; margin-bottom: 1rem; }
         .highlight-box { background-color: #eff6ff; border-left: 4px solid var(--color-primary); padding: 20px; margin: 1.5rem 0; border-radius: 0 8px 8px 0; }
@@ -159,6 +160,24 @@
         .stat-number { font-size: 2.5rem; font-weight: 700; color: var(--color-primary); display: block; }
         .stat-label { font-size: 0.9rem; color: var(--color-text-light); margin-top: 0.25rem; }
 
+        .diagram-box { background-color: var(--color-code-bg); border: 2px solid var(--color-border); border-radius: 8px; padding: 20px; margin: 1.5rem 0; text-align: center; }
+        .formula { background-color: #f0f9ff; border: 2px solid var(--color-primary); border-radius: 8px; padding: 20px; margin: 1.5rem 0; text-align: center; font-family: var(--font-code); font-size: 1.5rem; font-weight: 600; color: var(--color-primary); }
+
+        /* --- Mermaid Diagram Styles --- */
+        .mermaid {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 1.5rem 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+        
+        .mermaid svg {
+            max-width: 100%;
+            height: auto;
+        }
 
         /* --- 6. Responsive & Print Styles --- */
         @media (max-width: 768px) {
@@ -177,18 +196,19 @@
             .slides-viewport { overflow: visible; height: auto; }
             .slide { display: flex !important; opacity: 1 !important; visibility: visible !important; transform: none !important; position: relative; page-break-after: always; page-break-inside: avoid; width: 100%; height: auto; aspect-ratio: 16 / 9; border: 1px solid #ddd; margin-bottom: 20px; box-shadow: none; border-radius: 0; overflow: hidden; }
             .slide:last-of-type { page-break-after: avoid; }
+			svg * {   animation-play-state: paused !important; }
         }
         
         .pdf-page-container { width: 100%; height: auto; background: white; color: black; box-shadow: none; }
         .pdf-slide { position: relative !important; opacity: 1 !important; visibility: visible !important; transform: none !important; height: auto !important; width: 100%; background: white; border: 1px solid #eeeeee; padding: 40px 50px; box-shadow: none; margin-bottom: 0; overflow: hidden; page-break-after: always; break-inside: avoid; aspect-ratio: 16 / 9; }
-        .pdf-slide:last-of-type { page-break-after: avoid; }
+		.pdf-slide:last-of-type { page-break-after: avoid; }
     </style>
 </head>
 <body>
     <div id="presentation-container">
         <!-- UI Elements -->
         <div id="progress-bar"></div>
-        <div id="slide-counter">1 / 17</div>
+        <div id="slide-counter">1 / 18</div>
 
         <!-- Slides Viewport -->
         <div class="slides-viewport">
@@ -200,478 +220,721 @@
             </section>
 
             <!-- Slide 2: The Customization Trap -->
-            <section class="slide">
-                <h2>The Customization Trap</h2>
-                <ul class="icon-list">
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-copy"></i>
-                        <div>
-                            <p>1. Copy & Modify: The seemingly easy start.</p>
-                            <span class="details">Duplicate the core product for each custom need.</span>
-                        </div>
-                    </li>
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-code-branch"></i>
-                        <div>
-                            <p>2. Diverging Paths: The inevitable conflict.</p>
-                            <span class="details">Core evolves; custom versions stagnate. Updates and innovation sharing become complex.</span>
-                        </div>
-                    </li>
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-money-bill-wave"></i>
-                        <div>
-                            <p>3. Technical Debt: The end result.</p>
-                            <span class="details">Core misses field innovations. Custom versions become unmaintainable legacy. Merging creates massive code conflicts.</span>
-                        </div>
-                    </li>
-                </ul>
-            </section>
+<section class="slide">
+    <h2>The Customization Trap</h2>
+    <div class="two-column">
+        <div class="column">
+            <div class="mermaid">
+flowchart TD
+    A[Product v1.0] --> B[Fork for Customer A]
+    B --> C[Heavy Customization<br>Tightly Coupled Code]
+    A --> D[Product v2.0<br>New Features + Fixes]
+    
+    C -.->|Merge: Complex, Costly|D
+    D -.->|Upgrade: High Effort|C
+    
+    C --> E[**Branch Stuck at v1.0**<br>Maintained at High Cost]
+            </div>
+        </div>
+        <div class="column">
+            <h3>The Vicious Cycle:</h3>
+            <ul class="icon-list">
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-copy"></i>
+                    <div>
+                        <p>Copy & Modify: The deceptively easy start</p>
+                    </div>
+                </li>
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-code-branch"></i>
+                    <div>
+                        <p>Diverging Paths: Custom & core code evolve separately</p>
+                    </div>
+                </li>
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-exclamation-triangle"></i>
+                    <div>
+                        <p>Technical Debt: Stagnation, conflicts, and high-cost maintenance</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
 
             <!-- Slide 3: Software Product Lines -->
-            <section class="slide">
-                <h2>Software Product Lines: From Ad Hoc to Systematic Reuse</h2>
-                <div class="two-column">
-                    <div class="column">
-                        <img 
-                            src="reuse-history.png" 
-                            alt="Reuse History" 
-                            style="width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--color-border);"
-                        >
+<section class="slide">
+    <h2>Software Product Lines: From Ad Hoc to Systematic Reuse</h2>
+    <div class="two-column">
+        <div class="column">
+            <div class="mermaid">
+flowchart TD
+    subgraph Domain [Domain Engineering]
+        A[Build Core Assets]
+        A --> P[Product Line v2.0.1]
+    end
+
+    subgraph App [Application Engineering]
+        S[Select Variants]
+        E[Add Custom Features]
+    end
+    
+    P --> S
+    S --> E
+    
+    E --> D1[Customer A<br>v2.0.1 + Custom]
+    E --> D2[Customer B<br>v2.0.1 + Custom]
+            </div>
+        </div>
+        <div class="column">
+            <h3>Key Process:</h3>
+            <ul class="icon-list">
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-tools"></i>
+                    <div>
+                        <p>Build Core: Develop reusable product line components</p>
                     </div>
-                    <div class="column">
-                        <ul class="icon-list">
-                            <li class="icon-bullet">
-                                <i class="fa-solid fa-stethoscope"></i>
-                                <div>
-                                    <p>1. Diagnosis: "The Customization Trap"</p>
-                                    <span class="details">Root cause: Unmanaged variation causing architectural erosion.</span>
-                                </div>
-                            </li>
-                            <li class="icon-bullet">
-                                <i class="fa-solid fa-lightbulb"></i>
-                                <div>
-                                    <p>2. The Insight: Reuse the Entire System</p>
-                                    <span class="details">Engineer the whole product family, not just parts. Core principle: Strategic management of commonality and variability.</span>
-                                </div>
-                            </li>
-                            <li class="icon-bullet">
-                                <i class="fa-solid fa-sitemap"></i>
-                                <div>
-                                    <p>3. The Two-Lifecycle Model</p>
-                                    <span class="details">Domain Engineering: Build reusable core assets (for reuse). Application Engineering: Assemble products from assets (with reuse).</span>
-                                </div>
-                            </li>
-                        </ul>
+                </li>
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-check-circle"></i>
+                    <div>
+                        <p>Select: Choose from pre-built variants</p>
                     </div>
-                </div>
-            </section>
+                </li>
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    <div>
+                        <p>Extend: Add customer-specific features</p>
+                    </div>
+                </li>
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-rocket"></i>
+                    <div>
+                        <p>Deploy: Deliver customized products</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+
+<!-- Slide 4: Promise vs Reality -->
+<section class="slide">
+    <h2>Promise vs. Reality</h2>
+    <div class="two-column">
+        <div class="column">
+            <h3><i class="fa-solid fa-star"></i> The Promise (CMU SEI 2008)</h3>
+            <ul class="icon-list">
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <div>
+                        <p>up to 10× productivity</p>
+                    </div>
+                </li>
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-dollar-sign"></i>
+                    <div>
+                        <p>up to 60% cost reduction</p>
+                    </div>
+                </li>
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-clock"></i>
+                    <div>
+                        <p>up to 90% faster time-to-market</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="column">
+             <h3 style="color: #f59e0b;"><i class="fa-solid fa-exclamation-triangle" style="color: #f59e0b;"></i> The Reality:</h3>
+    <div class="highlight-box" style="background-color: #fffbeb; border-left: 4px solid #f59e0b; color: #92400e;">
+        <p style="color: #92400e; font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem;">One Core Challenge</p>
+        <p style="color: #92400e; font-size: 1.1rem;">Effective Variability Management.</p>
+    </div>
+        </div>
+    </div>
+</section>
+
+            <!-- Slide 5: The Prescribed Approach -->
+<!-- Slide 5: The Prescribed Approach -->
+<section class="slide">
+    <h2>The Prescribed Approach: Adapt, Replace, Extend</h2>
+
+            <h3><i class="fa-solid fa-sliders-h"></i> Adaptation</h3>
+            <div class="sub-items">
+                <div class="sub-item">Change Degree/Parameter (e.g., Log Level)</div>
+                <div class="sub-item">Modify Internal Behavior (e.g., Algorithm Strategy)</div>
+            </div>
             
-            <!-- Slide 4: The Promise vs. The Reality -->
-            <section class="slide">
-                <h2>The Promise vs. The Reality</h2>
-                <div class="two-column">
-                    <div class="column">
-                        <div class="highlight-box">
-                            <h3>The Promise (CMU SEI):</h3>
-                            <ul>
-                                <li>&gt; 10× productivity</li>
-                                <li>&gt; 60% cost reduction</li>
-                                <li>&gt; 98% faster time-to-market</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="column">
-                        <div class="quote">
-                            <h3>The Reality:</h3>
-                            <p>One Core Challenge – Effective Variability Management.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            <h3><i class="fa-solid fa-exchange-alt"></i> Replacement</h3>
+            <div class="sub-items">
+                <div class="sub-item">Mutually Exclusive Choice (Choose One)</div>
+                <div class="sub-item">Implement Same Interface (e.g., Payment Gateway)</div>
+            </div>
             
-            <!-- Slide 5: The Core Challenge -->
-            <section class="slide">
-                <h2>The Core Challenge: Traditional Variability Techniques</h2>
-                <div class="two-column">
-                    <div class="column">
-                        <img 
-                            src="variability.png" 
-                            alt="Variability Techniques" 
-                            style="width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--color-border);"
-                        >
-                    </div>
-                    <div class="column">
-                        <ul class="icon-list">
-                            <li class="icon-bullet">
-                                <i class="fa-solid fa-puzzle-piece"></i>
-                                <div>
-                                    <p>Goal: Plug functionality into a stable core.</p>
-                                </div>
-                            </li>
-                            <li class="icon-bullet">
-                                <i class="fa-solid fa-arrows-spin"></i>
-                                <div>
-                                    <p>Adaptation: Modify behavior (e.g., Class Inheritance).</p>
-                                </div>
-                            </li>
-                            <li class="icon-bullet">
-                                <i class="fa-solid fa-arrow-right-arrow-left"></i>
-                                <div>
-                                    <p>Replacement: Swap components (e.g., Plugins).</p>
-                                </div>
-                            </li>
-                            <li class="icon-bullet">
-                                <i class="fa-solid fa-plus"></i>
-                                <div>
-                                    <p>Extension: Add new features (e.g., Add-ons).</p>
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
+            <h3><i class="fa-solid fa-plus"></i> Extension</h3>
+            <div class="sub-items">
+                <div class="sub-item">Stackable Features (Zero to Many)</div>
+                <div class="sub-item">Provide New Capabilities (e.g., Plugin)</div>
+            </div>
             
+            <div class="highlight-box" style="padding-bottom:0;margin-bottom:0">
+                <p>Avoid direct edits to core assets during product derivation. Derive variants by <strong>ACTIVATE · SELECT · PROVIDE</strong> pre-defined variations.</p>
+            </div>
+</section>
+
             <!-- Slide 6: The Dilemmas of Component-Based Reuse -->
             <section class="slide">
                 <h2>The Dilemmas of Component-Based Reuse</h2>
-                <ul class="icon-list">
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-expand"></i>
-                        <div>
-                            <p>1. The Granularity Paradox</p>
-                            <span class="details">Reusable components contain only commonality. Dilemma: They are inherently smaller than any product, conflicting with the goal of a large, reusable core.</span>
-                        </div>
-                    </li>
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-crystal-ball"></i>
-                        <div>
-                            <p>2. The Prediction Paradox</p>
-                            <span class="details">Requires a stable core with predefined extension points. Dilemma: Too few points: Architecture is rigid. Too many points: Architecture is destroyed. These are fundamental limits of the additive approach.</span>
-                        </div>
-                    </li>
-                </ul>
+                <div class="two-column">
+                    <div class="column">
+                        <h4>1. The Granularity Paradox</h4>
+                        <p>Component reuse is achieved by factoring out the common core.</p>
+                        <div class="quote"><p><strong>Dilemma:</strong> This core, by definition, is smaller than any individual product, conflicting with the goal of a large, reusable core.</p></div>
+                    </div>
+                    <div class="column">
+                        <h4>2. The Prediction Paradox</h4>
+                        <p>Requires a stable core with predefined extension points.<br/>&nbsp;<br/></p>
+                        <div class="quote"><p><strong>Dilemma:</strong> <br>Too few points: Architecture is rigid. <br> Too many points: Architecture is destroyed.</p></div>
+                    </div>
+                </div>
+                <h3>These are fundamental limits of the additive approach.</h3>
             </section>
+
 
             <!-- Slide 7: Inspiration from Physics -->
             <section class="slide">
                 <h2>Inspiration from Physics: A New Duality for Software</h2>
                 <div class="two-column">
                     <div class="column">
-                        <h3>Particle View (Current): Reductionism.</h3>
-                        <ul>
+                        <h3><i class="fa-solid fa-atom"></i> Particle View (Current): Reductionism</h3>
+                        <ul class="icon-list">
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-cube"></i>
+                                <div>
+                                    <p>Decompose systems into atoms (objects, components).</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-building"></i>
+                                <div>
+                                    <p>Assemble parts to build wholes.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="column">
+                        <h3><i class="fa-solid fa-wave-square"></i> Wave View (New): Superposition</h3>
+                        <ul class="icon-list">
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-layer-group"></i>
+                                <div>
+                                    <p>Think of features as waves to be overlaid and combined.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="quote">
+                    <p><strong>The Question:</strong> Can we build software via non-invasive superposition, not assembly?</p>
+                </div>
+            </section>
+			
+			            <!-- Slide 7: Inspiration from Physics -->
+            <section class="slide">
+                <h2>Inspiration from Physics: A New Duality for Software</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h3><i class="fa-solid fa-atom" style="color: var(--color-primary);"></i> Particle View (Current): Reductionism.</h3>
+                        <ul class="bullet-list">
                             <li>Decompose systems into atoms (objects, components).</li>
                             <li>Assemble parts to build wholes.</li>
                         </ul>
                     </div>
                     <div class="column">
-                        <h3>Wave View (New): Superposition.</h3>
-                        <ul>
+                        <h3><i class="fa-solid fa-wave-square" style="color: var(--color-secondary);"></i> Wave View (New): Superposition.</h3>
+                        <ul class="bullet-list">
                             <li>Think of features as waves to be overlaid and combined.</li>
-                            <li>The Question: Can we build software via non-invasive superposition, not assembly?</li>
                         </ul>
                     </div>
                 </div>
+                <div class="quote" style="margin-top: 2rem;">
+                    <p><strong>The Question:</strong> Can we build software via non-invasive superposition, not assembly?</p>
+                </div>
             </section>
-            
+
             <!-- Slide 8: An Algebraic View -->
             <section class="slide">
                 <h2>An Algebraic View of Software Evolution</h2>
                 <ul class="icon-list">
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-layer-group"></i>
+                        <i class="fa-solid fa-sitemap"></i>
                         <div>
-                            <p>Object-Oriented: Implicit Delta (A > B)</p>
+                            <p><strong>Object-Oriented:</strong> Implicit Delta (A > B)</p>
                             <span class="details">Reuse constrained by hierarchy.</span>
                         </div>
                     </li>
                     <li class="icon-bullet">
                         <i class="fa-solid fa-plus"></i>
                         <div>
-                            <p>Component-Oriented: Explicit Addition (A = B + C)</p>
+                            <p><strong>Component-Oriented:</strong> Explicit Addition (A = B + C)</p>
                             <span class="details">Delta C becomes a reusable component.</span>
                         </div>
                     </li>
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-rotate-left"></i>
+                        <i class="fa-solid fa-undo"></i>
                         <div>
-                            <p>Reversible Computation: Algebraic Manipulation (B = A + (-C))</p>
-                            <span class="details">The Leap: Introduce a formal inverse element. Unlocks: Reuse by transforming anything related, not just identical.</span>
+                            <p><strong>Reversible Computation:</strong> Algebraic Manipulation (B = A + (-C))</p>
+                            <div class="sub-items">
+                                <div class="sub-item"><strong>The Leap:</strong> Introduce a formal inverse element.</div>
+                                <div class="sub-item"><strong>Unlocks:</strong> Reuse by transforming anything related, not just identical.</div>
+                            </div>
                         </div>
                     </li>
                 </ul>
             </section>
-            
+
             <!-- Slide 9: Reversible Computation -->
             <section class="slide">
                 <h2>Reversible Computation: A Next-Gen Construction Theory</h2>
-                <pre class="code-block is-centered" style="font-size: 2rem;"><code>App = Delta x-extends Generator&lt;DSL&gt;</code></pre>
+                <div class="formula">
+                    <i class="fa-solid fa-code"></i> App = Delta x-extends Generator&lt;DSL&gt;
+                </div>
                 <ul class="icon-list">
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <i class="fa-solid fa-seedling"></i>
                         <div>
-                            <p>New Locus of Computation: <strong>The Transformation (Δ) is primary.</strong></p>
-                        </div>
-                    </li>
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-gear"></i>
-                        <div>
-                            <p>Generator&lt;DSL&gt;: Core domain knowledge.</p>
+                            <p><strong>Generator&lt;DSL&gt;:</strong> unfolds a dense kernel of truth into an executable base</p>
                         </div>
                     </li>
                     <li class="icon-bullet">
                         <i class="fa-solid fa-delta"></i>
                         <div>
-                            <p>Delta: Features as independent transformations.</p>
+                            <p><strong>Delta:</strong> A reversible and stand-alone unit of change, designed to be both composable and non-invasive.</p>
                         </div>
                     </li>
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-infinity"></i>
+                        <i class="fa-solid fa-link"></i>
                         <div>
-                            <p>x-extends: Superposition operator.</p>
+                            <p><strong>x-extends:</strong> deterministic merge of deltas in a well-defined order.</p>
                         </div>
                     </li>
                 </ul>
+                <div class="highlight-box">
+                    <p>(Ultimately, the Base itself is just the first Delta applied to a void.)</p>
+                </div>
             </section>
-            
-            <!-- Slide 10: From Theory to Practice -->
+
+            <!-- Slide 10: Docker Example -->
             <section class="slide">
                 <h2>From Theory to Practice: Docker as Reversible Computation</h2>
-                <pre class="code-block is-centered" style="font-size: 1.5rem; margin-bottom: 2rem;"><code>App = DockerBuild&lt;Dockerfile&gt; overlay-fs BaseImage</code></pre>
-                <ul class="icon-list">
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-right-left"></i>
-                        <div>
-                            <p>The Mapping:</p>
-                            <span class="details">DockerBuild&lt;Dockerfile&gt; -> Generator&lt;DSL&gt;</span>
-                            <span class="details">overlay-fs -> x-extends</span>
-                        </div>
-                    </li>
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-square-check"></i>
-                        <div>
-                            <p>Why It Works: This pattern is a mathematical necessity for managing change.</p>
-                            <pre class="code-block" style="margin: 0.5rem 0; font-size: 0.9rem;"><code>Y = (F0+F1)(X0+X1) = F0(X0) + Δ</code></pre>
-                        </div>
-                    </li>
-                </ul>
-            </section>
-            
-            <!-- Slide 11: Delta Customization (1) -->
-            <section class="slide">
-                <h2>Delta Customization (1): File-Level Overrides</h2>
-                <ul class="icon-list">
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-folder-tree"></i>
-                        <div>
-                            <p>Foundation: A Virtual File System (VFS) with delta layers.</p>
-                        </div>
-                    </li>
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-file-export"></i>
-                        <div>
-                            <p>Mechanism: Files in a delta layer (/_delta/customer-a/...) override base files.</p>
-                        </div>
-                    </li>
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-toggle-on"></i>
-                        <div>
-                            <p>Activation: Switch behavior globally with a parameter (e.g., deltaId=customer-a).</p>
-                        </div>
-                    </li>
-                </ul>
-                <h3 style="margin-top: 2rem;">Example Directory Structure:</h3>
-                <pre class="code-block"><code>/_delta/customer-a/beans/job.xml       // Customization for Customer A
-/_delta/customer-b/config/auth.json    // Customization for Customer B
-/beans/job.xml                         // Base product file
-/config/auth.json                      // Base product file</code></pre>
-            </section>
-            
-            <!-- Slide 12: Delta Customization (2) -->
-            <section class="slide">
-                <h2>Delta Customization (2): Intra-File Surgical Customization</h2>
-                <div class="two-column">
-                    <div class="column">
-                        <h3>Base Definition (/beans/core.xml)</h3>
-                        <pre class="code-block"><code>&lt;beans&gt;
-    &lt;bean id="securityManager" class="com.mycorp.StandardSecurityManager"/&gt;
-    &lt;bean id="dataService" class="com.mycorp.DefaultDataService"/&gt;
-&lt;/beans&gt;</code></pre>
-                    </div>
-                    <div class="column">
-                        <h3>Customer-A Delta (/_delta/customer-a/beans/core.xml)</h3>
-                        <pre class="code-block"><code>&lt;beans x:extends="super"&gt;
-    &lt;!-- 1. Modify Class --&gt;
-    &lt;bean id="securityManager" class="com.customer.AdvancedSecurityManager"/&gt;
-
-    &lt;!-- 2. Remove Bean --&gt;
-    &lt;bean id="dataService" x:override="remove"/&gt;
-    
-    &lt;!-- 3. Add Conditionally --&gt;
-    &lt;bean id="auditLogger" class="com.customer.AuditLogger"
-          feature:on="auditing.enabled"/&gt;
-
-&lt;/beans&gt;</code></pre>
-                    </div>
+                <div class="formula">
+                    <i class="fa-brands fa-docker"></i> App = DockerBuild&lt;Dockerfile&gt; overlay-fs BaseImage
                 </div>
-            </section>
-            
-            <!-- Slide 13: Delta Oriented Framework -->
-            <section class="slide">
-                <h2>Delta Oriented Framework: The Core Principle</h2>
-                <h3>Unified, DSL-Agnostic Customization</h3>
+                <h3><i class="fa-solid fa-map"></i> The Mapping:</h3>
                 <ul class="icon-list">
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-1"></i>
+                        <i class="fa-solid fa-file-code"></i>
                         <div>
-                            <p>Philosophy: One mechanism to customize any DSL.</p>
+                            <p>DockerBuild&lt;Dockerfile&gt; → Generator&lt;DSL&gt;</p>
                         </div>
                     </li>
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-2"></i>
+                        <i class="fa-solid fa-layer-group"></i>
                         <div>
-                            <p>Mechanism: "Loader as Generator"</p>
-                            <span class="details">Swap native loader for DeltaFileSystem loader. Non-intrusively finds, merges, and generates the final model.</span>
-                        </div>
-                    </li>
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-3"></i>
-                        <div>
-                            <p>Impact:</p>
-                            <span class="details">Full-stack customization (Data to UI). Zero changes to base product code.</span>
+                            <p>overlay-fs → x-extends</p>
                         </div>
                     </li>
                 </ul>
             </section>
-            
-            <!-- Slide 14: From Model to Code -->
+
+            <!-- Slide 11: The Inevitability of Deltas -->
             <section class="slide">
-                <h2>From Model to Code: Delta-Driven Generation</h2>
+                <h2>The Inevitability of Deltas: A Universal Pattern</h2>
                 <ul class="icon-list">
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-1"></i>
+                        <i class="fa-solid fa-calculator"></i>
                         <div>
-                            <p>Full-Stack Generation:</p>
-                            <span class="details">From models (ORM, etc.) to code (DAO, Microservices, UI, SQL, i18n).</span>
-                        </div>
-                    </li>
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-2"></i>
-                        <div>
-                            <p>Delta-Based Pattern:</p>
-                            <span class="details">_Account.java (Base): Machine-generated, safe to overwrite. Account.java (Extension): Manually extended, generator-safe.</span>
-                        </div>
-                    </li>
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-3"></i>
-                        <div>
-                            <p>Advantage: Parallel Evolution</p>
-                            <span class="details">Continuously regenerate model & code without losing custom logic.</span>
-                        </div>
-                    </li>
-                </ul>
-            </section>
-            
-            <!-- Slide 15: Nop Architecture -->
-            <section class="slide">
-                <h2>Nop Architecture: A Cohesive Blueprint</h2>
-                <div style="text-align: center;">
-                    <img 
-                        src="nop-arch.png" 
-                        alt="Nop Architecture" 
-                        style="width: 400px; height: 300px; border-radius: 8px; border: 1px solid var(--color-border); margin: 1rem auto;"
-                    >
-                </div>
-                <ul class="icon-list">
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-database"></i>
-                        <div>
-                            <p>Foundation: Universal Delta capabilities & code generation.</p>
-                        </div>
-                    </li>
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-gears"></i>
-                        <div>
-                            <p>Development: Reusable core engines for complex business logic.</p>
+                            <p><strong>1. Computation:</strong></p>
+                            <div class="code-block">
+<code>Result = Function(Data)</code>
+                            </div>
                         </div>
                     </li>
                     <li class="icon-bullet">
                         <i class="fa-solid fa-puzzle-piece"></i>
                         <div>
-                            <p>Synergy: Delta Customization balances platform stability with agile customization.</p>
+                            <p><strong>2. Decomposition of Change:</strong></p>
+                            <div class="code-block">
+<code>New_Function = Base_Function ⊕ Δ_Function
+New_Data = Base_Data ⊕ Δ_Data</code>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-waveform"></i>
+                        <div>
+                            <p><strong>3. The Resulting "Delta Form":</strong></p>
+                            <div class="code-block">
+<code>New_Result = BaseFunction(BaseData) ⊕ Δ_Total 
+(analogous to a Taylor Expansion)</code>
+                            </div>
                         </div>
                     </li>
                 </ul>
+                <div class="highlight-box">
+                    <p><strong>The Paradigm Shift:</strong> treats change itself as a first-class citizen.</p>
+                </div>
             </section>
-            
-            <!-- Slide 16: Synergy with AI -->
+
+            <!-- Slide 12: Delta Customization (1) -->
             <section class="slide">
-                <h2>Synergy with AI: The Future of Development</h2>
-                <ul class="icon-list">
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-robot"></i>
-                        <div>
-                            <p>AI as a Co-pilot for DSLs:</p>
-                            <span class="details">Well-defined DSLs provide perfect structure for AI to generate and understand code.</span>
-                        </div>
-                    </li>
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-file-lines"></i>
-                        <div>
-                            <p>AI for Documentation</p>
-                            <span class="details">generate docs from models, pages, and configurations. (This presentation and its graphics were AI-generated.)</span>
-                        </div>
-                    </li>
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-vial"></i>
-                        <div>
-                            <p>AI Generated Tests</p>
-                            <span class="details">Automated creation of test cases and data.</span>
-                        </div>
-                    </li>
-                </ul>
+                <h2>Delta Customization (1): File-Level Overlay</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <ul class="icon-list">
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-database"></i>
+                                <div>
+                                    <p><strong>Foundation:</strong> A Virtual File System (VFS) with delta layers.</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-layer-group"></i>
+                                <div>
+                                    <p><strong>Mechanism:</strong> Files in a delta layer (/_delta/customer-a/...) override base files.</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-toggle-on"></i>
+                                <div>
+                                    <p><strong>Activation:</strong> Switch behavior globally with a parameter (e.g., deltaId=customer-a).</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="column">
+                        <h3>Example Directory Structure:</h3>
+                        <pre class="code-block"><code>/_delta/customer-a/beans/job.xml       <span class="code-comment">// Customization for Customer A</span>
+/_delta/customer-b/config/auth.json    <span class="code-comment">// Customization for Customer B</span>
+/beans/job.xml                         <span class="code-comment">// Base product file</span>
+/config/auth.json                      <span class="code-comment">// Base product file</span></code></pre>
+                    </div>
+                </div>
             </section>
-            
-            <!-- Slide 17: Summary -->
+
+            <!-- Slide 13: Delta Customization (2) -->
             <section class="slide">
-                <h2>Summary: Extensibility Through Reversible Computation</h2>
+                <h2>Delta Customization (2): Intra-File Surgical Scalpel</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <h3>Base Definition (/beans/core.xml)</h3>
+                        <pre class="code-block"><code><span class="code-keyword">&lt;beans&gt;</span>
+    <span class="code-keyword">&lt;bean</span> <span class="code-attr">id=</span><span class="code-string">"securityManager"</span> 
+          <span class="code-attr">class=</span><span class="code-string">"com.mycorp.StandardSecurityManager"</span><span class="code-keyword">/&gt;</span>
+    <span class="code-keyword">&lt;bean</span> <span class="code-attr">id=</span><span class="code-string">"dataService"</span> 
+          <span class="code-attr">class=</span><span class="code-string">"com.mycorp.DefaultDataService"</span><span class="code-keyword">/&gt;</span>
+<span class="code-keyword">&lt;/beans&gt;</span></code></pre>
+ <p style="margin-top: 1rem; font-style: italic;">Precisely modify tree-structured files (XML, JSON, YAML) without touching the original.</p>
+                    </div>
+                    <div class="column">
+                        <h3>Customer-A Delta (/_delta/customer-a/beans/core.xml)</h3>
+                        <pre class="code-block"><code><span class="code-keyword">&lt;beans</span> <span class="code-attr">x:extends=</span><span class="code-string">"super"</span><span class="code-keyword">&gt;</span>
+    <span class="code-comment">&lt;!-- 1. Modify Class --&gt;</span>
+    <span class="code-keyword">&lt;bean</span> <span class="code-attr">id=</span><span class="code-string">"securityManager"</span> 
+          <span class="code-attr">class=</span><span class="code-string">"com.customer.AdvancedSecurityManager"</span><span class="code-keyword">/&gt;</span>
+
+    <span class="code-comment">&lt;!-- 2. Remove Bean --&gt;</span>
+    <span class="code-keyword">&lt;bean</span> <span class="code-attr">id=</span><span class="code-string">"dataService"</span> <span class="code-attr">x:override=</span><span class="code-string">"remove"</span><span class="code-keyword">/&gt;</span>
+    
+    <span class="code-comment">&lt;!-- 3. Add Conditionally --&gt;</span>
+    <span class="code-keyword">&lt;bean</span> <span class="code-attr">id=</span><span class="code-string">"auditLogger"</span> 
+          <span class="code-attr">class=</span><span class="code-string">"com.customer.AuditLogger"</span>
+          <span class="code-attr">feature:on=</span><span class="code-string">"auditing.enabled"</span><span class="code-keyword">/&gt;</span>
+
+<span class="code-keyword">&lt;/beans&gt;</span></code></pre>
+                    </div>
+                </div>
+               
+            </section>
+
+            <!-- Slide 14: Delta Oriented Framework -->
+            <section class="slide">
+                <h2>Delta Oriented Framework: The Core Principle</h2>
+                <h3>Unified, DSL-Agnostic Customization</h3>
                 <ul class="icon-list">
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <div>
-                            <p>The Problem:</p>
-                            <span class="details">Traditional component-based reuse hits fundamental limits (Granularity & Prediction Paradoxes).</span>
-                        </div>
-                    </li>
                     <li class="icon-bullet">
                         <i class="fa-solid fa-lightbulb"></i>
                         <div>
-                            <p>The Insight:</p>
-                            <span class="details">Draw inspiration from physics and mathematics - treat features as superposable transformations.</span>
+                            <p><strong>Philosophy:</strong> One mechanism to customize any DSL.</p>
                         </div>
                     </li>
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-screwdriver-wrench"></i>
+                        <i class="fa-solid fa-cogs"></i>
                         <div>
-                            <p>The Solution:</p>
-                            <span class="details">The Delta-Oriented Framework, enabled by Reversible Computation theory.</span>
+                            <p><strong>Mechanism:</strong> "Loader as Generator"</p>
+                            <div class="sub-items">
+                                <div class="sub-item">Swap native loader for DeltaFileSystem loader.</div>
+                                <div class="sub-item">Non-intrusively finds, merges, and generates the final model.</div>
+                            </div>
                         </div>
                     </li>
                     <li class="icon-bullet">
-                        <i class="fa-solid fa-brain"></i>
+                        <i class="fa-solid fa-impact"></i>
                         <div>
-                            <p>Key Understanding:</p>
-                            <span class="details">Reversible Computation expands the solution space significantly</span>
-                        </div>
-                    </li>
-                    <li class="icon-bullet">
-                        <i class="fa-solid fa-trophy"></i>
-                        <div>
-                            <p>The Result:</p>
-                            <span class="details">Systematic, non-invasive customization for various DSLs. Maintains a stable yet adaptable core architecture. Helps escape "The Customization Trap"</span>
+                            <p><strong>Impact:</strong></p>
+                            <div class="sub-items">
+                                <div class="sub-item">One mental model across the stack (data → engine → UI)</div>
+                                <div class="sub-item">Zero changes to base engines and code</div>
+                                <div class="sub-item">Seamless full‑stack customization via smart loaders</div>
+                            </div>
                         </div>
                     </li>
                 </ul>
             </section>
+
+            <!-- Slide 15: From Model to Code -->
+            <section class="slide">
+                <h2>From Model to Code: Delta-Driven Generation</h2>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-unite"></i>
+                        <div>
+                            <p><strong>Unified Source:</strong></p>
+                            <span class="details">effective model = base ⊕ deltas → generate DAO/services, API/SQL, UI/i18n</span>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-shield-alt"></i>
+                        <div>
+                            <p><strong>Generation Gap Pattern:</strong></p>
+                            <div class="sub-items">
+                                <div class="sub-item"><code>_Account.java</code> (Generated Base): Always safe to overwrite.</div>
+                                <div class="sub-item"><code>Account.java</code> (Manual Extension): Never touched by generator.</div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-sync"></i>
+                        <div>
+                            <p><strong>Core Advantage:</strong> Fearless Regeneration.</p>
+                            <span class="details">Evolve base. Regenerate constantly. Extensions remain untouched.</span>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Slide 16: Delta Oriented Architecture -->
+            <section class="slide">
+                <h2>Delta Oriented Architecture: A Cohesive Blueprint</h2>
+                <div class="two-column">
+                    <div class="column">
+                        <svg width="1000" height="680" viewBox="0 0 1000 680" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" style="width:100%;height:auto">
+  <!-- 
+    Design Rationale for V3.0 (Animation):
+    1. Narrative Sequencing: Animation is timed to tell a story: first build the stable base layers, then introduce the Delta pillar as a non-invasive force, and finally show its impact via animated arrows.
+    2. Animation Techniques:
+       - Layers use a staggered fade-in (`opacity`) to show a build-up process.
+       - The Delta Pillar uses a slide-in (`transform`) with an ease-out curve for a modern feel.
+       - Arrows use the `stroke-dashoffset` technique to create a "drawing" effect, making the connection feel active.
+    3. Self-Contained: All animations are implemented using SVG SMIL for maximum portability without external CSS or JS.
+  -->
+  <defs>
+    <!-- Gradients (same as before) -->
+    <linearGradient id="grad-business-v2" x1="0%" y1="0%" x2="100%" y2="0%"> <stop offset="0%" style="stop-color:#38BDF8;stop-opacity:1" /> <stop offset="100%" style="stop-color:#60A5FA;stop-opacity:1" /> </linearGradient>
+    <linearGradient id="grad-engine-v2" x1="0%" y1="0%" x2="100%" y2="0%"> <stop offset="0%" style="stop-color:#2563EB;stop-opacity:1" /> <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" /> </linearGradient>
+    <linearGradient id="grad-foundation-v2" x1="0%" y1="0%" x2="100%" y2="0%"> <stop offset="0%" style="stop-color:#1E40AF;stop-opacity:1" /> <stop offset="100%" style="stop-color:#1D4ED8;stop-opacity:1" /> </linearGradient>
+    <linearGradient id="grad-delta-pillar" x1="0%" y1="0%" x2="0%" y2="100%"> <stop offset="0%" style="stop-color:#A855F7;stop-opacity:1" /> <stop offset="100%" style="stop-color:#D946EF;stop-opacity:1" /> </linearGradient>
+    <linearGradient id="grad-flow" x1="0.5" y1="0" x2="0.5" y2="1"> <stop offset="0%" stop-color="white" stop-opacity="0.6"/> <stop offset="100%" stop-color="white" stop-opacity="0.1"/> </linearGradient>
+    
+    <!-- Filters (same as before) -->
+    <filter id="soft-shadow" x="-50%" y="-50%" width="200%" height="200%"> <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#1E40AF" flood-opacity="0.1"/> </filter>
+    <filter id="delta-glow" x="-100%" y="-100%" width="300%" height="300%"> <feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#D946EF" flood-opacity="0.75"/> </filter>
+    
+    <!-- Arrowhead -->
+    <marker id="arrow-delta-v2" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#D946EF"/>
+    </marker>
+  </defs>
+
+  <!-- Clean, light background -->
+  <rect width="100%" height="100%" fill="#F8FAFC"/>
+
+  <!-- Main Title -->
+  <g id="title-section" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0s" fill="freeze" />
+    <text x="500" y="45" font-size="24" font-weight="700" text-anchor="middle" fill="#1E3A8A">Delta-Oriented Architecture</text>
+    <text x="500" y="70" font-size="14" font-weight="400" text-anchor="middle" fill="#64748B">A Layered Blueprint for Extensibility</text>
+  </g>
+
+  <!-- Flow Channels (Appear with layers) -->
+  <g id="flow-channels" opacity="0">
+      <animate attributeName="opacity" from="0" to="1" dur="1s" begin="1.0s" fill="freeze" />
+      <path d="M 440 250 L 560 250 L 560 420 L 440 420 Z" fill="url(#grad-flow)" />
+      <path d="M 440 90 L 560 90 L 560 260 L 440 260 Z" fill="url(#grad-flow)" />
+  </g>
+
+  <!-- Layer 3: Business Application Layer -->
+  <g id="layer-3" filter="url(#soft-shadow)" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.5s" fill="freeze" />
+    <!-- content from original svg -->
+    <rect x="120" y="100" width="680" height="140" rx="12" fill="url(#grad-business-v2)"/>
+    <rect x="120" y="100" width="680" height="40" rx="12" ry="12" fill="black" fill-opacity="0.1" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+    <text x="140" y="125" font-size="16" font-weight="600" fill="white">Business Application Layer</text>
+    <g transform="translate(140, 155)"> <rect width="200" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">Issuing</text> </g>
+    <g transform="translate(350, 155)"> <rect width="200" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">Acquiring</text> </g>
+    <g transform="translate(560, 155)"> <rect width="220" height="45" rx="8" fill="rgba(255,255,255,0.7)" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4 2"/> <text x="20" y="28" fill="#1E3A8A" font-size="13" font-weight="500">Other Business (e.g., Value-add)</text> </g>
+  </g>
+
+  <!-- Layer 2: Core Engine Layer -->
+  <g id="layer-2" filter="url(#soft-shadow)" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="1.0s" fill="freeze" />
+    <!-- content from original svg -->
+    <rect x="120" y="260" width="680" height="140" rx="12" fill="url(#grad-engine-v2)"/>
+    <rect x="120" y="260" width="680" height="40" rx="12" ry="12" fill="black" fill-opacity="0.1" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+    <text x="140" y="285" font-size="16" font-weight="600" fill="white">Core Engine Layer</text>
+    <g transform="translate(140, 315)"> <rect width="160" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">RuleEngine</text> </g>
+    <g transform="translate(310, 315)"> <rect width="160" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">BatchEngine</text> </g>
+    <g transform="translate(480, 315)"> <rect width="160" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">TaskFlowEngine</text> </g>
+    <g transform="translate(650, 315)"> <rect width="130" height="45" rx="8" fill="rgba(255,255,255,0.7)" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4 2"/> <text x="20" y="28" fill="#1E3A8A" font-size="13" font-weight="500">Extensions...</text> </g>
+  </g>
+
+  <!-- Layer 1: Foundation Layer -->
+  <g id="layer-1" filter="url(#soft-shadow)" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="0.5s" fill="freeze" />
+    <!-- content from original svg -->
+    <rect x="120" y="420" width="680" height="180" rx="12" fill="url(#grad-foundation-v2)"/>
+    <rect x="120" y="420" width="680" height="40" rx="12" ry="12" fill="black" fill-opacity="0.1" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+    <text x="140" y="445" font-size="16" font-weight="600" fill="white">Foundation Layer</text>
+    <g transform="translate(140, 475)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Delta Virtual File System</text> <text x="20" y="40" fill="#475569" font-size="12">(DeltaFS)</text> </g>
+    <g transform="translate(470, 475)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Unified Model &amp; Delta</text> <text x="20" y="40" fill="#475569" font-size="12">Loader, x:extends, etc.</text> </g>
+    <g transform="translate(140, 535)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Core Models</text> <text x="20" y="40" fill="#475569" font-size="12">RecordModel, etc.</text> </g>
+    <g transform="translate(470, 535)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Code Generation Engine</text> </g>
+  </g>
+  
+  <!-- Delta Customization Pillar -->
+  <g id="delta-pillar" transform="translate(200 0)" opacity="0">
+    <animateTransform attributeName="transform" type="translate" from="200 0" to="0 0" dur="0.8s" begin="1.8s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.1 0.8 0.2 1"/>
+    <animate attributeName="opacity" from="0" to="1" dur="0.8s" begin="1.8s" fill="freeze" />
+    <g filter="url(#soft-shadow)">
+      <rect x="820" y="100" width="60" height="500" rx="12" fill="url(#grad-delta-pillar)"/>
+      <text x="850" y="350" font-size="18" font-weight="700" fill="white" text-anchor="middle" transform="rotate(-90, 850, 350)">
+        Delta Customization
+      </text>
+    </g>
+  </g>
+  
+  <!-- Connecting arrows from pillar to layers -->
+  <g id="delta-arrows" opacity="0">
+    <animate attributeName="opacity" from="0" to="1" dur="0.1s" begin="2.8s" fill="freeze" />
+    <g filter="url(#delta-glow)">
+      <!-- Arrow 1 to Business Layer -->
+      <path d="M 820 170 C 810 170, 810 170, 800 170" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="25">
+        <animate attributeName="stroke-dashoffset" from="25" to="0" dur="0.4s" begin="2.8s" fill="freeze" />
+      </path>
+      <!-- Arrow 2 to Engine Layer -->
+      <path d="M 820 330 C 810 330, 810 330, 800 330" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="25">
+         <animate attributeName="stroke-dashoffset" from="25" to="0" dur="0.4s" begin="3.2s" fill="freeze" />
+      </path>
+      <!-- Arrow 3 to Foundation Layer -->
+      <path d="M 820 510 C 810 510, 810 510, 800 510" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="25">
+        <animate attributeName="stroke-dashoffset" from="25" to="0" dur="0.4s" begin="3.6s" fill="freeze" />
+      </path>
+    </g>
+  </g>
+
+  <!-- Version info -->
+  <text x="950" y="665" font-size="10" fill="#94A3B8" text-anchor="end">v3.0 Animated Blueprint</text>
+</svg>
+                    </div>
+                    <div class="column">
+                        <ul class="icon-list">
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-foundation"></i>
+                                <div>
+                                    <p><strong>Foundation:</strong> Universal Delta capabilities & code generation.</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-code"></i>
+                                <div>
+                                    <p><strong>Development:</strong> Reusable core engines for complex business logic.</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-handshake"></i>
+                                <div>
+                                    <p><strong>Synergy:</strong> Delta Customization balances platform stability with agile customization.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 17: Reversible Computation × AI -->
+            <section class="slide">
+                <h2>Reversible Computation × AI: Cohesive Models, Cleaner Signals, Better Co‑pilots</h2>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-brain"></i>
+                        <div>
+                            <p><strong>Single cohesive truth:</strong> effective model = base ⊕ deltas (complete, schema‑typed, noise‑free)</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-undo-alt"></i>
+                        <div>
+                            <p><strong>Reversible deltas:</strong> safe explore/undo → faster, risk‑free AI iteration</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-cog"></i>
+                        <div>
+                            <p><strong>Deterministic composition:</strong> reproducible grounding with full provenance</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-check-circle"></i>
+                        <div>
+                            <p><strong>Output discipline:</strong> AI emits deltas (not core edits), schema/contract‑validated</p>
+                        </div>
+                    </li>
+                </ul>
+                <div class="highlight-box">
+                    <p><em>(This presentation and its graphics were AI-generated.)</em></p>
+                </div>
+            </section>
+
+<!-- Slide 18: Summary -->
+<section class="slide">
+    <h2>Summary: Extensibility Through Reversible Computation</h2>
+    
+    <ul style="list-style: none; padding: 0; margin: 2rem 0;">
+        <li style="margin-bottom: 1.2rem; font-size: 1.2rem; line-height: 1.5;">
+            <span style="color: #3b82f6;">●</span> <strong style="color: #3b82f6;">The Problem:</strong> Traditional component-based reuse hits fundamental limits (Granularity & Prediction Paradoxes).
+        </li>
+        <li style="margin-bottom: 1.2rem; font-size: 1.2rem; line-height: 1.5;">
+            <span style="color: #3b82f6;">●</span> <strong style="color: #3b82f6;">The Insight:</strong> Draw inspiration from physics and mathematics - treat features as superposable transformations.
+        </li>
+        <li style="margin-bottom: 1.2rem; font-size: 1.2rem; line-height: 1.5;">
+            <span style="color: #3b82f6;">●</span> <strong style="color: #3b82f6;">The Solution:</strong> The Delta-Oriented Framework, enabled by Reversible Computation theory.
+        </li>
+        <li style="margin-bottom: 1.2rem; font-size: 1.2rem; line-height: 1.5;">
+            <span style="color: #3b82f6;">●</span> <strong style="color: #3b82f6;">Key Understanding:</strong> Reversible Computation expands the solution space significantly
+        </li>
+    </ul>
+    
+    <div class="highlight-box">
+        <h3 style="color: #1f2937; margin-bottom: 1rem;"><strong>The Result:</strong></h3>
+        <div class="sub-items">
+            <div class="sub-item">From "Extension Points Everywhere" to "Overlays Above Everything"</div>
+            <div class="sub-item">From "1 core + N forks" to "1 base + N deltas"</div>
+            <div class="sub-item"><strong>Effective System = Base ⊕ ΔIndustry ⊕ ΔRegion ⊕ ΔCustomer</strong></div>
+        </div>
+    </div>
+</section>
 
         </div>
 
@@ -687,6 +950,29 @@
     </div>
 
     <script>
+    // Mermaid initialization
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'base',
+        themeVariables: {
+            primaryColor: '#3b82f6',
+            primaryTextColor: '#1f2937',
+            primaryBorderColor: '#2563eb',
+            lineColor: '#4b5563',
+            secondaryColor: '#f8fafc',
+            tertiaryColor: '#e5e7eb',
+            background: '#ffffff',
+            mainBkg: '#f8fafc',
+            secondBkg: '#ffffff',
+            tertiaryBkg: '#f4f6f9'
+        },
+        flowchart: {
+            useMaxWidth: true,
+            htmlLabels: true,
+            curve: 'basis'
+        }
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('presentation-container');
         const allSlides = document.querySelectorAll('.slide');
@@ -702,6 +988,19 @@
         let currentSlide = 0;
         const totalSlides = allSlides.length;
 
+        // 确保在幻灯片切换时重新渲染Mermaid图表
+        function renderMermaidDiagrams() {
+            const currentSlideElement = document.querySelector('.slide.active');
+            if (currentSlideElement) {
+                const mermaidElements = currentSlideElement.querySelectorAll('.mermaid');
+                mermaidElements.forEach(element => {
+                    if (!element.hasAttribute('data-processed')) {
+                        mermaid.init(undefined, element);
+                    }
+                });
+            }
+        }
+
         function showSlide(index, skipHashUpdate = false) {
             if (index < 0 || index >= totalSlides) return;
             allSlides.forEach((slide, i) => slide.classList.toggle('active', i === index));
@@ -710,6 +1009,8 @@
             if (!skipHashUpdate) {
                 updateHash(index);
             }
+            // 渲染当前幻灯片中的Mermaid图表
+            setTimeout(renderMermaidDiagrams, 100);
         }
         function updateControls() {
             slideCounter.textContent = `${currentSlide + 1} / ${totalSlides}`;
@@ -771,12 +1072,12 @@
             prepareForPdf().then(pdfContainer => {
                 const options = {
                     margin: 0,
-                    filename: 'presentation.pdf',
+                    filename: 'delta-oriented-framework-presentation.pdf',
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: { scale: 2, useCORS: true, allowTaint:true, letterRendering: true },
                     jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
                     pagebreak: { mode: ['css'] }
-                };
+				};
 
                 html2pdf().set(options).from(pdfContainer).save().then(() => {
                     console.log('PDF export successful!');
@@ -828,6 +1129,8 @@
             showSlide(initialIndexFromHash, true);
         } else {
             showSlide(0);
+            // 初始渲染Mermaid图表
+            setTimeout(renderMermaidDiagrams, 500);
         }
     });
     </script>

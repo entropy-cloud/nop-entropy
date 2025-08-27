@@ -1,268 +1,393 @@
-### **Speech Script: Extensibility based on the Delta‑Oriented Framework**
+### Slide 1: Extensibility based on the Delta-Oriented Framework
+(Time: 0:00 - 1:30)
 
-**(Approx. 30 minutes)**
+(Script):
 
----
+"Good morning. Today, let's talk about a common challenge in software engineering: how to handle the customization of complex software.
 
-**Slide 1: Title Slide**
+Our industry has many ways to deal with this, such as plugins and APIs. But the approach I'm sharing today is truly unique. It’s called the Delta-Oriented Framework, and it allows us to build systems that are powerful, predictable, scalable, and designed from the start to evolve.
 
-**(Speaker stands confidently, smiles at the audience. Pace: Slow and clear.)**
+So, what makes it truly unique? Its theoretical foundation.
 
-"Good morning/afternoon, everyone. Thank you for being here. Today, we're going to embark on a journey. A journey to escape a trap that has plagued software development for decades. We'll explore its roots, question our fundamental assumptions, and discover a new approach inspired by physics and mathematics. By the end of this talk, you will see how a concept called **Reversible Computation** and our **Delta-Oriented Framework** can fundamentally change how we build and customize software. Let's begin."
+It's based on a software construction theory I proposed back in 2007, called Reversible Computation. This theory gives us a new language to talk about and manage change itself. Ultimately, it redefines how we approach extensibility."
 
-**(Click to next slide)**
+[Click to Next Slide]
 
----
 
-**Slide 2: The Customization Trap**
+### Slide 2: The Customization Trap
 
-**(Pace: Becomes a storyteller. This is a relatable pain point.)**
+**(Script):**
 
-"I'd like you to think about a project you've worked on. It starts simply. A client needs a custom feature. The easiest thing to do? **Copy and modify.** You duplicate the core codebase. It seems like an easy start.
+"So, what does this problem look like in practice? I call it 'The Customization Trap,' and this slide shows it perfectly.
 
-But then, a second client needs something different. You fork again. Now you have **diverging paths.** The core product evolves, but your custom versions are frozen in time. Every update, every bug fix, every innovation becomes a nightmare of merge conflicts. You're not sharing progress; you're multiplying complexity.
+It all starts here, with our standard, stable core product, version 1.0.
 
-This is the inevitable end result: **Technical Debt.** The core misses out on brilliant innovations made in the field. The custom versions become unmaintainable legacy code. You are officially caught in **The Customization Trap.**"
+Then, an important customer arrives, and they require significant customization. The fastest way to deliver is to simply fork the code and start making changes. This leads to heavy customization and tightly coupled code, creating a version specific to that one customer.
 
-**(Click to next slide)**
+Meanwhile,your core team continues to evolve the core product according to the roadmap. They release version 2.0 with great new features and important bug fixes.
 
----
+And this is where the real challenge begins. As the diagram shows, the friction goes in two directions.
 
-**Slide 3: Software Product Lines: From Ad Hoc to Systematic Reuse**
+First, trying to upgrade the custom branch to version 2.0 is a nightmare. The merge is complex, risky, and incredibly costly because the codebases have diverged so much.
 
-**(Pace: Analytical, explaining the diagnosed problem and the established solution.)**
+At the same time, let's say your team on the custom branch developed a fantastic new feature. Trying to merge that innovation back into the main product is just as difficult.
 
-"So, how do we escape? The diagnosis is clear: the root cause is unmanaged variation, which leads to architectural erosion.
+The two paths are now separated by a wall of complexity.
 
-The insight from Software Product Line Engineering is powerful: instead of reusing just parts, we must **reuse the entire system.** We engineer a whole family of products by strategically managing what is common and what is variable.
+What is the result? The customer's branch is now stuck on an old version. They miss out on all your new innovation, and you are stuck maintaining this separate branch at a very high cost.
 
-This is formalized in the **Two-Lifecycle Model.**
-*   **Domain Engineering:** We build a reusable core—the platform, the assets—*for reuse*.
-*   **Application Engineering:** We then assemble specific products *with reuse*.
+This is the vicious cycle. It begins with a 'copy and modify' approach that seems easy at first. But soon, the core and custom code are on diverging paths. It all ends in technical debt, stagnation, and expensive, painful maintenance. This is the cycle we must break."
 
-This is the systematic, disciplined way to avoid the trap."
+**[Click to Next Slide]**
 
-**(Click to next slide)**
+### Slide 3: Software Product Lines: From Ad Hoc to Systematic Reuse
 
----
+**(Script):**
 
-**Slide 4: The Promise vs. The Reality**
+"Now, the industry has long been aware of this problem. In fact, a formal theory was proposed back in the early 2000s by the Software Engineering Institute at Carnegie Mellon University (CMU/SEI), a leading authority in the field.
 
-**(Pace: Build up the promise, then reveal the harsh reality with a pause.)**
+They called this discipline **Software Product Lines**, or SPL.
 
-"The promise from places like Carnegie Mellon is staggering. We're talking about **10x productivity, 60% cost reduction, and 98% faster time-to-market.** Who wouldn't want that?
+The goal of SPL is to replace the chaotic, 'ad hoc' copying we saw with a systematic, engineering-led approach. As the diagram shows, it splits the process into two main activities.
 
-But the reality for many teams trying to adopt this is... different. They often hit one core, monumental challenge. The slide says it all: **Effective Variability Management.** It's the 'how'. How do we actually *implement* this variability without creating a monster?"
+First, there is **Domain Engineering**. Here, the mindset shifts completely. We don't just build one-off products. We strategically build a platform of reusable **Core Assets**. Think of it as creating a factory designed to produce a family of related products.
 
-**(Click to next slide)**
+The second activity is **Application Engineering**. This is how we create a solution for a specific customer. We go to our factory, **Select** from the available core components, **Extend** them with any necessary custom features, and then **Deploy** the final product.
 
----
+The key difference here, compared to standard product development, is that the core assets are intentionally built not as a final product, but as a platform for reuse.
 
-**Slide 5: The Core Challenge: Traditional Variability Techniques**
+You can see the immediate benefit: both Customer A and Customer B are now built on the same, stable, versioned core. This brings structure and discipline to customization. In theory, it seems like the perfect solution to the Customization Trap."
 
-**(Pace: Explanatory, pointing to the graphic.)**
+**[Click to Next Slide]**
 
-"Traditionally, we've used techniques like these. Our goal is to plug functionality into a stable core.
-We use **Adaptation**, like class inheritance, to modify behavior.
-We use **Replacement**, like plugins, to swap components.
-We use **Extension**, like add-ons, to add new features.
+### Slide 4: Promise vs. Reality
 
-These are component-based approaches. They work, but they have fundamental limits."
+**(Script):**
 
-**(Click to next slide)**
+"The promise of the Software Product Line approach was incredible.
 
----
+The CMU Software Engineering Institute published case studies showing amazing results: more than 10x productivity, 60% cost reduction, and 98% faster time-to-market.
 
-**Slide 6: The Dilemmas of Component-Based Reuse**
+So, with such a great promise, why isn't this the standard practice everywhere?
 
-**(Pace: Serious, highlighting the fundamental flaws.)**
+The answer lies in the reality. Many companies found this very difficult to implement successfully. They all faced the same core challenge: **Effective Variability Management.**
 
-"These limits manifest as two paradoxes.
+In simple terms, how do you actually manage all the possible differences between all the products? How do you design a core platform that is stable enough to be reliable, but also flexible enough to support all the variations you need today... and all the ones you can't even predict for tomorrow?
 
-First, the **Granularity Paradox.** A truly reusable component can only contain what is common to all. This means reusable components are, by nature, smaller than any single product. This conflicts with the goal of building a large, powerful, reusable core.
+This single challenge is the core of the problem. Now, let's look at how the traditional SPL approach tried to solve this."
 
-Second, the **Prediction Paradox.** This approach requires a stable core with predefined extension points. Here's the dilemma:
-*   If you define **too few** extension points, your architecture is rigid. You can't adapt to new requirements.
-*   If you define **too many**, you've essentially destroyed your architecture's integrity from the start.
+**[Click to Next Slide]**
 
-These aren't just implementation challenges; they are **fundamental limits of the additive, assembly-based approach.**"
+Of course. Let's proceed to Slide 5.
 
-**(Click to next slide)**
+This slide explains the *mechanics* of the traditional approach. The key is to describe it clearly and objectively, while subtly planting the seed that this approach is rigid because it relies on architects predicting the future.
+
+Here is the script for Slide 5.
 
 ---
 
-**Slide 7: Inspiration from Physics: A New Duality for Software**
+### Slide 5: The Prescribed Approach: Adapt, Replace, Extend
 
-**(Pace: Conceptual and inspiring. Gesture to illustrate the two views.)**
+**(Script):**
 
-"To break these limits, we need a new perspective. Let's draw inspiration from physics.
+"So, how does the traditional Software Product Line approach actually manage variability?
 
-Today, we see software through a **Particle View:** reductionism. We break systems down into atoms—objects, components—and assemble them to build wholes.
+The prescribed method is built on one golden rule: **Do not modify the core assets.** All customization must happen through pre-planned 'Variation Points' that the architects have already created.
 
-But what if we adopted a **Wave View?** Think of features not as particles to be assembled, but as waves to be overlaid and combined—a superposition.
+There are three main ways to use these points, as shown in the diagram.
 
-This leads to a radical question: **Can we build software through non-invasive superposition instead of assembly?**"
+First, there is **Adaptation**. This is where you tweak the behavior of a core component. A simple example is changing a parameter, like setting a log level. You're adapting how the core works, without changing its code.
 
-**(Click to next slide)**
+Second is **Replacement**. This is about making a choice. You might replace a standard component with a different one that follows the same interface. For example, selecting a specific payment gateway from a list of options.
+
+Third, we have **Extension**. This is how you add completely new features, usually as plugins. You can stack on new capabilities that the core product doesn't have.
+
+So, the entire system works like this: you derive new products by **activating**, **selecting**, or **providing** these pre-defined variations.
+
+This approach is disciplined and structured. But its success depends entirely on one thing: the architects must have predicted all the possible variations you would ever need. But what happens when a customer asks for something new, something no one predicted?"
+
+**[Click to Next Slide]**
+
+
+### Slide 6: The Dilemmas of Component-Based Reuse
+
+**(Script):**
+
+"This approach of using pre-defined variation points seems disciplined and safe. But when we look deeper, we find that it leads to two fundamental paradoxes that limit its power.
+
+First, there is **The Granularity Paradox**.
+The goal of reuse is to have a large core that we can share across many products. But how do we create that reusable core? We do it by factoring out the common parts. By definition, the common part is always *smaller* than any complete product. So, our desire for a large reusable core is in direct conflict with the very method we use to create it. The more we try to make something common to everyone, the smaller it becomes.
+
+The second dilemma is even more critical. I call it **The Prediction Paradox**.
+This entire model depends on architects being able to predict the future. They have to define all the necessary extension points in advance.
+If they create too *few* extension points, the architecture is rigid and brittle. It cannot handle unexpected customer requests.
+But if they try to solve this by creating too *many* extension points, the architecture is destroyed. It becomes a complex mess of hooks and plugins, with no clear structure left. The architect is forced into an impossible choice.
+
+And this brings us to a crucial insight. These are not just small issues you can fix with better engineering. These are **fundamental limits** of the entire component-based, or 'additive,' approach. To go further, we don't just need a better method. We need a completely new way of thinking."
+
+**[Click to Next Slide]**
+
+Of course. That's a much more direct and compelling way to introduce the analogy. It frames physics not just as an "inspiration" but as a parallel truth.
+
+Here is the revised script for Slide 7 with that exact change.
 
 ---
 
-**Slide 8: An Algebraic View of Software Evolution**
+### Slide 7: Inspiration from Physics: A New Duality for Software
 
-**(Pace: Build the mathematical intuition step-by-step.)**
+**(Script):**
 
-"Let's make this concrete with algebra.
+"So, if the component-based approach has fundamental limits, where do we go? **Actually, we can get our inspiration from physics.** Quantum Physics discovered long ago that the underlying laws of our world are governed by wave-particle duality. This means we can look at the same physical reality from two different perspectives.
 
-*   In **Object-Oriented** programming, reuse is constrained by hierarchy. The delta between parent A and child B is implicit.
-*   In **Component-Oriented** programming, we have explicit addition: A equals B plus C. Delta C becomes a reusable component.
+First, there is the **Particle View**. This is the world of reductionism. We break complex systems down into their smallest atoms to understand them. This is *exactly* how our industry has approached software for the last 50 years. We decompose systems into their atomic parts—objects, functions, and components—and then we **assemble** these parts to build the whole. This is the world we live in now.
 
-Now, here's the leap. What if we could do this?" **(Point to `B = A + (-C)`)**
+But physics teaches us there is another, equally valid perspective: the **Wave View**. In this world, reality is not about assembling parts. It is about **superposition**. It's about different waves that overlay and combine to create the final, complex pattern we observe.
 
-"What if we could introduce a formal **inverse element?** This is the principle of **Reversible Computation.** It unlocks something powerful: the ability to reuse by transforming anything that is *related*, not just things that are identical."
+This wave view inspires a radical new thought. What if we could apply this same duality to how we build software? This leads us to the central, provocative question on this slide:
 
-**(Click to next slide)**
+**Can we build software via non-invasive superposition, not through invasive assembly?**
 
----
+This simple question changes everything, and it's the key to the solution I'm about to show you."
 
-**Slide 9: Reversible Computation: A Next-Gen Construction Theory**
+**[Click to Next Slide]**
 
-**(Pace: Reveal the new formula like a key insight.)**
 
-"This gives us a new formula for building applications:
+### Slide 8: An Algebraic View of Software Evolution
+
+**(Script):**
+
+"So, how do we formalize this idea of 'superposition' in software? Let's trace the evolution of reuse.
+
+First, we had **Object-Oriented** programming, which is based on inheritance. A derived class `B` inherits from a base class `A`. This means `B` has more than `A`, but the difference—the delta—is **implicit**. It's not defined as a separate, manageable thing. The result? Reuse is trapped and constrained within the inheritance hierarchy.
+
+Then, the industry moved to **Component-Oriented** design, following the principle of 'composition over inheritance.' The real power here is that the relationship changes. It's no longer an implicit change. It becomes an explicit addition: `A = B + C`. The delta, `C`, is now a first-class, reusable component.
+
+Now, with **Reversible Computation**, we take the next logical step. We introduce a formal **inverse element**, a 'negative C'. This is the critical move. The statement `A = B + C` is no longer just a composition; it becomes a true algebraic equation. We can manipulate it, just like in math. We can solve for `B` by saying `B = A + (-C)`.
+
+And this **completely changes the fundamental principle of reuse.**
+
+Previously, reuse meant finding and reusing *identical* parts. Now, with algebraic manipulation, any two *related* structures can be transformed into one another using deltas. The principle of reuse is no longer 'identical is reusable.' It is now **'related is reusable.'**"
+
+**[Click to Next Slide]**
+
+### Slide 9: Reversible Computation: A Next-Gen Construction Theory
+
+**(Script):**
+
+"While the reversible delta is the core concept of Reversible Computation, the full theory corresponds to a universal computation paradigm: **`Y = F(X) + Delta`**.
+
+For software construction, this general paradigm has a specific technical route, which can be expressed by this formula:
+
 **`App = Delta x-extends Generator<DSL>`**
 
-The locus of computation shifts. **The Transformation—the Delta (Δ)—becomes primary.**
-The `Generator<DSL>` contains our core domain knowledge.
-The `Delta` represents features as independent transformations.
-And `x-extends` is our superposition operator.
+Let's break this down.
 
-This isn't just theoretical; it's a pattern we already use."
+The **Generator** is like the deduction of a mathematical theorem. It takes a small set of core knowledge—the 'kernel of truth'—and automatically derives and unfolds it into a complete, runnable application.
 
-**(Click to next slide)**
+This 'kernel of truth' is not expected to cover every single requirement. A good model describes the core trend, the stable, underlying law. Specific customer needs are like random data points around that trend line.
 
----
+And this is where the **Delta** comes in. It is a reversible, composable, and non-invasive unit of change, designed precisely to handle those specific, unpredictable requirements.
 
-**Slide 10: From Theory to Practice: Docker as Reversible Computation**
+Finally, we have the operator in the middle: **x-extends**. And I want to be very clear about this: **x-extends is a mathematically well-defined operation.** Any delta can be merged with any other delta, and any delta can be merged with any base. Because the merge rules are deterministic and algebraic, there is no such thing as a 'merge conflict' like you see in Git. The result is always predictable and guaranteed.
 
-**(Pace: Connect the abstract theory to a well-known example.)**
+If you follow this logic, the 'base' itself is just the very first Delta applied to a void. In this model, **everything is a transformation.**"
 
-"Look at Docker. Its formula is:
-**`App = DockerBuild<Dockerfile> overlay-fs BaseImage`**
+**[Click to Next Slide]**
 
-See the mapping?
-*   `DockerBuild<Dockerfile>` is our `Generator<DSL>`.
-*   `overlay-fs` is the `x-extends` superposition operator.
+### Slide 10: From Theory to Practice: Docker as Reversible Computation
 
-This works because it's a mathematical necessity for managing change. You start with a base image and superimpose changes without destroying the original. This is the power of reversible layers."
+**(Script):**
 
-**(Click to next slide)**
+"Now, the theory I just presented might sound abstract. But what if I told you that most of you in this room are already using it every single day?
 
----
+Let's look at Docker. The formula for building a Docker container is:
 
-**Slide 11: Delta Customization (1): File-Level Overrides**
+`App = DockerBuild<Dockerfile> overlay-fs BaseImage`
 
-**(Pace: Practical and demonstrative.)**
+Now, let's map this directly to our theory.
 
-"So, how do we apply this? First, with **File-Level Overrides.**
+The `Dockerfile` is the DSL. It's a simple, text-based language. The `DockerBuild` tool acts as our **Generator**. It reads the `Dockerfile` and executes the commands, unfolding that simple script into a complete filesystem layer, or image.
 
-We build on a Virtual File System with delta layers. A file in a delta layer, like `/_delta/customer-a/...`, automatically overrides a base file.
+And here is the genius of Docker's approach. It didn't have to invent all the generators from scratch. It brilliantly leveraged decades of work from the Linux community. Every command-line tool—like `apt-get`, `yum`, `cp`, or `mkdir`—is itself a powerful, pre-existing generator. The Dockerfile simply orchestrates them. **By doing this, Docker automatically gained access to a massive library of reliable, battle-tested generators.**
 
-Activating a customization is as simple as setting a parameter: `deltaId=customer-a`. The framework handles the rest, seamlessly merging the correct layers. This is non-invasive and incredibly simple."
+And the `overlay-fs`? This is a perfect real-world implementation of our `x-extends` operator. It non-invasively superimposes these new layers on top of the base image, without modifying the layers underneath. Each layer is a delta.
 
-**(Click to next slide)**
+This isn't some far-off academic concept. It is a proven, industrial-scale pattern, hiding in plain sight. It demonstrates that building systems via superposition of deltas is not just possible, but practical and incredibly powerful."
 
----
+**[Click to Next Slide]**
 
-**Slide 12: Delta Customization (2): Intra-File Surgical Customization**
 
-**(Pace: Detailed, showing the power.)**
+### Slide 11: The Inevitability of Deltas: A Universal Pattern
 
-"But we go much further. We enable **Surgical Customization *within* files.**
+**(Script):**
 
-Imagine a base XML configuration file. With our delta mechanism, a customer-specific delta file can do three powerful things:
-1.  **Modify** a specific property or class.
-2.  **Remove** a bean or element entirely.
-3.  **Add** a new element conditionally, based on a feature flag.
+"The Docker example shows us this pattern works in practice. But I want to argue that this isn't just one specific implementation. The concept of deltas is a universal and, in some ways, inevitable pattern for describing change.
 
-This is not just overriding a file; it's precisely editing the abstract syntax tree of the DSL. This is granular, controlled, and powerful."
+Let's look at it abstractly.
 
-**(Click to next slide)**
+Any computation can be described as: `Result = Function(Data)`.
+Now, if we introduce change, we can always express it as a delta. `New_Function` is `Base_Function` plus a `Δ_Function`. `New_Data` is `Base_Data` plus a `Δ_Data`.
 
----
+The new result will naturally be the original result, combined with a `Δ_Total` that represents the sum of all these changes.
 
-**Slide 13: Delta Oriented Framework: The Core Principle**
+This shows us that deltas arise naturally from any process of change. The general form, **`Y = F(X) + Delta`**, is the inevitable structure of any evolving system.
 
-**(Pace: Summarizing the key takeaway.)**
+And this leads to a very powerful conclusion: **any software practice that deals with evolution, change, or variation can be understood and guided by the principles of Reversible Computation theory.**
 
-"This brings us to the core principle of our framework: **Unified, DSL-Agnostic Customization.**
+This understanding is the true **paradigm shift**. We stop treating change as a messy side effect. Instead, we treat change itself as a first-class citizen—a pure, structured piece of data that we can manage, store, and combine.
 
-The philosophy is: **one mechanism to customize any DSL**—XML, JSON, SQL, you name it.
-The mechanism is the **'Loader as Generator'**. We swap the native loader for a DeltaFileSystem loader. It non-intrusively finds, merges, and generates the final model.
-The impact is huge: **full-stack customization with zero changes to the base product code.** The core remains pristine and stable."
+Now that we understand this principle, let's see how we can implement it."
 
-**(Click to next slide)**
+**[Click to Next Slide]**
 
----
 
-**Slide 14: From Model to Code: Delta-Driven Generation**
+### Slide 12: Delta Customization (1): File-Level Overlay
 
-**(Pace: Explain the development workflow.)**
+**(Script):**
 
-"This approach powers our entire development cycle. We use **Full-Stack Generation** to produce everything from data models to UI code.
+"So, let's bring this powerful theory down to practice. How do we actually implement Delta Customization in our own software?
 
-The pattern is always delta-based:
-*   `_Account.java` is machine-generated. It's safe to overwrite anytime.
-*   `Account.java` is for manual extensions. The generator will never touch it.
+The first and most fundamental mechanism is a **file-level overlay**.
 
-This allows for **parallel evolution.** We can continuously regenerate the platform from the models without ever losing our custom business logic. It's the best of both worlds."
+The foundation for this is a special kind of **Virtual File System**, or VFS. This VFS understands the concept of 'delta layers.'
 
-**(Click to next slide)**
+Let's look at the example directory structure on the slide. We have our standard product files, like `/beans/job.xml` and `/config/auth.json`. These are the base files.
 
----
+Now, to customize the system for a specific customer, we **do not touch the original files.** Instead, we create a parallel directory structure under a special `_delta` folder. For Customer A, we might create a new version of `job.xml` at the path `/_delta/customer-a/beans/job.xml`.
 
-**Slide 15: Nop Architecture: A Cohesive Blueprint**
+Then, we activate this customization with a simple parameter, like `deltaId=customer-a`.
 
-**(Pace: Gesture to the architecture diagram.)**
+When the application running on this VFS asks for the file `/beans/job.xml`, the VFS knows to first look in the active delta layer for `customer-a`. If it finds the file there, it serves the custom version. If not, it transparently falls back and serves the base version.
 
-"All of this comes together in what we call the Nop Architecture. It's a cohesive blueprint where:
-*   The **foundation** is universal delta capabilities and code generation.
-*   **Development** leverages reusable core engines for complex logic.
-*   The **synergy** between them balances platform stability with agile, low-cost customization.
+This mechanism is simple, powerful, and completely non-invasive. The base product remains pristine and untouched, while we can still provide deep customization by overlaying files."
 
-This is the practical engine that makes the theory work at scale."
+**[Click to Next Slide]**
 
-**(Click to next slide)**
+### Slide 13: Delta Customization (2): Intra-File Surgical Scalpel 
 
----
+**(Script):**
 
-**Slide 16: Synergy with AI: The Future of Development**
+"File-level overlays are powerful, but sometimes they are too much. What if you only need to change one line inside a large configuration file?
 
-**(Pace: Forward-looking and exciting.)**
+For this, we need a more precise tool. I call this the **intra-file surgical scalpel**. This allows us to perform fine-grained modifications inside structured files like XML, JSON, or YAML.
 
-"And this creates a fascinating synergy with AI. Well-defined DSLs and a structured generative process provide a perfect, unambiguous structure for AI.
+Let's look at this example. Here is our base configuration file, `core.xml`. It defines a standard `securityManager` and a `dataService`.
 
-AI becomes a co-pilot that can generate and understand code within these clear boundaries.
-It can auto-generate documentation from our models and configurations.
-It can even create tests and test data.
+Now, let's look at the delta file for Customer A. Notice that it has the same structure as the base file. A full file is just a special case of a delta. This delta file declaratively **describes the differences** for Customer A.
 
-In fact, as a meta-point, this entire presentation and its graphics were AI-generated, guided by the precise concepts of this very framework."
+First, the special attribute `x:extends="super"` tells our smart loader to merge this delta with the base file.
 
-**(Click to next slide)**
+Then, look at the precision of the changes described in this delta:
 
----
+1.  It can **modify an attribute**. For the bean with `id="securityManager"`, it specifies a different `class` attribute.
+2.  It can **remove an element**. For the `dataService` bean, it uses the state `x:override="remove"`.
+3.  It can **add new elements conditionally**. It specifies a new `auditLogger` bean that should only exist if the feature flag `auditing.enabled` is on.
 
-**Slide 17: Summary**
+This gives us incredible power and precision. We can surgically alter complex configuration files on a case-by-case basis, all while leaving the original base files completely clean and untouched."
 
-**(Pace: Conclusive, powerful, and memorable. Summarize the journey.)**
+**[Click to Next Slide]**
 
-"So, let's bring it all home. Here is our journey out of the trap.
 
-*   **The Problem:** Traditional reuse hits fundamental limits—the Granularity and Prediction Paradoxes.
-*   **The Insight:** We found inspiration in physics and math—treating features as superposable waves, not assemblable particles.
-*   **The Solution:** The **Delta-Oriented Framework**, powered by the theory of **Reversible Computation.**
-*   **The Key:** This theory dramatically expands our solution space for managing change.
-*   **The Result:** We achieve systematic, non-invasive customization across any DSL. We maintain a stable yet incredibly adaptable core. And finally, we have a clear path to escape **The Customization Trap** for good.
+### Slide 14: Delta Oriented Framework: The Core Principle
+
+**(Script):**
+
+"So we've seen the mechanics of deltas. But the real power comes from applying them universally. This brings us to the core principle of our framework: **Unified, DSL-Agnostic Customization.**
+
+The goal is to have **one customization mechanism for every engine in our stack**. We don't want a special way to customize Spring, another for MyBatis, and a third for our front-end framework. That would just create new kinds of complexity.
+
+Instead, we use a single, elegant pattern: the **'Loader as Generator'**.
+
+The process is simple. For any engine in our stack, we replace its native loader with our universal Delta-aware loader. This new loader becomes the Generator. It non-intrusively finds the base configuration and any active deltas, merges them, and generates the final model that the engine expects.
+
+**The impact of this approach is profound. By adapting the loaders at each layer of our technology stack, we gain the ability to customize everything—from the database to the UI—using a single, consistent delta mechanism. This is what enables true, seamless full-stack customization.**
+
+And this points to our strategic direction. We can systematically transform more and more imperative code into declarative model definitions. As more of our system becomes model-driven, more of it can be customized using this powerful, unified delta approach."
+
+**[Click to Next Slide]**
+
+
+### Slide 15: From Model to Code: Delta-Driven Generation
+
+**(Script):**
+
+"On the last slide, we saw how to use deltas to create a unified, effective model for configuring runtime engines. But this unified model is far more powerful than that. It can become the single source of truth for **code generation.**
+
+As you can see here, our effective model—the result of merging the base with any active deltas—becomes this unified source. From this single description, we can generate a huge range of artifacts: backend code like DAOs and services, API definitions, SQL schemas, and even front-end components and internationalization files.
+
+Now, whenever we talk about code generation, a very important question always comes up: 'What happens to my custom code? If I regenerate, will all my manual work be overwritten?'
+
+We solve this with a simple but very effective pattern called the **Generation Gap**. It works like this:
+
+The generator creates a base class, for example, `_Account.java`. The underscore is a convention that tells everyone: 'This file is machine-owned. It is always safe to overwrite it.'
+
+Then, you, the developer, write your custom logic in a separate class, `Account.java`, which extends the generated one. This file, without the underscore, is **never touched by the generator.**
+
+This simple separation provides the core advantage of our entire system: **Fearless Regeneration.**
+
+You can evolve the base model, apply a customer delta, and hit the 'generate' button a hundred times a day with complete confidence. You know that the core logic will be updated, while your manual extensions will always remain safe and untouched."
+
+**[Click to Next Slide]**
+
+
+### Slide 16: Delta Oriented Architecture: A Cohesive Blueprint
+
+**(Script):**
+
+"So, we have seen all the individual pieces. Now let's put them together into a single, cohesive blueprint: the **Delta-Oriented Architecture.**
+
+It all starts at the bottom with our **Foundation Layer**. This is the bedrock of the entire system. It contains the core enablers: our Delta Virtual File System, the unified model loaders that understand `x-extends`, and our powerful code generation engine. This layer makes everything else possible.
+
+Building on that foundation, we have our **Core Engine Layer**. These are general-purpose, reusable frameworks and engines that provide complex capabilities for our applications, such as a Rule Engine, a Batch Engine, or a Task Flow Engine. They are stable, robust, and designed to be configured.
+
+At the top, we have our **Business Application Layer**. This is where we assemble solutions for specific business domains, like Issuing or Acquiring, by composing and configuring the engines below.
+
+Now for the final, critical piece: our **Delta Customization** pillar. Notice how it doesn't fit *inside* any single layer. It stands beside them as an **orthogonal concern**—a cross-cutting capability.
+
+From this one, unified pillar, we can apply non-invasive delta transformations to any layer of the stack. We can use a delta to modify a foundational model, tweak a core engine rule, and change a business application's UI—all from one consistent, manageable place.
+
+This architecture creates the perfect balance: a stable, reusable platform that can be deeply and safely customized to meet a vast range of specific requirements."
+
+**[Click to Next Slide]**
+
+
+### Slide 17: Reversible Computation × AI: Cohesive Models, Cleaner Signals, Better Co-pilots (Refined Script)
+
+**(Script):**
+
+"This framework provides a robust architecture for our future partnership with AI, by giving us much better control over the process.
+
+First, it allows us to **more effectively manage the AI's context.** Instead of having the AI parse scattered source files, we provide it with our unified `effective model`. This is a condensed, precise, and simple representation of the system, which leads to higher-quality AI output.
+
+Second, our interactions become far more efficient. We ask the AI to **generate a delta**, not raw code. This minimizes the information exchanged and allows for safe, conflict-free merging.
+
+Third, we can **enforce quality through automation**. Every AI-generated delta must pass validation against a schema. This schema contains our domain-specific rules, ensuring that the AI's output is locally valid. If an error is found, we can either correct it automatically or provide precise feedback to the AI for revision.
+
+This disciplined interaction—providing clean context, requesting structured deltas, and validating the output—transforms AI from an unpredictable assistant into a reliable and highly efficient partner.
+
+AI is already very good at generating structured content like documents and models. In fact, this presentation and its graphics were co-created with an AI using this very approach."
+
+
+**[Click to Next Slide]**
+
+### Slide 18: Summary: Extensibility Through Reversible Computation
+
+**(Script):**
+
+"So, let's bring everything together and summarize what we've discussed today.
+
+We started with **The Problem**: that traditional component-based reuse, while a good idea, ultimately hits fundamental limits—what we called the Granularity and Prediction Paradoxes. It forces architects into impossible choices.
+
+Our **Insight** was to step outside of conventional computer science. We drew inspiration from physics and mathematics to treat features not as parts to be assembled, but as **superposable transformations** to be overlaid.
+
+This led us to **The Solution**: The Delta-Oriented Framework, a practical and powerful architecture that is enabled by the theory of **Reversible Computation**.
+
+And here is the **Key Understanding** I want you to leave with: Reversible Computation is not just another technique. It fundamentally **expands our solution space**. We move beyond simply *adding* things to a system. We now have the algebraic power to *transform* any related structure into another.
+
+The **Result** of this is a complete paradigm shift:
+
+*   We move from a world of 'Extension Points Everywhere' to a world of **'Overlays Above Everything.'**
+*   We move from the chaos of '1 core and N forks' to the clean model of **'1 base and N deltas.'**
+*   And our final system becomes an elegant, predictable composition: The `Effective System = Base ⊕ ΔIndustry ⊕ ΔRegion ⊕ ΔCustomer`.
 
 Thank you."
-
-**(Pause for applause.)**

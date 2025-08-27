@@ -23,6 +23,7 @@ You are a professional front-end developer and designer. Please generate an HTML
 - Ensure responsive design for various devices  
 - Use `<img>` tags with inline styles for dimension control. Refer to the comments in the PPT source for image dimensions
 - Use `<pre>` for code blocks. Escape special chars like `<` → `&lt;`, `&` → `&amp;`.
+- For Mermaid diagrams: Use `<div class="mermaid">` containers with the raw Mermaid syntax inside
 - Preserve all original text content exactly as provided
 - Maintain list structure with proper item separation
 - For any multi-column layouts, ensure images scale to fit their column by using `width: 100%; height: auto;`.
