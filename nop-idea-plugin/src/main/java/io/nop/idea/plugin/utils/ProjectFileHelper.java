@@ -135,7 +135,8 @@ public class ProjectFileHelper {
         GlobalSearchScope scope = GlobalSearchScope.allScope(project);
         FilenameIndex.processFilesByNames(names, true, scope, null, (file) -> {
             String vfsPath = getNopVfsPath(file);
-            if (vfsPath != null) {
+
+            if (!file.isDirectory() && vfsPath != null) {
                 vfsPaths.add(vfsPath);
             }
             return true;

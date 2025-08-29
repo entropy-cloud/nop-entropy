@@ -61,7 +61,7 @@ public class XLangDebuggerInitializer implements ICoreInitializer {
         config.setIdleTimeout(0);
         server.setServerConfig(config);
 
-        debugger = new XLangDebugger();
+        debugger = createDebugger();
         debugger.setNotifier(new DebugNotifier());
         server.addServiceImpl(IDebugger.class, debugger);
         server.setOnChannelOpen(this::sendBreakpointNotice);
@@ -74,6 +74,10 @@ public class XLangDebuggerInitializer implements ICoreInitializer {
         }
         LOG.info("nop.debugger.register-debug-executor");
         EvalExprProvider.registerGlobalExecutor(new DebugExpressionExecutor(debugger));
+    }
+
+    protected XLangDebugger createDebugger() {
+        return new XLangDebugger();
     }
 
     // 通知调试器客户端当前正在处理的断点情况

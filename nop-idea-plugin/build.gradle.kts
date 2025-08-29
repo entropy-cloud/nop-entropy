@@ -22,7 +22,7 @@ intellij {
     //version.set("2022.3")
     type.set("IC") // Target IDE Platform
 
-    plugins.set(listOf("java", "org.jetbrains.plugins.yaml"))
+    plugins.set(listOf("java", "gradle", "org.jetbrains.plugins.yaml"))
 
 }
 

@@ -5,8 +5,10 @@
     <vendor email="canonical_entropy@163.com" url="https://gitee.com/canonical-entropy/nop-entropy">Canonical</vendor>
 
     <description><![CDATA[
-      1. 根据xdef元模型定义来校验dsl文件格式
-      2. 为XPL模板语言提供调试功能
+        <ul>
+            <li>根据 xdef 元模型定义来校验 dsl 文件格式；</li>
+            <li>为 Xpl 模板语言提供调试功能；</li>
+        </ul>
     ]]></description>
 
     <change-notes><![CDATA[
@@ -16,6 +18,7 @@
 
     <depends>com.intellij.modules.lang</depends>
     <depends>com.intellij.java</depends>
+    <depends>com.intellij.gradle</depends>
     <depends>org.jetbrains.plugins.yaml</depends>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
@@ -23,6 +26,8 @@
     <!-- uncomment to enable plugin in all products
     <depends>com.intellij.modules.lang</depends>
     -->
+
+    <resource-bundle>messages.NopPluginBundle</resource-bundle>
 
     <actions>
         <!--    <group id="entropy.ProjectFileActionGroup" text="Tasks For File"-->
@@ -43,6 +48,11 @@
 
         <!--      <add-to-group group-id="MainMenu" anchor="after" relative-to-action="ToolsMenu" />-->
         <!--    </group>-->
+        <!-- Note: 国际化按 action.<action-id>.text/description 形式从 <resource-bundle/> 中取值 -->
+        <action id="NopEntropy.NewXLang" class="io.nop.idea.plugin.template.CreateXLangFileFromTemplateAction"
+                icon="io.nop.idea.plugin.icons.NopIcons.XLangFileType">
+            <add-to-group group-id="NewGroup"/>
+        </action>
     </actions>
 
     <!--    <extensions defaultExtensionNs="com.intellij">-->
@@ -74,25 +84,40 @@
 
         <projectService serviceImplementation="io.nop.idea.plugin.services.NopProjectService"/>
 
+        <!-- 新建文件模板 -->
+        <internalFileTemplate name="New_XLang_XDef"/>
+        <internalFileTemplate name="New_XLang_XDSL"/>
+        <createFromTemplateHandler implementation="io.nop.idea.plugin.template.CreateXLangFileFromTemplateHandler"/>
+        <!--  -->
+        <defaultLiveTemplates file="liveTemplates/XLang_File"/>
+        <liveTemplateContext contextId="XLang_File"
+                             implementation="io.nop.idea.plugin.template.XLangFileLiveTemplateContextType"/>
+        <liveTemplateMacro implementation="io.nop.idea.plugin.template.XLangRootTagNameMacro"/>
+        <liveTemplateMacro implementation="io.nop.idea.plugin.template.XLangSchemaPathMacro"/>
+
         <!-- XLang 注册与解析 -->
-        <fileTypeDetector implementation="io.nop.idea.plugin.lang.XLangFileTypeDetector" order="first"/>
-        <!-- 2019.2版本之后通过此扩展点注册文件类型 -->
+        <!-- 根据后缀名做直接绑定 -->
         <fileType name="XLang"
                   language="XLang"
                   implementationClass="io.nop.idea.plugin.lang.XLangFileType"
                   fieldName="INSTANCE"
-                  extensions="xpl;xgen;xui;xlib;xrun;xwf;xmeta"
-                  patterns="*.xpl;*.xgen;*.xui;*.xlib;*.xrun;*.xwf;*.orm.xml;*.xmeta;*.xpage;*.beans.xml;*.xrule;*.action-auth.xml;*.view.xml;*.sql-lib.xml;*.register-model.xml"/>
+                  extensions="xdef;xdsl;xpl;xgen;xui;xlib;xrun;xwf;xmeta;xpage;xrule"/>
+        <!-- 通过分析 xml 结构动态识别其是否为 XLang，避免穷举后缀，也避免遗漏 -->
+        <lang.substitutor language="XML"
+                          implementationClass="io.nop.idea.plugin.lang.XLangLanguageSubstitutor"/>
+        <iconProvider implementation="io.nop.idea.plugin.lang.XLangIconProvider"
+                      order="first"/>
+        <!-- 解析 XLang 得到 PSI 树 -->
         <lang.parserDefinition language="XLang"
                                implementationClass="io.nop.idea.plugin.lang.XLangParserDefinition"/>
-        <!-- 根据XDef文件定义，对XLang DSL进行语法校验 -->
+        <!-- 对 XLang DSL 进行语法校验 -->
         <annotator language="XLang"
                    implementationClass="io.nop.idea.plugin.annotator.XLangAnnotator"/>
         <highlightRangeExtension implementation="io.nop.idea.plugin.annotator.XLangHighlightRangeExtension"/>
-        <!-- 根据xdef定义进行语法提示 -->
+        <!-- 对 XLang 做代码补全 -->
         <!--<completion.contributor language="XLang"
                                 implementationClass="io.nop.idea.plugin.completion.XLangCompletionContributor"/>-->
-        <!-- 鼠标Hover到XLang语法元素上显示相关文档信息 -->
+        <!-- 显示 XLang 节点和属性的文档信息 -->
         <lang.documentationProvider language="XLang" order="first"
                                     implementationClass="io.nop.idea.plugin.doc.XLangDocumentationProvider"/>
         <!--<renamePsiElementProcessor implementation="io.nop.idea.plugin.lang.XLangElementRenameProcessor"/>-->
@@ -105,6 +130,8 @@
         <executor id="xlangDebug"
                   implementation="io.nop.idea.plugin.execution.XLangDebugExecutor"
                   order="first,after run"/>
+        <runConfigurationExtension
+                implementation="io.nop.idea.plugin.debugger.XLangRunConfigurationExtension"/>
 
         <!-- XLang Script 注册与解析 -->
         <languageInjector implementation="io.nop.idea.plugin.lang.XLangScriptLanguageInjector"/>

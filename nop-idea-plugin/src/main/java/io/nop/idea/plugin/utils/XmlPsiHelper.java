@@ -54,9 +54,13 @@ public class XmlPsiHelper {
         }
 
         VirtualFile vf = file.getVirtualFile();
+        return getNopVfsPath(vf, file);
+    }
+
+    private static String getNopVfsPath(VirtualFile vf, PsiFile file) {
         // Note: 在编辑过程中得到的 VirtualFile 可能为 null，需尝试通过
         // PsiFile#getOriginalFile 获得 VirtualFile
-        if (vf == null && file.getOriginalFile() != file) {
+        if (vf == null && file != null && file.getOriginalFile() != file) {
             vf = file.getOriginalFile().getVirtualFile();
         }
 
@@ -64,11 +68,21 @@ public class XmlPsiHelper {
     }
 
     /**
-     * 获取 <code>path</code> 的 vfs 绝对路径。
-     * 若 <code>path</code> 为相对路径，则视为其相对于 <code>element</code> 所在文件的目录
+     * 获取 {@code path} 的 vfs 绝对路径。
+     * 若 {@code path} 为相对路径，则视为其相对于 {@code element} 所在文件的目录
      */
     public static String getNopVfsAbsolutePath(String path, PsiElement element) {
         String filePath = getNopVfsPath(element);
+
+        return StringHelper.absolutePath(filePath, path);
+    }
+
+    /**
+     * 获取 {@code path} 的 vfs 绝对路径。
+     * 若 {@code path} 为相对路径，则视为其相对于 {@code vf} 所在文件的目录
+     */
+    public static String getNopVfsAbsolutePath(String path, VirtualFile vf) {
+        String filePath = getNopVfsPath(vf, null);
 
         return StringHelper.absolutePath(filePath, path);
     }

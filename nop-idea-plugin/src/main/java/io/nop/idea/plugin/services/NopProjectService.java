@@ -30,7 +30,8 @@ public final class NopProjectService implements Disposable {
     private final Cancellable cleanup = new Cancellable();
 
     private final ResourceLoadingCache<DictModel> dictCache = new ResourceLoadingCache<>("project-dict-cache",
-            ProjectDictProvider::loadDictModel, null);
+                                                                                         ProjectDictProvider::loadDictModel,
+                                                                                         null);
 
     public NopProjectService() {
     }
@@ -41,8 +42,9 @@ public final class NopProjectService implements Disposable {
     }
 
     private synchronized void init(Project project) {
-        if (inited)
+        if (inited) {
             return;
+        }
         inited = true;
 
         ProjectEnv.withProject(project, () -> {
@@ -57,8 +59,9 @@ public final class NopProjectService implements Disposable {
 
     public static NopProjectService get() {
         Project project = ProjectEnv.currentProject();
-        if (project == null)
-            throw new IllegalStateException("not in project env");
+        if (project == null) {
+            throw new IllegalStateException("Not in project environment, please call with ProjectEnv#withProject");
+        }
 
         NopProjectService service = project.getService(NopProjectService.class);
         service.init(project);

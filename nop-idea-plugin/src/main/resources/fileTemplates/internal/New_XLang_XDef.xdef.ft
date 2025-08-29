@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- [title_here]
+> support_markdown_here
+>
+-->
+<${NODE_ROOT_NAME} xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+    x:schema="/nop/schema/xdef.xdef"
+>
+
+</${NODE_ROOT_NAME}>

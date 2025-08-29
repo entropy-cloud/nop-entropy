@@ -15,28 +15,72 @@ import org.junit.Assert;
 
 public class TestXLangFileTypeDetector extends BaseXLangPluginTestCase {
 
-    public void testXLangFileType() {
-        assertFileType("my.wf.xml", //
-                       """
+    public void testDetectXLangByExtension() {
+        String[] extensions = "xdef;xpl;xgen;xui;xlib;xrun;xwf;xmeta;xpage;xrule".split(";");
+
+        for (String ext : extensions) {
+            assertFileType("a." + ext, "", XLangFileType.INSTANCE);
+        }
+    }
+
+    public void testDetectXLangFromXml() {
+        String[] samples = new String[] {
+                "", //
+                """
+                               <workflow></workflow>
+                               """, //
+                """
+                               <workflow/>
+                               """, //
+                """
+                               <workflow xmlns:x=""/>
+                               """, //
+                """
+                               <workflow xmlns:x="/nop/schema/xdsl.xdef"/>
+                               """, //
+                """
+                               <workflow xmlns:xdsl="/nop/schema/xdsl.xdef"/>
+                               """, //
+                """
+                               <workflow xmlns:xdsl=""/>
+                               """, //
+                """
+                               <workflow xmlns:xdsl="/nop/schema/xdsl.xdef" x:schema=""/>
+                               """, //
+        };
+        for (String text : samples) {
+            assertFileType("a.wf.xml", text, XmlFileType.INSTANCE);
+        }
+
+        samples = new String[] {
+                """
+                               <workflow x:schema=""/>
+                               """, //
+                """
+                               <workflow x:schema=/>
+                               """, //
+                """
                                <workflow x:schema="/nop/schema/wf/wf.xdef">
                                </workflow>
                                """, //
-                       XmlFileType.INSTANCE //
-        );
-
-        assertFileType("xlib.register-model.xml", //
-                       """
-                               <model xmlns:x="/nop/schema/xdsl.xdef"
-                                      x:schema="/nop/schema/register-model.xdef"
-                                      name="xlib"
-                               >
-                                   <loaders>
-                                       <xdsl-loader fileType="xlib" schemaPath="/nop/schema/xlib.xdef"/>
-                                   </loaders>
-                               </model>
+                """
+                               <workflow xmlns:x="/nop/schema/xdsl.xdef" x:schema="">
+                               </workflow>
                                """, //
-                       XLangFileType.INSTANCE //
-        );
+                """
+                               <workflow xmlns:x="" x:schema=""/>
+                               """, //
+                """
+                               <workflow xmlns:xdsl="/nop/schema/xdsl.xdef" xdsl:schema="">
+                               </workflow>
+                               """, //
+                """
+                               <workflow xmlns:xdsl="" xdsl:schema=""/>
+                               """, //
+        };
+        for (String text : samples) {
+            assertFileType("b.wf.xml", text, XLangFileType.INSTANCE);
+        }
     }
 
     private void assertFileType(String fileName, String text, LanguageFileType expectedFileType) {

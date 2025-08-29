@@ -7,55 +7,28 @@
  */
 package io.nop.idea.plugin.messages;
 
-import com.intellij.BundleBase;
-import com.intellij.reference.SoftReference;
+import java.util.function.Supplier;
+
+import com.intellij.DynamicBundle;
+import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.PropertyKey;
 
-import java.lang.ref.Reference;
-import java.util.ResourceBundle;
-
 public class NopPluginBundle {
-    @NonNls
-    private static final String BUNDLE = "io.nop.idea.plugin.messages.NopPluginBundle";
-    private static Reference<ResourceBundle> ourBundle;
+    public static final @NonNls String BUNDLE = "messages.NopPluginBundle";
 
-    public static String message(@NotNull @PropertyKey(resourceBundle = BUNDLE) String key, @NotNull Object... params) {
-        return message(getBundle(), key, params);
+    private static final DynamicBundle INSTANCE = new DynamicBundle(NopPluginBundle.class, BUNDLE);
+
+    public static @NotNull @Nls String message(
+            @NotNull @PropertyKey(resourceBundle = BUNDLE) String key, Object @NotNull ... params
+    ) {
+        return INSTANCE.getMessage(key, params);
     }
 
-    public static String key(@NotNull @PropertyKey(resourceBundle = BUNDLE) String key) {
-        return getBundle().getString(key);
-    }
-
-    private NopPluginBundle() {
-    }
-
-    @NotNull
-    private static ResourceBundle getBundle() {
-        ResourceBundle bundle = SoftReference.dereference(ourBundle);
-        if (bundle == null) {
-            bundle = ResourceBundle.getBundle(BUNDLE);
-            ourBundle = new java.lang.ref.SoftReference(bundle);
-        }
-
-        return bundle;
-    }
-
-    public static String messageOrDefault(@Nullable ResourceBundle bundle, @NotNull String key, @Nullable String defaultValue, @NotNull Object... params) {
-        return BundleBase.messageOrDefault(bundle, key, defaultValue, params);
-    }
-
-    @NotNull
-    public static String message(@NotNull ResourceBundle bundle, @NotNull String key, @NotNull Object... params) {
-        return BundleBase.message(bundle, key, params);
-    }
-
-    @Nullable
-    public static String messageOfNull(@NotNull ResourceBundle bundle, @NotNull String key, @NotNull Object... params) {
-        String value = messageOrDefault(bundle, key, key, params);
-        return key.equals(value) ? null : value;
+    public static @NotNull Supplier<@Nls String> messagePointer(
+            @NotNull @PropertyKey(resourceBundle = BUNDLE) String key, Object @NotNull ... params
+    ) {
+        return INSTANCE.getLazyMessage(key, params);
     }
 }

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<templateSet group="XLangFile">
+    <!-- Note: 在输入 xschema 时，将触发活动模板插入提示 -->
+    <template name="xschema"
+              value="&lt;$rootTagName$ xmlns:x=&quot;/nop/schema/xdsl.xdef&quot;&#10;    x:schema=&quot;$schemaPath$&quot;&#10;&gt;&#10;&#10;&lt;/$rootTagName$&gt;&#10;"
+              description="DSL root node initializing"
+              toReformat="true" toShortenFQNames="true">
+        <!-- Note: 光标将自动放置在第一个变量上 -->
+        <variable name="schemaPath" expression="schemaPath()" defaultValue="" alwaysStopAt="true"/>
+        <variable name="rootTagName" expression="rootTagName()" defaultValue="" alwaysStopAt="true"/>
+
+        <context>
+            <option name="XLang_File" value="true"/>
+        </context>
+    </template>
+</templateSet>

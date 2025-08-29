@@ -7,11 +7,12 @@
  */
 package io.nop.idea.plugin.debugger;
 
+import javax.swing.event.HyperlinkListener;
+
+import com.intellij.debugger.DebugEnvironment;
 import com.intellij.debugger.engine.JavaDebugProcess;
 import com.intellij.debugger.impl.DebuggerSession;
 import com.intellij.debugger.impl.PrioritizedTask;
-import com.intellij.execution.configurations.JavaCommandLineState;
-import com.intellij.execution.configurations.RunProfileState;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -34,14 +35,14 @@ import io.nop.api.debugger.Breakpoint;
 import io.nop.api.debugger.BreakpointHitMessage;
 import io.nop.api.debugger.IDebuggerAsync;
 import io.nop.api.debugger.LineLocation;
+import io.nop.commons.lang.impl.Cancellable;
 import io.nop.core.reflect.bean.BeanTool;
+import io.nop.idea.plugin.messages.NopPluginBundle;
 import io.nop.idea.plugin.utils.ProjectFileHelper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.swing.event.HyperlinkListener;
 
 import static com.intellij.xdebugger.impl.ui.DebuggerUIUtil.invokeLater;
 
@@ -51,7 +52,6 @@ import static com.intellij.xdebugger.impl.ui.DebuggerUIUtil.invokeLater;
 public class XLangDebugProcess extends JavaDebugProcess {
     static final Logger LOG = LoggerFactory.getLogger(XLangDebugProcess.class);
     private final XLangBreakpointHandler myBreakPointHandler;
-    private final JavaCommandLineState state;
     private final XLangDebuggerEditorsProvider myEditorsProvider;
     boolean isDisconnected = false;
 
@@ -60,24 +60,23 @@ public class XLangDebugProcess extends JavaDebugProcess {
     //private final AtomicBoolean breakpointsInitiated = new AtomicBoolean();
 
     private final XLangDebugConnector connector;
+    private final Cancellable cleanup = new Cancellable();
 
-    public XLangDebugProcess(@NotNull final XDebugSession session,
-                             @NotNull final JavaCommandLineState state,
-                             final DebuggerSession javaSession,
-                             int debugPort
+    public XLangDebugProcess(
+            @NotNull final XDebugSession session, final DebuggerSession javaSession, int debugPort
     ) {
         super(session, javaSession);
-        this.state = state;
 
         this.myEditorsProvider = new XLangDebuggerEditorsProvider();
         this.myBreakPointHandler = new XLangBreakpointHandler(this);
+
         this.connector = new XLangDebugConnector(debugPort, this::debuggerNotification, this::onSocketConnected);
 
         javaSession.getProcess().setXDebugProcess(this);
         session.addSessionListener(new XDebugSessionListener() {
             @Override
             public void breakpointsMuted(boolean muted) {
-                myBreakPointHandler.breakpointMuted(muted);
+                myBreakPointHandler.breakpointsMuted(muted);
             }
 
             public void sessionResumed() {
@@ -106,16 +105,17 @@ public class XLangDebugProcess extends JavaDebugProcess {
     public void sessionInitialized() {
         super.sessionInitialized();
 
-        ProgressManager.getInstance().run(new Task.Backgroundable(null, "XLang debugger", true) {
+        ProgressManager.getInstance().run(new Task.Backgroundable(null, "XLang debugger connector", true) {
+            @Override
             public void run(@NotNull final ProgressIndicator indicator) {
-                indicator.setText("XLang Debugger Connecting...");
+                indicator.setText("XLang debugger connecting...");
                 indicator.setIndeterminate(true);
 
                 try {
-                    if (!connect())
-                        return;
-                    startDebugSession();
-                } catch (final Exception e) {
+                    if (connect()) {
+                        startDebugSession();
+                    }
+                } catch (Exception e) {
                     onConnectFail(e.getMessage());
                 }
             }
@@ -126,16 +126,19 @@ public class XLangDebugProcess extends JavaDebugProcess {
         while (true) {
             try {
                 debugger = connector.connect();
-                System.out.println("connected");
+                cleanup.appendOnCancelTask(connector::destroy);
+
+                LOG.info("xlang.debugger.connector-connected");
                 return true;
-            } catch (final Exception e) {
+            } catch (Exception e) {
                 try {
                     Thread.sleep(200);
-                } catch (Exception e2) {
-
+                } catch (Exception ignored) {
                 }
-                if (getProcessHandler().isProcessTerminated())
+
+                if (getProcessHandler().isProcessTerminated()) {
                     return false;
+                }
             }
         }
     }
@@ -147,16 +150,16 @@ public class XLangDebugProcess extends JavaDebugProcess {
     private void onConnectFail(final String msg) {
         getProcessHandler().destroyProcess();
         invokeLater(() -> {
-            String text = "XLangDebugger can't connect to DebuggerServer on port " + connector.getDebugPort();//myDebuggerProxy.getPort();
-            Messages.showErrorDialog(msg != null ? text + ":\r\n" + msg : text, "XLang debugger");
+            String text = NopPluginBundle.message("xlang.debugger.connect-fail",
+                                                  String.valueOf(connector.getDebugPort()));
+
+            Messages.showErrorDialog(msg != null ? text + ":\r\n" + msg : text, "XLang Debugger");
         });
     }
 
     private void startDebugSession() {
         //initBreakpointHandlersAndSetBreakpoints();
-        ReadAction.run(() -> {
-            myBreakPointHandler.sendBreakpoints();
-        });
+        ReadAction.run(myBreakPointHandler::sendBreakpoints);
     }
 
 
@@ -177,8 +180,9 @@ public class XLangDebugProcess extends JavaDebugProcess {
     @Override
     public void resume(@Nullable XSuspendContext context) {
         if (context instanceof XLangSuspendContext) {
-            if (debugger != null)
+            if (debugger != null) {
                 debugger.resumeAsync();
+            }
         } else {
             super.resume(context);
         }
@@ -243,22 +247,22 @@ public class XLangDebugProcess extends JavaDebugProcess {
     }
 
     public void stop() {
-        connector.destroy();
+        cleanup.cancel();
 
         super.stop();
 
         isDisconnected = true;
-        System.out.println("end debug process");
+        LOG.info("xlang.debugger.process-stopped");
     }
 
     @Override
-    public XBreakpointHandler<?>[] getBreakpointHandlers() {
+    public XBreakpointHandler<?> @NotNull [] getBreakpointHandlers() {
         XBreakpointHandler<?>[] handlers = super.getBreakpointHandlers();
         XBreakpointHandler<?>[] ret = new XBreakpointHandler<?>[handlers.length + 1];
-        for (int i = 0; i < handlers.length; i++) {
-            ret[i] = handlers[i];
-        }
+
+        System.arraycopy(handlers, 0, ret, 0, handlers.length);
         ret[ret.length - 1] = myBreakPointHandler;
+
         return ret;
     }
 
@@ -292,8 +296,8 @@ public class XLangDebugProcess extends JavaDebugProcess {
         this.getDebuggerSession().getProcess().getManagerThread().schedule(PrioritizedTask.Priority.LOW, () -> {
             BreakpointHitMessage hit = BeanTool.buildBean(response.getData(), BreakpointHitMessage.class);
 
-            XBreakpoint<XLangBreakpointProperties> breakpoint = myBreakPointHandler.findBreakPoint(
-                    hit.getStackInfo().getTopElement());
+            XBreakpoint<XLangBreakpointProperties> breakpoint = myBreakPointHandler.findBreakPoint(hit.getStackInfo()
+                                                                                                      .getTopElement());
 
             XDebugSession session = getSession();
             XSuspendContext context = session.getSuspendContext();
@@ -342,9 +346,10 @@ public class XLangDebugProcess extends JavaDebugProcess {
     }
 
     @Override
-    public void registerAdditionalActions(@NotNull DefaultActionGroup leftToolbar,
-                                          @NotNull DefaultActionGroup topToolbar,
-                                          @NotNull DefaultActionGroup settings) {
+    public void registerAdditionalActions(
+            @NotNull DefaultActionGroup leftToolbar, @NotNull DefaultActionGroup topToolbar,
+            @NotNull DefaultActionGroup settings
+    ) {
         super.registerAdditionalActions(leftToolbar, topToolbar, settings);
         //topToolbar.remove(ActionManager.getInstance().getAction(XDebuggerActions.RUN_TO_CURSOR));
     }
