@@ -330,7 +330,7 @@ flowchart TD
     <h2>Software Product Lines: From Ad Hoc to Systematic Reuse</h2>
     <div class="two-column">
         <div class="column" >
-            <div class="mermaid center" style="margin:0" data-height="400px">
+            <div class="mermaid center" style="margin:0;height:500px" >
 flowchart TD
     subgraph Domain [Domain Engineering]
         A[Build Core Assets]
@@ -947,13 +947,8 @@ flowchart TD
             fontFamily: 'var(--font-main)',
 			 // 添加图表配置
 			flowchart: {
-				useMaxWidth: true,
+				useMaxWidth: false,
 				htmlLabels: true
-			},
-			svgConfig: {
-				width: 800,            // 默认宽度
-				height: 600,           // 默认高度
-				useMaxWidth: true      // 自适应容器宽度
 			}
         });
 
@@ -972,18 +967,6 @@ flowchart TD
         let currentSlide = 0;
         const totalSlides = allSlides.length;
 
-        // 确保在幻灯片切换时重新渲染Mermaid图表
-        function renderMermaidDiagrams() {
-            const currentSlideElement = document.querySelector('.slide.active');
-            if (currentSlideElement) {
-                const mermaidElements = currentSlideElement.querySelectorAll('.mermaid');
-                mermaidElements.forEach(element => {
-                    if (!element.hasAttribute('data-processed')) {
-                        mermaid.init(undefined, element);
-                    }
-                });
-            }
-        }
 
         function showSlide(index, skipHashUpdate = false) {
             if (index < 0 || index >= totalSlides) return;
@@ -993,13 +976,6 @@ flowchart TD
             if (!skipHashUpdate) {
                 updateHash(index);
             }
-            // 渲染当前幻灯片中的Mermaid图表
-            setTimeout(renderMermaidDiagrams, 100);
-			
-			const slideEl = allSlides[index];
-		  slideEl.querySelectorAll('.restart-anim').forEach(anim => {
-			try { anim.beginElement(); } catch (_) {}
-		  });
         }
         function updateControls() {
             slideCounter.textContent = `${currentSlide + 1} / ${totalSlides}`;
@@ -1047,19 +1023,6 @@ flowchart TD
                 clone.classList.remove('active');
                 clone.classList.add('pdf-slide');
 				
-				const svgElements = clone.querySelectorAll('.mermaid svg');
-				svgElements.forEach(svg => {
-				    const h = svg.parentNode.getAttribute('data-height');
-					const w = svg.parentNode.getAttribute('data-width');
-				    if(h){
-						svg.setAttribute('height', h);
-						svg.style.maxHeight = h;
-					}
-					if(w){
-					    svg.setAttribute('width',w);
-					}
-				
-				});
                 pdfContainer.appendChild(clone);
             });
             document.body.appendChild(pdfContainer);
@@ -1132,8 +1095,7 @@ flowchart TD
             showSlide(initialIndexFromHash, true);
         } else {
             showSlide(0);
-            // 初始渲染Mermaid图表
-            setTimeout(renderMermaidDiagrams, 500);
+          
         }
 		
 		setTimeout(()=>{
