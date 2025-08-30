@@ -7,6 +7,8 @@
     <!-- External Libraries: Font Awesome & html2pdf.js -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+	
     <style>
         /* --- 1. Global Styles & Variables --- */
         :root {
@@ -175,6 +177,21 @@
         .stat-number { font-size: 2.5rem; font-weight: 700; color: var(--color-primary); display: block; }
         .stat-label { font-size: 0.9rem; color: var(--color-text-light); margin-top: 0.25rem; }
 
+        /* Mermaid diagram styling */
+        .mermaid-container {
+            background-color: var(--color-code-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            margin: 1.5rem 0;
+            overflow: auto;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
 
         /* --- 6. Responsive & Print Styles --- */
         @media (max-width: 768px) {
@@ -391,6 +408,18 @@ helloWorld('World');</code></pre>
     </div>
 
     <script>
+	// Mermaid图表配置和初始化
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'default',
+        securityLevel: 'loose',
+        fontFamily: 'var(--font-main)',
+        flowchart: {
+            useMaxWidth: false,
+            htmlLabels: true,
+            curve: 'basis'
+        }
+    });
     document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('presentation-container');
         const allSlides = document.querySelectorAll('.slide');
