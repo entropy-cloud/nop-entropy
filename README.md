@@ -285,6 +285,7 @@ switch(贵公司很有钱吗()){
 ## 致谢
 
 * 感谢网友[xyplayman](https://gitee.com/xyplayman)贡献的ORM测试用例，原项目地址 https://gitee.com/xyplayman/nop-orm-demo
+* 感谢网友[Crazydan Studio](https://studio.crazydan.org/)对IDEA插件所进行的彻底改写，极大丰富了这个插件的功能
 
 ## 社区
 

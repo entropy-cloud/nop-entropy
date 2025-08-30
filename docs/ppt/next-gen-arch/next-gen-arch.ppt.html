@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nop平台：基于可逆计算理论的下一代软件技术架构</title>
+    <!-- External Libraries: Font Awesome & html2pdf.js -->
+    <link rel="stylesheet" href="../assets/css/all.min.css">
+    <script src="../assets/js/html2pdf.bundle.min.js"></script>
+	<script src="../assets/js/mermaid.min.js"></script>
+	<script src="../assets/js/lightbox.js"></script>
+    <style>
+        /* --- 1. Global Styles & Variables --- */
+        :root {
+            --color-primary: #2563eb;
+            --color-primary-dark: #1e40af;
+            --color-secondary: #059669;
+            --color-warning: #d97706;
+            --color-text-dark: #1f2937;
+            --color-text-light: #4b5563;
+            --color-bg-main: #f4f6f9;
+            --color-bg-slide: #ffffff;
+            --color-border: #e5e7eb;
+            --color-code-bg: #f8fafc;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-code: 'Fira Code', monospace;
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --font-size-base: 1.25rem;
+            --line-height-base: 1.7;
+            --controls-area-height: 40px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--color-bg-main);
+            color: var(--color-text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            line-height: var(--line-height-base);
+        }
+
+        /* --- 2. Core Layout & Container --- */
+        #presentation-container {
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            background: var(--color-bg-slide);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            padding-bottom: var(--controls-area-height);
+        }
+
+        .slides-viewport { flex-grow: 1; position: relative; overflow: hidden; }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 50px 60px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            transform: translateY(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow-y: auto;
+            background-color: var(--color-bg-slide);
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            z-index: 1;
+        }
+
+        /* --- 3. Typography --- */
+        h1, h2, h3 { font-weight: 700; line-height: 1.2; }
+        h1 { font-size: 3rem; margin-bottom: 1rem; }
+        h2 { font-size: 2.2rem; color: var(--color-text-dark); border-bottom: 3px solid var(--color-primary); padding-bottom: 0.75rem; margin-bottom: 2.2rem; font-weight: 600; }
+        h3 { font-size: 1.5rem; color: var(--color-primary); margin-bottom: 1rem; }
+        h4 { font-size: 1.25rem; font-weight: 600; color: var(--color-text-dark); margin-bottom: 0.5rem; }
+        p, li { font-size: var(--font-size-base); color: var(--color-text-light); margin-bottom: 1rem; }
+        strong { color: var(--color-primary); font-weight: 600; }
+        ul { list-style: none; padding-left: 0; }
+        li p { margin-bottom: 0.25rem; }
+
+        .font-bold {
+            font-weight: bold;
+        }
+        
+        /* --- 4. UI Components --- */
+        #progress-bar { position: absolute; top: 0; left: 0; height: 4px; background-color: var(--color-primary); width: 0%; transition: width 0.4s ease; z-index: 10; }
+        .controls { position: absolute; bottom: 20px; right: 20px; display: flex; gap: 10px; z-index: 10; }
+        .btn { background-color: var(--color-primary); color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all 0.2s ease; box-shadow: var(--shadow-md); }
+        .btn:hover:not(:disabled) { background-color: var(--color-primary-dark); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+        .btn:disabled { background-color: #9ca3af; cursor: not-allowed; transform: none; box-shadow: var(--shadow-md); }
+        #pdf-btn { background-color: var(--color-secondary); }
+        #pdf-btn:hover:not(:disabled) { background-color: #047857; }
+        #print-btn { background-color: #6366f1; }
+        #print-btn:hover:not(:disabled) { background-color: #4f46e5; }
+        #slide-counter { position: absolute; bottom: 20px; left: 20px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(5px); padding: 8px 14px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; color: var(--color-text-dark); box-shadow: var(--shadow-md); z-index: 10; }
+
+        /* --- 5. Content Modules --- */
+        .title-slide { text-align: center; align-items: center; }
+        .slide.title-slide {
+            justify-content: center;
+            align-items: center;
+        }
+        .title-slide h1 { font-size: 3.5rem; color: var(--color-text-dark); }
+        .title-slide .subtitle { font-size: 1.5rem; color: var(--color-text-light); font-weight: 400; }
+        .icon-list { list-style: none; padding: 0; margin: 1.5rem 0; }
+        .icon-bullet { display: flex; gap: 16px; background-color: var(--color-code-bg); padding: 16px; border-radius: 10px; margin-bottom: 12px; border: 1px solid var(--color-border); transition: all 0.3s ease; }
+        .icon-bullet:hover { transform: translateX(5px); box-shadow: var(--shadow-md); }
+        .icon-bullet i { font-size: 1.25rem; color: var(--color-primary); margin-top: 5px; flex-shrink: 0; width: 24px; text-align: center; }
+        .icon-bullet div { flex-grow: 1; }
+        .icon-bullet p { margin-bottom: 0.25rem; color: var(--color-text-dark); font-weight: 500; }
+        .icon-bullet .details { font-size: calc(var(--font-size-base) - 0.2rem); color: var(--color-text-light); font-weight: 400; }
+        .sub-items { margin-top: 0.5rem; margin-left: 1rem; }
+        .sub-item { font-size: calc(var(--font-size-base) - 0.1rem); color: var(--color-text-light); margin-bottom: 0.25rem; position: relative; padding-left: 1rem; }
+        .sub-item::before { content: "•"; color: var(--color-secondary); position: absolute; left: 0; }
+        .sub-items-split {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .sub-items-split .sub-item {
+            flex: 1 1 0;   
+        }
+        .two-column { display: flex; gap: 40px; align-items: flex-start; width: 100%; }
+        .column { flex: 1; }
+        .column-narrow { flex: 0.7; }
+        .column-wide { flex: 1.3; }
+        .code-block { background-color: var(--color-code-bg); color: var(--color-text-dark); padding: 1em 1.5em; border-radius: 8px; overflow-x: auto; font-family: var(--font-code); font-size: 0.95rem; line-height: 1.6; border: 1px solid var(--color-border); margin: 1.5rem 0; }
+        .code-block > code { font-size: inherit; background: transparent; padding: 0; border-radius: 0; }
+        .code-block.is-centered { display: flex; justify-content: center; align-items: center; }
+        
+        .code-comment {
+            color: #64748b;
+            font-style: normal;
+        }
+
+        .code-keyword {
+            color: #be185d;
+            font-weight: 600;
+        }
+
+        .code-string {
+            color: #057a55;
+        }
+
+        .code-attr {
+            color: #9333ea;
+        }
+        
+        .img-placeholder { width: 100%; min-height: 250px; background-color: var(--color-code-bg); border: 2px dashed var(--color-border); border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--color-text-light); margin: 1.5rem 0; }
+        .img-placeholder i { font-size: 3rem; margin-bottom: 1rem; }
+        .highlight-box { background-color: #eff6ff; border-left: 4px solid var(--color-primary); padding: 20px; margin: 1.5rem 0; border-radius: 0 8px 8px 0; }
+        .quote { background: #fffbeb; border-left: 4px solid var(--color-warning); padding: 20px; margin: 1.5rem 0; border-radius: 0 8px 8px 0; font-style: italic; color: #92400e; }
+        .quote p { font-size: calc(var(--font-size-base) + 0.1rem); }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px; margin: 2rem 0; }
+        .stat-card { background: var(--color-code-bg); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid var(--color-border); transition: all 0.3s ease; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
+        .stat-number { font-size: 2.5rem; font-weight: 700; color: var(--color-primary); display: block; }
+        .stat-label { font-size: 0.9rem; color: var(--color-text-light); margin-top: 0.25rem; }
+
+        /* Mermaid diagram styling */
+        .mermaid-container {
+            background-color: var(--color-code-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
+            margin: 1.5rem 0;
+            overflow: auto;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* Comparison table styling */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: var(--font-size-base);
+        }
+
+        .comparison-table th, .comparison-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border: 1px solid var(--color-border);
+        }
+
+        .comparison-table th {
+            background-color: var(--color-primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background-color: var(--color-code-bg);
+        }
+
+        /* --- 6. Responsive & Print Styles --- */
+        @media (max-width: 768px) {
+            .slide { padding: 30px; }
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.5rem; }
+            .two-column, .stat-grid { flex-direction: column; grid-template-columns: 1fr; }
+            .controls { right: auto; left: 50%; transform: translateX(-50%); }
+            #slide-counter { display: none; }
+            .comparison-table { font-size: 0.9rem; }
+            .comparison-table th, .comparison-table td { padding: 8px 10px; }
+        }
+
+        @media print {
+            body { background: #fff !important; height: auto; overflow: visible; display: block; }
+            .controls, #progress-bar, #slide-counter { display: none !important; }
+            #presentation-container { display: block; width: 100%; height: auto; box-shadow: none; border: none; padding: 0; }
+            .slides-viewport { overflow: visible; height: auto; }
+            .slide { display: flex !important; opacity: 1 !important; visibility: visible !important; transform: none !important; position: relative; page-break-after: always; page-break-inside: avoid; width: 100%; height: auto; aspect-ratio: 16 / 9; border: 1px solid #ddd; margin-bottom: 20px; box-shadow: none; border-radius: 0; overflow: hidden; }
+            .slide:last-of-type { page-break-after: avoid; }
+            svg * { animation-play-state: paused !important; }
+        }
+        
+        .pdf-page-container { width: 100%; height: auto; background: white; color: black; box-shadow: none; }
+        .pdf-slide { position: relative !important; opacity: 1 !important; visibility: visible !important; transform: none !important; height: auto !important; width: 100%; background: white; border: 1px solid #eeeeee; padding: 40px 50px; box-shadow: none; margin-bottom: 0; overflow: hidden; page-break-after: always; break-inside: avoid; aspect-ratio: 16 / 9; }
+        .pdf-slide:last-of-type { page-break-after: avoid; }
+    </style>
+</head>
+<body>
+    <div id="presentation-container">
+        <!-- UI Elements -->
+        <div id="progress-bar"></div>
+        <div id="slide-counter">1 / 16</div>
+
+        <!-- Slides Viewport -->
+        <div class="slides-viewport">
+            
+            <!-- Slide 1: Title Slide -->
+            <section class="slide active title-slide">
+                <h1>Nop平台：基于可逆计算理论的下一代软件技术架构</h1>
+                <p class="subtitle">2025-09</p>
+            </section>
+
+            <!-- Slide 2: Author Introduction -->
+            <section class="slide">
+                <h2>作者简介</h2>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                        <div>
+                            <p>2002年毕业于清华大学工程物理系</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-briefcase"></i>
+                        <div>
+                            <p>20多年架构设计经验</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-user-tie"></i>
+                        <div>
+                            <p>现任大型外企中国区首席架构师</p>
+                            <span class="details">负责亚太区新一代信用卡核心系统架构设计</span>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-lightbulb"></i>
+                        <div>
+                            <p>可逆计算理论提出者和开源Nop平台创始人</p>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Slide 3: Agenda -->
+            <section class="slide">
+                <h2>演讲议程</h2>
+                <ul class="icon-list" >
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-1"></i>
+                        <div>
+                            <p>为什么需要下一代软件架构</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-2"></i>
+                        <div>
+                            <p>可逆计算理论简介</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-3"></i>
+                        <div>
+                            <p>Nop平台整体架构 ️</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-4"></i>
+                        <div>
+                            <p>核心引擎与技术对比</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-5"></i>
+                        <div>
+                            <p>如何集成与应用</p>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+<!-- Slide 4: Current Dilemma -->
+<section class="slide">
+    <h2>当前困境：定制化开发的泥潭</h2>
+    <div class="two-column">
+        <div class="column-wide">
+            <div class="mermaid-container">
+                <div class="mermaid">
+flowchart TD
+    A[标准产品 v1.0] --> B[为客户A创建分支]
+    B --> C[重度定制化&lt;br&gt;紧密耦合的代码]
+    A --> D[标准产品 v2.0&lt;br&gt;新功能 + 修复]
+    
+    C -.->|合并: 复杂, 昂贵| D
+    D -.->|升级: 高成本| C
+    
+    C --> E[&lt;b&gt;分支停滞在v1.0&lt;/b&gt;&lt;br&gt;高昂成本维护]
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="highlight-box">
+                <p><strong>恶性循环：</strong></p>
+                <ul>
+                    <li>技术债务累积</li>
+                    <li>版本分支泛滥</li>
+                    <li>维护成本指数级增长</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Slide 5: Traditional Solutions -->
+<section class="slide">
+    <h2>传统方案的理论瓶颈</h2>
+    
+    <div class="two-column">
+        <div class="column">
+            <h3>粒度悖论（Granularity Paradox）</h3>
+            <ul class="icon-list">
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-bullseye"></i>
+                    <div>
+                        <p><strong>目标</strong>：构建庞大、通用的公共核心</p>
+                    </div>
+                </li>
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <div>
+                        <p><strong>矛盾</strong>：组件复用的是A和B之间的公共部分，公共部分是比A和B都要小的</p>
+                    </div>
+                </li>
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-ban"></i>
+                    <div>
+                        <p><strong>结果</strong>：粗粒度的整体复用目标与细粒度的组件抽象手段之间，存在根本性冲突</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="column">
+            <h3>预测悖论（Prediction Paradox）</h3>
+            <ul class="icon-list">
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-bullseye"></i>
+                    <div>
+                        <p><strong>要求</strong>：预先定义稳定扩展点</p>
+                    </div>
+                </li>
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <div>
+                        <p><strong>困境</strong>：</p>
+                        <div class="sub-items">
+                            <div class="sub-item">扩展点少 → 架构僵化</div>
+                            <div class="sub-item">扩展点多 → 架构溶解</div>
+                        </div>
+                    </div>
+                </li>
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-ban"></i>
+                    <div>
+                        <p><strong>结果</strong>：完美预测未来变化不可能</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="quote" style="margin:0">
+        <p><strong>结论：这是"组装式复用"的理论天花板，并非工程问题。</strong></p>
+    </div>
+</section>
+
+<!-- Slide: Physics Inspiration -->
+<section class="slide">
+    <h2>来自物理学的启发</h2>
+    
+<div class="highlight-box" style="margin-top:0;margin-bottom: 2rem;border:none">
+        <p><strong>波粒二象性：</strong>量子实体具有波和粒子两种互斥又互补的描述方式</p>
+    </div>
+    
+    <div class="two-column">
+        <div class="column">
+            <h3>粒子视角：还原论</h3>
+            <div class="icon-bullet">
+                <i class="fa-solid fa-atom"></i>
+                <div>
+                    <p>离散个体的分解组合</p>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <h3>波动视角：叠加</h3>
+            <div class="icon-bullet">
+                <i class="fa-solid fa-wave-square"></i>
+                <div>
+                    <p>连续模式的无侵入性的叠加干涉</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="quote" style="margin-top: 1.5rem;">
+        <p><strong>问题：我们能否通过非侵入式的叠加，而非组装的方式，来构建软件？</strong></p>
+    </div>
+</section>
+
+<!-- Slide 7: Theoretical Evolution -->
+<section class="slide">
+    <h2>理论的自然演进：可逆计算</h2>
+    
+    <ul class="icon-list">
+        <li class="icon-bullet">
+            <i class="fa-solid fa-cubes"></i>
+            <div>
+                <p><strong>面向对象</strong>：隐式差量 (A &gt; B) - 复用受继承约束</p>
+            </div>
+        </li>
+        <li class="icon-bullet">
+            <i class="fa-solid fa-puzzle-piece"></i>
+            <div>
+                <p><strong>面向组件</strong>：显式加法 (A = B + C) - 差量C成为组件</p>
+            </div>
+        </li>
+        <li class="icon-bullet">
+            <i class="fa-solid fa-arrows-rotate"></i>
+            <div>
+                <p><strong>可逆计算</strong>：代数变换 (B = A + (-C)) - <strong>引入形式化的逆元</strong></p>
+            </div>
+        </li>
+    </ul>
+    
+    <div class="code-block is-centered" style="font-size: 1.5rem;font-weight:bold">
+        <code><strong>核心公式：</strong> App = Delta x-extends Generator&lt;DSL&gt;</code>
+    </div>
+</section>
+
+<!-- Slide 8: Docker Reference -->
+<section class="slide">
+    <h2>现实参照：Docker作为可逆计算的实践</h2>
+    
+    <h3>Docker的构建过程</h3>
+    <div class="code-block is-centered" style="font-size: 1.5rem;font-weight:bold">
+	<code>App = DockerBuild&lt;Dockerfile&gt; overlay-fs BaseImage</code>
+    </div>
+    
+    <table class="comparison-table">
+        <tr>
+            <th>Docker概念</th>
+            <th>可逆计算概念</th>
+        </tr>
+        <tr>
+            <td><strong>DockerBuild&lt;Dockerfile&gt;</strong></td>
+            <td><strong>Generator&lt;DSL&gt;</strong></td>
+        </tr>
+        <tr>
+            <td><strong>overlay-fs（联合文件系统）</strong></td>
+            <td><strong>x-extends（差量合并）</strong></td>
+        </tr>
+    </table>
+    
+    <div class="quote">
+        <p>任何关于差量的创新实践都可以纳入到可逆计算理论的范畴。</p>
+    </div>
+</section>
+
+<!-- Slide 9: Delta Customization -->
+<section class="slide">
+    <h2>Delta定制</h2>
+    <h3>非侵入式的精准修改</h3>
+    
+    <ul class="icon-list">
+        <li class="icon-bullet">
+            <i class="fa-solid fa-file"></i>
+            <div>
+                <p><strong>文件级覆盖</strong>：差量层文件 <code>/_delta/xxx/</code> 自动覆盖基础文件</p>
+            </div>
+        </li>
+        <li class="icon-bullet">
+            <i class="fa-solid fa-code-merge"></i>
+            <div>
+                <p><strong>文件内合并</strong>：XML/JSON/YAML结构树的精准手术刀式修改</p>
+            </div>
+        </li>
+    </ul>
+    
+    <pre class="code-block" style="margin:0"><code><span class="code-comment">&lt;!-- 差量文件示例 --&gt;</span>
+&lt;beans <span class="code-attr">x:extends</span>=<span class="code-string">"super"</span>&gt;
+    &lt;bean <span class="code-attr">id</span>=<span class="code-string">"service"</span> <span class="code-attr">class</span>=<span class="code-string">"com.cust.a.CustomService"</span>/&gt; 
+    &lt;bean <span class="code-attr">id</span>=<span class="code-string">"oldService"</span> <span class="code-attr">x:override</span>=<span class="code-string">"remove"</span>/&gt;
+    &lt;bean <span class="code-attr">id</span>=<span class="code-string">"auditLogger"</span> <span class="code-attr">class</span>=<span class="code-string">"com.customer.AuditLogger"</span>
+          <span class="code-attr">feature:on</span>=<span class="code-string">"auditing.enabled"</span>/&gt;
+&lt;/beans&gt;</code></pre>
+</section>
+
+<!-- Slide 10: Nop Architecture -->
+<section class="slide">
+    <h2>Nop平台核心架构</h2>
+    
+    <div class="two-column">
+        <div class="column">
+                        <svg width="1000" height="680" viewBox="0 0 1000 680" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" style="width:100%;height:auto">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="grad-business-v2" x1="0%" y1="0%" x2="100%" y2="0%"> <stop offset="0%" style="stop-color:#38BDF8;stop-opacity:1" /> <stop offset="100%" style="stop-color:#60A5FA;stop-opacity:1" /> </linearGradient>
+    <linearGradient id="grad-engine-v2" x1="0%" y1="0%" x2="100%" y2="0%"> <stop offset="0%" style="stop-color:#2563EB;stop-opacity:1" /> <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" /> </linearGradient>
+    <linearGradient id="grad-foundation-v2" x1="0%" y1="0%" x2="100%" y2="0%"> <stop offset="0%" style="stop-color:#1E40AF;stop-opacity:1" /> <stop offset="100%" style="stop-color:#1D4ED8;stop-opacity:1" /> </linearGradient>
+    <linearGradient id="grad-delta-pillar" x1="0%" y1="0%" x2="0%" y2="100%"> <stop offset="0%" style="stop-color:#A855F7;stop-opacity:1" /> <stop offset="100%" style="stop-color:#D946EF;stop-opacity:1" /> </linearGradient>
+    <linearGradient id="grad-flow" x1="0.5" y1="0" x2="0.5" y2="1"> <stop offset="0%" stop-color="white" stop-opacity="0.6"/> <stop offset="100%" stop-color="white" stop-opacity="0.1"/> </linearGradient>
+    
+    <!-- Filters -->
+    <filter id="soft-shadow" x="-50%" y="-50%" width="200%" height="200%"> <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#1E40AF" flood-opacity="0.1"/> </filter>
+    <filter id="delta-glow" x="-100%" y="-100%" width="300%" height="300%"> <feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#D946EF" flood-opacity="0.75"/> </filter>
+    
+    <!-- Arrowhead -->
+    <marker id="arrow-delta-v2" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#D946EF"/>
+    </marker>
+  </defs>
+
+  <!-- Clean, light background -->
+  <rect width="100%" height="100%" fill="#F8FAFC"/>
+
+  <!-- Main Title -->
+  <g id="title-section" opacity="1">
+    <text x="500" y="45" font-size="24" font-weight="700" text-anchor="middle" fill="#1E3A8A">Delta-Oriented Architecture</text>
+    <text x="500" y="70" font-size="14" font-weight="400" text-anchor="middle" fill="#64748B">A Layered Blueprint for Extensibility</text>
+  </g>
+
+  <!-- Flow Channels -->
+  <g id="flow-channels" opacity="1">
+      <path d="M 440 250 L 560 250 L 560 420 L 440 420 Z" fill="url(#grad-flow)" />
+      <path d="M 440 90 L 560 90 L 560 260 L 440 260 Z" fill="url(#grad-flow)" />
+  </g>
+
+  <!-- Layer 3: Business Application Layer -->
+  <g id="layer-3" filter="url(#soft-shadow)" opacity="1">
+    <rect x="120" y="100" width="680" height="140" rx="12" fill="url(#grad-business-v2)"/>
+    <rect x="120" y="100" width="680" height="40" rx="12" ry="12" fill="black" fill-opacity="0.1" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+    <text x="140" y="125" font-size="16" font-weight="600" fill="white">Business Application Layer</text>
+    <g transform="translate(140, 155)"> <rect width="200" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">Issuing</text> </g>
+    <g transform="translate(350, 155)"> <rect width="200" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">Acquiring</text> </g>
+    <g transform="translate(560, 155)"> <rect width="220" height="45" rx="8" fill="rgba(255,255,255,0.7)" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4 2"/> <text x="20" y="28" fill="#1E3A8A" font-size="13" font-weight="500">Other Business (e.g., Value-add)</text> </g>
+  </g>
+
+  <!-- Layer 2: Core Engine Layer -->
+  <g id="layer-2" filter="url(#soft-shadow)" opacity="1">
+    <rect x="120" y="260" width="680" height="140" rx="12" fill="url(#grad-engine-v2)"/>
+    <rect x="120" y="260" width="680" height="40" rx="12" ry="12" fill="black" fill-opacity="0.1" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+    <text x="140" y="285" font-size="16" font-weight="600" fill="white">Core Engine Layer</text>
+    <g transform="translate(140, 315)"> <rect width="160" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">RuleEngine</text> </g>
+    <g transform="translate(310, 315)"> <rect width="160" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">BatchEngine</text> </g>
+    <g transform="translate(480, 315)"> <rect width="160" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">TaskFlowEngine</text> </g>
+    <g transform="translate(650, 315)"> <rect width="130" height="45" rx="8" fill="rgba(255,255,255,0.7)" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4 2"/> <text x="20" y="28" fill="#1E3A8A" font-size="13" font-weight="500">Extensions...</text> </g>
+  </g>
+
+  <!-- Layer 1: Foundation Layer -->
+  <g id="layer-1" filter="url(#soft-shadow)" opacity="1">
+    <rect x="120" y="420" width="680" height="180" rx="12" fill="url(#grad-foundation-v2)"/>
+    <rect x="120" y="420" width="680" height="40" rx="12" ry="12" fill="black" fill-opacity="0.1" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+    <text x="140" y="445" font-size="16" font-weight="600" fill="white">Foundation Layer</text>
+    <g transform="translate(140, 475)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Delta Virtual File System</text> <text x="20" y="40" fill="#475569" font-size="12">(DeltaFS)</text> </g>
+    <g transform="translate(470, 475)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Unified Model &amp; Delta</text> <text x="20" y="40" fill="#475569" font-size="12">Loader, x:extends, etc.</text> </g>
+    <g transform="translate(140, 535)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Core Models</text> <text x="20" y="40" fill="#475569" font-size="12">RecordModel, etc.</text> </g>
+    <g transform="translate(470, 535)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Code Generation Engine</text> </g>
+  </g>
+  
+  <!-- Delta Customization Pillar -->
+  <g id="delta-pillar" transform="translate(0 0)" opacity="1">
+    <g filter="url(#soft-shadow)">
+      <rect x="820" y="100" width="60" height="500" rx="12" fill="url(#grad-delta-pillar)"/>
+      <text x="850" y="350" font-size="18" font-weight="700" fill="white" text-anchor="middle" transform="rotate(-90, 850, 350)">
+        Delta Customization
+      </text>
+    </g>
+  </g>
+  
+  <!-- Connecting arrows from pillar to layers -->
+  <g id="delta-arrows" opacity="1">
+    <g filter="url(#delta-glow)">
+      <!-- Arrow 1 to Business Layer -->
+      <path d="M 820 170 C 810 170, 810 170, 800 170" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="0"/>
+      <!-- Arrow 2 to Engine Layer -->
+      <path d="M 820 330 C 810 330, 810 330, 800 330" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="0"/>
+      <!-- Arrow 3 to Foundation Layer -->
+      <path d="M 820 510 C 810 510, 810 510, 800 510" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="0"/>
+    </g>
+  </g>
+</svg>
+        </div>
+        <div class="column">
+            <ul class="icon-list">
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <div>
+                        <p><strong>基础层</strong>: XLang语言 | 差量合并 | 统一元编程框架</p>
+                    </div>
+                </li>
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-gears"></i>
+                    <div>
+                        <p><strong>引擎层</strong>: 基于统一XDSL机制的DSL森林</p>
+                    </div>
+                </li>
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-cube"></i>
+                    <div>
+                        <p><strong>应用层</strong>: DDD领域设计 | 全量代码生成</p>
+                    </div>
+                </li>
+                <li class="icon-bullet">
+                    <i class="fa-solid fa-puzzle-piece"></i>
+                    <div>
+                        <p><strong>全域差量定制</strong>: 非侵入修改任何层级，<strong>兼顾标准化与个性化</strong></p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+            <!-- Slide 11: Why Nop is Next Gen -->
+            <section class="slide">
+                <h2>为什么Nop是下一代软件技术架构</h2>
+                
+                <ul class="icon-list" style="margin:0">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <div>
+                            <p><strong>基于可逆计算理论，重构软件生产范式</strong>：</p>
+                            <span class="details">其核心是Generator + Delta的代数化软件生成范式，为软件构造提供了超越传统"组装式"开发的全新数学基础和解耦手段</span>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-language"></i>
+                        <div>
+                            <p><strong>通过模型驱动和语言导向，显著降低系统复杂性</strong>：</p>
+                            <span class="details">与传统Spring/微服务架构相比，通过声明式的领域特定语言（DSL）替代大量胶水代码和配置，使代码量减少十倍以上，并大幅降低认知负担。</span>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-puzzle-piece"></i>
+                        <div>
+                            <p><strong>为系统级可扩展性和产品化复用提供理论级解决方案</strong>：</p>
+                            <span class="details">通过元编程和差量定制，实现了非侵入式的系统级扩展（Extension），使得粗粒度的软件产品（如整个SaaS平台）能够像类一样被高效、无损地复用和定制，为实现"软件产品线"工程提供了可行的技术路径。</span>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Slide 12: Nop vs Spring -->
+            <section class="slide">
+                <h2>Nop vs. Spring 技术栈对比</h2>
+                
+                <table class="comparison-table">
+                    <tr>
+                        <th>领域</th>
+                        <th>Nop</th>
+                        <th>Spring</th>
+                    </tr>
+                    <tr>
+                        <td><strong>脚本语言</strong></td>
+                        <td>XLang</td>
+                        <td>Spring EL/FreeMarker</td>
+                    </tr>
+                    <tr>
+                        <td><strong>依赖注入</strong></td>
+                        <td>NopIoC</td>
+                        <td>Spring IoC</td>
+                    </tr>
+                    <tr>
+                        <td><strong>数据访问</strong></td>
+                        <td>NopORM</td>
+                        <td>JPA/MyBatis</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Web服务</strong></td>
+                        <td>NopGraphQL</td>
+                        <td>SpringMVC</td>
+                    </tr>
+                    <tr>
+                        <td><strong>分布式</strong></td>
+                        <td>NopRPC/NopTcc</td>
+                        <td>Feign/Seata</td>
+                    </tr>
+                    <tr>
+                        <td><strong>业务流程</strong></td>
+                        <td>NopWorkflow/NopTaskFlow</td>
+                        <td>Flowable</td>
+                    </tr>
+                    <tr>
+                        <td><strong>业务规则</strong></td>
+                        <td>NopRule</td>
+                        <td>Drools</td>
+                    </tr>
+                    <tr>
+                        <td><strong>批处理</strong></td>
+                        <td>NopBatch</td>
+                        <td>Spring Batch</td>
+                    </tr>
+                    <tr>
+                        <td><strong>报表</strong></td>
+                        <td>NopReport</td>
+                        <td>JasperReports</td>
+                    </tr>
+                </table>
+            </section>
+
+            <!-- Slide 13: Framework Neutral -->
+            <section class="slide">
+                <h2>Nop：框架中立，无缝集成</h2>
+                
+                <div class="two-column">
+                    <div class="column-narrow">
+                        <h3>协同而非替代</h3>
+                        <div class="icon-bullet">
+                            <i class="fa-solid fa-handshake"></i>
+                            <div>
+                                <p>Nop采用框架中立设计，可与 Spring、Quarkus、Solon 等基础框架协同工作</p>
+                            </div>
+                        </div>
+                        
+                        <h3>能力可插拔</h3>
+                        <div class="icon-bullet">
+                            <i class="fa-solid fa-plug"></i>
+                            <div>
+                                <p>可按需选用单个组件，基本无相互依赖</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column" >
+                        <table class="comparison-table" style="margin:0">
+                            <tr>
+                                <th>采用方式</th>
+                                <th>获得能力</th>
+                                <th>适用场景</th>
+                            </tr>
+                            <tr>
+                                <td><strong>全栈使用</strong></td>
+                                <td>最大创新能力和定制性</td>
+                                <td>全新系统开发</td>
+                            </tr>
+                            <tr>
+                                <td><strong>组件选用</strong></td>
+                                <td>单独使用ORM/Report等引擎</td>
+                                <td>现有系统部分增强</td>
+                            </tr>
+                            <tr>
+                                <td><strong>机制复用</strong></td>
+                                <td>仅引入Delta差量定制能力</td>
+                                <td>快速实现产品化定制</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="highlight-box">
+                    <p><strong>用Nop增强现有系统，而非推倒重来</strong></p>
+                </div>
+            </section>
+			
+<!-- Slide 14: Full-stack Model Driven Development -->
+<section class="slide">
+    <h2>全栈模型驱动开发</h2>
+    
+    <div style="text-align: center; margin: 0;">
+        <svg width="800" height="500" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="backendGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#42a5f5" />
+            <stop offset="100%" stop-color="#64b5f6" />
+        </linearGradient>
+        <linearGradient id="frontendGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ef5350" />
+            <stop offset="100%" stop-color="#ef5350" />
+        </linearGradient>
+        <linearGradient id="serviceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#66bb6a" />
+            <stop offset="100%" stop-color="#81c784" />
+        </linearGradient>
+        <linearGradient id="sourceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ab47bc" />
+            <stop offset="100%" stop-color="#ba68c8" />
+        </linearGradient>
+        <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+            <feOffset dx="2" dy="2" result="offsetblur" />
+            <feFlood flood-color="rgba(0,0,0,0.1)" />
+            <feComposite in2="offsetblur" operator="in" />
+            <feMerge>
+                <feMergeNode />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#555" />
+        </marker>
+    </defs>
+    
+    <!-- 背景区域 -->
+    <rect x="50" y="80" width="900" height="460" rx="10" fill="rgba(255, 255, 255, 0.9)" stroke="#e0e0e0" stroke-width="1" />
+    <rect x="60" y="90" width="430" height="440" rx="5" fill="rgba(225, 245, 254, 0.3)" stroke="#b3e5fc" stroke-width="1" />
+    <rect x="500" y="90" width="440" height="440" rx="5" fill="rgba(255, 235, 238, 0.3)" stroke="#ffcdd2" stroke-width="1" />
+    
+    <!-- 标题 -->
+    <text x="500" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="600" fill="#455a64">差量化的软件生产线</text>
+    
+    <!-- 区域标签 -->
+    <text x="275" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="#42a5f5">后台 (Backend)</text>
+    <text x="720" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="#ef5350">前台 (Frontend)</text>
+    
+    <!-- XORM/_XORM 组合矩形 -->
+    <rect x="80" y="280" width="120" height="100" rx="10" fill="url(#backendGradient)" filter="url(#dropShadow)" />
+    <line x1="80" y1="330" x2="200" y2="330" stroke="white" stroke-width="2" />
+    <text x="140" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">XORM</text>
+    <text x="140" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">_XORM</text>
+    
+    <!-- Excel (放置在_XORM正下方) -->
+    <ellipse cx="140" cy="450" rx="70" ry="40" fill="url(#sourceGradient)" filter="url(#dropShadow)" />
+    <text x="140" y="455" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">Excel</text>
+    
+    <!-- XMeta/_XMeta 组合矩形 -->
+    <rect x="280" y="280" width="120" height="100" rx="10" fill="url(#backendGradient)" filter="url(#dropShadow)" />
+    <line x1="280" y1="330" x2="400" y2="330" stroke="white" stroke-width="2" />
+    <text x="340" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">XMeta</text>
+    <text x="340" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">_XMeta</text>
+    
+    <!-- XView/_XView 组合矩形 -->
+    <rect x="550" y="280" width="120" height="100" rx="10" fill="url(#frontendGradient)" filter="url(#dropShadow)" />
+    <line x1="550" y1="330" x2="670" y2="330" stroke="white" stroke-width="2" />
+    <text x="610" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">XView</text>
+    <text x="610" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">_XView</text>
+    
+    <!-- XPage/_XPage 组合矩形 -->
+    <rect x="750" y="280" width="120" height="100" rx="10" fill="url(#frontendGradient)" filter="url(#dropShadow)" />
+    <line x1="750" y1="330" x2="870" y2="330" stroke="white" stroke-width="2" />
+    <text x="810" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">XPage</text>
+    <text x="810" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">_XPage</text>
+    
+    <!-- GraphQL -->
+    <rect x="430" y="150" width="120" height="50" rx="10" fill="url(#serviceGradient)" filter="url(#dropShadow)" />
+    <text x="490" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">GraphQL</text>
+    
+    <!-- 界面 (放在XPage的上方) -->
+    <rect x="750" y="150" width="120" height="50" rx="10" fill="url(#sourceGradient)" filter="url(#dropShadow)" />
+    <text x="810" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">界面</text>
+    
+    <!-- 箭头和连接线 -->
+    <!-- Excel 到 _XORM (指向下边沿中点，直线箭头) -->
+    <line x1="140" y1="410" x2="140" y2="380" stroke="#555" stroke-width="2" marker-end="url(#arrow)" />
+    
+    <!-- XORM 到 _XMeta (从XORM右侧边中点指向_XMeta左侧边中点) -->
+    <path d="M200,310 L240,310 L240,350 L280,350" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    
+    <!-- XMeta 到 _XView -->
+    <path d="M400,310 L475,310 L475,350 L550,350" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    
+    <!-- XView 到 _XPage -->
+    <path d="M670,310 L720,310 L720,350 L750,350" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    
+    <!-- XPage 到 界面 (指向界面的下边沿) -->
+    <line x1="810" y1="280" x2="810" y2="200" stroke="#555" stroke-width="2" marker-end="url(#arrow)" />
+    
+    <!-- XMeta 到 GraphQL (指向GraphQL左侧边中点) -->
+    <path d="M340,280 L340,175 L430,175" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+    <text x="300" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#ef5350" font-weight="500">+ BizModel</text>
+    
+    <!-- 服务层标签 -->
+    <text x="490" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="#66bb6a">服务层 (Service Layer)</text>
+</svg>
+    </div>
+    
+    <div class="highlight-box" style="margin-top: 0; ">
+    <p><strong>Nop平台内置的开发流程形成了完整的模型驱动开发闭环：</strong></p>
+    <p>Excel数据模型 → ORM模型 → Meta元数据模型 → 前端视图模型 → 页面文件，每个环节都支持差量修正。</p>
+</div>
+</section>			
+
+            <!-- Slide 14: Customization Examples -->
+            <section class="slide">
+                <h2>定制示例</h2>
+                
+                <div class="two-column">
+                    <div class="column">
+                        <ul class="icon-list">
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-database"></i>
+                                <div>
+                                    <p><strong>数据模型定制</strong>: 数据表字段与关联关系灵活调整</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-expand"></i>
+                                <div>
+                                    <p><strong>扩展字段支持</strong>: 一键启用内置动态扩展能力</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-code"></i>
+                                <div>
+                                    <p><strong>服务接口定制</strong>: 消息请求与响应结构自由定制</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="column">
+                        <ul class="icon-list">
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-diagram-project"></i>
+                                <div>
+                                    <p><strong>处理流程定制</strong>: 业务处理逻辑与规则重写</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-gear"></i>
+                                <div>
+                                    <p><strong>Bean组件定制</strong>: 平台组件删除与替换</p>
+                                </div>
+                            </li>
+                            <li class="icon-bullet">
+                                <i class="fa-solid fa-table-cells"></i>
+                                <div>
+                                    <p><strong>页面视图定制</strong>: 组件替换与页面的部分复用</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="quote" style="margin:0">
+                    <p>所有定制修改无需修改基础产品和Nop平台</p>
+                </div>
+            </section>
+
+            <!-- Slide 15: Summary -->
+            <section class="slide">
+                <h2>总结与展望</h2>
+                
+                <h3>Nop带来的范式转变：</h3>
+                <ul class="icon-list">
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                        <div>
+                            <p>从「定点扩展（Extension Points Everywhere）」到「随处覆盖（Overlays Above Everything）」</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-code-branch"></i>
+                        <div>
+                            <p>从「1 core + N forks」到「1 base + N deltas」</p>
+                        </div>
+                    </li>
+                    <li class="icon-bullet">
+                        <i class="fa-solid fa-square-plus"></i>
+                        <div>
+                            <p>Effective System = Base ⊕ ΔIndustry ⊕ ΔRegion ⊕ ΔCustomer</p>
+                        </div>
+                    </li>
+                </ul>
+                
+                <div class="highlight-box">
+                    <p><strong>愿景：</strong> 为AI时代的软件智能生产提供关键技术支撑</p>
+                </div>
+            </section>
+
+<!-- Slide 16: Q&A -->
+<section class="slide title-slide">
+    <h1>Q&A</h1>
+    <p class="subtitle">问题与讨论</p>
+    
+    <div style="margin-top: 2rem; display: flex; justify-content: center; gap: 3rem;">
+        <div style="text-align: center;">
+            <p style="font-weight: 600; margin-bottom: 1rem;">微信公众号</p>
+            <img 
+                src="../../../wechat-public-account.jpg" 
+                alt="微信公众号" 
+                style="width: 250px; height: 250px; border-radius: 8px; border: 1px solid var(--color-border);"
+            >
+        </div>
+        <div style="text-align: center;">
+            <p style="font-weight: 600; margin-bottom: 1rem;">微信群</p>
+            <img 
+                src="../../../wechat-group.png" 
+                alt="微信群" 
+                style="width: 250px; height: 250px; border-radius: 8px; border: 1px solid var(--color-border);"
+            >
+        </div>
+    </div>
+</section>
+
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn" id="home-btn" title="First Slide"><i class="fa-solid fa-home"></i></button>
+            <button class="btn" id="prev-btn" title="Previous"><i class="fa-solid fa-arrow-left"></i></button>
+            <button class="btn" id="next-btn" title="Next"><i class="fa-solid fa-arrow-right"></i></button>
+            <button class="btn" id="fullscreen-btn" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+            <button class="btn" id="print-btn" title="Print"><i class="fa-solid fa-print"></i></button>
+            <button class="btn" id="pdf-btn" title="Export to PDF"><i class="fa-solid fa-file-pdf"></i></button>
+        </div>
+    </div>
+
+    <script>
+	// Mermaid图表配置和初始化
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'default',
+        securityLevel: 'loose',
+        fontFamily: 'var(--font-main)',
+        flowchart: {
+            useMaxWidth: false,
+            htmlLabels: true,
+            curve: 'basis'
+        }
+    });
+	
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('presentation-container');
+        const allSlides = document.querySelectorAll('.slide');
+        const homeBtn = document.getElementById('home-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const printBtn = document.getElementById('print-btn');
+        const pdfBtn = document.getElementById('pdf-btn');
+        const slideCounter = document.getElementById('slide-counter');
+        const progressBar = document.getElementById('progress-bar');
+        
+        let currentSlide = 0;
+        const totalSlides = allSlides.length;
+
+        function showSlide(index, skipHashUpdate = false) {
+            if (index < 0 || index >= totalSlides) return;
+            allSlides.forEach((slide, i) => slide.classList.toggle('active', i === index));
+            currentSlide = index;
+            updateControls();
+            if (!skipHashUpdate) {
+                updateHash(index);
+            }
+        }
+        function updateControls() {
+            slideCounter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+            progressBar.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
+            prevBtn.disabled = currentSlide === 0;
+            nextBtn.disabled = currentSlide === totalSlides - 1;
+        }
+        function nextSlide() { showSlide(currentSlide + 1); }
+        function prevSlide() { showSlide(currentSlide - 1); }
+        function goToFirstSlide() { showSlide(0); }
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => alert(`Cannot enter fullscreen mode: ${err.message}`));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        function updateHash(index) {
+            const hash = `#slide-${index + 1}`;
+            if (location.hash !== hash) {
+                history.pushState(null, null, hash);
+            }
+        }
+        function parseHashToIndex() {
+            const h = location.hash;
+            const m = h.match(/slide-(\d+)/i);
+            if (m) {
+                const idx = parseInt(m[1], 10) - 1;
+                if (!isNaN(idx) && idx >= 0 && idx < totalSlides) {
+                    return idx;
+                }
+            }
+            return null;
+        }
+
+        function printPresentation() {
+            window.print();
+        }
+
+        async function prepareForPdf() {
+            const pdfContainer = document.createElement('div');
+            pdfContainer.className = 'pdf-page-container';
+            allSlides.forEach(slide => {
+                const clone = slide.cloneNode(true);
+                clone.classList.remove('active');
+                clone.classList.add('pdf-slide');
+				
+				// 删除所有图片元素
+				const images = clone.querySelectorAll('img');
+				images.forEach(img => img.remove());
+		
+                pdfContainer.appendChild(clone);
+            });
+		
+		
+            document.body.appendChild(pdfContainer);
+            return pdfContainer;
+        }
+        
+        function exportToPDF() {
+            console.log('Starting PDF export...');
+            const originalButtonContent = pdfBtn.innerHTML;
+            pdfBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+            pdfBtn.disabled = true;
+            
+            prepareForPdf().then(pdfContainer => {
+                const options = {
+                    margin: 0,
+                    filename: 'nop-platform-presentation.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, allowTaint:true, letterRendering: true },
+                    jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+                    pagebreak: { mode: ['css'] }
+                };
+
+                html2pdf().set(options).from(pdfContainer).save().then(() => {
+                    console.log('PDF export successful!');
+                    document.body.removeChild(pdfContainer);
+                    pdfBtn.innerHTML = originalButtonContent;
+                    pdfBtn.disabled = false;
+                }).catch(err => {
+                    console.error('PDF export failed:', err);
+                    document.body.removeChild(pdfContainer);
+                    pdfBtn.innerHTML = originalButtonContent;
+                    pdfBtn.disabled = false;
+                    alert('PDF export failed. Check the console for details.');
+                });
+            });
+        }
+
+        homeBtn.addEventListener('click', goToFirstSlide);
+        nextBtn.addEventListener('click', nextSlide);
+        prevBtn.addEventListener('click', prevSlide);
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+        printBtn.addEventListener('click', printPresentation);
+        pdfBtn.addEventListener('click', exportToPDF);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); nextSlide(); }
+            if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prevSlide(); }
+            if (e.key === 'Home') { e.preventDefault(); goToFirstSlide(); }
+            if (e.key === 'End') { e.preventDefault(); showSlide(totalSlides - 1); }
+        });
+
+        let touchStartX = 0;
+        container.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+        container.addEventListener('touchend', e => {
+            const touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 50) nextSlide();
+            if (touchEndX - touchStartX > 50) prevSlide();
+        });
+
+        window.addEventListener('popstate', () => {
+            const idx = parseHashToIndex();
+            if (idx !== null && idx !== currentSlide) {
+                showSlide(idx, true);
+            }
+        });
+
+        const initialIndexFromHash = parseHashToIndex();
+        if (initialIndexFromHash !== null) {
+            showSlide(initialIndexFromHash, true);
+        } else {
+            showSlide(0);
+        }
+		
+		setTimeout(()=>{
+		  window.enableContentLightboxForSelector && window.enableContentLightboxForSelector('.mermaid svg, .column img,.slide svg')
+		}, 1000);
+    });
+    </script>
+</body>
+</html>
