@@ -20,6 +20,7 @@ import java.util.List;
 @DataBean
 public class CellLayerCoordinate {
     private String cellName;
+    private int position;
     private List<CellCoordinate> rowCoordinates;
     private List<CellCoordinate> colCoordinates;
 
@@ -29,6 +30,14 @@ public class CellLayerCoordinate {
         if (colCoordinates != null && !colCoordinates.isEmpty())
             return true;
         return false;
+    }
+
+    public int getPosition() {
+        return position;
+    }
+
+    public void setPosition(int position) {
+        this.position = position;
     }
 
     public String toString() {

@@ -40,6 +40,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestReportEngine extends BaseTestCase {
 
@@ -181,6 +182,15 @@ public class TestReportEngine extends BaseTestCase {
         IResource resource = getResource("/nop/report/demo/test-expand-inplace-count.xpt.xlsx");
         XNode node = XptModelLoader.instance().loadModelNodeFromResource(resource);
         node.dump();
+    }
+
+    @Test
+    public void testLayerCoordinate() {
+        IReportEngine reportEngine = newReportEngine();
+        ITextTemplateOutput output = reportEngine.getHtmlRenderer("/nop/report/demo/test-layer-coordinate.xpt.xlsx");
+        String text = output.generateText(XLang.newEvalScope());
+        System.out.println(text);
+        assertTrue(text.contains("R5"));
     }
 
     private IReportEngine newReportEngine() {

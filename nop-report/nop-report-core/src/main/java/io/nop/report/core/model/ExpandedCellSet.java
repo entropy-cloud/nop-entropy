@@ -12,6 +12,7 @@ import io.nop.api.core.util.ISourceLocationGetter;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.lang.IValueWrapper;
 import io.nop.commons.util.CollectionHelper;
+import io.nop.core.lang.utils.Underscore;
 import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.CellRangeMerger;
 import io.nop.report.core.engine.IXptRuntime;
@@ -91,6 +92,20 @@ public class ExpandedCellSet implements Iterable<Object>, IValueWrapper, ISource
         return last.getColIndex() - first.getColIndex() + 1;
     }
 
+    public Object getFirstValue() {
+        ExpandedCell cell = getFirstCell();
+        return cell == null ? null : cell.getValue();
+    }
+
+    public Object getLastValue() {
+        ExpandedCell cell = getLastCell();
+        return cell == null ? null : cell.getValue();
+    }
+
+    public Object sum() {
+        return Underscore.sum(cells, ExpandedCell::getValue);
+    }
+
     public ExpandedCell getFirstCell() {
         if (cells.isEmpty())
             return null;
@@ -111,6 +126,11 @@ public class ExpandedCellSet implements Iterable<Object>, IValueWrapper, ISource
         if (index < 0 || index >= cells.size())
             return null;
         return cells.get(index);
+    }
+
+    public Object value(int index) {
+        ExpandedCell cell = get(index);
+        return cell == null ? null : cell.getValue();
     }
 
 //    @EvalMethod
