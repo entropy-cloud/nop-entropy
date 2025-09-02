@@ -78,14 +78,6 @@ This single challenge is the core of the problem. Now, let's look at how the tra
 
 **[Click to Next Slide]**
 
-Of course. Let's proceed to Slide 5.
-
-This slide explains the *mechanics* of the traditional approach. The key is to describe it clearly and objectively, while subtly planting the seed that this approach is rigid because it relies on architects predicting the future.
-
-Here is the script for Slide 5.
-
----
-
 ### Slide 5: The Prescribed Approach: Adapt, Replace, Extend
 
 **(Script):**
@@ -96,11 +88,11 @@ The prescribed method is built on one golden rule: **Do not modify the core asse
 
 There are three main ways to use these points, as shown in the diagram.
 
-First, there is **Adaptation**. This is where you tweak the behavior of a core component. A simple example is changing a parameter, like setting a log level. You're adapting how the core works, without changing its code.
+First, there is **Adaptation**. Adaptation is achived by configuring or paramerizing a core component without modifying its source code. A simple example is changing a parameter, like setting a log level. You're adapting how the core works, without changing its code.
 
 Second is **Replacement**. This is about making a choice. You might replace a standard component with a different one that follows the same interface. For example, selecting a specific payment gateway from a list of options.
 
-Third, we have **Extension**. This is how you add completely new features, usually as plugins. You can stack on new capabilities that the core product doesn't have.
+Third, we have **Extension**. This is how you add completely new features, usually as plugins. You can stack new capabilities on top of the core product via pre-defined extension points.
 
 So, the entire system works like this: you derive new products by **activating**, **selecting**, or **providing** these pre-defined variations.
 
@@ -118,6 +110,8 @@ This approach is disciplined and structured. But its success depends entirely on
 First, there is **The Granularity Paradox**.
 The goal of reuse is to have a large core that we can share across many products. But how do we create that reusable core? We do it by factoring out the common parts. By definition, the common part is always *smaller* than any complete product. So, our desire for a large reusable core is in direct conflict with the very method we use to create it. The more we try to make something common to everyone, the smaller it becomes.
 
+the goal of coarse grained reuse and the methodology of fine-grained reused are fundamentally at odds with each other.
+
 The second dilemma is even more critical. I call it **The Prediction Paradox**.
 This entire model depends on architects being able to predict the future. They have to define all the necessary extension points in advance.
 If they create too *few* extension points, the architecture is rigid and brittle. It cannot handle unexpected customer requests.
@@ -126,12 +120,6 @@ But if they try to solve this by creating too *many* extension points, the archi
 And this brings us to a crucial insight. These are not just small issues you can fix with better engineering. These are **fundamental limits** of the entire component-based, or 'additive,' approach. To go further, we don't just need a better method. We need a completely new way of thinking."
 
 **[Click to Next Slide]**
-
-Of course. That's a much more direct and compelling way to introduce the analogy. It frames physics not just as an "inspiration" but as a parallel truth.
-
-Here is the revised script for Slide 7 with that exact change.
-
----
 
 ### Slide 7: Inspiration from Physics: A New Duality for Software
 
@@ -142,6 +130,8 @@ Here is the revised script for Slide 7 with that exact change.
 First, there is the **Particle View**. This is the world of reductionism. We break complex systems down into their smallest atoms to understand them. This is *exactly* how our industry has approached software for the last 50 years. We decompose systems into their atomic parts—objects, functions, and components—and then we **assemble** these parts to build the whole. This is the world we live in now.
 
 But physics teaches us there is another, equally valid perspective: the **Wave View**. In this world, reality is not about assembling parts. It is about **superposition**. It's about different waves that overlay and combine to create the final, complex pattern we observe.
+
+waves are continous patterns that can be combined and overlaid, creating new patterns through interference.
 
 This wave view inspires a radical new thought. What if we could apply this same duality to how we build software? This leads us to the central, provocative question on this slide:
 
@@ -156,7 +146,7 @@ This simple question changes everything, and it's the key to the solution I'm ab
 
 **(Script):**
 
-"So, how do we formalize this idea of 'superposition' in software? Let's trace the evolution of reuse.
+"So, how do we formalize this idea of 'superposition' in software? Let's trace the evolution of programming paradigms.
 
 First, we had **Object-Oriented** programming, which is based on inheritance. A derived class `B` inherits from a base class `A`. This means `B` has more than `A`, but the difference—the delta—is **implicit**. It's not defined as a separate, manageable thing. The result? Reuse is trapped and constrained within the inheritance hierarchy.
 
@@ -198,7 +188,8 @@ If you follow this logic, the 'base' itself is just the very first Delta applied
 
 **(Script):**
 
-"Now, the theory I just presented might sound abstract. But what if I told you that most of you in this room are already using it every single day?
+while this may sound abstract, the truth is, this concept is already at work in a tool that many of you used every single day without even thinking about it.
+
 
 Let's look at Docker. The formula for building a Docker container is:
 
@@ -208,9 +199,7 @@ Now, let's map this directly to our theory.
 
 The `Dockerfile` is the DSL. It's a simple, text-based language. The `DockerBuild` tool acts as our **Generator**. It reads the `Dockerfile` and executes the commands, unfolding that simple script into a complete filesystem layer, or image.
 
-And here is the genius of Docker's approach. It didn't have to invent all the generators from scratch. It brilliantly leveraged decades of work from the Linux community. Every command-line tool—like `apt-get`, `yum`, `cp`, or `mkdir`—is itself a powerful, pre-existing generator. The Dockerfile simply orchestrates them. **By doing this, Docker automatically gained access to a massive library of reliable, battle-tested generators.**
-
-And the `overlay-fs`? This is a perfect real-world implementation of our `x-extends` operator. It non-invasively superimposes these new layers on top of the base image, without modifying the layers underneath. Each layer is a delta.
+the OverlayFs is a perfect real-world implementation of our `x-extends` operator. It non-invasively superimposes these new layers on top of the base image, without modifying the layers underneath. Each layer is a delta.
 
 This isn't some far-off academic concept. It is a proven, industrial-scale pattern, hiding in plain sight. It demonstrates that building systems via superposition of deltas is not just possible, but practical and incredibly powerful."
 
@@ -232,9 +221,10 @@ The new result will naturally be the original result, combined with a `Δ_Total`
 
 This shows us that deltas arise naturally from any process of change. The general form, **`Y = F(X) + Delta`**, is the inevitable structure of any evolving system.
 
-And this leads to a very powerful conclusion: **any software practice that deals with evolution, change, or variation can be understood and guided by the principles of Reversible Computation theory.**
+So, any innovation based on the concept of "deltas" or "diffs" can be understood and guided by the principles of Reversible Computation.
 
 This understanding is the true **paradigm shift**. We stop treating change as a messy side effect. Instead, we treat change itself as a first-class citizen—a pure, structured piece of data that we can manage, store, and combine.
+
 
 Now that we understand this principle, let's see how we can implement it."
 
@@ -267,7 +257,7 @@ This mechanism is simple, powerful, and completely non-invasive. The base produc
 
 **(Script):**
 
-"File-level overlays are powerful, but sometimes they are too much. What if you only need to change one line inside a large configuration file?
+"File-level overlays are powerful, but sometimes the granularity is larger than neceassary.
 
 For this, we need a more precise tool. I call this the **intra-file surgical scalpel**. This allows us to perform fine-grained modifications inside structured files like XML, JSON, or YAML.
 
@@ -298,7 +288,7 @@ The goal is to have **one customization mechanism for every engine in our stack*
 
 Instead, we use a single, elegant pattern: the **'Loader as Generator'**.
 
-The process is simple. For any engine in our stack, we replace its native loader with our universal Delta-aware loader. This new loader becomes the Generator. It non-intrusively finds the base configuration and any active deltas, merges them, and generates the final model that the engine expects.
+The process is simple. For any engine in our stack, we replace its native model file loader with our universal Delta-aware loader. This new loader becomes the Generator. It non-intrusively finds the base configuration and any active deltas, merges them, and generates the final model that the engine expects.
 
 **The impact of this approach is profound. By adapting the loaders at each layer of our technology stack, we gain the ability to customize everything—from the database to the UI—using a single, consistent delta mechanism. This is what enables true, seamless full-stack customization.**
 
