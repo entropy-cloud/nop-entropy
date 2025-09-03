@@ -144,7 +144,7 @@ public class DictProvider implements IDictProvider {
     protected DictBean defaultLoadDictBean(String locale, String dictName, IEvalContext ctx) {
         DictBean dict = staticDicts.get(dictName);
         if (dict != null) {
-            LOG.debug("nop.dict.use-static-dict:dictName={},loc=", dictName, dict.getLocation());
+            LOG.debug("nop.dict.use-static-dict:dictName={},loc={}", dictName, dict.getLocation());
             return dict;
         }
 

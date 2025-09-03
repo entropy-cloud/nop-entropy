@@ -92,7 +92,7 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
         }
 
         @Override
-        public CompletableFuture<?> getPromise() {
+        public CompletableFuture<Object> getPromise() {
             return promise;
         }
 
@@ -167,14 +167,41 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
     void queueTask(State state, IExecution<?> task) {
         executor.execute(() -> {
             state.setStartTime(CoreMetrics.currentTimestamp());
-            if (state.isCancelled())
-                return;
 
+            // 已取消则及时清理，避免泄漏
+            if (state.isCancelled()) {
+                states.remove(state.getTaskName(), state);
+                return;
+            }
+
+            startedTasks.incrementAndGet();
             try {
                 CompletionStage<?> future = task.executeAsync(state);
+
+                // 任务完成时的清理与指标更新
+                future.whenComplete((res, ex) -> {
+                    try {
+                        if (ex != null) {
+                            state.getPromise().completeExceptionally(ex);
+                        } else {
+                            state.getPromise().complete(res);
+                        }
+                    } finally {
+                        completedTasks.incrementAndGet();
+                        startedTasks.decrementAndGet();
+                        // 仅当 Map 中仍是该 state 时才移除，防止 replaceTask 后误删
+                        states.remove(state.getTaskName(), state);
+                    }
+                });
+
+                // 继续保留取消绑定，确保 state.promise 取消时可取消 future
                 FutureHelper.bindCancel(future, state.getPromise());
             } catch (Exception e) {
+                // executeAsync 抛出同步异常时也要做清理
                 state.getPromise().completeExceptionally(e);
+                completedTasks.incrementAndGet();
+                startedTasks.decrementAndGet();
+                states.remove(state.getTaskName(), state);
             }
         });
     }

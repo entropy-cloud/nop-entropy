@@ -86,13 +86,13 @@ public interface CoreConfigs {
 
     @Description("组件编译缓存的保留时间，单位为毫秒")
     IConfigReference<Duration> CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT = varRef(s_loc,
-            "nop.core.components.resource-cache.timeout", Duration.class, null);
+            "nop.core.component.resource-cache.timeout", Duration.class, null);
 
     IConfigReference<Boolean> CFG_COMPONENT_RESOURCE_SUPPORT_SERIALIZE = varRef(s_loc,
-            "nop.core.components.resource-cache.support-serialize", Boolean.class, true);
+            "nop.core.component.resource-cache.support-serialize", Boolean.class, true);
 
     IConfigReference<Integer> CFG_COMPONENT_RESOURCE_REFRESH_MIN_INTERVAL = varRef(s_loc,
-            "nop.core.components.resource-cache.refresh-min-interval", Integer.class, 100);
+            "nop.core.component.resource-cache.refresh-min-interval", Integer.class, 100);
 
     @Description("在启用tenant定制的情况下，最多允许多少个tenant的数据缓存在内存中")
     IConfigReference<Integer> CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE = varRef(s_loc,
