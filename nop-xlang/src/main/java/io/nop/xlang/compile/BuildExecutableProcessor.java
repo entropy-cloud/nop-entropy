@@ -1273,7 +1273,7 @@ public class BuildExecutableProcessor extends XLangASTProcessor<IExecutableExpre
                     .param(ARG_FUNC_NAME, fn.getName()).source(node).param(ARG_EXPR,
                             fn.getName() + "(" + StringHelper.join(Arrays.asList(argExprs), ",") + ")");
 
-        IExecutableExpression[] ret = new IExecutableExpression[fn.getArgCount()];
+        IExecutableExpression[] ret = new IExecutableExpression[Math.max(argExprs.length,fn.getArgCount())];
         System.arraycopy(argExprs, 0, ret, 0, argExprs.length);
         for (int i = argExprs.length, n = ret.length; i < n; i++) {
             ret[i] = NullExecutable.NULL;

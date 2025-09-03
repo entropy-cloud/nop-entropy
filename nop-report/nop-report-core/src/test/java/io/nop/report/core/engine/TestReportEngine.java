@@ -114,6 +114,22 @@ public class TestReportEngine extends BaseTestCase {
     }
 
     @Test
+    public void testSumValues() {
+        IReportEngine reportEngine = newReportEngine();
+
+
+        ExcelWorkbook workbook = reportEngine.getXptModel("/nop/report/demo/test-sum-values.xpt.xlsx");
+        ITextTemplateOutput htmlRenderer = (ITextTemplateOutput) reportEngine.getRendererForXptModel(workbook, "html");
+        String html = htmlRenderer.generateText(XLang.newEvalScope());
+        System.out.println(html);
+
+        FileHelper.writeText(getTargetFile("test-sum-values.html"), html, null);
+
+        ITemplateOutput output = reportEngine.getRendererForXptModel(workbook, "xlsx");
+        output.generateToFile(getTargetFile("test-sum-values.xpt.xlsx"), XLang.newEvalScope());
+    }
+
+    @Test
     public void testHidden() {
         IReportEngine reportEngine = newReportEngine();
 

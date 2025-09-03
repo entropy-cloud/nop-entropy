@@ -36,18 +36,21 @@ import static io.nop.report.core.XptErrors.ARG_EXPR;
 public class ReportFunctions {
 
     @Description("求和。忽略所有非数值类型")
-    public static Number SUM(@Name("values") Object values) {
-        if (values == null)
+    public static Number SUM(@Name("values") Object... values) {
+        if (values == null || values.length == 0)
             return null;
 
-        Iterator<Object> it = CollectionHelper.toIterator(values, true);
         Number ret = 0;
+        for (Object valueItem : values) {
+            Iterator<Object> it = CollectionHelper.toIterator(valueItem, true);
 
-        while (it.hasNext()) {
-            Object value = it.next();
-            if (!(value instanceof Number))
-                continue;
-            ret = MathHelper.add(ret, value);
+
+            while (it.hasNext()) {
+                Object value = it.next();
+                if (!(value instanceof Number))
+                    continue;
+                ret = MathHelper.add(ret, value);
+            }
         }
         return ret;
     }

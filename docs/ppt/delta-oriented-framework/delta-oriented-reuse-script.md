@@ -172,6 +172,8 @@ For software construction, this general paradigm has a specific technical route,
 
 Let's break this down.
 
+DSLs are specially designed for a given business domain, so it is much more efficient to express domain logic than general purpose programming language
+
 The **Generator** is like the deduction of a mathematical theorem. It takes a small set of core knowledge—the 'kernel of truth'—and automatically derives and unfolds it into a complete, runnable application.
 
 This 'kernel of truth' is not expected to cover every single requirement. A good model describes the core trend, the stable, underlying law. Specific customer needs are like random data points around that trend line.
