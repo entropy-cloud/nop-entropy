@@ -249,7 +249,7 @@
     <div id="presentation-container">
         <!-- UI Elements -->
         <div id="progress-bar"></div>
-        <div id="slide-counter">1 / 16</div>
+        <div id="slide-counter">1 / 21</div>
 
         <!-- Slides Viewport -->
         <div class="slides-viewport">
@@ -423,7 +423,7 @@ flowchart TD
     </div>
 </section>
 
-<!-- Slide: Physics Inspiration -->
+<!-- Slide 6: Physics Inspiration -->
 <section class="slide">
     <h2>来自物理学的启发</h2>
     
@@ -481,13 +481,116 @@ flowchart TD
             </div>
         </li>
     </ul>
+    <div class="code-block" style="display: flex; align-items: center; justify-content: center; gap: 1.25rem; padding: 1.5rem; flex-wrap: wrap;">
+        
+        <span style="font-size: 1.5rem; font-weight: 600; color: var(--color-primary-dark);">可逆差量</span>
+        
+        <span style="font-size: 1.5rem; font-weight: 600;">+</span>
+        
+        <span style="font-size: 1.5rem; font-weight: 600; color: var(--color-primary-dark);">模型驱动</span>
+        
+        <i class="fa-solid fa-arrow-right-long" style="font-size: 2rem; color: var(--color-primary);"></i>
+
+        <code style="font-family: var(--font-code); font-size: 1.5rem; font-weight: bold; color: var(--color-secondary);">
+            App = Delta x-extends Generator&lt;DSL&gt;
+        </code>
+    </div>
+
+</section>
+
+<!-- Slide 8: The Four Cornerstones -->
+<section class="slide">
+    <h2>颠覆传统可扩展性的四大基石</h2>
     
-    <div class="code-block is-centered" style="font-size: 1.5rem;font-weight:bold">
-        <code><strong>核心公式：</strong> App = Delta x-extends Generator&lt;DSL&gt;</code>
+    <style>
+        /* Scoped styles for this specific slide to create a 2x2 grid */
+        .cornerstone-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 2.5rem 2rem; /* Vertical and horizontal gap */
+            margin-top: 2.5rem;
+            height: 70%; /* Adjust height to fill space */
+        }
+        .cornerstone-item {
+            display: flex;
+            flex-direction: column;
+            background-color: var(--color-code-bg);
+            padding: 1.8rem;
+            border-radius: 12px;
+            border: 1px solid var(--color-border);
+            transition: all 0.3s ease;
+        }
+        .cornerstone-item:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--color-primary);
+        }
+        .cornerstone-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .cornerstone-header i {
+            font-size: 2.2rem;
+            color: var(--color-primary);
+            width: 40px;
+            text-align: center;
+        }
+        .cornerstone-header h3 {
+            font-size: 1.6rem;
+            margin-bottom: 0;
+            color: var(--color-text-dark);
+        }
+        .cornerstone-item p {
+            font-size: 1.1rem; /* Slightly smaller font for description */
+            color: var(--color-text-light);
+            line-height: 1.6;
+            margin-bottom: 0;
+        }
+    </style>
+    
+    <div class="cornerstone-grid">
+        <!-- Cornerstone 1: Unified Coordinate System -->
+        <div class="cornerstone-item">
+            <div class="cornerstone-header">
+                <i class="fa-solid fa-crosshairs"></i>
+                <h3>统一坐标系</h3>
+            </div>
+            <p>为系统万物建立唯一可寻址的坐标，实现从宏观文件到微观属性的任意粒度修改。</p>
+        </div>
+
+        <!-- Cornerstone 2: Algebraic Completeness -->
+        <div class="cornerstone-item">
+            <div class="cornerstone-header">
+                <i class="fa-solid fa-calculator"></i>
+                <h3>代数完备性</h3>
+            </div>
+            <p>形式化的“增、删、改”操作构成封闭代数，确保差量的最小化与精确性。</p>
+        </div>
+
+        <!-- Cornerstone 3: Recursive Self-Application -->
+        <div class="cornerstone-item">
+            <div class="cornerstone-header">
+                <i class="fa-solid fa-infinity"></i>
+                <h3>递归自应用</h3>
+            </div>
+            <p>平台自身（如模型定义、代码生成器）同样可被差量定制，实现架构的自我演化。</p>
+        </div>
+
+        <!-- Cornerstone 4: Collaborative Model Chain -->
+        <div class="cornerstone-item">
+            <div class="cornerstone-header">
+                <i class="fa-solid fa-link"></i>
+                <h3>协同模型链</h3>
+            </div>
+            <p>打破模型孤岛，构建 <code>A &rarr; _B &rarr; B</code> 式的自动化软件生产线，实现信息有序流动与复用。</p>
+        </div>
     </div>
 </section>
 
-<!-- Slide 8: Docker Reference -->
+<!-- Slide 9: Docker Reference -->
 <section class="slide">
     <h2>现实参照：Docker作为可逆计算的实践</h2>
     
@@ -516,12 +619,12 @@ flowchart TD
     </div>
 </section>
 
-<!-- Slide 9: Delta Customization -->
+<!-- Slide 10: Delta Customization -->
 <section class="slide">
     <h2>Delta定制</h2>
     <h3>非侵入式的精准修改</h3>
     
-    <ul class="icon-list">
+    <ul class="icon-list" >
         <li class="icon-bullet">
             <i class="fa-solid fa-file"></i>
             <div>
@@ -536,16 +639,15 @@ flowchart TD
         </li>
     </ul>
     
-    <pre class="code-block" style="margin:0"><code><span class="code-comment">&lt;!-- 差量文件示例 --&gt;</span>
+    <pre class="code-block" style="margin:0"><code><span class="code-comment">&lt;!-- 差量文件示例 /_delta/default/app/test.beans.xml --&gt;</span>
 &lt;beans <span class="code-attr">x:extends</span>=<span class="code-string">"super"</span>&gt;
     &lt;bean <span class="code-attr">id</span>=<span class="code-string">"service"</span> <span class="code-attr">class</span>=<span class="code-string">"com.cust.a.CustomService"</span>/&gt; 
     &lt;bean <span class="code-attr">id</span>=<span class="code-string">"oldService"</span> <span class="code-attr">x:override</span>=<span class="code-string">"remove"</span>/&gt;
-    &lt;bean <span class="code-attr">id</span>=<span class="code-string">"auditLogger"</span> <span class="code-attr">class</span>=<span class="code-string">"com.customer.AuditLogger"</span>
-          <span class="code-attr">feature:on</span>=<span class="code-string">"auditing.enabled"</span>/&gt;
+    &lt;bean <span class="code-attr">id</span>=<span class="code-string">"auditLogger"</span> <span class="code-attr">class</span>=<span class="code-string">"com.customer.AuditLogger"</span><span class="code-attr">feature:on</span>=<span class="code-string">"auditing.enabled"</span>/&gt;
 &lt;/beans&gt;</code></pre>
 </section>
 
-<!-- Slide 10: Nop Architecture -->
+<!-- Slide 11: Nop Architecture -->
 <section class="slide">
     <h2>Nop平台核心架构</h2>
     
@@ -671,7 +773,299 @@ flowchart TD
     </div>
 </section>
 
-            <!-- Slide 11: Why Nop is Next Gen -->
+<!-- Slide 12: Addressing Concerns  -->
+<section class="slide">
+    <h2>应对疑虑：性能与“银弹”谬误</h2>
+
+    <!-- Scoped styles for this slide's compact grid layout -->
+    <style>
+        .concern-grid-layout {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+        }
+        .concern-card {
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.2s ease-in-out;
+        }
+        .concern-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+        .concern-card h4 {
+            font-size: 1.1rem;
+            color: var(--color-text-dark);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .concern-card h4 i {
+            color: var(--color-primary);
+            font-size: 1.2rem;
+            width: 20px; /* Give icon a fixed width for alignment */
+            text-align: center;
+        }
+        .concern-card .details {
+            font-size: 0.95rem; /* Smaller font for details */
+            line-height: 1.6;
+            color: var(--color-text-light);
+            margin: 0;
+            flex-grow: 1; /* Allow details to fill space */
+        }
+        /* A simple, clean separator */
+        .grid-separator-line {
+            grid-column: 1 / -1; /* Span all columns */
+            border-bottom: 2px solid var(--color-border);
+            margin: 1.25rem 0; /* Adjusted margin for better spacing */
+        }
+    </style>
+
+    <div class="concern-grid-layout">
+        <!-- Row 1: Performance -->
+        <div class="concern-card">
+            <h4><i class="fa-solid fa-rocket"></i>一次性、预编译合并</h4>
+            <p class="details">差量合并在服务启动时（甚至Maven打包时）一次性完成，而非在每次请求时。</p>
+        </div>
+        <div class="concern-card">
+            <h4><i class="fa-solid fa-exchange-alt"></i>通过模型加载器预处理</h4>
+            <p class="details">通过替换原生引擎的模型加载器，一个增强的加载器会预先读取基础模型和差量，生成引擎所需的最终模型。</p>
+        </div>
+        <div class="concern-card">
+            <h4><i class="fa-solid fa-shield-alt"></i>运行时引擎无感知</h4>
+            <p class="details">运行时引擎操作的是已合并的最终模型，完全不知道“差量”的存在，从而实现100%原生性能。</p>
+        </div>
+        
+        <!-- Simple line separator -->
+        <div class="grid-separator-line"></div>
+
+		<!-- Row 2: Silver Bullet -->
+        <div class="concern-card">
+            <h4><i class="fa-solid fa-toolbox"></i>统一扩展能力</h4>
+            <p class="details">提供统一的、与领域无关的扩展能力，将“如何设计扩展点”这一难题标准化、平台化。</p>
+        </div>
+        <div class="concern-card">
+            <h4><i class="fa-solid fa-map-signs"></i>提供工具，而非答案</h4>
+            <p class="details">它提供更强大的工具，但架构师的智慧和决策依然是系统成功的关键。</p>
+        </div>
+        <div class="concern-card">
+            <h4><i class="fa-solid fa-lightbulb"></i>分离业务与扩展</h4>
+            <p class="details">DSL设计者只需关注业务逻辑，扩展性由平台保障。告别为每个模块设计特殊扩展点的窘境。</p>
+        </div>
+    </div>
+</section>
+
+<!-- Slide 13: Delta Oriented Framework Principle -->
+<section class="slide">
+    <h2>差量化框架：Loader as Generator原则</h2>
+
+    <!-- Scoped styles for this specific slide's layout -->
+    <style>
+        .flow-layout-3-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.5rem;
+            margin-top: 2rem;
+            width: 100%;
+        }
+        .flow-step {
+            flex: 1;
+            background-color: var(--color-code-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 280px; /* Ensure consistent height */
+        }
+        .flow-step h4 {
+            font-size: 1.2rem;
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+        }
+        .flow-step .details {
+            font-size: 1rem;
+            color: var(--color-text-light);
+            line-height: 1.6;
+        }
+        .flow-arrow {
+            font-size: 2.5rem;
+            color: var(--color-primary);
+            margin-top: 100px; /* Adjust vertical alignment */
+        }
+        /* Make the middle step slightly wider for the diagram */
+        .flow-step.middle {
+            flex: 1.2;
+        }
+        .flow-step .mermaid-container {
+            margin: 0;
+            padding: 0.5rem;
+            width: 100%;
+            background-color: #fff;
+        }
+    </style>
+
+    <div class="flow-layout-3-step">
+        <!-- Step 1: Replace -->
+        <div class="flow-step">
+            <h4>1. 替换原生加载器</h4>
+            <i class="fa-solid fa-cogs fa-3x" style="color: var(--color-secondary); margin: 1rem 0;"></i>
+            <p class="details">对于任何引擎（ORM、IoC等），用Nop的“差量感知加载器”替换其原生模型加载器。</p>
+        </div>
+
+        <div class="flow-arrow"><i class="fa-solid fa-arrow-right-long"></i></div>
+
+        <!-- Step 2: Merge & Generate (with Diagram) -->
+        <div class="flow-step middle">
+            <h4>2. 非侵入式合并与生成</h4>
+            <div class="mermaid-container">
+                <div class="mermaid">
+graph LR
+    subgraph Inputs
+        Base["📄 Base"]
+        Delta["🧩 Delta"]
+    end
+    Loader["✅<br/>Loader"]
+    Final["📦 Final"]
+
+    Base --> Loader
+    Delta --> Loader
+    Loader --> Final
+
+    style Delta fill:#A855F7,color:#fff
+                </div>
+            </div>
+            <p class="details" style="margin-top: 1rem;">加载器自动合并基础与差量模型，生成一个标准的最终模型。</p>
+        </div>
+
+        <div class="flow-arrow"><i class="fa-solid fa-arrow-right-long"></i></div>
+
+        <!-- Step 3: Achieve -->
+        <div class="flow-step">
+            <h4>3. 实现全栈一致性</h4>
+            <i class="fa-solid fa-layer-group fa-3x" style="color: var(--color-warning); margin: 1rem 0;"></i>
+            <p class="details">最终，我们获得了使用单一、一致的机制来定制从数据库到UI所有内容的能力。</p>
+        </div>
+    </div>
+
+    <div class="highlight-box" style="margin-top: 2.5rem;">
+        <p><strong>核心目标达成：</strong>为技术栈中的每一个引擎提供了统一的、与DSL无关的定制机制。</p>
+    </div>
+
+</section>
+
+<!-- Slide 14: Born to Debug -->
+<section class="slide">
+    <h2>为调试而生：告别黑盒</h2>
+    
+    <style>
+        .debug-flow {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin: 0;
+            width: 100%;
+        }
+        .debug-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .debug-col.output {
+            flex: 1.3; /* Give more space to the final output */
+        }
+        .debug-col h4 {
+            margin-bottom: 1rem;
+            text-align: center;
+            color: var(--color-text-dark);
+            font-size: 1.1rem;
+        }
+        .source-file {
+            background-color: var(--color-bg-slide);
+            border: 1px solid var(--color-border);
+            padding: 0.8em 1em;
+            border-radius: 6px;
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+            width: 100%;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-md);
+        }
+        .source-file .path {
+            font-weight: 600;
+            color: var(--color-secondary);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .process-arrow {
+            font-size: 4rem;
+            color: var(--color-primary);
+            text-align: center;
+        }
+        .process-arrow p {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            color: var(--color-primary-dark);
+        }
+    </style>
+
+    <div class="debug-flow">
+        <!-- Input Column -->
+        <div class="debug-col">
+            <h4>1. 输入源 (Input Sources)</h4>
+            <div class="source-file">
+                <span class="path">/base/config.beans.xml</span>
+                <code>&lt;beans>&lt;bean id="svc" class="app.MyService"&gt;<br>&nbsp;&nbsp;&lt;property name="timeout" value="<strong class="code-string">3000</strong>"/&gt;<br>&lt;/bean&gt;&lt;/beans></code>
+            </div>
+            <div class="source-file">
+                <span class="path">/_delta/default/base/config.beans.xml</span>
+                <code>&lt;beans x:extends="super">&lt;bean id="svc" &gt;<br>&nbsp;&nbsp;&lt;property name="timeout" value="<strong class="code-string">5000</strong>"/&gt;<br>&lt;/bean&gt;&lt;/beans></code>
+            </div>
+        </div>
+
+        <!-- Process Column -->
+        <div class="debug-col" style="flex: 0.3;">
+            <div class="process-arrow">
+                <i class="fa-solid fa-arrow-right-long"></i>
+                <p>统一合并<br>(XNode)</p>
+            </div>
+        </div>
+
+        <!-- Output Column -->
+        <div class="debug-col output">
+            <h4>2. 可追溯的输出 (Traceable Output)</h4>
+            <pre class="code-block" style="margin:0; width:100%; font-size: 0.85rem; line-height:1.7;"><code>&lt;beans&gt;
+<span class="dump-comment-v3">&lt;!--LOC:[2:6:0:0]/base/config.beans.xml
+    @id=[2:15:0:0]/_delta/default/base/config.beans.xml
+--&gt;</span>
+    &lt;bean id="svc" class="app.MyService"&gt;
+<span class="dump-comment-v3">&lt;!--LOC:[3:10:0:0]/base/config.beans.xml
+    @name=[3:25:0:0]/_delta/default/base/config.beans.xml
+--&gt;</span>
+        &lt;property name="timeout" value="<strong class="code-string">5000</strong>"/&gt;
+    &lt;/bean&gt;
+&lt;/beans&gt;</code></pre>
+        </div>
+    </div>
+    
+    <div class="highlight-box" style="margin-top:5px">
+        <p><strong>确定性的调试</strong>: Nop平台采用统一的XNode中间表示，跟踪每个属性的源码位置。最终合并节点（包含位置信息）自动输出到_dump目录。使得每一个配置的来源都有据可查，将调试从猜测变为精确溯源。</p>
+    </div>
+
+</section>
+
+            <!-- Slide 15: Why Nop is Next Gen -->
             <section class="slide">
                 <h2>为什么Nop是下一代软件技术架构</h2>
                 
@@ -700,7 +1094,7 @@ flowchart TD
                 </ul>
             </section>
 
-            <!-- Slide 12: Nop vs Spring -->
+            <!-- Slide 16: Nop vs Spring -->
             <section class="slide">
                 <h2>Nop vs. Spring 技术栈对比</h2>
                 
@@ -758,7 +1152,7 @@ flowchart TD
                 </table>
             </section>
 
-            <!-- Slide 13: Framework Neutral -->
+            <!-- Slide 17: Framework Neutral -->
             <section class="slide">
                 <h2>Nop：框架中立，无缝集成</h2>
                 
@@ -811,7 +1205,7 @@ flowchart TD
                 </div>
             </section>
 			
-<!-- Slide 14: Full-stack Model Driven Development -->
+<!-- Slide 18: Full-stack Model Driven Development -->
 <section class="slide">
     <h2>全栈模型驱动开发</h2>
     
@@ -924,11 +1318,11 @@ flowchart TD
     
     <div class="highlight-box" style="margin-top: 0; ">
     <p><strong>Nop平台内置的开发流程形成了完整的模型驱动开发闭环：</strong></p>
-    <p>Excel数据模型 → ORM模型 → Meta元数据模型 → 前端视图模型 → 页面文件，每个环节都支持差量修正。</p>
+    <p>Excel数据模型 → ORM模型 → Meta元数据模型 → 前端视图模型 → 页面文件，每个环节都支持差量修正，并构成了 ModelA -> _ModelB -> ModelB 式的协同生成链</p>
 </div>
 </section>			
 
-            <!-- Slide 14: Customization Examples -->
+            <!-- Slide 19: Customization Examples -->
             <section class="slide">
                 <h2>定制示例</h2>
                 
@@ -984,7 +1378,7 @@ flowchart TD
                 </div>
             </section>
 
-            <!-- Slide 15: Summary -->
+            <!-- Slide 20: Summary -->
             <section class="slide">
                 <h2>总结与展望</h2>
                 
@@ -1002,6 +1396,12 @@ flowchart TD
                             <p>从「1 core + N forks」到「1 base + N deltas」</p>
                         </div>
                     </li>
+					<li class="icon-bullet">
+						<i class="fa-solid fa-code"></i> <!-- 或者使用 fa-feather-alt -->
+						<div>
+							<p>从「命令式硬编码（Imperative Hardcoding）」到「声明式元编程（Declarative Metaprogramming）」</p>
+						</div>
+					</li>
                     <li class="icon-bullet">
                         <i class="fa-solid fa-square-plus"></i>
                         <div>
@@ -1015,7 +1415,7 @@ flowchart TD
                 </div>
             </section>
 
-<!-- Slide 16: Q&A -->
+<!-- Slide 21: Q&A -->
 <section class="slide title-slide">
     <h1>Q&A</h1>
     <p class="subtitle">问题与讨论</p>
