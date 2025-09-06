@@ -1,0 +1,5 @@
+<beans x:schema="/nop/schema/beans.xdef" x:extends="super">
+    <bean id="svc" >
+        <property name="timeout" value="5000" />
+    </bean>
+</beans>

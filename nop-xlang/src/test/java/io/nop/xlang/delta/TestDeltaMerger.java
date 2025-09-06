@@ -163,4 +163,11 @@ public class TestDeltaMerger extends BaseTestCase {
         node.dump();
         assertEquals(attachmentXmlText("merge3/result.action-auth.xml"),node.xml());
     }
+
+    @Test
+    public void testDump(){
+        IResource resource = getResource("/base/config.beans.xml");
+        XNode node = DslNodeLoader.INSTANCE.loadFromResource(resource).getNode();
+        node.dump();
+    }
 }

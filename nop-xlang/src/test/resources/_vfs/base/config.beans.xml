@@ -1,0 +1,5 @@
+<beans x:schema="/nop/schema/beans.xdef">
+    <bean id="svc" class="app.MyService">
+        <property name="timeout" value="3000" />
+    </bean>
+</beans>
