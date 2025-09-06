@@ -256,11 +256,25 @@ public class DocxToMarkdownConverter {
             XNode pStyle = pPr.childByTag("w:pStyle");
             if (pStyle != null) {
                 String styleName = pStyle.attrText("w:val");
-                if (styleName != null && styleName.startsWith("Heading")) {
-                    try {
-                        return Integer.parseInt(styleName.substring(7));
-                    } catch (NumberFormatException e) {
-                        // Fall through to default
+                if (styleName != null) {
+                    if (styleName.startsWith("Heading")) {
+                        try {
+                            return Integer.parseInt(styleName.substring(7));
+                        } catch (NumberFormatException e) {
+
+                        }
+                    } else if (styleName.matches("Title[0-9]+")) {
+                        try {
+                            return Integer.parseInt(styleName.substring(5));
+                        } catch (NumberFormatException e) {
+
+                        }
+                    } else if (styleName.matches("\\d+")) {
+                        try {
+                            return Integer.parseInt(styleName);
+                        } catch (NumberFormatException e) {
+
+                        }
                     }
                 }
             }
