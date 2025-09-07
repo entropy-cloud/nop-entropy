@@ -9,6 +9,7 @@ package io.nop.orm.persister;
 
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
+import io.nop.commons.util.CollectionHelper;
 import io.nop.core.model.graph.TopoEntry;
 import io.nop.orm.ILoadedOrmModel;
 import io.nop.orm.model.IEntityModel;
@@ -50,7 +51,7 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
         List<IBatchAction.EntitySaveAction> saveActions;
         // 按照id进行排序，避免更新时发生锁冲突
         Map<String, IBatchAction.EntityUpdateAction> updateActions;
-        List<IBatchAction.EntityDeleteAction> deleteActions;
+        Map<String, IBatchAction.EntityDeleteAction> deleteActions;
 
         public void addSaveAction(IBatchAction.EntitySaveAction action) {
             if (saveActions == null)
@@ -75,10 +76,18 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
             return new ArrayList<>(updateActions.values());
         }
 
+        List<IBatchAction.EntityDeleteAction> getDeleteActions() {
+            if (deleteActions == null)
+                return null;
+            if (deleteActions.size() == 1)
+                return Collections.singletonList(CollectionHelper.first(deleteActions.values()));
+            return new ArrayList<>(deleteActions.values());
+        }
+
         public void addDeleteAction(IBatchAction.EntityDeleteAction action) {
             if (deleteActions == null)
-                deleteActions = new ArrayList<>();
-            deleteActions.add(action);
+                deleteActions = new TreeMap<>();
+            deleteActions.put(String.valueOf(action.getEntityId()), action);
         }
     }
 
@@ -151,17 +160,17 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
                 BatchActionHolder holder = entry.getValue();
                 IEntityPersister persister = model.requireEntityPersister(entityModel.getName());
                 CompletionStage<Void> future = persister.batchExecuteAsync(true, querySpace, holder.saveActions,
-                        holder.getUpdateActions(), holder.deleteActions, session);
+                        holder.getUpdateActions(), holder.getDeleteActions(), session);
 
                 FutureHelper.collectWaiting(future, futures);
                 // 已经出现异常，没有必要再继续执行
-                if(FutureHelper.isError(future)) {
+                if (FutureHelper.isError(future)) {
                     bError = true;
                     break;
                 }
             }
 
-            if(!bError) {
+            if (!bError) {
                 for (Map.Entry<TopoEntry<? extends IEntityModel>, BatchActionHolder> entry : actionMap.descendingMap()
                         .entrySet()) {
                     IEntityModel entityModel = entry.getKey().getValue();
@@ -169,7 +178,7 @@ public class BatchActionQueueImpl implements IBatchActionQueue {
                     IEntityPersister persister = model.requireEntityPersister(entityModel.getName());
 
                     CompletionStage<Void> future = persister.batchExecuteAsync(false, querySpace, holder.saveActions,
-                            holder.getUpdateActions(), holder.deleteActions, session);
+                            holder.getUpdateActions(), holder.getDeleteActions(), session);
                     FutureHelper.collectWaiting(future, futures);
 
                     // 已经出现异常，没有必要再继续执行
