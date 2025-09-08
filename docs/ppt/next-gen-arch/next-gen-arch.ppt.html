@@ -248,7 +248,7 @@
         }
         
         .pdf-page-container { width: 100%; height: auto; background: white; color: black; box-shadow: none; }
-        .pdf-slide { position: relative !important; opacity: 1 !important; visibility: visible !important; transform: none !important; height: auto !important; width: 100%; background: white; border: 1px solid #eeeeee; padding: 40px 50px; box-shadow: none; margin-bottom: 0; overflow: hidden; page-break-after: always; break-inside: avoid; aspect-ratio: 16 / 9; }
+        .pdf-slide { position: relative !important; opacity: 1 !important; visibility: visible !important; transform: none !important; height: auto !important; width: 100%; background: white; border: 1px solid #eeeeee; padding: 40px 50px; box-shadow: none; margin-bottom: 0; overflow: hidden; page-break-after: always; break-inside: avoid; aspect-ratio: 16 / 12; }
         .pdf-slide:last-of-type { page-break-after: avoid; }
     </style>
 </head>
@@ -847,7 +847,7 @@ flowchart TD
         </div>
         <div class="concern-card">
             <h4><i class="fa-solid fa-shield-alt"></i>运行时引擎无感知</h4>
-            <p class="details">运行时引擎操作的是已合并的最终模型，完全不知道“差量”的存在，从而实现100%原生性能。</p>
+            <p class="details">运行时引擎操作的是已合并的最终模型，完全不知道“差量”的存在，从而实现运行时100%原生性能。</p>
         </div>
         
         <!-- Simple line separator -->
@@ -1073,6 +1073,253 @@ graph LR
 
 </section>
 
+<!-- Slide: Core Mechanism - Programmable Evolution -->
+<section class="slide">
+ 
+    <!-- Container to center the SVG and ensure it scales correctly -->
+    <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: calc(100% - 100px); margin-top: 1.5rem;">
+        
+        <!-- The provided SVG is embedded here. 
+             A style attribute is added to make it responsive within its container. -->
+        <svg width="1200" height="675" viewBox="0 0 1200 675" xmlns="http://www.w3.org/2000/svg" style="max-width: 98%; height: auto;">
+            <defs>
+                <!-- 恢复原来的背景渐变 -->
+                <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#667eea"/>
+                <stop offset="100%" style="stop-color:#764ba2"/>
+                </linearGradient>
+                
+                <linearGradient id="cardGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#ffffff"/>
+                <stop offset="100%" style="stop-color:#f8fafc"/>
+                </linearGradient>
+                
+                <!-- 阴影 -->
+                <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000" flood-opacity="0.1"/>
+                </filter>
+                
+                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#667eea" flood-opacity="0.3"/>
+                </filter>
+            </defs>
+
+            <!-- 背景 -->
+            <rect width="100%" height="100%" fill="url(#bgGradient)"/>
+            
+            <!-- 装饰性几何图形 -->
+            <circle cx="100" cy="100" r="60" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.1"/>
+            <circle cx="1100" cy="575" r="80" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.1"/>
+            <polygon points="200,600 250,550 300,600 250,650" fill="#ffffff" opacity="0.05"/>
+
+            <!-- 主标题 -->
+            <text x="600" y="80" text-anchor="middle" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="42" font-weight="700" fill="#ffffff">
+                让演化可编程
+            </text>
+            
+            <text x="600" y="120" text-anchor="middle" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="18" font-weight="400" fill="#ffffff" opacity="0.8">
+                XLang 与可逆计算的结构化范式
+            </text>
+
+            <!-- 核心公式卡片 -->
+            <g transform="translate(200, 180)">
+                <rect x="0" y="0" width="800" height="80" rx="20" 
+                    fill="url(#cardGradient)" filter="url(#shadow)"/>
+                
+                <!-- 一行显示的公式 -->
+                <text x="400" y="50" text-anchor="middle" 
+                    font-family="'JetBrains Mono', monospace" 
+                    font-size="28" font-weight="600" fill="#1e293b">
+                App = Delta <tspan fill="#3b82f6">x-extends</tspan> Generator&lt;DSL&gt;
+                </text>
+            </g>
+
+            <!-- 三个核心概念卡片 -->
+            
+            <!-- DSL 卡片 -->
+            <g transform="translate(80, 320)">
+                <rect x="0" y="0" width="320" height="220" rx="24" 
+                    fill="url(#cardGradient)" filter="url(#shadow)"/>
+                
+                <!-- 图标 -->
+                <circle cx="60" cy="60" r="30" fill="#3b82f6" opacity="0.1"/>
+                <text x="60" y="70" text-anchor="middle" 
+                    font-family="system-ui" font-size="28" fill="#3b82f6">🗂</text>
+                
+                <!-- 标题 -->
+                <text x="110" y="50" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="24" font-weight="700" fill="#1e293b">
+                DSL 森林
+                </text>
+                <text x="110" y="75" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="14" font-weight="400" fill="#64748b">
+                领域坐标系
+                </text>
+                
+                <!-- 特性列表 -->
+                <text x="40" y="120" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="16" font-weight="500" fill="#475569">
+                • 统一元模型定义
+                </text>
+                <text x="40" y="145" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="16" font-weight="500" fill="#475569">
+                • XPath 稳定路径
+                </text>
+                <text x="40" y="170" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="16" font-weight="500" fill="#475569">
+                • 跨 DSL 协同
+                </text>
+                
+                <!-- 代码示例 -->
+                <rect x="20" y="185" width="280" height="25" rx="8" fill="#f1f5f9"/>
+                <text x="30" y="202" 
+                    font-family="'JetBrains Mono', monospace" 
+                    font-size="12" fill="#64748b">
+                /app/entity[@name='User']/column[1]
+                </text>
+            </g>
+
+            <!-- Delta 卡片 -->
+            <g transform="translate(440, 320)">
+                <rect x="0" y="0" width="320" height="220" rx="24" 
+                    fill="url(#cardGradient)" filter="url(#shadow)"/>
+                
+                <!-- 图标 -->
+                <circle cx="60" cy="60" r="30" fill="#f59e0b" opacity="0.1"/>
+                <text x="60" y="70" text-anchor="middle" 
+                    font-family="system-ui" font-size="28" fill="#f59e0b">⚡</text>
+                
+                <!-- 标题 -->
+                <text x="110" y="50" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="24" font-weight="700" fill="#1e293b">
+                Delta 差量
+                </text>
+                <text x="110" y="75" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="14" font-weight="400" fill="#64748b">
+                可逆演化单元
+                </text>
+                
+                <!-- 特性列表 -->
+                <text x="40" y="120" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="16" font-weight="500" fill="#475569">
+                • 删除语义支持
+                </text>
+                <text x="40" y="145" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="16" font-weight="500" fill="#475569">
+                • 满足结合律
+                </text>
+                <text x="40" y="170" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="16" font-weight="500" fill="#475569">
+                • 可组合复用
+                </text>
+                
+                <!-- 公式 -->
+                <rect x="20" y="185" width="280" height="25" rx="8" fill="#fef3c7"/>
+                <text x="160" y="202" text-anchor="middle"
+                    font-family="'JetBrains Mono', monospace" 
+                    font-size="12" fill="#92400e">
+                (A ⊕ B) ⊕ C = A ⊕ (B ⊕ C)
+                </text>
+            </g>
+
+            <!-- Generator 卡片 -->
+            <g transform="translate(800, 320)">
+                <rect x="0" y="0" width="320" height="220" rx="24" 
+                    fill="url(#cardGradient)" filter="url(#shadow)"/>
+                
+                <!-- 图标 -->
+                <circle cx="60" cy="60" r="30" fill="#10b981" opacity="0.1"/>
+                <text x="60" y="70" text-anchor="middle" 
+                    font-family="system-ui" font-size="28" fill="#10b981">⚙️</text>
+                
+                <!-- 标题 -->
+                <text x="110" y="50" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="24" font-weight="700" fill="#1e293b">
+                Generator
+                </text>
+                <text x="110" y="75" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="14" font-weight="400" fill="#64748b">
+                编译期生成引擎
+                </text>
+                
+                <!-- 特性列表 -->
+                <text x="40" y="120" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="16" font-weight="500" fill="#475569">
+                • 多阶段编译
+                </text>
+                <text x="40" y="145" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="16" font-weight="500" fill="#475569">
+                • 结构化生成
+                </text>
+                <text x="40" y="170" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="16" font-weight="500" fill="#475569">
+                • 源码可追溯
+                </text>
+                
+                <!-- 工具链 -->
+                <g transform="translate(20, 185)">
+                <rect x="0" y="0" width="80" height="25" rx="8" fill="#dcfce7"/>
+                <text x="40" y="17" text-anchor="middle"
+                        font-family="'SF Pro Display', system-ui, sans-serif" 
+                        font-size="12" font-weight="600" fill="#166534">
+                    XDef
+                </text>
+                
+                <rect x="90" y="0" width="80" height="25" rx="8" fill="#dcfce7"/>
+                <text x="130" y="17" text-anchor="middle"
+                        font-family="'SF Pro Display', system-ui, sans-serif" 
+                        font-size="12" font-weight="600" fill="#166534">
+                    Xpl
+                </text>
+                
+                <rect x="180" y="0" width="80" height="25" rx="8" fill="#dcfce7"/>
+                <text x="220" y="17" text-anchor="middle"
+                        font-family="'SF Pro Display', system-ui, sans-serif" 
+                        font-size="12" font-weight="600" fill="#166534">
+                    XScript
+                </text>
+                </g>
+            </g>
+
+            <!-- 底部亮点 -->
+            <g transform="translate(300, 580)">
+                <rect x="0" y="0" width="600" height="60" rx="30" 
+                    fill="#ffffff" fill-opacity="0.15" filter="url(#glow)"/>
+                <text x="300" y="30" text-anchor="middle" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="16" font-weight="600" fill="#ffffff">
+                从句法范式到结构空间构造规则的根本性重构
+                </text>
+                <text x="300" y="50" text-anchor="middle" 
+                    font-family="'SF Pro Display', system-ui, sans-serif" 
+                    font-size="14" font-weight="400" fill="#ffffff" opacity="0.8">
+                Map → Tree 升维 · 删除语义回归 · 编译期元编程
+                </text>
+            </g>
+
+        </svg>
+    </div>
+</section>
+
             <!-- Slide 15: Why Nop is Next Gen -->
             <section class="slide">
                 <h2>为什么Nop是下一代软件技术架构</h2>
@@ -1110,7 +1357,7 @@ graph LR
                     <tr>
                         <th>领域</th>
                         <th>Nop</th>
-                        <th>Spring</th>
+                        <th>Spring生态</th>
                     </tr>
                     <tr>
                         <td><strong>脚本语言</strong></td>
