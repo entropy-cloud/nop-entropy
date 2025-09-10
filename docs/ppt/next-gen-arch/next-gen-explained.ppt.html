@@ -543,6 +543,71 @@ Y = X ⊕ (-C ⊕ D)
     </div>
 </section>
 
+<!-- [FINAL POLISHED] Single, Masterpiece Slide for XDef -->
+<section class="slide">
+    <h2>XDef: 面向演化的统一元模型</h2>
+    <p style="text-align:center; margin-top:-1.5rem; margin-bottom: 2rem;">
+        通过三大核心支柱，XDef将<strong>DSL工具链的开发</strong>从O(N)的重复劳动降维至O(1)的创造性工作。
+    </p>
+
+    <!-- Three-Pillar Layout -->
+    <div class="three-column" style="align-items: stretch; gap: 1.5rem;margin-top:0">
+        
+        <!-- Pillar 1: Homomorphic & Unified Design -->
+        <div class="item" style="text-align:left; border-color:var(--color-primary); background: #eff6ff; display: flex; flex-direction: column;">
+            <!-- Flex Header for Icon and Title -->
+            <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.2rem;">
+                <i class="fa-solid fa-clone" style="font-size: 2rem; margin: 0;"></i>
+                <h4 style="margin: 0;">1. 同态统一的设计 (基础)</h4>
+            </div>
+            <p style="font-size:1.1rem;">
+                <strong>同态</strong>: 元模型与实例结构相同，将AI生成任务从“语言映射”降维为“<strong>模式填空</strong>”。<br>
+                <strong>统一</strong>: 所有DSL共享统一的元模型语言，为无损格式转换(JSON/Excel)和语法/语义一致性提供了静态基础。
+            </p>
+            <div class="detail-note" style="background:#fff; font-size:1rem; padding:0.8rem;">
+                <strong>元模型:</strong> <code>&lt;task name="!string"/&gt;</code><br>
+                <strong>实例:</strong> &nbsp;&nbsp;&nbsp;<code>&lt;task name="processOrder"/&gt;</code>
+            </div>
+        </div>
+
+        <!-- Pillar 2: Delta Merging & Evolution -->
+        <div class="item" style="text-align:left; border-color:var(--color-secondary); background: #f0fdf4; display: flex; flex-direction: column;">
+            <!-- Flex Header for Icon and Title -->
+            <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.2rem;">
+                <i class="fa-solid fa-code-merge" style="font-size: 2rem; margin: 0; color:var(--color-secondary);"></i>
+                <h4 style="margin: 0; color:var(--color-text-dark);">2. 受控的动态演化 (核心)</h4>
+            </div>
+            <p style="font-size:1.1rem;">
+                基于可逆计算理论，任何模型乃至元模型自身，都可以通过<code>x:extends</code>进行非侵入式的差量叠加与覆盖。这为系统提供了<strong>动态演化的能力</strong>。而<strong>阶段分离</strong>原则确保此过程安全可控：所有复杂性在<strong>加载期</strong>被预先计算，保证了<strong>运行期</strong>的绝对简单。
+            </p>
+            <pre class="code-block" style="font-size:0.8rem; padding: 0.8em 1em;"><code>&lt;!-- 扩展并覆盖(override)基础模型 --&gt;
+&lt;greeting x:extends="base.greeting.xml"&gt;
+  &lt;from x:override="replace"&gt;CEO&lt;/from&gt;
+&lt;/greeting&gt;</code></pre>
+        </div>
+
+        <!-- Pillar 3: O(1) Toolchain -->
+        <div class="item" style="text-align:left; border-color:var(--color-warning); background: #fffbeb; display: flex; flex-direction: column;">
+            <!-- Flex Header for Icon and Title -->
+            <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.2rem;">
+                <i class="fa-solid fa-gears" style="font-size: 2rem; margin: 0; color:var(--color-warning);"></i>
+                <h4 style="margin: 0; color:var(--color-text-dark);">3. O(1)自动化工具链 (价值)</h4>
+            </div>
+            <p style="font-size:1.1rem;">
+                基于统一设计与受控演化，平台只需一套能理解XDef的<strong>通用引擎</strong>，即可为所有DSL自动派生全套工具，实现<strong>一次投入，处处复用</strong>。
+            </p>
+            <ul class="icon-list" style="margin:auto 0 0 0; padding:0; list-style:none;">
+                <li style="font-size:1rem; gap:10px; margin-bottom:0.2rem;"><i class="fa-brands fa-java fa-fw"></i> 代码生成</li>
+                <li style="font-size:1rem; gap:10px; margin-bottom:0.2rem;"><i class="fa-solid fa-laptop-code fa-fw"></i> IDE 智能提示</li>
+                <li style="font-size:1rem; gap:10px; margin-bottom:0.2rem;"><i class="fa-solid fa-sitemap fa-fw"></i> 自动可视化支持</li>
+                <li style="font-size:1rem; gap:10px; margin-bottom:0.2rem;"><i class="fa-solid fa-bug fa-fw"></i> _dump 可追溯调试</li>
+            </ul>
+        </div>
+
+    </div>
+    
+</section>
+
 <!-- [OPTIMIZED ORDER] Slide 15 is moved here -->
 <section class="slide">
     <h2>告别猜谜：可追溯的构造过程</h2>
