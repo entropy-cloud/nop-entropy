@@ -27,7 +27,9 @@ import io.nop.report.core.engine.IXptRuntime;
 import io.nop.report.core.model.ExpandedCell;
 import io.nop.report.core.model.ExpandedCellSet;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 
 import static io.nop.report.core.XptErrors.ARG_EXPR;
@@ -298,4 +300,251 @@ public class ReportFunctions {
 //                             @Name("shift") @Optional Integer shift) {
 //        return null;
 //    }
+
+    //============以下函数为AI生成
+    @Description("计算标准差")
+    public static Number STDEV(@Name("values") Object values) {
+        if (values == null)
+            return null;
+
+        Iterator<Object> it = CollectionHelper.toIterator(values, true);
+        List<Number> numbers = new ArrayList<>();
+
+        while (it.hasNext()) {
+            Object value = it.next();
+            if (value instanceof Number) {
+                numbers.add((Number) value);
+            }
+        }
+
+        if (numbers.size() < 2)
+            return null;
+
+        // 计算平均值
+        double sum = 0;
+        for (Number num : numbers) {
+            sum += num.doubleValue();
+        }
+        double mean = sum / numbers.size();
+
+        // 计算方差
+        double variance = 0;
+        for (Number num : numbers) {
+            variance += Math.pow(num.doubleValue() - mean, 2);
+        }
+        variance /= (numbers.size() - 1); // 样本标准差使用n-1
+
+        return Math.sqrt(variance);
+    }
+
+    @Description("计算方差")
+    public static Number VAR(@Name("values") Object values) {
+        if (values == null)
+            return null;
+
+        Iterator<Object> it = CollectionHelper.toIterator(values, true);
+        List<Number> numbers = new ArrayList<>();
+
+        while (it.hasNext()) {
+            Object value = it.next();
+            if (value instanceof Number) {
+                numbers.add((Number) value);
+            }
+        }
+
+        if (numbers.size() < 2)
+            return null;
+
+        // 计算平均值
+        double sum = 0;
+        for (Number num : numbers) {
+            sum += num.doubleValue();
+        }
+        double mean = sum / numbers.size();
+
+        // 计算方差
+        double variance = 0;
+        for (Number num : numbers) {
+            variance += Math.pow(num.doubleValue() - mean, 2);
+        }
+        return variance / (numbers.size() - 1); // 样本方差使用n-1
+    }
+
+    @Description("条件计数")
+    public static Number COUNTIF(@Name("range") Object range,
+                                 @Name("condition") Object condition) {
+        if (range == null || condition == null)
+            return null;
+
+        Iterator<Object> it = CollectionHelper.toIterator(range, true);
+        int count = 0;
+
+        // 将条件转换为可比较的形式
+        Object conditionValue = resolveValue(condition);
+
+        while (it.hasNext()) {
+            Object value = it.next();
+            value = resolveValue(value);
+
+            if (matchesCondition(value, conditionValue)) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    @Description("条件求和")
+    public static Number SUMIF(@Name("range") Object range,
+                               @Name("condition") Object condition,
+                               @Name("sumRange") @Optional Object sumRange) {
+        if (range == null || condition == null)
+            return null;
+
+        Iterator<Object> rangeIt = CollectionHelper.toIterator(range, true);
+        Iterator<Object> sumIt = sumRange != null ?
+                CollectionHelper.toIterator(sumRange, true) : rangeIt;
+
+        Object conditionValue = resolveValue(condition);
+        Number sum = 0;
+
+        while (rangeIt.hasNext() && sumIt.hasNext()) {
+            Object rangeValue = rangeIt.next();
+            Object sumValue = sumIt.next();
+
+            rangeValue = resolveValue(rangeValue);
+            sumValue = resolveValue(sumValue);
+
+            if (matchesCondition(rangeValue, conditionValue) && sumValue instanceof Number) {
+                sum = MathHelper.add(sum, sumValue);
+            }
+        }
+
+        return sum;
+    }
+
+    @Description("连接文本")
+    public static String CONCAT(@Name("values") Object... values) {
+        if (values == null || values.length == 0)
+            return null;
+
+        StringBuilder sb = new StringBuilder();
+        for (Object valueItem : values) {
+            Iterator<Object> it = CollectionHelper.toIterator(valueItem, true);
+
+            while (it.hasNext()) {
+                Object value = it.next();
+                if (value != null) {
+                    sb.append(value.toString());
+                }
+            }
+        }
+
+        return sb.toString();
+    }
+
+    @Description("条件判断")
+    public static Object IF(@Name("condition") Object condition,
+                            @Name("trueValue") Object trueValue,
+                            @Name("falseValue") Object falseValue) {
+        condition = resolveValue(condition);
+        boolean boolCondition = ConvertHelper.toTruthy(condition);
+
+        if (boolCondition) {
+            return resolveValue(trueValue);
+        } else {
+            return resolveValue(falseValue);
+        }
+    }
+
+    // 辅助方法：判断值是否匹配条件
+    private static boolean matchesCondition(Object value, Object condition) {
+        if (condition instanceof String) {
+            String condStr = (String) condition;
+            // 支持通配符匹配
+            if (condStr.contains("*") || condStr.contains("?")) {
+                return StringHelper.matchSimplePattern(value != null ? value.toString() : "", condStr);
+            }
+            // 支持比较操作符
+            if (condStr.startsWith(">") || condStr.startsWith("<") ||
+                    condStr.startsWith(">=") || condStr.startsWith("<=") ||
+                    condStr.startsWith("=") || condStr.startsWith("<>")) {
+                return compareWithOperator(value, condStr);
+            }
+        }
+
+        // 默认相等比较
+        return Objects.equals(value, condition);
+    }
+
+    // 辅助方法：使用操作符比较
+    private static boolean compareWithOperator(Object value, String condition) {
+        try {
+            String op = condition.substring(0, condition.indexOf(condition.replaceAll("[^<>=]", "").charAt(0)) + 1);
+            String condValueStr = condition.substring(op.length()).trim();
+
+            if (value instanceof Number && StringHelper.isNumber(condValueStr)) {
+                double numValue = ((Number) value).doubleValue();
+                double condValue = Double.parseDouble(condValueStr);
+
+                switch (op) {
+                    case ">": return numValue > condValue;
+                    case "<": return numValue < condValue;
+                    case ">=": return numValue >= condValue;
+                    case "<=": return numValue <= condValue;
+                    case "=": return numValue == condValue;
+                    case "<>": return numValue != condValue;
+                    default: return false;
+                }
+            }
+        } catch (Exception e) {
+            // 解析失败，回退到字符串比较
+        }
+
+        // 字符串比较
+        String valueStr = value != null ? value.toString() : "";
+        String condValueStr = condition.replaceFirst("[<>=]+", "").trim();
+
+        int comparison = valueStr.compareTo(condValueStr);
+        switch (condition.replaceAll("[^<>=]", "")) {
+            case ">": return comparison > 0;
+            case "<": return comparison < 0;
+            case ">=": return comparison >= 0;
+            case "<=": return comparison <= 0;
+            case "=": return comparison == 0;
+            case "<>": return comparison != 0;
+            default: return false;
+        }
+    }
+
+    @Description("计算中位数")
+    public static Number MEDIAN(@Name("values") Object values) {
+        if (values == null)
+            return null;
+
+        Iterator<Object> it = CollectionHelper.toIterator(values, true);
+        List<Double> numbers = new ArrayList<>();
+
+        while (it.hasNext()) {
+            Object value = it.next();
+            if (value instanceof Number) {
+                numbers.add(((Number) value).doubleValue());
+            }
+        }
+
+        if (numbers.isEmpty())
+            return null;
+
+        // 排序
+        numbers.sort(Double::compareTo);
+
+        int size = numbers.size();
+        if (size % 2 == 1) {
+            // 奇数个元素，取中间值
+            return numbers.get(size / 2);
+        } else {
+            // 偶数个元素，取中间两个值的平均
+            return (numbers.get(size / 2 - 1) + numbers.get(size / 2)) / 2.0;
+        }
+    }
 }
