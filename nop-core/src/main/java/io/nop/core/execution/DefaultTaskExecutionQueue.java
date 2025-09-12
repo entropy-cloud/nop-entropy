@@ -29,6 +29,7 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
     private final AtomicLong completedTasks = new AtomicLong();
     private final AtomicLong failedTasks = new AtomicLong();
     private final AtomicLong cancelledTasks = new AtomicLong();
+    private final AtomicLong totalTasks = new AtomicLong();
 
     private ThreadPoolConfig threadPoolConfig;
     private IThreadPoolExecutor executor;
@@ -184,6 +185,10 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
         return cancelledTasks.get();
     }
 
+    public long getTotalTaskCount() {
+        return totalTasks.get();
+    }
+
     @Override
     public ITaskExecutionState addTaskIfAbsent(String taskRef, String taskName, String source, String description, IExecution<?> task) {
         State taskState = states.computeIfAbsent(taskRef, k -> {
@@ -196,6 +201,8 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
     }
 
     void queueTask(State state, IExecution<?> task) {
+        totalTasks.incrementAndGet();
+
         executor.execute(() -> {
             state.setStartTime(CoreMetrics.currentTimestamp());
 
@@ -328,5 +335,20 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
     @Override
     public void removeAllCompletedTasks() {
         states.entrySet().removeIf(entry -> entry.getValue().getPromise().isDone());
+    }
+
+    /**
+     * 获取任务队列统计信息
+     */
+    public TaskQueueStats getTaskQueueStats() {
+        return new TaskQueueStats(
+                getCurrentTaskCount(),
+                getRunningTaskCount(),
+                getPendingTaskCount(),
+                getCompletedTaskCount(),
+                getFailedTaskCount(),
+                getCancelledTaskCount(),
+                getTotalTaskCount()
+        );
     }
 }
