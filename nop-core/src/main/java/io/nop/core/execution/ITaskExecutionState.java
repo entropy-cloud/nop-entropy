@@ -6,6 +6,10 @@ import java.sql.Timestamp;
 import java.util.concurrent.CompletableFuture;
 
 public interface ITaskExecutionState extends ICancelToken {
+    String getTaskRef();
+
+    String getSource();
+
     String getTaskName();
 
     String getDescription();

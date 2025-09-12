@@ -18,20 +18,26 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITaskExecutionQueue {
     private final Map<String, State> states = new ConcurrentHashMap<>();
     private final AtomicInteger startedTasks = new AtomicInteger();
     private final AtomicLong completedTasks = new AtomicLong();
+    private final AtomicLong failedTasks = new AtomicLong();
+    private final AtomicLong cancelledTasks = new AtomicLong();
 
     private ThreadPoolConfig threadPoolConfig;
     private IThreadPoolExecutor executor;
     private boolean ownExecutor;
 
     static class State extends Cancellable implements ITaskExecutionState, IProgressListener {
+        private final String taskRef;
         private final String taskName;
+        private final String source;
         private final String description;
         private final CompletableFuture<Object> promise = new CompletableFuture<>();
         private final Timestamp queueTime = CoreMetrics.currentTimestamp();
@@ -40,14 +46,24 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
         private volatile long currentProgress;
         private volatile long progressTotal;
 
-        public State(String taskName, String description) {
+        public State(String taskRef, String taskName, String source, String description) {
+            this.taskRef = taskRef;
             this.taskName = taskName;
+            this.source = source;
             this.description = description;
+        }
+
+        public String getTaskRef() {
+            return taskRef;
         }
 
         @Override
         public String getTaskName() {
             return taskName;
+        }
+
+        public String getSource() {
+            return source;
         }
 
         @Override
@@ -149,14 +165,29 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
     }
 
     @Override
+    public int getPendingTaskCount() {
+        return getCurrentTaskCount() - getRunningTaskCount();
+    }
+
+    @Override
     public long getCompletedTaskCount() {
         return completedTasks.get();
     }
 
     @Override
-    public ITaskExecutionState addTaskIfAbsent(String taskName, String description, IExecution<?> task) {
-        State taskState = states.computeIfAbsent(taskName, k -> {
-            State state = new State(taskName, description);
+    public long getFailedTaskCount() {
+        return failedTasks.get();
+    }
+
+    @Override
+    public long getCancelledTaskCount() {
+        return cancelledTasks.get();
+    }
+
+    @Override
+    public ITaskExecutionState addTaskIfAbsent(String taskRef, String taskName, String source, String description, IExecution<?> task) {
+        State taskState = states.computeIfAbsent(taskRef, k -> {
+            State state = new State(taskRef, taskName, source, description);
             queueTask(state, task);
             return state;
         });
@@ -170,7 +201,8 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
 
             // 已取消则及时清理，避免泄漏
             if (state.isCancelled()) {
-                states.remove(state.getTaskName(), state);
+                states.remove(state.getTaskRef(), state);
+                cancelledTasks.incrementAndGet();
                 return;
             }
 
@@ -183,6 +215,7 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
                     try {
                         if (ex != null) {
                             state.getPromise().completeExceptionally(ex);
+                            failedTasks.incrementAndGet();
                         } else {
                             state.getPromise().complete(res);
                         }
@@ -190,7 +223,7 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
                         completedTasks.incrementAndGet();
                         startedTasks.decrementAndGet();
                         // 仅当 Map 中仍是该 state 时才移除，防止 replaceTask 后误删
-                        states.remove(state.getTaskName(), state);
+                        states.remove(state.getTaskRef(), state);
                     }
                 });
 
@@ -199,32 +232,101 @@ public class DefaultTaskExecutionQueue extends LifeCycleSupport implements ITask
             } catch (Exception e) {
                 // executeAsync 抛出同步异常时也要做清理
                 state.getPromise().completeExceptionally(e);
+                failedTasks.incrementAndGet();
                 completedTasks.incrementAndGet();
                 startedTasks.decrementAndGet();
-                states.remove(state.getTaskName(), state);
+                states.remove(state.getTaskRef(), state);
             }
         });
     }
 
     @Override
-    public ITaskExecutionState replaceTask(String taskName, String description, IExecution<?> task) {
-        State state = new State(taskName, description);
+    public ITaskExecutionState replaceTask(String taskRef, String taskName, String source, String description, IExecution<?> task) {
+        State state = new State(taskRef, taskName, source, description);
         queueTask(state, task);
 
-        State taskState = states.put(taskName, state);
-        if (taskState != null)
-            taskState.cancel();
+        State oldState = states.put(taskRef, state);
+        if (oldState != null) {
+            oldState.cancel("replaced by new task");
+            cancelledTasks.incrementAndGet();
+        }
 
         return state;
     }
 
     @Override
-    public ITaskExecutionState getTaskState(String taskName) {
-        return states.get(taskName);
+    public ITaskExecutionState getTaskState(String taskRef) {
+        return states.get(taskRef);
     }
 
     @Override
     public List<? extends ITaskExecutionState> getTaskStates() {
         return new ArrayList<>(states.values());
+    }
+
+    @Override
+    public List<? extends ITaskExecutionState> getTaskStatesBySource(String source) {
+        return states.values().stream()
+                .filter(state -> source.equals(state.getSource()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<? extends ITaskExecutionState> getTaskStatesByName(String taskName) {
+        return states.values().stream()
+                .filter(state -> taskName.equals(state.getTaskName()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public ITaskExecutionState waitForTask(String taskRef, long timeout, TimeUnit unit) throws InterruptedException {
+        State state = states.get(taskRef);
+        if (state == null)
+            return null;
+
+        try {
+            state.getPromise().get(timeout, unit);
+            return state;
+        } catch (java.util.concurrent.TimeoutException e) {
+            return null;
+        } catch (java.util.concurrent.ExecutionException e) {
+            return state;
+        }
+    }
+
+    @Override
+    public boolean waitForAllTasks(long timeout, TimeUnit unit) throws InterruptedException {
+        long endTime = System.currentTimeMillis() + unit.toMillis(timeout);
+
+        for (State state : new ArrayList<>(states.values())) {
+            long remaining = endTime - System.currentTimeMillis();
+            if (remaining <= 0)
+                return false;
+
+            try {
+                state.getPromise().get(remaining, TimeUnit.MILLISECONDS);
+            } catch (java.util.concurrent.TimeoutException e) {
+                return false;
+            } catch (java.util.concurrent.ExecutionException e) {
+                // 忽略执行异常，继续等待其他任务
+            }
+        }
+
+        return true;
+    }
+
+    @Override
+    public boolean removeCompletedTask(String taskRef) {
+        State state = states.get(taskRef);
+        if (state != null && state.getPromise().isDone()) {
+            states.remove(taskRef, state);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void removeAllCompletedTasks() {
+        states.entrySet().removeIf(entry -> entry.getValue().getPromise().isDone());
     }
 }
