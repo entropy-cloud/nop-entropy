@@ -929,6 +929,7 @@ public class SimpleExprParser extends AbstractExprParser<Expression> implements 
         for (Identifier name : names) {
             decls.add(ParameterDeclaration.valueOf(name));
         }
+        expr.setParams(decls);
         expr.setBody(body);
         return expr;
     }

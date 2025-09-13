@@ -319,6 +319,8 @@ public interface CommonErrors {
                     "未知的二进制标量类型:{typeName}, 允许的类型为:{allowedNames}", ARG_TYPE_NAME, ARG_ALLOWED_NAMES);
 
     // 文件操作错误码
+    ErrorCode ERR_FILE_INVALID_PATH = define("nop.err.file.invalid-path", "路径格式非法", ARG_PATH);
+
     ErrorCode ERR_FILE_NOT_FOUND = define("nop.err.file.not-found",
             "文件不存在: {path}", ARG_PATH);
 
@@ -330,6 +332,10 @@ public interface CommonErrors {
 
     ErrorCode ERR_FILE_DELETE_FAIL = define("nop.err.file.delete-fail",
             "删除文件失败: {path}", ARG_PATH);
+
+    ErrorCode ERR_FILE_ALREADY_EXISTS = define("nop.err.file.already-exists",
+            "文件已经存在:{path}",
+            ARG_PATH);
 
     ErrorCode ERR_FILE_MOVE_FAIL = define("nop.err.file.move-fail",
             "移动文件失败: 从 {sourcePath} 到 {targetPath}",

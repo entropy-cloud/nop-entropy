@@ -176,7 +176,13 @@ public class TestSimpleExprParser {
     }
 
     @Test
-    public void testConcat(){
+    public void testCompare() {
+        String expr = "L.sort((a,b)=> a > b ? 1:0)";
+        eval(expr);
+    }
+
+    @Test
+    public void testConcat() {
         String str = "'//File:' + filePath.$fileFullName()+'\\n\\n'+fileTextChunk";
         XLang.newCompileTool().allowUnregisteredScopeVar(true).compileSimpleExpr(null, str);
     }

@@ -271,6 +271,8 @@ public class XLangExpressionPrinter extends XLangASTVisitor {
                 visit(node.getConsequent());
             }
 
+            print(':');
+
             if (node.getAlternate() == null) {
                 print("null");
             } else {

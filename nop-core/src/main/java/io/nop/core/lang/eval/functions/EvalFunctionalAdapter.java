@@ -27,6 +27,7 @@ import io.nop.core.reflect.IPropertySetter;
 import io.nop.core.resource.IResourceObjectLoader;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -84,7 +85,7 @@ public class EvalFunctionalAdapter
         ToIntFunction<Object>, ToLongBiFunction<Object, Object>, ToLongFunction<Object>, IntFunction<Object>,
         DoubleFunction<Object>, LongFunction<Object>, IntBinaryOperator, LongBinaryOperator, DoubleBinaryOperator,
         IEvalAction, IEvalPredicate, IEqualsChecker<Object>, IPropertyGetter, IPropertySetter, IResourceObjectLoader,
-        IRetryPolicy.IRetryExceptionFilter {
+        IRetryPolicy.IRetryExceptionFilter, Comparator {
     public static final Set<Class<?>> SUPPORTED_INTERFACES = new HashSet<>(Arrays.asList(Runnable.class, Callable.class,
             Supplier.class, BooleanSupplier.class, IntSupplier.class, DoubleSupplier.class, LongSupplier.class,
             Consumer.class, BiConsumer.class, IntConsumer.class, DoubleConsumer.class, LongConsumer.class,
@@ -95,7 +96,7 @@ public class EvalFunctionalAdapter
             ToDoubleFunction.class, ToIntBiFunction.class, ToIntFunction.class, ToLongBiFunction.class,
             ToLongFunction.class, IntFunction.class, DoubleFunction.class, LongFunction.class, IntBinaryOperator.class,
             LongBinaryOperator.class, DoubleBinaryOperator.class, IEvalAction.class, IEvalPredicate.class,
-            IEqualsChecker.class, IPropertyGetter.class, IPropertySetter.class));
+            IEqualsChecker.class, IPropertyGetter.class, IPropertySetter.class, Comparator.class));
 
     // private static final Object[] EMPTY_ARGS = new Object[0];
 
@@ -107,6 +108,12 @@ public class EvalFunctionalAdapter
         this.loc = loc;
         this.function = function;
         this.scope = scope;
+    }
+
+    @Override
+    public int compare(Object o1, Object o2) {
+        Object ret = apply(o1, o2);
+        return ConvertHelper.toPrimitiveInt(ret, NopException::new);
     }
 
     @Override
