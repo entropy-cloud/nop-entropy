@@ -562,6 +562,11 @@ meta层就会过滤，本身很多字段是不允许前台insert，但是后台�
 EntityData entityData = new EntityData<>(data, validated, entity, objMeta);
 data会保留所有前端传入的数据，validated是按照配置验证转换后的结果。这两者都存在
 
+### 46. Y = A + B + D = X + (-C + D) = X + Delta; 开发的分支或版本多了后，怎么知道X=a+b+c,是不是还得看配置才知道？
+
+调试模式下启动时,dump目录下会输出合并后的完整结果，其中每个节点和属性的位置如果出现不一致，会明显区分出来，可以看到每个文件到底是由哪几个delta构成的
+
+
 ## 部署问题
 
 ## 设计问题

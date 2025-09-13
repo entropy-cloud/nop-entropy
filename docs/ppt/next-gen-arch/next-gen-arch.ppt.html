@@ -465,45 +465,43 @@ flowchart TD
     </div>
 </section>
 
-<!-- Slide 7: Theoretical Evolution -->
+<!-- Slide 7: 理论的自然演进 (修改后) -->
 <section class="slide">
-    <h2>理论的自然演进：可逆计算</h2>
+    <h2>理论的自然演进：从“组装”到“运算”</h2>
     
     <ul class="icon-list">
         <li class="icon-bullet">
             <i class="fa-solid fa-cubes"></i>
             <div>
-                <p><strong>面向对象</strong>：隐式差量 (A &gt; B) - 复用受继承约束</p>
+                <p><strong>面向对象：隐式的“加法” (A > B)</strong></p>
+                <span class="details">通过继承实现复用，但差量（子类新增部分）与基类紧密耦合，复用被限制在继承级列中。</span>
             </div>
         </li>
         <li class="icon-bullet">
             <i class="fa-solid fa-puzzle-piece"></i>
             <div>
-                <p><strong>面向组件</strong>：显式加法 (A = B + C) - 差量C成为组件</p>
+                <p><strong>面向组件：显式的“加法” (A = B + C)</strong></p>
+                <span class="details">组合优于继承(Composition over hnheritance)，将差量（C）表达为可独立复用的组件。</span>
             </div>
         </li>
         <li class="icon-bullet">
             <i class="fa-solid fa-arrows-rotate"></i>
             <div>
-                <p><strong>可逆计算</strong>：代数变换 (B = A + (-C)) - <strong>引入形式化的逆元</strong></p>
+                <p><strong>可逆计算：引入“减法”的完备代数 (B = A - C)</strong></p>
+                <span class="details">引入形式化的逆元(-C)，使构造方程可解，实现了从“相同才可复用”到“相关即可复用”的飞跃。</span>
             </div>
         </li>
     </ul>
-    <div class="code-block" style="display: flex; align-items: center; justify-content: center; gap: 1.25rem; padding: 1.5rem; flex-wrap: wrap;">
-        
-        <span style="font-size: 1.5rem; font-weight: 600; color: var(--color-primary-dark);">可逆差量</span>
-        
-        <span style="font-size: 1.5rem; font-weight: 600;">+</span>
-        
-        <span style="font-size: 1.5rem; font-weight: 600; color: var(--color-primary-dark);">模型驱动</span>
-        
-        <i class="fa-solid fa-arrow-right-long" style="font-size: 2rem; color: var(--color-primary);"></i>
 
+    <div class="code-block" style="display: flex; align-items: center; justify-content: center; gap: 1.25rem; padding: 1.5rem; flex-wrap: wrap;">
+        <span style="font-size: 1.5rem; font-weight: 600; color: var(--color-primary-dark);">可逆差量</span>
+        <span style="font-size: 1.5rem; font-weight: 600;">+</span>
+        <span style="font-size: 1.5rem; font-weight: 600; color: var(--color-primary-dark);">模型驱动</span>
+        <i class="fa-solid fa-arrow-right-long" style="font-size: 2rem; color: var(--color-primary);"></i>
         <code style="font-family: var(--font-code); font-size: 1.5rem; font-weight: bold; color: var(--color-secondary);">
             App = Delta x-extends Generator&lt;DSL&gt;
         </code>
     </div>
-
 </section>
 
 <!-- Slide 8: The Four Cornerstones -->
@@ -624,6 +622,7 @@ flowchart TD
     
     <div class="quote">
         <p>任何关于差量的创新实践都可以纳入到可逆计算理论的范畴。</p>
+		<p style="font-size: 1.2rem; color: var(--color-text-light); margin: 0;">Docker在“文件系统”空间实践了可逆计算，而Nop平台则将这一理论深化应用于“领域模型树”空间，通过更精细的坐标系实现了“手术刀”式的业务逻辑定制。</p>
     </div>
 </section>
 
@@ -1460,12 +1459,12 @@ graph LR
                 </div>
             </section>
 			
-<!-- Slide 18: Full-stack Model Driven Development -->
+<!-- Slide 18: 全栈模型驱动开发 (修改后) -->
 <section class="slide">
     <h2>全栈模型驱动开发</h2>
     
     <div style="text-align: center; margin: 0;">
-        <svg width="800" height="500" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
+        <svg width="700" height="400" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
     <defs>
         <linearGradient id="backendGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="#42a5f5" />
@@ -1572,10 +1571,14 @@ graph LR
     </div>
     
     <div class="highlight-box" style="margin-top: 0; ">
-    <p><strong>Nop平台内置的开发流程形成了完整的模型驱动开发闭环：</strong></p>
-    <p>Excel数据模型 → ORM模型 → Meta元数据模型 → 前端视图模型 → 页面文件，每个环节都支持差量修正，并构成了 ModelA -> _ModelB -> ModelB 式的协同生成链</p>
-</div>
-</section>			
+        <p><strong>Nop平台内置的开发流程形成了完整的模型驱动开发闭环：</strong></p>
+        <p style="margin-bottom: 0.5rem;">Excel数据模型 → ORM模型 → Meta元数据模型 → 前端视图模型 → 页面文件，每个环节都支持差量修正，并构成了 ModelA -> _ModelB -> ModelB 式的协同生成链。</p>
+        <p style="font-size: 1.1rem; color: var(--color-secondary); font-weight: 600; margin-bottom: 0;">
+            <i class="fa-solid fa-lightbulb"></i> 工程实践：通过“下划线约定”（如生成代码至 `_MyClass`），确保生成代码与手工代码的分离。
+        </p>
+    </div>
+</section>
+		
 
             <!-- Slide 19: Customization Examples -->
             <section class="slide">
@@ -1660,15 +1663,18 @@ graph LR
                     <li class="icon-bullet">
                         <i class="fa-solid fa-square-plus"></i>
                         <div>
-                            <p>Effective System = Base ⊕ ΔIndustry ⊕ ΔRegion ⊕ ΔCustomer</p>
+                            <p><strong>从「生产即组装」到「运算即生产」</strong>，Effective System = Base ⊕ ΔIndustry ⊕ ΔRegion ⊕ ΔCustomer</p>
                         </div>
                     </li>
                 </ul>
                 
                 <div class="highlight-box">
-                    <p><strong>愿景：</strong> 为AI时代的软件智能生产提供关键技术支撑</p>
+                    <p><strong>愿景：</strong> 为AI时代的软件智能生产提供关键技术支撑。通过声明式的DSL与可逆的Delta运算，构建人机协同的软件生产新范式。</p>
                 </div>
             </section>
+			
+
+
 
 <!-- Slide 21: Q&A -->
 <section class="slide title-slide">
