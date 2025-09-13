@@ -27,19 +27,31 @@ public class FileContent implements ITextSerializable {
     private final String path;
     private final String description;
     private final String content;
+    private final long offset;
+    private final int limit;
 
     @JsonCreator
     public FileContent(@JsonProperty("path") String path,
                        @JsonProperty("content") String content,
-                       @JsonProperty("description") String description) {
+                       @JsonProperty("description") String description,
+                       @JsonProperty("offset") long offset,
+                       @JsonProperty("limit") int limit
+    ) {
         this.path = Guard.notEmpty(path, "path");
         this.description = description;
         this.content = content;
+        this.offset = offset;
+        this.limit = limit;
+    }
+
+    public FileContent(String path, String content, String description) {
+        this(path, content, description, 0, 0);
     }
 
     public FileContent(String path, String content) {
         this(path, content, null);
     }
+
 
     public static FileContent fromNode(XNode node) {
         String path = node.attrText("path");
@@ -47,7 +59,17 @@ public class FileContent implements ITextSerializable {
             throw new NopException(ERR_FILE_CONTENT_NO_PATH);
         String description = node.attrText("description");
         String content = node.contentText();
-        return new FileContent(path, content, description);
+        long offset = node.attrLong("offset", 0L);
+        int limit = node.attrInt("limit", 0);
+        return new FileContent(path, content, description, offset, limit);
+    }
+
+    public long getOffset() {
+        return offset;
+    }
+
+    public int getLimit() {
+        return limit;
     }
 
     @JsonIgnore
@@ -73,6 +95,11 @@ public class FileContent implements ITextSerializable {
         node.setAttr("path", getPath());
         if (getDescription() != null)
             node.setAttr("description", getDescription());
+        if (limit > 0 || offset > 0) {
+            node.setAttr("offset", offset);
+            if (limit > 0)
+                node.setAttr("limit", limit);
+        }
         node.content(new CDataText(getContent()));
         return node;
     }
@@ -94,7 +121,10 @@ public class FileContent implements ITextSerializable {
             lang = "";
         StringBuilder sb = new StringBuilder();
         if (getDescription() != null) {
-            sb.append("Description: ").append(getDescription()).append("\n\n");
+            sb.append("Description: ").append(getDescription()).append("\n");
+        }
+        if (limit > 0 || offset > 0) {
+            sb.append("Offset: ").append(offset).append(" , Limit: ").append(limit).append("\n");
         }
         sb.append("```").append(lang).append("\n").append(content).append("\n```");
 

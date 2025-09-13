@@ -6,6 +6,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
@@ -31,6 +32,23 @@ public class PathTreeNode {
     public static PathTreeNode parseFromText(String text) {
         List<String> lines = Arrays.asList(StringHelper.splitToLines(text));
         return new PathTreeParser().parse(lines);
+    }
+
+    public void removeEmptyDir() {
+        if (this.children != null) {
+            Iterator<PathTreeNode> it = children.iterator();
+            while (it.hasNext()) {
+                PathTreeNode child = it.next();
+                child.removeEmptyDir();
+                if (child.isDirectory() && !child.hasChild()) {
+                    it.remove();
+                }
+            }
+        }
+    }
+
+    public boolean hasChild() {
+        return children != null && !children.isEmpty();
     }
 
     public String getName() {

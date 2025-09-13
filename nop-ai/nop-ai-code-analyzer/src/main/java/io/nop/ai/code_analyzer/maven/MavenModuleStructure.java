@@ -21,6 +21,10 @@ public class MavenModuleStructure {
         return sb.toString();
     }
 
+    public Map<String, MavenModule> getModules() {
+        return modules;
+    }
+
     public void forEachModule(Consumer<MavenModule> consumer) {
         modules.values().forEach(consumer);
     }

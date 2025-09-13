@@ -8,11 +8,11 @@ import java.io.StringReader;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class JavaClassSimplifierTest {
+class JavaFileSimplifierTest {
 
     private String simplify(String code) {
         CompilationUnit cu = new JavaParser().parse(new StringReader(code)).getResult().orElseThrow();
-        JavaFileSimplifier.simplify(cu);
+        new JavaFileSimplifier().simplify(cu);
         return cu.toString();
     }
 

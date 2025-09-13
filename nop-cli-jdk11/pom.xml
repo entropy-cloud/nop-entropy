@@ -40,10 +40,10 @@
                     <artifactId>nop-quarkus-core-starter</artifactId>
                     <groupId>io.github.entropy-cloud</groupId>
                 </exclusion>
-                <exclusion>
-                    <artifactId>nop-report-pdf</artifactId>
-                    <groupId>io.github.entropy-cloud</groupId>
-                </exclusion>
+<!--                <exclusion>-->
+<!--                    <artifactId>nop-report-pdf</artifactId>-->
+<!--                    <groupId>io.github.entropy-cloud</groupId>-->
+<!--                </exclusion>-->
             </exclusions>
         </dependency>
     </dependencies>

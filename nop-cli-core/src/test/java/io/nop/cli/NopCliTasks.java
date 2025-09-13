@@ -159,10 +159,32 @@ public class NopCliTasks {
     }
 
     @Test
-    public void testTransformRecordXml(){
+    public void testTransformRecordXml() {
         String[] args = new String[]{"transform", "../nop-cli/demo/record.xml",
                 "-o", "target/test-transform.record-file.xlsx",
                 "-t", "v:/nop/record/imp/record-file.imp.xml"
+        };
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        assertEquals(0, app.run(args));
+    }
+
+    @Test
+    public void testPathTree() {
+        String[] args = new String[]{
+                "file", "path-tree", "-b", "c:/can/nop/nop-entropy",
+                "-o", "target/path-tree.txt"
+        };
+        NopCliApplication app = new NopCliApplication();
+        app.setFactory(factory);
+        assertEquals(0, app.run(args));
+    }
+
+    @Test
+    public void testPaths() {
+        String[] args = new String[]{
+                "file", "find", "-b", "c:/can/nop/nop-entropy",
+                "-o", "target/find.txt"
         };
         NopCliApplication app = new NopCliApplication();
         app.setFactory(factory);

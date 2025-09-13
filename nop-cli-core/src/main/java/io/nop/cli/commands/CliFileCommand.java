@@ -1,13 +1,22 @@
 package io.nop.cli.commands;
 
+import io.nop.ai.code_analyzer.git.GitIgnoreFile;
 import io.nop.ai.coder.file.FileContents;
 import io.nop.ai.coder.file.IFileOperator;
 import io.nop.ai.coder.file.LocalFileOperator;
+import io.nop.commons.path.AntPathMatcher;
 import io.nop.commons.util.FileHelper;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.impl.FileResource;
+import io.nop.core.resource.path.PathTreeNode;
+import io.nop.core.resource.path.ResourceToPathTreeBuilder;
 import picocli.CommandLine;
 
 import java.io.File;
+import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.regex.Pattern;
 
 @CommandLine.Command(
         name = "file",
@@ -19,7 +28,7 @@ public class CliFileCommand implements Callable<Integer> {
 
     @CommandLine.Parameters(
             index = "0",
-            description = "操作类型: read|write",
+            description = "操作类型: read|write|path-tree|find",
             arity = "1"
     )
     String operation;
@@ -34,6 +43,12 @@ public class CliFileCommand implements Callable<Integer> {
     String pattern;
 
     @CommandLine.Option(
+            names = {"-r", "--regex"},
+            description = "正则匹配模式，在find和path-tree时使用"
+    )
+    String regex;
+
+    @CommandLine.Option(
             names = {"-d", "--dir"},
             description = "搜索目录，仅read操作需要",
             defaultValue = "/"
@@ -41,11 +56,26 @@ public class CliFileCommand implements Callable<Integer> {
     String searchDir;
 
     @CommandLine.Option(
-            names = {"-m", "--max-files"},
+            names = {"-mf", "--max-files"},
             description = "最大读取文件数量",
             defaultValue = "10"
     )
     int maxFiles;
+
+    @CommandLine.Option(
+            names = {"-ml", "--max-length-per-file"},
+            description = "每个文件读取的最大字符数",
+            defaultValue = "2000"
+    )
+    int maxLengthPerFile;
+
+
+    @CommandLine.Option(
+            names = {"-l", "--max-depth"},
+            description = "最大遍历目录深度",
+            defaultValue = "-1"
+    )
+    int maxDepth;
 
     @CommandLine.Option(
             names = {"-c", "--content"},
@@ -84,6 +114,10 @@ public class CliFileCommand implements Callable<Integer> {
                     return handleRead();
                 case "write":
                     return handleWrite();
+                case "path-tree":
+                    return handlePathTree();
+                case "find":
+                    return handleFind();
                 default:
                     System.err.println("Error: Unknown operation. Must be 'read' or 'write'");
                     return 1;
@@ -99,7 +133,7 @@ public class CliFileCommand implements Callable<Integer> {
             throw new IllegalArgumentException("--pattern is required for read operation");
         }
 
-        FileContents contents = fileOperator.readFileContentsByAntPath(searchDir, pattern, maxFiles);
+        FileContents contents = fileOperator.readFileContentsByAntPath(searchDir, pattern, maxFiles, maxLengthPerFile);
         String xml = contents.toNode().xml();
 
         if (!outputPath.isEmpty()) {
@@ -149,5 +183,82 @@ public class CliFileCommand implements Callable<Integer> {
             }
         }
         return 0;
+    }
+
+    private Integer handlePathTree() {
+        IResource resource = fileOperator.getResource(searchDir);
+        Pattern regexPattern = regex == null ? null : Pattern.compile(regex);
+        AntPathMatcher pathMatcher = new AntPathMatcher();
+        GitIgnoreFile ignoreFile = getGitIgnoreFile();
+
+        PathTreeNode pathTree = ResourceToPathTreeBuilder.buildFromResource(resource, maxDepth, res -> {
+            if (res.isDirectory())
+                return true;
+
+            if (!ignoreFile.isEmpty() && ignoreFile.test(res))
+                return false;
+
+            if (regexPattern != null)
+                return regexPattern.matcher(res.getPath()).find();
+
+            if (pattern != null) {
+                String relativePath = res.getPath().substring(resource.getPath().length() + 1);
+                return pathMatcher.match(pattern, relativePath);
+            }
+            return true;
+        });
+
+        pathTree.removeEmptyDir();
+
+        String text = pathTree.buildTreeString();
+
+        if (!outputPath.isEmpty()) {
+            File outputFile = new File(outputPath);
+            FileHelper.writeText(outputFile, text, null);
+            System.out.println("Path Tree saved to: " + outputPath);
+        } else {
+            System.out.println(text);
+        }
+
+        return 0;
+    }
+
+    private Integer handleFind() {
+        Pattern regexPattern = regex == null ? null : Pattern.compile(regex);
+        AntPathMatcher pathMatcher = new AntPathMatcher();
+
+        GitIgnoreFile ignoreFile = getGitIgnoreFile();
+
+        List<String> paths = fileOperator.findFilesByFilter(searchDir, path -> {
+            IResource res = fileOperator.getResource(path);
+
+            if (!ignoreFile.isEmpty() && ignoreFile.test(res))
+                return false;
+
+            if (regexPattern != null)
+                return regexPattern.matcher(path).find();
+
+            if (pattern != null) {
+                return pathMatcher.match(pattern, path);
+            }
+            return true;
+        });
+
+        String text = StringHelper.join(paths, "\n");
+
+        if (!outputPath.isEmpty()) {
+            File outputFile = new File(outputPath);
+            FileHelper.writeText(outputFile, text, null);
+            System.out.println("Paths saved to: " + outputPath);
+        } else {
+            System.out.println(text);
+        }
+
+        return 0;
+    }
+
+    GitIgnoreFile getGitIgnoreFile() {
+        GitIgnoreFile file = GitIgnoreFile.create(new FileResource(baseDir));
+        return file;
     }
 }

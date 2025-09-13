@@ -4,12 +4,15 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.path.AntPathMatcher;
 import io.nop.commons.path.IPathMatcher;
 import io.nop.commons.util.FileHelper;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.impl.FileResource;
 
 import java.io.File;
 import java.nio.file.FileVisitResult;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Predicate;
 
 import static io.nop.commons.CommonErrors.ARG_FILE;
 import static io.nop.commons.CommonErrors.ARG_PATH;
@@ -17,8 +20,10 @@ import static io.nop.commons.CommonErrors.ARG_SOURCE_PATH;
 import static io.nop.commons.CommonErrors.ARG_SRC_FILE;
 import static io.nop.commons.CommonErrors.ARG_TARGET_FILE;
 import static io.nop.commons.CommonErrors.ARG_TARGET_PATH;
+import static io.nop.commons.CommonErrors.ERR_FILE_ALREADY_EXISTS;
 import static io.nop.commons.CommonErrors.ERR_FILE_COPY_FAIL;
 import static io.nop.commons.CommonErrors.ERR_FILE_DELETE_FAIL;
+import static io.nop.commons.CommonErrors.ERR_FILE_INVALID_PATH;
 import static io.nop.commons.CommonErrors.ERR_FILE_MOVE_FAIL;
 import static io.nop.commons.CommonErrors.ERR_FILE_NOT_FOUND;
 import static io.nop.commons.CommonErrors.ERR_FILE_READ_FAIL;
@@ -36,12 +41,27 @@ public class LocalFileOperator implements IFileOperator {
         this(new File(baseDirPath));
     }
 
+    @Override
+    public IResource getResource(String path) {
+        if (path == null)
+            path = "";
+        File file = resolveFile(path);
+        return new FileResource(file);
+    }
+
     private File resolveFile(String path) {
+        if (path.contains("..") || path.contains(":")) {
+            throw new NopException(ERR_FILE_INVALID_PATH)
+                    .param(ARG_PATH, path);
+        }
         return path.isEmpty() ? baseDir : new File(baseDir, path);
     }
 
     @Override
-    public FileContent readFileContent(String path) {
+    public FileContent readFileContent(String path, long offset, int limit) {
+        if (offset < 0)
+            offset = 0;
+
         File file = resolveFile(path);
         if (!file.exists()) {
             throw new NopException(ERR_FILE_NOT_FOUND)
@@ -50,7 +70,19 @@ public class LocalFileOperator implements IFileOperator {
         }
         try {
             String content = FileHelper.readText(file, "UTF-8");
-            return new FileContent(path, content);
+            if (offset <= 0 && limit <= 0) {
+                return new FileContent(path, content);
+            } else {
+                if (offset >= content.length())
+                    return new FileContent(path, "", null);
+                if (limit <= 0)
+                    return new FileContent(path, content, null, offset, 0);
+
+                if (offset + limit > content.length())
+                    limit = (int) (content.length() - offset);
+                content = content.substring((int) offset, (int) offset + limit);
+                return new FileContent(path, content, null, offset, limit);
+            }
         } catch (Exception e) {
             throw new NopException(ERR_FILE_READ_FAIL, e)
                     .param(ARG_PATH, path)
@@ -76,14 +108,19 @@ public class LocalFileOperator implements IFileOperator {
     }
 
     @Override
-    public List<String> readLines(String path, int fromLine, int toLine) {
+    public List<String> readLines(String path, int startLines, int lineCount) {
         List<String> allLines = readLines(path);
-        fromLine = Math.max(0, fromLine);
-        toLine = Math.min(allLines.size(), toLine);
-        if (fromLine >= allLines.size() || fromLine >= toLine)
+        startLines = Math.max(0, startLines);
+        if (lineCount < 0) {
+            if (allLines.size() <= startLines)
+                return Collections.emptyList();
+            return allLines.subList(startLines, allLines.size());
+        }
+        lineCount = Math.min(allLines.size() - startLines, lineCount);
+        if (lineCount <= 0)
             return Collections.emptyList();
 
-        return allLines.subList(fromLine, toLine);
+        return allLines.subList(startLines, startLines + lineCount);
     }
 
     @Override
@@ -105,6 +142,13 @@ public class LocalFileOperator implements IFileOperator {
 
     @Override
     public List<String> findFilesByAntPath(String directory, String pattern) {
+        return findFilesByFilter(directory, path -> {
+            return pathMatcher.match(pattern, path);
+        });
+    }
+
+    @Override
+    public List<String> findFilesByFilter(String directory, Predicate<String> filter) {
         File dir = resolveFile(directory);
         if (!dir.exists()) {
             throw new NopException(ERR_FILE_NOT_FOUND)
@@ -117,7 +161,7 @@ public class LocalFileOperator implements IFileOperator {
         FileHelper.walk(dir, file -> {
             if (file.isFile()) {
                 String relativePath = getRelativePath(file);
-                if (pathMatcher.match(pattern, relativePath)) {
+                if (filter.test(relativePath)) {
                     result.add(relativePath);
                 }
             }
@@ -148,6 +192,13 @@ public class LocalFileOperator implements IFileOperator {
 
     @Override
     public String findFileByAntPath(String directory, String pattern) {
+        return findFileByFilter(directory, path -> {
+            return pathMatcher.match(pattern, path);
+        });
+    }
+
+    @Override
+    public String findFileByFilter(String directory, Predicate<String> filter) {
         File dir = resolveFile(directory);
         if (!dir.exists()) {
             throw new NopException(ERR_FILE_NOT_FOUND)
@@ -159,7 +210,7 @@ public class LocalFileOperator implements IFileOperator {
         FileHelper.walk(dir, file -> {
             if (file.isFile()) {
                 String relativePath = getRelativePath(file);
-                if (pathMatcher.match(pattern, relativePath)) {
+                if (filter.test(relativePath)) {
                     found[0] = relativePath;
                     return FileVisitResult.TERMINATE;
                 }
@@ -174,9 +225,7 @@ public class LocalFileOperator implements IFileOperator {
     public void delete(String path) {
         File file = resolveFile(path);
         if (!file.exists()) {
-            throw new NopException(ERR_FILE_NOT_FOUND)
-                    .param(ARG_PATH, path)
-                    .param(ARG_FILE, file);
+            return;
         }
 
         boolean b;
@@ -202,9 +251,17 @@ public class LocalFileOperator implements IFileOperator {
                     .param(ARG_FILE, src);
         }
 
+        if (src.equals(dest))
+            return;
+
         if (dest.exists()) {
             if (overwrite) {
                 delete(targetPath);
+            } else {
+                // 添加这个检查
+                throw new NopException(ERR_FILE_ALREADY_EXISTS)
+                        .param(ARG_PATH, targetPath)
+                        .param(ARG_TARGET_FILE, dest);
             }
         }
 
@@ -229,9 +286,17 @@ public class LocalFileOperator implements IFileOperator {
                     .param(ARG_FILE, src);
         }
 
+        if (src.equals(dest))
+            return;
+
         if (dest.exists()) {
             if (overwrite) {
                 delete(targetPath);
+            } else {
+                // 添加这个检查
+                throw new NopException(ERR_FILE_ALREADY_EXISTS)
+                        .param(ARG_PATH, targetPath)
+                        .param(ARG_TARGET_FILE, dest);
             }
         }
 
@@ -247,11 +312,6 @@ public class LocalFileOperator implements IFileOperator {
     }
 
     private String getRelativePath(File file) {
-        String basePath = baseDir.getAbsolutePath();
-        String filePath = file.getAbsolutePath();
-        if (filePath.startsWith(basePath)) {
-            return filePath.substring(basePath.length() + 1);
-        }
-        return filePath;
+        return FileHelper.getRelativePath(baseDir, file);
     }
 }
