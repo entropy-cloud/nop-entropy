@@ -58,6 +58,8 @@ public class PartitionDispatchQueue<T> {
     private volatile boolean finished;
     private volatile boolean noMoreData;
 
+    private int maxLockQueueCountPerThread = 100;
+
     /**
      * 当前尚未被处理的记录数
      */
@@ -92,6 +94,14 @@ public class PartitionDispatchQueue<T> {
         }
     }
 
+    public void setMaxLockQueueCountPerThread(int maxLockQueueCountPerThread) {
+        this.maxLockQueueCountPerThread = maxLockQueueCountPerThread;
+    }
+
+    public int getMaxLockQueueCountPerThread() {
+        return maxLockQueueCountPerThread;
+    }
+
     public void markNoMorData() {
         this.noMoreData = true;
     }
@@ -124,7 +134,7 @@ public class PartitionDispatchQueue<T> {
                 try {
                     partitions.randomForEachEntry((queue, index) -> {
                         // threadId如果小于0，则表示此partition没有被某个线程处理
-                        if (queue.threadId < 0) {
+                        if (queue.threadId < 0 || queue.threadId == threadId) {
                             Queue<T> q = queue.queue;
                             if (!q.isEmpty()) {
                                 List<T> list;
@@ -137,11 +147,18 @@ public class PartitionDispatchQueue<T> {
                                         list.add(q.remove());
                                     }
                                 }
-                                ret.put(index, list);
+                                List<T> retList = ret.get(index);
+                                if (retList != null) {
+                                    retList.addAll(list);
+                                } else {
+                                    ret.put(index, list);
+                                }
                                 remainSize.addAndGet(-list.size());
                                 // 此时有可能已经空了，但是取到的数据还未处理，所以需要标记队列正在被threadId对应的线程处理
                                 queue.threadId = threadId;
-                                if (remainSize.get() <= 0)
+
+                                // 占用的队列数也不能太多，否则其他线程也无法处理数据
+                                if (remainSize.get() <= 0 || ret.size() >= maxLockQueueCountPerThread)
                                     throw NopBreakException.INSTANCE;
                             }
                         }

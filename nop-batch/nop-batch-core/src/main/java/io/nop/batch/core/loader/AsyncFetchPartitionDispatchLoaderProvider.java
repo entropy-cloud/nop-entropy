@@ -37,6 +37,9 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
     private final int loadBatchSize;
     private final BiFunction<S, IBatchTaskContext, Integer> partitionFn;
 
+    private int loadBatchMultiplyFactor = 50;
+    private int maxLockQueueCountPerThread = 100;
+
     public AsyncFetchPartitionDispatchLoaderProvider(IBatchLoaderProvider<S> loader, Executor executor, int fetchThreadCount,
                                                      int loadBatchSize, BiFunction<S, IBatchTaskContext, Integer> partitionFn) {
         this.loader = loader;
@@ -46,11 +49,22 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
         this.partitionFn = partitionFn;
     }
 
+    public int getLoadBatchMultiplyFactor() {
+        return loadBatchMultiplyFactor;
+    }
+
+    public void setLoadBatchMultiplyFactor(int loadBatchMultiplyFactor) {
+        this.loadBatchMultiplyFactor = loadBatchMultiplyFactor;
+    }
+
     @Override
     public IBatchLoader<S> setup(IBatchTaskContext context) {
         IBatchLoader<S> loader = this.loader.setup(context);
 
-        PartitionDispatchQueue<S> queue = new PartitionDispatchQueue<>(loadBatchSize * 20, item -> partitionFn.apply(item, context), fetchThreadCount);
+        PartitionDispatchQueue<S> queue = new PartitionDispatchQueue<>(loadBatchSize * loadBatchMultiplyFactor,
+                item -> partitionFn.apply(item, context), fetchThreadCount);
+        queue.setMaxLockQueueCountPerThread(maxLockQueueCountPerThread);
+
         AtomicReference<Exception> exception = new AtomicReference<>();
 
         context.onAfterComplete(err -> {

@@ -74,7 +74,8 @@ public class TaskExecutionGraph implements IExecution<Void> {
     }
 
     public Set<String> getDepends(String taskName) {
-        return dag.getNode(taskName).getPrevNodeNames();
+        DagNode node = dag.getNode(taskName);
+        return node == null ? null : node.getPrevNodeNames();
     }
 
     public TaskExecutionGraph addDepend(String taskName, String depend) {
@@ -141,6 +142,9 @@ public class TaskExecutionGraph implements IExecution<Void> {
             return null;
 
         DagNode node = dag.getNode(taskName);
+        if(node == null)
+            return null;
+
         Set<String> prevNames = node.getPrevNodeNames();
         if (prevNames == null || prevNames.isEmpty())
             return null;
