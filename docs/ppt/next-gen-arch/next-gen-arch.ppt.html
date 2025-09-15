@@ -481,7 +481,7 @@ flowchart TD
             <i class="fa-solid fa-puzzle-piece"></i>
             <div>
                 <p><strong>面向组件：显式的“加法” (A = B + C)</strong></p>
-                <span class="details">组合优于继承(Composition over hnheritance)，将差量（C）表达为可独立复用的组件。</span>
+                <span class="details">组合优于继承(Composition over inheritance)，将差量（C）表达为可独立复用的组件。</span>
             </div>
         </li>
         <li class="icon-bullet">
@@ -660,92 +660,136 @@ flowchart TD
     
     <div class="two-column">
         <div class="column">
-                        <svg width="1000" height="680" viewBox="0 0 1000 680" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" style="width:100%;height:auto">
+<svg width="1000" height="680" viewBox="0 0 1000 680" xmlns="http://www.w3.org/2000/svg" font-family="'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" style="width:100%;height:auto">
   <defs>
-    <!-- Gradients -->
-    <linearGradient id="grad-business-v2" x1="0%" y1="0%" x2="100%" y2="0%"> <stop offset="0%" style="stop-color:#38BDF8;stop-opacity:1" /> <stop offset="100%" style="stop-color:#60A5FA;stop-opacity:1" /> </linearGradient>
-    <linearGradient id="grad-engine-v2" x1="0%" y1="0%" x2="100%" y2="0%"> <stop offset="0%" style="stop-color:#2563EB;stop-opacity:1" /> <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" /> </linearGradient>
-    <linearGradient id="grad-foundation-v2" x1="0%" y1="0%" x2="100%" y2="0%"> <stop offset="0%" style="stop-color:#1E40AF;stop-opacity:1" /> <stop offset="100%" style="stop-color:#1D4ED8;stop-opacity:1" /> </linearGradient>
-    <linearGradient id="grad-delta-pillar" x1="0%" y1="0%" x2="0%" y2="100%"> <stop offset="0%" style="stop-color:#A855F7;stop-opacity:1" /> <stop offset="100%" style="stop-color:#D946EF;stop-opacity:1" /> </linearGradient>
-    <linearGradient id="grad-flow" x1="0.5" y1="0" x2="0.5" y2="1"> <stop offset="0%" stop-color="white" stop-opacity="0.6"/> <stop offset="100%" stop-color="white" stop-opacity="0.1"/> </linearGradient>
+    <!-- 统一品牌渐变 -->
+    <linearGradient id="grad-business" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad-engine" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad-foundation" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1e3a8a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e40af;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad-delta-pillar" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#059669;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad-flow" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="white" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0.1"/>
+    </linearGradient>
     
-    <!-- Filters -->
-    <filter id="soft-shadow" x="-50%" y="-50%" width="200%" height="200%"> <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#1E40AF" flood-opacity="0.1"/> </filter>
-    <filter id="delta-glow" x="-100%" y="-100%" width="300%" height="300%"> <feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#D946EF" flood-opacity="0.75"/> </filter>
+    <!-- 统一阴影效果 -->
+    <filter id="soft-shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#1e3a8a" flood-opacity="0.15"/>
+    </filter>
+    <filter id="delta-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#059669" flood-opacity="0.6"/>
+    </filter>
     
-    <!-- Arrowhead -->
-    <marker id="arrow-delta-v2" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
-      <path d="M0,0 L10,4 L0,8 Z" fill="#D946EF"/>
+    <!-- 统一箭头 -->
+    <marker id="arrow-delta" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#059669"/>
     </marker>
   </defs>
 
-  <!-- Clean, light background -->
-  <rect width="100%" height="100%" fill="#F8FAFC"/>
+  <!-- 统一背景 -->
+  <rect width="100%" height="100%" fill="#f8fafc"/>
 
-  <!-- Main Title -->
-  <g id="title-section" opacity="1">
-    <text x="500" y="45" font-size="24" font-weight="700" text-anchor="middle" fill="#1E3A8A">Delta-Oriented Architecture</text>
-    <text x="500" y="70" font-size="14" font-weight="400" text-anchor="middle" fill="#64748B">A Layered Blueprint for Extensibility</text>
+  <!-- 统一标题样式 - 向上移动25px -->
+  <g id="title-section">
+    <text x="500" y="35" font-size="26" font-weight="700" text-anchor="middle" fill="#1e3a8a">Delta-Oriented Architecture</text>
+    <text x="500" y="60" font-size="16" font-weight="400" text-anchor="middle" fill="#64748b">基于可逆计算的分层扩展架构</text>
   </g>
 
-  <!-- Flow Channels -->
-  <g id="flow-channels" opacity="1">
-      <path d="M 440 250 L 560 250 L 560 420 L 440 420 Z" fill="url(#grad-flow)" />
-      <path d="M 440 90 L 560 90 L 560 260 L 440 260 Z" fill="url(#grad-flow)" />
+  <!-- 业务应用层 - 向上移动25px -->
+  <g id="layer-3" filter="url(#soft-shadow)">
+    <rect x="120" y="75" width="680" height="140" rx="16" fill="url(#grad-business)"/>
+    <rect x="120" y="75" width="680" height="45" rx="16" ry="16" fill="black" fill-opacity="0.15" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+    <text x="140" y="105" font-size="18" font-weight="600" fill="white">业务应用层 (Business Application Layer)</text>
+    
+    <g transform="translate(140, 135)">
+      <rect width="200" height="50" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="100" y="32" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">发卡业务</text>
+    </g>
+    <g transform="translate(350, 135)">
+      <rect width="200" height="50" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="100" y="32" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">收单业务</text>
+    </g>
+    <g transform="translate(560, 135)">
+      <rect width="220" height="50" rx="12" fill="rgba(255,255,255,0.8)" stroke="#d1d5db" stroke-width="1" stroke-dasharray="6 3"/>
+      <text x="110" y="32" text-anchor="middle" fill="#6b7280" font-size="16" font-weight="500">其他业务模块</text>
+    </g>
   </g>
 
-  <!-- Layer 3: Business Application Layer -->
-  <g id="layer-3" filter="url(#soft-shadow)" opacity="1">
-    <rect x="120" y="100" width="680" height="140" rx="12" fill="url(#grad-business-v2)"/>
-    <rect x="120" y="100" width="680" height="40" rx="12" ry="12" fill="black" fill-opacity="0.1" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
-    <text x="140" y="125" font-size="16" font-weight="600" fill="white">Business Application Layer</text>
-    <g transform="translate(140, 155)"> <rect width="200" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">Issuing</text> </g>
-    <g transform="translate(350, 155)"> <rect width="200" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">Acquiring</text> </g>
-    <g transform="translate(560, 155)"> <rect width="220" height="45" rx="8" fill="rgba(255,255,255,0.7)" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4 2"/> <text x="20" y="28" fill="#1E3A8A" font-size="13" font-weight="500">Other Business (e.g., Value-add)</text> </g>
+  <!-- 核心引擎层 - 向上移动25px -->
+  <g id="layer-2" filter="url(#soft-shadow)">
+    <rect x="120" y="235" width="680" height="140" rx="16" fill="url(#grad-engine)"/>
+    <rect x="120" y="235" width="680" height="45" rx="16" ry="16" fill="black" fill-opacity="0.15" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+    <text x="140" y="265" font-size="18" font-weight="600" fill="white">核心引擎层 (Core Engine Layer)</text>
+    
+    <g transform="translate(140, 295)">
+      <rect width="160" height="50" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="80" y="32" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">规则引擎</text>
+    </g>
+    <g transform="translate(310, 295)">
+      <rect width="160" height="50" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="80" y="32" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">批处理引擎</text>
+    </g>
+    <g transform="translate(480, 295)">
+      <rect width="160" height="50" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="80" y="32" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">工作流引擎</text>
+    </g>
+    <g transform="translate(650, 295)">
+      <rect width="130" height="50" rx="12" fill="rgba(255,255,255,0.8)" stroke="#d1d5db" stroke-width="1" stroke-dasharray="6 3"/>
+      <text x="65" y="32" text-anchor="middle" fill="#6b7280" font-size="16" font-weight="500">扩展组件</text>
+    </g>
   </g>
 
-  <!-- Layer 2: Core Engine Layer -->
-  <g id="layer-2" filter="url(#soft-shadow)" opacity="1">
-    <rect x="120" y="260" width="680" height="140" rx="12" fill="url(#grad-engine-v2)"/>
-    <rect x="120" y="260" width="680" height="40" rx="12" ry="12" fill="black" fill-opacity="0.1" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
-    <text x="140" y="285" font-size="16" font-weight="600" fill="white">Core Engine Layer</text>
-    <g transform="translate(140, 315)"> <rect width="160" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">RuleEngine</text> </g>
-    <g transform="translate(310, 315)"> <rect width="160" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">BatchEngine</text> </g>
-    <g transform="translate(480, 315)"> <rect width="160" height="45" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="28" fill="#0F172A" font-size="13" font-weight="600">TaskFlowEngine</text> </g>
-    <g transform="translate(650, 315)"> <rect width="130" height="45" rx="8" fill="rgba(255,255,255,0.7)" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4 2"/> <text x="20" y="28" fill="#1E3A8A" font-size="13" font-weight="500">Extensions...</text> </g>
-  </g>
-
-  <!-- Layer 1: Foundation Layer -->
-  <g id="layer-1" filter="url(#soft-shadow)" opacity="1">
-    <rect x="120" y="420" width="680" height="180" rx="12" fill="url(#grad-foundation-v2)"/>
-    <rect x="120" y="420" width="680" height="40" rx="12" ry="12" fill="black" fill-opacity="0.1" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
-    <text x="140" y="445" font-size="16" font-weight="600" fill="white">Foundation Layer</text>
-    <g transform="translate(140, 475)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Delta Virtual File System</text> <text x="20" y="40" fill="#475569" font-size="12">(DeltaFS)</text> </g>
-    <g transform="translate(470, 475)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Unified Model &amp; Delta</text> <text x="20" y="40" fill="#475569" font-size="12">Loader, x:extends, etc.</text> </g>
-    <g transform="translate(140, 535)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Core Models</text> <text x="20" y="40" fill="#475569" font-size="12">RecordModel, etc.</text> </g>
-    <g transform="translate(470, 535)"> <rect width="310" height="50" rx="8" fill="rgba(255,255,255,0.9)" stroke="#E2E8F0" stroke-width="1"/> <text x="20" y="24" fill="#0F172A" font-size="13" font-weight="600">Code Generation Engine</text> </g>
-  </g>
-  
-  <!-- Delta Customization Pillar -->
-  <g id="delta-pillar" transform="translate(0 0)" opacity="1">
-    <g filter="url(#soft-shadow)">
-      <rect x="820" y="100" width="60" height="500" rx="12" fill="url(#grad-delta-pillar)"/>
-      <text x="850" y="350" font-size="18" font-weight="700" fill="white" text-anchor="middle" transform="rotate(-90, 850, 350)">
-        Delta Customization
-      </text>
+  <!-- 基础设施层 - 向上移动25px，高度稍微减少10px -->
+  <g id="layer-1" filter="url(#soft-shadow)">
+    <rect x="120" y="395" width="680" height="170" rx="16" fill="url(#grad-foundation)"/>
+    <rect x="120" y="395" width="680" height="45" rx="16" ry="16" fill="black" fill-opacity="0.15" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;"/>
+    <text x="140" y="425" font-size="18" font-weight="600" fill="white">基础设施层 (Foundation Layer)</text>
+    
+    <g transform="translate(140, 455)">
+      <rect width="310" height="52" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="155" y="24" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">差量虚拟文件系统</text>
+      <text x="155" y="40" text-anchor="middle" fill="#6b7280" font-size="14">(Delta Virtual FileSystem)</text>
+    </g>
+    <g transform="translate(470, 455)">
+      <rect width="310" height="52" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="155" y="24" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">统一模型与差量合并</text>
+      <text x="155" y="40" text-anchor="middle" fill="#6b7280" font-size="14">(Unified Model & x-extends)</text>
+    </g>
+    <g transform="translate(140, 515)">
+      <rect width="310" height="40" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="155" y="27" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">核心领域模型</text>
+    </g>
+    <g transform="translate(470, 515)">
+      <rect width="310" height="40" rx="12" fill="rgba(255,255,255,0.95)" stroke="#e2e8f0" stroke-width="1"/>
+      <text x="155" y="27" text-anchor="middle" fill="#1e3a8a" font-size="16" font-weight="600">代码生成引擎</text>
     </g>
   </g>
   
-  <!-- Connecting arrows from pillar to layers -->
-  <g id="delta-arrows" opacity="1">
-    <g filter="url(#delta-glow)">
-      <!-- Arrow 1 to Business Layer -->
-      <path d="M 820 170 C 810 170, 810 170, 800 170" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="0"/>
-      <!-- Arrow 2 to Engine Layer -->
-      <path d="M 820 330 C 810 330, 810 330, 800 330" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="0"/>
-      <!-- Arrow 3 to Foundation Layer -->
-      <path d="M 820 510 C 810 510, 810 510, 800 510" stroke="white" stroke-width="2.5" fill="none" marker-end="url(#arrow-delta-v2)" stroke-dasharray="25" stroke-dashoffset="0"/>
-    </g>
+  <!-- 差量定制支柱 - 向上移动25px，高度减少35px -->
+  <g id="delta-pillar">
+    <rect x="820" y="75" width="80" height="490" rx="16" fill="url(#grad-delta-pillar)" filter="url(#soft-shadow)"/>
+    <text x="860" y="335" font-size="20" font-weight="700" fill="white" text-anchor="middle" transform="rotate(-90, 860, 335)">
+      差量定制 (Delta Customization)
+    </text>
+  </g>
+  
+  <!-- 连接箭头 - 相应调整位置 -->
+  <g id="delta-arrows" filter="url(#delta-glow)">
+    <path d="M 820 145 C 810 145, 810 145, 800 145" stroke="#059669" stroke-width="3" fill="none" marker-end="url(#arrow-delta)"/>
+    <path d="M 820 305 C 810 305, 810 305, 800 305" stroke="#059669" stroke-width="3" fill="none" marker-end="url(#arrow-delta)"/>
+    <path d="M 820 480 C 810 480, 810 480, 800 480" stroke="#059669" stroke-width="3" fill="none" marker-end="url(#arrow-delta)"/>
   </g>
 </svg>
         </div>
@@ -1066,256 +1110,136 @@ graph LR
         </div>
     </div>
     
-    <div class="highlight-box" style="margin-top:5px">
+    <div class="highlight-box" style="margin-top:2rem;">
         <p><strong>确定性的调试</strong>: Nop平台采用统一的XNode中间表示，跟踪每个属性的源码位置。最终合并节点（包含位置信息）自动输出到_dump目录。使得每一个配置的来源都有据可查，将调试从猜测变为精确溯源。</p>
     </div>
 
 </section>
 
-<!-- Slide: Core Mechanism - Programmable Evolution -->
+<!-- Slide: Core Mechanism - Programmable Evolution (Optimized Layout) -->
 <section class="slide">
- 
-    <!-- Container to center the SVG and ensure it scales correctly -->
-    <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: calc(100% - 100px); margin-top: 1.5rem;">
+    <h2>让演化可编程</h2>
+    
+    <div class="highlight-box" style="text-align: center; margin-top: 0; margin-bottom: 2rem;">
+        <p style="font-size: 1.2rem; font-weight: 500; margin-bottom: 0;">
+            <strong>XLang:</strong> 世界上第一个在语言中明确定义领域结构坐标并内置通用的差量计算规则的第四代编程语言
+        </p>
+    </div>
+
+    <!-- Container to center the SVG. Height is adjusted for the new compact SVG -->
+    <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: calc(100% - 200px);">
         
-        <!-- The provided SVG is embedded here. 
-             A style attribute is added to make it responsive within its container. -->
-        <svg width="1200" height="675" viewBox="0 0 1200 675" xmlns="http://www.w3.org/2000/svg" style="max-width: 98%; height: auto;">
-            <defs>
-                <!-- 恢复原来的背景渐变 -->
-                <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#667eea"/>
-                <stop offset="100%" style="stop-color:#764ba2"/>
-                </linearGradient>
-                
-                <linearGradient id="cardGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#ffffff"/>
-                <stop offset="100%" style="stop-color:#f8fafc"/>
-                </linearGradient>
-                
-                <!-- 阴影 -->
-                <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000" flood-opacity="0.1"/>
-                </filter>
-                
-                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#667eea" flood-opacity="0.3"/>
-                </filter>
-            </defs>
+<svg width="1200" height="550" viewBox="0 0 1200 550" xmlns="http://www.w3.org/2000/svg" style="max-width: 98%; height: auto;">
+  <defs>
+    <!-- 统一品牌渐变 -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a8a"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+    
+    <linearGradient id="cardGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff"/>
+      <stop offset="100%" style="stop-color:#f8fafc"/>
+    </linearGradient>
+    
+    <!-- 统一阴影 -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000" flood-opacity="0.12"/>
+    </filter>
+    
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#2563eb" flood-opacity="0.3"/>
+    </filter>
+  </defs>
 
-            <!-- 背景 -->
-            <rect width="100%" height="100%" fill="url(#bgGradient)"/>
-            
-            <!-- 装饰性几何图形 -->
-            <circle cx="100" cy="100" r="60" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.1"/>
-            <circle cx="1100" cy="575" r="80" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.1"/>
-            <polygon points="200,600 250,550 300,600 250,650" fill="#ffffff" opacity="0.05"/>
+  <!-- 统一背景 -->
+  <rect width="100%" height="100%" fill="url(#bgGradient)"/>
+  
+  <!-- 装饰几何图形 (位置调整) -->
+  <circle cx="120" cy="80" r="50" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.15"/>
+  <circle cx="1080" cy="480" r="70" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.15"/>
+  <polygon points="200,500 240,460 280,500 240,540" fill="#ffffff" opacity="0.08"/>
 
-            <!-- 主标题 -->
-            <text x="600" y="80" text-anchor="middle" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="42" font-weight="700" fill="#ffffff">
-                让演化可编程
-            </text>
-            
-            <text x="600" y="120" text-anchor="middle" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="18" font-weight="400" fill="#ffffff" opacity="0.8">
-                XLang 与可逆计算的结构化范式
-            </text>
+  <!-- 核心公式卡片 (上移) -->
+  <g transform="translate(200, 40)">
+    <rect x="0" y="0" width="800" height="85" rx="20" 
+      fill="url(#cardGradient)" filter="url(#shadow)"/>
+    
+    <text x="400" y="55" text-anchor="middle" 
+      font-family="'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+      font-size="32" font-weight="700" fill="#1e3a8a">
+      App = Delta <tspan fill="#2563eb">x-extends</tspan> Generator&lt;DSL&gt;
+    </text>
+  </g>
 
-            <!-- 核心公式卡片 -->
-            <g transform="translate(200, 180)">
-                <rect x="0" y="0" width="800" height="80" rx="20" 
-                    fill="url(#cardGradient)" filter="url(#shadow)"/>
-                
-                <!-- 一行显示的公式 -->
-                <text x="400" y="50" text-anchor="middle" 
-                    font-family="'JetBrains Mono', monospace" 
-                    font-size="28" font-weight="600" fill="#1e293b">
-                App = Delta <tspan fill="#3b82f6">x-extends</tspan> Generator&lt;DSL&gt;
-                </text>
-            </g>
+  <!-- 三个主要卡片 (上移) -->
+  <!-- DSL 森林卡片 -->
+  <g transform="translate(80, 175)">
+    <rect x="0" y="0" width="320" height="240" rx="20" 
+      fill="url(#cardGradient)" filter="url(#shadow)"/>
+    <circle cx="60" cy="65" r="32" fill="#2563eb" opacity="0.12"/>
+    <text x="60" y="75" text-anchor="middle" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="30" fill="#2563eb">🗂</text>
+    <text x="110" y="50" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="26" font-weight="700" fill="#1e3a8a">DSL 森林</text>
+    <text x="110" y="75" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="15" font-weight="500" fill="#64748b">领域坐标系</text>
+    <text x="40" y="125" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="17" font-weight="500" fill="#475569">• 统一元模型定义</text>
+    <text x="40" y="150" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="17" font-weight="500" fill="#475569">• XPath 稳定路径</text>
+    <text x="40" y="175" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="17" font-weight="500" fill="#475569">• 跨 DSL 协同</text>
+    <rect x="20" y="195" width="280" height="30" rx="10" fill="#f1f5f9"/>
+    <text x="30" y="215" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="13" fill="#64748b" font-weight="500">/app/entity[@name='User']/column[1]</text>
+  </g>
 
-            <!-- 三个核心概念卡片 -->
-            
-            <!-- DSL 卡片 -->
-            <g transform="translate(80, 320)">
-                <rect x="0" y="0" width="320" height="220" rx="24" 
-                    fill="url(#cardGradient)" filter="url(#shadow)"/>
-                
-                <!-- 图标 -->
-                <circle cx="60" cy="60" r="30" fill="#3b82f6" opacity="0.1"/>
-                <text x="60" y="70" text-anchor="middle" 
-                    font-family="system-ui" font-size="28" fill="#3b82f6">🗂</text>
-                
-                <!-- 标题 -->
-                <text x="110" y="50" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="24" font-weight="700" fill="#1e293b">
-                DSL 森林
-                </text>
-                <text x="110" y="75" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="14" font-weight="400" fill="#64748b">
-                领域坐标系
-                </text>
-                
-                <!-- 特性列表 -->
-                <text x="40" y="120" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="16" font-weight="500" fill="#475569">
-                • 统一元模型定义
-                </text>
-                <text x="40" y="145" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="16" font-weight="500" fill="#475569">
-                • XPath 稳定路径
-                </text>
-                <text x="40" y="170" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="16" font-weight="500" fill="#475569">
-                • 跨 DSL 协同
-                </text>
-                
-                <!-- 代码示例 -->
-                <rect x="20" y="185" width="280" height="25" rx="8" fill="#f1f5f9"/>
-                <text x="30" y="202" 
-                    font-family="'JetBrains Mono', monospace" 
-                    font-size="12" fill="#64748b">
-                /app/entity[@name='User']/column[1]
-                </text>
-            </g>
+  <!-- Delta 差量卡片 -->
+  <g transform="translate(440, 175)">
+    <rect x="0" y="0" width="320" height="240" rx="20" 
+      fill="url(#cardGradient)" filter="url(#shadow)"/>
+    <circle cx="60" cy="65" r="32" fill="#059669" opacity="0.12"/>
+    <text x="60" y="75" text-anchor="middle" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="30" fill="#059669">⚡</text>
+    <text x="110" y="50" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="26" font-weight="700" fill="#1e3a8a">Delta 差量</text>
+    <text x="110" y="75" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="15" font-weight="500" fill="#64748b">可逆演化单元</text>
+    <text x="40" y="125" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="17" font-weight="500" fill="#475569">• 删除语义支持</text>
+    <text x="40" y="150" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="17" font-weight="500" fill="#475569">• 满足结合律</text>
+    <text x="40" y="175" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="17" font-weight="500" fill="#475569">• 可组合复用</text>
+    <rect x="20" y="195" width="280" height="30" rx="10" fill="#ecfdf5"/>
+    <text x="160" y="215" text-anchor="middle" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="13" fill="#059669" font-weight="600">(A ⊕ B) ⊕ C = A ⊕ (B ⊕ C)</text>
+  </g>
 
-            <!-- Delta 卡片 -->
-            <g transform="translate(440, 320)">
-                <rect x="0" y="0" width="320" height="220" rx="24" 
-                    fill="url(#cardGradient)" filter="url(#shadow)"/>
-                
-                <!-- 图标 -->
-                <circle cx="60" cy="60" r="30" fill="#f59e0b" opacity="0.1"/>
-                <text x="60" y="70" text-anchor="middle" 
-                    font-family="system-ui" font-size="28" fill="#f59e0b">⚡</text>
-                
-                <!-- 标题 -->
-                <text x="110" y="50" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="24" font-weight="700" fill="#1e293b">
-                Delta 差量
-                </text>
-                <text x="110" y="75" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="14" font-weight="400" fill="#64748b">
-                可逆演化单元
-                </text>
-                
-                <!-- 特性列表 -->
-                <text x="40" y="120" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="16" font-weight="500" fill="#475569">
-                • 删除语义支持
-                </text>
-                <text x="40" y="145" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="16" font-weight="500" fill="#475569">
-                • 满足结合律
-                </text>
-                <text x="40" y="170" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="16" font-weight="500" fill="#475569">
-                • 可组合复用
-                </text>
-                
-                <!-- 公式 -->
-                <rect x="20" y="185" width="280" height="25" rx="8" fill="#fef3c7"/>
-                <text x="160" y="202" text-anchor="middle"
-                    font-family="'JetBrains Mono', monospace" 
-                    font-size="12" fill="#92400e">
-                (A ⊕ B) ⊕ C = A ⊕ (B ⊕ C)
-                </text>
-            </g>
+  <!-- Generator 卡片 -->
+  <g transform="translate(800, 175)">
+    <rect x="0" y="0" width="320" height="240" rx="20" 
+      fill="url(#cardGradient)" filter="url(#shadow)"/>
+    <circle cx="60" cy="65" r="32" fill="#d97706" opacity="0.12"/>
+    <text x="60" y="75" text-anchor="middle" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="30" fill="#d97706">⚙️</text>
+    <text x="110" y="50" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="26" font-weight="700" fill="#1e3a8a">Generator</text>
+    <text x="110" y="75" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="15" font-weight="500" fill="#64748b">编译期生成引擎</text>
+    <text x="40" y="125" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="17" font-weight="500" fill="#475569">• 多阶段编译</text>
+    <text x="40" y="150" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="17" font-weight="500" fill="#475569">• 结构化生成</text>
+    <text x="40" y="175" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="17" font-weight="500" fill="#475569">• 源码可追溯</text>
+    <g transform="translate(20, 195)">
+      <rect x="0" y="0" width="80" height="30" rx="10" fill="#fef3c7"/>
+      <text x="40" y="20" text-anchor="middle" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="13" font-weight="600" fill="#d97706">XDef</text>
+      <rect x="90" y="0" width="80" height="30" rx="10" fill="#fef3c7"/>
+      <text x="130" y="20" text-anchor="middle" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="13" font-weight="600" fill="#d97706">Xpl</text>
+      <rect x="180" y="0" width="80" height="30" rx="10" fill="#fef3c7"/>
+      <text x="220" y="20" text-anchor="middle" font-family="'Inter', 'SF Pro Display', sans-serif" font-size="13" font-weight="600" fill="#d97706">XScript</text>
+    </g>
+  </g>
 
-            <!-- Generator 卡片 -->
-            <g transform="translate(800, 320)">
-                <rect x="0" y="0" width="320" height="220" rx="24" 
-                    fill="url(#cardGradient)" filter="url(#shadow)"/>
-                
-                <!-- 图标 -->
-                <circle cx="60" cy="60" r="30" fill="#10b981" opacity="0.1"/>
-                <text x="60" y="70" text-anchor="middle" 
-                    font-family="system-ui" font-size="28" fill="#10b981">⚙️</text>
-                
-                <!-- 标题 -->
-                <text x="110" y="50" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="24" font-weight="700" fill="#1e293b">
-                Generator
-                </text>
-                <text x="110" y="75" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="14" font-weight="400" fill="#64748b">
-                编译期生成引擎
-                </text>
-                
-                <!-- 特性列表 -->
-                <text x="40" y="120" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="16" font-weight="500" fill="#475569">
-                • 多阶段编译
-                </text>
-                <text x="40" y="145" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="16" font-weight="500" fill="#475569">
-                • 结构化生成
-                </text>
-                <text x="40" y="170" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="16" font-weight="500" fill="#475569">
-                • 源码可追溯
-                </text>
-                
-                <!-- 工具链 -->
-                <g transform="translate(20, 185)">
-                <rect x="0" y="0" width="80" height="25" rx="8" fill="#dcfce7"/>
-                <text x="40" y="17" text-anchor="middle"
-                        font-family="'SF Pro Display', system-ui, sans-serif" 
-                        font-size="12" font-weight="600" fill="#166534">
-                    XDef
-                </text>
-                
-                <rect x="90" y="0" width="80" height="25" rx="8" fill="#dcfce7"/>
-                <text x="130" y="17" text-anchor="middle"
-                        font-family="'SF Pro Display', system-ui, sans-serif" 
-                        font-size="12" font-weight="600" fill="#166534">
-                    Xpl
-                </text>
-                
-                <rect x="180" y="0" width="80" height="25" rx="8" fill="#dcfce7"/>
-                <text x="220" y="17" text-anchor="middle"
-                        font-family="'SF Pro Display', system-ui, sans-serif" 
-                        font-size="12" font-weight="600" fill="#166534">
-                    XScript
-                </text>
-                </g>
-            </g>
-
-            <!-- 底部亮点 -->
-            <g transform="translate(300, 580)">
-                <rect x="0" y="0" width="600" height="60" rx="30" 
-                    fill="#ffffff" fill-opacity="0.15" filter="url(#glow)"/>
-                <text x="300" y="30" text-anchor="middle" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="16" font-weight="600" fill="#ffffff">
-                从句法范式到结构空间构造规则的根本性重构
-                </text>
-                <text x="300" y="50" text-anchor="middle" 
-                    font-family="'SF Pro Display', system-ui, sans-serif" 
-                    font-size="14" font-weight="400" fill="#ffffff" opacity="0.8">
-                Map → Tree 升维 · 删除语义回归 · 编译期元编程
-                </text>
-            </g>
-
-        </svg>
+  <!-- 底部亮点 (上移) -->
+  <g transform="translate(300, 445)">
+    <rect x="0" y="0" width="600" height="70" rx="35" 
+      fill="#ffffff" fill-opacity="0.18" filter="url(#glow)"/>
+    <text x="300" y="35" text-anchor="middle" 
+      font-family="'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+      font-size="18" font-weight="600" fill="#ffffff">
+      从句法范式到结构空间构造规则的根本性重构
+    </text>
+    <text x="300" y="55" text-anchor="middle" 
+      font-family="'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+      font-size="15" font-weight="400" fill="#ffffff" opacity="0.85">
+      Map → Tree 升维 · 删除语义回归 · 编译期元编程
+    </text>
+  </g>
+</svg>
     </div>
 </section>
 
@@ -1464,109 +1388,47 @@ graph LR
     <h2>全栈模型驱动开发</h2>
     
     <div style="text-align: center; margin: 0;">
-        <svg width="700" height="400" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-        <linearGradient id="backendGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#42a5f5" />
-            <stop offset="100%" stop-color="#64b5f6" />
-        </linearGradient>
-        <linearGradient id="frontendGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#ef5350" />
-            <stop offset="100%" stop-color="#ef5350" />
-        </linearGradient>
-        <linearGradient id="serviceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#66bb6a" />
-            <stop offset="100%" stop-color="#81c784" />
-        </linearGradient>
-        <linearGradient id="sourceGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#ab47bc" />
-            <stop offset="100%" stop-color="#ba68c8" />
-        </linearGradient>
-        <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
-            <feOffset dx="2" dy="2" result="offsetblur" />
-            <feFlood flood-color="rgba(0,0,0,0.1)" />
-            <feComposite in2="offsetblur" operator="in" />
-            <feMerge>
-                <feMergeNode />
-                <feMergeNode in="SourceGraphic" />
-            </feMerge>
-        </filter>
-        <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-            <path d="M0,0 L0,6 L9,3 z" fill="#555" />
-        </marker>
-    </defs>
-    
-    <!-- 背景区域 -->
-    <rect x="50" y="80" width="900" height="460" rx="10" fill="rgba(255, 255, 255, 0.9)" stroke="#e0e0e0" stroke-width="1" />
-    <rect x="60" y="90" width="430" height="440" rx="5" fill="rgba(225, 245, 254, 0.3)" stroke="#b3e5fc" stroke-width="1" />
-    <rect x="500" y="90" width="440" height="440" rx="5" fill="rgba(255, 235, 238, 0.3)" stroke="#ffcdd2" stroke-width="1" />
-    
-    <!-- 标题 -->
-    <text x="500" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="600" fill="#455a64">差量化的软件生产线</text>
-    
-    <!-- 区域标签 -->
-    <text x="275" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="#42a5f5">后台 (Backend)</text>
-    <text x="720" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="#ef5350">前台 (Frontend)</text>
-    
-    <!-- XORM/_XORM 组合矩形 -->
-    <rect x="80" y="280" width="120" height="100" rx="10" fill="url(#backendGradient)" filter="url(#dropShadow)" />
-    <line x1="80" y1="330" x2="200" y2="330" stroke="white" stroke-width="2" />
-    <text x="140" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">XORM</text>
-    <text x="140" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">_XORM</text>
-    
-    <!-- Excel (放置在_XORM正下方) -->
-    <ellipse cx="140" cy="450" rx="70" ry="40" fill="url(#sourceGradient)" filter="url(#dropShadow)" />
-    <text x="140" y="455" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">Excel</text>
-    
-    <!-- XMeta/_XMeta 组合矩形 -->
-    <rect x="280" y="280" width="120" height="100" rx="10" fill="url(#backendGradient)" filter="url(#dropShadow)" />
-    <line x1="280" y1="330" x2="400" y2="330" stroke="white" stroke-width="2" />
-    <text x="340" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">XMeta</text>
-    <text x="340" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">_XMeta</text>
-    
-    <!-- XView/_XView 组合矩形 -->
-    <rect x="550" y="280" width="120" height="100" rx="10" fill="url(#frontendGradient)" filter="url(#dropShadow)" />
-    <line x1="550" y1="330" x2="670" y2="330" stroke="white" stroke-width="2" />
-    <text x="610" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">XView</text>
-    <text x="610" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">_XView</text>
-    
-    <!-- XPage/_XPage 组合矩形 -->
-    <rect x="750" y="280" width="120" height="100" rx="10" fill="url(#frontendGradient)" filter="url(#dropShadow)" />
-    <line x1="750" y1="330" x2="870" y2="330" stroke="white" stroke-width="2" />
-    <text x="810" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">XPage</text>
-    <text x="810" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">_XPage</text>
-    
-    <!-- GraphQL -->
-    <rect x="430" y="150" width="120" height="50" rx="10" fill="url(#serviceGradient)" filter="url(#dropShadow)" />
-    <text x="490" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">GraphQL</text>
-    
-    <!-- 界面 (放在XPage的上方) -->
-    <rect x="750" y="150" width="120" height="50" rx="10" fill="url(#sourceGradient)" filter="url(#dropShadow)" />
-    <text x="810" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="white" font-weight="500">界面</text>
-    
-    <!-- 箭头和连接线 -->
-    <!-- Excel 到 _XORM (指向下边沿中点，直线箭头) -->
-    <line x1="140" y1="410" x2="140" y2="380" stroke="#555" stroke-width="2" marker-end="url(#arrow)" />
-    
-    <!-- XORM 到 _XMeta (从XORM右侧边中点指向_XMeta左侧边中点) -->
-    <path d="M200,310 L240,310 L240,350 L280,350" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow)" />
-    
-    <!-- XMeta 到 _XView -->
-    <path d="M400,310 L475,310 L475,350 L550,350" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow)" />
-    
-    <!-- XView 到 _XPage -->
-    <path d="M670,310 L720,310 L720,350 L750,350" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow)" />
-    
-    <!-- XPage 到 界面 (指向界面的下边沿) -->
-    <line x1="810" y1="280" x2="810" y2="200" stroke="#555" stroke-width="2" marker-end="url(#arrow)" />
-    
-    <!-- XMeta 到 GraphQL (指向GraphQL左侧边中点) -->
-    <path d="M340,280 L340,175 L430,175" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow)" />
-    <text x="300" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#ef5350" font-weight="500">+ BizModel</text>
-    
-    <!-- 服务层标签 -->
-    <text x="490" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="#66bb6a">服务层 (Service Layer)</text>
+<svg width="700" height="400" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow-final-18" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur in="SourceAlpha" stdDeviation="5"/><feOffset dx="0" dy="4" result="offsetblur"/><feFlood flood-color="rgba(30, 64, 175, 0.15)"/><feComposite in2="offsetblur" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="arrow-final-18" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#1e3a8a"/></marker>
+    <!-- Arrow Gradient -->
+    <linearGradient id="arrow-grad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#1e3a8a"/></linearGradient>
+    <!-- Module Fills -->
+    <linearGradient id="fill-backend" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="#3b82f6"/><stop offset="0.5" stop-color="#2563eb"/></linearGradient>
+    <linearGradient id="fill-frontend" x1="0" y1="0" x2="0" y2="1"><stop offset="0.5" stop-color="#10b981"/><stop offset="0.5" stop-color="#059669"/></linearGradient>
+    <linearGradient id="fill-source" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1e3a8a"/><stop offset="100%" stop-color="#1e40af"/></linearGradient>
+    <linearGradient id="fill-service" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/></linearGradient>
+  </defs>
+  
+  <rect x="50" y="90" width="900" height="450" rx="20" fill="#f8fafc" stroke="#e5e7eb"/>
+  <rect x="65" y="105" width="425" height="420" rx="12" fill="rgba(37, 99, 235, 0.03)"/>
+  <rect x="510" y="105" width="425" height="420" rx="12" fill="rgba(5, 150, 105, 0.03)"/>
+  
+  <text x="500" y="60" text-anchor="middle" font-family="'Inter', sans-serif" font-size="32" font-weight="700" fill="#1e3a8a">差量化的软件生产线</text>
+  
+  <text x="280" y="130" text-anchor="middle" font-family="'Inter', sans-serif" font-size="18" font-weight="600" fill="#2563eb">后台 (Backend)</text>
+  <text x="725" y="130" text-anchor="middle" font-family="'Inter', sans-serif" font-size="18" font-weight="600" fill="#059669">前台 (Frontend)</text>
+  
+  <rect x="90" y="280" width="120" height="100" rx="12" fill="url(#fill-backend)" filter="url(#shadow-final-18)"/><text x="150" y="310" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">XORM</text><text x="150" y="355" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">_XORM</text>
+  <ellipse cx="150" cy="450" rx="70" ry="40" fill="url(#fill-source)" filter="url(#shadow-final-18)"/><text x="150" y="455" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">Excel</text>
+  <rect x="290" y="280" width="120" height="100" rx="12" fill="url(#fill-backend)" filter="url(#shadow-final-18)"/><text x="350" y="310" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">XMeta</text><text x="350" y="355" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">_XMeta</text>
+  <rect x="560" y="280" width="120" height="100" rx="12" fill="url(#fill-frontend)" filter="url(#shadow-final-18)"/><text x="620" y="310" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">XView</text><text x="620" y="355" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">_XView</text>
+  <rect x="760" y="280" width="120" height="100" rx="12" fill="url(#fill-frontend)" filter="url(#shadow-final-18)"/><text x="820" y="310" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">XPage</text><text x="820" y="355" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">_XPage</text>
+  <rect x="440" y="160" width="120" height="50" rx="12" fill="url(#fill-service)" filter="url(#shadow-final-18)"/><text x="500" y="190" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">GraphQL</text>
+  <rect x="760" y="160" width="120" height="50" rx="12" fill="url(#fill-source)" filter="url(#shadow-final-18)"/><text x="820" y="190" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">界面</text>
+  
+  <g stroke-width="3.5" fill="none" marker-end="url(#arrow-final-18)" stroke="url(#arrow-grad)">
+    <line x1="150" y1="410" x2="150" y2="380"/>
+    <path d="M210,305 L250,305 L250,355 L290,355"/>
+    <path d="M410,305 L500,305 L500,355 L560,355"/>
+    <path d="M680,305 L720,305 L720,355 L760,355"/>
+    <line x1="820" y1="280" x2="820" y2="210"/>
+    <path d="M350,280 L350,185 L440,185"/>
+  </g>
+  
+  <text x="360" y="225" text-anchor="middle" font-family="'Inter', sans-serif" font-size="15" fill="#d97706" font-weight="600">+ BizModel</text>
+  <text x="500" y="130" text-anchor="middle" font-family="'Inter', sans-serif" font-size="18" font-weight="600" fill="#d97706">服务层</text>
 </svg>
     </div>
     
@@ -1675,7 +1537,6 @@ graph LR
 			
 
 
-
 <!-- Slide 21: Q&A -->
 <section class="slide title-slide">
     <h1>Q&A</h1>
@@ -1684,19 +1545,17 @@ graph LR
     <div style="margin-top: 2rem; display: flex; justify-content: center; gap: 3rem;">
         <div style="text-align: center;">
             <p style="font-weight: 600; margin-bottom: 1rem;">微信公众号</p>
-            <img 
-                src="../../../wechat-public-account.jpg" 
-                alt="微信公众号" 
-                style="width: 250px; height: 250px; border-radius: 8px; border: 1px solid var(--color-border);"
-            >
+            <svg width="250" height="250" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41 41" shape-rendering="crispEdges" style="width: 250px; height: 250px; border-radius: 8px; border: 1px solid var(--color-border);">
+                <path fill="#ffffff" d="M0 0h41v41H0z"/>
+                <path stroke="#000000" d="M4 4.5h7m3 0h2m2 0h1m4 0h1m2 0h3m1 0h7M4 5.5h1m5 0h1m1 0h3m1 0h2m1 0h3m1 0h3m1 0h1m2 0h1m5 0h1M4 6.5h1m1 0h3m1 0h1m4 0h2m2 0h2m2 0h1m3 0h1m2 0h1m1 0h3m1 0h1M4 7.5h1m1 0h3m1 0h1m3 0h4m1 0h1m1 0h1m3 0h1m4 0h1m1 0h3m1 0h1M4 8.5h1m1 0h3m1 0h1m1 0h1m1 0h4m7 0h1m4 0h1m1 0h3m1 0h1M4 9.5h1m5 0h1m5 0h2m8 0h1m3 0h1m5 0h1M4 10.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M13 11.5h2m1 0h2m2 0h2m2 0h2m2 0h1M4 12.5h1m1 0h1m1 0h1m1 0h1m2 0h1m1 0h1m3 0h7m1 0h2m3 0h1m2 0h1M4 13.5h1m1 0h2m1 0h1m1 0h5m3 0h2m5 0h1m1 0h1m1 0h1m5 0h1M6 14.5h1m3 0h1m1 0h2m2 0h2m3 0h1m3 0h1m3 0h3m2 0h3M6 15.5h2m1 0h1m4 0h1m4 0h2m2 0h2m2 0h1m1 0h2m1 0h1m2 0h2M5 16.5h2m1 0h3m4 0h1m3 0h1m3 0h1m3 0h2m1 0h1m2 0h1m1 0h1M4 17.5h4m5 0h2m1 0h2m1 0h1m3 0h1m1 0h1m1 0h1m2 0h1m2 0h2m1 0h1M4 18.5h1m1 0h3m1 0h1m1 0h2m2 0h1m1 0h1m2 0h1m4 0h1m1 0h4m3 0h2M7 19.5h2m3 0h3m3 0h2m1 0h3m1 0h2m1 0h1m1 0h1m4 0h1M6 20.5h2m1 0h2m1 0h2m6 0h1m3 0h2m1 0h4M4 21.5h1m1 0h2m1 0h1m4 0h2m5 0h1m2 0h3m1 0h4m3 0h2M8 22.5h3m2 0h3m1 0h1m4 0h1m3 0h1m1 0h1m2 0h1m2 0h3M5 23.5h5m2 0h2m1 0h4m2 0h2m1 0h4m4 0h1m2 0h2M6 24.5h7m2 0h2m1 0h3m1 0h3m1 0h3m1 0h4m1 0h1M6 25.5h4m1 0h3m3 0h4m1 0h5m1 0h1m1 0h1m2 0h4M4 26.5h1m2 0h1m2 0h2m1 0h1m2 0h6m1 0h2m1 0h1m2 0h3m2 0h3M5 27.5h1m5 0h1m5 0h1m2 0h2m2 0h3m9 0h1M4 28.5h1m2 0h1m1 0h5m4 0h3m2 0h4m1 0h6M12 29.5h1m1 0h2m1 0h1m2 0h1m1 0h1m1 0h1m3 0h1m3 0h2m1 0h2M4 30.5h7m3 0h1m5 0h2m3 0h1m1 0h2m1 0h1m1 0h1m1 0h3M4 31.5h1m5 0h1m2 0h2m1 0h2m1 0h2m7 0h1m3 0h2M4 32.5h1m1 0h3m1 0h1m1 0h6m1 0h1m8 0h6m1 0h2M4 33.5h1m1 0h3m1 0h1m5 0h1m1 0h2m1 0h1m1 0h1m7 0h3m1 0h2M4 34.5h1m1 0h3m1 0h1m1 0h1m1 0h2m1 0h2m2 0h2m2 0h1m6 0h1m3 0h1M4 35.5h1m5 0h1m3 0h1m1 0h1m2 0h1m1 0h1m1 0h1m1 0h1m1 0h3m1 0h2m2 0h1M4 36.5h7m1 0h3m1 0h2m2 0h1m3 0h2m1 0h2m1 0h1m2 0h4"/>
+            </svg>
         </div>
         <div style="text-align: center;">
             <p style="font-weight: 600; margin-bottom: 1rem;">微信群</p>
-            <img 
-                src="../../../wechat-group.png" 
-                alt="微信群" 
-                style="width: 250px; height: 250px; border-radius: 8px; border: 1px solid var(--color-border);"
-            >
+            <svg width="250" height="250" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41 41" shape-rendering="crispEdges" style="width: 250px; height: 250px; border-radius: 8px; border: 1px solid var(--color-border);">
+                <path fill="#ffffff" d="M0 0h41v41H0z"/>
+                <path stroke="#000000" d="M4 4.5h7m3 0h1m2 0h1m1 0h1m1 0h2m2 0h3m2 0h7M4 5.5h1m5 0h1m1 0h1m2 0h2m1 0h3m1 0h3m1 0h3m1 0h1m5 0h1M4 6.5h1m1 0h3m1 0h1m2 0h1m1 0h1m1 0h2m2 0h3m1 0h4m1 0h1m1 0h3m1 0h1M4 7.5h1m1 0h3m1 0h1m3 0h2m1 0h6m1 0h4m2 0h1m1 0h3m1 0h1M4 8.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h3m1 0h1m1 0h1m1 0h3m1 0h1M4 9.5h1m5 0h1m5 0h2m1 0h7m1 0h2m1 0h1m5 0h1M4 10.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M13 11.5h2m1 0h2m1 0h1m1 0h3m1 0h1m1 0h1M4 12.5h1m1 0h1m1 0h1m1 0h1m3 0h2m1 0h1m2 0h1m3 0h2m1 0h2m3 0h1m2 0h1M4 13.5h2m5 0h2m1 0h4m2 0h2m3 0h1m2 0h4m3 0h1M6 14.5h1m2 0h3m2 0h1m1 0h1m1 0h1m3 0h1m3 0h1m3 0h2m2 0h3M6 15.5h1m1 0h2m4 0h2m1 0h2m1 0h10m2 0h1M4 16.5h3m1 0h3m4 0h1m2 0h3m1 0h3m1 0h1m3 0h2m1 0h1m1 0h1M6 17.5h2m3 0h3m1 0h1m1 0h12m1 0h1m3 0h1m1 0h1M8 18.5h1m1 0h2m2 0h3m2 0h3m1 0h2m1 0h1m2 0h1m2 0h2m1 0h2M4 19.5h1m2 0h2m2 0h1m1 0h2m1 0h1m3 0h2m2 0h3m3 0h1m4 0h1M5 20.5h3m1 0h3m2 0h1m2 0h1m1 0h3m1 0h3m1 0h4m2 0h1M4 21.5h4m1 0h1m3 0h5m1 0h2m3 0h1m1 0h1m1 0h1m1 0h2m3 0h1M4 22.5h1m3 0h1m1 0h1m2 0h3m4 0h2m3 0h1m4 0h1m3 0h3M5 23.5h1m2 0h1m2 0h2m1 0h1m1 0h1m2 0h1m4 0h1m3 0h1m2 0h2M4 24.5h1m1 0h2m1 0h2m4 0h4m4 0h1m4 0h6M6 25.5h1m1 0h1m2 0h1m1 0h2m1 0h1m2 0h1m1 0h1m1 0h1m1 0h1m1 0h3m5 0h2M4 26.5h1m3 0h4m2 0h1m1 0h1m1 0h1m9 0h6m1 0h2M5 27.5h2m4 0h1m2 0h4m1 0h1m1 0h1m1 0h1m1 0h1m6 0h1m2 0h1M4 28.5h1m1 0h1m2 0h2m1 0h3m1 0h3m2 0h1m2 0h3m1 0h5m1 0h2M12 29.5h3m5 0h3m1 0h2m2 0h1m3 0h2m1 0h2M4 30.5h7m4 0h1m4 0h1m1 0h1m3 0h3m1 0h1m1 0h1m1 0h3M4 31.5h1m5 0h1m3 0h5m1 0h3m2 0h2m1 0h1m3 0h1m2 0h1M4 32.5h1m1 0h3m1 0h1m1 0h1m2 0h1m1 0h4m1 0h1m1 0h1m1 0h1m1 0h6M4 33.5h1m1 0h3m1 0h1m5 0h1m2 0h6m1 0h4m2 0h1m1 0h3M4 34.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h3m2 0h3m1 0h1m4 0h1m3 0h1M4 35.5h1m5 0h1m5 0h1m1 0h1m1 0h3m1 0h2m1 0h4m1 0h1m2 0h1M4 36.5h7m1 0h1m1 0h1m2 0h4m2 0h3m1 0h4m1 0h1m2 0h2"/>
+            </svg>
         </div>
     </div>
     
