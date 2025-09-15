@@ -87,12 +87,12 @@
             z-index: 1;
         }
 		
-.title-slide .author {
-    font-size: 1.5rem;
-    color: var(--color-text-light);
-    margin-top: 1rem;
-    font-weight: 400;
-}		
+        .title-slide .author {
+            font-size: 1.5rem;
+            color: var(--color-text-light);
+            margin-top: 1rem;
+            font-weight: 400;
+        }		
 
         /* --- 3. Typography --- */
         h1, h2, h3 { font-weight: 700; line-height: 1.2; }
@@ -120,6 +120,23 @@
         #print-btn { background-color: #6366f1; }
         #print-btn:hover:not(:disabled) { background-color: #4f46e5; }
         #slide-counter { position: absolute; bottom: 20px; left: 20px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(5px); padding: 8px 14px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; color: var(--color-text-dark); box-shadow: var(--shadow-md); z-index: 10; }
+        
+        /* --- NEW: Timer Display --- */
+        #timer-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(5px);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--color-text-dark);
+            box-shadow: var(--shadow-md);
+            z-index: 10;
+            font-family: var(--font-code); /* Monospaced font for stable width */
+        }
 
         /* --- 5. Content Modules --- */
         .title-slide { text-align: center; align-items: center; }
@@ -232,14 +249,15 @@
             h2 { font-size: 1.5rem; }
             .two-column, .stat-grid { flex-direction: column; grid-template-columns: 1fr; }
             .controls { right: auto; left: 50%; transform: translateX(-50%); }
-            #slide-counter { display: none; }
+            #slide-counter, #timer-display { display: none; } /* Hide on small screens */
             .comparison-table { font-size: 0.9rem; }
             .comparison-table th, .comparison-table td { padding: 8px 10px; }
         }
 
         @media print {
             body { background: #fff !important; height: auto; overflow: visible; display: block; }
-            .controls, #progress-bar, #slide-counter { display: none !important; }
+            /* --- MODIFIED: Added #timer-display to hide it on print --- */
+            .controls, #progress-bar, #slide-counter, #timer-display { display: none !important; }
             #presentation-container { display: block; width: 100%; height: auto; box-shadow: none; border: none; padding: 0; }
             .slides-viewport { overflow: visible; height: auto; }
             .slide { display: flex !important; opacity: 1 !important; visibility: visible !important; transform: none !important; position: relative; page-break-after: always; page-break-inside: avoid; width: 100%; height: auto; aspect-ratio: 16 / 9; border: 1px solid #ddd; margin-bottom: 20px; box-shadow: none; border-radius: 0; overflow: hidden; }
@@ -257,6 +275,8 @@
         <!-- UI Elements -->
         <div id="progress-bar"></div>
         <div id="slide-counter">1 / 21</div>
+        <!-- NEW: Timer Display Element -->
+        <div id="timer-display"></div>
 
         <!-- Slides Viewport -->
         <div class="slides-viewport">
@@ -267,6 +287,8 @@
            
 				<p class="author">作者：Canonical</p>
             </section>
+
+            <!-- ... (The rest of your slides remain unchanged) ... -->
 
             <!-- Slide 2: Author Introduction -->
             <section class="slide">
@@ -487,7 +509,7 @@ flowchart TD
         <li class="icon-bullet">
             <i class="fa-solid fa-arrows-rotate"></i>
             <div>
-                <p><strong>可逆计算：引入“减法”的完备代数 (B = A - C)</strong></p>
+                <p><strong>可逆计算：引入“减法”的完备代数 (B = A + (- C))</strong></p>
                 <span class="details">引入形式化的逆元(-C)，使构造方程可解，实现了从“相同才可复用”到“相关即可复用”的飞跃。</span>
             </div>
         </li>
@@ -1418,7 +1440,7 @@ graph LR
   <rect x="440" y="160" width="120" height="50" rx="12" fill="url(#fill-service)" filter="url(#shadow-final-18)"/><text x="500" y="190" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">GraphQL</text>
   <rect x="760" y="160" width="120" height="50" rx="12" fill="url(#fill-source)" filter="url(#shadow-final-18)"/><text x="820" y="190" text-anchor="middle" font-family="'Inter', sans-serif" font-size="17" fill="white" font-weight="600">界面</text>
   
-  <g stroke-width="3.5" fill="none" marker-end="url(#arrow-final-18)" stroke="url(#arrow-grad)">
+  <g stroke-width="3.5" fill="none" marker-end="url(#arrow-final-18)" stroke="#3b82f6">
     <line x1="150" y1="410" x2="150" y2="380"/>
     <path d="M210,305 L250,305 L250,355 L290,355"/>
     <path d="M410,305 L500,305 L500,355 L560,355"/>
@@ -1607,6 +1629,7 @@ graph LR
         const pdfBtn = document.getElementById('pdf-btn');
         const slideCounter = document.getElementById('slide-counter');
         const progressBar = document.getElementById('progress-bar');
+        const timerDisplay = document.getElementById('timer-display'); // Get timer element
         
         let currentSlide = 0;
         const totalSlides = allSlides.length;
@@ -1708,6 +1731,15 @@ graph LR
                 });
             });
         }
+        
+        // --- NEW: Timer Logic ---
+        function updateTimer() {
+            if (!timerDisplay) return;
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            timerDisplay.textContent = `${hours}:${minutes}`;
+        }
 
         homeBtn.addEventListener('click', goToFirstSlide);
         nextBtn.addEventListener('click', nextSlide);
@@ -1739,12 +1771,17 @@ graph LR
             }
         });
 
+        // Initialize slides
         const initialIndexFromHash = parseHashToIndex();
         if (initialIndexFromHash !== null) {
             showSlide(initialIndexFromHash, true);
         } else {
             showSlide(0);
         }
+
+        // Initialize and start the timer
+        updateTimer();
+        setInterval(updateTimer, 1000); // Update every second
 		
 		setTimeout(()=>{
 		  window.enableContentLightboxForSelector && window.enableContentLightboxForSelector('.mermaid svg, .column img,.slide svg')
