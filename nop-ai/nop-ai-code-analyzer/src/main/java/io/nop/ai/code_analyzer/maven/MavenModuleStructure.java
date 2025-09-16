@@ -58,14 +58,16 @@ public class MavenModuleStructure {
         File pomFile = new File(dir, "pom.xml");
         if (pomFile.exists()) {
             MavenDependencyNode node = loadDependencyNode(dir);
-            if (node != null) {
-                MavenModule module = new MavenModule();
-                module.setModuleNode(node);
-                module.setModulePath(FileHelper.getRelativePath(baseDir, dir));
-                modules.put(node.getModuleId(), module);
-                if (this.rootModule == null) {
-                    this.rootModule = module;
-                }
+            if (node == null) {
+                node = loadDependencyNodeFromPom(pomFile);
+            }
+
+            MavenModule module = new MavenModule();
+            module.setModuleNode(node);
+            module.setModulePath(FileHelper.getRelativePath(baseDir, dir));
+            modules.put(node.getModuleId(), module);
+            if (this.rootModule == null) {
+                this.rootModule = module;
             }
 
             File[] subFiles = dir.listFiles();
@@ -85,6 +87,10 @@ public class MavenModuleStructure {
             return MavenDependencyTreeParser.parseFromFile(dependencyFile);
         }
         return null;
+    }
+
+    protected MavenDependencyNode loadDependencyNodeFromPom(File pomFile) {
+        return new MavenPomParser().loadDependencyNodeFromPom(pomFile);
     }
 
     /**
