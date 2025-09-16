@@ -6560,6 +6560,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.excel.model.constants.ExcelAnchorType"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.excel.model.constants.XptExpandType"
   },
   {
@@ -9663,7 +9673,20 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "compileExcelFormula",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getCompiledExcelFormula",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
     "name": "io.nop.report.core.engine.XptRuntime"
   },
   {
@@ -9725,6 +9748,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.report.core.model.ExpandedCell"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.report.core.model.ExpandedCellSet"
   },
   {
     "allDeclaredConstructors": true,

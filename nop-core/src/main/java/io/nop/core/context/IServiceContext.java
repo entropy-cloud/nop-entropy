@@ -73,10 +73,10 @@ public interface IServiceContext extends IExecutionContext, ISecurityContext {
     }
 
     default void setResponseHeader(String name, Object value) {
-        Map<String, Object> headers = getRequestHeaders();
+        Map<String, Object> headers = getResponseHeaders();
         if (headers == null) {
             headers = new TreeMap<>();
-            setRequestHeaders(headers);
+            setResponseHeaders(headers);
         }
         ApiHeaders.setHeader(headers, name, value);
     }

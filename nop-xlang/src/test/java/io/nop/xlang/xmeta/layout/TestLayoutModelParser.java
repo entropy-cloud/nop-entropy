@@ -85,4 +85,13 @@ public class TestLayoutModelParser extends BaseTestCase {
         model.getGroups().forEach(group -> group.getId());
         model.getFirstTable().forEachLayoutCell(cell -> cell.getId());
     }
+
+    @Test
+    public void testEmptyGroup(){
+        String text = "a \n ====group===\n";
+        LayoutModel model = parse(text);
+        String result = model.toString();
+        System.out.println(result);
+        assertEquals(2, model.getGroups().size());
+    }
 }

@@ -46,9 +46,9 @@ public class LayoutModelParser {
             sc.skipBlank();
             LayoutTableModel group = parseGroup(sc, normalizeLevel);
             groups.add(group);
-            Guard.checkState(line != sc.line);
+            Guard.checkState(line != sc.line || this.nextGroup == null);
             line = sc.line;
-        } while (!sc.isEnd());
+        } while (!sc.isEnd() || this.nextGroup != null);
 
         return groups;
     }
