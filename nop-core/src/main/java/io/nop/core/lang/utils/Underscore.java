@@ -387,11 +387,17 @@ public class Underscore {
      * 'name'); => [{name: 'curly', age: 60}, {name: 'larry', age: 50}, {name: 'moe', age: 40}];
      */
     @Deterministic
-    public static <T> List<T> sortBy(Collection<T> c, Object keyOrFn) {
+    public static <T> List<T> sortBy(Collection<T> c, String key) {
         List<T> ret = new ArrayList<>(c);
-        Function<T, Object> fn = keyOrFn instanceof Function ? (Function<T, Object>) keyOrFn
-                : t -> getFieldValue(t, (String) keyOrFn);
+        Function<T, Object> fn = t -> getFieldValue(t, key);
+        Comparator<T> comparator = (v1, v2) -> SafeOrderedComparator.DEFAULT.compare(fn.apply(v1), fn.apply(v2));
+        ret.sort(comparator);
+        return ret;
+    }
 
+    @Deterministic
+    public static <T> List<T> sortByFn(Collection<T> c, Function<T, Object> fn) {
+        List<T> ret = new ArrayList<>(c);
         Comparator<T> comparator = (v1, v2) -> SafeOrderedComparator.DEFAULT.compare(fn.apply(v1), fn.apply(v2));
         ret.sort(comparator);
         return ret;
@@ -406,29 +412,31 @@ public class Underscore {
      * _.groupBy(['one', 'two', 'three'], 'length'); => {3: ["one", "two"], 5: ["three"]}
      */
     @Deterministic
-    public static <K, T> Map<K, List<T>> groupBy(Collection<T> c, Object keyOrFn) {
+    public static <K, T> Map<K, List<T>> groupBy(Collection<T> c, String key) {
         Map<K, List<T>> ret = new LinkedHashMap<>();
-        if (keyOrFn instanceof Function) {
-            Function<T, K> fn = (Function<T, K>) keyOrFn;
-            for (T item : c) {
-                K key = fn.apply(item);
-                List<T> list = ret.get(key);
-                if (list == null) {
-                    list = new ArrayList<>();
-                    ret.put(key, list);
-                }
-                list.add(item);
+        for (T item : c) {
+            K keyValue = getFieldValue(item, key);
+            List<T> list = ret.get(keyValue);
+            if (list == null) {
+                list = new ArrayList<>();
+                ret.put(keyValue, list);
             }
-        } else {
-            for (T item : c) {
-                K key = getFieldValue(item, (String) keyOrFn);
-                List<T> list = ret.get(key);
-                if (list == null) {
-                    list = new ArrayList<>();
-                    ret.put(key, list);
-                }
-                list.add(item);
+            list.add(item);
+        }
+        return ret;
+    }
+
+    @Deterministic
+    public static <K, T> Map<K, List<T>> groupByFn(Collection<T> c, Function<T, K> fn) {
+        Map<K, List<T>> ret = new LinkedHashMap<>();
+        for (T item : c) {
+            K key = fn.apply(item);
+            List<T> list = ret.get(key);
+            if (list == null) {
+                list = new ArrayList<>();
+                ret.put(key, list);
             }
+            list.add(item);
         }
         return ret;
     }
@@ -441,20 +449,21 @@ public class Underscore {
      * 'age'); => { "40": {name: 'moe', age: 40}, "50": {name: 'larry', age: 50}, "60": {name: 'curly', age: 60} }
      */
     @Deterministic
-    public static <K, T> Map<K, T> indexBy(Collection<T> c, Object keyOrFn) {
-
+    public static <K, T> Map<K, T> indexBy(Collection<T> c, String key) {
         Map<K, T> ret = CollectionHelper.newLinkedHashMap(c.size());
-        if (keyOrFn instanceof Function) {
-            Function<T, K> fn = (Function<T, K>) keyOrFn;
-            for (T item : c) {
-                K key = fn.apply(item);
-                ret.put(key, item);
-            }
-        } else {
-            for (T item : c) {
-                K key = getFieldValue(item, (String) keyOrFn);
-                ret.put(key, item);
-            }
+        for (T item : c) {
+            K keyValue = getFieldValue(item, key);
+            ret.put(keyValue, item);
+        }
+        return ret;
+    }
+
+    @Deterministic
+    public static <K, T> Map<K, T> indexByFn(Collection<T> c, Function<T, K> fn) {
+        Map<K, T> ret = CollectionHelper.newLinkedHashMap(c.size());
+        for (T item : c) {
+            K key = fn.apply(item);
+            ret.put(key, item);
         }
         return ret;
     }
@@ -465,15 +474,15 @@ public class Underscore {
         if (fieldNames.length == 1)
             return indexBy(c, fieldNames[0]);
 
-        Function<Object, List<Object>> fn = (Object obj) -> {
+        Function<T, List<Object>> fn = (T obj) -> {
             List<Object> ret = new ArrayList<>(fieldNames.length);
             for (String fieldName : fieldNames) {
-                ret.addAll(getFieldValue(obj, fieldName));
+                ret.add(getFieldValue(obj, fieldName));
             }
             return ret;
         };
 
-        return indexBy(c, fn);
+        return (Map) indexByFn(c, fn);
     }
 
     @Deterministic
@@ -494,25 +503,27 @@ public class Underscore {
      * _.countBy([1, 2, 3, 4, 5], function(num) { return num % 2 == 0 ? 'even': 'odd'; }); => {odd: 3, even: 2}
      */
     @Deterministic
-    public static <K, T> Map<K, Integer> countBy(Collection<T> c, Object keyOrFn) {
+    public static <K, T> Map<K, Integer> countBy(Collection<T> c, String keyField) {
         Map<K, Integer> ret = new LinkedHashMap<>();
-        if (keyOrFn instanceof Function) {
-            Function<T, K> iteratee = (Function<T, K>) keyOrFn;
-            for (T item : c) {
-                K key = iteratee.apply(item);
-                Integer count = ret.get(key);
-                if (count == null)
-                    count = 0;
-                ret.put(key, count + 1);
-            }
-        } else {
-            for (T item : c) {
-                K key = getFieldValue(item, (String) keyOrFn);
-                Integer count = ret.get(key);
-                if (count == null)
-                    count = 0;
-                ret.put(key, count + 1);
-            }
+        for (T item : c) {
+            K key = getFieldValue(item, keyField);
+            Integer count = ret.get(key);
+            if (count == null)
+                count = 0;
+            ret.put(key, count + 1);
+        }
+        return ret;
+    }
+
+    @Deterministic
+    public static <K, T> Map<K, Integer> countByFn(Collection<T> c, Function<T, K> keyFn) {
+        Map<K, Integer> ret = new LinkedHashMap<>();
+        for (T item : c) {
+            K key = keyFn.apply(item);
+            Integer count = ret.get(key);
+            if (count == null)
+                count = 0;
+            ret.put(key, count + 1);
         }
         return ret;
     }

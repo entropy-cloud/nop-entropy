@@ -342,8 +342,7 @@ public class BeanCopier implements IBeanCopier {
     private Object buildObject(Object src, IGenericType targetType, FieldSelectionBean selection,
                                BeanCopyOptions options) {
         if (targetType == PredefinedGenericTypes.X_NODE_TYPE) {
-            if (src instanceof ITreeBean)
-                return XNode.fromTreeBean((ITreeBean) src);
+            return XNode.fromValue(src);
         }
         IBeanModel targetModel = getTargetBeanModel(src, targetType, options);
         IBeanDeserializer deserializer = getDeserializer(targetModel, options);

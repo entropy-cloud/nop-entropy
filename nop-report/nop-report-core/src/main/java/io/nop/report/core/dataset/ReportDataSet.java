@@ -117,9 +117,9 @@ public class ReportDataSet implements Iterable<Object> {
         return ret;
     }
 
-    public List<KeyedReportDataSet> group(String field, Object sortFn) {
+    public List<KeyedReportDataSet> groupAndSortBy(String field, Function<KeyedReportDataSet,Object> sortFn) {
         List<KeyedReportDataSet> ret = group(field);
-        return Underscore.sortBy(ret, sortFn);
+        return Underscore.sortByFn(ret, sortFn);
     }
 
     public ReportDataSet where(Map<String, Object> props) {

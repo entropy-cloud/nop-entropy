@@ -108,7 +108,7 @@ public class CsvDataDiffer {
 
     Map<String, Map<String, Object>> indexById(List<String> idCols, List<Map<String, Object>> a) {
         Function<Map<String, Object>, String> fn = (Map<String, Object> v) -> getId(idCols, v);
-        return Underscore.indexBy(a, fn);
+        return Underscore.indexByFn(a, fn);
     }
 
     String getId(List<String> idCols, Map<String, Object> a) {
