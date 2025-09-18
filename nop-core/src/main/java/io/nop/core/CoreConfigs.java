@@ -217,6 +217,10 @@ public interface CoreConfigs {
     IConfigReference<Boolean> CFG_CHECK_DUPLICATE_VFS_RESOURCE = varRef(s_loc,
             "nop.core.resource.check-duplicate-vfs-resource", Boolean.class, true);
 
+    @Description("扫描的扩展资源路径")
+    IConfigReference<String> CFG_RESOURCE_SCAN_EXT_VFS_PATH = varRef(s_loc,
+            "nop.core.resource.scan-ext-vfs-path", String.class, null);
+
     @Description("当错误码没有定义外部映射的情况下，是否将其翻译为SysError以避免泄露内部结构信息，还是直接把该错误码信息作为API结果返回")
     IConfigReference<Boolean> CFG_ERROR_MESSAGE_PUBLIC_FOR_NO_MAPPING = varRef(s_loc,
             "nop.core.error-message-public-for-no-mapping", Boolean.class, true);

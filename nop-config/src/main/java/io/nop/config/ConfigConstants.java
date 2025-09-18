@@ -92,6 +92,8 @@ public interface ConfigConstants {
 
     String CFG_PATH_APPLICATION_YML = "classpath:application.yml";
 
+    String CFG_NOP_CONFIG_YAML = "classpath:nop.config.yaml";
+
 
     String CFG_PATH_PREFIX = "classpath:_conf/";
 

@@ -385,7 +385,20 @@ public class ConfigStarter extends LifeCycleSupport {
         }
 
         appSources.add(appSource);
+
+        IConfigSource nopConfig = loadNopConfigSource(configSource);
+        if (nopConfig != null)
+            appSources.add(nopConfig);
+
         return appSources;
+    }
+
+    protected IConfigSource loadNopConfigSource(IConfigSource configSource) {
+        IResource resource = buildConfigResource(ConfigConstants.CFG_NOP_CONFIG_YAML);
+        if (resource.exists()) {
+            return new ResourceConfigSourceLoader(resource).loadConfigSource(configSource);
+        }
+        return null;
     }
 
     protected IConfigSource loadAppConfigSource(IConfigSource configSource) {

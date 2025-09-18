@@ -26353,7 +26353,20 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
-    "methods": [],
+    "methods": [
+      {
+        "name": "compileExcelFormula",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "getCompiledExcelFormula",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
     "name": "io.nop.report.core.engine.XptRuntime"
   },
   {
