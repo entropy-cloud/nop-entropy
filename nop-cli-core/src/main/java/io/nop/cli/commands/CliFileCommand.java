@@ -195,15 +195,18 @@ public class CliFileCommand implements Callable<Integer> {
             if (res.isDirectory())
                 return true;
 
+            String path = res.getPath().substring(resource.getPath().length() + 1);
+            if (isNopIgnoredFile(path))
+                return false;
+
             if (!ignoreFile.isEmpty() && ignoreFile.test(res))
                 return false;
 
             if (regexPattern != null)
-                return regexPattern.matcher(res.getPath()).find();
+                return regexPattern.matcher(path).find();
 
             if (pattern != null) {
-                String relativePath = res.getPath().substring(resource.getPath().length() + 1);
-                return pathMatcher.match(pattern, relativePath);
+                return pathMatcher.match(pattern, path);
             }
             return true;
         });
@@ -232,6 +235,9 @@ public class CliFileCommand implements Callable<Integer> {
         List<String> paths = fileOperator.findFilesByFilter(searchDir, path -> {
             IResource res = fileOperator.getResource(path);
 
+            if (isNopIgnoredFile(path))
+                return false;
+
             if (!ignoreFile.isEmpty() && ignoreFile.test(res))
                 return false;
 
@@ -255,6 +261,24 @@ public class CliFileCommand implements Callable<Integer> {
         }
 
         return 0;
+    }
+
+    boolean isNopIgnoredFile(String path) {
+        if (path.startsWith(".git/"))
+            return true;
+
+        if (path.startsWith(".idea/"))
+            return true;
+
+        if (path.startsWith(".github/"))
+            return true;
+
+        if (path.startsWith("_dump"))
+            return true;
+
+        if (path.contains("/_gen/") || path.contains("/_"))
+            return true;
+        return false;
     }
 
     GitIgnoreFile getGitIgnoreFile() {
