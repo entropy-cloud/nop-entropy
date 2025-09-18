@@ -315,7 +315,7 @@
                         <field name="schema.domain" displayName="数据域">
                             <schema stdDomain="xml-name"/>
                         </field>
-                        <field name="schema.type" displayName="类型" mandatory="true">
+                        <field name="schema.type" displayName="类型" mandatory="true" xpt:formatExpr="cell.value?.toString()?.$simplifyJavaType()">
                             <schema stdDomain="generic-type"/>
                         </field>
                         <field name="schema.precision" displayName="长度">
