@@ -13,6 +13,7 @@ import io.nop.ooxml.common.model.ImageUrlMapper;
 import io.nop.ooxml.common.model.RelsImageUrlMapper;
 import io.nop.ooxml.docx.DocxConstants;
 import io.nop.ooxml.docx.model.WordOfficePackage;
+import io.nop.ooxml.docx.model.WordStylesPart;
 import io.nop.ooxml.docx.parse.WordTableParser;
 import io.nop.ooxml.docx.parse.WordXmlHelper;
 
@@ -27,7 +28,6 @@ public class DocxToMarkdownConverter {
     }
 
     public MarkdownDocument convertFromResource(IResource resource, String imageBaseUrl) {
-
         WordOfficePackage pkg = new WordOfficePackage();
         try {
             pkg.loadFromResource(resource);
@@ -37,8 +37,11 @@ public class DocxToMarkdownConverter {
 
             XNode doc = pkg.getWordXml();
 
+            // 获取样式信息
+            WordStylesPart stylesPart = pkg.getStyles();
+
             ImageUrlMapper urlMapper = new RelsImageUrlMapper(pkg.getRelsForPartPath(DocxConstants.PATH_WORD_DOCUMENT), imageBaseUrl);
-            return convertFromNode(doc, urlMapper);
+            return convertFromNode(doc, urlMapper, stylesPart);
         } finally {
             IoHelper.safeCloseObject(pkg);
         }
@@ -53,7 +56,7 @@ public class DocxToMarkdownConverter {
         return this;
     }
 
-    public MarkdownDocument convertFromNode(XNode node, ImageUrlMapper urlMapper) {
+    public MarkdownDocument convertFromNode(XNode node, ImageUrlMapper urlMapper, WordStylesPart stylesPart) {
         MarkdownDocument doc = new MarkdownDocument();
         XNode bodyNode = node.childByTag("w:body");
         if (bodyNode == null)
@@ -65,13 +68,13 @@ public class DocxToMarkdownConverter {
         doc.setRootSection(root);
 
         StringBuilder currentText = new StringBuilder();
-        // 当前列表层级状态（使用数组实现引用传递）
         int[] currentListLevel = new int[]{-1}; // -1表示不在列表中
 
         for (XNode child : bodyNode.getChildren()) {
             if ("w:p".equals(child.getTagName())) {
-                ParagraphInfo paraInfo = getParagraphInfo(child);
-                handleParagraph(child, urlMapper, sectionStack, currentText, paraInfo, currentListLevel);
+                // 先读取段落样式，然后基于样式信息进行处理
+                ParagraphStyle paragraphStyle = readParagraphStyle(child, stylesPart);
+                handleParagraph(child, urlMapper, sectionStack, currentText, paragraphStyle, currentListLevel);
             } else if ("w:tbl".equals(child.getTagName())) {
                 // 处理表格前重置列表状态
                 if (currentListLevel[0] != -1) {
@@ -88,47 +91,100 @@ public class DocxToMarkdownConverter {
         return doc;
     }
 
-    // 修改：增加paraInfo和currentListLevel参数
+    /**
+     * 读取段落样式信息，正确处理outlineLevel的优先级
+     */
+    private ParagraphStyle readParagraphStyle(XNode paraNode, WordStylesPart stylesPart) {
+        XNode pPr = paraNode.childByTag("w:pPr");
+        if (pPr == null) {
+            return new ParagraphStyle(null, null, null, null, null, 0, false, 0);
+        }
+
+        // 1. 优先检查当前段落的直接大纲级别定义
+        Integer directOutlineLevel = null;
+        XNode directOutlineLvl = pPr.childByTag("w:outlineLvl");
+        if (directOutlineLvl != null) {
+            String val = directOutlineLvl.attrText("w:val");
+            if (val != null) {
+                try {
+                    directOutlineLevel = Integer.parseInt(val);
+                } catch (NumberFormatException e) {
+                    // 忽略
+                }
+            }
+        }
+
+        // 2. 读取样式ID和样式信息
+        XNode pStyle = pPr.childByTag("w:pStyle");
+        String styleId = null;
+        String styleName = null;
+        Integer styleOutlineLevel = null;
+
+        if (pStyle != null) {
+            styleId = pStyle.attrText("w:val");
+
+            if (stylesPart != null && styleId != null) {
+                WordStylesPart.StyleInfo styleInfo = stylesPart.getStyleInfo(styleId);
+                if (styleInfo != null) {
+                    styleName = styleInfo.styleName;
+                    styleOutlineLevel = styleInfo.outlineLevel;
+                }
+            }
+        }
+
+        // 3. 确定最终的大纲级别（直接定义优先于样式定义）
+        Integer finalOutlineLevel = directOutlineLevel != null ? directOutlineLevel : styleOutlineLevel;
+        int headingLevel = 0;
+        if (finalOutlineLevel != null) {
+            headingLevel = Math.min(finalOutlineLevel + 1, 6);
+        }
+
+        // 4. 检查列表信息
+        boolean isListItem = false;
+        int listLevel = 0;
+        XNode numPr = pPr.childByTag("w:numPr");
+        if (numPr != null) {
+            isListItem = true;
+            listLevel = getListLevel(paraNode);
+        }
+
+        return new ParagraphStyle(styleId, styleName, directOutlineLevel, styleOutlineLevel,
+                finalOutlineLevel, headingLevel, isListItem, listLevel);
+    }
+
     private void handleParagraph(XNode paraNode, ImageUrlMapper urlMapper, Stack<MarkdownSection> sectionStack,
-                                 StringBuilder currentText, ParagraphInfo paraInfo,
+                                 StringBuilder currentText, ParagraphStyle paragraphStyle,
                                  int[] currentListLevel) {
-        switch (paraInfo.type) {
-            case HEADING:
-                // 遇到标题时重置列表状态
+        if (paragraphStyle.headingLevel > 0) {
+            // 遇到标题时重置列表状态
+            currentListLevel[0] = -1;
+            if (currentText.length() > 0) {
+                appendTextToCurrentSection(sectionStack.peek(), currentText);
+            }
+            createNewSection(paraNode, urlMapper, sectionStack, paragraphStyle.headingLevel);
+        } else if (paragraphStyle.isListItem) {
+            // 列表项处理
+            handleListItem(paraNode, urlMapper, currentText, paragraphStyle.listLevel, currentListLevel);
+        } else {
+            // 普通段落：重置列表状态
+            if (currentListLevel[0] != -1) {
                 currentListLevel[0] = -1;
+            }
+            String text = extractParagraphText(paraNode, urlMapper);
+            if (!text.isEmpty()) {
                 if (currentText.length() > 0) {
-                    appendTextToCurrentSection(sectionStack.peek(), currentText);
+                    currentText.append("\n\n");
                 }
-                createNewSection(paraNode, urlMapper, sectionStack);
-                break;
-
-            case LIST_ITEM:
-                // 列表项处理
-                handleListItem(paraNode, urlMapper, currentText, paraInfo.listInfo, currentListLevel);
-                break;
-
-            default:
-                // 普通段落：重置列表状态
-                if (currentListLevel[0] != -1) {
-                    currentListLevel[0] = -1;
-                }
-                String text = extractParagraphText(paraNode, urlMapper);
-                if (!text.isEmpty()) {
-                    if (currentText.length() > 0) {
-                        currentText.append("\n\n");
-                    }
-                    currentText.append(text);
-                }
+                currentText.append(text);
+            }
         }
     }
 
     private void handleListItem(XNode paraNode, ImageUrlMapper urlMapper,
-                                StringBuilder currentText,
-                                ListInfo listInfo, int[] currentListLevel) {
-        int newLevel = listInfo.level;
-
+                                StringBuilder currentText, int listLevel,
+                                int[] currentListLevel) {
         // 只在列表层级下降时添加空行（从子列表回到父列表时）
-        if (currentListLevel[0] != -1 && newLevel < currentListLevel[0]) {
+        if (currentListLevel[0] != -1 && listLevel < currentListLevel[0]) {
             currentText.append("\n");
         }
 
@@ -138,38 +194,16 @@ public class DocxToMarkdownConverter {
         }
 
         // 生成缩进（每级2空格）
-        String indent = "  ".repeat(newLevel);
+        String indent = "  ".repeat(listLevel);
         String listItemText = extractParagraphText(paraNode, urlMapper);
 
         // 添加列表项
         currentText.append(indent).append("- ").append(listItemText);
 
         // 设置当前层级
-        currentListLevel[0] = newLevel;
+        currentListLevel[0] = listLevel;
     }
 
-    // 修改：增强段落信息检测
-    private ParagraphInfo getParagraphInfo(XNode paraNode) {
-        // 检测标题
-        int headingLevel = getHeadingLevel(paraNode);
-        if (headingLevel > 0) {
-            return new ParagraphInfo(ParagraphType.HEADING, null);
-        }
-
-        // 检测列表项
-        XNode pPr = paraNode.childByTag("w:pPr");
-        if (pPr != null) {
-            XNode numPr = pPr.childByTag("w:numPr");
-            if (numPr != null) {
-                int listLevel = getListLevel(paraNode);
-                return new ParagraphInfo(ParagraphType.LIST_ITEM, new ListInfo(listLevel));
-            }
-        }
-
-        return new ParagraphInfo(ParagraphType.REGULAR, null);
-    }
-
-    // 新增：获取列表层级
     private int getListLevel(XNode paraNode) {
         XNode pPr = paraNode.childByTag("w:pPr");
         if (pPr != null) {
@@ -191,34 +225,40 @@ public class DocxToMarkdownConverter {
         return 0; // 默认为0级
     }
 
-    private static class ParagraphInfo {
-        final ParagraphType type;
-        final ListInfo listInfo; // 仅LIST_ITEM类型有效
+    /**
+     * 段落样式信息封装类，包含完整的优先级信息
+     */
+    private static class ParagraphStyle {
+        final String styleId;
+        final String styleName;
+        final Integer directOutlineLevel;  // 段落直接定义的大纲级别
+        final Integer styleOutlineLevel;   // 样式中定义的大纲级别
+        final Integer finalOutlineLevel;   // 最终使用的大纲级别
+        final int headingLevel;            // 计算后的标题级别(1-6)
+        final boolean isListItem;
+        final int listLevel;
 
-        ParagraphInfo(ParagraphType type, ListInfo listInfo) {
-            this.type = type;
-            this.listInfo = listInfo;
+        ParagraphStyle(String styleId, String styleName,
+                       Integer directOutlineLevel, Integer styleOutlineLevel, Integer finalOutlineLevel,
+                       int headingLevel, boolean isListItem, int listLevel) {
+            this.styleId = styleId;
+            this.styleName = styleName;
+            this.directOutlineLevel = directOutlineLevel;
+            this.styleOutlineLevel = styleOutlineLevel;
+            this.finalOutlineLevel = finalOutlineLevel;
+            this.headingLevel = headingLevel;
+            this.isListItem = isListItem;
+            this.listLevel = listLevel;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("ParagraphStyle{styleId='%s', directOutline=%s, styleOutline=%s, finalOutline=%s, headingLevel=%d}",
+                    styleId, directOutlineLevel, styleOutlineLevel, finalOutlineLevel, headingLevel);
         }
     }
 
-    // 新增：列表信息封装类
-    private static class ListInfo {
-        final int level; // 列表嵌套层级（0=顶级）
-
-        ListInfo(int level) {
-            this.level = level;
-        }
-    }
-
-    private enum ParagraphType {
-        HEADING,
-        LIST_ITEM,
-        REGULAR
-    }
-
-
-    private void createNewSection(XNode headingNode, ImageUrlMapper urlMapper, Stack<MarkdownSection> sectionStack) {
-        int level = getHeadingLevel(headingNode);
+    private void createNewSection(XNode headingNode, ImageUrlMapper urlMapper, Stack<MarkdownSection> sectionStack, int level) {
         String title = extractParagraphText(headingNode, urlMapper);
 
         // Pop stack until we reach appropriate parent level
@@ -248,38 +288,6 @@ public class DocxToMarkdownConverter {
             section.setText(section.getText() + "\n\n" + currentText);
         }
         currentText.setLength(0); // Clear buffer
-    }
-
-    private int getHeadingLevel(XNode paraNode) {
-        XNode pPr = paraNode.childByTag("w:pPr");
-        if (pPr != null) {
-            XNode pStyle = pPr.childByTag("w:pStyle");
-            if (pStyle != null) {
-                String styleName = pStyle.attrText("w:val");
-                if (styleName != null) {
-                    if (styleName.startsWith("Heading")) {
-                        try {
-                            return Integer.parseInt(styleName.substring(7));
-                        } catch (NumberFormatException e) {
-
-                        }
-                    } else if (styleName.matches("Title[0-9]+")) {
-                        try {
-                            return Integer.parseInt(styleName.substring(5));
-                        } catch (NumberFormatException e) {
-
-                        }
-                    } else if (styleName.matches("\\d+")) {
-                        try {
-                            return Integer.parseInt(styleName);
-                        } catch (NumberFormatException e) {
-
-                        }
-                    }
-                }
-            }
-        }
-        return 0;
     }
 
     private String extractParagraphText(XNode paraNode, ImageUrlMapper urlMapper) {

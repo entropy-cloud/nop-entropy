@@ -5,7 +5,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.tpl.ITextTemplateOutput;
 import io.nop.ooxml.common.gen.XplGenConfig;
 import io.nop.ooxml.docx.WordTemplate;
-import io.nop.ooxml.docx.model.CommentsPart;
+import io.nop.ooxml.docx.model.WordCommentsPart;
 import io.nop.ooxml.docx.model.WordOfficePackage;
 import io.nop.ooxml.docx.parse.WordTemplateParser;
 import io.nop.report.docx.ReportDocxConstants;
@@ -24,7 +24,7 @@ public class XptWordTemplateParser extends WordTemplateParser {
 
     @Override
     protected void postProcessDocNode(WordOfficePackage pkg, XplGenConfig config, XLangCompileTool cp, XNode doc) {
-        CommentsPart comments = pkg.getComments();
+        WordCommentsPart comments = pkg.getComments();
         if (comments == null)
             return;
 
@@ -55,7 +55,7 @@ public class XptWordTemplateParser extends WordTemplateParser {
         });
     }
 
-    boolean isXptTable(XNode node, CommentsPart comments) {
+    boolean isXptTable(XNode node, WordCommentsPart comments) {
         XNode tr = node.childByTag("w:tr");
         if (tr != null) {
             XNode tc = tr.childByTag("w:tc");

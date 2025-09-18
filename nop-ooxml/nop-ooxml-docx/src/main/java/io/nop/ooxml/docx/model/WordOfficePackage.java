@@ -51,17 +51,32 @@ public class WordOfficePackage extends OfficePackage {
         });
     }
 
-    public CommentsPart getComments() {
+    public WordStylesPart getStyles() {
+        String path = "word/styles.xml";
+        IOfficePackagePart file = getFile(path);
+        if (file == null)
+            return null;
+
+        if (file instanceof WordStylesPart)
+            return (WordStylesPart) file;
+
+        ResourceOfficePackagePart res = (ResourceOfficePackagePart) file;
+        WordStylesPart part = new WordStylesPart(file.getPath(), res.loadXml());
+        addFile(part);
+        return part;
+    }
+
+    public WordCommentsPart getComments() {
         String path = "word/comments.xml";
         IOfficePackagePart file = getFile(path);
         if (file == null)
             return null;
 
-        if (file instanceof CommentsPart)
-            return (CommentsPart) file;
+        if (file instanceof WordCommentsPart)
+            return (WordCommentsPart) file;
 
         ResourceOfficePackagePart res = (ResourceOfficePackagePart) file;
-        CommentsPart part = new CommentsPart(file.getPath(), res.loadXml());
+        WordCommentsPart part = new WordCommentsPart(file.getPath(), res.loadXml());
         addFile(part);
         return part;
     }

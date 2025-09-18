@@ -16,10 +16,10 @@ import java.util.Map;
  * </w:p>
  * </w:comment>
  */
-public class CommentsPart extends XmlOfficePackagePart {
+public class WordCommentsPart extends XmlOfficePackagePart {
     private Map<String, String> comments = new HashMap<>();
 
-    public CommentsPart(String path, XNode node) {
+    public WordCommentsPart(String path, XNode node) {
         super(path, node);
         parse();
     }

@@ -141,6 +141,14 @@ public class TestAiCoderHelper extends JunitBaseTestCase {
     }
 
     @Test
+    public void testDocxToMarkdownTitle() {
+        DocxToMarkdownConverter converter = new DocxToMarkdownConverter();
+        MarkdownDocument doc = converter.convertFromResource(attachmentResource("test-markdown.docx"));
+        System.out.println(doc.toText());
+        assertEquals(normalizeCRLF(attachmentText("test-markdown.md")), doc.toText());
+    }
+
+    @Test
     public void testMatchMarkdownTpl() {
         MarkdownDocument doc = MarkdownTool.instance().parseFromResource(attachmentResource("output-db.md"));
         IResource tplResource = VirtualFileSystem.instance().getResource("/nop/ai/schema/coder/db-detail-design.tpl.md");

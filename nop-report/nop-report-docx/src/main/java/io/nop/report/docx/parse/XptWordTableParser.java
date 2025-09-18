@@ -10,7 +10,7 @@ import io.nop.excel.model.ExcelSheet;
 import io.nop.excel.model.ExcelTable;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.util.UnitsHelper;
-import io.nop.ooxml.docx.model.CommentsPart;
+import io.nop.ooxml.docx.model.WordCommentsPart;
 import io.nop.ooxml.docx.model.WordOfficePackage;
 import io.nop.ooxml.docx.parse.WordTableParser;
 import io.nop.report.core.build.ExcelToXptModelTransformer;
@@ -31,7 +31,7 @@ public class XptWordTableParser extends WordTableParser {
 
     private final XLangCompileTool cp;
 
-    private CommentsPart commentsPart;
+    private WordCommentsPart commentsPart;
 
     public XptWordTableParser(XLangCompileTool cp) {
         this.cp = cp;
