@@ -39,7 +39,7 @@ template: |
     - 遗漏信息将导致任务失败
   
   【输出文档结构】
-  {{_promptModel.markdownTplWithoutDetail}}
+  {{_promptModel.markdownTplWithoutDetailForResult}}
   
   【USER_REQUIREMENTS】
   {{inputRequirements}}

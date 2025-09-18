@@ -91,7 +91,7 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
         } else {
             scope = ctx.getEvalScope().newChildScope(vars);
         }
-        scope.setLocalValue(AiCoreConstants.SYS_VAR_PROMPT_MODEL, this);
+        scope.setLocalValue(AiCoreConstants.SYS_VAR_PROMPT_MODEL, promptModel);
 
         if (getInputs() != null) {
             for (PromptInputModel input : getInputs()) {

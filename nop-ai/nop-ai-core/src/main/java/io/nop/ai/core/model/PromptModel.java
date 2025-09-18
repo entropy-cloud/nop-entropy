@@ -51,6 +51,11 @@ public class PromptModel extends _PromptModel implements INeedInit, IComponentMo
         return output == null ? null : output.getMarkdownTpl().getText();
     }
 
+    public String getMarkdownTplWithoutDetailForResult() {
+        PromptOutputModel output = getOutput("RESULT");
+        return output == null ? null : output.getMarkdownTplWithoutDetail().getText();
+    }
+
     @Override
     public void init() {
         if (getOutputs() != null) {
