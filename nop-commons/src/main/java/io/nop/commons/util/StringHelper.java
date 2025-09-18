@@ -2935,7 +2935,7 @@ public class StringHelper extends ApiStringHelper {
     public static String removeTail(String s, String tail) {
         if (s == null)
             return null;
-        if (!s.endsWith(tail))
+        if (isEmpty(tail) || !s.endsWith(tail))
             return s;
         return s.substring(0, s.length() - tail.length());
     }
@@ -2944,7 +2944,7 @@ public class StringHelper extends ApiStringHelper {
     public static String removeHead(String s, String head) {
         if (s == null)
             return null;
-        if (!s.startsWith(head))
+        if (isEmpty(head) || !s.startsWith(head))
             return s;
         return s.substring(head.length());
     }

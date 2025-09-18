@@ -40,6 +40,7 @@ import java.util.zip.ZipFile;
 
 import static io.nop.core.CoreConfigs.CFG_CHECK_DUPLICATE_VFS_RESOURCE;
 import static io.nop.core.CoreConfigs.CFG_INCLUDE_CURRENT_PROJECT_RESOURCES;
+import static io.nop.core.CoreConfigs.CFG_RESOURCE_SCAN_EXT_VFS_PATH;
 import static io.nop.core.CoreConfigs.CFG_USE_NOP_VFS_INDEX;
 import static io.nop.core.CoreErrors.ARG_PATH;
 import static io.nop.core.CoreErrors.ARG_RESOURCE1;
@@ -147,6 +148,31 @@ public class DeltaResourceStoreBuilder implements IDeltaResourceStoreBuilder {
                             .param(ARG_RESOURCE2, resource).param(ARG_RESOURCE1, store.getResource(path));
                 }
             });
+
+            String extPath = CFG_RESOURCE_SCAN_EXT_VFS_PATH.get();
+            if (!StringHelper.isEmpty(extPath)) {
+                int prefixLength = extPath.endsWith("/") ? extPath.length() - 1 : extPath.length();
+
+                new ClassPathScanner().scanPath(extPath, (path, url) -> {
+                    path = path.substring(prefixLength);
+                    String fileName = StringHelper.fileFullName(path);
+                    if (fileName.startsWith("~"))
+                        return;
+
+                    LOG.trace("nop.vfs.add-ext:path={},url={}", path, url);
+                    if (ReflectionManager.instance().isRecordForNativeImage()) {
+                        classPathFiles.add(path);
+                    }
+
+                    IResource resource = ResourceHelper.buildResourceFromURL(path, url);
+
+                    resource = normalizeResource(resource);
+                    boolean b = store.addResourceIfAbsent(resource);
+                    if (!b && !isAllowDuplicate(path)) {
+                        LOG.warn("nop.vfs.duplicate-resource:resourceA={},resourceB={}", resource, store.getResource(path));
+                    }
+                });
+            }
         }
 
         if (config.getLibPaths() != null) {
@@ -239,7 +265,7 @@ public class DeltaResourceStoreBuilder implements IDeltaResourceStoreBuilder {
         return null;
     }
 
-    boolean isAllowDuplicate(String path) {
+    protected boolean isAllowDuplicate(String path) {
         return path.endsWith("/_module");
     }
 
