@@ -691,6 +691,13 @@ public class ApiStringHelper {
         return key.startsWith(prefix) && key.charAt(prefix.length()) == '.';
     }
 
+    @Deterministic
+    public static boolean startsWithIgnoreCase(String str, String subStr) {
+        if (str == null || subStr == null)
+            return false;
+        return str.regionMatches(true, 0, subStr, 0, subStr.length());
+    }
+
     public static List<String> toStringList(String[] array) {
         if (array == null)
             return null;

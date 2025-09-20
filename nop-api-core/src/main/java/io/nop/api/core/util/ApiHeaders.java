@@ -144,6 +144,14 @@ public class ApiHeaders {
         message.setHeader(ApiConstants.HEADER_ACCESS_TOKEN, value);
     }
 
+    public static String getAuthorization(ApiMessage message) {
+        return getStringHeader(message.getHeaders(), ApiConstants.HEADER_AUTHORIZATION);
+    }
+
+    public static void setAuthorization(ApiMessage message, String header) {
+        message.setHeader(ApiConstants.HEADER_AUTHORIZATION, header);
+    }
+
     public static String getCookie(ApiMessage message) {
         return getStringHeader(message.getHeaders(), ApiConstants.HEADER_COOKIE);
     }

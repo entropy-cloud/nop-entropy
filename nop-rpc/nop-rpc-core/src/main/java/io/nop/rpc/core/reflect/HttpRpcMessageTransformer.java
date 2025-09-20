@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.rpc.RpcMethod;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.reflect.IFunctionArgument;
@@ -20,7 +21,6 @@ import io.nop.core.reflect.bean.BeanTool;
 import io.nop.core.type.IGenericType;
 import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.rpc.core.utils.RpcHelper;
-
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -28,6 +28,7 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.QueryParam;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -111,6 +112,13 @@ public class HttpRpcMessageTransformer extends DefaultRpcMessageTransformer {
                 url = StringHelper.replace(url, "{" + pathParam.value() + "}", StringHelper.encodeURL(value));
                 continue;
             }
+
+            if (argModel.getRawClass() == ICancelToken.class) {
+                continue;
+            }
+
+            if (req.getData() != null)
+                throw new IllegalArgumentException("invalid request arg:" + argModel.getName());
             req.setData(args[i]);
         }
 

@@ -16,10 +16,6 @@
         <version>2.0.0-SNAPSHOT</version>
     </parent>
 
-	<properties>
-	    <maven.deploy.skip>true</maven.deploy.skip>
-	</properties>
-
     <modules>
         <module>nop-quarkus-demo</module>
         <module>nop-spring-demo</module>
@@ -36,5 +32,56 @@
         <module>nop-jdk17-demo</module>
         <module>nop-ddd-demo</module>
     </modules>
+
+    <!-- 这些属性将被所有子模块继承 -->
+    <properties>
+        <!-- 默认跳过所有Quarkus相关模块的构建 -->
+        <maven.compiler.skip>true</maven.compiler.skip>
+        <maven.test.skip>true</maven.test.skip>
+        <maven.install.skip>true</maven.install.skip>
+        <maven.deploy.skip>true</maven.deploy.skip>
+
+        <!-- 默认的Java编译版本 -->
+        <java.version>17</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+    </properties>
+
+
+    <!-- 2. 新增: 统一的Profile，用于条件化构建 -->
+    <profiles>
+        <profile>
+            <id>build-quarkus-modules-on-jdk17-plus</id>
+            <activation>
+                <!-- 当JDK版本为17或更高时激活 -->
+                <jdk>[17,)</jdk>
+            </activation>
+            <properties>
+                <!-- 激活时，覆盖默认属性，启用构建 -->
+                <maven.compiler.skip>false</maven.compiler.skip>
+                <maven.test.skip>false</maven.test.skip>
+                <maven.install.skip>false</maven.install.skip>
+            </properties>
+        </profile>
+    </profiles>
+
+    <!-- 3. 新增: 统一的插件管理 -->
+    <build>
+        <pluginManagement>
+            <plugins>
+                <!-- 统一管理compiler插件，确保所有子模块行为一致 -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <source>${maven.compiler.source}</source>
+                        <target>${maven.compiler.target}</target>
+                        <skip>${maven.compiler.skip}</skip>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
 
 </project>

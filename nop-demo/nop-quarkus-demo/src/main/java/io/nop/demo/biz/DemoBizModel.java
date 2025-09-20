@@ -11,6 +11,11 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.auth.IUserContext;
+import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.beans.graphql.GraphQLRequestBean;
+import io.nop.api.core.beans.graphql.GraphQLResponseBean;
+import io.nop.api.core.graphql.GraphQLApi;
 import io.nop.api.core.util.LogLevel;
 import io.nop.auth.dao.entity.NopAuthUser;
 import io.nop.core.context.IServiceContext;
@@ -22,6 +27,8 @@ import io.nop.demo.domain.ProductionOrder;
 import io.nop.log.core.LoggerConfigurator;
 import io.nop.xlang.filter.BizValidatorHelper;
 import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 import java.util.HashMap;
 import java.util.List;
@@ -88,5 +95,19 @@ public class DemoBizModel {
     @SendEmail
     public void testMethod1(@RequestBean MyRequest request) {
         System.out.println("doSomething");
+    }
+
+    @Inject
+    @Named("localGraphQLApi")
+    GraphQLApi graphQLApi;
+
+    @BizQuery
+    public Map<String, Object> testGraphql() {
+        ApiRequest<GraphQLRequestBean> request = ApiRequest.build(new GraphQLRequestBean());
+        request.setBearerToken(IUserContext.get().getAccessToken());
+
+        request.getData().setQuery("query{ NopAuthUser__findList{id,userName}}");
+        GraphQLResponseBean response = graphQLApi.api_invoke(request, null);
+        return (Map<String, Object>) response.toApiResponse().get();
     }
 }

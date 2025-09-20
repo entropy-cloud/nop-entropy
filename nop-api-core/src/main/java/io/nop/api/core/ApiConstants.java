@@ -67,6 +67,10 @@ public interface ApiConstants extends FilterBeanConstants {
      */
     String HEADER_ACCESS_TOKEN = "x-access-token";
 
+    String HEADER_AUTHORIZATION = "authorization";
+
+    String BEARER_TOKEN_PREFIX = "Bearer ";
+
     /**
      * 消息id
      */

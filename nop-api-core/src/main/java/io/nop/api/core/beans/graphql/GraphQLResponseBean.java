@@ -183,4 +183,8 @@ public final class GraphQLResponseBean implements Serializable {
         res.setWrapper(true);
         return res;
     }
+
+    public Object get(){
+        return toApiResponse().get();
+    }
 }

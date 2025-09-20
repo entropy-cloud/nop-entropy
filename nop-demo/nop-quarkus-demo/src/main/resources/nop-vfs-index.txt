@@ -461,6 +461,7 @@
 /nop/autoconfig/nop-quarkus-web-starter.beans
 /nop/autoconfig/nop-report-ext.beans
 /nop/autoconfig/nop-report.beans
+/nop/autoconfig/nop-rpc-cluster.beans
 /nop/autoconfig/nop-rule-core.beans
 /nop/autoconfig/nop-search-core.beans
 /nop/autoconfig/nop-search.beans
@@ -876,8 +877,11 @@
 /nop/report/pages/NopReportSubDataset/picker.page.yaml
 /nop/report/xlib/xpt-rt.xlib
 /nop/report/xlib/xpt.xlib
+/nop/rpc/beans/load-balance-defaults.beans.xml
+/nop/rpc/beans/rpc-cluster-defaults.beans.xml
 /nop/rpc/imp/api.imp.xml
 /nop/rpc/imp/template.api.xlsx
+/nop/rpc/xlib/rpc.xlib
 /nop/rule/_module
 /nop/rule/auth/_nop-rule-api.action-auth.xml
 /nop/rule/auth/_nop-rule.action-auth.xml

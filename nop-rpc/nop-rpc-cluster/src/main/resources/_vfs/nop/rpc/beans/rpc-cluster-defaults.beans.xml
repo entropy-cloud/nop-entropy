@@ -72,6 +72,12 @@
 
     <alias alias="nopServerChooser_default" name="nopServerChooser_random"/>
 
+    <bean id="nopEmptyNamingService" class="io.nop.cluster.naming.EmptyNamingService">
+        <ioc:condition>
+            <if-property name="nop.cluster.use-empty-naming-service"/>
+        </ioc:condition>
+    </bean>
+
     <bean id="AbstractClusterRpcProxyFactoryBean" abstract="true" ioc:default="true"
           ioc:bean-method="getObject"
           class="io.nop.rpc.cluster.ClusterRpcProxyFactoryBean">
@@ -92,7 +98,6 @@
     <bean id="AbstractHttpRpcProxyFactoryBean" abstract="true" ioc:default="true"
           ioc:bean-method="getObject"
           class="io.nop.rpc.cluster.http.HttpRpcProxyFactoryBean">
-        <property name="serverChooser" ref="nopServerChooser_default"/>
         <property name="interceptors" ref="nopRpcServiceClientInterceptors"/>
         <property name="serviceClass" value="@bean:type"/>
         <property name="retryCount" value="@cfg:nop.rpc.cluster-client-retry-count|2"/>

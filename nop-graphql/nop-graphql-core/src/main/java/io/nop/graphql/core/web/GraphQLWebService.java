@@ -23,7 +23,6 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.functional.IAsyncFunctionInvoker;
 import io.nop.commons.functional.ITriFunction;
 import io.nop.commons.functional.Lazy;
-import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
@@ -51,7 +50,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -79,6 +77,8 @@ public abstract class GraphQLWebService {
         try {
 
             GraphQLRequestBean request = (GraphQLRequestBean) JSON.parseToBean(null, body, GraphQLRequestBean.class);
+            if (request == null)
+                throw new IllegalArgumentException("null request");
             LOG.debug("nop.graphql.parse:vars={},document=\n{}", request.getVariables(), request.getQuery());
 
             context = engine.newGraphQLContext(request);

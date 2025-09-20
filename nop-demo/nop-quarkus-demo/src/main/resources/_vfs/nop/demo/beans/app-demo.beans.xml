@@ -13,5 +13,11 @@
         <ioc:pointcut annotations="io.nop.demo.annotations.SendEmail"/>
     </bean>
 
-    <bean id="nopPluginCommand_default" class="io.nop.demo.plugin.DemoPluginCommand" />
+    <bean id="nopPluginCommand_default" class="io.nop.demo.plugin.DemoPluginCommand"/>
+
+    <bean id="localGraphQLApi" parent="AbstractHttpRpcProxyFactoryBean">
+        <property name="serviceName" value="nop-graphql"/>
+        <property name="serviceClass" value="io.nop.api.core.graphql.GraphQLApi" />
+        <property name="baseUrl" value="http://localhost:8080" />
+    </bean>
 </beans>

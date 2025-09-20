@@ -67,7 +67,8 @@ nop:
   web:
     page-validation-thread-count: 4
 
-
+  cluster:
+    use-empty-naming-service: true
 # 开发模式配置
 
 "%dev":

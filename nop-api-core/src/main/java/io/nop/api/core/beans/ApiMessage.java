@@ -7,9 +7,12 @@
  */
 package io.nop.api.core.beans;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import io.nop.api.core.ApiConstants;
 import io.nop.api.core.util.ApiHeaders;
+import io.nop.api.core.util.ApiStringHelper;
 import io.nop.api.core.util.ICloneable;
 
 import java.io.Serializable;
@@ -78,6 +81,27 @@ public abstract class ApiMessage implements Serializable, ICloneable {
     public void removeHeader(String name) {
         if (headers != null) {
             headers.remove(name);
+        }
+    }
+
+    @JsonIgnore
+    public String getBearerToken() {
+        String auth = ApiHeaders.getAuthorization(this);
+        if (ApiStringHelper.isEmpty(auth)) {
+            return ApiHeaders.getAuthToken(this);
+        }
+
+        if (ApiStringHelper.startsWithIgnoreCase(auth, ApiConstants.BEARER_TOKEN_PREFIX)) {
+            return auth.substring(ApiConstants.BEARER_TOKEN_PREFIX.length()).trim();
+        }
+        return auth;
+    }
+
+    public void setBearerToken(String token) {
+        if (ApiStringHelper.isEmpty(token)) {
+            setHeader(ApiConstants.HEADER_AUTHORIZATION, null);
+        } else {
+            setHeader(ApiConstants.HEADER_AUTHORIZATION, ApiConstants.BEARER_TOKEN_PREFIX + token);
         }
     }
 

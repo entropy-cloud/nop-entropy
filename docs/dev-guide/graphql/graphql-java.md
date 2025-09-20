@@ -667,3 +667,14 @@ output("result.json5", FutureHelper.syncGet(future));
 * 可以选择增加`MyUser_ext.xmeta`，然后使用`x:extends="MyUser.xmeta"`，让它从BaseMeta继承。
 
 
+## 作为客户端访问其他服务器上的GraphQL服务
+
+Nop平台提供了GraphQLApi接口，可以通过如下配置来生成一个GraphQL客户端接口，用于访问GraphQL服务。具体示例参见 nop-quarkus-demo中的DemoBizModel
+
+```xml
+    <bean id="localGraphQLApi" parent="AbstractHttpRpcProxyFactoryBean">
+        <property name="serviceName" value="nop-graphql"/>
+        <property name="serviceClass" value="io.nop.api.core.graphql.GraphQLApi" />
+        <property name="baseUrl" value="http://localhost:8080" />
+    </bean>
+```

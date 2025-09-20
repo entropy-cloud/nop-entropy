@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.biz.RequestBean;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.ApiInvokeHelper;
@@ -115,6 +116,11 @@ public class DefaultRpcMessageTransformer implements IRpcMessageTransformer {
         if (ApiResponse.class == returnType.getRawClass()) {
             IGenericType bodyType = returnType.getTypeParameters().get(0);
             return normalizeResponse(bodyType, response);
+        }
+
+        if (GraphQLResponseBean.class == returnType.getRawClass()) {
+            IGenericType bodyType = ReflectionManager.instance().buildRawType(GraphQLResponseBean.class);
+            return normalizeType(bodyType, ApiInvokeHelper.getResponseData(response));
         }
 
         return normalizeType(returnType, ApiInvokeHelper.getResponseData(response));
