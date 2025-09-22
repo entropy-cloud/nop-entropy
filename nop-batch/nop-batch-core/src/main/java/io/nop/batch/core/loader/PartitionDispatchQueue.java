@@ -201,13 +201,25 @@ public class PartitionDispatchQueue<T> {
                 lock.unlock();
             }
 
-            if (fetcher != null && !noMoreData) {
-                // fetcher返回空集合后表示所有数据都已经取完
-                List<T> list = fetcher.get();
-                if (!list.isEmpty()) {
-                    addBatch(list);
+            if (fetcher != null) {
+                if (!noMoreData) {
+                    // fetcher返回空集合后表示所有数据都已经取完
+                    List<T> list = fetcher.get();
+                    if (!list.isEmpty()) {
+                        addBatch(list);
+                    } else {
+                        noMoreData = true;
+                    }
                 } else {
-                    noMoreData = true;
+                    lock.lock();
+                    try {
+                        notEmpty.await(500, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw NopException.wrap(e);
+                    } finally {
+                        lock.unlock();
+                    }
                 }
             }
         } while (true);
