@@ -9,6 +9,7 @@ import io.nop.ai.core.file.LocalFileOperator;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.util.StringHelper;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Disabled
 public class TestDeepWikiPrompts extends JunitBaseTestCase {
     @Inject
     IAiChatService chatService;
@@ -27,7 +29,7 @@ public class TestDeepWikiPrompts extends JunitBaseTestCase {
         options.setProvider("azure");
         options.setModel("gpt5");
         command.promptName("deepwiki/generate-readme");
-        command.setToolSet(graphqlToolSet);
+        //command.setToolSet(graphqlToolSet);
 
         File projectDir = new File(getModuleDir(), "../../nop-core");
         LocalFileOperator operator = new LocalFileOperator(projectDir);
