@@ -1,9 +1,9 @@
 package io.nop.cli.commands;
 
 import io.nop.ai.code_analyzer.git.GitIgnoreFile;
-import io.nop.ai.coder.file.FileContents;
-import io.nop.ai.coder.file.IFileOperator;
-import io.nop.ai.coder.file.LocalFileOperator;
+import io.nop.ai.core.file.FileContents;
+import io.nop.ai.core.file.IFileOperator;
+import io.nop.ai.core.file.LocalFileOperator;
 import io.nop.commons.path.AntPathMatcher;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
@@ -28,7 +28,7 @@ public class CliFileCommand implements Callable<Integer> {
 
     @CommandLine.Parameters(
             index = "0",
-            description = "操作类型: read|write|path-tree|find",
+            description = "操作类型: read|write|path-tree|plain-path-tree|find",
             arity = "1"
     )
     String operation;
@@ -115,7 +115,8 @@ public class CliFileCommand implements Callable<Integer> {
                 case "write":
                     return handleWrite();
                 case "path-tree":
-                    return handlePathTree();
+                case "plain-path-tree":
+                    return handlePathTree("plain-path-tree".equalsIgnoreCase(operation));
                 case "find":
                     return handleFind();
                 default:
@@ -185,7 +186,7 @@ public class CliFileCommand implements Callable<Integer> {
         return 0;
     }
 
-    private Integer handlePathTree() {
+    private Integer handlePathTree(boolean plain) {
         IResource resource = fileOperator.getResource(searchDir);
         Pattern regexPattern = regex == null ? null : Pattern.compile(regex);
         AntPathMatcher pathMatcher = new AntPathMatcher();
@@ -213,7 +214,7 @@ public class CliFileCommand implements Callable<Integer> {
 
         pathTree.removeEmptyDir();
 
-        String text = pathTree.buildTreeString();
+        String text = plain ? pathTree.buildPlainTreeString() : pathTree.buildTreeString();
 
         if (!outputPath.isEmpty()) {
             File outputFile = new File(outputPath);

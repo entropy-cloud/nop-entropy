@@ -1,4 +1,4 @@
-package io.nop.ai.coder.file;
+package io.nop.ai.core.file;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.path.AntPathMatcher;
@@ -76,12 +76,14 @@ public class LocalFileOperator implements IFileOperator {
                 if (offset >= content.length())
                     return new FileContent(path, "", null);
                 if (limit <= 0)
-                    return new FileContent(path, content, null, offset, 0);
+                    return new FileContent(path, content, null, offset, 0, false);
 
-                if (offset + limit > content.length())
+                boolean hasMoreData = false;
+                if (offset + limit > content.length()) {
                     limit = (int) (content.length() - offset);
+                }
                 content = content.substring((int) offset, (int) offset + limit);
-                return new FileContent(path, content, null, offset, limit);
+                return new FileContent(path, content, null, offset, limit, hasMoreData);
             }
         } catch (Exception e) {
             throw new NopException(ERR_FILE_READ_FAIL, e)

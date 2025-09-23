@@ -209,6 +209,40 @@ public class PathTreeNode {
         return "PathTreeNode(name=" + name + ",level=" + level + ")";
     }
 
+    /**
+     * 构建仅使用空白字符缩进的树形字符串，避免使用特殊字符
+     *
+     * @return 树形结构的字符串表示
+     */
+    public String buildPlainTreeString() {
+        StringBuilder sb = new StringBuilder();
+        buildPlainTreeString(sb, 0);
+        return sb.toString();
+    }
+
+    /**
+     * 递归构建仅使用空白字符的树形字符串
+     *
+     * @param sb     字符串构建器
+     * @param indent 缩进级别
+     */
+    private void buildPlainTreeString(StringBuilder sb, int indent) {
+        // 添加缩进（每级缩进4个空格）
+        for (int i = 0; i < indent; i++) {
+            sb.append("    ");
+        }
+
+        // 添加节点名称，如果是目录则加上/
+        sb.append(name).append(isDirectory ? "/" : "").append("\n");
+
+        // 递归处理子节点
+        if (isDirectory && children != null) {
+            for (PathTreeNode child : children) {
+                child.buildPlainTreeString(sb, indent + 1);
+            }
+        }
+    }
+
     public String buildTreeString() {
         StringBuilder sb = new StringBuilder();
         buildTreeString(sb, 0, new ArrayList<>());

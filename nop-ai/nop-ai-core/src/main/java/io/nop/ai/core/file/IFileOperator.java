@@ -1,4 +1,4 @@
-package io.nop.ai.coder.file;
+package io.nop.ai.core.file;
 
 import io.nop.core.resource.IResource;
 
