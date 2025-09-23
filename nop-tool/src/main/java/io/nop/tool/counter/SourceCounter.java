@@ -16,7 +16,7 @@ public class SourceCounter {
     static final Logger LOG = LoggerFactory.getLogger(SourceCounter.class);
 
     private final Map<String, AtomicLong> counterByFileExt = new ConcurrentHashMap<>();
-    private Set<String> fileExtensions = Set.of("java", "xml", "json5", "yaml");
+    private Set<String> fileExtensions = Set.of("java", "xml", "json5", "json", "yaml");
     private boolean includeTests;
     private boolean logDetails;
 

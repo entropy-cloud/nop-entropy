@@ -172,7 +172,8 @@ public class NopCliTasks {
     @Test
     public void testPathTree() {
         String[] args = new String[]{
-                "file", "path-tree", "-b", "c:/can/nop/nop-entropy",
+                "file", "plain-path-tree", "-b", "c:/can/nop/nop-entropy",
+                "-d","nop-xlang",
                 "-o", "target/path-tree.txt"
         };
         NopCliApplication app = new NopCliApplication();
@@ -184,6 +185,7 @@ public class NopCliTasks {
     public void testPaths() {
         String[] args = new String[]{
                 "file", "find", "-b", "c:/can/nop/nop-entropy",
+                "-d","nop-xlang",
                 "-o", "target/find.txt"
         };
         NopCliApplication app = new NopCliApplication();

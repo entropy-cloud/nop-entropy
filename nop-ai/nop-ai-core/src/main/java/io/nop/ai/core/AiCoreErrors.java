@@ -87,4 +87,6 @@ public interface AiCoreErrors {
 
     ErrorCode ERR_AI_UNKNOWN_TOOL_CALL =
             define("nop.err.ai.unknown-tool-call", "调用的工具未注册:{toolName}", ARG_TOOL_NAME);
+
+    ErrorCode ERR_AI_FILE_CONTENT_NO_PATH = define("nop.err.ai.file-content.no-path", "文件对象没有指定路径属性");
 }

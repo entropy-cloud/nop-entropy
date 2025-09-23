@@ -7,6 +7,8 @@ import io.nop.ai.core.api.tool.IAiChatToolSet;
 import io.nop.ai.core.api.tool.ToolSpecification;
 import io.nop.ai.core.api.tool.ToolSpecificationLoader;
 import io.nop.api.core.beans.ApiRequest;
+import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.engine.IGraphQLEngine;
@@ -21,42 +23,54 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GraphQLToolProvider {
     private final Map<String, IAiChatFunctionTool> cache = new ConcurrentHashMap<>();
 
-    private IGraphQLEngine graphqlEngine;
+    private final IGraphQLEngine graphqlEngine;
 
-    public IAiChatFunctionTool getTool(String operationName) {
-        return cache.computeIfAbsent(operationName, this::buildTool);
+    public GraphQLToolProvider(IGraphQLEngine graphqlEngine) {
+        this.graphqlEngine = graphqlEngine;
     }
 
-    public IAiChatToolSet getToolSet(Set<String> operationNames) {
+    public IAiChatFunctionTool getTool(String toolName) {
+        return cache.computeIfAbsent(toolName, this::buildTool);
+    }
+
+    public IAiChatToolSet getToolSet(Set<String> toolNames) {
         DefaultAiChatToolSet toolSet = new DefaultAiChatToolSet();
-        if (operationNames != null && !operationNames.isEmpty()) {
-            operationNames.forEach(opName -> toolSet.addFunction(getTool(opName)));
+        if (toolNames != null && !toolNames.isEmpty()) {
+            toolNames.forEach(opName -> toolSet.addFunction(getTool(opName)));
         }
         return toolSet;
     }
 
     public IAiChatToolSet getToolsByPrefix(String prefix) {
         List<GraphQLFieldDefinition> opList = graphqlEngine.getSchemaLoader().getOperationDefinitions(null);
-        Set<String> opNames = new LinkedHashSet<>();
-        opList.forEach(op -> opNames.add(op.getName()));
-        return getToolSet(opNames);
+        Set<String> toolNames = new LinkedHashSet<>();
+        List<String> prefixList = ConvertHelper.toCsvList(prefix, NopException::new);
+
+        opList.forEach(op -> {
+            for (String prefixItem : prefixList) {
+                if (op.getName().startsWith(prefixItem))
+                    toolNames.add(op.getName());
+            }
+        });
+        return getToolSet(toolNames);
     }
 
-    protected IAiChatFunctionTool buildTool(String operationName) {
+    protected IAiChatFunctionTool buildTool(String toolName) {
         DefaultAiChatFunctionTool tool = new DefaultAiChatFunctionTool();
-        ToolSpecification spec = loadToolSpec(operationName);
-        tool.setName(operationName);
+        ToolSpecification spec = loadToolSpec(toolName);
+        tool.setName(toolName);
         tool.setDescription(spec.getDescription());
         tool.setInputSchema(spec.getInputSchema());
         tool.setOutputSchema(spec.getOutputSchema());
-        tool.setInvoker(args -> callTool(operationName, args));
+        tool.setInvoker(args -> callTool(spec.getName(), args));
         return tool;
     }
 
     protected ToolSpecification loadToolSpec(String operationName) {
         ToolSpecification spec = ToolSpecificationLoader.loadSpecification(operationName);
-        if (spec != null)
+        if (spec != null) {
             return spec;
+        }
 
         spec = new ToolSpecification();
         spec.setName(operationName);
