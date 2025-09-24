@@ -1,0 +1,25 @@
+{
+  "description": "Save a single file content in the specified project",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "projectName": {
+        "type": "string",
+        "description": "Project name, must be a valid file directory name"
+      },
+      "filePath": {
+        "type": "string",
+        "description": "File path to save"
+      },
+      "text": {
+        "type": "string",
+        "description": "Text content to write to the file"
+      }
+    },
+    "required": [
+      "projectName",
+      "filePath",
+      "text"
+    ]
+  }
+}

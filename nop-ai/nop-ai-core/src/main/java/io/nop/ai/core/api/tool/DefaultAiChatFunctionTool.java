@@ -7,6 +7,7 @@ import io.nop.core.lang.eval.DisabledEvalScope;
 import io.nop.core.reflect.IFunctionModel;
 
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import static io.nop.core.type.utils.GenericTypeToJsonSchema.buildInputSchema;
@@ -107,6 +108,11 @@ public class DefaultAiChatFunctionTool implements IAiChatFunctionTool {
     @Override
     public Object callTool(Map<String, Object> args) {
         return FutureHelper.getResult(invoker.apply(args));
+    }
+
+    @Override
+    public CompletionStage<Object> callToolAsync(Map<String, Object> args) {
+        return FutureHelper.futureCall(() -> invoker.apply(args));
     }
 
     @Override

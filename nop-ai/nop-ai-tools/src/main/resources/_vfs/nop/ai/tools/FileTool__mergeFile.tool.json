@@ -1,0 +1,25 @@
+{
+  "description": "Merge file content in the specified project using Delta merge algorithm based on XDef meta-model from Nop Platform. This sophisticated merge algorithm leverages the XDef meta-model to understand file structure and semantics, enabling intelligent content merging that preserves structural integrity and handles conflicts automatically.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "projectName": {
+        "type": "string",
+        "description": "Project name, must be a valid file directory name"
+      },
+      "filePath": {
+        "type": "string",
+        "description": "File path to merge"
+      },
+      "text": {
+        "type": "string",
+        "description": "Text content to merge into the file using XDef meta-model based Delta merge algorithm"
+      }
+    },
+    "required": [
+      "projectName",
+      "filePath",
+      "text"
+    ]
+  }
+}

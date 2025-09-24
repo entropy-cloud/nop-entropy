@@ -9,6 +9,7 @@ import io.nop.ai.core.api.tool.ToolSpecificationLoader;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.core.lang.json.JsonTool;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.ast.GraphQLFieldDefinition;
 import io.nop.graphql.core.engine.IGraphQLEngine;
@@ -62,7 +63,8 @@ public class GraphQLToolProvider {
         tool.setDescription(spec.getDescription());
         tool.setInputSchema(spec.getInputSchema());
         tool.setOutputSchema(spec.getOutputSchema());
-        tool.setInvoker(args -> callTool(spec.getName(), args));
+        String operationName = spec.getName() == null ? toolName : spec.getName();
+        tool.setInvoker(args -> callTool(operationName, args));
         return tool;
     }
 
@@ -84,6 +86,14 @@ public class GraphQLToolProvider {
         ApiRequest<Map<String, Object>> request = new ApiRequest<>();
         request.setData(args);
         IGraphQLExecutionContext ctx = graphqlEngine.newRpcContext(null, operationName, request);
-        return graphqlEngine.executeRpc(ctx).get();
+        return graphqlEngine.executeRpcAsync(ctx).thenApply(response -> {
+            if (response.isOk()) {
+                if (response.getData() instanceof String)
+                    return response.getData();
+                return JsonTool.stringify(response.getData());
+            } else {
+                return JsonTool.stringify(response);
+            }
+        });
     }
 }

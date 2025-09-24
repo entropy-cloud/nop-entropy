@@ -1,0 +1,58 @@
+{
+  "description": "Add a sequential thought with its metadata. This tool processes individual thinking steps in a structured sequence, allowing for detailed analysis and tracking of the reasoning process.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "thought": {
+        "type": "string",
+        "description": "The content of the thought or reasoning step"
+      },
+      "thought_number": {
+        "type": "integer",
+        "description": "The sequence number of this thought in the overall thinking process",
+        "minimum": 1
+      },
+      "total_thoughts": {
+        "type": "integer",
+        "description": "The total expected number of thoughts in the complete sequence",
+        "minimum": 1
+      },
+      "next_thought_needed": {
+        "type": "boolean",
+        "description": "Whether more thoughts are needed after this one to complete the reasoning process"
+      },
+      "stage": {
+        "type": "string",
+        "description": "The thinking stage (Problem Definition, Research, Analysis, Synthesis, Conclusion)"
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Optional keywords or categories for organizing and categorizing the thought"
+      },
+      "axioms_used": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Optional list of principles, rules, or axioms used in this thought step"
+      },
+      "assumptions_challenged": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Optional list of assumptions that are challenged or questioned by this thought"
+      }
+    },
+    "required": [
+      "thought",
+      "thought_number",
+      "total_thoughts",
+      "next_thought_needed",
+      "stage"
+    ]
+  }
+}

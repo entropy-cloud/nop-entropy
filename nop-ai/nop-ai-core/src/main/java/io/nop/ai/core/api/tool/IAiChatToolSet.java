@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Set;
 
 public interface IAiChatToolSet {
+    Set<String> getToolNames();
+
     IAiChatFunctionTool getFunctionTool(String toolName);
 
     List<IAiChatFunctionTool> getFunctionTools();

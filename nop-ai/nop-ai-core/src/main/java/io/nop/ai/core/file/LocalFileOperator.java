@@ -4,8 +4,18 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.path.AntPathMatcher;
 import io.nop.commons.path.IPathMatcher;
 import io.nop.commons.util.FileHelper;
+import io.nop.commons.util.StringHelper;
+import io.nop.core.lang.xml.XNode;
+import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.IResource;
+import io.nop.core.resource.component.ComponentModelConfig;
+import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.impl.FileResource;
+import io.nop.xlang.delta.DeltaMerger;
+import io.nop.xlang.xdef.IXDefinition;
+import io.nop.xlang.xdsl.XDslKeys;
+import io.nop.xlang.xdsl.XDslValidator;
+import io.nop.xlang.xmeta.SchemaLoader;
 
 import java.io.File;
 import java.nio.file.FileVisitResult;
@@ -310,6 +320,30 @@ public class LocalFileOperator implements IFileOperator {
                     .param(ARG_TARGET_PATH, targetPath)
                     .param(ARG_SRC_FILE, src)
                     .param(ARG_TARGET_FILE, dest);
+        }
+    }
+
+    @Override
+    public void mergeFile(String filePath, String text) {
+        String fileType = StringHelper.fileType(filePath);
+        ComponentModelConfig config = ResourceComponentManager.instance().getModelConfigByFileType(fileType);
+        if (config == null || config.getXdefPath() == null) {
+            // no xdef
+            writeFileContent(new FileContent(filePath, text));
+        } else {
+            IXDefinition xdef = SchemaLoader.loadXDefinition(config.getXdefPath());
+            XNode node = XNode.parse(text);
+
+            IResource file = getResource(filePath);
+            if (!file.exists()) {
+                new XDslValidator(XDslKeys.DEFAULT).validate(node, xdef.getRootNode(), true);
+                writeFileContent(new FileContent(filePath, node.xml()));
+            } else {
+                XNode baseNode = XNodeParser.instance().parseFromResource(file);
+                new DeltaMerger(XDslKeys.DEFAULT).merge(baseNode, node, xdef.getRootNode(), false);
+                new XDslValidator(XDslKeys.DEFAULT).validate(node, xdef.getRootNode(), true);
+                writeFileContent(new FileContent(filePath, baseNode.xml()));
+            }
         }
     }
 

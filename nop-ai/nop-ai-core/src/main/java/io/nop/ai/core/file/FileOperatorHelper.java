@@ -15,13 +15,13 @@ public class FileOperatorHelper {
         if (path.startsWith(".github/"))
             return true;
 
-        if (path.startsWith("_dump"))
+        if (path.startsWith("_dump") || path.contains("/_dump/"))
             return true;
 
         if (path.contains("/_gen/") || path.contains("/_"))
             return true;
 
-        if (path.contains("/target/") && !path.contains("/src/main/"))
+        if (path.startsWith("target/") || path.contains("/target/") && !path.contains("/src/main/"))
             return true;
         return false;
     }

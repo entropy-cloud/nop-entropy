@@ -1,0 +1,31 @@
+{
+  "description": "Read multiple file contents from a specified project and return them in XML format",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "projectName": {
+        "type": "string",
+        "description": "Project name, must be a valid file directory name"
+      },
+      "filePaths": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of file paths to read"
+      },
+      "maxLengthPerFile": {
+        "type": "integer",
+        "description": "Maximum length limit per file"
+      },
+      "maxTotalLength": {
+        "type": "integer",
+        "description": "Maximum total length limit for all files"
+      }
+    },
+    "required": [
+      "projectName",
+      "filePaths"
+    ]
+  }
+}

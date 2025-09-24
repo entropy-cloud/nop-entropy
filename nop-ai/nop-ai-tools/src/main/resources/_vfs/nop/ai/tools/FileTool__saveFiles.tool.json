@@ -1,0 +1,20 @@
+{
+  "description": "Save multiple files in the specified project. The fileContents parameter must be in XML format representing multiple file contents: <files><file path='string'><![CDATA[ file-content-string ]]></file></files>",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "projectName": {
+        "type": "string",
+        "description": "Project name, must be a valid file directory name"
+      },
+      "fileContents": {
+        "type": "string",
+        "description": "XML formatted string containing multiple file contents in the format: <files><file path='string'><![CDATA[ file-content-string ]]></file></files>"
+      }
+    },
+    "required": [
+      "projectName",
+      "fileContents"
+    ]
+  }
+}

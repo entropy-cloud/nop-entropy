@@ -9,7 +9,7 @@ template: >
     </fileTree>
   
   Tooling:
-  - You can call FILE_TOOL_READ to retrieve textual contents of specific files. If a file is missing, binary, too large, or unreadable, treat it as “unavailable” and proceed.
+  - You can call FileTool__readFiles to retrieve textual contents of specific files. If a file is missing, binary, too large, or unreadable, treat it as “unavailable” and proceed.
 
   Fallback policy:
   - FallbackPolicy: balanced (default) | strict
@@ -26,8 +26,8 @@ template: >
 
   Performance budget:
   - MaxFilesToRead: 40 total (prioritize by the order below).
-  - MaxFileBytes: ~40 KB per file
-  - TotalFileBytes: < 100K 
+  - MaxFileLength: ~40 KB per file
+  - TotalFileLength: < 100K 
   - Prefer manifests, docs, examples, and configuration over scanning large code trees.
 
   Discovery and file priority:
@@ -117,7 +117,7 @@ inputs:
     mandatory: true
   - name: branch
     optional: true
-    defaultExpr: 'main'
+    defaultExpr: "'main'"
 
 outputs:
   - name: RESULT

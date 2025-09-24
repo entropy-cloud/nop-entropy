@@ -41,6 +41,11 @@ public class DefaultAiChatToolSet implements IAiChatToolSet {
     }
 
     @Override
+    public Set<String> getToolNames() {
+        return toolMap.keySet();
+    }
+
+    @Override
     public IAiChatFunctionTool getFunctionTool(String toolName) {
         return toolMap.get(toolName);
     }
@@ -65,21 +70,17 @@ public class DefaultAiChatToolSet implements IAiChatToolSet {
     @Override
     public IAiChatToolSet addFunction(IAiChatFunctionTool func) {
         if (func == null) return this;
-        Map<String, IAiChatFunctionTool> newMap = new LinkedHashMap<>(this.toolMap);
-        newMap.put(func.getName(), func);
-        return new DefaultAiChatToolSet(newMap);
+        this.toolMap.put(func.getName(), func);
+        return this;
     }
 
     @Override
     public IAiChatToolSet addFunctions(Collection<? extends IAiChatFunctionTool> funcs) {
         if (funcs == null || funcs.isEmpty()) return this;
-        Map<String, IAiChatFunctionTool> newMap = new LinkedHashMap<>(this.toolMap);
         for (IAiChatFunctionTool func : funcs) {
-            if (func != null) {
-                newMap.put(func.getName(), func);
-            }
+            addFunction(func);
         }
-        return new DefaultAiChatToolSet(newMap);
+        return this;
     }
 
     @Override

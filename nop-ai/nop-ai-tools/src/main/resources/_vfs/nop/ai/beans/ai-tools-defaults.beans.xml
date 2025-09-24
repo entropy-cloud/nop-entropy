@@ -1,0 +1,14 @@
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xef">
+
+    <bean id="nopFileToolBizModel" class="io.nop.ai.tools.file.FileToolBizModel">
+    </bean>
+
+    <bean id="nopSequentialThinkingBizModel"
+          class="io.nop.ai.tools.sequential_thinking.service.SequentialThinkingBizModel">
+        <property name="storageDirPath" value="@cfg:nop.ai.sequential-thinking-tool.storage-dir-path|/nop/ai/sequential-thinking/store"/>
+    </bean>
+
+    <bean id="nopGraphQLToolSet" class="io.nop.ai.tools.graphql.GraphQLToolSetFactoryBean">
+    </bean>
+
+</beans>

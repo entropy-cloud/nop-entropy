@@ -96,4 +96,6 @@ public interface IFileOperator {
     default void applyDiff(FileDiff diff) {
         new FileDiffApplier(this).apply(diff);
     }
+
+    void mergeFile(String filePath, String text);
 }
