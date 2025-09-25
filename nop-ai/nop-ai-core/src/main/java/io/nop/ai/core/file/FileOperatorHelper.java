@@ -1,18 +1,33 @@
 package io.nop.ai.core.file;
 
+import io.nop.commons.util.StringHelper;
+
 public class FileOperatorHelper {
     public static boolean filterNopProjectFiles(String path) {
         return !isNopIgnoredFile(path);
     }
 
     public static boolean isNopIgnoredFile(String path) {
-        if (path.startsWith(".git/"))
+        // Dot-prefixed at root or any segment (e.g., .git, .vscode, .DS_Store)
+        if (path.startsWith(".") || path.contains("/."))
             return true;
 
-        if (path.startsWith(".idea/"))
+        if (path.startsWith("dist/"))
             return true;
 
-        if (path.startsWith(".github/"))
+        if (path.startsWith("build/"))
+            return true;
+
+        if (path.startsWith("out/"))
+            return true;
+
+        if (path.startsWith("bin/"))
+            return true;
+
+        if (path.startsWith("obj/"))
+            return true;
+
+        if (path.contains("node_modules"))
             return true;
 
         if (path.startsWith("_dump") || path.contains("/_dump/"))
@@ -21,8 +36,22 @@ public class FileOperatorHelper {
         if (path.contains("/_gen/") || path.contains("/_"))
             return true;
 
-        if (path.startsWith("target/") || path.contains("/target/") && !path.contains("/src/main/"))
+        if (path.contains("/_cases/"))
             return true;
+
+        String fileExt = StringHelper.fileExt(path);
+        if (fileExt.equals("log") || fileExt.equals("db") || fileExt.equals("tmp"))
+            return true;
+
+        int pos = path.indexOf("/src/main/");
+        if (pos < 0) {
+            if (path.startsWith("target/") || path.contains("/target/"))
+                return true;
+        } else {
+            int pos2 = path.lastIndexOf("target/", pos);
+            if (pos2 < 0)
+                return true;
+        }
         return false;
     }
 }

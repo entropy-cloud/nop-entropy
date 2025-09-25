@@ -5,6 +5,7 @@ import io.nop.commons.path.AntPathMatcher;
 import io.nop.commons.path.IPathMatcher;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.IResource;
@@ -16,6 +17,8 @@ import io.nop.xlang.xdef.IXDefinition;
 import io.nop.xlang.xdsl.XDslKeys;
 import io.nop.xlang.xdsl.XDslValidator;
 import io.nop.xlang.xmeta.SchemaLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.FileVisitResult;
@@ -40,6 +43,8 @@ import static io.nop.commons.CommonErrors.ERR_FILE_READ_FAIL;
 import static io.nop.commons.CommonErrors.ERR_FILE_WRITE_FAIL;
 
 public class LocalFileOperator implements IFileOperator {
+    static final Logger LOG = LoggerFactory.getLogger(LocalFileOperator.class);
+
     private final File baseDir;
     private final IPathMatcher pathMatcher = new AntPathMatcher();
 
@@ -74,9 +79,8 @@ public class LocalFileOperator implements IFileOperator {
 
         File file = resolveFile(path);
         if (!file.exists()) {
-            throw new NopException(ERR_FILE_NOT_FOUND)
-                    .param(ARG_PATH, path)
-                    .param(ARG_FILE, file);
+            LOG.info("nop.ai.file.not-found:path={},file={}", path, file);
+            return FileContent.notFound(path);
         }
         try {
             String content = FileHelper.readText(file, "UTF-8");
@@ -96,9 +100,8 @@ public class LocalFileOperator implements IFileOperator {
                 return new FileContent(path, content, null, offset, limit, hasMoreData);
             }
         } catch (Exception e) {
-            throw new NopException(ERR_FILE_READ_FAIL, e)
-                    .param(ARG_PATH, path)
-                    .param(ARG_FILE, file);
+            LOG.warn("nop.ai.file.read-fail:path={},file={}", path, file);
+            return FileContent.readError(path, ErrorMessageManager.instance().getRealCause(e).toString());
         }
     }
 

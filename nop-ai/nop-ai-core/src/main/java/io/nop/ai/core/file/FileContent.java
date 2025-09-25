@@ -55,6 +55,13 @@ public class FileContent implements ITextSerializable {
         this(path, content, null);
     }
 
+    public static FileContent notFound(String path) {
+        return new FileContent(path, null, FILE_NOT_FOUND);
+    }
+
+    public static FileContent readError(String path, String message) {
+        return new FileContent(path, null, "READ-ERROR:" + message);
+    }
 
     public static FileContent fromNode(XNode node) {
         String path = node.attrText("path");

@@ -261,7 +261,7 @@
                 <c:script><![CDATA[
                 import io.nop.core.resource.ResourceHelper;
                 import io.nop.commons.util.FileHelper;
-                import io.nop.ai.coder.file.LocalFileOperator;
+                import io.nop.ai.core.file.LocalFileOperator;
 
                 const dir = FileHelper.resolveFile(inputDir.toString());
                 const fileOperator = new LocalFileOperator(dir);

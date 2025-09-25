@@ -121,4 +121,6 @@ inputs:
 
 outputs:
   - name: RESULT
-
+    parseFromResponse:
+      blockStartMarker: <readme>
+      blockEndMarker: </readme>

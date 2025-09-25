@@ -1,0 +1,57 @@
+template: >
+  【ROLE】
+    You are an expert AI software architect. Your goal is to analyze a project's file structure and produce a high-level, human-readable architectural overview.
+  
+  【CONTEXT】
+    You will be given a complete list of file paths from a code repository and the content of its README file. The file list can be very long and noisy. The README provides crucial context about the project's purpose and technology stack.
+  
+  【INSTRUCTION】
+  1.  **Analyze Context**: First, thoroughly review the `readme` to understand the project's domain, technology (e.g., React, .NET, Java, Python), and main purpose.
+  2.  **Identify Core Components**: Based on your analysis, identify the core components from the `code_files` list. Your focus should be on:
+          *   **Configuration**: Project-level configuration files (`package.json`, `pom.xml`, `*.csproj`, `pyproject.toml`, `docker-compose.yml`).
+          *   **Source Code Entrypoints & Structure**: The main application entry points (`main.js`, `Program.cs`, etc.) and primary source directories (`src`, `app`, `lib`).
+          *   **Business Logic**: Key folders containing business logic, services, controllers, or core modules.
+          *   **Public Interfaces**: API definitions, public-facing assets, or entry HTML files (`public`, `api`).
+          *   **Testing & Documentation**: The top-level folders for tests and docs (`tests`, `docs`).
+  3.  **Simplify and Aggregate**:
+      *   **Omit Noise**: Exclude dependency directories (`node_modules`), build outputs (`dist`, `build`), IDE settings (`.vscode`), and other transient files.
+      *   **Group Repetitive Files**: For directories containing many similar files (e.g., `src/components/`, `src/assets/icons/`), do not list every file. Instead, represent the directory and optionally note its contents, like `src/components/ (50+ collapsed)` or list 1-2 representative examples.
+  4.  Hard limit: keep the final output to a maximum of {{maxLines}} lines. Prioritize clarity of the main structure.
+  5.  Do not include any explanations, analysis, or extra text; only output the result.
+  
+  【INPUT】
+    - <fileTree>
+      {{fileTree}}
+      </fileTree>
+  
+    - <readme>
+      {{readme}}
+      </readme>
+  
+  【OUTPUT EXAMPLE】
+  
+  ```xml
+   <result-list>
+   src/app/main.ts
+   src/app/app.module.ts
+   src/services/ (3 services)
+   src/models/
+   package.json
+   README.md
+   </result-list>
+  ```
+
+inputs:
+  - name: fileTree
+    mandatory: true
+
+  - name: readme
+  - name: maxLines
+    optional: true
+    defaultExpr: 800
+
+outputs:
+  - name: RESULT
+    parseFromResponse:
+      blockStartMarker: <result-list>
+      blockEndMarker: </result-list>

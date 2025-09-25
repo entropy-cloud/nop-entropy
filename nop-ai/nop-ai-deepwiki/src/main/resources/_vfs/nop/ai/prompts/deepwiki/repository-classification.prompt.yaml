@@ -173,3 +173,7 @@ inputs:
 
   - name: readme
     mandatory: true
+
+outputs:
+    - name: RESULT
+      format: xml
