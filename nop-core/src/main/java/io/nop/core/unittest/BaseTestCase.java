@@ -323,7 +323,7 @@ public class BaseTestCase {
 
     public File getCasesDir() {
         File moduleDir = getModuleDir();
-        File casesDir = new File(moduleDir, "cases");
+        File casesDir = new File(moduleDir, "_cases");
         return casesDir;
     }
 

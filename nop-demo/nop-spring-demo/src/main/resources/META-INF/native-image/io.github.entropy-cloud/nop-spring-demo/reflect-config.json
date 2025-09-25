@@ -28224,6 +28224,10 @@
         ]
       },
       {
+        "name": "getClobBinder",
+        "parameterTypes": []
+      },
+      {
         "name": "getColumnNameCase",
         "parameterTypes": []
       },
@@ -28367,6 +28371,10 @@
         "parameterTypes": [
           "java.lang.String"
         ]
+      },
+      {
+        "name": "getStringBinder",
+        "parameterTypes": []
       },
       {
         "name": "getStringLiteral",

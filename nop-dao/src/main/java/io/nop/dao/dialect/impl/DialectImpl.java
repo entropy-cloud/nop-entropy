@@ -566,8 +566,11 @@ public class DialectImpl implements IDialect {
                 stdType = StdDataType.ANY;
             sqlType = StdSqlType.fromStdDataTYpe(stdType);
         }
-        if (convertStringToNull && sqlType == StdSqlType.VARCHAR)
-            return DataParameterBinders.STRING_EX;
+        if (sqlType == StdSqlType.VARCHAR)
+            return getStringBinder();
+
+        if (sqlType == StdSqlType.CLOB)
+            return getClobBinder();
 
         if (sqlType == StdSqlType.GEOMETRY)
             return getGeometryTypeHandler();
@@ -581,6 +584,16 @@ public class DialectImpl implements IDialect {
         if (stdType == sqlType.getStdDataType())
             return binder;
         return new AutoConvertDataParameterBinder(stdType, binder);
+    }
+
+    protected IDataParameterBinder getStringBinder() {
+        if (convertStringToNull)
+            return DataParameterBinders.STRING_EX;
+        return DataParameterBinders.STRING;
+    }
+
+    protected IDataParameterBinder getClobBinder() {
+        return getStringBinder();
     }
 
     @Override
