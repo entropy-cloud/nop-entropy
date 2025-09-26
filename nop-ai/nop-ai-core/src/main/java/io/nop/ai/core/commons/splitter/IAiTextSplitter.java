@@ -49,6 +49,7 @@ public interface IAiTextSplitter {
         private int overlapSize;
         private int maxElementsPerChunk;
         private boolean ignoreParseError;
+        private boolean splitByLine;
 
         public static SplitOptions create(int maxContentSize) {
             SplitOptions options = new SplitOptions();
@@ -56,9 +57,22 @@ public interface IAiTextSplitter {
             return options;
         }
 
+        public SplitOptions splitByLine(boolean b){
+            setSplitByLine(b);
+            return this;
+        }
+
         public SplitOptions overlapSize(int overlapSize) {
             this.overlapSize = overlapSize;
             return this;
+        }
+
+        public boolean isSplitByLine() {
+            return splitByLine;
+        }
+
+        public void setSplitByLine(boolean splitByLine) {
+            this.splitByLine = splitByLine;
         }
 
         public int getOverlapSize() {
