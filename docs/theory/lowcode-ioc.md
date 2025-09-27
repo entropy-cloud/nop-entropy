@@ -36,7 +36,7 @@ scope.put("a",a);
 b = new MyObjectB();
 scope.put("b",b);
 
-a.setB(scope.get("a"));
+a.setB(scope.get("b"));
 a.setStrValue("xxx");
 b.setA(scope.get("a"));
 
@@ -126,7 +126,7 @@ Enhanced Object = Naked Object + Environment(Interceptors)
 Spring 1.0中提出了一个内置的import语法，可以将一个复杂的beans.xml文件拆分成多个子文件。
 
 ```xml
-<beans> 
+<beans>
    <import resource="base.beans.xml" />
    <import resource="ext.beans.xml" />
    <bean profile="dev">
@@ -227,7 +227,7 @@ Schema来提供更加严格的格式定义，但是同时它又引入了自定�
 2. 虽然Spring 1.0提供了完备的对象装配原语，Spring 2.0的自定义标签却无法化归为Spring 1.0的标签定义。也就是说，如果一个软件包是提供了Spring 2.0语法的配置支持，我们无法保证一定可以使用Spring
    1\.0的语法对该软件包进行配置。这导致自定义配置标签越多，系统中语义不明的部分越多。我们难以编制一个通用的Spring配置分析工具。
 
-3. 
+3.
 
 SpringBoot的设计和发展过程中缺少一个明确定义的语义模型，大量注解的背后是非常复杂的、与全局状态纠缠在一起的、缺少协同规则的命令式识别和处理代码。在实际应用中，bean的装配结果与命令式代码的执行顺序存在非常微妙的关系。这一点当我们需要把SpringBoot的配置代码迁移到别的IoC容器的时候显得特别明显。
 
@@ -309,7 +309,7 @@ NopIoC以Spring 1.0的配置语法为基础（NopIoC可以直接解析Spring 1.0
         <on-missing-bean-type>java.sql.DataSource</on-missing-bean-type>
         <on-class>test.MyObject</on-class>
      </ioc:condition>
-  </bean> 
+  </bean>
 </beans>
 ```
 
@@ -329,7 +329,7 @@ public XXX getXx(){
 在NopIoC中使用AOP非常简单，只要配置interceptor对应的pointcut
 
 ```xml
- <bean id="nopTransactionalMethodInterceptor" 
+ <bean id="nopTransactionalMethodInterceptor"
       class="io.nop.dao.txn.interceptor.TransactionalMethodInterceptor">
      <ioc:pointcut annotations="io.nop.api.core.annotations.txn.Transactional"
           order="1000"/>
@@ -343,7 +343,7 @@ public XXX getXx(){
 
 2. 工程编译的时候会通过maven插件扫描target/classes目录下的类，检查类的方法上是否具有AOP可识别的注解，如果有，则为该类生成一个\_\_aop派生类，用于插入AOP
    interceptor。这样打包好的jar包中就包含了AOP相关的生成代码，在使用AOP机制的时候就不需要动态生成字节码了。这里的实现原理其实和AspectJ类似，只是操作过程要简化很多。代码生成器的具体实现参见
-   
+
    [nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java](https://gitee.com/canonical-entropy/nop-entropy/blob/master/nop-core/src/main/java/io/nop/core/reflect/aop/AopCodeGenerator.java)
 
 3. IoC容器在创建bean的时候，如果发现存在可以应用到该类上的interceptor，则使用\_\_aop派生类来新建对象，并插入interceptor。
@@ -378,7 +378,7 @@ Nop平台中所有的DSL模型都支持`x:gen-extends`机制，它在编译期�
 NopIoC内置了一个ioc:proxy属性，可以直接根据当前bean，创建实现了指定接口的Proxy对象。
 
 ```xml
-<bean id="myBean" class="xx.MyInvocationHandler" 
+<bean id="myBean" class="xx.MyInvocationHandler"
       ioc:type="xx.MyInterface" ioc:proxy="true" />
 ```
 
@@ -391,7 +391,7 @@ NopIoC内置了根据注解来收集bean的能力。例如
 ```xml
  <bean id="nopBizObjectManager" class="io.nop.biz.impl.BizObjectManager">
      <property name="bizModelBeans">
-        <ioc:collect-beans 
+        <ioc:collect-beans
            by-annotation="io.nop.api.core.annotations.biz.BizModel"
            only-concrete-classes="true"/>
      </property>

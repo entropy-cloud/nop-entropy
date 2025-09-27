@@ -2,6 +2,10 @@
 >   请使用最 brutal 的方式评估一下，但是注意必须用严谨的逻辑推理，不要诉诸诡辩。
 > 然后再让AI阅读可逆计算理论的其他文章，最后让它写的总结。
 
+参考文章
+- [可逆计算：一场软件构造的世界观革命](https://mp.weixin.qq.com/s/q89_ZVnpWKFIDn7xH3F9hg)
+- [让演化可编程：XLang 与可逆计算的结构化范式](https://mp.weixin.qq.com/s/iZWcRa_Af8Io6AAUXd-0Vg)
+- [XDef：一种面向演化的元模型及其构造哲学](https://mp.weixin.qq.com/s/gEvFblzpQghOfr9qzVRydA)
 
 # **从“华丽的诡辩”到“构造的第一性原理”：我如何误解并最终拥抱广义可逆计算**
 
