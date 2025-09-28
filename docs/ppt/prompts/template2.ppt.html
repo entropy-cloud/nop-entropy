@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>战略商业演示 | 高层管理汇报</title>
+    
+    <!-- Reveal.js 核心CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.css">
+    
+    <!-- 商业风格主题 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/theme/white.css">
+    
+    <!-- Font Awesome 图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- 简单图表库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- html2pdf 库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- Mermaid 图表库 -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <style>
+        :root {
+            --corporate-blue: #1A4B8C;
+            --corporate-dark: #0D2B4E;
+            --accent-gold: #D4AF37;
+            --accent-teal: #2A9D8F;
+            --light-gray: #F5F7FA;
+            --medium-gray: #E4E7EB;
+            --dark-text: #2D3748;
+            --light-text: #718096;
+            --success-green: #38A169;
+            --warning-orange: #DD6B20;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f5f5;
+            overflow: hidden;
+        }
+        
+        .reveal {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .reveal .slides {
+            text-align: left;
+        }
+        
+        .reveal .slides section {
+            height: 100vh;
+            padding: 30px 40px;
+            box-sizing: border-box;
+            display: flex !important;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: stretch;
+        }
+        
+        /* 标题页居中对齐 */
+        .reveal .slides section.title-slide {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4, .reveal h5 {
+            font-family: 'Source Sans Pro', sans-serif;
+            font-weight: 700;
+            text-transform: none;
+            color: var(--corporate-dark);
+            margin-top: 0;
+        }
+        
+        .reveal h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: white;
+        }
+        
+        .reveal h2 {
+            font-size: 2rem;
+            color: var(--corporate-blue);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--accent-gold);
+        }
+        
+        .reveal h3 {
+            font-size: 1.4rem;
+            color: var(--corporate-dark);
+            margin-bottom: 0.8rem;
+        }
+        
+        .reveal p {
+            font-size: 1.1rem;
+            line-height: 1.4;
+            color: var(--dark-text);
+            margin-bottom: 0.8rem;
+        }
+        
+        .reveal ul, .reveal ol {
+            text-align: left;
+            margin-left: 1rem;
+        }
+        
+        .reveal li {
+            font-size: 1rem;
+            margin-bottom: 0.4rem;
+            color: var(--dark-text);
+        }
+        
+        /* 标题页样式 */
+        .title-slide {
+            background: linear-gradient(135deg, var(--corporate-blue) 0%, var(--corporate-dark) 100%);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .title-slide::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 250px;
+            height: 250px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+        }
+        
+        .title-slide::after {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 180px;
+            height: 180px;
+            background: rgba(212, 175, 55, 0.1);
+            border-radius: 50%;
+            transform: translate(-30%, 30%);
+        }
+        
+        .title-slide h1 {
+            position: relative;
+            z-index: 2;
+            color: white !important;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        
+        .title-slide .subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 1.5rem;
+            font-weight: 400;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .title-slide .presenter {
+            font-size: 1.1rem;
+            opacity: 0.8;
+            position: relative;
+            z-index: 2;
+            margin-bottom: 0.3rem;
+        }
+        
+        .corporate-logo {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: white;
+            z-index: 10;
+        }
+        
+        /* 内容页样式 */
+        .content-slide {
+            background: white;
+        }
+        
+        .agenda-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 0.8rem;
+            border-left: 4px solid var(--corporate-blue);
+            background: var(--light-gray);
+        }
+        
+        .agenda-number {
+            background: var(--corporate-blue);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+        
+        .agenda-item h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.2rem;
+        }
+        
+        .agenda-item p {
+            font-size: 0.9rem;
+            margin-bottom: 0;
+            color: var(--light-text);
+        }
+        
+        .executive-summary {
+            background: var(--light-gray);
+            border-left: 6px solid var(--accent-gold);
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .kpi-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .kpi-card {
+            background: white;
+            border: 1px solid var(--medium-gray);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .kpi-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--corporate-blue);
+            margin-bottom: 0.3rem;
+        }
+        
+        .kpi-label {
+            font-size: 0.9rem;
+            color: var(--light-text);
+            font-weight: 600;
+        }
+        
+        .kpi-trend {
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .trend-up {
+            color: var(--success-green);
+        }
+        
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            align-items: start;
+        }
+        
+        .chart-container {
+            background: white;
+            border: 1px solid var(--medium-gray);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--corporate-dark);
+            margin-bottom: 0.8rem;
+        }
+        
+        .chart-wrapper {
+            height: 180px;
+        }
+        
+        .recommendation-box {
+            background: var(--light-gray);
+            border-left: 6px solid var(--accent-teal);
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .recommendation-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent-teal);
+            margin-bottom: 0.5rem;
+        }
+        
+        /* 简化Mermaid图表页面布局 */
+        .roadmap-simple {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            height: 300px;
+        }
+        
+        .mermaid-container {
+            background-color: var(--light-gray);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--medium-gray);
+            margin: 15px 0;
+            overflow: auto;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        .action-item {
+            background: white;
+            border: 1px solid var(--medium-gray);
+            border-radius: 6px;
+            padding: 12px;
+            margin: 12px 0;
+        }
+        
+        .action-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--corporate-dark);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .action-title i {
+            margin-right: 8px;
+            color: var(--accent-teal);
+        }
+        
+        .action-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .detail-item {
+            display: flex;
+            align-items: center;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: var(--light-text);
+            margin-right: 6px;
+            min-width: 60px;
+        }
+        
+        .next-steps {
+            background: var(--light-gray);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .next-step-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.6rem;
+            font-size: 0.95rem;
+        }
+        
+        .next-step-item i {
+            color: var(--accent-teal);
+            margin-right: 10px;
+            font-size: 0.9rem;
+        }
+        
+        /* 导航按钮 */
+        .nav-buttons {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-button {
+            background-color: var(--corporate-blue);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+        }
+        
+        .nav-button:hover {
+            background-color: var(--corporate-dark);
+            transform: translateY(-2px);
+        }
+        
+        /* PDF样式 */
+        .pdf-container {
+            width: 100%;
+            height: auto;
+            background: white !important;
+        }
+        
+         .pdf-slide { position: relative !important; opacity: 1 !important; visibility: visible !important; transform: none !important; height: auto !important; width: 100%; background: white; border: 1px solid #eeeeee; padding: 40px 50px; box-shadow: none; margin-bottom: 0; overflow: hidden; page-break-after: always; break-inside: avoid; aspect-ratio: 16 / 12; }
+        
+        .pdf-slide.title-slide {
+            background: linear-gradient(135deg, var(--corporate-blue) 0%, var(--corporate-dark) 100%) !important;
+            color: white !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+        }
+        
+        .pdf-slide.title-slide h1 {
+            color: white !important;
+            font-size: 2rem !important;
+        }
+        
+        .pdf-slide.title-slide .subtitle,
+        .pdf-slide.title-slide .presenter {
+            color: white !important;
+        }
+        
+        .pdf-slide:last-child {
+            page-break-after: avoid !important;
+        }
+        
+        @media print {
+            body { margin: 0; padding: 0; }
+            .nav-buttons { display: none !important; }
+            .reveal .slides section {
+                page-break-after: always !important;
+                background: white !important;
+            }
+            .title-slide {
+                background: linear-gradient(135deg, var(--corporate-blue) 0%, var(--corporate-dark) 100%) !important;
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+        }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .two-column {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .kpi-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+            <!-- 1. 标题页 -->
+            <section class="title-slide">
+                <div class="corporate-logo"></div>
+                <h1>2024年战略规划</h1>
+                <p class="subtitle">市场扩张与数字化转型路线图</p>
+                <p class="presenter">汇报人：张明 | 战略总监</p>
+                <p class="presenter">日期：2023年11月15日</p>
+            </section>
+            
+            <!-- 2. 议程页 -->
+            <section class="content-slide">
+                <h2>议程</h2>
+                <div class="agenda-item">
+                    <div class="agenda-number">1</div>
+                    <div>
+                        <h3>执行摘要</h3>
+                        <p>关键成果与战略重点</p>
+                    </div>
+                </div>
+                <div class="agenda-item">
+                    <div class="agenda-number">2</div>
+                    <div>
+                        <h3>财务绩效</h3>
+                        <p>KPI达成与趋势分析</p>
+                    </div>
+                </div>
+                <div class="agenda-item">
+                    <div class="agenda-number">3</div>
+                    <div>
+                        <h3>战略路线图</h3>
+                        <p>2024年关键举措与时间表</p>
+                    </div>
+                </div>
+                <div class="agenda-item">
+                    <div class="agenda-number">4</div>
+                    <div>
+                        <h3>重点项目</h3>
+                        <p>市场扩张与能力建设</p>
+                    </div>
+                </div>
+                <div class="agenda-item">
+                    <div class="agenda-number">5</div>
+                    <div>
+                        <h3>总结与下一步</h3>
+                        <p>决策请求与行动计划</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 3. 执行摘要 -->
+            <section class="content-slide">
+                <h2>执行摘要</h2>
+                <div class="executive-summary">
+                    <p>2023年公司实现了<strong>15%的收入增长</strong>和<strong>22%的利润提升</strong>，主要得益于亚太市场的成功扩张和数字化转型举措的有效执行。</p>
+                </div>
+                
+                <div class="kpi-container">
+                    <div class="kpi-card">
+                        <div class="kpi-value">15%</div>
+                        <div class="kpi-label">收入增长</div>
+                        <div class="kpi-trend trend-up"><i class="fas fa-arrow-up"></i> 超出目标3%</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value">22%</div>
+                        <div class="kpi-label">利润提升</div>
+                        <div class="kpi-trend trend-up"><i class="fas fa-arrow-up"></i> 超出目标7%</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value">92%</div>
+                        <div class="kpi-label">客户满意度</div>
+                        <div class="kpi-trend trend-up"><i class="fas fa-arrow-up"></i> 行业领先</div>
+                    </div>
+                </div>
+                
+                <div class="two-column">
+                    <div>
+                        <h3><i class="fas fa-bullseye" style="color: var(--corporate-blue);"></i> 2024年目标</h3>
+                        <ul>
+                            <li>实现20%的收入增长</li>
+                            <li>扩大市场份额至15%</li>
+                            <li>推出2款创新产品</li>
+                            <li>进入欧洲市场</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3><i class="fas fa-exclamation-triangle" style="color: var(--warning-orange);"></i> 关键挑战</h3>
+                        <ul>
+                            <li>全球供应链不确定性</li>
+                            <li>人才竞争加剧</li>
+                            <li>技术变革加速</li>
+                            <li>监管环境变化</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 4. 财务绩效 -->
+            <section class="content-slide">
+                <h2>财务绩效</h2>
+                <p>2023年财务表现强劲，所有主要指标均超过预期。</p>
+                
+                <div class="chart-container">
+                    <div class="chart-title">季度收入趋势（百万元）</div>
+                    <div class="chart-wrapper">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="two-column">
+                    <div>
+                        <h3>收入来源分析</h3>
+                        <ul>
+                            <li>核心业务：58%</li>
+                            <li>新产品线：25%</li>
+                            <li>服务收入：12%</li>
+                            <li>其他：5%</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>区域贡献</h3>
+                        <ul>
+                            <li>北美：45%</li>
+                            <li>欧洲：30%</li>
+                            <li>亚太：20%</li>
+                            <li>其他：5%</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 5. 战略路线图 -->
+            <section class="content-slide">
+                <h2>2024年战略路线图</h2>
+                <p>聚焦三大支柱：市场扩张、产品创新和运营卓越。</p>
+                
+                <div class="mermaid-container">
+                    <div class="mermaid">
+                        graph LR
+                            A[Q1<br/>市场调研] --> B[Q2<br/>试点启动]
+                            B --> C[Q3<br/>全面推广]
+                            C --> D[Q4<br/>优化扩展]
+                            
+                            style A fill:#1A4B8C,color:#fff
+                            style B fill:#2A9D8F,color:#fff
+                            style C fill:#D4AF37,color:#000
+                            style D fill:#38A169,color:#fff
+                    </div>
+                </div>
+                
+                <div class="two-column">
+                    <div>
+                        <h3>Q1-Q2 重点</h3>
+                        <ul>
+                            <li>欧洲市场深入分析</li>
+                            <li>合作伙伴筛选</li>
+                            <li>AI团队组建</li>
+                            <li>产品研发启动</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Q3-Q4 重点</h3>
+                        <ul>
+                            <li>市场试点推进</li>
+                            <li>新产品发布</li>
+                            <li>运营流程优化</li>
+                            <li>绩效评估与调整</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 6. 重点项目 -->
+            <section class="content-slide">
+                <h2>重点项目</h2>
+                
+                <div class="action-item">
+                    <div class="action-title"><i class="fas fa-globe"></i> 欧洲市场扩张</div>
+                    <p>通过战略合作伙伴关系和本地化团队建立，进入欧洲主要市场。</p>
+                    <div class="action-details">
+                        <div class="detail-item">
+                            <span class="detail-label">负责人:</span>
+                            <span>李明</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">预算:</span>
+                            <span>¥500万</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">时间表:</span>
+                            <span>Q2开始</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">预期ROI:</span>
+                            <span>25%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-item">
+                    <div class="action-title"><i class="fas fa-robot"></i> AI能力建设</div>
+                    <p>建立内部AI团队，开发预测分析和自动化解决方案。</p>
+                    <div class="action-details">
+                        <div class="detail-item">
+                            <span class="detail-label">负责人:</span>
+                            <span>王静</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">预算:</span>
+                            <span>¥300万</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">时间表:</span>
+                            <span>Q1开始</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">预期ROI:</span>
+                            <span>40%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="recommendation-box">
+                    <div class="recommendation-title">战略建议</div>
+                    <p>加速数字化转型投资，聚焦高增长市场，通过战略合作伙伴关系降低新市场风险。</p>
+                </div>
+            </section>
+            
+            <!-- 7. 总结与下一步 -->
+            <section class="content-slide">
+                <h2>总结与下一步</h2>
+                
+                <div class="executive-summary">
+                    <p>2024年战略规划聚焦高增长机会，通过市场扩张和数字化转型实现可持续增长。预计需要额外投资¥1500万，预期回报率为30%。</p>
+                </div>
+                
+                <div class="next-steps">
+                    <h3>下一步行动</h3>
+                    <div class="next-step-item">
+                        <i class="fas fa-check-circle"></i>
+                        <div><strong>11月30日前：</strong>完成详细预算编制</div>
+                    </div>
+                    <div class="next-step-item">
+                        <i class="fas fa-check-circle"></i>
+                        <div><strong>12月15日前：</strong>董事会审批战略计划</div>
+                    </div>
+                    <div class="next-step-item">
+                        <i class="fas fa-check-circle"></i>
+                        <div><strong>1月10日前：</strong>组建项目团队并启动计划</div>
+                    </div>
+                </div>
+                
+                <div class="recommendation-box">
+                    <div class="recommendation-title">决策请求</div>
+                    <p>批准2024年战略规划及相应预算，授权执行团队按计划推进各项重点举措。</p>
+                </div>
+            </section>
+        </div>
+    </div>
+    
+    <!-- 导航按钮 -->
+    <div class="nav-buttons">
+        <button class="nav-button" id="homeButton" title="回到首页">
+            <i class="fas fa-home"></i>
+        </button>
+        <button class="nav-button" id="fullscreenButton" title="全屏">
+            <i class="fas fa-expand"></i>
+        </button>
+        <button class="nav-button" id="pdfButton" title="导出PDF">
+            <i class="fas fa-file-pdf"></i>
+        </button>
+    </div>
+    
+    <!-- Reveal.js 脚本 -->
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/zoom/zoom.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.3.1/plugin/notes/notes.js"></script>
+    
+    <script>
+        // Mermaid 初始化
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            fontFamily: 'Inter, sans-serif',
+            flowchart: {
+                useMaxWidth: false,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+        
+        // Reveal.js 初始化
+        Reveal.initialize({
+            hash: true,
+            controls: true,
+            progress: true,
+            center: false,
+            transition: 'slide',
+            backgroundTransition: 'fade',
+            width: "100%",
+            height: "100%",
+            margin: 0.04,
+            plugins: [ RevealMarkdown, RevealHighlight, RevealZoom, RevealNotes ]
+        });
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化收入图表
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            const revenueChart = new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Q1 2022', 'Q2 2022', 'Q3 2022', 'Q4 2022', 'Q1 2023', 'Q2 2023', 'Q3 2023'],
+                    datasets: [{
+                        label: '收入（百万元）',
+                        data: [85, 92, 88, 105, 110, 118, 125],
+                        borderColor: '#1A4B8C',
+                        backgroundColor: 'rgba(26, 75, 140, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 80
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            
+            // 导航按钮功能
+            const homeButton = document.getElementById('homeButton');
+            const fullscreenButton = document.getElementById('fullscreenButton');
+            const pdfBtn = document.getElementById('pdfButton');
+            
+            homeButton.addEventListener('click', function() {
+                Reveal.slide(0, 0);
+            });
+            
+            fullscreenButton.addEventListener('click', function() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            });
+            
+            document.addEventListener('fullscreenchange', function() {
+                if (document.fullscreenElement) {
+                    fullscreenButton.innerHTML = '<i class="fas fa-compress"></i>';
+                } else {
+                    fullscreenButton.innerHTML = '<i class="fas fa-expand"></i>';
+                }
+            });
+			
+			
+			pdfBtn.addEventListener('click',()=>{
+			   exportToPDF();
+			});
+            
+        async function prepareForPdf() {
+            const pdfContainer = document.createElement('div');
+            pdfContainer.className = 'pdf-container';
+			 const allSlides = document.querySelectorAll('.reveal .slides > section');
+            allSlides.forEach(slide => {
+                const clone = slide.cloneNode(true);
+                clone.classList.remove('active');
+                clone.classList.add('pdf-slide');
+                pdfContainer.appendChild(clone);
+            });
+            document.body.appendChild(pdfContainer);
+            return pdfContainer;
+        }
+        
+        function exportToPDF() {
+            console.log('Starting PDF export...');
+            const originalButtonContent = pdfBtn.innerHTML;
+            pdfBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+            pdfBtn.disabled = true;
+            
+            prepareForPdf().then(pdfContainer => {
+                const options = {
+                    margin: 0,
+                    filename: 'presentation.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, allowTaint:true, letterRendering: true },
+                    jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' },
+                    pagebreak: { mode: ['css'] }
+				};
+
+                html2pdf().set(options).from(pdfContainer).save().then(() => {
+                    console.log('PDF export successful!');
+                    //document.body.removeChild(pdfContainer);
+                    pdfBtn.innerHTML = originalButtonContent;
+                    pdfBtn.disabled = false;
+                }).catch(err => {
+                    console.error('PDF export failed:', err);
+                    document.body.removeChild(pdfContainer);
+                    pdfBtn.innerHTML = originalButtonContent;
+                    pdfBtn.disabled = false;
+                    alert('PDF export failed. Check the console for details.');
+                });
+            });
+        }
+        });
+    </script>
+</body>
+</html>
