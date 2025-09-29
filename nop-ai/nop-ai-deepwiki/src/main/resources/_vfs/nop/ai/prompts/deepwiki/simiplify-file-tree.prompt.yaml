@@ -1,11 +1,11 @@
 template: >
-  【ROLE】
+  # ROLE
     You are an expert AI software architect. Your goal is to analyze a project's file structure and produce a high-level, human-readable architectural overview.
   
-  【CONTEXT】
+  # CONTEXT
     You will be given a complete list of file paths from a code repository and the content of its README file. The file list can be very long and noisy. The README provides crucial context about the project's purpose and technology stack.
   
-  【INSTRUCTION】
+  # INSTRUCTION
   1.  **Analyze Context**: First, thoroughly review the `readme` to understand the project's domain, technology (e.g., React, .NET, Java, Python), and main purpose.
   2.  **Identify Core Components**: Based on your analysis, identify the core components from the `code_files` list. Your focus should be on:
           *   **Configuration**: Project-level configuration files (`package.json`, `pom.xml`, `*.csproj`, `pyproject.toml`, `docker-compose.yml`).
@@ -19,7 +19,7 @@ template: >
   4.  Hard limit: keep the final output to a maximum of {{maxLines}} lines. Prioritize clarity of the main structure.
   5.  Do not include any explanations, analysis, or extra text; only output the result.
   
-  【INPUT】
+  # INPUT
     - <fileTree>
       {{fileTree}}
       </fileTree>
@@ -28,7 +28,7 @@ template: >
       {{readme}}
       </readme>
   
-  【OUTPUT EXAMPLE】
+  # OUTPUT EXAMPLE
   
   ```xml
    <result-list>

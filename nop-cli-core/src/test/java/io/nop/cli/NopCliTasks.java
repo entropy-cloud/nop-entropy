@@ -185,7 +185,7 @@ public class NopCliTasks {
     public void testPaths() {
         String[] args = new String[]{
                 "file", "find", "-b", "c:/can/nop/nop-entropy",
-                "-d","nop-xlang",
+                "-d","nop-core",
                 "-o", "target/find.txt"
         };
         NopCliApplication app = new NopCliApplication();

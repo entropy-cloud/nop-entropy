@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mind Elixir JSON 测试工具</title>
+    
+    <!-- 引入 mind-elixir 的 CSS 样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/mind-elixir@5.1.1/dist/style.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            gap: 1px;
+            background: #e2e8f0;
+        }
+
+        .left-panel {
+            width: 40%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            min-width: 400px;
+        }
+
+        .right-panel {
+            flex: 1;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            min-width: 600px;
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 2s;
+        }
+
+        .btn:hover {
+            background: #0284c7;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #64748b;
+            border: 1px solid #cbd5e1;
+        }
+
+        .btn-outline:hover {
+            background: #f1f5f9;
+            color: #334155;
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 11px;
+        }
+
+        /* JSON 编辑器样式 */
+        .json-editor {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .json-toolbar {
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .json-examples {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        #json-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            padding: 16px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            background: #fafafa;
+            color: #2d3748;
+            resize: none;
+            tab-size: 2;
+        }
+
+        #json-input:focus {
+            background: #ffffff;
+        }
+
+        .json-status {
+            padding: 8px 16px;
+            font-size: 12px;
+            background: #f0f9ff;
+            color: #0369a1;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .json-status.error {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .json-status.success {
+            background: #f0fdf4;
+            color: #16a34a;
+        }
+
+        /* 思维导图样式 */
+        .mindmap-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #mindmap {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+
+        .mindmap-status {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        .mindmap-tips {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+
+        /* 拖拽分隔条 */
+        .resize-handle {
+            width: 6px;
+            background: #e2e8f0;
+            cursor: col-resize;
+            user-select: none;
+            position: relative;
+        }
+
+        .resize-handle:hover {
+            background: #cbd5e1;
+        }
+
+        .resize-handle::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 20px;
+            background: #94a3b8;
+            border-radius: 1px;
+        }
+
+        /* Mind Elixir 样式覆盖 */
+        .mind-elixir {
+            width: 100% !important;
+            height: 100% !important;
+            font-family: inherit !important;
+        }
+
+        .mind-elixir .map-container {
+            background: transparent !important;
+            cursor: grab;
+        }
+
+        .mind-elixir .map-container.grabbing {
+            cursor: grabbing !important;
+        }
+
+        .mind-elixir .node {
+            border-radius: 6px !important;
+            border: 1px solid #e2e8f0 !important;
+            background: #ffffff !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+            font-family: inherit !important;
+            font-size: 13px !important;
+            padding: 8px 12px !important;
+            min-width: 60px !important;
+            text-align: center !important;
+        }
+
+        .mind-elixir .root {
+            background: linear-gradient(135deg, #0f172a, #1e293b) !important;
+            color: white !important;
+            font-weight: 600 !important;
+            font-size: 14px !important;
+            border: none !important;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+            padding: 10px 16px !important;
+        }
+
+        .mind-elixir .primary {
+            background: #f8fafc !important;
+            border-color: #cbd5e1 !important;
+            color: #334155 !important;
+            font-weight: 500 !important;
+        }
+
+        .mind-elixir .line {
+            stroke: #475569 !important;
+            stroke-width: 2 !important;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .left-panel {
+                width: 100%;
+                height: 40%;
+                min-width: auto;
+            }
+            
+            .right-panel {
+                min-width: auto;
+            }
+            
+            .resize-handle {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧 JSON 编辑器面板 -->
+        <div class="left-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">📝 JSON 数据编辑器</h2>
+                <div class="btn-group">
+                    <button class="btn btn-outline btn-sm" onclick="formatJSON()">格式化</button>
+                    <button class="btn btn-outline btn-sm" onclick="clearJSON()">清空</button>
+                    <button class="btn btn-sm" onclick="updateMindMap()">更新图表</button>
+                </div>
+            </div>
+            
+            <div class="json-toolbar">
+                <div class="json-examples">
+                    <button class="btn btn-outline btn-sm" onclick="loadExample('simple')">简单示例</button>
+                    <button class="btn btn-outline btn-sm" onclick="loadExample('complex')">复杂示例</button>
+                    <button class="btn btn-outline btn-sm" onclick="loadExample('project')">项目架构</button>
+                </div>
+                <div>
+                    <label>
+                        <input type="checkbox" id="auto-update" checked> 自动更新
+                    </label>
+                </div>
+            </div>
+            
+            <div class="json-editor">
+                <textarea id="json-input" placeholder="请在此粘贴或编辑您的 JSON 数据..."></textarea>
+            </div>
+            
+            <div id="json-status" class="json-status">
+                就绪 - 请输入 JSON 数据
+            </div>
+        </div>
+
+        <!-- 拖拽分隔条 -->
+        <div class="resize-handle" id="resize-handle"></div>
+
+        <!-- 右侧思维导图面板 -->
+        <div class="right-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">🧠 思维导图</h2>
+                <div class="btn-group">
+                    <button class="btn btn-outline btn-sm" onclick="fitView()">🎯 适应视图</button>
+                    <button class="btn btn-outline btn-sm" onclick="exportImage()">📷 导出图片</button>
+                    <button class="btn btn-outline btn-sm" onclick="resetMap()">🔄 重置</button>
+                    <button class="btn btn-outline btn-sm" onclick="expandAll()">⬇️ 全部展开</button>
+                    <button class="btn btn-outline btn-sm" onclick="collapseAll()">⬆️ 全部折叠</button>
+                </div>
+            </div>
+            
+            <div class="mindmap-container">
+                <div id="mindmap"></div>
+                <div id="mindmap-status" class="mindmap-status" style="display: none;"></div>
+                <div class="mindmap-tips">
+                    左键：节点选择/编辑/折叠 • 背景拖动以平移 • 滚轮缩放 • 右键节点菜单
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import MindElixir from 'https://unpkg.com/mind-elixir@5.1.1/dist/MindElixir.js';
+        
+        let mind;
+        let panCleanupRef = null;
+        let isResizing = false;
+
+        // 示例数据
+        const examples = {
+            simple: {
+                "nodes": [
+                    { "id": "root", "label": "根节点", "type": "Root" },
+                    { "id": "child1", "label": "子节点1", "type": "Module" },
+                    { "id": "child2", "label": "子节点2", "type": "Module" }
+                ],
+                "edges": [
+                    { "source": "root", "target": "child1", "label": "包含" },
+                    { "source": "root", "target": "child2", "label": "包含" }
+                ]
+            },
+            complex: {
+                "nodes": [
+                    { "id": "company", "label": "公司", "type": "Root", "evidence": "company.md:1" },
+                    { "id": "tech", "label": "技术部门", "type": "Module", "evidence": "tech/overview.md:1" },
+                    { "id": "sales", "label": "销售部门", "type": "Module", "evidence": "sales/overview.md:1" },
+                    { "id": "frontend", "label": "前端团队", "type": "Service", "evidence": "tech/frontend.md:1" },
+                    { "id": "backend", "label": "后端团队", "type": "Service", "evidence": "tech/backend.md:1" },
+                    { "id": "ui", "label": "UI设计", "type": "Component", "evidence": "design/ui.md:1" },
+                    { "id": "api", "label": "API开发", "type": "Interface", "evidence": "api/docs.md:1" }
+                ],
+                "edges": [
+                    { "source": "company", "target": "tech", "label": "管理", "type": "Manages" },
+                    { "source": "company", "target": "sales", "label": "管理", "type": "Manages" },
+                    { "source": "tech", "target": "frontend", "label": "包含", "type": "Contains" },
+                    { "source": "tech", "target": "backend", "label": "包含", "type": "Contains" },
+                    { "source": "frontend", "target": "ui", "label": "负责", "type": "Responsible" },
+                    { "source": "backend", "target": "api", "label": "开发", "type": "Develops" }
+                ]
+            },
+            project: {
+                "nodes": [
+                    { "id": "root", "label": "Web应用架构", "type": "Root", "evidence": "docs/architecture.md:1" },
+                    { "id": "frontend", "label": "前端层", "type": "Module", "evidence": "src/frontend/index.js:1" },
+                    { "id": "backend", "label": "后端层", "type": "Module", "evidence": "src/backend/app.py:1" },
+                    { "id": "database", "label": "数据层", "type": "Storage", "evidence": "config/database.yml:5" },
+                    { "id": "react", "label": "React框架", "type": "Component", "evidence": "package.json:15" },
+                    { "id": "nodejs", "label": "Node.js", "type": "Service", "evidence": "server.js:1" },
+                    { "id": "mongodb", "label": "MongoDB", "type": "Storage", "evidence": "models/index.js:10" },
+                    { "id": "redis", "label": "Redis缓存", "type": "Storage", "evidence": "config/redis.js:5" },
+                    { "id": "nginx", "label": "Nginx", "type": "Service", "evidence": "nginx.conf:1" }
+                ],
+                "edges": [
+                    { "source": "root", "target": "frontend", "label": "包含", "type": "Contains" },
+                    { "source": "root", "target": "backend", "label": "包含", "type": "Contains" },
+                    { "source": "root", "target": "database", "label": "包含", "type": "Contains" },
+                    { "source": "frontend", "target": "react", "label": "使用", "type": "Uses" },
+                    { "source": "backend", "target": "nodejs", "label": "基于", "type": "BasedOn" },
+                    { "source": "database", "target": "mongodb", "label": "主存储", "type": "Primary" },
+                    { "source": "database", "target": "redis", "label": "缓存", "type": "Cache" },
+                    { "source": "frontend", "target": "nginx", "label": "部署", "type": "Deploy" },
+                    { "source": "backend", "target": "nginx", "label": "代理", "type": "Proxy" }
+                ]
+            }
+        };
+
+        // 显示状态信息
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('json-status');
+            statusEl.textContent = message;
+            statusEl.className = `json-status ${type}`;
+        }
+
+        function showMindMapStatus(message) {
+            const statusEl = document.getElementById('mindmap-status');
+            statusEl.textContent = message;
+            statusEl.style.display = 'block';
+            
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 3000);
+        }
+
+        // 转换数据：为节点添加 expanded，并支持循环检测
+        function convertToMindElixirData(data) {
+            const { nodes, edges } = data;
+
+            if (!nodes || nodes.length === 0) {
+                return { topic: '空白思维导图', id: 'root', root: true, expanded: true, children: [] };
+            }
+
+            // 图标映射
+            const typeIcons = {
+                'MavenProject': '📦', 'ServiceLoaderConfig': '🔌', 'CoreInitializer': '🚀', 'API': '📚',
+                'CompilerFacade': '🛠️', 'SPI Interface': '🧩', 'ProviderImplementation': '⚙️',
+                'Configuration': '📝', 'Constants': '📌', 'Grammar': '📜', 'GeneratedParser': '🤖',
+                'GeneratedLexer': '🤖', 'Parser': '🔍', 'ParseTreeVisitor': '🌳', 'DomainModel': '🏛️',
+                'Builder': '🏗️', 'Optimizer': '✨', 'Transformer': '💫', 'CompilerPass': '🚶',
+                'CodeGenerator': '💻', 'RuntimeBaseClass': '基', 'RuntimeExecutable': '🏃',
+                'RuntimeUtility': '🔧', 'ExpressionParser': '➗', 'ParserInterface': '📏',
+                'ParserBaseClass': '뼈', 'FunctionLibrary': '📖', 'Registry': '🗂️',
+                'ScriptCompiler': '📜', 'TemplateCompiler': '📄', 'TemplateModelParser': '📑',
+                'TagCompilerSet': '🔖', 'TemplateModelLoader': '📤', 'SchemaParser': '🧬',
+                'DomainRegistry': '🌐', 'SchemaLoader': '📥', 'XPathProvider': '🧭',
+                'OperatorRegistry': '🎛️', 'XPathEvaluator': '🕵️', 'CompileScope': '🎯',
+                'Scope': '🎯', 'Utility': '💡', 'ExecutionOrchestrator': ' orchestrator '
+            };
+
+            // 1. 创建节点池和邻接表
+            const nodePool = new Map(nodes.map(node => [node.id, node]));
+            const adj = new Map();
+            const childIds = new Set();
+            (edges || []).forEach(({ source, target, label }) => {
+                if (!adj.has(source)) adj.set(source, []);
+                adj.get(source).push({ childId: target, label: label || '' });
+                childIds.add(target);
+            });
+
+            // 2. 递归构建树的函数
+            const buildTree = (nodeId, edgeLabel, visited) => {
+                // a. 循环检测
+                if (visited.has(nodeId)) {
+                    return {
+                        id: `cycle-${nodeId}-${Math.random()}`,
+                        topic: `↪️ (循环引用) ${nodePool.get(nodeId)?.label || nodeId}`,
+                        tags: ['Cycle'],
+                        expanded: true,
+                        children: []
+                    };
+                }
+
+                const originalNode = nodePool.get(nodeId);
+                if (!originalNode) return null;
+
+                // b. 创建当前节点对象
+                const icon = typeIcons[originalNode.type] || '🔹';
+                let topic = `${icon} ${originalNode.label}`;
+                if (edgeLabel) {
+                    topic = `(${edgeLabel}) ${topic}`;
+                }
+                
+                // c. 为树中的每个实例创建唯一ID，并默认展开（支持收起/展开）
+                const mindElixirNode = {
+                    id: `${nodeId}-${edgeLabel || ''}-${Math.random()}`,
+                    topic: topic,
+                    tags: originalNode.evidence ? [originalNode.evidence] : [],
+                    hyperLink: originalNode.evidence ? `#${originalNode.evidence}` : undefined,
+                    expanded: true, // 关键
+                    children: []
+                };
+
+                // d. 递归构建子节点
+                visited.add(nodeId);
+                if (adj.has(nodeId)) {
+                    for (const { childId, label } of adj.get(nodeId)) {
+                        const childNode = buildTree(childId, label, visited);
+                        if (childNode) {
+                            mindElixirNode.children.push(childNode);
+                        }
+                    }
+                }
+                visited.delete(nodeId);
+
+                return mindElixirNode;
+            };
+
+            // 3. 寻找根节点并构建树
+            const rootIds = nodes.map(n => n.id).filter(id => !childIds.has(id));
+            const rootNodes = rootIds
+                .map(rootId => buildTree(rootId, null, new Set()))
+                .filter(Boolean);
+
+            // 4. 组装最终结果
+            let finalRoot;
+            if (rootNodes.length === 0) {
+                finalRoot = nodes.length > 0 ? buildTree(nodes[0].id, null, new Set()) : { topic: '无数据', id: 'root', expanded: true, children: [] };
+            } else if (rootNodes.length === 1) {
+                finalRoot = rootNodes[0];
+            } else {
+                finalRoot = {
+                    id: 'virtual-root',
+                    topic: '📦 项目模块概览',
+                    expanded: true,
+                    children: rootNodes,
+                };
+            }
+            
+            if (finalRoot) {
+                finalRoot.root = true;
+                finalRoot.expanded = true;
+            }
+
+            return finalRoot || { topic: '数据转换失败', id: 'fallback-root', root: true, expanded: true, children: [] };
+        }
+		
+        // 初始化 Mind Elixir
+        async function initMindElixir(mindData) {
+            const container = document.getElementById('mindmap');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            if (panCleanupRef) {
+                panCleanupRef();
+                panCleanupRef = null;
+            }
+
+            if (mind) {
+                mind.destroy?.();
+            }
+
+            const options = {
+                el: container,
+                direction: MindElixir.SIDE,
+                draggable: true,
+                contextMenu: true,
+                toolBar: false,
+                nodeMenu: true,
+                keypress: true,
+                locale: 'en',
+                overflowHidden: false,
+            };
+
+            mind = new MindElixir(options);
+
+            const mindElixirData = {
+                nodeData: mindData,
+            };
+
+            mind.init(mindElixirData);
+
+            const ensureFit = () => {
+                try {
+                    mind.scaleFit();
+                    mind.toCenter();
+                } catch (e) {
+                    console.warn('适应视图失败:', e);
+                }
+            };
+
+            requestAnimationFrame(ensureFit);
+            setTimeout(ensureFit, 150);
+
+            setupPanHandlers();
+
+            mind.bus.addListener('selectNode', (node) => {
+                console.log('选中节点:', node);
+                if (node.hyperLink) {
+                    window.open(node.hyperLink, '_blank');
+                }
+            });
+
+            mind.bus.addListener('operation', (operation) => {
+                console.log('操作:', operation);
+            });
+        }
+
+        // 平移（背景拖拽）处理：避免拦截节点的折叠/展开点击
+        function setupPanHandlers() {
+            const panState = {
+                isPanning: false,
+                lastX: 0,
+                lastY: 0
+            };
+
+            const isOnMindNode = (target) => {
+                if (!(target instanceof HTMLElement)) return false;
+                return Boolean(
+                    target.closest('.node') ||
+                    target.closest('.node-container') ||
+                    target.closest('[contenteditable]') ||
+                    target.closest('[data-nodeid]') ||
+                    target.closest('.toggle') ||
+                    target.closest('.toggle-btn') ||
+                    target.closest('.expand-btn') ||
+                    target.closest('.me-btn') ||
+                    target.closest('.topic')
+                );
+            };
+
+            const handleMouseDown = (event) => {
+                if (event.button !== 0) return;
+                if (isOnMindNode(event.target)) return; // 让 Mind Elixir 自己处理（含折叠/展开）
+
+                panState.isPanning = true;
+                panState.lastX = event.clientX;
+                panState.lastY = event.clientY;
+                if (mind.container) {
+                    mind.container.style.cursor = 'grabbing';
+                }
+                // 不要 preventDefault，避免拦截节点点击
+            };
+
+            const handleMouseMove = (event) => {
+                if (!panState.isPanning) return;
+
+                const dx = event.clientX - panState.lastX;
+                const dy = event.clientY - panState.lastY;
+
+                if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+
+                mind.move(dx, dy);
+                panState.lastX = event.clientX;
+                panState.lastY = event.clientY;
+                event.preventDefault(); // 真正开始平移时再阻止默认
+            };
+
+            const stopPanning = () => {
+                if (!panState.isPanning) return;
+                panState.isPanning = false;
+                if (mind.container) {
+                    mind.container.style.cursor = 'grab';
+                }
+            };
+
+            mind.container?.addEventListener('mousedown', handleMouseDown);
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', stopPanning);
+
+            panCleanupRef = () => {
+                mind.container?.removeEventListener('mousedown', handleMouseDown);
+                window.removeEventListener('mousemove', handleMouseMove);
+                window.removeEventListener('mouseup', stopPanning);
+            };
+
+            if (mind.container) {
+                mind.container.style.cursor = 'grab';
+            }
+        }
+
+        // JSON 相关函数
+        function validateAndParseJSON() {
+            const input = document.getElementById('json-input').value.trim();
+            
+            if (!input) {
+                showStatus('请输入 JSON 数据', 'error');
+                return null;
+            }
+
+            try {
+                const data = JSON.parse(input);
+                
+                if (!data.nodes || !Array.isArray(data.nodes)) {
+                    throw new Error('JSON 数据必须包含 nodes 数组');
+                }
+                
+                if (data.edges && !Array.isArray(data.edges)) {
+                    throw new Error('edges 必须是数组');
+                }
+
+                showStatus(`✅ JSON 有效 - ${data.nodes.length} 个节点，${(data.edges || []).length} 条边`, 'success');
+                return data;
+                
+            } catch (error) {
+                showStatus(`❌ JSON 错误: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        function updateMindMap() {
+            const data = validateAndParseJSON();
+            if (!data) return;
+
+            try {
+                const mindData = convertToMindElixirData(data);
+                initMindElixir(mindData);
+                showMindMapStatus(`成功更新 - ${data.nodes.length} 个节点`);
+            } catch (error) {
+                console.error('更新思维导图失败:', error);
+                showMindMapStatus('更新失败: ' + error.message);
+            }
+        }
+
+        function formatJSON() {
+            const data = validateAndParseJSON();
+            if (data) {
+                document.getElementById('json-input').value = JSON.stringify(data, null, 2);
+                showStatus('JSON 已格式化', 'success');
+            }
+        }
+
+        function clearJSON() {
+            document.getElementById('json-input').value = '';
+            showStatus('已清空');
+        }
+
+        function loadExample(type) {
+            const data = examples[type];
+            if (data) {
+                document.getElementById('json-input').value = JSON.stringify(data, null, 2);
+                showStatus(`已加载${type}示例`, 'success');
+                
+                if (document.getElementById('auto-update').checked) {
+                    setTimeout(updateMindMap, 100);
+                }
+            }
+        }
+
+        // 思维导图控制函数
+        function fitView() {
+            if (!mind) return;
+            try {
+                mind.scaleFit();
+                mind.toCenter();
+                showMindMapStatus('视图已适应');
+            } catch (error) {
+                showMindMapStatus('适应视图失败');
+            }
+        }
+
+        async function exportImage() {
+            if (!mind) return;
+            try {
+                const blob = await mind.exportPng();
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `mindmap-${new Date().toISOString().slice(0,10)}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showMindMapStatus('图片导出成功！');
+                }
+            } catch (error) {
+                showMindMapStatus('导出失败');
+            }
+        }
+
+        function resetMap() {
+            if (!mind) return;
+            try {
+                const emptyData = {
+                    topic: '🏠 新建思维导图',
+                    id: 'root',
+                    root: true,
+                    expanded: true,
+                    children: []
+                };
+                
+                mind.refresh({
+                    nodeData: emptyData,
+                });
+                showMindMapStatus('思维导图已重置');
+            } catch (error) {
+                showMindMapStatus('重置失败');
+            }
+        }
+
+        // 递归设置 expanded
+        function walkSetExpanded(node, value, { keepRootExpanded = false, isRoot = true } = {}) {
+            if (!node) return;
+            if (keepRootExpanded && isRoot) {
+                node.expanded = true;
+            } else {
+                node.expanded = value;
+            }
+            if (Array.isArray(node.children)) {
+                node.children.forEach(child => walkSetExpanded(child, value, { keepRootExpanded, isRoot: false }));
+            }
+        }
+
+        function expandAll() {
+            if (!mind) return;
+            const root = mind.nodeData || (mind.getAllData?.().nodeData) || (mind.getData?.());
+            if (!root) return;
+            walkSetExpanded(root, true);
+            try {
+                // 直接刷新当前数据
+                mind.refresh();
+                fitView();
+                showMindMapStatus('已全部展开');
+            } catch (e) {
+                console.warn(e);
+            }
+        }
+
+        function collapseAll() {
+            if (!mind) return;
+            const root = mind.nodeData || (mind.getAllData?.().nodeData) || (mind.getData?.());
+            if (!root) return;
+            // 折叠所有子节点，但保留根节点展开
+            walkSetExpanded(root, false, { keepRootExpanded: true });
+            try {
+                mind.refresh();
+                fitView();
+                showMindMapStatus('已全部折叠（保留根节点）');
+            } catch (e) {
+                console.warn(e);
+            }
+        }
+
+        // 面板拖拽调整大小
+        function setupResize() {
+            const handle = document.getElementById('resize-handle');
+            const leftPanel = document.querySelector('.left-panel');
+            const container = document.querySelector('.container');
+
+            handle.addEventListener('mousedown', () => {
+                isResizing = true;
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                
+                const containerRect = container.getBoundingClientRect();
+                const percentage = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+                
+                if (percentage > 20 && percentage < 70) {
+                    leftPanel.style.width = `${percentage}%`;
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                    
+                    // 重新适应思维导图视图
+                    setTimeout(() => {
+                        if (mind) {
+                            mind.refresh();
+                            fitView();
+                        }
+                    }, 100);
+                }
+            });
+        }
+
+        // 自动更新功能
+        function setupAutoUpdate() {
+            const jsonInput = document.getElementById('json-input');
+            const autoUpdate = document.getElementById('auto-update');
+            let updateTimeout;
+
+            jsonInput.addEventListener('input', () => {
+                if (autoUpdate.checked) {
+                    clearTimeout(updateTimeout);
+                    updateTimeout = setTimeout(() => {
+                        const data = validateAndParseJSON();
+                        if (data) {
+                            updateMindMap();
+                        }
+                    }, 1000); // 1秒延迟
+                }
+            });
+        }
+
+        // 将函数挂载到全局对象
+        window.updateMindMap = updateMindMap;
+        window.formatJSON = formatJSON;
+        window.clearJSON = clearJSON;
+        window.loadExample = loadExample;
+        window.fitView = fitView;
+        window.exportImage = exportImage;
+        window.resetMap = resetMap;
+        window.expandAll = expandAll;
+        window.collapseAll = collapseAll;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('页面加载完成，开始初始化...');
+            
+            setupResize();
+            setupAutoUpdate();
+            
+            // 加载默认示例
+            setTimeout(() => {
+                loadExample('project');
+            }, 500);
+        });
+
+        // 清理
+        window.addEventListener('beforeunload', () => {
+            if (panCleanupRef) {
+                panCleanupRef();
+            }
+            if (mind) {
+                mind.destroy?.();
+            }
+        });
+    </script>
+</body>
+</html>
